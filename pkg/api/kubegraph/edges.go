@@ -5,7 +5,6 @@ import (
 
 	"github.com/gonum/graph"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -229,7 +228,7 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 			groupVersionResource = schema.GroupVersionResource{Resource: resource}
 		}
 
-		groupVersionResource, err := registered.RESTMapper().ResourceFor(groupVersionResource)
+		groupVersionResource, err := kapi.Registry.RESTMapper().ResourceFor(groupVersionResource)
 		if err != nil {
 			continue
 		}

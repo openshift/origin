@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -144,7 +143,7 @@ func TestCancelBuildRun(t *testing.T) {
 		test.opts.ReportError = func(err error) {
 			test.opts.HasError = true
 		}
-		test.opts.Mapper = registered.RESTMapper()
+		test.opts.Mapper = kapi.Registry.RESTMapper()
 		test.opts.BuildNames = []string{"ruby-ex"}
 		test.opts.States = []string{"new", "pending", "running"}
 

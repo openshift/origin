@@ -22,7 +22,6 @@ import (
 	oversion "github.com/openshift/origin/pkg/version"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -176,8 +175,8 @@ func (c *AssetConfig) addHandlers(handler http.Handler) (http.Handler, error) {
 	k8sResources := sets.NewString()
 
 	versions := []schema.GroupVersion{}
-	versions = append(versions, registered.GroupOrDie(api.GroupName).GroupVersions...)
-	versions = append(versions, registered.GroupOrDie(kapi.GroupName).GroupVersions...)
+	versions = append(versions, kapi.Registry.GroupOrDie(api.GroupName).GroupVersions...)
+	versions = append(versions, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions...)
 	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
 	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
 	for _, version := range versions {

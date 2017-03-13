@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -308,7 +307,7 @@ func (c *MasterConfig) RunGarbageCollectorController(client *osclient.Client, co
 	config = restclient.AddUserAgent(config, "generic-garbage-collector")
 	config.ContentConfig.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: metaonly.NewMetadataCodecFactory()}
 	// TODO: should use a dynamic RESTMapper built from the discovery results.
-	restMapper := registered.RESTMapper()
+	restMapper := kapi.Registry.RESTMapper()
 	// TODO: needs to take GVR
 	metaOnlyClientPool := dynamic.NewClientPool(config, restMapper, dynamic.LegacyAPIPathResolverFunc)
 	config.ContentConfig.NegotiatedSerializer = nil

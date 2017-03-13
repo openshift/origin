@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -14,7 +14,7 @@ import (
 )
 
 func TestResolveResource(t *testing.T) {
-	mapper := clientcmd.ShortcutExpander{RESTMapper: kcmdutil.ShortcutExpander{RESTMapper: registered.RESTMapper()}}
+	mapper := clientcmd.ShortcutExpander{RESTMapper: kcmdutil.ShortcutExpander{RESTMapper: kapi.Registry.RESTMapper()}}
 
 	tests := []struct {
 		name             string

@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -52,7 +51,7 @@ func hasPodSpec(visited map[reflect.Type]bool, t reflect.Type) bool {
 }
 
 func internalGroupVersions() []schema.GroupVersion {
-	groupVersions := registered.EnabledVersions()
+	groupVersions := kapi.Registry.EnabledVersions()
 	groups := map[string]struct{}{}
 	for _, gv := range groupVersions {
 		groups[gv.Group] = struct{}{}

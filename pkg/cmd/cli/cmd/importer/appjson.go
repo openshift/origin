@@ -13,7 +13,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -122,7 +121,7 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 		}
 		o.OutputVersions = append(o.OutputVersions, gv)
 	}
-	o.OutputVersions = append(o.OutputVersions, registered.EnabledVersions()...)
+	o.OutputVersions = append(o.OutputVersions, kapi.Registry.EnabledVersions()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create

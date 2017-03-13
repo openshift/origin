@@ -18,7 +18,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -251,7 +250,7 @@ func ExaminePodDiskUsage(oc *CLI) {
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
 func WriteObjectToFile(obj runtime.Object, filename string) error {
-	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), obj)
+	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...), obj)
 	if err != nil {
 		return err
 	}

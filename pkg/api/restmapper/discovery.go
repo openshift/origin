@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -58,7 +57,7 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 
 		if len(group.PreferredVersion.Version) != 0 {
 			preferredVersion := schema.GroupVersion{Group: group.Name, Version: group.PreferredVersion.Version}
-			if registered.IsEnabledVersion(preferredVersion) {
+			if kapi.Registry.IsEnabledVersion(preferredVersion) {
 				resourcePriority = append(resourcePriority, preferredVersion.WithResource(meta.AnyResource))
 				kindPriority = append(kindPriority, preferredVersion.WithKind(meta.AnyKind))
 			}
@@ -66,10 +65,10 @@ func (d *discoveryRESTMapper) getDelegate() (meta.RESTMapper, error) {
 
 		for _, discoveryVersion := range group.Versions {
 			version := schema.GroupVersion{Group: group.Name, Version: discoveryVersion.Version}
-			if !registered.IsEnabledVersion(version) {
+			if !kapi.Registry.IsEnabledVersion(version) {
 				continue
 			}
-			groupMeta, err := registered.Group(group.Name)
+			groupMeta, err := kapi.Registry.Group(group.Name)
 			if err != nil {
 				return nil, err
 			}

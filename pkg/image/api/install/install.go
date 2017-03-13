@@ -7,7 +7,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apimachinery"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -29,10 +28,10 @@ var availableVersions = []schema.GroupVersion{
 }
 
 func init() {
-	registered.RegisterVersions(availableVersions)
+	kapi.Registry.RegisterVersions(availableVersions)
 	externalVersions := []schema.GroupVersion{}
 	for _, v := range availableVersions {
-		if registered.IsAllowedVersion(v) {
+		if kapi.Registry.IsAllowedVersion(v) {
 			externalVersions = append(externalVersions, v)
 		}
 	}
@@ -41,7 +40,7 @@ func init() {
 		return
 	}
 
-	if err := registered.EnableVersions(externalVersions...); err != nil {
+	if err := kapi.Registry.EnableVersions(externalVersions...); err != nil {
 		panic(err)
 	}
 	if err := enableVersions(externalVersions); err != nil {
@@ -51,8 +50,8 @@ func init() {
 
 // TODO: enableVersions should be centralized rather than spread in each API
 // group.
-// We can combine registered.RegisterVersions, registered.EnableVersions and
-// registered.RegisterGroup once we have moved enableVersions there.
+// We can combine kapi.Registry.RegisterVersions, kapi.Registry.EnableVersions and
+// kapi.Registry.RegisterGroup once we have moved enableVersions there.
 func enableVersions(externalVersions []schema.GroupVersion) error {
 	addVersionsToScheme(externalVersions...)
 	preferredExternalVersion := externalVersions[0]
@@ -65,7 +64,7 @@ func enableVersions(externalVersions []schema.GroupVersion) error {
 		InterfacesFor: interfacesFor,
 	}
 
-	if err := registered.RegisterGroup(groupMeta); err != nil {
+	if err := kapi.Registry.RegisterGroup(groupMeta); err != nil {
 		return err
 	}
 	return nil
@@ -76,7 +75,7 @@ func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	api.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
-		if !registered.IsEnabledVersion(v) {
+		if !kapi.Registry.IsEnabledVersion(v) {
 			glog.Errorf("Version %s is not enabled, so it will not be added to the Scheme.", v)
 			continue
 		}
@@ -122,7 +121,7 @@ func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error)
 		}, nil
 
 	default:
-		g, _ := registered.Group(api.LegacyGroupName)
+		g, _ := kapi.Registry.Group(api.LegacyGroupName)
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -242,7 +241,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 	if configapi.HasKubernetesAPIVersion(*c.Options.KubernetesMasterConfig, kubeapiv1.SchemeGroupVersion) {
 		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", genericapiserver.DefaultLegacyAPIPrefix))
 	}
-	versions := registered.EnabledVersions()
+	versions := kapi.Registry.EnabledVersions()
 	sort.Sort(sortedGroupVersions(versions))
 	for _, ver := range versions {
 		if ver.String() == "v1" {
@@ -441,7 +440,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 		if gv == v1.SchemeGroupVersion {
 			continue
 		}
-		if !registered.IsEnabledVersion(gv) {
+		if !kapi.Registry.IsEnabledVersion(gv) {
 			continue
 		}
 
@@ -955,20 +954,20 @@ func initMetricsRoute(apiContainer *genericmux.APIContainer, path string) {
 func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
+	for _, gv := range kapi.Registry.EnabledVersions() {
 		if seenGroups.Has(gv.Group) {
 			continue
 		}
 		seenGroups.Insert(gv.Group)
 
-		groupMeta, err := registered.Group(gv.Group)
+		groupMeta, err := kapi.Registry.Group(gv.Group)
 		if err != nil {
 			continue
 		}
 		restMapper = meta.MultiRESTMapper(append(restMapper, groupMeta.RESTMapper))
 	}
 
-	statusMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{kubeapiv1.SchemeGroupVersion}, registered.GroupOrDie(kapi.GroupName).InterfacesFor)
+	statusMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{kubeapiv1.SchemeGroupVersion}, kapi.Registry.GroupOrDie(kapi.GroupName).InterfacesFor)
 	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot)
 	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
 
@@ -981,7 +980,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
 		Copier:    kapi.Scheme,
-		Linker:    registered.GroupOrDie("").SelfLinker,
+		Linker:    kapi.Registry.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),

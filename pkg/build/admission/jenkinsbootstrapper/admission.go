@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
@@ -105,7 +104,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	bulk := &cmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:  registered.RESTMapper(),
+			RESTMapper:  kapi.Registry.RESTMapper(),
 			ObjectTyper: kapi.Scheme,
 			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 				// TODO this is a nasty copy&paste from pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping

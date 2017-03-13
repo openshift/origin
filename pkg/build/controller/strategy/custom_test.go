@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -130,7 +129,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 		Codec: kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 	}
 
-	for _, version := range registered.GroupOrDie(buildapi.LegacyGroupName).GroupVersions {
+	for _, version := range kapi.Registry.GroupOrDie(buildapi.LegacyGroupName).GroupVersions {
 		// Create new Build specification and modify Spec API version
 		build := mockCustomBuild(false, false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)

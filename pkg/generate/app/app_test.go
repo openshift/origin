@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -162,7 +161,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 		Items: items,
 	}
 
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), out)
 	if err != nil {
 		log.Fatalf("Unable to generate output: %v", err)
 	}

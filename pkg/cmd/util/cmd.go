@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -84,7 +83,7 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 		if err != nil {
 			return nil, err
 		}
-		groupMeta, err := registered.Group(kind.Group)
+		groupMeta, err := kapi.Registry.Group(kind.Group)
 		if err != nil {
 			return nil, err
 		}

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,7 +17,7 @@ import (
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		seen := map[reflect.Type]bool{}
 
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
@@ -64,7 +63,7 @@ func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
 
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		if seenGroups.Has(version.Group) {
 			continue
 		}
@@ -117,7 +116,7 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 func TestExternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}

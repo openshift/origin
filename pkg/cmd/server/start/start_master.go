@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
@@ -668,7 +667,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
 		// TODO: should use a dynamic RESTMapper built from the discovery results.
-		restMapper := registered.RESTMapper()
+		restMapper := kapi.Registry.RESTMapper()
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
 
 		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)

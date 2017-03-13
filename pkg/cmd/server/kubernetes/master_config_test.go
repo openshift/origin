@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	kapi "k8s.io/kubernetes/pkg/api"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
@@ -46,9 +46,9 @@ func TestAPIServerDefaults(t *testing.T) {
 			MinRequestTimeout:       1800,
 			ServiceNodePortRange:    genericapiserveroptions.DefaultServiceNodePortRange,
 			RuntimeConfig:           utilconfig.ConfigurationMap{},
-			StorageVersions:         registered.AllPreferredGroupVersions(),
+			StorageVersions:         kapi.Registry.AllPreferredGroupVersions(),
 			MasterCount:             1,
-			DefaultStorageVersions:  registered.AllPreferredGroupVersions(),
+			DefaultStorageVersions:  kapi.Registry.AllPreferredGroupVersions(),
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",

@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -130,7 +129,7 @@ func BuildGraph(path string) (osgraph.Graph, []runtime.Object, error) {
 		return g, objs, err
 	}
 
-	mapper := registered.RESTMapper()
+	mapper := kapi.Registry.RESTMapper()
 	typer := kapi.Scheme
 	clientMapper := resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
 		return nil, nil
