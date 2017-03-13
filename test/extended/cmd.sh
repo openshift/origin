@@ -27,7 +27,8 @@ trap "cleanup" EXIT
 os::log::info "Starting server"
 
 os::util::environment::use_sudo
-os::util::environment::setup_all_server_vars "test-extended/cmd/"
+os::util::environment::setup_tmpdir_vars "test-extended/cmd/"
+os::util::environment::setup_all_server_vars
 
 os::log::system::start
 

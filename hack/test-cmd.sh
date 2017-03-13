@@ -72,7 +72,8 @@ export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
-os::util::environment::setup_all_server_vars "test-cmd/"
+os::util::environment::setup_tmpdir_vars "test-cmd/"
+os::util::environment::setup_all_server_vars
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then

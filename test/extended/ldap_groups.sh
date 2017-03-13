@@ -26,7 +26,8 @@ os::log::info "Starting server"
 
 os::util::ensure::iptables_privileges_exist
 os::util::environment::use_sudo
-os::util::environment::setup_all_server_vars "test-extended/ldap_groups/"
+os::util::environment::setup_tmpdir_vars "test-extended/ldap_groups/"
+os::util::environment::setup_all_server_vars
 
 os::log::system::start
 

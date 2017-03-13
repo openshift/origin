@@ -86,9 +86,6 @@ readonly -f os::util::environment::setup_time_vars
 #  - export USE_IMAGES
 #  - export TAG
 function os::util::environment::setup_all_server_vars() {
-    local subtempdir=$1
-
-    os::util::environment::setup_tmpdir_vars "${subtempdir}"
     os::util::environment::setup_kubelet_vars
     os::util::environment::setup_etcd_vars
     os::util::environment::setup_server_vars

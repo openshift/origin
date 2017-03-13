@@ -34,16 +34,29 @@ function os::test::extended::setup () {
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	os::util::environment::setup_time_vars
-	os::util::environment::use_sudo
-	os::util::environment::setup_all_server_vars "test-extended/core"
-
-	os::util::ensure::iptables_privileges_exist
+	os::util::environment::setup_tmpdir_vars "test-extended/core"
 
 	# Allow setting $JUNIT_REPORT to toggle output behavior
 	if [[ -n "${JUNIT_REPORT:-}" ]]; then
 		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 		# the Ginkgo tests also generate jUnit but expect different envars
 		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+	fi
+
+	# TODO: we shouldn't have to do this much work just to get tests to run against a real
+	#   cluster, until then
+	if [[ -n "${TEST_ONLY-}" ]]; then
+		function cleanup() {
+			out=$?
+			os::test::junit::generate_oscmd_report
+			os::log::info "Exiting"
+			return $out
+		}
+		trap "exit" INT TERM
+		trap "cleanup" EXIT
+
+		os::log::info "Not starting server"
+		return 0
 	fi
 
 	function cleanup() {
@@ -59,13 +72,9 @@ function os::test::extended::setup () {
 	trap "exit" INT TERM
 	trap "cleanup" EXIT
 
-	# allow setup to be skipped
-	if [[ -n "${TEST_ONLY+x}" ]]; then
-		export SKIP_TEARDOWN='true'
-		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
-		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
-		return 0
-	fi
+	os::util::environment::use_sudo
+	os::util::environment::setup_all_server_vars
+	os::util::ensure::iptables_privileges_exist
 
 	os::log::info "Starting server"
 
