@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"

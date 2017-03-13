@@ -14,8 +14,8 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	"github.com/golang/glog"
 )
