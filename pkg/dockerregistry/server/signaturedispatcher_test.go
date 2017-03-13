@@ -18,7 +18,6 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -56,11 +55,10 @@ func TestSignatureGet(t *testing.T) {
 	}
 	testImageStream.Annotations[imageapi.InsecureRepositoryAnnotation] = "true"
 	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
-
 	client.AddReactor("get", "imagestreamimages", registrytest.GetFakeImageStreamImageGetHandler(t, testImageStream, *testImage))
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, fake.NewSimpleClientset()))
+	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
 	ctx = withUserClient(ctx, client)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
@@ -163,7 +161,7 @@ func TestSignaturePut(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, fake.NewSimpleClientset()))
+	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
 	ctx = withUserClient(ctx, client)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",

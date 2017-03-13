@@ -103,7 +103,7 @@ func init() {
 				panic(fmt.Sprintf("Configuration error: OpenShift storage driver middleware not activated"))
 			}
 
-			registryOSClient, kClient, errClients := RegistryClientFrom(ctx).Clients()
+			registryOSClient, kCoreClient, errClients := RegistryClientFrom(ctx).Clients()
 			if errClients != nil {
 				return nil, errClients
 			}
@@ -111,7 +111,7 @@ func init() {
 				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
 
-			return newRepositoryWithClient(ctx, registryOSClient, kClient.Core(), kClient.Core(), repo, options)
+			return newRepositoryWithClient(ctx, registryOSClient, kCoreClient, repo, options)
 		},
 	)
 
@@ -128,7 +128,6 @@ type repository struct {
 	distribution.Repository
 
 	ctx              context.Context
-	quotaClient      kcoreclient.ResourceQuotasGetter
 	limitClient      kcoreclient.LimitRangesGetter
 	registryOSClient client.Interface
 	registryAddr     string
@@ -160,7 +159,6 @@ type repository struct {
 func newRepositoryWithClient(
 	ctx context.Context,
 	registryOSClient client.Interface,
-	quotaClient kcoreclient.ResourceQuotasGetter,
 	limitClient kcoreclient.LimitRangesGetter,
 	repo distribution.Repository,
 	options map[string]interface{},
@@ -204,7 +202,6 @@ func newRepositoryWithClient(
 		Repository: repo,
 
 		ctx:                    ctx,
-		quotaClient:            quotaClient,
 		limitClient:            limitClient,
 		registryOSClient:       registryOSClient,
 		registryAddr:           registryAddr,
@@ -274,7 +271,7 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 	bs := r.Repository.Blobs(ctx)
 
-	if !quotaEnforcing.enforcementDisabled {
+	if quotaEnforcing.enforcementEnabled {
 		bs = &quotaRestrictedBlobStore{
 			BlobStore: bs,
 

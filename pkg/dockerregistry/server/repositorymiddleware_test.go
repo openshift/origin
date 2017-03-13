@@ -24,7 +24,6 @@ import (
 	"github.com/docker/libtrust"
 
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	"k8s.io/kubernetes/pkg/util/diff"
 
@@ -714,8 +713,6 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 		return nil, err
 	}
 
-	kFakeClient := fake.NewSimpleClientset()
-
 	parts := strings.SplitN(ref.Name(), "/", 3)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("failed to parse repository name %q", ref.Name())
@@ -734,8 +731,7 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 		Repository: repo,
 
 		ctx:              ctx,
-		quotaClient:      kFakeClient.Core(),
-		limitClient:      kFakeClient.Core(),
+		limitClient:      nil,
 		registryOSClient: reg.osClient,
 		registryAddr:     "localhost:5000",
 		namespace:        nm,

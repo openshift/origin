@@ -15,7 +15,6 @@ package server
 import (
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 
@@ -35,43 +34,39 @@ const (
 func newQuotaEnforcingConfig(ctx context.Context, enforceQuota, projectCacheTTL string, options map[string]interface{}) *quotaEnforcingConfig {
 	enforce, err := getBoolOption(EnforceQuotaEnvVar, "enforcequota", false, options)
 	if err != nil {
-		logrus.Error(err)
+		context.GetLogger(ctx).Error(err)
 	}
 
 	if !enforce {
 		context.GetLogger(ctx).Info("quota enforcement disabled")
-		return &quotaEnforcingConfig{
-			enforcementDisabled:  true,
-			projectCacheDisabled: true,
-		}
+		return &quotaEnforcingConfig{}
 	}
 
 	ttl, err := getDurationOption(ProjectCacheTTLEnvVar, "projectcachettl", defaultProjectCacheTTL, options)
 	if err != nil {
-		logrus.Error(err)
+		context.GetLogger(ctx).Error(err)
 	}
 
 	if ttl <= 0 {
 		context.GetLogger(ctx).Info("not using project caches for quota objects")
 		return &quotaEnforcingConfig{
-			projectCacheDisabled: true,
+			enforcementEnabled: true,
 		}
 	}
 
 	context.GetLogger(ctx).Infof("caching project quota objects with TTL %s", ttl.String())
 	return &quotaEnforcingConfig{
-		limitRanges: newProjectObjectListCache(ttl),
+		enforcementEnabled: true,
+		limitRanges:        newProjectObjectListCache(ttl),
 	}
 }
 
 // quotaEnforcingConfig holds configuration and caches of object lists keyed by project name. Caches are
 // thread safe and shall be reused by all middleware layers.
 type quotaEnforcingConfig struct {
-	// if set, disables quota enforcement
-	enforcementDisabled bool
-	// if set, disables use of caching of quota objects per project
-	projectCacheDisabled bool
-	// a cache of limit range objects keyed by project name
+	// if set, enables quota enforcement
+	enforcementEnabled bool
+	// if set, enables caching of quota objects per project
 	limitRanges projectObjectListStore
 }
 
@@ -137,9 +132,9 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 	return bw.BlobWriter.Commit(ctx, provisional)
 }
 
-// getLimitRangeList returns list of limit ranges for namespace.
+// getLimitRangeList returns list of limit ranges for repo.
 func getLimitRangeList(ctx context.Context, limitClient kcoreclient.LimitRangesGetter, namespace string) (*kapi.LimitRangeList, error) {
-	if !quotaEnforcing.projectCacheDisabled {
+	if quotaEnforcing.limitRanges != nil {
 		obj, exists, _ := quotaEnforcing.limitRanges.get(namespace)
 		if exists {
 			return obj.(*kapi.LimitRangeList), nil
@@ -154,7 +149,7 @@ func getLimitRangeList(ctx context.Context, limitClient kcoreclient.LimitRangesG
 		return nil, err
 	}
 
-	if !quotaEnforcing.projectCacheDisabled {
+	if quotaEnforcing.limitRanges != nil {
 		err = quotaEnforcing.limitRanges.add(namespace, lrs)
 		if err != nil {
 			context.GetLogger(ctx).Errorf("failed to cache limit range list: %v", err)
