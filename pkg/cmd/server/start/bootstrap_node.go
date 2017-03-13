@@ -16,9 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	utilcert "k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	utilcert "k8s.io/kubernetes/pkg/util/cert"
 
 	"crypto/rsa"
 
