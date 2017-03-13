@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
@@ -147,7 +148,7 @@ func (o *NewServiceAccountTokenOptions) Run() error {
 	}
 
 	tokenSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: osautil.GetTokenSecretNamePrefix(serviceAccount),
 			Namespace:    serviceAccount.Namespace,
 			Labels:       o.Labels,
@@ -188,7 +189,7 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 	// there is no provided rounding function, so we use Round(x) === Floor(x + 0.5)
 	timeoutSeconds := int64(math.Floor(timeout.Seconds() + 0.5))
 
-	options := api.ListOptions{
+	options := metav1.ListOptions{
 		FieldSelector:   fields.SelectorFromSet(fields.Set(map[string]string{"metadata.name": token.Name})),
 		Watch:           true,
 		ResourceVersion: token.ResourceVersion,

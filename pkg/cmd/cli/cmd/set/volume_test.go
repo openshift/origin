@@ -7,6 +7,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,7 +17,7 @@ import (
 
 func fakePodWithVol() *api.Pod {
 	fakePod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "fakepod",
 		},
@@ -49,7 +50,7 @@ func fakePodWithVol() *api.Pod {
 
 func makeFakePod() *api.Pod {
 	fakePod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      "fakepod",
 		},

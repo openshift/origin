@@ -132,7 +132,7 @@ func launchTestMulticastPod(f *e2e.Framework, nodeName string, podName string) (
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
 		Spec: api.PodSpec{

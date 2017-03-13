@@ -22,14 +22,14 @@ type testAction struct {
 func testData() []*imageapi.ImageStream {
 	return []*imageapi.ImageStream{
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{},
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -44,7 +44,7 @@ func testData() []*imageapi.ImageStream {
 			},
 		},
 		{
-			ObjectMeta: api.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "myproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imageapi.ImageStreamSpec{
 				DockerImageRepository: "",
 				Tags: map[string]imageapi.TagReference{
@@ -218,7 +218,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 func TestRunTag_AddNew(t *testing.T) {
 	client := testclient.NewSimpleFake(
 		&imageapi.ImageStreamTag{
-			ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 		},
 	)
 
@@ -312,7 +312,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 
 func TestRunTag_DeleteNew(t *testing.T) {
 	is := &imageapi.ImageStreamTag{
-		ObjectMeta: api.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
+		ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 	}
 	client := testclient.NewSimpleFake(is)
 

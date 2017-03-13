@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	restclient "k8s.io/client-go/rest"
@@ -72,7 +73,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	}
 
 	// Make sure the service account doesn't have access
-	failNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-fail"}}
+	failNS := &api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-fail"}}
 	if _, err := cluster1SAKubeClient.Namespaces().Create(failNS); !errors.IsForbidden(err) {
 		t.Fatalf("expected forbidden error, got %v", err)
 	}
@@ -92,7 +93,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 
 	// Make sure the service account now has access
 	// This tests authentication using the etcd-based token getter
-	passNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass"}}
+	passNS := &api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-pass"}}
 	if _, err := cluster1SAKubeClient.Namespaces().Create(passNS); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -211,7 +212,7 @@ func waitForServiceAccountPullSecret(client *kclientset.Clientset, ns, name stri
 }
 
 func getServiceAccountPullSecret(client *kclientset.Clientset, ns, name string) (string, error) {
-	secrets, err := client.Core().Secrets(ns).List(api.ListOptions{})
+	secrets, err := client.Core().Secrets(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}

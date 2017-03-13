@@ -26,7 +26,7 @@ func createDNSPod(namespace, probeCmd string) *api.Pod {
 			Kind:       "Pod",
 			APIVersion: kapi.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "dns-test-" + string(uuid.NewUUID()),
 			Namespace: namespace,
 		},
@@ -179,14 +179,14 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
-		podClient.Delete(pod.Name, api.NewDeleteOptions(0))
+		podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
 	}()
 	updated, err := podClient.Create(pod)
 	if err != nil {
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(api.SingleObject(api.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
@@ -217,7 +217,7 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 
 func createServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *api.Service {
 	s := &api.Service{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Spec: api.ServiceSpec{
@@ -240,7 +240,7 @@ func createServiceSpec(serviceName string, isHeadless bool, externalName string,
 
 func createEndpointSpec(name string) *api.Endpoints {
 	return &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Subsets: []api.EndpointSubset{

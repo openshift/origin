@@ -106,7 +106,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 
 	servicePort := 8080
 	service := &api.Service{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
 		Spec: api.ServiceSpec{
@@ -139,7 +139,7 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Pod",
 		},
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 		},
 		Spec: api.PodSpec{

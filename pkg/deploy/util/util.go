@@ -306,7 +306,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 	podAnnotations[deployapi.DeploymentVersionAnnotation] = strconv.FormatInt(config.Status.LatestVersion, 10)
 
 	deployment := &api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      deploymentName,
 			Namespace: config.Namespace,
 			Annotations: map[string]string{
@@ -325,7 +325,7 @@ func MakeDeployment(config *deployapi.DeploymentConfig, codec runtime.Codec) (*a
 			Replicas: 0,
 			Selector: selector,
 			Template: &api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
 					Annotations: podAnnotations,
 				},
@@ -527,7 +527,7 @@ func MaxSurge(config deployapi.DeploymentConfig) int32 {
 
 // annotationFor returns the annotation with key for obj.
 func annotationFor(obj runtime.Object, key string) string {
-	meta, err := api.ObjectMetaFor(obj)
+	meta, err := metav1.ObjectMetaFor(obj)
 	if err != nil {
 		return ""
 	}
@@ -591,7 +591,7 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 		return nil
 	}
 	watcher, err := podClient.Pods(rc.Namespace).Watch(
-		api.ListOptions{
+		metav1.ListOptions{
 			FieldSelector: fields.Set{"metadata.name": podName}.AsSelector(),
 		},
 	)

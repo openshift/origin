@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,7 +50,7 @@ func imagePullSecretReferences() []api.LocalObjectReference {
 // serviceAccount returns a service account with the given secret refs
 func serviceAccount(secretRefs []api.ObjectReference, imagePullSecretRefs []api.LocalObjectReference) *api.ServiceAccount {
 	return &api.ServiceAccount{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "default",
 			UID:             "12345",
 			Namespace:       "default",
@@ -64,7 +65,7 @@ func serviceAccount(secretRefs []api.ObjectReference, imagePullSecretRefs []api.
 // Named "default-token-fplln", since that is the first generated name after rand.Seed(1)
 func createdDockercfgSecret() *api.Secret {
 	return &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "default-dockercfg-fplln",
 			Namespace: "default",
 			Annotations: map[string]string{
@@ -83,7 +84,7 @@ func createdDockercfgSecret() *api.Secret {
 // opaqueSecret returns a persisted non-ServiceAccountToken secret named "regular-secret-1"
 func opaqueSecret() *api.Secret {
 	return &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "regular-secret-1",
 			Namespace:       "default",
 			UID:             "23456",
@@ -99,7 +100,7 @@ func opaqueSecret() *api.Secret {
 // serviceAccountTokenSecret returns an existing ServiceAccountToken secret named "token-secret-1"
 func serviceAccountTokenSecret() *api.Secret {
 	return &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "token-secret-1",
 			Namespace:       "default",
 			UID:             "23456",
@@ -138,7 +139,7 @@ func TestTokenDeletion(t *testing.T) {
 			DeletedSecret: serviceAccountTokenSecret(),
 
 			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -147,7 +148,7 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -156,7 +157,7 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", api.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
 				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
