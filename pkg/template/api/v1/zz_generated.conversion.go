@@ -5,12 +5,10 @@
 package v1
 
 import (
-	unsafe "unsafe"
-
 	api "github.com/openshift/origin/pkg/template/api"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -61,9 +59,8 @@ func Convert_api_Parameter_To_v1_Parameter(in *api.Parameter, out *Parameter, s 
 }
 
 func autoConvert_v1_Template_To_api_Template(in *Template, out *api.Template, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.TypeMeta = in.TypeMeta
+	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	if in.Objects != nil {
 		in, out := &in.Objects, &out.Objects
@@ -86,9 +83,8 @@ func Convert_v1_Template_To_api_Template(in *Template, out *api.Template, s conv
 }
 
 func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.TypeMeta = in.TypeMeta
+	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	out.Parameters = *(*[]Parameter)(unsafe.Pointer(&in.Parameters))
 	if in.Objects != nil {
@@ -111,6 +107,7 @@ func Convert_api_Template_To_v1_Template(in *api.Template, out *Template, s conv
 }
 
 func autoConvert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.TemplateList, s conversion.Scope) error {
+	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -131,6 +128,7 @@ func Convert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.Temp
 }
 
 func autoConvert_api_TemplateList_To_v1_TemplateList(in *api.TemplateList, out *TemplateList, s conversion.Scope) error {
+	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
