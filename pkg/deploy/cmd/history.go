@@ -32,7 +32,7 @@ var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}
 
 // ViewHistory returns a description of all the history it can find for a deployment config.
 func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revision int64) (string, error) {
-	opts := metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(name)}
+	opts := metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(name).String()}
 	deploymentList, err := h.rn.ReplicationControllers(namespace).List(opts)
 	if err != nil {
 		return "", err
