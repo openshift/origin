@@ -2,6 +2,7 @@ package oauthclientauthorization
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,7 +17,7 @@ type Registry interface {
 	// ListClientAuthorizations obtains a list of client auths that match a selector.
 	ListClientAuthorizations(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientAuthorizationList, error)
 	// GetClientAuthorization retrieves a specific client auth.
-	GetClientAuthorization(ctx apirequest.Context, name string) (*api.OAuthClientAuthorization, error)
+	GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error)
 	// CreateClientAuthorization creates a new client auth.
 	CreateClientAuthorization(ctx apirequest.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error)
 	// UpdateClientAuthorization updates a client auth.
@@ -48,8 +49,8 @@ func (s *storage) ListClientAuthorizations(ctx apirequest.Context, options *meta
 	return obj.(*api.OAuthClientAuthorizationList), nil
 }
 
-func (s *storage) GetClientAuthorization(ctx apirequest.Context, name string) (*api.OAuthClientAuthorization, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
