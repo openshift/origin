@@ -191,7 +191,7 @@ func TestGetImageStreamTag(t *testing.T) {
 				)
 			}
 
-			obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
+			obj, err := storage.Get(apirequest.NewDefaultContext(), "test:latest")
 			gotErr := err != nil
 			if e, a := testCase.expectError, gotErr; e != a {
 				t.Errorf("%s: Expected err=%v: got %v: %v", name, e, a, err)
@@ -261,7 +261,7 @@ func TestGetImageStreamTagDIR(t *testing.T) {
 		etcdtest.AddPrefix("/imagestreams/default/test"),
 		runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), repo),
 	)
-	obj, err := storage.Get(kapi.NewDefaultContext(), "test:latest")
+	obj, err := storage.Get(apirequest.NewDefaultContext(), "test:latest")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -388,7 +388,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				)
 			}
 
-			ctx := apirequest.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+			ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
 			obj, err := storage.Delete(ctx, "test:latest")
 			gotError := err != nil
 			if e, a := testCase.expectError, gotError; e != a {
@@ -406,7 +406,7 @@ func TestDeleteImageStreamTag(t *testing.T) {
 				t.Errorf("%s:\nexpect=%#v\nactual=%#v", name, e, a)
 			}
 
-			updatedRepo, err := storage.imageStreamRegistry.GetImageStream(kapi.NewDefaultContext(), "test")
+			updatedRepo, err := storage.imageStreamRegistry.GetImageStream(apirequest.NewDefaultContext(), "test")
 			if err != nil {
 				t.Fatalf("%s: error retrieving updated repo: %s", name, err)
 			}

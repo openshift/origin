@@ -20,7 +20,7 @@ import (
 
 func TestCreateErrorDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -33,7 +33,7 @@ func TestCreateErrorDepr(t *testing.T) {
 
 func TestCreateInvalidDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -61,7 +61,7 @@ func TestCreateOkDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -100,7 +100,7 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -133,7 +133,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -173,7 +173,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",
@@ -209,7 +209,7 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 		codec: kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name:      "deployment",

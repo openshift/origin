@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/project/api"
 )
 
 func TestProjectStrategy(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	if Strategy.NamespaceScoped() {
 		t.Errorf("Projects should not be namespace scoped")
 	}

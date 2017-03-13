@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
@@ -261,7 +262,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 		defer server.Terminate(t)
 		defer storage.Store.DestroyFunc()
 
-		obj, err := storage.Create(kapi.NewDefaultContext(), test.image)
+		obj, err := storage.Create(apirequest.NewDefaultContext(), test.image)
 		if obj == nil {
 			t.Errorf("%d: Expected nil obj, got %v", i, obj)
 			continue
@@ -411,7 +412,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Clear the resource version before creating
 		test.existing.ResourceVersion = ""
-		created, err := storage.Create(kapi.NewDefaultContext(), test.existing)
+		created, err := storage.Create(apirequest.NewDefaultContext(), test.existing)
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue
@@ -419,7 +420,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 
 		// Copy the resource version into our update object
 		test.image.ResourceVersion = created.(*api.Image).ResourceVersion
-		obj, _, err := storage.Update(kapi.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
+		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue

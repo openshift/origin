@@ -8,10 +8,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/validation"
 	kval "k8s.io/kubernetes/pkg/api/validation"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"

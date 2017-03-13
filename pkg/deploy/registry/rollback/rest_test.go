@@ -7,6 +7,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/client/testing/core"
@@ -31,7 +32,7 @@ var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -44,7 +45,7 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -66,7 +67,7 @@ func TestCreateOk(t *testing.T) {
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -104,7 +105,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -127,7 +128,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 		return true, nil, kerrors.NewNotFound(kapi.Resource("replicationController"), deployment.Name)
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -156,7 +157,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -184,7 +185,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,

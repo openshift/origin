@@ -169,7 +169,7 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 }
 
 func TestRESTGet(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 
 	tests := []struct {
 		testName    string

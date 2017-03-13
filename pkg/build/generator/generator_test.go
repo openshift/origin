@@ -44,7 +44,7 @@ const (
 
 func TestInstantiate(t *testing.T) {
 	generator := mockBuildGenerator()
-	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -52,14 +52,14 @@ func TestInstantiate(t *testing.T) {
 
 func TestInstantiateBinary(t *testing.T) {
 	generator := mockBuildGenerator()
-	build, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
+	build, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 	if build.Spec.Source.Binary == nil {
 		t.Errorf("build should have a binary source value, has nil")
 	}
-	build, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
+	build, err = generator.Clone(apirequest.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -96,7 +96,7 @@ func TestInstantiateRetry(t *testing.T) {
 			},
 		}}
 
-	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "update-error") {
 		t.Errorf("Expected update-error, got different %v", err)
 	}
@@ -147,11 +147,11 @@ func TestInstantiateDeletingError(t *testing.T) {
 			return build, nil
 		},
 	}}
-	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
 		t.Errorf("Expected error, got different %v", err)
 	}
-	_, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err = generator.Clone(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "BuildConfig is paused") {
 		t.Errorf("Expected error, got different %v", err)
 	}
@@ -196,14 +196,14 @@ func TestInstantiateBinaryRemoved(t *testing.T) {
 		return build, nil
 	}
 
-	build, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	build, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 	if build.Spec.Source.Binary != nil {
 		t.Errorf("build should not have a binary source value, has %v", build.Spec.Source.Binary)
 	}
-	build, err = generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	build, err = generator.Clone(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -228,7 +228,7 @@ func TestInstantiateGetBuildConfigError(t *testing.T) {
 		},
 	}}
 
-	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "get-error") {
 		t.Errorf("Expected get-error, got different %v", err)
 	}
@@ -248,7 +248,7 @@ func TestInstantiateGenerateBuildError(t *testing.T) {
 			},
 		}}
 
-	_, err := generator.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil || !strings.Contains(err.Error(), "get-error") {
 		t.Errorf("Expected get-error, got different %v", err)
 	}
@@ -413,7 +413,7 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 			},
 			From: tc.reqFrom,
 		}
-		_, err := generator.Instantiate(kapi.NewDefaultContext(), req)
+		_, err := generator.Instantiate(apirequest.NewDefaultContext(), req)
 		if err != nil && !tc.errorExpected {
 			t.Errorf("%s: unexpected error %v", tc.name, err)
 			continue
@@ -521,7 +521,7 @@ func TestInstantiateWithBuildRequestEnvs(t *testing.T) {
 		client := generator.Client.(Client)
 		client.GetBuildConfigFunc = tc.bcfunc
 		generator.Client = client
-		build, err := generator.Instantiate(kapi.NewDefaultContext(), &tc.req)
+		build, err := generator.Instantiate(apirequest.NewDefaultContext(), &tc.req)
 		if err != nil {
 			t.Errorf("unexpected error %v", err)
 		} else {
@@ -576,21 +576,21 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 	g.Client = c
 
 	// Version not specified
-	_, err := g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 
 	// Version specified and it matches
 	lastVersion := int64(1)
-	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
+	_, err = g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
 
 	// Version specified, but doesn't match
 	lastVersion = 0
-	_, err = g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
+	_, err = g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{LastVersion: &lastVersion})
 	if err == nil {
 		t.Errorf("Expected an error and did not get one")
 	}
@@ -604,7 +604,7 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 	}
 	g.Client = c
 
-	_, err := g.Instantiate(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	se, ok := err.(*errors.StatusError)
 
 	if !ok {
@@ -647,7 +647,7 @@ func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
 		},
 	}
 
-	build, err := g.Instantiate(kapi.NewDefaultContext(), req)
+	build, err := g.Instantiate(apirequest.NewDefaultContext(), req)
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -808,7 +808,7 @@ func TestClone(t *testing.T) {
 		},
 	}}
 
-	_, err := generator.Clone(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := generator.Clone(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -843,7 +843,7 @@ func TestCreateBuild(t *testing.T) {
 		},
 	}}
 
-	build, err := generator.createBuild(kapi.NewDefaultContext(), build)
+	build, err := generator.createBuild(apirequest.NewDefaultContext(), build)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -879,7 +879,7 @@ func TestCreateBuildCreateError(t *testing.T) {
 		},
 	}}
 
-	_, err := generator.createBuild(kapi.NewDefaultContext(), build)
+	_, err := generator.createBuild(apirequest.NewDefaultContext(), build)
 	if err == nil || !strings.Contains(err.Error(), "create-error") {
 		t.Errorf("Expected create-error, got different %v", err)
 	}
@@ -1603,7 +1603,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 		},
 	}
 	for i, test := range tests {
-		ref, error := generator.resolveImageStreamReference(kapi.NewDefaultContext(), test.streamRef, "")
+		ref, error := generator.resolveImageStreamReference(apirequest.NewDefaultContext(), test.streamRef, "")
 		if error != nil {
 			if test.expectedSuccess {
 				t.Errorf("Scenario %d: Unexpected error %v", i, error)
@@ -1851,7 +1851,7 @@ func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
 		),
 	}
 	generator := mockBuildGenerator()
-	buildObject, err := generator.Instantiate(kapi.NewDefaultContext(), buildRequest)
+	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
@@ -1886,7 +1886,7 @@ func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 	}
 
 	generator := mockBuildGenerator()
-	buildObject, err := generator.Instantiate(kapi.NewDefaultContext(), buildRequest)
+	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
@@ -1934,7 +1934,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 	}
 
 	generator := mockBuildGenerator()
-	buildObject, err := generator.Instantiate(kapi.NewDefaultContext(), buildRequest)
+	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}
@@ -1979,7 +1979,7 @@ func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 	}
 
 	generator := mockBuildGenerator()
-	buildObject, err := generator.Instantiate(kapi.NewDefaultContext(), buildRequest)
+	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestDeploymentConfigStrategy(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
 		t.Errorf("DeploymentConfig is namespace scoped")
 	}
@@ -53,7 +54,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 
 // TestPrepareForUpdate exercises various client updates.
 func TestPrepareForUpdate(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	tests := []struct {
 		name string
 

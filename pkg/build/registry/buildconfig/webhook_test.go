@@ -12,6 +12,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -170,7 +171,7 @@ func TestConnectWebHook(t *testing.T) {
 			registry.Err = testCase.RegErr
 		}
 		responder := &fakeResponder{}
-		handler, err := hook.Connect(kapi.NewDefaultContext(), testCase.Name, &kapi.PodProxyOptions{Path: testCase.Path}, responder)
+		handler, err := hook.Connect(apirequest.NewDefaultContext(), testCase.Name, &kapi.PodProxyOptions{Path: testCase.Path}, responder)
 		if err != nil {
 			t.Errorf("%s: %v", k, err)
 			continue
@@ -279,7 +280,7 @@ func TestParseUrlError(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"github": github.New()}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: ""}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: ""}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -297,7 +298,7 @@ func TestParseUrlOK(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -315,7 +316,7 @@ func TestParseUrlLong(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": plugin}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin/some/more/args"}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin/some/more/args"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -333,7 +334,7 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/missingplugin"}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/missingplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -351,7 +352,7 @@ func TestInvokeWebhookErrorBuildConfigInstantiate(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &errorBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -369,7 +370,7 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
-		Connect(kapi.NewDefaultContext(), "badbuild100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
+		Connect(apirequest.NewDefaultContext(), "badbuild100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -389,7 +390,7 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
 	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"errPlugin": &errPlugin{}}).
-		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/errPlugin"}, responder)
+		Connect(apirequest.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/errPlugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 

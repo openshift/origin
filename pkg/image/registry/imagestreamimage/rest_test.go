@@ -201,7 +201,7 @@ func TestGet(t *testing.T) {
 			client, server, storage := setup(t)
 			defer server.Terminate(t)
 
-			ctx := kapi.NewDefaultContext()
+			ctx := apirequest.NewDefaultContext()
 			if test.repo != nil {
 				ctx = apirequest.WithNamespace(apirequest.NewContext(), test.repo.Namespace)
 				_, err := client.Put(

@@ -527,7 +527,7 @@ func TestLimitVerifier(t *testing.T) {
 			defaultRegistry: &fakeDefaultRegistry{},
 		}
 
-		ctx := apirequest.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
 		err := s.Validate(ctx, &tc.is)
 		if e, a := tc.expected, err; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", tc.name, diff.ObjectReflectDiff(e, a))

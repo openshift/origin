@@ -72,7 +72,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 		api.BuildPhaseCancelled: "",
 	}
 
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 
 	for BuildPhase, expectedLocation := range expectedLocations {
 		location, err := resourceLocationHelper(BuildPhase, "running", ctx, 1)
@@ -94,7 +94,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 }
 
 func TestWaitForBuild(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	tests := []struct {
 		name        string
 		status      []api.BuildPhase
@@ -172,7 +172,7 @@ func TestWaitForBuild(t *testing.T) {
 }
 
 func TestWaitForBuildTimeout(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	build := mockBuild(api.BuildPhasePending, "running", 1)
 	ch := make(chan watch.Event)
 	watcher := &buildWatcher{
@@ -299,7 +299,7 @@ func (p *anotherTestPodGetter) Get(ctx apirequest.Context, name string) (runtime
 }
 
 func TestPreviousBuildLogs(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	first := mockBuild(api.BuildPhaseComplete, "bc-1", 1)
 	second := mockBuild(api.BuildPhaseComplete, "bc-2", 2)
 	third := mockBuild(api.BuildPhaseComplete, "bc-3", 3)

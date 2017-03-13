@@ -64,7 +64,7 @@ func validImageStream() *api.ImageStream {
 }
 
 func create(t *testing.T, storage *REST, obj *api.ImageStream) *api.ImageStream {
-	ctx := apirequest.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
 	newObj, err := storage.Create(ctx, obj)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -97,7 +97,7 @@ func TestGetImageStreamError(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 
-	image, err := storage.Get(kapi.NewDefaultContext(), "image1")
+	image, err := storage.Get(apirequest.NewDefaultContext(), "image1")
 	if !errors.IsNotFound(err) {
 		t.Errorf("Expected not-found error, got %v", err)
 	}
@@ -113,7 +113,7 @@ func TestGetImageStreamOK(t *testing.T) {
 
 	image := create(t, storage, validImageStream())
 
-	obj, err := storage.Get(kapi.NewDefaultContext(), name)
+	obj, err := storage.Get(apirequest.NewDefaultContext(), name)
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}

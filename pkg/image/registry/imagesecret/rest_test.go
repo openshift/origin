@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -37,7 +38,7 @@ func TestGetSecrets(t *testing.T) {
 	})
 	rest := NewREST(fake.Core())
 	opts, _, _ := rest.NewGetOptions()
-	obj, err := rest.Get(kapi.NewDefaultContext(), "", opts)
+	obj, err := rest.Get(apirequest.NewDefaultContext(), "", opts)
 	if err != nil {
 		t.Fatal(err)
 	}

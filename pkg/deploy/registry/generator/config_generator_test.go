@@ -28,7 +28,7 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate(kapi.NewDefaultContext(), "1234")
+	config, err := generator.Generate(apirequest.NewDefaultContext(), "1234")
 
 	if config != nil {
 		t.Fatalf("Unexpected DeploymentConfig generated: %#v", config)
@@ -58,7 +58,7 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	config, err := generator.Generate(apirequest.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -92,7 +92,7 @@ func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	config, err := generator.Generate(apirequest.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -130,7 +130,7 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 		},
 	}
 
-	config, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	config, err := generator.Generate(apirequest.NewDefaultContext(), "deploy1")
 
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
@@ -172,7 +172,7 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 			},
 		},
 	}
-	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	_, err := generator.Generate(apirequest.NewDefaultContext(), "deploy1")
 	if err == nil || !kerrors.IsInvalid(err) {
 		t.Fatalf("Unexpected error type: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 			},
 		},
 	}
-	_, err := generator.Generate(kapi.NewDefaultContext(), "deploy1")
+	_, err := generator.Generate(apirequest.NewDefaultContext(), "deploy1")
 	if err == nil || !kerrors.IsNotFound(err) {
 		t.Fatalf("Unexpected error type: %v", err)
 	}

@@ -22,7 +22,7 @@ func TestCreateClone(t *testing.T) {
 		},
 	}}}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}})
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Name: "name"}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -30,7 +30,7 @@ func TestCreateClone(t *testing.T) {
 
 func TestCreateCloneValidationError(t *testing.T) {
 	rest := CloneREST{&generator.BuildGenerator{}}
-	_, err := rest.Create(kapi.NewDefaultContext(), &buildapi.BuildRequest{})
+	_, err := rest.Create(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err == nil {
 		t.Error("Expected object got none!")
 	}
