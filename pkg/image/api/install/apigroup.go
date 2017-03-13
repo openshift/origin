@@ -2,8 +2,10 @@ package install
 
 import (
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/docker10"
@@ -12,6 +14,11 @@ import (
 )
 
 func init() {
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+}
+
+// Install registers the API group and adds types to a scheme
+func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName: api.GroupName,
@@ -37,7 +44,7 @@ func init() {
 			dockerpre012.SchemeGroupVersion.Version: dockerpre012.AddToScheme,
 			v1.SchemeGroupVersion.Version:           v1.AddToScheme,
 		},
-	).Announce().RegisterAndEnable(); err != nil {
+	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
 	}
 }
