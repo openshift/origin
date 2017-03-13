@@ -74,7 +74,7 @@ func (s *storage) UpdateClient(ctx apirequest.Context, client *api.OAuthClient) 
 }
 
 func (s *storage) DeleteClient(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	if err != nil {
 		return err
 	}
