@@ -37,8 +37,8 @@ func (r *REST) New() runtime.Object {
 }
 
 // Get returns the mapping for the named identity
-func (s *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	_, _, _, _, mapping, err := s.getRelatedObjects(ctx, name)
+func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	_, _, _, _, mapping, err := s.getRelatedObjects(ctx, name, options)
 	return mapping, err
 }
 
@@ -71,7 +71,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 
 func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceCreate bool) (runtime.Object, bool, error) {
 	mapping := obj.(*api.UserIdentityMapping)
-	identity, identityErr, oldUser, oldUserErr, oldMapping, oldMappingErr := s.getRelatedObjects(ctx, mapping.Name)
+	identity, identityErr, oldUser, oldUserErr, oldMapping, oldMappingErr := s.getRelatedObjects(ctx, mapping.Name, &metav1.GetOptions{})
 
 	// Ensure we didn't get any errors other than NotFound errors
 	if !(oldMappingErr == nil || kerrs.IsNotFound(oldMappingErr)) {
@@ -167,7 +167,7 @@ func (s *REST) createOrUpdate(ctx apirequest.Context, obj runtime.Object, forceC
 
 // Delete deletes the user association for the named identity
 func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
-	identity, _, user, _, _, mappingErr := s.getRelatedObjects(ctx, name)
+	identity, _, user, _, _, mappingErr := s.getRelatedObjects(ctx, name, &metav1.GetOptions{})
 
 	if mappingErr != nil {
 		return nil, mappingErr
@@ -195,7 +195,7 @@ func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 
 // getRelatedObjects returns the identity, user, and mapping for the named identity
 // a nil mappingErr means all objects were retrieved without errors, and correctly reference each other
-func (s *REST) getRelatedObjects(ctx apirequest.Context, name string) (
+func (s *REST) getRelatedObjects(ctx apirequest.Context, name string, options *metav1.GetOptions) (
 	identity *api.Identity, identityErr error,
 	user *api.User, userErr error,
 	mapping *api.UserIdentityMapping, mappingErr error,
@@ -206,7 +206,7 @@ func (s *REST) getRelatedObjects(ctx apirequest.Context, name string) (
 	mappingErr = kerrs.NewNotFound(api.Resource("useridentitymapping"), name)
 
 	// Get identity
-	identity, identityErr = s.identityRegistry.GetIdentity(ctx, name, &metav1.GetOptions{})
+	identity, identityErr = s.identityRegistry.GetIdentity(ctx, name, options)
 	if identityErr != nil {
 		return
 	}
@@ -215,7 +215,7 @@ func (s *REST) getRelatedObjects(ctx apirequest.Context, name string) (
 	}
 
 	// Get user
-	user, userErr = s.userRegistry.GetUser(ctx, identity.User.Name, &metav1.GetOptions{})
+	user, userErr = s.userRegistry.GetUser(ctx, identity.User.Name, options)
 	if userErr != nil {
 		return
 	}

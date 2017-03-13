@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -56,7 +57,7 @@ UserSearch:
 		potentialUserName := s.generator(preferredUserName, sequence)
 
 		// See if it already exists
-		persistedUser, err := s.user.GetUser(ctx, potentialUserName)
+		persistedUser, err := s.user.GetUser(ctx, potentialUserName, &metav1.GetOptions{})
 
 		switch {
 		case kerrs.IsNotFound(err):

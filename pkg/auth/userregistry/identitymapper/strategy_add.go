@@ -2,6 +2,7 @@ package identitymapper
 
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -25,7 +26,7 @@ func NewStrategyAdd(user userregistry.Registry, initializer user.Initializer) Us
 
 func (s *StrategyAdd) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
-	persistedUser, err := s.user.GetUser(ctx, preferredUserName)
+	persistedUser, err := s.user.GetUser(ctx, preferredUserName, &metav1.GetOptions{})
 
 	switch {
 	case kerrs.IsNotFound(err):
