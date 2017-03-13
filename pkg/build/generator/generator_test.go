@@ -1227,7 +1227,7 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
 				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
 			},
-			OwnerReferences: []kapi.OwnerReference{
+			OwnerReferences: []metav1.OwnerReference{
 				{
 					Name:       "test-owner",
 					Kind:       "BuildConfig",

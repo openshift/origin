@@ -68,7 +68,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 	_, err = creatorClient.Core().Services("foo").Create(&kapi.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "my-service",
-			OwnerReferences: []kapi.OwnerReference{{}},
+			OwnerReferences: []metav1.OwnerReference{{}},
 		},
 	})
 	if err == nil {

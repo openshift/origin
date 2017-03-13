@@ -466,7 +466,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   buildName,
 			Labels: bcCopy.Labels,
-			OwnerReferences: []kapi.OwnerReference{
+			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: "v1",          // BuildConfig.APIVersion is not populated
 					Kind:       "BuildConfig", // BuildConfig.Kind is not populated
