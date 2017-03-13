@@ -2,8 +2,16 @@
 
 # This script provides constants for the Golang binary build process
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.7}"
-readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
+OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.7}"
+OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
+
+if [[ "$(go env GOARCH)" == "ppc64le" ]]; then
+  OS_BUILD_ENV_GOLANG="1.8"
+  OS_BUILD_ENV_IMAGE="openshift/origin-release-ppc64le:golang-${OS_BUILD_ENV_GOLANG}"
+fi
+
+readonly OS_BUILD_ENV_GOLANG
+readonly OS_BUILD_ENV_IMAGE
 
 readonly OS_OUTPUT_SUBPATH="${OS_OUTPUT_SUBPATH:-_output/local}"
 readonly OS_OUTPUT="${OS_ROOT}/${OS_OUTPUT_SUBPATH}"
