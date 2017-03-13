@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -21,11 +22,11 @@ import (
 )
 
 var (
-	// DefaultPushRetryCount is the number of retries of pushing the built Docker image
+	// DefaultPushOrPullRetryCount is the number of retries of pushing or pulling the built Docker image
 	// into a configured repository
-	DefaultPushRetryCount = 6
-	// DefaultPushRetryDelay is the time to wait before triggering a push retry
-	DefaultPushRetryDelay = 5 * time.Second
+	DefaultPushOrPullRetryCount = 6
+	// DefaultPushOrPullRetryDelay is the time to wait before triggering a push or pull retry
+	DefaultPushOrPullRetryDelay = 5 * time.Second
 	// RetriableErrors is a set of strings that indicate that an retriable error occurred.
 	RetriableErrors = []string{
 		"ping attempt failed with error",
@@ -54,6 +55,47 @@ type DockerClient interface {
 	TagImage(name string, opts docker.TagImageOptions) error
 }
 
+func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.AuthConfiguration) error {
+	var err error
+	var retriableError = false
+	var actionName string
+
+	pullOpt := docker.PullImageOptions{}
+	pushOpt := docker.PushImageOptions{}
+
+	for retries := 0; retries <= DefaultPushOrPullRetryCount; retries++ {
+		if reflect.TypeOf(opts) == reflect.TypeOf(pullOpt) {
+			actionName = "Pull"
+			err = client.PullImage(opts.(docker.PullImageOptions), authConfig)
+		} else if reflect.TypeOf(opts) == reflect.TypeOf(pushOpt) {
+			actionName = "Push"
+			err = client.PushImage(opts.(docker.PushImageOptions), authConfig)
+		} else {
+			return errors.New("not match Pull or Push action")
+		}
+
+		if err == nil {
+			return nil
+		}
+
+		errMsg := fmt.Sprintf("%s", err)
+		for _, errorString := range RetriableErrors {
+			if strings.Contains(errMsg, errorString) {
+				retriableError = true
+				break
+			}
+		}
+		if !retriableError {
+			return err
+		}
+
+		glog.V(0).Infof("Warning: %s failed, retrying in %s ...", actionName, DefaultPushOrPullRetryDelay)
+		time.Sleep(DefaultPushOrPullRetryDelay)
+	}
+
+	return fmt.Errorf("After retrying %d times, %s image still failed", DefaultPushOrPullRetryDelay, actionName)
+}
+
 func pullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
 	logProgress := func(s string) {
 		glog.V(0).Infof("%s", s)
@@ -67,11 +109,7 @@ func pullImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		opts.OutputStream = os.Stderr
 		opts.RawJSONStream = false
 	}
-	err := client.PullImage(opts, authConfig)
-	if err == nil {
-		return nil
-	}
-	return err
+	return RetryImageAction(client, opts, authConfig)
 }
 
 // pushImage pushes a docker image to the registry specified in its tag.
@@ -102,30 +140,11 @@ func pushImage(client DockerClient, name string, authConfig docker.AuthConfigura
 		OutputStream:  io.MultiWriter(progressWriter, digestWriter),
 		RawJSONStream: true,
 	}
-	var err error
-	var retriableError = false
 
-	for retries := 0; retries <= DefaultPushRetryCount; retries++ {
-		err = client.PushImage(opts, authConfig)
-		if err == nil {
-			return digestWriter.Digest, nil
-		}
-
-		errMsg := fmt.Sprintf("%s", err)
-		for _, errorString := range RetriableErrors {
-			if strings.Contains(errMsg, errorString) {
-				retriableError = true
-				break
-			}
-		}
-		if !retriableError {
-			return "", err
-		}
-
-		glog.V(0).Infof("Warning: Push failed, retrying in %s ...", DefaultPushRetryDelay)
-		time.Sleep(DefaultPushRetryDelay)
+	if err := RetryImageAction(client, opts, authConfig); err != nil {
+		return "", err
 	}
-	return "", err
+	return digestWriter.Digest, nil
 }
 
 func removeImage(client DockerClient, name string) error {
