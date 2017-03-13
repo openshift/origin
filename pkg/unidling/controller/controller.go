@@ -260,7 +260,7 @@ func (c *UnidlingController) awaitRequest() bool {
 // so it will return false).
 func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired time.Time) (bool, error) {
 	// fetch the endpoints associated with the service in question
-	targetEndpoints, err := c.endpointsNamespacer.Endpoints(info.Namespace).Get(info.Name)
+	targetEndpoints, err := c.endpointsNamespacer.Endpoints(info.Namespace).Get(info.Name, metav1.GetOptions{})
 	if err != nil {
 		return true, fmt.Errorf("unable to retrieve endpoints: %v", err)
 	}

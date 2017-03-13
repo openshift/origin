@@ -810,7 +810,7 @@ func WaitForRegistry(
 	if waitForDCVersion != nil {
 		latestVersion = *waitForDCVersion
 	} else {
-		dc, err := dcNamespacer.DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry")
+		dc, err := dcNamespacer.DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -1235,7 +1235,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	endpoint, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(name)
+	endpoint, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1261,7 +1261,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreInterface, ns, name string) stri
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -1281,7 +1281,7 @@ func CreateExecPodOnNode(client kcoreclient.CoreInterface, ns, nodeName, name st
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

@@ -55,7 +55,7 @@ type podCondition func(pod *api.Pod) (bool, error)
 func waitForPodCondition(c kclientset.Interface, ns, podName, desc string, timeout time.Duration, condition podCondition) error {
 	e2e.Logf("Waiting up to %[1]v for pod %-[2]*[3]s status to be %[4]s", timeout, podPrintWidth, podName, desc)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(poll) {
-		pod, err := c.Core().Pods(ns).Get(podName)
+		pod, err := c.Core().Pods(ns).Get(podName, metav1.GetOptions{})
 		if err != nil {
 			// Aligning this text makes it much more readable
 			e2e.Logf("Get pod %-[1]*[2]s in namespace '%[3]s' failed, ignoring for %[4]v. Error: %[5]v",

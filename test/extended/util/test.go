@@ -16,6 +16,7 @@ import (
 	flag "github.com/spf13/pflag"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -214,7 +215,7 @@ var longRetry = wait.Backoff{Steps: 100}
 // allowAllNodeScheduling sets the annotation on namespace that allows all nodes to be scheduled onto.
 func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
-		ns, err := c.Core().Namespaces().Get(namespace)
+		ns, err := c.Core().Namespaces().Get(namespace, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -234,7 +235,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapi.Namesp
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := c.Core().SecurityContextConstraints().Get(sccName)
+		scc, err := c.Core().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil

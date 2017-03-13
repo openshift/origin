@@ -188,7 +188,7 @@ func (d *ClusterRegistry) Check() types.DiagnosticResult {
 }
 
 func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Service {
-	service, err := d.KubeClient.Core().Services(metav1.NamespaceDefault).Get(registryName)
+	service, err := d.KubeClient.Core().Services(metav1.NamespaceDefault).Get(registryName, metav1.GetOptions{})
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu1002", err, fmt.Sprintf(clGetRegNone, registryName, metav1.NamespaceDefault))
 		return nil
@@ -202,7 +202,7 @@ func (d *ClusterRegistry) getRegistryService(r types.DiagnosticResult) *kapi.Ser
 
 func (d *ClusterRegistry) getRegistryPods(service *kapi.Service, r types.DiagnosticResult) []*kapi.Pod {
 	runningPods := []*kapi.Pod{}
-	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(service.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(service.Spec.Selector).String()})
 	if err != nil {
 		r.Error("DClu1005", err, fmt.Sprintf("Finding pods for '%s' service failed. This should never happen. Error: (%T) %[2]v", registryName, err))
 		return runningPods
@@ -304,7 +304,7 @@ func (d *ClusterRegistry) checkRegistryLogs(pod *kapi.Pod, r types.DiagnosticRes
 }
 
 func (d *ClusterRegistry) checkRegistryEndpoints(pods []*kapi.Pod, r types.DiagnosticResult) bool {
-	endPoint, err := d.KubeClient.Core().Endpoints(metav1.NamespaceDefault).Get(registryName)
+	endPoint, err := d.KubeClient.Core().Endpoints(metav1.NamespaceDefault).Get(registryName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("DClu1013", err, fmt.Sprintf(`Finding endpoints for "%s" service failed. This should never happen. Error: (%[2]T) %[2]v`, registryName, err))
 		return false

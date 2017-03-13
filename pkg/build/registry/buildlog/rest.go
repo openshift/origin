@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -40,7 +41,7 @@ func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, er
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.Pods(ns).Get(name)
+	return g.Pods(ns).Get(name, metav1.GetOptions{})
 }
 
 const defaultTimeout time.Duration = 10 * time.Second

@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -844,7 +845,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("verifying that the deployment is still running")
 			latestName := deployutil.DeploymentNameForConfigVersion(name, config.Status.LatestVersion)
-			latest, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName)
+			latest, err := oc.KubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			if deployutil.IsTerminatedDeployment(latest) {
 				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())

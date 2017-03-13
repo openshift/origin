@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -240,13 +240,13 @@ func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationCo
 		return nil, err
 	}
 
-	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+	return s.rcClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 }
 
 // waitForTerminatedPods waits until all pods for the provided replication controller are terminated.
 func (s *RecreateDeploymentStrategy) waitForTerminatedPods(from *kapi.ReplicationController, timeout time.Duration) {
 	selector := labels.Set(from.Spec.Selector).AsSelector()
-	options := metainternal.ListOptions{LabelSelector: selector}
+	options := metav1.ListOptions{LabelSelector: selector.String()}
 	podList, err := s.podClient.Pods(from.Namespace).List(options)
 	if err != nil {
 		fmt.Fprintf(s.out, "--> Cannot list pods: %v\nNew pods may be scaled up before old pods terminate\n", err)

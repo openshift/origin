@@ -73,7 +73,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 
 	// Find the target deployment and decode its config.
 	name := deployutil.DeploymentNameForConfigVersion(from.Name, revision)
-	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name)
+	targetDeployment, err := r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, err.Error())
 	}

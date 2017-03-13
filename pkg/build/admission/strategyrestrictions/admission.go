@@ -148,13 +148,13 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
 	switch attr.GetResource().GroupResource() {
 	case buildsResource, legacyBuildsResource:
-		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
+		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(build, attr)
 	case buildConfigsResource, legacyBuildConfigsResource:
-		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
+		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}

@@ -320,7 +320,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 	}
 
 	// at this point we know the error is a not found or forbidden, but we'll test namespaces just in case we're running on kube
-	if _, err := kClient.Core().Namespaces().Get(currentProject); err == nil {
+	if _, err := kClient.Core().Namespaces().Get(currentProject, metav1.GetOptions{}); err == nil {
 		return nil
 	}
 

@@ -15,6 +15,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -241,7 +242,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
 		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
@@ -294,7 +295,7 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	// responsibility of the main controller. We need to start by unplugging this assumption from
 	// our client tools.
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return fmt.Errorf("unable to find the latest deployment (#%d).\nYou can start a new deployment with 'oc deploy --latest dc/%s'.", config.Status.LatestVersion, config.Name)

@@ -287,7 +287,7 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
 	if c.KubeletServer.ClusterDNS == "" {
-		if service, err := c.Client.Core().Services(metav1.NamespaceDefault).Get("kubernetes"); err == nil {
+		if service, err := c.Client.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
 				clusterDNS = net.ParseIP(service.Spec.ClusterIP)
@@ -295,7 +295,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS == nil {
-		if endpoint, err := c.Client.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes"); err == nil {
+		if endpoint, err := c.Client.Core().Endpoints(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if endpointIP, ok := firstEndpointIPWithNamedPort(endpoint, 53, "dns"); ok {
 				// Use first endpoint if endpoint includes "dns" port 53.
 				clusterDNS = net.ParseIP(endpointIP)

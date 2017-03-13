@@ -139,7 +139,7 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 	}
 
 	deploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := o.kc.Core().ReplicationControllers(config.Namespace).Get(deploymentName)
+	deployment, err := o.kc.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	switch {
 	case err == nil:
 		// Reject attempts to start a concurrent deployment.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -46,7 +47,7 @@ func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, er
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.pn.Pods(namespace).Get(name)
+	return g.pn.Pods(namespace).Get(name, metav1.GetOptions{})
 }
 
 // REST is an implementation of RESTStorage for the api server.
@@ -106,7 +107,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 
 	// Fetch deploymentConfig and check latest version; if 0, there are no deployments
 	// for this config
-	config, err := r.dn.DeploymentConfigs(namespace).Get(name)
+	config, err := r.dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.NewNotFound(deployapi.Resource("deploymentconfig"), name)
 	}
@@ -199,7 +200,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 	)
 
 	condition := func() (bool, error) {
-		target, err = r.rn.ReplicationControllers(namespace).Get(name)
+		target, err = r.rn.ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		switch {
 		case errors.IsNotFound(err):
 			return false, nil

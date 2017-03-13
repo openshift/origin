@@ -6,6 +6,7 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/controller/shared"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -40,7 +41,7 @@ func (d *sccExecRestrictions) Admit(a kadmission.Attributes) (err error) {
 		return nil
 	}
 
-	pod, err := d.client.Core().Pods(a.GetNamespace()).Get(a.GetName())
+	pod, err := d.client.Core().Pods(a.GetNamespace()).Get(a.GetName(), metav1.GetOptions{})
 	if err != nil {
 		return kadmission.NewForbidden(a, err)
 	}

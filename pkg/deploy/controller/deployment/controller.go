@@ -86,7 +86,7 @@ func (c *DeploymentController) Handle(deployment *kapi.ReplicationController) er
 	nextStatus := currentStatus
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName)
+	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName, metav1.GetOptions{})
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -183,7 +184,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	// Related upstream issue:
 	// https://github.com/kubernetes/kubernetes/pull/7183
 	err = wait.Poll(s.apiRetryPeriod, s.apiRetryTimeout, func() (done bool, err error) {
-		existing, err := s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name)
+		existing, err := s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name, metav1.GetOptions{})
 		if err != nil {
 			msg := fmt.Sprintf("couldn't look up deployment %s: %s", to.Name, err)
 			if kerrors.IsNotFound(err) {
@@ -210,7 +211,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *kapi.ReplicationController, to 
 	if err != nil {
 		return err
 	}
-	to, err = s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name)
+	to, err = s.rcClient.ReplicationControllers(to.Namespace).Get(to.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

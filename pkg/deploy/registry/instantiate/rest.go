@@ -258,7 +258,7 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclie
 	}
 
 	latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
-	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName)
+	deployment, err := rn.ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		// If there's no deployment for the latest config, we have no basis of
 		// comparison. It's the responsibility of the deployment config controller

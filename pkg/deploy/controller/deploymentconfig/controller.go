@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -117,7 +118,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Retry faster on conflicts
 			var updatedDeployment *kapi.ReplicationController
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 				if kapierrors.IsNotFound(err) {
 					return nil
 				}
@@ -234,7 +235,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		if newReplicaCount != oldReplicaCount {
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 				// refresh the replication controller version
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}

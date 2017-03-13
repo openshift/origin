@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kendpoints "k8s.io/kubernetes/pkg/api/endpoints"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -116,7 +117,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 			return nil, errNoSuchName
 		}
 		namespace, name := segments[1], segments[2]
-		svc, err := b.accessor.Services(namespace).Get(name)
+		svc, err := b.accessor.Services(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) && b.fallback != nil {
 				if fallback, ok := b.fallback(prefix, exact); ok {
@@ -204,7 +205,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 		}
 
 		// return endpoints
-		endpoints, err := b.endpoints.Endpoints(namespace).Get(name)
+		endpoints, err := b.endpoints.Endpoints(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return nil, errNoSuchName
 		}

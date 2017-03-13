@@ -315,7 +315,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.Status.Message = ""
 			nextStatus = buildapi.BuildPhasePending
 			if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
-				if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+				if _, err := bc.SecretClient.Secrets(build.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 					build.Status.Reason = buildapi.StatusReasonMissingPushSecret
 					build.Status.Message = buildapi.StatusMessageMissingPushSecret
 					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)

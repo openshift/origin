@@ -20,7 +20,7 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 		routeName = serviceName
 	}
 
-	svc, err := kc.Core().Services(namespace).Get(serviceName)
+	svc, err := kc.Core().Services(namespace).Get(serviceName, metav1.GetOptions{})
 	if err != nil {
 		if len(portString) == 0 {
 			return nil, fmt.Errorf("you need to provide a route port via --port when exposing a non-existent service")

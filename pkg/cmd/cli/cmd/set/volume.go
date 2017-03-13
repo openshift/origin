@@ -901,7 +901,7 @@ func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Inf
 		refInfo := ""
 		if vol.VolumeSource.PersistentVolumeClaim != nil {
 			claimName := vol.VolumeSource.PersistentVolumeClaim.ClaimName
-			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName)
+			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
 			switch {
 			case err == nil:
 				refInfo = fmt.Sprintf("(%s)", describePersistentVolumeClaim(claim))

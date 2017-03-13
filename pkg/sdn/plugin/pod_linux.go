@@ -17,6 +17,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ksets "k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -96,7 +97,7 @@ func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.
 		return nil, nil, err
 	}
 
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read pod %s/%s: %v", req.PodNamespace, req.PodName, err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -179,7 +180,7 @@ func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interf
 	if ns != nil && name == ns.Name {
 		return ns, nil
 	}
-	return client.Core().Namespaces().Get(name)
+	return client.Core().Namespaces().Get(name, metav1.GetOptions{})
 }
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including

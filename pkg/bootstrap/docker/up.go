@@ -1158,7 +1158,7 @@ func (c *ClientStartConfig) ShouldInitializeData() bool {
 			return true
 		}
 
-		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry); err != nil {
+		if _, err = kclient.Core().Services(openshift.DefaultNamespace).Get(openshift.SvcDockerRegistry, metav1.GetOptions{}); err != nil {
 			return true
 		}
 

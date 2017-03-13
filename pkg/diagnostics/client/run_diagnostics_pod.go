@@ -85,7 +85,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 			r.Error("DCl2002", err, fmt.Sprintf("Deleting diagnostic pod '%s' failed. Error: %s", pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
 		}
 	}()
-	pod, err = d.KubeClient.Core().Pods(d.Namespace).Get(pod.ObjectMeta.Name) // status is filled in post-create
+	pod, err = d.KubeClient.Core().Pods(d.Namespace).Get(pod.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
 	if err != nil {
 		r.Error("DCli2003", err, fmt.Sprintf("Retrieving the diagnostic pod definition failed. Error: (%T) %[1]v", err))
 		return

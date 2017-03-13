@@ -252,7 +252,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		for _, state := range test.States {
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Update pod state and verify that corresponding build state happens accordingly
-				pod, err := kClient.Pods(ns).Get(pod.Name)
+				pod, err := kClient.Pods(ns).Get(pod.Name, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}

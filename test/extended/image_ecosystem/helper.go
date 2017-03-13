@@ -20,7 +20,7 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 		return fmt.Errorf("Got %d pods for selector %v, expected 1", len(pods), selector)
 	}
 
-	pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0])
+	pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

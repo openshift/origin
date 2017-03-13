@@ -63,7 +63,7 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 		}
 	}); err != nil {
 		if err == ErrTooOldResourceVersion {
-			latestRC, err := rn.ReplicationControllers(observed.Namespace).Get(observed.Name)
+			latestRC, err := rn.ReplicationControllers(observed.Namespace).Get(observed.Name, metav1.GetOptions{})
 			if err != nil {
 				return observed, false, err
 			}

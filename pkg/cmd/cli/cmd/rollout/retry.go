@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -128,7 +128,7 @@ func (o RetryOptions) Run() error {
 		}
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
-		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName)
+		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("unable to find the latest rollout (#%d).\nYou can start a new rollout with 'oc rollout latest dc/%s'.", config.Status.LatestVersion, config.Name)))
@@ -150,14 +150,14 @@ func (o RetryOptions) Run() error {
 		}
 
 		// Delete the deployer pod as well as the deployment hooks pods, if any
-		pods, err := o.Clientset.Core().Pods(config.Namespace).List(metainternal.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName)})
+		pods, err := o.Clientset.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName).String()})
 		if err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)))
 			continue
 		}
 		hasError := false
 		for _, pod := range pods.Items {
-			err := o.Clientset.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+			err := o.Clientset.Core().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)))
 				hasError = true

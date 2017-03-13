@@ -125,12 +125,12 @@ type streamRef struct {
 // images from private Docker registries.
 func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount string) ([]kapi.Secret, error) {
 	var result []kapi.Secret
-	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount)
+	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
 	if err != nil {
 		return result, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
 	}
 	for _, ref := range sa.Secrets {
-		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name)
+		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}

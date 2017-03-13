@@ -20,6 +20,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	kubeutilnet "k8s.io/apimachinery/pkg/util/net"

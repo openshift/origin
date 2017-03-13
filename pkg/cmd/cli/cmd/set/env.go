@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -144,7 +145,7 @@ func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelecto
 		if err != nil {
 			return "", err
 		}
-		secret, err = kubeClient.Secrets(namespace).Get(secretSelector.Name)
+		secret, err = kubeClient.Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -167,7 +168,7 @@ func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapS
 		if err != nil {
 			return "", err
 		}
-		configMap, err = kubeClient.ConfigMaps(namespace).Get(configMapSelector.Name)
+		configMap, err = kubeClient.ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}

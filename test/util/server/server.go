@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -395,7 +396,7 @@ func serviceAccountSecretsExist(clientset *kclientset.Clientset, namespace strin
 		if len(secret.Namespace) > 0 {
 			ns = secret.Namespace
 		}
-		secret, err := clientset.Core().Secrets(ns).Get(secret.Name)
+		secret, err := clientset.Core().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
 		if err == nil {
 			switch secret.Type {
 			case kapi.SecretTypeServiceAccountToken:
@@ -431,7 +432,7 @@ func WaitForPodCreationServiceAccounts(clientset *kclientset.Clientset, namespac
 			glog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
 		}
-		err = clientset.Core().Pods(namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		err = clientset.Core().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 		if err != nil {
 			return false, err
 		}
@@ -445,7 +446,7 @@ func WaitForServiceAccounts(clientset *kclientset.Clientset, namespace string, a
 	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
-			if sa, err := serviceAccounts.Get(account); err != nil {
+			if sa, err := serviceAccounts.Get(account, metav1.GetOptions{}); err != nil {
 				if !serviceAccountSecretsExist(clientset, namespace, sa) {
 					continue
 				}

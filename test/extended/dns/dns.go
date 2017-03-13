@@ -291,7 +291,7 @@ var _ = Describe("DNS", func() {
 			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
-		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes")
+		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to find endpoints for kubernetes.default: %v", err)
 		}

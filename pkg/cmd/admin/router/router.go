@@ -590,7 +590,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	output := cfg.Action.ShouldPrint()
 	generate := output
-	service, err := kClient.Core().Services(namespace).Get(name)
+	service, err := kClient.Core().Services(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if !generate {
 			if !errors.IsNotFound(err) {

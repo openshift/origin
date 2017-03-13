@@ -259,7 +259,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	output := opts.Config.Action.ShouldPrint()
 	generate := output
-	service, err := opts.serviceClient.Services(opts.namespace).Get(name)
+	service, err := opts.serviceClient.Services(opts.namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if !generate {
 			if !errors.IsNotFound(err) {

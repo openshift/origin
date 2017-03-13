@@ -497,7 +497,7 @@ func (lw *buildDeleteLW) List(options metainternal.ListOptions) (runtime.Object,
 		}
 		glog.V(5).Infof("Found build pod %s/%s", pod.Namespace, pod.Name)
 
-		build, err := lw.Client.Builds(pod.Namespace).Get(buildName)
+		build, err := lw.Client.Builds(pod.Namespace).Get(buildName, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) {
 			glog.V(4).Infof("Error getting build for pod %s/%s: %v", pod.Namespace, pod.Name, err)
 			return nil, err
@@ -583,7 +583,7 @@ func (lw *buildPodDeleteLW) List(options metainternal.ListOptions) (runtime.Obje
 			glog.V(5).Infof("Ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
 			continue
 		}
-		pod, err := lw.KubeClient.Core().Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))
+		pod, err := lw.KubeClient.Core().Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build), metav1.GetOptions{})
 		if err != nil {
 			if !kerrors.IsNotFound(err) {
 				glog.V(4).Infof("Error getting pod for build %s/%s: %v", build.Namespace, build.Name, err)
@@ -647,10 +647,10 @@ func (c ControllerClient) DeletePod(namespace string, pod *kapi.Pod) error {
 
 // GetPod gets a pod using the Kubernetes client.
 func (c ControllerClient) GetPod(namespace, name string) (*kapi.Pod, error) {
-	return c.KubeClient.Core().Pods(namespace).Get(name)
+	return c.KubeClient.Core().Pods(namespace).Get(name, metav1.GetOptions{})
 }
 
 // GetImageStream retrieves an image repository by namespace and name
 func (c ControllerClient) GetImageStream(namespace, name string) (*imageapi.ImageStream, error) {
-	return c.Client.ImageStreams(namespace).Get(name)
+	return c.Client.ImageStreams(namespace).Get(name, metav1.GetOptions{})
 }

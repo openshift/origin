@@ -185,7 +185,7 @@ func (e *hookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, rc *kapi
 		return err
 	}
 
-	deployerPod, err := e.pods.Pods(rc.Namespace).Get(deployutil.DeployerPodNameForDeployment(rc.Name))
+	deployerPod, err := e.pods.Pods(rc.Namespace).Get(deployutil.DeployerPodNameForDeployment(rc.Name), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

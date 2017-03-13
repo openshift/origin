@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -36,7 +37,7 @@ func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kcli
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
 func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
-	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName)
+	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0105", err, fmt.Sprintf("Error retrieving the secret '%s': %s", kibanaProxySecretName, err))
 		return

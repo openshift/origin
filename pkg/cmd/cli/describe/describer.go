@@ -126,7 +126,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kctl.Describe
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
-	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build)); err == nil {
+	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
 		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
@@ -712,7 +712,7 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kctl.Describe
 		if backend.Weight != nil {
 			totalWeight += *backend.Weight
 		}
-		ep, endpointsErr := d.kubeClient.Core().Endpoints(namespace).Get(backend.Name)
+		ep, endpointsErr := d.kubeClient.Core().Endpoints(namespace).Get(backend.Name, metav1.GetOptions{})
 		endpoints[backend.Name] = routeEndpointInfo{ep, endpointsErr}
 	}
 

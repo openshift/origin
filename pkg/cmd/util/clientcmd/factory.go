@@ -187,14 +187,14 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 		}
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
-		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName)
+		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err
 		}
 
 		fallback = deployment.Spec.Template
 
-		pods, err := kc.Core().Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
+		pods, err := kc.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
 		if err != nil {
 			return fallback, err
 		}
@@ -252,7 +252,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		rc, err := kc.Core().ReplicationControllers(namespace).Get(name)
+		rc, err := kc.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -282,7 +282,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		ds, err := kc.Extensions().DaemonSets(namespace).Get(name)
+		ds, err := kc.Extensions().DaemonSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -300,7 +300,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		d, err := kc.Extensions().Deployments(namespace).Get(name)
+		d, err := kc.Extensions().Deployments(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -318,7 +318,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name)
+		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -337,7 +337,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		// TODO/REBASE kc.Extensions() doesn't exist any more. Is this ok?
-		job, err := kc.Batch().Jobs(namespace).Get(name)
+		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -347,7 +347,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		job, err := kc.Batch().Jobs(namespace).Get(name)
+		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}

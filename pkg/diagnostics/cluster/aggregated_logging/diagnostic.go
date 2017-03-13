@@ -52,7 +52,7 @@ func NewAggregatedLogging(masterConfigFile string, kclient kclientset.Interface,
 }
 
 func (d *AggregatedLogging) getScc(name string) (*kapi.SecurityContextConstraints, error) {
-	return d.KubeClient.Core().SecurityContextConstraints().Get(name)
+	return d.KubeClient.Core().SecurityContextConstraints().Get(name, metav1.GetOptions{})
 }
 
 func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {
@@ -63,27 +63,27 @@ func (d *AggregatedLogging) routes(project string, options metainternal.ListOpti
 	return d.OsClient.Routes(project).List(options)
 }
 
-func (d *AggregatedLogging) serviceAccounts(project string, options metainternal.ListOptions) (*kapi.ServiceAccountList, error) {
+func (d *AggregatedLogging) serviceAccounts(project string, options metav1.ListOptions) (*kapi.ServiceAccountList, error) {
 	return d.KubeClient.Core().ServiceAccounts(project).List(options)
 }
 
-func (d *AggregatedLogging) services(project string, options metainternal.ListOptions) (*kapi.ServiceList, error) {
+func (d *AggregatedLogging) services(project string, options metav1.ListOptions) (*kapi.ServiceList, error) {
 	return d.KubeClient.Core().Services(project).List(options)
 }
 
 func (d *AggregatedLogging) endpointsForService(project string, service string) (*kapi.Endpoints, error) {
-	return d.KubeClient.Core().Endpoints(project).Get(service)
+	return d.KubeClient.Core().Endpoints(project).Get(service, metav1.GetOptions{})
 }
 
 func (d *AggregatedLogging) daemonsets(project string, options metainternal.ListOptions) (*kapisext.DaemonSetList, error) {
-	return d.KubeClient.Extensions().DaemonSets(project).List(metav1.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
+	return d.KubeClient.Extensions().DaemonSets(project).List(metav1.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector().String()})
 }
 
 func (d *AggregatedLogging) nodes(options metainternal.ListOptions) (*kapi.NodeList, error) {
-	return d.KubeClient.Core().Nodes().List(metainternal.ListOptions{})
+	return d.KubeClient.Core().Nodes().List(metav1.ListOptions{})
 }
 
-func (d *AggregatedLogging) pods(project string, options metainternal.ListOptions) (*kapi.PodList, error) {
+func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	return d.KubeClient.Core().Pods(project).List(options)
 }
 func (d *AggregatedLogging) deploymentconfigs(project string, options metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {

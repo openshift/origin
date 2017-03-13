@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -124,10 +124,10 @@ func NewDeployer(client kclientset.Interface, oclient client.Interface, out, err
 		errOut: errOut,
 		until:  until,
 		getDeployment: func(namespace, name string) (*kapi.ReplicationController, error) {
-			return client.Core().ReplicationControllers(namespace).Get(name)
+			return client.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		},
 		getDeployments: func(namespace, configName string) (*kapi.ReplicationControllerList, error) {
-			return client.Core().ReplicationControllers(namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(configName)})
+			return client.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(configName).String()})
 		},
 		scaler: scaler,
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {

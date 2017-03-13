@@ -98,7 +98,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 			return nil, err
 		}
 		glog.V(3).Infof("Bootstrap client certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +116,7 @@ func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kcli
 			glog.V(2).Infof("Bootstrap client cert approved")
 			return true, nil
 		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
 		return false, err
 	})
 	if err != nil {
@@ -208,7 +208,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 			return err
 		}
 		glog.V(3).Infof("Bootstrap server certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -226,7 +226,7 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 			glog.V(2).Infof("Bootstrap serving cert approved")
 			return true, nil
 		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name)
+		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
 		return false, err
 	})
 	if err != nil {
@@ -282,7 +282,7 @@ func (o NodeOptions) loadBootstrap(hostnames []string, nodeConfigDir string) err
 
 	// try to refresh the latest node-config.yaml
 	o.ConfigFile = filepath.Join(nodeConfigDir, "node-config.yaml")
-	config, err := c.Core().ConfigMaps("openshift-infra").Get("node-config")
+	config, err := c.Core().ConfigMaps("openshift-infra").Get("node-config", metav1.GetOptions{})
 	if err == nil {
 		// skip all the config we generated ourselves
 		skipConfig := map[string]struct{}{"server.crt": {}, "server.key": {}, "master-client.crt": {}, "master-client.key": {}, "node.kubeconfig": {}}

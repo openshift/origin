@@ -25,7 +25,7 @@ import (
 
 // ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
 func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
-	if _, err := c.KubeClientset().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace); kapierror.IsNotFound(err) {
+	if _, err := c.KubeClientset().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, metav1.GetOptions{}); kapierror.IsNotFound(err) {
 		namespace, createErr := c.KubeClientset().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace}})
 		if createErr != nil {
 			glog.Errorf("Error creating namespace: %v due to %v\n", c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, createErr)
@@ -44,7 +44,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	namespace, err := c.KubeClientset().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if kapierror.IsAlreadyExists(err) {
 		// Get the persisted namespace
-		namespace, err = c.KubeClientset().Namespaces().Get(ns)
+		namespace, err = c.KubeClientset().Namespaces().Get(ns, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting namespace %s: %v", ns, err)
 			return
@@ -94,7 +94,7 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 	// Wait for the default namespace
 	var namespace *kapi.Namespace
 	for i := 0; i < 30; i++ {
-		ns, err := c.KubeClientset().Namespaces().Get(metav1.NamespaceDefault)
+		ns, err := c.KubeClientset().Namespaces().Get(metav1.NamespaceDefault, metav1.GetOptions{})
 		if err == nil {
 			namespace = ns
 			break

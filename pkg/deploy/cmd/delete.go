@@ -84,7 +84,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Clean up deployments related to the config. Even if the deployment
 	// configuration has been deleted, we want to sweep the existing replication
 	// controllers and clean them up.
-	options := metainternal.ListOptions{LabelSelector: util.ConfigSelector(name)}
+	options := metav1.ListOptions{LabelSelector: util.ConfigSelector(name).String()}
 	rcList, err := reaper.kc.Core().ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		}
 
 		// Delete all deployer and hook pods
-		options = metainternal.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
+		options = metav1.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name).String()}
 		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(options)
 		if err != nil {
 			return err

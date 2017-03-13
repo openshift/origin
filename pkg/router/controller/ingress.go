@@ -306,7 +306,7 @@ func (it *IngressTranslator) cacheTLS(ingressTLS []extensions.IngressTLS, namesp
 			// TODO should initial retrieval be retried to minimize the chances
 			// that a temporary connectivity failure delays route availability
 			// until the next sync event (when the secret will next be seen)?
-			if secret, err := it.client.Secrets(namespace).Get(tls.SecretName); err != nil {
+			if secret, err := it.client.Secrets(namespace).Get(tls.SecretName, metav1.GetOptions{}); err != nil {
 				glog.V(4).Infof("Error retrieving secret %v: %v", secretKey, err)
 			} else {
 				newTLS, err := tlsFromSecret(secret)

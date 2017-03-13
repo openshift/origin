@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -124,7 +125,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	switch {
 	case ref.Kind == "DeploymentConfig" && (ref.Group == deployapi.GroupName || ref.Group == deployapi.LegacyGroupName):
 		var dc *deployapi.DeploymentConfig
-		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name)
+		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -134,7 +135,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 		obj = dc
 	case ref.Kind == "ReplicationController" && ref.Group == kapi.GroupName:
 		var rc *kapi.ReplicationController
-		rc, err = c.rcs.ReplicationControllers(namespace).Get(ref.Name)
+		rc, err = c.rcs.ReplicationControllers(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}

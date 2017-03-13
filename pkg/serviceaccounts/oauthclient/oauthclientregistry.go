@@ -196,7 +196,7 @@ func (a *saOAuthClientAdapter) GetClient(ctx apirequest.Context, name string) (*
 		return a.delegate.GetClient(ctx, name)
 	}
 
-	sa, err := a.saClient.ServiceAccounts(saNamespace).Get(saName)
+	sa, err := a.saClient.ServiceAccounts(saNamespace).Get(saName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

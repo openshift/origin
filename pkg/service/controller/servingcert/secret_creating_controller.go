@@ -299,7 +299,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 		return err
 	}
 	if kapierrors.IsAlreadyExists(err) {
-		actualSecret, err := sc.secretClient.Secrets(service.Namespace).Get(secret.Name)
+		actualSecret, err := sc.secretClient.Secrets(service.Namespace).Get(secret.Name, metav1.GetOptions{})
 		if err != nil {
 			// if we have an error creating the secret, then try to update the service with that information.  If it fails,
 			// then we'll just try again later on  re-list or because the service had already been updated and we'll get triggered again.

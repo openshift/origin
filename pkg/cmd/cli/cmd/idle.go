@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -202,7 +203,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
-		pod, err := client.Pods(ref.Namespace).Get(ref.Name)
+		pod, err := client.Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

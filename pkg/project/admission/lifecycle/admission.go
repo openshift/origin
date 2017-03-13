@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -110,7 +111,7 @@ func (e *lifecycle) Admit(a admission.Attributes) (err error) {
 		time.Sleep(interval)
 
 		// it's possible the namespace actually was deleted, so just forbid if this occurs
-		namespace, err = e.client.Core().Namespaces().Get(a.GetNamespace())
+		namespace, err = e.client.Core().Namespaces().Get(a.GetNamespace(), metav1.GetOptions{})
 		if err != nil {
 			return admission.NewForbidden(a, err)
 		}

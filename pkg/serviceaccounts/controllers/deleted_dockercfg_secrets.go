@@ -165,7 +165,7 @@ func (e *DockercfgDeletedController) getServiceAccount(secret *api.Secret) (*api
 		return nil, nil
 	}
 
-	serviceAccount, err := e.client.Core().ServiceAccounts(secret.Namespace).Get(saName)
+	serviceAccount, err := e.client.Core().ServiceAccounts(secret.Namespace).Get(saName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

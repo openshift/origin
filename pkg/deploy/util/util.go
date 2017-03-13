@@ -586,7 +586,7 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 	canGetLogs := func(p *api.Pod) bool {
 		return api.PodSucceeded == p.Status.Phase || api.PodFailed == p.Status.Phase || api.PodRunning == p.Status.Phase
 	}
-	pod, err := podClient.Pods(rc.Namespace).Get(podName)
+	pod, err := podClient.Pods(rc.Namespace).Get(podName, metav1.GetOptions{})
 	if err == nil && canGetLogs(pod) {
 		return nil
 	}

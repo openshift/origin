@@ -16,6 +16,7 @@ import (
 	unidlingproxy "github.com/openshift/origin/pkg/proxy/unidler"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	exutil "github.com/openshift/origin/test/extended/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -171,7 +172,7 @@ func checkSingleIdle(oc *exutil.CLI, idlingFile string, resources map[string][]s
 
 	g.By("Fetching the service and checking the annotations are present")
 	serviceName := resources["service"][0]
-	endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+	endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	o.Expect(endpoints.Annotations).To(o.HaveKey(unidlingapi.IdledAtAnnotation))
@@ -290,7 +291,7 @@ var _ = g.Describe("idling and unidling", func() {
 
 			g.By("Connecting to the service IP and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName)
+			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			err = tryEchoTCP(svc)
@@ -300,7 +301,7 @@ var _ = g.Describe("idling and unidling", func() {
 			err = waitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -315,7 +316,7 @@ var _ = g.Describe("idling and unidling", func() {
 
 			g.By("Connecting to the service IP and repeatedly connecting, making sure we seamlessly idle and come back up")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName)
+			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			o.Consistently(func() error { return tryEchoTCP(svc) }, 10*time.Second, 500*time.Millisecond).ShouldNot(o.HaveOccurred())
@@ -324,7 +325,7 @@ var _ = g.Describe("idling and unidling", func() {
 			err = waitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -343,7 +344,7 @@ var _ = g.Describe("idling and unidling", func() {
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Connecting to the service IP many times and checking the echo")
-			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName)
+			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			connectionsToStart := 100
@@ -374,7 +375,7 @@ var _ = g.Describe("idling and unidling", func() {
 			g.By("Waiting until we have endpoints")
 			err = waitForEndpointsAvailable(oc, serviceName)
 
-			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -393,7 +394,7 @@ var _ = g.Describe("idling and unidling", func() {
 
 			g.By("Connecting to the service IP and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName)
+			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			err = tryEchoUDP(svc)
@@ -403,7 +404,7 @@ var _ = g.Describe("idling and unidling", func() {
 			err = waitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")
@@ -423,7 +424,7 @@ var _ = g.Describe("idling and unidling", func() {
 
 			g.By("Connecting to the service IP many times and checking the echo")
 			serviceName := resources["service"][0]
-			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName)
+			svc, err := oc.KubeClient().Core().Services(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			connectionsToStart := 100
@@ -455,7 +456,7 @@ var _ = g.Describe("idling and unidling", func() {
 			err = waitForEndpointsAvailable(oc, serviceName)
 			o.Expect(err).ToNot(o.HaveOccurred())
 
-			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName)
+			endpoints, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(serviceName, metav1.GetOptions{})
 			o.Expect(err).ToNot(o.HaveOccurred())
 
 			g.By("Making sure the endpoints are no longer marked as idled")

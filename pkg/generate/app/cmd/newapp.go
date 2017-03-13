@@ -485,7 +485,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 
 	serviceAccountName := "installer"
 	if token != nil && token.ServiceAccount {
-		if _, err := c.KubeClient.Core().ServiceAccounts(c.OriginNamespace).Get(serviceAccountName); err != nil {
+		if _, err := c.KubeClient.Core().ServiceAccounts(c.OriginNamespace).Get(serviceAccountName, metav1.GetOptions{}); err != nil {
 			if kerrors.IsNotFound(err) {
 				objects = append(objects,
 					// create a new service account

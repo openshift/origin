@@ -138,7 +138,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 		var err error
 
 		if knode != node {
-			knode, err = master.kClient.Nodes().Get(node.ObjectMeta.Name)
+			knode, err = master.kClient.Nodes().Get(node.ObjectMeta.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}

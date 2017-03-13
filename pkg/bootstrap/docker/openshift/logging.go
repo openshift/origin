@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -57,7 +58,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace)
+	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the logging namespace already exists and we won't initialize it
 		return nil

@@ -2,6 +2,7 @@ package util
 
 import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -57,7 +58,7 @@ func Finalize(kubeClient clientset.Interface, namespace *kapi.Namespace) (result
 			return nil, err
 		}
 
-		namespace, err = kubeClient.Core().Namespaces().Get(namespace.Name)
+		namespace, err = kubeClient.Core().Namespaces().Get(namespace.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

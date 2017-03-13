@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
@@ -79,7 +80,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 	}
 
 	// TODO pull this from a cache.
-	if _, err := a.serviceClient.Services(namespace).Get(svcName); !kapierrors.IsNotFound(err) {
+	if _, err := a.serviceClient.Services(namespace).Get(svcName, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
 		// if it isn't a "not found" error, return the error.  Either its nil and there's nothing to do or something went really wrong
 		return err
 	}

@@ -613,7 +613,7 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// only continue if the pod has the right annotations
-	existing, err := o.Attach.PodClient.Pods(namespace).Get(name)
+	existing, err := o.Attach.PodClient.Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
