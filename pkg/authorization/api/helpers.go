@@ -7,10 +7,10 @@ import (
 	"unicode"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 	// uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 

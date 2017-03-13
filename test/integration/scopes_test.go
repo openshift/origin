@@ -196,7 +196,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := nonEscalatingEditClient.Secrets(projectName).List(metainternal.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := nonEscalatingEditClient.Secrets(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -219,7 +219,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := escalatingEditClient.Secrets(projectName).List(metainternal.ListOptions{}); err != nil {
+	if _, err := escalatingEditClient.Secrets(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

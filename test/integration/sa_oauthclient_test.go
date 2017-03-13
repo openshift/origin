@@ -20,6 +20,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
@@ -114,7 +115,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metainternal.ListOptions{})
+		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -260,7 +261,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -296,7 +297,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -318,7 +319,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	{
 		t.Log("Testing invalid scopes")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -339,7 +340,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 	{
 		t.Log("Testing allowed scopes with failed API call")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",

@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -190,7 +191,7 @@ func NewServiceAccountOAuthClientGetter(saClient kcoreclient.ServiceAccountsGett
 }
 
 func (a *saOAuthClientAdapter) GetClient(ctx apirequest.Context, name string) (*oauthapi.OAuthClient, error) {
-	saNamespace, saName, err := serviceaccount.SplitUsername(name)
+	saNamespace, saName, err := apiserverserviceaccount.SplitUsername(name)
 	if err != nil {
 		return a.delegate.GetClient(ctx, name)
 	}

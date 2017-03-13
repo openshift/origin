@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
