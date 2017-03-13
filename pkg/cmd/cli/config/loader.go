@@ -10,8 +10,8 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/homedir"
 )
 
 const (
