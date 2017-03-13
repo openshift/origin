@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.template.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -60,7 +62,7 @@ message Parameter {
 // Template contains the inputs needed to produce a Config.
 message Template {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // message is an optional instructional message that will
   // be displayed when this template is instantiated.
@@ -76,7 +78,7 @@ message Template {
   // is, or contains, a ${PARAMETER_REFERENCE}, the resolved
   // value after parameter substitution will be respected and the object
   // will be created in that namespace.
-  repeated k8s.io.kubernetes.pkg.runtime.RawExtension objects = 3;
+  repeated k8s.io.apimachinery.pkg.runtime.RawExtension objects = 3;
 
   // parameters is an optional array of Parameters used during the
   // Template to Config transformation.
@@ -90,7 +92,7 @@ message Template {
 // TemplateList is a list of Template objects.
 message TemplateList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of templates
   repeated Template items = 2;

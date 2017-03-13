@@ -5,11 +5,13 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.deploy.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/apis/extensions/v1beta1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -52,10 +54,10 @@ message DeploymentCondition {
   optional string status = 2;
 
   // The last time this condition was updated.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastUpdateTime = 6;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastUpdateTime = 6;
 
   // The last time the condition transitioned from one status to another.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
 
   // The reason for the condition's last transition.
   optional string reason = 4;
@@ -75,7 +77,7 @@ message DeploymentCondition {
 // is triggered by any means.
 message DeploymentConfig {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec represents a desired deployment state and how to deploy to it.
   optional DeploymentConfigSpec spec = 2;
@@ -87,7 +89,7 @@ message DeploymentConfig {
 // DeploymentConfigList is a collection of deployment configs.
 message DeploymentConfigList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of deployment configs
   repeated DeploymentConfig items = 2;
@@ -233,7 +235,7 @@ message DeploymentLogOptions {
   // precedes the time a pod was started, only logs since the pod start will be returned.
   // If this value is in the future, no logs will be returned.
   // Only one of sinceSeconds or sinceTime may be specified.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time sinceTime = 5;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time sinceTime = 5;
 
   // If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
   // of log output. Defaults to false.
@@ -415,7 +417,7 @@ message RollingDeploymentStrategyParams {
   // RC can be scaled down further, followed by scaling up the new RC,
   // ensuring that at least 70% of original number of pods are available at
   // all times during the update.
-  optional k8s.io.kubernetes.pkg.util.intstr.IntOrString maxUnavailable = 4;
+  optional k8s.io.apimachinery.pkg.util.intstr.IntOrString maxUnavailable = 4;
 
   // MaxSurge is the maximum number of pods that can be scheduled above the
   // original number of pods. Value can be an absolute number (ex: 5) or a
@@ -429,7 +431,7 @@ message RollingDeploymentStrategyParams {
   // killed, new RC can be scaled up further, ensuring that total number of
   // pods running at any time during the update is atmost 130% of original
   // pods.
-  optional k8s.io.kubernetes.pkg.util.intstr.IntOrString maxSurge = 5;
+  optional k8s.io.apimachinery.pkg.util.intstr.IntOrString maxSurge = 5;
 
   // Pre is a lifecycle hook which is executed before the deployment process
   // begins. All LifecycleHookFailurePolicy values are supported.
