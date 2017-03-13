@@ -10,7 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/config"

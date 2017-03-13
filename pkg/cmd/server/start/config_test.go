@@ -6,7 +6,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func TestMasterURLNoPathAllowed(t *testing.T) {
