@@ -9,9 +9,9 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	watchapi "k8s.io/kubernetes/pkg/watch"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"

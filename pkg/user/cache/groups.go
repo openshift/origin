@@ -6,9 +6,9 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"

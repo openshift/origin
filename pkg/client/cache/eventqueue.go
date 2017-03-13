@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // EventQueue is a Store implementation that provides a sequence of compressed events to a consumer

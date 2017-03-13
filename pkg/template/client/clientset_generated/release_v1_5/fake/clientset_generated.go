@@ -6,11 +6,11 @@ import (
 	fakev1core "github.com/openshift/origin/pkg/template/client/clientset_generated/release_v1_5/typed/core/v1/fake"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/testing/core"
 	fakediscovery "k8s.io/kubernetes/pkg/client/typed/discovery/fake"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.

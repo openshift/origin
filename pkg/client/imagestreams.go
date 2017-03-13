@@ -5,8 +5,8 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"

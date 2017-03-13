@@ -28,7 +28,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	watchapi "k8s.io/kubernetes/pkg/watch"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 	watchv1 "k8s.io/kubernetes/pkg/watch/versioned"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"

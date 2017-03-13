@@ -6,8 +6,8 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/watch"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"

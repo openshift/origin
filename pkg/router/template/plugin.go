@@ -12,9 +12,9 @@ import (
 	"github.com/golang/glog"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	ktypes "k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"

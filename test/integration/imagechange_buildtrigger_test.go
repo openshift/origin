@@ -11,8 +11,8 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	watchapi "k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	watchapi "k8s.io/kubernetes/pkg/watch"
 	"testing"
 )
 

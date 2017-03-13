@@ -2,8 +2,8 @@ package restrictusers
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	watch "k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	watch "k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )

@@ -3,10 +3,10 @@ package buildconfig
 import (
 	"github.com/openshift/origin/pkg/build/api"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // Registry is an interface for things that know how to store BuildConfigs.
