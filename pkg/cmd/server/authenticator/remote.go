@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"time"
 
-	"k8s.io/kubernetes/pkg/auth/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
 
 	oauthenticator "github.com/openshift/origin/pkg/auth/authenticator"

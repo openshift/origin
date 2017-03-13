@@ -3,8 +3,8 @@ package anonymous
 import (
 	"net/http"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )

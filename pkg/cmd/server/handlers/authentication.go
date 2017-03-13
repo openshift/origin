@@ -5,8 +5,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
 )
 
 // AuthenticationHandlerFilter creates a filter object that will enforce authentication directly
