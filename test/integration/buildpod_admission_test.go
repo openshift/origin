@@ -204,11 +204,11 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset *k
 		t.Fatalf("%v", err)
 	}
 
-	watchOpt := metainternal.ListOptions{
+	watchOpt := metav1.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(
 			"metadata.name",
 			buildapi.GetBuildPodName(build),
-		),
+		).String(),
 	}
 	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)
 	if err != nil {

@@ -69,7 +69,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Watch the project, rolebindings, and configmaps
-	nswatch, err := kubeClientset.Core().Namespaces().Watch(metainternal.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns)})
+	nswatch, err := kubeClientset.Core().Namespaces().Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(metainternal.ListOptions{})
+	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

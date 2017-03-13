@@ -125,7 +125,7 @@ func RunBuildControllerTest(t testingT, osClient *client.Client, kClientset *kcl
 	}()
 
 	// Watch build pods as they are created
-	podWatch, err := kClientset.Core().Pods(ns).Watch(metainternal.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
+	podWatch, err := kClientset.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b)).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +216,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		}
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Pods(ns).Watch(metainternal.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b))})
+		podWatch, err := kClient.Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b)).String()})
 		if err != nil {
 			t.Fatal(err)
 		}

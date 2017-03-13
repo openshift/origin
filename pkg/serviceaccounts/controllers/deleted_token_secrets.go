@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -104,7 +105,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *api.Secret) ([]*api.Secret, error) {
 	dockercfgSecrets := []*api.Secret{}
 
-	options := api.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg))}
+	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg)).String()}
 	potentialSecrets, err := e.client.Core().Secrets(tokenSecret.Namespace).List(options)
 	if err != nil {
 		return nil, err

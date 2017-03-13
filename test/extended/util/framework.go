@@ -153,7 +153,7 @@ func DumpBuildLogs(bc string, oc *CLI) {
 }
 
 func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapi.PodList, error) {
-	return oc.KubeClient().Core().Pods(oc.Namespace()).List(metainternal.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName))})
+	return oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
@@ -706,7 +706,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err), false
 		}
-		list, err := client.List(metainternal.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
+		list, err := client.List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 		if err != nil {
 			return err, false
 		}
@@ -729,7 +729,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 			}
 		}
 
-		w, err := client.Watch(metainternal.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: list.ResourceVersion})
+		w, err := client.Watch(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String(), ResourceVersion: list.ResourceVersion})
 		if err != nil {
 			return err, false
 		}
@@ -888,7 +888,7 @@ func WaitForResourceQuotaSync(
 
 	expectedResourceNames := quota.ResourceNames(expectedUsage)
 
-	list, err := client.List(metainternal.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
+	list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 	if err != nil {
 		return nil, err
 	}
@@ -901,7 +901,7 @@ func WaitForResourceQuotaSync(
 	}
 
 	rv := list.ResourceVersion
-	w, err := client.Watch(metainternal.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
+	w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
 	if err != nil {
 		return nil, err
 	}
@@ -939,7 +939,7 @@ var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
 func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
-	podList, err := c.List(metainternal.ListOptions{LabelSelector: label})
+	podList, err := c.List(metav1.ListOptions{LabelSelector: label.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -1121,7 +1121,7 @@ func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capac
 // CleanupHostPathVolumes removes all PersistentVolumes created by
 // SetupHostPathVolumes, with a given prefix
 func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix string) error {
-	pvs, err := c.List(metainternal.ListOptions{})
+	pvs, err := c.List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

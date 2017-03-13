@@ -190,7 +190,7 @@ func waitForToken(token *api.Secret, serviceAccount *api.ServiceAccount, timeout
 	timeoutSeconds := int64(math.Floor(timeout.Seconds() + 0.5))
 
 	options := metav1.ListOptions{
-		FieldSelector:   fields.SelectorFromSet(fields.Set(map[string]string{"metadata.name": token.Name})),
+		FieldSelector:   fields.SelectorFromSet(fields.Set(map[string]string{"metadata.name": token.Name})).String(),
 		Watch:           true,
 		ResourceVersion: token.ResourceVersion,
 		TimeoutSeconds:  &timeoutSeconds,

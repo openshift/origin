@@ -592,7 +592,7 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 	}
 	watcher, err := podClient.Pods(rc.Namespace).Watch(
 		metav1.ListOptions{
-			FieldSelector: fields.Set{"metadata.name": podName}.AsSelector(),
+			FieldSelector: fields.Set{"metadata.name": podName}.AsSelector().String(),
 		},
 	)
 	if err != nil {

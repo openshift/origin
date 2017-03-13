@@ -10,7 +10,6 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -435,12 +434,12 @@ func canRetryReading(pod *kapi.Pod, restarts int32) (bool, int32) {
 func newPodWatch(client kcoreclient.PodInterface, namespace, name, resourceVersion string, stopChannel chan struct{}) func() *kapi.Pod {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
 	podLW := &cache.ListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-			options.FieldSelector = fieldSelector
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fieldSelector.String()
 			return client.List(options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-			options.FieldSelector = fieldSelector
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = fieldSelector.String()
 			return client.Watch(options)
 		},
 	}
@@ -473,12 +472,12 @@ func NewAcceptAvailablePods(
 			selector := labels.Set(rc.Spec.Selector).AsSelector()
 			store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 			lw := &cache.ListWatch{
-				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-					options.LabelSelector = selector
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+					options.LabelSelector = selector.String()
 					return kclient.Pods(rc.Namespace).List(options)
 				},
-				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-					options.LabelSelector = selector
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+					options.LabelSelector = selector.String()
 					return kclient.Pods(rc.Namespace).Watch(options)
 				},
 			}
