@@ -122,7 +122,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	var scale *kextapi.Scale
 
 	switch {
-	case ref.Kind == "DeploymentConfig" && ref.Group == deployapi.GroupName:
+	case ref.Kind == "DeploymentConfig" && (ref.Group == deployapi.GroupName || ref.Group == deployapi.LegacyGroupName):
 		var dc *deployapi.DeploymentConfig
 		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name)
 		if err != nil {

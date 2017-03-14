@@ -597,7 +597,7 @@ func retryBuildConfig(info *resource.Info, err error) runtime.Object {
 		buildapi.GenericWebHookBuildTriggerType: {},
 		buildapi.ImageChangeBuildTriggerType:    {},
 	}
-	if info.Mapping.GroupVersionKind.GroupKind() == buildapi.Kind("BuildConfig") && isInvalidTriggerError(err) {
+	if buildapi.IsKindOrLegacy("BuildConfig", info.Mapping.GroupVersionKind.GroupKind()) && isInvalidTriggerError(err) {
 		bc, ok := info.Object.(*buildapi.BuildConfig)
 		if !ok {
 			return nil

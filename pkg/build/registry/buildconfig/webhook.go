@@ -40,7 +40,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 
 	plugin, ok := w.plugins[hookType]
 	if !ok {
-		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
+		return errors.NewNotFound(buildapi.LegacyResource("buildconfighook"), hookType)
 	}
 
 	config, err := w.registry.GetBuildConfig(ctx, name)

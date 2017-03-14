@@ -182,9 +182,6 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 					if !others.Has(k) {
 						continue
 					}
-					// TODO: the order here is not deterministic, due to the fact that StringSet is
-					// using map under the covers, so you may end up with a different resource being
-					// used each time
 					reduce = others.List()[0]
 					break
 				}
