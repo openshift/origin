@@ -67,7 +67,7 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := kcmdutil.PrinterForCommand(cmd)
+	printer, generic, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return nil
 	}
@@ -81,24 +81,29 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 			if err := printer.PrintObj(info.Object, out); err != nil {
 				return nil
 			}
+			return nil
 		}
-		return nil
 	}
 
-	clientConfig, err := f.ClientConfig()
+	printAsList := len(infos) != 1
+
+	// If we're not printing multiple objects, we'll pass an empty GroupVersion to AsVersionedObject
+	// because we shouldn't need to do any conversion.
+	var gv schema.GroupVersion
+
+	if printAsList {
+		// If we're printing a list of objects, we do need to convert at least the outer List container
+		// from internal to versioned, so we need to set gv appropriately.
+		// TODO is there a better way to do this?
+		gv = schema.GroupVersion{Group: "", Version: "v1"}
+	}
+
+	object, err := resource.AsVersionedObject(infos, printAsList, gv, api.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
-	outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
-	object, err := resource.AsVersionedObject(infos, len(infos) != 1, outputVersion, api.Codecs.LegacyCodec(outputVersion))
-	if err != nil {
-		return err
-	}
+
 	return printer.PrintObj(object, out)
-
 }
 
 // FlagBinder represents an interface that allows to bind extra flags into commands.
@@ -382,12 +387,12 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 	if err != nil {
 		return nil, err
 	}
-	for apiVersion, v := range all {
-		gv, err := schema.ParseGroupVersion(apiVersion)
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
 		if err != nil {
 			continue
 		}
-		for _, r := range v.APIResources {
+		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
 				continue
