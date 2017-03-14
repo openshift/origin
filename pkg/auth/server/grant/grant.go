@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -127,7 +128,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	scopes := scope.Split(q.Get(scopeParam))
 	redirectURI := q.Get(redirectURIParam)
 
-	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID)
+	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID, &metav1.GetOptions{})
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -158,7 +159,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	requestedScopes := []Scope{}
 
 	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
-	if clientAuth, err := l.authregistry.GetClientAuthorization(apirequest.NewContext(), clientAuthID); err == nil {
+	if clientAuth, err := l.authregistry.GetClientAuthorization(apirequest.NewContext(), clientAuthID, &metav1.GetOptions{}); err == nil {
 		grantedScopeNames = clientAuth.Scopes
 	}
 
@@ -233,7 +234,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	}
 
 	clientID := req.FormValue(clientIDParam)
-	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID)
+	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID, &metav1.GetOptions{})
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -247,7 +248,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
 
 	ctx := apirequest.NewContext()
-	clientAuth, err := l.authregistry.GetClientAuthorization(ctx, clientAuthID)
+	clientAuth, err := l.authregistry.GetClientAuthorization(ctx, clientAuthID, &metav1.GetOptions{})
 	if err == nil && clientAuth != nil {
 		// Add new scopes and update
 		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(scopes))

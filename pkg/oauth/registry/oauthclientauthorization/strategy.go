@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,7 +57,7 @@ func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 	auth := obj.(*api.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorization(auth)
 
-	client, err := s.clientGetter.GetClient(ctx, auth.ClientName)
+	client, err := s.clientGetter.GetClient(ctx, auth.ClientName, &metav1.GetOptions{})
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
@@ -73,7 +74,7 @@ func (s strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old
 	oldClientAuth := old.(*api.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorizationUpdate(clientAuth, oldClientAuth)
 
-	client, err := s.clientGetter.GetClient(ctx, clientAuth.ClientName)
+	client, err := s.clientGetter.GetClient(ctx, clientAuth.ClientName, &metav1.GetOptions{})
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}

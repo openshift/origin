@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/auth/api"
@@ -22,7 +23,7 @@ func NewClientAuthorizationGrantChecker(registry oauthclientauthorization.Regist
 
 func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user user.Info, grant *api.Grant) (approved bool, err error) {
 	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
-	authorization, err := c.registry.GetClientAuthorization(apirequest.NewContext(), id)
+	authorization, err := c.registry.GetClientAuthorization(apirequest.NewContext(), id, &metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}

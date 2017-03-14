@@ -3,6 +3,7 @@ package oauthaccesstoken
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -51,7 +52,7 @@ func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 	token := obj.(*api.OAuthAccessToken)
 	validationErrors := validation.ValidateAccessToken(token)
 
-	client, err := s.clientGetter.GetClient(ctx, token.ClientName)
+	client, err := s.clientGetter.GetClient(ctx, token.ClientName, &metav1.GetOptions{})
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
