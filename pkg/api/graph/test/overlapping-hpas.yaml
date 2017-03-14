@@ -1,76 +1,71 @@
 apiVersion: v1
 kind: List
 items:
-- apiVersion: extensions/v1beta1
+- apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
     name: overlapping 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
-    cpuUtilization:
-      targetPercentage: 80 
-- apiVersion: extensions/v1beta1
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
     name: overlapping2 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
-    cpuUtilization:
-      targetPercentage: 80 
-- apiVersion: extensions/v1beta1
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
     name: overlapping3 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
-    cpuUtilization:
-      targetPercentage: 80 
-- apiVersion: extensions/v1beta1
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
     name: dc-autoscaler
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: someotherdc 
       apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
-    cpuUtilization:
-      targetPercentage: 80 
-- apiVersion: extensions/v1beta1
+    targetCPUUtilizationPercentage: 80
+- apiVersion: autoscaling/v1
   kind: HorizontalPodAutoscaler
   metadata:
     name: rc-autoscaler
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: ReplicationController 
       name: someotherdc-1 
       apiVersion: v1 
       subresource: scale
     minReplicas: 1 
-    maxReplicas: 10 
-    cpuUtilization:
-      targetPercentage: 80
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
