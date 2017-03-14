@@ -76,7 +76,7 @@ func (s *storage) UpdateGroup(ctx apirequest.Context, group *api.Group) (*api.Gr
 }
 
 func (s *storage) DeleteGroup(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }
 

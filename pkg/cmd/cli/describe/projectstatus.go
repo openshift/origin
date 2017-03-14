@@ -1252,7 +1252,7 @@ type rcLoader struct {
 }
 
 func (l *rcLoader) Load() error {
-	list, err := l.lister.ReplicationControllers(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.ReplicationControllers(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1276,7 +1276,7 @@ type serviceLoader struct {
 }
 
 func (l *serviceLoader) Load() error {
-	list, err := l.lister.Services(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.Services(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1300,7 +1300,7 @@ type podLoader struct {
 }
 
 func (l *podLoader) Load() error {
-	list, err := l.lister.Pods(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.Pods(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1324,7 +1324,7 @@ type statefulSetLoader struct {
 }
 
 func (l *statefulSetLoader) Load() error {
-	list, err := l.lister.StatefulSets(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.StatefulSets(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1348,7 +1348,7 @@ type horizontalPodAutoscalerLoader struct {
 }
 
 func (l *horizontalPodAutoscalerLoader) Load() error {
-	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.HorizontalPodAutoscalers(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1372,7 +1372,7 @@ type serviceAccountLoader struct {
 }
 
 func (l *serviceAccountLoader) Load() error {
-	list, err := l.lister.ServiceAccounts(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.ServiceAccounts(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1396,7 +1396,7 @@ type secretLoader struct {
 }
 
 func (l *secretLoader) Load() error {
-	list, err := l.lister.Secrets(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.Secrets(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1420,7 +1420,7 @@ type pvcLoader struct {
 }
 
 func (l *pvcLoader) Load() error {
-	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.PersistentVolumeClaims(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

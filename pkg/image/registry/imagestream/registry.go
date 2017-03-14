@@ -105,7 +105,7 @@ func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *a
 }
 
 func (s *storage) DeleteImageStream(ctx apirequest.Context, imageStreamID string) (*metav1.Status, error) {
-	obj, err := s.Delete(ctx, imageStreamID, nil)
+	obj, _, err := s.Delete(ctx, imageStreamID, nil)
 	if err != nil {
 		return nil, err
 	}

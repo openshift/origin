@@ -65,7 +65,7 @@ func (s *storage) CreateAccessToken(ctx apirequest.Context, token *api.OAuthAcce
 }
 
 func (s *storage) DeleteAccessToken(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	if err != nil {
 		return err
 	}

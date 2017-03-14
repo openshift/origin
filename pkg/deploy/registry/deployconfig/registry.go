@@ -63,6 +63,6 @@ func (s *storage) UpdateDeploymentConfig(ctx apirequest.Context, deploymentConfi
 }
 
 func (s *storage) DeleteDeploymentConfig(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

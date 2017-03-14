@@ -82,6 +82,6 @@ func (s *storage) GetRoleBinding(ctx apirequest.Context, name string, options *m
 }
 
 func (s *storage) DeleteRoleBinding(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

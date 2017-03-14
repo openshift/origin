@@ -68,6 +68,6 @@ func (s *storage) UpdateBuildConfig(ctx apirequest.Context, build *api.BuildConf
 }
 
 func (s *storage) DeleteBuildConfig(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

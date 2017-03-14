@@ -79,6 +79,6 @@ func (s *storage) GetPolicyBinding(ctx apirequest.Context, name string, options 
 }
 
 func (s *storage) DeletePolicyBinding(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

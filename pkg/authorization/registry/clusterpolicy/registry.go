@@ -85,7 +85,7 @@ func (s *storage) GetClusterPolicy(ctx apirequest.Context, name string, options 
 }
 
 func (s *storage) DeleteClusterPolicy(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }
 
@@ -110,8 +110,8 @@ func (s *simulatedStorage) UpdatePolicy(ctx apirequest.Context, policy *authoriz
 	return s.clusterRegistry.UpdateClusterPolicy(ctx, authorizationapi.ToClusterPolicy(policy))
 }
 
-func (s *simulatedStorage) GetPolicy(ctx apirequest.Context, name string) (*authorizationapi.Policy, error) {
-	ret, err := s.clusterRegistry.GetClusterPolicy(ctx, name)
+func (s *simulatedStorage) GetPolicy(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.Policy, error) {
+	ret, err := s.clusterRegistry.GetClusterPolicy(ctx, name, options)
 	return authorizationapi.ToPolicy(ret), err
 }
 
@@ -127,6 +127,6 @@ func (s ReadOnlyClusterPolicy) List(options metainternal.ListOptions) (*authoriz
 	return s.ListClusterPolicies(apirequest.WithNamespace(apirequest.NewContext(), ""), &options)
 }
 
-func (s ReadOnlyClusterPolicy) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return s.GetClusterPolicy(apirequest.WithNamespace(apirequest.NewContext(), ""), name)
+func (s ReadOnlyClusterPolicy) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
+	return s.GetClusterPolicy(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
 }

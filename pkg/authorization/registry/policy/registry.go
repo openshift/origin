@@ -79,6 +79,6 @@ func (s *storage) GetPolicy(ctx apirequest.Context, name string, options *metav1
 }
 
 func (s *storage) DeletePolicy(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

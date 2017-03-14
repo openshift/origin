@@ -74,7 +74,7 @@ func (s *storage) UpdateClientAuthorization(ctx apirequest.Context, client *api.
 }
 
 func (s *storage) DeleteClientAuthorization(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	if err != nil {
 		return err
 	}

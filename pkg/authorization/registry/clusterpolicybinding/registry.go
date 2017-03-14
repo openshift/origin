@@ -85,7 +85,7 @@ func (s *storage) GetClusterPolicyBinding(ctx apirequest.Context, name string, o
 }
 
 func (s *storage) DeleteClusterPolicyBinding(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }
 
@@ -127,6 +127,6 @@ func (s ReadOnlyClusterPolicyBinding) List(options metainternal.ListOptions) (*a
 	return s.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &options)
 }
 
-func (s ReadOnlyClusterPolicyBinding) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	return s.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name)
+func (s ReadOnlyClusterPolicyBinding) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return s.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
 }

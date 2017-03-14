@@ -76,6 +76,6 @@ func (s *storage) GetRole(ctx apirequest.Context, name string, options *metav1.G
 }
 
 func (s *storage) DeleteRole(ctx apirequest.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

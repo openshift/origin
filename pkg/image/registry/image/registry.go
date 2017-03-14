@@ -79,7 +79,7 @@ func (s *storage) UpdateImage(ctx apirequest.Context, image *api.Image) (*api.Im
 }
 
 func (s *storage) DeleteImage(ctx apirequest.Context, imageID string) error {
-	_, err := s.Delete(ctx, imageID, nil)
+	_, _, err := s.Delete(ctx, imageID, nil)
 	return err
 }
 
