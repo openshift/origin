@@ -11,6 +11,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
@@ -19,7 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
-// SCCMatcher defines interface for SecurityContextConstraint matcher
+// SCCMatcher defines interface for Security Context Constraints matcher
 type SCCMatcher interface {
 	FindApplicableSCCs(user user.Info) ([]*kapi.SecurityContextConstraints, error)
 }
@@ -65,31 +66,113 @@ func ConstraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo u
 	return false
 }
 
-// AssignSecurityContext creates a security context for each container in the pod
-// and validates that the sc falls within the scc constraints.  All containers must validate against
-// the same scc or is not considered valid.
-func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
+// DeduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
+func DeduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstraints) []*kapi.SecurityContextConstraints {
+	deDuped := []*kapi.SecurityContextConstraints{}
+	added := sets.NewString()
+
+	for _, s := range sccs {
+		if !added.Has(s.Name) {
+			deDuped = append(deDuped, s)
+			added.Insert(s.Name)
+		}
+	}
+	return deDuped
+}
+
+func createProviderFromConstraint(namespace *kapi.Namespace, constraint *kapi.SecurityContextConstraints) (kscc.SecurityContextConstraintsProvider, error) {
+	// Make a copy of the constraint so we don't mutate the store's cache
+	var constraintCopy = *constraint
+	constraint = &constraintCopy
+
+	// Resolve the values from the namespace
+	if requiresPreAllocatedUIDRange(constraint) {
+		var err error
+		constraint.RunAsUser.UIDRangeMin, constraint.RunAsUser.UIDRangeMax, err = getPreallocatedUIDRange(namespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+	}
+	if requiresPreAllocatedSELinuxLevel(constraint) {
+		level, err := getPreallocatedLevel(namespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+
+		// SELinuxOptions is a pointer, if we are resolving and it is already initialized
+		// we need to make a copy of it so we don't manipulate the store's cache.
+		if constraint.SELinuxContext.SELinuxOptions != nil {
+			seLinuxOptionsCopy := *constraint.SELinuxContext.SELinuxOptions
+			constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
+		} else {
+			constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
+		}
+		constraint.SELinuxContext.SELinuxOptions.Level = level
+	}
+	if requiresPreallocatedFSGroup(constraint) {
+		fsGroup, err := getPreallocatedFSGroup(namespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+		constraint.FSGroup.Ranges = fsGroup
+	}
+	if requiresPreallocatedSupplementalGroups(constraint) {
+		supplementalGroups, err := getPreallocatedSupplementalGroups(namespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
+		}
+		constraint.SupplementalGroups.Ranges = supplementalGroups
+	}
+
+	// Create the provider
+	provider, err := kscc.NewSimpleProvider(constraint)
+	if err != nil {
+		namespaceName := ""
+		if namespace != nil {
+			namespaceName = namespace.Name
+		}
+		return nil, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, namespaceName, err)
+	}
+	return provider, nil
+}
+
+// SetSecurityContext assigns the securityContext the annotations and the container
+// security contexts to the provided pod
+func SetSecurityContext(pod *kapi.Pod, psc *kapi.PodSecurityContext, annotations map[string]string, securityContexts []*kapi.SecurityContext) {
+	pod.Spec.SecurityContext = psc
+	pod.Annotations = annotations
+	for i := range pod.Spec.InitContainers {
+		pod.Spec.InitContainers[i].SecurityContext = securityContexts[i]
+	}
+	base := len(pod.Spec.InitContainers)
+	for i := range pod.Spec.Containers {
+		pod.Spec.Containers[i].SecurityContext = securityContexts[i+base]
+	}
+}
+
+// ResolvePodSecurityContext performs a non mutating check of the pod against a security provider.
+// All the containers must validate aginst the same provider.
+// It returns the PodSecurityContext the annotations and all containers SecurityContexts.
+func ResolvePodSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod *kapi.Pod) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, field.ErrorList) {
 	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.InitContainers)+len(pod.Spec.Containers))
-
 	errs := field.ErrorList{}
-
 	psc, generatedAnnotations, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
 		errs = append(errs, field.Invalid(field.NewPath("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
 	}
 
-	// save the original PSC and validate the generated PSC.  Leave the generated PSC
-	// set for container generation/validation.  We will reset to original post container
-	// validation.
+	// save the original PSC and validate the generated PSC. original PSC & annotations are restored at the end
 	originalPSC := pod.Spec.SecurityContext
 	originalAnnotations := pod.Annotations
+	defer func() {
+		pod.Spec.SecurityContext = originalPSC
+		pod.Annotations = originalAnnotations
+	}()
 
 	pod.Spec.SecurityContext = psc
 	pod.Annotations = generatedAnnotations
 	errs = append(errs, provider.ValidatePodSecurityContext(pod, field.NewPath("spec", "securityContext"))...)
 
-	// Note: this is not changing the original container, we will set container SCs later so long
-	// as all containers validated under the same SCC.
 	containerPath := field.NewPath("spec", "initContainers")
 	for i, containerCopy := range pod.Spec.InitContainers {
 		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
@@ -99,11 +182,7 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 		}
 		generatedSCs[i] = csc
 	}
-
 	base := len(pod.Spec.InitContainers)
-
-	// Note: this is not changing the original container, we will set container SCs later so long
-	// as all containers validated under the same SCC.
 	containerPath = field.NewPath("spec", "containers")
 	for i, containerCopy := range pod.Spec.Containers {
 		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
@@ -113,22 +192,8 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 		}
 		generatedSCs[i+base] = csc
 	}
-	if len(errs) > 0 {
-		// ensure psc is not mutated if there are errors
-		pod.Spec.SecurityContext = originalPSC
-		pod.Annotations = originalAnnotations
-		return errs
-	}
 
-	// if we've reached this code then we've generated and validated an SC for every container in the
-	// pod so let's apply what we generated.  Note: the psc is already applied.
-	for i := range pod.Spec.InitContainers {
-		pod.Spec.InitContainers[i].SecurityContext = generatedSCs[i]
-	}
-	for i := range pod.Spec.Containers {
-		pod.Spec.Containers[i].SecurityContext = generatedSCs[i+base]
-	}
-	return nil
+	return psc, generatedAnnotations, generatedSCs, errs
 }
 
 // resolveContainerSecurityContext checks the provided container against the provider, returning any
@@ -160,123 +225,6 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 	return false
 }
 
-// DeduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
-func DeduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstraints) []*kapi.SecurityContextConstraints {
-	deDuped := []*kapi.SecurityContextConstraints{}
-	added := sets.NewString()
-
-	for _, s := range sccs {
-		if !added.Has(s.Name) {
-			deDuped = append(deDuped, s)
-			added.Insert(s.Name)
-		}
-	}
-	return deDuped
-}
-
-// getNamespaceByName retrieves a namespace only if ns is nil.
-func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interface) (*kapi.Namespace, error) {
-	if ns != nil && name == ns.Name {
-		return ns, nil
-	}
-	return client.Core().Namespaces().Get(name)
-}
-
-// CreateProvidersFromConstraints creates providers from the constraints supplied, including
-// looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ns string, sccs []*kapi.SecurityContextConstraints, client clientset.Interface) ([]kscc.SecurityContextConstraintsProvider, []error) {
-	var (
-		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
-		namespace *kapi.Namespace
-		// collected providers
-		providers []kscc.SecurityContextConstraintsProvider
-		// collected errors to return
-		errs []error
-	)
-
-	// set pre-allocated values on constraints
-	for _, constraint := range sccs {
-		var (
-			provider kscc.SecurityContextConstraintsProvider
-			err      error
-		)
-		provider, namespace, err = CreateProviderFromConstraint(ns, namespace, constraint, client)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		providers = append(providers, provider)
-	}
-	return providers, errs
-}
-
-// CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *kapi.SecurityContextConstraints, client clientset.Interface) (kscc.SecurityContextConstraintsProvider, *kapi.Namespace, error) {
-	var err error
-	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
-	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
-	resolveFSGroup := requiresPreallocatedFSGroup(constraint)
-	resolveSupplementalGroups := requiresPreallocatedSupplementalGroups(constraint)
-	requiresNamespaceAllocations := resolveUIDRange || resolveSELinuxLevel || resolveFSGroup || resolveSupplementalGroups
-
-	if requiresNamespaceAllocations {
-		// Ensure we have the namespace
-		namespace, err = getNamespaceByName(ns, namespace, client)
-		if err != nil {
-			return nil, namespace, fmt.Errorf("error fetching namespace %s required to preallocate values for %s: %v", ns, constraint.Name, err)
-		}
-	}
-
-	// Make a copy of the constraint so we don't mutate the store's cache
-	var constraintCopy kapi.SecurityContextConstraints = *constraint
-	constraint = &constraintCopy
-
-	// Resolve the values from the namespace
-	if resolveUIDRange {
-		constraint.RunAsUser.UIDRangeMin, constraint.RunAsUser.UIDRangeMax, err = getPreallocatedUIDRange(namespace)
-		if err != nil {
-			return nil, namespace, fmt.Errorf("unable to find pre-allocated uid annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
-		}
-	}
-	if resolveSELinuxLevel {
-		var level string
-		if level, err = getPreallocatedLevel(namespace); err != nil {
-			return nil, namespace, fmt.Errorf("unable to find pre-allocated mcs annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
-		}
-
-		// SELinuxOptions is a pointer, if we are resolving and it is already initialized
-		// we need to make a copy of it so we don't manipulate the store's cache.
-		if constraint.SELinuxContext.SELinuxOptions != nil {
-			var seLinuxOptionsCopy kapi.SELinuxOptions = *constraint.SELinuxContext.SELinuxOptions
-			constraint.SELinuxContext.SELinuxOptions = &seLinuxOptionsCopy
-		} else {
-			constraint.SELinuxContext.SELinuxOptions = &kapi.SELinuxOptions{}
-		}
-		constraint.SELinuxContext.SELinuxOptions.Level = level
-	}
-	if resolveFSGroup {
-		fsGroup, err := getPreallocatedFSGroup(namespace)
-		if err != nil {
-			return nil, namespace, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
-		}
-		constraint.FSGroup.Ranges = fsGroup
-	}
-	if resolveSupplementalGroups {
-		supplementalGroups, err := getPreallocatedSupplementalGroups(namespace)
-		if err != nil {
-			return nil, namespace, fmt.Errorf("unable to find pre-allocated group annotation for namespace %s while trying to configure SCC %s: %v", namespace.Name, constraint.Name, err)
-		}
-		constraint.SupplementalGroups.Ranges = supplementalGroups
-	}
-
-	// Create the provider
-	provider, err := kscc.NewSimpleProvider(constraint)
-	if err != nil {
-		return nil, namespace, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, ns, err)
-	}
-	return provider, namespace, nil
-}
-
 // getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make
 // the min/max and formats the data into the necessary types for the strategy options.
 func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
@@ -292,8 +240,8 @@ func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
 		return nil, nil, err
 	}
 
-	var min int64 = int64(uidBlock.Start)
-	var max int64 = int64(uidBlock.End)
+	min := int64(uidBlock.Start)
+	max := int64(uidBlock.End)
 	glog.V(4).Infof("got preallocated values for min: %d, max: %d for uid range in namespace %s", min, max, ns.Name)
 	return &min, &max, nil
 }
@@ -428,4 +376,62 @@ func requiresPreallocatedFSGroup(constraint *kapi.SecurityContextConstraints) bo
 		return false
 	}
 	return len(constraint.FSGroup.Ranges) == 0
+}
+
+// providerResolveFunc defines the type of callback to be passed to AssignConstraints function
+// It returns the PodSecurityContext, the generated annotations and a list of security contexts for the pod containers
+type providerResolveFunc func(kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error)
+
+// ConstraintAssignFunc defines the type of callback to be passed to AssignConstraints function
+type constraintAssignFunc func(kscc.SecurityContextConstraintsProvider, *kapi.SecurityContextConstraints, *kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext) error
+
+// AssignConstraints implements a template function to share code between security admission and
+// security policy review endpoints. It takes as parameter:
+// constraints: a list of securityConstraints (they should be already sorted by the caller)
+// namespaceName: the name of the namespace
+// resolve: function is used to resolve the provider constraint
+// assign: function is used to set SecurityContextConstraintProvider to resource
+func AssignConstraints(constraints []*kapi.SecurityContextConstraints, namespaceName string, client clientset.Interface, resolve providerResolveFunc, assign constraintAssignFunc) error {
+	var (
+		errs           []error
+		aProviderFound bool
+		namespace      *kapi.Namespace //represents the allocated namespace (if needed)
+		err            error
+	)
+
+	for _, constraint := range constraints {
+		// check whether any preallocation is required. In case
+		if requiresPreAllocatedUIDRange(constraint) || requiresPreAllocatedSELinuxLevel(constraint) || requiresPreallocatedFSGroup(constraint) || requiresPreallocatedSupplementalGroups(constraint) {
+			if namespace == nil || namespaceName != namespace.Name {
+				if namespace, err = client.Core().Namespaces().Get(namespaceName); err != nil {
+					errs = append(errs, fmt.Errorf("error fetching namespace %s required to preallocate values for %s: %v", namespaceName, constraint.Name, err))
+					continue
+				}
+			}
+		}
+		// for each provided constraint try to create a security context provider
+		provider, err := createProviderFromConstraint(namespace, constraint)
+		if err != nil {
+			glog.Errorf("Unable to create security context provider for namespace %q: %v", namespace.Name, err)
+			errs = append(errs, fmt.Errorf("unable to create security context provider: %v", err))
+			continue
+		}
+		if provider != nil {
+			aProviderFound = true
+			psc, annotations, cscs, err := resolve(provider)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("unable to resolve security provider: %v", err))
+				continue
+			}
+			err = assign(provider, constraint, psc, annotations, cscs)
+			if err == nil {
+				return nil
+			}
+		}
+		errs = append(errs, fmt.Errorf("unable to assign security constraints: %v", err))
+	}
+	if !aProviderFound {
+		return fmt.Errorf("no providers available")
+	}
+	return kerrors.NewAggregate(errs)
 }

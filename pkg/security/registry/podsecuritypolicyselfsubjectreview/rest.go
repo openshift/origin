@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
-	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
@@ -51,7 +50,6 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace parameter required.")
 	}
-
 	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(userInfo)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
@@ -65,26 +63,38 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-	oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
 	sort.Sort(oscc.ByPriority(matchedConstraints))
-	var namespace *kapi.Namespace
-	for _, constraint := range matchedConstraints {
-		var (
-			provider kscc.SecurityContextConstraintsProvider
-			err      error
-		)
-		if provider, namespace, err = oscc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
-			glog.Errorf("Unable to create provider for constraint: %v", err)
-			continue
-		}
-		filled, err := podsecuritypolicysubjectreview.FillPodSecurityPolicySubjectReviewStatus(&pspssr.Status, provider, pspssr.Spec.Template.Spec, constraint)
-		if err != nil {
-			glog.Errorf("unable to fill PodSecurityPolicySelfSubjectReview from constraint %v", err)
-			continue
-		}
-		if filled {
-			return pspssr, nil
-		}
+	if err = oscc.AssignConstraints(matchedConstraints, ns, r.client,
+		func(provider kscc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+			pod := &kapi.Pod{
+				Spec: pspssr.Spec.Template.Spec,
+			}
+			psc, annotations, cscs, errs := oscc.ResolvePodSecurityContext(provider, pod)
+			if len(errs) > 0 {
+				pspssr.Status.Reason = "CantAssignSecurityContextConstraintProvider"
+				return nil, nil, nil, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())
+			}
+			return psc, annotations, cscs, nil
+
+		},
+		func(provider kscc.SecurityContextConstraintsProvider, constraint *kapi.SecurityContextConstraints, psc *kapi.PodSecurityContext, annotations map[string]string, cscs []*kapi.SecurityContext) error {
+			pod := &kapi.Pod{
+				Spec: pspssr.Spec.Template.Spec,
+			}
+			ref, err := kapi.GetReference(constraint)
+			if err != nil {
+				pspssr.Status.Reason = "CantObtainReference"
+				return fmt.Errorf("unable to get SecurityContextConstraints reference: %v", err)
+			}
+			oscc.SetSecurityContext(pod, psc, annotations, cscs)
+			pspssr.Status.AllowedBy = ref
+			if len(pspssr.Spec.Template.Spec.ServiceAccountName) > 0 {
+				pspssr.Status.Template.Spec = pod.Spec
+			}
+			return nil
+		}); err != nil {
+		glog.V(4).Infof("PodSecurityPolicySelfSubjectReview error: %v", err)
 	}
 	return pspssr, nil
 }

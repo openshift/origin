@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strings"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -92,38 +91,32 @@ func (c *constraint) Admit(a kadmission.Attributes) error {
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-
-	// remove duplicate constraints and sort
 	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
 	sort.Sort(oscc.ByPriority(matchedConstraints))
-
-	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
-	logProviders(pod, providers, errs)
-
-	if len(providers) == 0 {
-		return kadmission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
+	if err = oscc.AssignConstraints(matchedConstraints, a.GetNamespace(), c.client,
+		func(provider scc.SecurityContextConstraintsProvider) (*kapi.PodSecurityContext, map[string]string, []*kapi.SecurityContext, error) {
+			validationErrs := field.ErrorList{}
+			psc, annotations, scs, errs := oscc.ResolvePodSecurityContext(provider, pod)
+			if len(errs) > 0 {
+				validationErrs = append(validationErrs, errs...)
+				return nil, nil, nil, validationErrs.ToAggregate()
+			}
+			return psc, annotations, scs, nil
+		},
+		func(provider scc.SecurityContextConstraintsProvider, unused *kapi.SecurityContextConstraints, psc *kapi.PodSecurityContext, annotations map[string]string, cscs []*kapi.SecurityContext) error {
+			oscc.SetSecurityContext(pod, psc, annotations, cscs)
+			glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, provider.GetSCCName())
+			if pod.ObjectMeta.Annotations == nil {
+				pod.ObjectMeta.Annotations = map[string]string{}
+			}
+			pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
+			return nil
+		}); err != nil {
+		// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
+		glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, err)
+		return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", err))
 	}
-
-	// all containers in a single pod must validate under a single provider or we will reject the request
-	validationErrs := field.ErrorList{}
-	for _, provider := range providers {
-		if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
-			validationErrs = append(validationErrs, errs...)
-			continue
-		}
-
-		// the entire pod validated, annotate and accept the pod
-		glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, provider.GetSCCName())
-		if pod.ObjectMeta.Annotations == nil {
-			pod.ObjectMeta.Annotations = map[string]string{}
-		}
-		pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = provider.GetSCCName()
-		return nil
-	}
-
-	// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, validationErrs)
-	return kadmission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
+	return nil
 }
 
 // SetInformers implements WantsInformers interface for constraint.
@@ -137,18 +130,4 @@ func (c *constraint) Validate() error {
 		return fmt.Errorf("sccLister not initialized")
 	}
 	return nil
-}
-
-// logProviders logs what providers were found for the pod as well as any errors that were encountered
-// while creating providers.
-func logProviders(pod *kapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
-	names := make([]string, len(providers))
-	for i, p := range providers {
-		names[i] = p.GetSCCName()
-	}
-	glog.V(4).Infof("validating pod %s (generate: %s) against providers %s", pod.Name, pod.GenerateName, strings.Join(names, ","))
-
-	for _, err := range providerCreationErrs {
-		glog.V(4).Infof("provider creation error: %v", err)
-	}
 }
