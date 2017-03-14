@@ -8,11 +8,13 @@ package imagebuilder
 // package.
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -22,7 +24,7 @@ import (
 )
 
 // dispatch with no layer / parsing. This is effectively not a command.
-func nullDispatch(b *Builder, args []string, attributes map[string]bool, original string) error {
+func nullDispatch(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	return nil
 }
 
@@ -31,7 +33,7 @@ func nullDispatch(b *Builder, args []string, attributes map[string]bool, origina
 // Sets the environment variable foo to bar, also makes interpolation
 // in the dockerfile available from the next statement on via ${foo}.
 //
-func env(b *Builder, args []string, attributes map[string]bool, original string) error {
+func env(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("ENV")
 	}
@@ -66,12 +68,14 @@ func env(b *Builder, args []string, attributes map[string]bool, original string)
 			envParts := strings.SplitN(envVar, "=", 2)
 			if envParts[0] == args[j] {
 				b.RunConfig.Env[i] = newVar
+				b.Env = append([]string{newVar}, b.Env...)
 				gotOne = true
 				break
 			}
 		}
 		if !gotOne {
 			b.RunConfig.Env = append(b.RunConfig.Env, newVar)
+			b.Env = append([]string{newVar}, b.Env...)
 		}
 		j++
 	}
@@ -82,7 +86,7 @@ func env(b *Builder, args []string, attributes map[string]bool, original string)
 // MAINTAINER some text <maybe@an.email.address>
 //
 // Sets the maintainer metadata.
-func maintainer(b *Builder, args []string, attributes map[string]bool, original string) error {
+func maintainer(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("MAINTAINER")
 	}
@@ -94,7 +98,7 @@ func maintainer(b *Builder, args []string, attributes map[string]bool, original 
 //
 // Sets the Label variable foo to bar,
 //
-func label(b *Builder, args []string, attributes map[string]bool, original string) error {
+func label(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("LABEL")
 	}
@@ -121,14 +125,13 @@ func label(b *Builder, args []string, attributes map[string]bool, original strin
 // Add the file 'foo' to '/path'. Tarball and Remote URL (git, http) handling
 // exist here. If you do not wish to have this automatic handling, use COPY.
 //
-func add(b *Builder, args []string, attributes map[string]bool, original string) error {
+func add(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
 		return errAtLeastOneArgument("ADD")
 	}
-	for i := 1; i < len(args); i++ {
-		args[i] = makeAbsolute(args[i], b.RunConfig.WorkingDir)
-	}
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0], Dest: args[1:], Download: true})
+	last := len(args) - 1
+	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
+	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true})
 	return nil
 }
 
@@ -136,14 +139,13 @@ func add(b *Builder, args []string, attributes map[string]bool, original string)
 //
 // Same as 'ADD' but without the tar and remote url handling.
 //
-func dispatchCopy(b *Builder, args []string, attributes map[string]bool, original string) error {
+func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) < 2 {
 		return errAtLeastOneArgument("COPY")
 	}
-	for i := 1; i < len(args); i++ {
-		args[i] = makeAbsolute(args[i], b.RunConfig.WorkingDir)
-	}
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0], Dest: args[1:], Download: false})
+	last := len(args) - 1
+	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
+	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: false})
 	return nil
 }
 
@@ -151,7 +153,7 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, origina
 //
 // This sets the image the dockerfile will build on top of.
 //
-func from(b *Builder, args []string, attributes map[string]bool, original string) error {
+func from(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("FROM")
 	}
@@ -177,7 +179,7 @@ func from(b *Builder, args []string, attributes map[string]bool, original string
 // special cases. search for 'OnBuild' in internals.go for additional special
 // cases.
 //
-func onbuild(b *Builder, args []string, attributes map[string]bool, original string) error {
+func onbuild(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("ONBUILD")
 	}
@@ -200,7 +202,7 @@ func onbuild(b *Builder, args []string, attributes map[string]bool, original str
 //
 // Set the working directory for future RUN/CMD/etc statements.
 //
-func workdir(b *Builder, args []string, attributes map[string]bool, original string) error {
+func workdir(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("WORKDIR")
 	}
@@ -228,7 +230,7 @@ func workdir(b *Builder, args []string, attributes map[string]bool, original str
 // RUN echo hi          # cmd /S /C echo hi   (Windows)
 // RUN [ "echo", "hi" ] # echo hi
 //
-func run(b *Builder, args []string, attributes map[string]bool, original string) error {
+func run(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if b.RunConfig.Image == "" {
 		return fmt.Errorf("Please provide a source image with `from` prior to run")
 	}
@@ -249,7 +251,7 @@ func run(b *Builder, args []string, attributes map[string]bool, original string)
 // Set the default command to run in the container (which may be empty).
 // Argument handling is the same as RUN.
 //
-func cmd(b *Builder, args []string, attributes map[string]bool, original string) error {
+func cmd(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	cmdSlice := handleJSONArgs(args, attributes)
 
 	if !attributes["json"] {
@@ -275,7 +277,7 @@ func cmd(b *Builder, args []string, attributes map[string]bool, original string)
 // Handles command processing similar to CMD and RUN, only b.RunConfig.Entrypoint
 // is initialized at NewBuilder time instead of through argument parsing.
 //
-func entrypoint(b *Builder, args []string, attributes map[string]bool, original string) error {
+func entrypoint(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	parsed := handleJSONArgs(args, attributes)
 
 	switch {
@@ -307,7 +309,7 @@ func entrypoint(b *Builder, args []string, attributes map[string]bool, original 
 // Expose ports for links and port mappings. This all ends up in
 // b.RunConfig.ExposedPorts for runconfig.
 //
-func expose(b *Builder, args []string, attributes map[string]bool, original string) error {
+func expose(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("EXPOSE")
 	}
@@ -335,7 +337,7 @@ func expose(b *Builder, args []string, attributes map[string]bool, original stri
 // Set the user to 'foo' for future commands and when running the
 // ENTRYPOINT/CMD at container run time.
 //
-func user(b *Builder, args []string, attributes map[string]bool, original string) error {
+func user(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return errExactlyOneArgument("USER")
 	}
@@ -348,7 +350,7 @@ func user(b *Builder, args []string, attributes map[string]bool, original string
 //
 // Expose the volume /foo for use. Will also accept the JSON array form.
 //
-func volume(b *Builder, args []string, attributes map[string]bool, original string) error {
+func volume(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) == 0 {
 		return errAtLeastOneArgument("VOLUME")
 	}
@@ -362,6 +364,7 @@ func volume(b *Builder, args []string, attributes map[string]bool, original stri
 			return fmt.Errorf("Volume specified can not be an empty string")
 		}
 		b.RunConfig.Volumes[v] = struct{}{}
+		b.PendingVolumes.Add(v)
 	}
 	return nil
 }
@@ -369,9 +372,9 @@ func volume(b *Builder, args []string, attributes map[string]bool, original stri
 // STOPSIGNAL signal
 //
 // Set the signal that will be used to kill the container.
-func stopSignal(b *Builder, args []string, attributes map[string]bool, original string) error {
+func stopSignal(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("STOPSIGNAL requires exactly one argument")
+		return errExactlyOneArgument("STOPSIGNAL")
 	}
 
 	sig := args[0]
@@ -384,12 +387,96 @@ func stopSignal(b *Builder, args []string, attributes map[string]bool, original 
 	return nil
 }
 
+// HEALTHCHECK foo
+//
+// Set the default healthcheck command to run in the container (which may be empty).
+// Argument handling is the same as RUN.
+//
+func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
+	if len(args) == 0 {
+		return errAtLeastOneArgument("HEALTHCHECK")
+	}
+	typ := strings.ToUpper(args[0])
+	args = args[1:]
+	if typ == "NONE" {
+		if len(args) != 0 {
+			return fmt.Errorf("HEALTHCHECK NONE takes no arguments")
+		}
+		test := strslice.StrSlice{typ}
+		b.RunConfig.Healthcheck = &docker.HealthConfig{
+			Test: test,
+		}
+	} else {
+		if b.RunConfig.Healthcheck != nil {
+			oldCmd := b.RunConfig.Healthcheck.Test
+			if len(oldCmd) > 0 && oldCmd[0] != "NONE" {
+				b.Warnings = append(b.Warnings, fmt.Sprintf("Note: overriding previous HEALTHCHECK: %v\n", oldCmd))
+			}
+		}
+
+		healthcheck := docker.HealthConfig{}
+
+		flags := flag.NewFlagSet("", flag.ContinueOnError)
+		flags.String("interval", "", "")
+		flags.String("timeout", "", "")
+		flRetries := flags.String("retries", "", "")
+
+		if err := flags.Parse(flagArgs); err != nil {
+			return err
+		}
+
+		switch typ {
+		case "CMD":
+			cmdSlice := handleJSONArgs(args, attributes)
+			if len(cmdSlice) == 0 {
+				return fmt.Errorf("Missing command after HEALTHCHECK CMD")
+			}
+
+			if !attributes["json"] {
+				typ = "CMD-SHELL"
+			}
+
+			healthcheck.Test = strslice.StrSlice(append([]string{typ}, cmdSlice...))
+		default:
+			return fmt.Errorf("Unknown type %#v in HEALTHCHECK (try CMD)", typ)
+		}
+
+		interval, err := parseOptInterval(flags.Lookup("interval"))
+		if err != nil {
+			return err
+		}
+		healthcheck.Interval = interval
+
+		timeout, err := parseOptInterval(flags.Lookup("timeout"))
+		if err != nil {
+			return err
+		}
+		healthcheck.Timeout = timeout
+
+		if *flRetries != "" {
+			retries, err := strconv.ParseInt(*flRetries, 10, 32)
+			if err != nil {
+				return err
+			}
+			if retries < 1 {
+				return fmt.Errorf("--retries must be at least 1 (not %d)", retries)
+			}
+			healthcheck.Retries = int(retries)
+		} else {
+			healthcheck.Retries = 0
+		}
+		b.RunConfig.Healthcheck = &healthcheck
+	}
+
+	return nil
+}
+
 // ARG name[=value]
 //
 // Adds the variable foo to the trusted list of variables that can be passed
 // to builder using the --build-arg flag for expansion/subsitution or passing to 'run'.
 // Dockerfile author may optionally set a default value of this variable.
-func arg(b *Builder, args []string, attributes map[string]bool, original string) error {
+func arg(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("ARG requires exactly one argument definition")
 	}

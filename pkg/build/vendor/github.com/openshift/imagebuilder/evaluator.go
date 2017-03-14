@@ -2,11 +2,21 @@ package imagebuilder
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/docker/docker/builder/dockerfile/command"
 	"github.com/docker/docker/builder/dockerfile/parser"
 )
+
+// ParseDockerfile parses the provided stream as a canonical Dockerfile
+func ParseDockerfile(r io.Reader) (*parser.Node, error) {
+	d := &parser.Directive{}
+	if err := parser.SetEscapeToken(parser.DefaultEscapeToken, d); err != nil {
+		return nil, err
+	}
+	return parser.Parse(r, d)
+}
 
 // Environment variable interpolation will happen on these statements only.
 var replaceEnvAllowed = map[string]bool{

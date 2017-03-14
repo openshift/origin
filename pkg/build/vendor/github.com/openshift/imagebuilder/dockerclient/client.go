@@ -14,15 +14,21 @@ import (
 	"strings"
 
 	"github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/fileutils"
 	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive"
-	"github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils"
 	"github.com/golang/glog"
 
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/imageprogress"
+	"io/ioutil"
 )
+
+// NewClientFromEnv is exposed to simplify getting a client when vendoring this library.
+func NewClientFromEnv() (*docker.Client, error) {
+	return docker.NewClientFromEnv()
+}
 
 // Mount represents a binding between the current system and the destination client
 type Mount struct {
@@ -43,18 +49,30 @@ type ClientExecutor struct {
 	Excludes []string
 	// Tag is an optional value to tag the resulting built image.
 	Tag string
+	// Additional tags is an optional array of other tags to apply
+	// to the image.
+	AdditionalTags []string
 	// AllowPull when set will pull images that are not present on
 	// the daemon.
 	AllowPull bool
 	// IgnoreUnrecognizedInstructions, if true, allows instructions
 	// that are not yet supported to be ignored (will be printed)
 	IgnoreUnrecognizedInstructions bool
+	// StrictVolumeOwnership if true will fail the build if a RUN
+	// command follows a VOLUME command, since this client cannot
+	// guarantee that the restored contents of the VOLUME directory
+	// will have the right permissions.
+	StrictVolumeOwnership bool
 	// TransientMounts are a set of mounts from outside the build
 	// to the inside that will not be part of the final image. Any
 	// content created inside the mount's destinationPath will be
 	// omitted from the final image.
 	TransientMounts []Mount
 
+	// The path within the container to perform the transient mount.
+	ContainerTransientMount string
+
+	// The streams used for canonical output.
 	Out, ErrOut io.Writer
 
 	// Container is optional and can be set to a container to use as
@@ -75,6 +93,14 @@ type ClientExecutor struct {
 	HostConfig *docker.HostConfig
 	// LogFn is an optional command to log information to the end user
 	LogFn func(format string, args ...interface{})
+
+	// Deferred is a list of operations that must be cleaned up at
+	// the end of execution. Use Release() to handle these.
+	Deferred []func() error
+
+	// Volumes handles saving and restoring volumes after RUN
+	// commands are executed.
+	Volumes *ContainerVolumeTracker
 }
 
 // NewClientExecutor creates a client executor.
@@ -82,7 +108,18 @@ func NewClientExecutor(client *docker.Client) *ClientExecutor {
 	return &ClientExecutor{
 		Client: client,
 		LogFn:  func(string, ...interface{}) {},
+
+		ContainerTransientMount: "/.imagebuilder-transient-mount",
 	}
+}
+
+func (e *ClientExecutor) DefaultExcludes() error {
+	excludes, err := imagebuilder.ParseDockerignore(e.Directory)
+	if err != nil {
+		return err
+	}
+	e.Excludes = append(excludes, ".dockerignore")
+	return nil
 }
 
 // Build is a helper method to perform a Docker build against the
@@ -91,25 +128,18 @@ func NewClientExecutor(client *docker.Client) *ClientExecutor {
 // container if the Dockerfile contains RUN commands. It will cleanup
 // any containers it creates directly, and set the e.Image.ID field
 // to the generated image.
-func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
-	b := imagebuilder.NewBuilder()
-	b.Args = args
-
-	if e.Excludes == nil {
-		excludes, err := imagebuilder.ParseDockerignore(e.Directory)
-		if err != nil {
-			return err
-		}
-		e.Excludes = append(excludes, ".dockerignore")
-	}
-
-	// TODO: check the Docker daemon version (1.20 is required for Upload)
-
-	node, err := parser.Parse(r)
-	if err != nil {
+func (e *ClientExecutor) Build(b *imagebuilder.Builder, node *parser.Node) error {
+	defer e.Release()
+	if err := e.Prepare(b, node); err != nil {
 		return err
 	}
+	if err := e.Execute(b, node); err != nil {
+		return err
+	}
+	return e.Commit(b)
+}
 
+func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node) error {
 	// identify the base image
 	from, err := b.From(node)
 	if err != nil {
@@ -125,7 +155,7 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			if err != nil {
 				return fmt.Errorf("unable to create a scratch image for this build: %v", err)
 			}
-			defer e.CleanupImage(from)
+			e.Deferred = append(e.Deferred, func() error { return e.Client.RemoveImage(from) })
 		}
 		glog.V(4).Infof("Retrieving image %q", from)
 		e.Image, err = e.LoadImage(from)
@@ -144,6 +174,8 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	e.LogFn("FROM %s", from)
 	glog.V(4).Infof("step: FROM %s", from)
 
+	b.Excludes = e.Excludes
+
 	var sharedMount string
 
 	// create a container to execute in, if necessary
@@ -153,7 +185,13 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 			Config: &docker.Config{
 				Image: from,
 			},
+			HostConfig: &docker.HostConfig{},
 		}
+		if e.HostConfig != nil {
+			opts.HostConfig = e.HostConfig
+		}
+		originalBinds := opts.HostConfig.Binds
+
 		if mustStart {
 			// Transient mounts only make sense on images that will be running processes
 			if len(e.TransientMounts) > 0 {
@@ -165,10 +203,10 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 				if err != nil {
 					return fmt.Errorf("unable to create volume to mount secrets: %v", err)
 				}
-				defer e.cleanupVolume(volumeName)
+				e.Deferred = append(e.Deferred, func() error { return e.Client.RemoveVolume(volumeName) })
 				sharedMount = v.Mountpoint
 				opts.HostConfig = &docker.HostConfig{
-					Binds: []string{sharedMount + ":/tmp/__temporarymount"},
+					Binds: []string{volumeName + ":" + e.ContainerTransientMount},
 				}
 			}
 
@@ -182,80 +220,81 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 				opts.Config.Entrypoint = []string{"/bin/sh", "-c"}
 			}
 		}
+
 		if len(opts.Config.Cmd) == 0 {
 			opts.Config.Entrypoint = []string{"/bin/sh", "-c", "# NOP"}
 		}
+
+		// copy any source content into the temporary mount path
+		if mustStart && len(e.TransientMounts) > 0 {
+			if len(sharedMount) == 0 {
+				return fmt.Errorf("no mount point available for temporary mounts")
+			}
+			binds, err := e.PopulateTransientMounts(opts, e.TransientMounts, sharedMount)
+			if err != nil {
+				return err
+			}
+			opts.HostConfig.Binds = append(originalBinds, binds...)
+		}
+
 		container, err := e.Client.CreateContainer(opts)
 		if err != nil {
 			return fmt.Errorf("unable to create build container: %v", err)
 		}
 		e.Container = container
-
-		// if we create the container, take responsibilty for cleaning up
-		defer e.Cleanup()
-	}
-
-	// copy any source content into the temporary mount path
-	if mustStart && len(e.TransientMounts) > 0 {
-		var copies []imagebuilder.Copy
-		for i, mount := range e.TransientMounts {
-			source := mount.SourcePath
-			copies = append(copies, imagebuilder.Copy{
-				Src:  source,
-				Dest: []string{path.Join("/tmp/__temporarymount", strconv.Itoa(i))},
-			})
-		}
-		if err := e.Copy(copies...); err != nil {
-			return fmt.Errorf("unable to copy build context into container: %v", err)
-		}
+		e.Deferred = append([]func() error{func() error { return e.removeContainer(container.ID) }}, e.Deferred...)
 	}
 
 	// TODO: lazy start
 	if mustStart && !e.Container.State.Running {
-		var hostConfig docker.HostConfig
-		if e.HostConfig != nil {
-			hostConfig = *e.HostConfig
-		}
-
-		// mount individual items temporarily
-		for i, mount := range e.TransientMounts {
-			if len(sharedMount) == 0 {
-				return fmt.Errorf("no mount point available for temporary mounts")
-			}
-			hostConfig.Binds = append(
-				hostConfig.Binds,
-				fmt.Sprintf("%s:%s:%s", path.Join(sharedMount, strconv.Itoa(i)), mount.DestinationPath, "ro"),
-			)
-		}
-
-		if err := e.Client.StartContainer(e.Container.ID, &hostConfig); err != nil {
+		if err := e.Client.StartContainer(e.Container.ID, nil); err != nil {
 			return fmt.Errorf("unable to start build container: %v", err)
 		}
+		e.Container.State.Running = true
 		// TODO: is this racy? may have to loop wait in the actual run step
 	}
+	return nil
+}
 
-	for _, child := range node.Children {
+// Execute performs all of the provided steps against the initialized container. May be
+// invoked multiple times for a given container.
+func (e *ClientExecutor) Execute(b *imagebuilder.Builder, node *parser.Node) error {
+	for i, child := range node.Children {
 		step := b.Step()
 		if err := step.Resolve(child); err != nil {
 			return err
 		}
 		glog.V(4).Infof("step: %s", step.Original)
 		if e.LogFn != nil {
-			e.LogFn(step.Original)
+			// original may have unescaped %, so perform fmt escaping
+			e.LogFn(strings.Replace(step.Original, "%", "%%", -1))
 		}
-		if err := b.Run(step, e); err != nil {
+		noRunsRemaining := !b.RequiresStart(&parser.Node{Children: node.Children[i+1:]})
+
+		if err := b.Run(step, e, noRunsRemaining); err != nil {
 			return err
 		}
 	}
 
-	if mustStart {
+	return nil
+}
+
+// Commit saves the completed build as an image with the provided tag. It will
+// stop the container, commit the image, and then remove the container.
+func (e *ClientExecutor) Commit(b *imagebuilder.Builder) error {
+	config := b.Config()
+
+	if e.Container.State.Running {
 		glog.V(4).Infof("Stopping container %s ...", e.Container.ID)
 		if err := e.Client.StopContainer(e.Container.ID, 0); err != nil {
 			return fmt.Errorf("unable to stop build container: %v", err)
 		}
+		e.Container.State.Running = false
+		// Starting the container may perform escaping of args, so to be consistent
+		// we also set that here
+		config.ArgsEscaped = true
 	}
 
-	config := b.Config()
 	var repository, tag string
 	if len(e.Tag) > 0 {
 		repository, tag = docker.ParseRepositoryTag(e.Tag)
@@ -270,6 +309,12 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 		}
 	}
 
+	defer func() {
+		for _, err := range e.Release() {
+			e.LogFn("Unable to cleanup: %v", err)
+		}
+	}()
+
 	image, err := e.Client.CommitContainer(docker.CommitContainerOptions{
 		Author:     b.Author,
 		Container:  e.Container.ID,
@@ -280,28 +325,80 @@ func (e *ClientExecutor) Build(r io.Reader, args map[string]string) error {
 	if err != nil {
 		return fmt.Errorf("unable to commit build container: %v", err)
 	}
+
 	e.Image = image
-	glog.V(4).Infof("Committed %s to %s", e.Container.ID, e.Image.ID)
+	glog.V(4).Infof("Committed %s to %s", e.Container.ID, image.ID)
+
+	if len(e.Tag) > 0 {
+		for _, s := range e.AdditionalTags {
+			repository, tag := docker.ParseRepositoryTag(s)
+			err := e.Client.TagImage(image.ID, docker.TagImageOptions{
+				Repo: repository,
+				Tag:  tag,
+			})
+			if err != nil {
+				e.Deferred = append(e.Deferred, func() error { return e.Client.RemoveImageExtended(image.ID, docker.RemoveImageOptions{Force: true}) })
+				return fmt.Errorf("unable to tag %q: %v", s, err)
+			}
+		}
+	}
+
 	if e.LogFn != nil {
 		e.LogFn("Done")
 	}
 	return nil
 }
 
-// Cleanup will remove the container that created the build.
-func (e *ClientExecutor) Cleanup() error {
-	if e.Container == nil {
-		return nil
+func (e *ClientExecutor) PopulateTransientMounts(opts docker.CreateContainerOptions, transientMounts []Mount, sharedMount string) ([]string, error) {
+	container, err := e.Client.CreateContainer(opts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create transient container: %v", err)
 	}
+	defer e.removeContainer(container.ID)
+
+	var copies []imagebuilder.Copy
+	for i, mount := range transientMounts {
+		source := mount.SourcePath
+		copies = append(copies, imagebuilder.Copy{
+			Src:  []string{source},
+			Dest: filepath.Join(e.ContainerTransientMount, strconv.Itoa(i)),
+		})
+	}
+	if err := e.CopyContainer(container, nil, copies...); err != nil {
+		return nil, fmt.Errorf("unable to copy transient context into container: %v", err)
+	}
+
+	// mount individual items temporarily
+	var binds []string
+	for i, mount := range e.TransientMounts {
+		binds = append(binds, fmt.Sprintf("%s:%s:%s", filepath.Join(sharedMount, strconv.Itoa(i)), mount.DestinationPath, "ro"))
+	}
+	return binds, nil
+}
+
+// Release deletes any items started by this executor.
+func (e *ClientExecutor) Release() []error {
+	errs := e.Volumes.Release()
+	for _, fn := range e.Deferred {
+		if err := fn(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	e.Deferred = nil
+	return errs
+}
+
+// removeContainer removes the provided container ID
+func (e *ClientExecutor) removeContainer(id string) error {
+	e.Client.StopContainer(id, 0)
 	err := e.Client.RemoveContainer(docker.RemoveContainerOptions{
-		ID:            e.Container.ID,
+		ID:            id,
 		RemoveVolumes: true,
 		Force:         true,
 	})
 	if _, ok := err.(*docker.NoSuchContainer); err != nil && !ok {
-		return fmt.Errorf("unable to cleanup build container: %v", err)
+		return fmt.Errorf("unable to cleanup container: %v", err)
 	}
-	e.Container = nil
 	return nil
 }
 
@@ -343,16 +440,6 @@ func randSeq(source string, n int) (string, error) {
 		random[i] = source[random[i]%byte(len(source))]
 	}
 	return string(random), nil
-}
-
-// cleanupVolume attempts to remove the provided volume
-func (e *ClientExecutor) cleanupVolume(name string) error {
-	return e.Client.RemoveVolume(name)
-}
-
-// CleanupImage attempts to remove the provided image.
-func (e *ClientExecutor) CleanupImage(name string) error {
-	return e.Client.RemoveImage(name)
 }
 
 // LoadImage checks the client for an image matching from. If not found,
@@ -418,6 +505,14 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	return e.Client.InspectImage(from)
 }
 
+func (e *ClientExecutor) Preserve(path string) error {
+	if e.Volumes == nil {
+		e.Volumes = NewContainerVolumeTracker()
+	}
+	e.Volumes.Add(path)
+	return nil
+}
+
 func (e *ClientExecutor) UnrecognizedInstruction(step *imagebuilder.Step) error {
 	if e.IgnoreUnrecognizedInstructions {
 		e.LogFn("warning: Unknown instruction: %s", strings.ToUpper(step.Command))
@@ -450,8 +545,15 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		args = append([]string{"/bin/sh", "-c"}, args...)
 	}
 
-	config.Cmd = args
+	if e.StrictVolumeOwnership && !e.Volumes.Empty() {
+		return fmt.Errorf("a RUN command was executed after a VOLUME command, which may result in ownership information being lost")
+	}
+	if err := e.Volumes.Save(e.Container.ID, e.Client); err != nil {
+		return err
+	}
 
+	config.Cmd = args
+	glog.V(4).Infof("Running %v inside of %s as user %s", config.Cmd, e.Container.ID, config.User)
 	exec, err := e.Client.CreateExec(docker.CreateExecOptions{
 		Cmd:          config.Cmd,
 		Container:    e.Container.ID,
@@ -475,20 +577,36 @@ func (e *ClientExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 	if status.ExitCode != 0 {
 		return fmt.Errorf("running '%s' failed with exit code %d", strings.Join(args, " "), status.ExitCode)
 	}
+
+	if err := e.Volumes.Restore(e.Container.ID, e.Client); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (e *ClientExecutor) Copy(copies ...imagebuilder.Copy) error {
-	container := e.Container
+// Copy implements the executor copy function.
+func (e *ClientExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
+	// copying content into a volume invalidates the archived state of any given directory
+	for _, copy := range copies {
+		e.Volumes.Invalidate(copy.Dest)
+	}
+
+	return e.CopyContainer(e.Container, excludes, copies...)
+}
+
+// CopyContainer copies the provided content into a destination container.
+func (e *ClientExecutor) CopyContainer(container *docker.Container, excludes []string, copies ...imagebuilder.Copy) error {
 	for _, c := range copies {
 		// TODO: reuse source
-		for _, dst := range c.Dest {
-			glog.V(4).Infof("Archiving %s %t", c.Src, c.Download)
-			r, closer, err := e.Archive(c.Src, dst, c.Download, c.Download)
+		for _, src := range c.Src {
+			glog.V(4).Infof("Archiving %s %t", src, c.Download)
+			r, closer, err := e.Archive(src, c.Dest, c.Download, c.Download, excludes)
 			if err != nil {
 				return err
 			}
-			glog.V(5).Infof("Uploading to %s at %s", container.ID, dst)
+
+			glog.V(5).Infof("Uploading to %s at %s", container.ID, c.Dest)
 			err = e.Client.UploadToContainer(container.ID, docker.UploadToContainerOptions{
 				InputStream: r,
 				Path:        "/",
@@ -516,7 +634,7 @@ func (c closers) Close() error {
 	return lastErr
 }
 
-func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownload bool) (io.Reader, io.Closer, error) {
+func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownload bool, excludes []string) (io.Reader, io.Closer, error) {
 	var closer closers
 	var base string
 	var infos []CopyInfo
@@ -546,7 +664,7 @@ func (e *ClientExecutor) Archive(src, dst string, allowDecompression, allowDownl
 		return nil, nil, err
 	}
 
-	options := archiveOptionsFor(infos, dst, e.Excludes)
+	options := archiveOptionsFor(infos, dst, excludes)
 
 	glog.V(4).Infof("Tar of directory %s %#v", base, options)
 	rc, err := archive.TarWithOptions(base, options)
@@ -581,4 +699,217 @@ func archiveOptionsFor(infos []CopyInfo, dst string, excludes []string) *archive
 	}
 	options.ExcludePatterns = excludes
 	return options
+}
+
+// ContainerVolumeTracker manages tracking archives of specific paths inside a container.
+type ContainerVolumeTracker struct {
+	paths map[string]string
+	errs  []error
+}
+
+func NewContainerVolumeTracker() *ContainerVolumeTracker {
+	return &ContainerVolumeTracker{
+		paths: make(map[string]string),
+	}
+}
+
+// Empty returns true if the tracker is not watching any paths
+func (t *ContainerVolumeTracker) Empty() bool {
+	return t == nil || len(t.paths) == 0
+}
+
+// Add tracks path unless it already is being tracked.
+func (t *ContainerVolumeTracker) Add(path string) {
+	if _, ok := t.paths[path]; !ok {
+		t.paths[path] = ""
+	}
+}
+
+// Release removes any stored snapshots
+func (t *ContainerVolumeTracker) Release() []error {
+	if t == nil {
+		return nil
+	}
+	for path := range t.paths {
+		t.ReleasePath(path)
+	}
+	return t.errs
+}
+
+func (t *ContainerVolumeTracker) ReleasePath(path string) {
+	if t == nil {
+		return
+	}
+	if archivePath, ok := t.paths[path]; ok && len(archivePath) > 0 {
+		err := os.Remove(archivePath)
+		if err != nil && !os.IsNotExist(err) {
+			t.errs = append(t.errs, err)
+		}
+		glog.V(5).Infof("Releasing path %s (%v)", path, err)
+		t.paths[path] = ""
+	}
+}
+
+func (t *ContainerVolumeTracker) Invalidate(path string) {
+	if t == nil {
+		return
+	}
+	set := imagebuilder.VolumeSet{}
+	set.Add(path)
+	for path := range t.paths {
+		if set.Covers(path) {
+			t.ReleasePath(path)
+		}
+	}
+}
+
+// Save ensures that all paths tracked underneath this container are archived or
+// returns an error.
+func (t *ContainerVolumeTracker) Save(containerID string, client *docker.Client) error {
+	if t == nil {
+		return nil
+	}
+	set := imagebuilder.VolumeSet{}
+	for dest := range t.paths {
+		set.Add(dest)
+	}
+	// remove archive paths that are covered by other paths
+	for dest := range t.paths {
+		if !set.Has(dest) {
+			t.ReleasePath(dest)
+			delete(t.paths, dest)
+		}
+	}
+	for dest, archivePath := range t.paths {
+		if len(archivePath) > 0 {
+			continue
+		}
+		archivePath, err := snapshotPath(dest, containerID, client)
+		if err != nil {
+			return err
+		}
+		t.paths[dest] = archivePath
+	}
+	return nil
+}
+
+// filterTarPipe transforms a tar file as it is streamed, calling fn on each header in the file.
+// If fn returns false, the file is skipped. If an error occurs it is returned.
+func filterTarPipe(w *tar.Writer, r *tar.Reader, fn func(*tar.Header) bool) error {
+	for {
+		h, err := r.Next()
+		if err != nil {
+			return err
+		}
+		if fn(h) {
+			if err := w.WriteHeader(h); err != nil {
+				return err
+			}
+			if _, err := io.Copy(w, r); err != nil {
+				return err
+			}
+		} else {
+			if _, err := io.Copy(ioutil.Discard, r); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+// snapshotPath preserves the contents of path in container containerID as a temporary
+// archive, returning either an error or the path of the archived file.
+func snapshotPath(path, containerID string, client *docker.Client) (string, error) {
+	f, err := ioutil.TempFile("", "archived-path")
+	if err != nil {
+		return "", err
+	}
+	glog.V(4).Infof("Snapshot %s for later use under %s", path, f.Name())
+
+	r, w := io.Pipe()
+	tr := tar.NewReader(r)
+	tw := tar.NewWriter(f)
+	go func() {
+		err := filterTarPipe(tw, tr, func(h *tar.Header) bool {
+			if i := strings.Index(h.Name, "/"); i != -1 {
+				h.Name = h.Name[i+1:]
+			}
+			return len(h.Name) > 0
+		})
+		if err == nil || err == io.EOF {
+			tw.Flush()
+			w.Close()
+			glog.V(5).Infof("Snapshot rewritten from %s", path)
+			return
+		}
+		glog.V(5).Infof("Snapshot of %s failed: %v", path, err)
+		w.CloseWithError(err)
+	}()
+
+	if !strings.HasSuffix(path, "/") {
+		path += "/"
+	}
+	err = client.DownloadFromContainer(containerID, docker.DownloadFromContainerOptions{
+		Path:         path,
+		OutputStream: w,
+	})
+	f.Close()
+	if err != nil {
+		os.Remove(f.Name())
+		return "", err
+	}
+	return f.Name(), nil
+}
+
+// Restore ensures the paths managed by t exactly match the container. This requires running
+// exec as a user that can delete contents from the container. It will return an error if
+// any client operation fails.
+func (t *ContainerVolumeTracker) Restore(containerID string, client *docker.Client) error {
+	if t == nil {
+		return nil
+	}
+	for dest, archivePath := range t.paths {
+		if len(archivePath) == 0 {
+			return fmt.Errorf("path %s does not have an archive and cannot be restored", dest)
+		}
+		glog.V(4).Infof("Restoring contents of %s from %s", dest, archivePath)
+		if !strings.HasSuffix(dest, "/") {
+			dest = dest + "/"
+		}
+		exec, err := client.CreateExec(docker.CreateExecOptions{
+			Container: containerID,
+			Cmd:       []string{"/bin/sh", "-c", "rm -rf $@", "", dest + "*"},
+			User:      "0",
+		})
+		if err != nil {
+			return fmt.Errorf("unable to setup clearing preserved path %s: %v", dest, err)
+		}
+		if err := client.StartExec(exec.ID, docker.StartExecOptions{}); err != nil {
+			return fmt.Errorf("unable to clear preserved path %s: %v", dest, err)
+		}
+		status, err := client.InspectExec(exec.ID)
+		if err != nil {
+			return fmt.Errorf("clearing preserved path %s did not succeed: %v", dest, err)
+		}
+		if status.ExitCode != 0 {
+			return fmt.Errorf("clearing preserved path %s failed with exit code %d", dest, status.ExitCode)
+		}
+		err = func() error {
+			f, err := os.Open(archivePath)
+			if err != nil {
+				return fmt.Errorf("unable to open archive %s for preserved path %s: %v", archivePath, dest, err)
+			}
+			defer f.Close()
+			if err := client.UploadToContainer(containerID, docker.UploadToContainerOptions{
+				InputStream: f,
+				Path:        dest,
+			}); err != nil {
+				return fmt.Errorf("unable to upload preserved contents from %s to %s: %v", archivePath, dest, err)
+			}
+			return nil
+		}()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -3,12 +3,33 @@
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Packages": [
-		"github.com/fsouza/go-dockerclient/..."
+		"github.com/fsouza/go-dockerclient",
+		"github.com/openshift/imagebuilder/dockerclient",
+		"github.com/docker/docker/builder/dockerfile/parser",
+		"github.com/docker/docker/builder/dockerfile/command"
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/Azure/go-ansiterm",
+			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
+		},
+		{
+			"ImportPath": "github.com/Azure/go-ansiterm/winterm",
+			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
+		},
+		{
+			"ImportPath": "github.com/Microsoft/go-winio",
+			"Comment": "v0.1.0",
+			"Rev": "8f9387ea7efabb228a981b9c381142be7667967f"
+		},
+		{
 			"ImportPath": "github.com/Nvveen/Gotty",
 			"Rev": "cd527374f1e5bff4938207604a14f2e38a9cf512"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.7.3-4-gaaf92c9",
+			"Rev": "aaf92c95712104318fc35409745f1533aa5ff327"
 		},
 		{
 			"ImportPath": "github.com/docker/docker/api/types",
@@ -58,6 +79,16 @@
 		{
 			"ImportPath": "github.com/docker/docker/api/types/versions",
 			"Comment": "docs-v1.12.0-rc4-2016-07-15-5445-ga2bf823",
+			"Rev": "a2bf823a94f77bb041a5ef336c689adb09a593b6"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/builder/dockerfile/command",
+			"Comment": "docs-v1.12.0-rc4-2016-07-15-5445-ga2bf823a9",
+			"Rev": "a2bf823a94f77bb041a5ef336c689adb09a593b6"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/builder/dockerfile/parser",
+			"Comment": "docs-v1.12.0-rc4-2016-07-15-5445-ga2bf823a9",
 			"Rev": "a2bf823a94f77bb041a5ef336c689adb09a593b6"
 		},
 		{
@@ -136,6 +167,46 @@
 			"Rev": "a2bf823a94f77bb041a5ef336c689adb09a593b6"
 		},
 		{
+			"ImportPath": "github.com/docker/engine-api/types",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/blkiodev",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/container",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/filters",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/network",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/registry",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/strslice",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
+			"ImportPath": "github.com/docker/engine-api/types/versions",
+			"Comment": "v0.3.1-78-gdea108d",
+			"Rev": "dea108d3aa0c67d7162a3fd8aa65f38a430019fd"
+		},
+		{
 			"ImportPath": "github.com/docker/go-connections/nat",
 			"Comment": "v0.2.0-2-gf549a93",
 			"Rev": "f549a9393d05688dff0992ef3efd8bbe6c628aeb"
@@ -153,6 +224,200 @@
 		{
 			"ImportPath": "github.com/hashicorp/go-cleanhttp",
 			"Rev": "3573b8b52aa7b37b9358d966a898feb387f62437"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer/system",
+			"Comment": "v1.0.0-rc1-100-g142df38",
+			"Rev": "142df3836b740af53dc6da59eed8dbc92f62917c"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer/user",
+			"Comment": "v1.0.0-rc1-100-g142df38",
+			"Rev": "142df3836b740af53dc6da59eed8dbc92f62917c"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/dockerclient",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/imageprogress",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/signal",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/strslice",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "e90d6d0afc4c315a0d87a568ae68577cc15149a0"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context/ctxhttp",
+			"Rev": "e90d6d0afc4c315a0d87a568ae68577cc15149a0"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/windows",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/fsouza/go-dockerclient",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/swarm",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/opts",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/archive",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/fileutils",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/homedir",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/jsonmessage",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/stdcopy",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/go-units",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/hashicorp/go-cleanhttp",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/golang.org/x/net/context",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/golang.org/x/net/context/ctxhttp",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/container",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/mount",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/blkiodev",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/filters",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/go-connections/nat",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/Sirupsen/logrus",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/idtools",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/ioutils",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/longpath",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/pools",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/promise",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/system",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/Nvveen/Gotty",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/jsonlog",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/term",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/strslice",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/network",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/registry",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/api/types/versions",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/golang.org/x/sys/windows",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/Azure/go-ansiterm/winterm",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/docker/docker/pkg/term/windows",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/Azure/go-ansiterm",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
+		},
+		{
+			"ImportPath": "github.com/openshift/imagebuilder/vendor/github.com/golang/glog",
+			"Rev": "1c70938feddeb3ef9368091726e3c8a662dd7ac5"
 		}
 	]
 }

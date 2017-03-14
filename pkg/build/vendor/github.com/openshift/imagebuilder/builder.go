@@ -3,6 +3,7 @@ package imagebuilder
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,8 +19,8 @@ import (
 
 // Copy defines a copy operation required on the container.
 type Copy struct {
-	Src      string
-	Dest     []string
+	Src      []string
+	Dest     string
 	Download bool
 }
 
@@ -30,16 +31,22 @@ type Run struct {
 }
 
 type Executor interface {
-	Copy(copies ...Copy) error
+	Preserve(path string) error
+	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
 }
 
 type logExecutor struct{}
 
-func (logExecutor) Copy(copies ...Copy) error {
+func (logExecutor) Preserve(path string) error {
+	log.Printf("PRESERVE %s", path)
+	return nil
+}
+
+func (logExecutor) Copy(excludes []string, copies ...Copy) error {
 	for _, c := range copies {
-		log.Printf("COPY %s -> %v (download:%t)", c.Src, c.Dest, c.Download)
+		log.Printf("COPY %v -> %s (download:%t)", c.Src, c.Dest, c.Download)
 	}
 	return nil
 }
@@ -56,7 +63,11 @@ func (logExecutor) UnrecognizedInstruction(step *Step) error {
 
 type noopExecutor struct{}
 
-func (noopExecutor) Copy(copies ...Copy) error {
+func (noopExecutor) Preserve(path string) error {
+	return nil
+}
+
+func (noopExecutor) Copy(excludes []string, copies ...Copy) error {
 	return nil
 }
 
@@ -66,6 +77,56 @@ func (noopExecutor) Run(run Run, config docker.Config) error {
 
 func (noopExecutor) UnrecognizedInstruction(step *Step) error {
 	return nil
+}
+
+type VolumeSet []string
+
+func (s *VolumeSet) Add(path string) bool {
+	if path == "/" {
+		set := len(*s) != 1 || (*s)[0] != ""
+		*s = []string{""}
+		return set
+	}
+	path = strings.TrimSuffix(path, "/")
+	var adjusted []string
+	for _, p := range *s {
+		if p == path || strings.HasPrefix(path, p+"/") {
+			return false
+		}
+		if strings.HasPrefix(p, path+"/") {
+			continue
+		}
+		adjusted = append(adjusted, p)
+	}
+	adjusted = append(adjusted, path)
+	*s = adjusted
+	return true
+}
+
+func (s VolumeSet) Has(path string) bool {
+	if path == "/" {
+		return len(s) == 1 && s[0] == ""
+	}
+	path = strings.TrimSuffix(path, "/")
+	for _, p := range s {
+		if p == path {
+			return true
+		}
+	}
+	return false
+}
+
+func (s VolumeSet) Covers(path string) bool {
+	if path == "/" {
+		return len(s) == 1 && s[0] == ""
+	}
+	path = strings.TrimSuffix(path, "/")
+	for _, p := range s {
+		if p == path || strings.HasPrefix(path, p+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 var (
@@ -82,11 +143,14 @@ type Builder struct {
 	Author string
 
 	AllowedArgs map[string]bool
+	Volumes     VolumeSet
+	Excludes    []string
 
-	PendingRuns   []Run
-	PendingCopies []Copy
+	PendingVolumes VolumeSet
+	PendingRuns    []Run
+	PendingCopies  []Copy
 
-	Executor Executor
+	Warnings []string
 }
 
 func NewBuilder() *Builder {
@@ -100,22 +164,44 @@ func NewBuilder() *Builder {
 	}
 }
 
+func NewBuilderForReader(r io.Reader, args map[string]string) (*Builder, *parser.Node, error) {
+	b := NewBuilder()
+	b.Args = args
+	node, err := ParseDockerfile(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	return b, node, err
+}
+
+func NewBuilderForFile(path string, args map[string]string) (*Builder, *parser.Node, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+	return NewBuilderForReader(f, args)
+}
+
 // Step creates a new step from the current state.
 func (b *Builder) Step() *Step {
 	dst := make([]string, len(b.Env)+len(b.RunConfig.Env))
 	copy(dst, b.Env)
 	dst = append(dst, b.RunConfig.Env...)
+	dst = append(dst, b.Arguments()...)
 	return &Step{Env: dst}
 }
 
 // Run executes a step, transforming the current builder and
-// invoking any Copy or Run operations.
-func (b *Builder) Run(step *Step, exec Executor) error {
+// invoking any Copy or Run operations. noRunsRemaining is an
+// optimization hint that allows the builder to avoid performing
+// unnecessary work.
+func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	fn, ok := evaluateTable[step.Command]
 	if !ok {
 		return exec.UnrecognizedInstruction(step)
 	}
-	if err := fn(b, step.Args, step.Attrs, step.Original); err != nil {
+	if err := fn(b, step.Args, step.Attrs, step.Flags, step.Original); err != nil {
 		return err
 	}
 
@@ -124,11 +210,23 @@ func (b *Builder) Run(step *Step, exec Executor) error {
 	runs := b.PendingRuns
 	b.PendingRuns = nil
 
-	if err := exec.Copy(copies...); err != nil {
+	// Once a VOLUME is defined, future ADD/COPY instructions are
+	// all that may mutate that path. Instruct the executor to preserve
+	// the path. The executor must handle invalidating preserved info.
+	for _, path := range b.PendingVolumes {
+		if b.Volumes.Add(path) && !noRunsRemaining {
+			if err := exec.Preserve(path); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := exec.Copy(b.Excludes, copies...); err != nil {
 		return err
 	}
 	for _, run := range runs {
 		config := b.Config()
+		config.Env = step.Env
 		if err := exec.Run(run, *config); err != nil {
 			return err
 		}
@@ -195,7 +293,7 @@ func (b *Builder) From(node *parser.Node) (string, error) {
 		if err := step.Resolve(children[0]); err != nil {
 			return "", err
 		}
-		if err := b.Run(step, NoopExecutor); err != nil {
+		if err := b.Run(step, NoopExecutor, false); err != nil {
 			return "", err
 		}
 		return b.RunConfig.Image, nil
@@ -222,7 +320,7 @@ func (b *Builder) FromImage(image *docker.Image, node *parser.Node) error {
 	if image.Config == nil || len(image.Config.OnBuild) == 0 {
 		return nil
 	}
-	extra, err := parser.Parse(bytes.NewBufferString(strings.Join(image.Config.OnBuild, "\n")))
+	extra, err := ParseDockerfile(bytes.NewBufferString(strings.Join(image.Config.OnBuild, "\n")))
 	if err != nil {
 		return err
 	}
@@ -257,26 +355,26 @@ func SplitChildren(node *parser.Node, value string) []*parser.Node {
 }
 
 // StepFunc is invoked with the result of a resolved step.
-type StepFunc func(*Builder, []string, map[string]bool, string) error
+type StepFunc func(*Builder, []string, map[string]bool, []string, string) error
 
 var evaluateTable = map[string]StepFunc{
-	command.Env:        env,
-	command.Label:      label,
-	command.Maintainer: maintainer,
-	command.Add:        add,
-	command.Copy:       dispatchCopy, // copy() is a go builtin
-	command.From:       from,
-	command.Onbuild:    onbuild,
-	command.Workdir:    workdir,
-	command.Run:        run,
-	command.Cmd:        cmd,
-	command.Entrypoint: entrypoint,
-	command.Expose:     expose,
-	command.Volume:     volume,
-	command.User:       user,
-	// TODO: use the public constants for these when we update dockerfile/
-	commandStopSignal: stopSignal,
-	commandArg:        arg,
+	command.Env:         env,
+	command.Label:       label,
+	command.Maintainer:  maintainer,
+	command.Add:         add,
+	command.Copy:        dispatchCopy, // copy() is a go builtin
+	command.From:        from,
+	command.Onbuild:     onbuild,
+	command.Workdir:     workdir,
+	command.Run:         run,
+	command.Cmd:         cmd,
+	command.Entrypoint:  entrypoint,
+	command.Expose:      expose,
+	command.Volume:      volume,
+	command.User:        user,
+	command.StopSignal:  stopSignal,
+	command.Arg:         arg,
+	command.Healthcheck: healthcheck,
 }
 
 // builtinAllowedBuildArgs is list of built-in allowed build args
@@ -310,6 +408,9 @@ func ExportEnv(env []string) string {
 	}
 	out := "export"
 	for _, e := range env {
+		if len(e) == 0 {
+			continue
+		}
 		out += " " + BashQuote(e)
 	}
 	return out + "; "
