@@ -121,12 +121,22 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
 			// Show details if the current deployment is the active one or it is the
 			// initial deployment.
-			printDeploymentRc(deployment, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
+			versioned := &v1.ReplicationController{}
+			if err := kapi.Scheme.Convert(deployment, versioned, nil); err == nil {
+				printDeploymentRc(versioned, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
+			}
 		}
 
 		// We don't show the deployment history when running `oc rollback --dry-run`.
 		if d.config == nil && !isNotDeployed {
-			sorted := deploymentsHistory
+			var sorted []*v1.ReplicationController
+			// TODO(rebase-1.6): we should really convert the describer to use a versioned clientset
+			for i := range deploymentsHistory {
+				versioned := &v1.ReplicationController{}
+				if err := kapi.Scheme.Convert(deploymentsHistory[i], versioned, nil); err == nil {
+					sorted = append(sorted, versioned)
+				}
+			}
 			sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
 			counter := 1
 			for _, item := range sorted {
@@ -312,8 +322,12 @@ func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kc
 
 	for _, hpa := range scaledBy {
 		cpuUtil := ""
-		if hpa.Spec.TargetCPUUtilizationPercentage != nil {
-			cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", *hpa.Spec.TargetCPUUtilizationPercentage)
+		// TODO(rebase-1.6): flesh this out for full hpa support, consider using upstream code
+		// For right now I'm just doing parity with 1.5
+		for _, metric := range hpa.Spec.Metrics {
+			if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource.Name == kapi.ResourceCPU && metric.Resource.TargetAverageUtilization != nil {
+				cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", *metric.Resource.TargetAverageUtilization)
+			}
 		}
 		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas%s\n", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, cpuUtil)
 		// TODO: Print a warning in case of multiple hpas.
