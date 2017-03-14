@@ -58,7 +58,7 @@ var codecsToTest = []func(version schema.GroupVersion, item runtime.Object) (run
 }
 
 func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
-	f := apitesting.FuzzerFor(nil, rand.NewSource(seed))
+	f := apitesting.FuzzerFor(apitesting.GenericFuzzerFuncs(t, kapi.Codecs), rand.NewSource(seed))
 	f.Funcs(
 		// Roles and RoleBindings maps are never nil
 		func(j *authorizationapi.Policy, c fuzz.Continue) {
@@ -298,11 +298,13 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(j *build.DockerBuildStrategy, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
-			j.From.Kind = "ImageStreamTag"
-			j.From.Name = "image:tag"
-			j.From.APIVersion = ""
-			j.From.ResourceVersion = ""
-			j.From.FieldPath = ""
+			if j.From != nil {
+				j.From.Kind = "ImageStreamTag"
+				j.From.Name = "image:tag"
+				j.From.APIVersion = ""
+				j.From.ResourceVersion = ""
+				j.From.FieldPath = ""
+			}
 		},
 		func(j *build.BuildOutput, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
