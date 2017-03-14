@@ -29,7 +29,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -161,6 +160,10 @@ func (f *ring0Factory) ClientConfig() (*restclient.Config, error) {
 	return f.kubeClientAccessFactory.ClientConfig()
 }
 
+func (f *ring0Factory) BareClientConfig() (*restclient.Config, error) {
+	return f.clientConfig.ClientConfig()
+}
+
 func (f *ring0Factory) ClientConfigForVersion(requiredVersion *schema.GroupVersion) (*restclient.Config, error) {
 	return f.kubeClientAccessFactory.ClientConfigForVersion(nil)
 }
@@ -234,8 +237,8 @@ func (f *ring0Factory) FlagSet() *pflag.FlagSet {
 	return f.kubeClientAccessFactory.FlagSet()
 }
 
-func (f *ring0Factory) Command() string {
-	return f.kubeClientAccessFactory.Command()
+func (f *ring0Factory) Command(cmd *cobra.Command, showSecrets bool) string {
+	return f.kubeClientAccessFactory.Command(cmd, showSecrets)
 }
 
 func (f *ring0Factory) BindFlags(flags *pflag.FlagSet) {
@@ -267,25 +270,19 @@ func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.Prin
 			options.Kind = alias
 		}
 	}
-	return describe.NewHumanReadablePrinter(options), nil
+	return describe.NewHumanReadablePrinter(f.JSONEncoder(), f.Decoder(true), options), nil
 }
 
-func (f *ring0Factory) Pauser(info *resource.Info) (bool, error) {
+func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
+	// TODO(rebase): compare with origin master, the logic changed completely
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
-		patches := set.CalculatePatches([]*resource.Info{info}, f.JSONEncoder(), func(*resource.Info) (bool, error) {
-			if t.Spec.Paused {
-				return false, nil
-			}
-			t.Spec.Paused = true
-			return true, nil
-		})
-		if len(patches) == 0 {
-			return true, nil
+		if t.Spec.Paused {
+			return nil, errors.New("is already paused")
 		}
-		_, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patches[0].Patch)
+		t.Spec.Paused = true
 		// TODO: Pause the deployer containers.
-		return false, err
+		return runtime.Encode(f.JSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Pauser(info)
 	}
@@ -331,22 +328,16 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	return imageutil.ResolveImagePullSpec(oc, oc, options.Source, image, namespace)
 }
 
-func (f *ring0Factory) Resumer(info *resource.Info) (bool, error) {
+func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
+	// TODO(rebase): compare with origin master, the logic changed completely
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
-		patches := set.CalculatePatches([]*resource.Info{info}, f.JSONEncoder(), func(*resource.Info) (bool, error) {
-			if !t.Spec.Paused {
-				return false, nil
-			}
-			t.Spec.Paused = false
-			return true, nil
-		})
-		if len(patches) == 0 {
-			return true, nil
+		if !t.Spec.Paused {
+			return nil, errors.New("is not paused")
 		}
-		_, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patches[0].Patch)
+		t.Spec.Paused = false
 		// TODO: Resume the deployer containers.
-		return false, err
+		return runtime.Encode(f.JSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Resumer(info)
 	}

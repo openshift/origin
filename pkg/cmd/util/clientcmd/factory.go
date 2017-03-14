@@ -67,7 +67,7 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := kcmdutil.PrinterForCommand(cmd)
+	printer, generic, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return nil
 	}
@@ -81,24 +81,18 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 			if err := printer.PrintObj(info.Object, out); err != nil {
 				return nil
 			}
+			return nil
 		}
 		return nil
 	}
 
-	clientConfig, err := f.ClientConfig()
+	printAsList := len(infos) != 1
+	object, err := resource.AsVersionedObject(infos, printAsList, schema.GroupVersion{}, api.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
-	outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
-	object, err := resource.AsVersionedObject(infos, len(infos) != 1, outputVersion, api.Codecs.LegacyCodec(outputVersion))
-	if err != nil {
-		return err
-	}
-	return printer.PrintObj(object, out)
 
+	return printer.PrintObj(object, out)
 }
 
 // FlagBinder represents an interface that allows to bind extra flags into commands.
@@ -382,12 +376,12 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 	if err != nil {
 		return nil, err
 	}
-	for apiVersion, v := range all {
-		gv, err := schema.ParseGroupVersion(apiVersion)
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
 		if err != nil {
 			continue
 		}
-		for _, r := range v.APIResources {
+		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
 				continue
