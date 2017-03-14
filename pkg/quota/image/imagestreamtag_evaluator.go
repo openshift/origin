@@ -50,7 +50,7 @@ func NewImageStreamTagEvaluator(store *oscache.StoreToImageStreamLister, istName
 
 	return &generic.GenericEvaluator{
 		Name:              imageStreamTagEvaluatorName,
-		InternalGroupKind: imageapi.Kind("ImageStreamTag"),
+		InternalGroupKind: imageapi.LegacyKind("ImageStreamTag"),
 		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{
 			admission.Update: computeResources,
 			admission.Create: computeResources,

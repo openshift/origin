@@ -44,6 +44,13 @@ var recommendedCreatableResources = map[unversioned.GroupResource]bool{
 	authorizationapi.Resource("localsubjectaccessreviews"):  true,
 	authorizationapi.Resource("selfsubjectrulesreviews"):    true,
 	authorizationapi.Resource("subjectrulesreviews"):        true,
+
+	authorizationapi.LegacyResource("resourceaccessreviews"):      true,
+	authorizationapi.LegacyResource("localresourceaccessreviews"): true,
+	authorizationapi.LegacyResource("subjectaccessreviews"):       true,
+	authorizationapi.LegacyResource("localsubjectaccessreviews"):  true,
+	authorizationapi.LegacyResource("selfsubjectrulesreviews"):    true,
+	authorizationapi.LegacyResource("subjectrulesreviews"):        true,
 }
 var _ = oadmission.WantsProjectCache(&lifecycle{})
 

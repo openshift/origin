@@ -545,11 +545,11 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 
 	requestWhoCanViewDeploymentConfigs := &authorizationapi.ResourceAccessReview{
-		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
 	}
 
 	localRequestWhoCanViewDeploymentConfigs := &authorizationapi.LocalResourceAccessReview{
-		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs"},
+		Action: authorizationapi.Action{Verb: "get", Resource: "deploymentconfigs", Group: ""},
 	}
 
 	{
