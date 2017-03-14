@@ -59,7 +59,6 @@ func Convert_api_Parameter_To_v1_Parameter(in *api.Parameter, out *Parameter, s 
 }
 
 func autoConvert_v1_Template_To_api_Template(in *Template, out *api.Template, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	if in.Objects != nil {
@@ -83,7 +82,6 @@ func Convert_v1_Template_To_api_Template(in *Template, out *api.Template, s conv
 }
 
 func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	out.Parameters = *(*[]Parameter)(unsafe.Pointer(&in.Parameters))
@@ -107,7 +105,6 @@ func Convert_api_Template_To_v1_Template(in *api.Template, out *Template, s conv
 }
 
 func autoConvert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.TemplateList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -128,7 +125,6 @@ func Convert_v1_TemplateList_To_api_TemplateList(in *TemplateList, out *api.Temp
 }
 
 func autoConvert_api_TemplateList_To_v1_TemplateList(in *api.TemplateList, out *TemplateList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items

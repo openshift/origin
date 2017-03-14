@@ -45,7 +45,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *api.ClusterNetwork, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
@@ -59,7 +58,6 @@ func Convert_v1_ClusterNetwork_To_api_ClusterNetwork(in *ClusterNetwork, out *ap
 }
 
 func autoConvert_api_ClusterNetwork_To_v1_ClusterNetwork(in *api.ClusterNetwork, out *ClusterNetwork, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Network = in.Network
 	out.HostSubnetLength = in.HostSubnetLength
@@ -73,7 +71,6 @@ func Convert_api_ClusterNetwork_To_v1_ClusterNetwork(in *api.ClusterNetwork, out
 }
 
 func autoConvert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkList, out *api.ClusterNetworkList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.ClusterNetwork)(unsafe.Pointer(&in.Items))
 	return nil
@@ -84,7 +81,6 @@ func Convert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkL
 }
 
 func autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *api.ClusterNetworkList, out *ClusterNetworkList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]ClusterNetwork)(unsafe.Pointer(&in.Items))
 	return nil
@@ -95,7 +91,6 @@ func Convert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *api.ClusterNetw
 }
 
 func autoConvert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetworkPolicy, out *api.EgressNetworkPolicy, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -108,7 +103,6 @@ func Convert_v1_EgressNetworkPolicy_To_api_EgressNetworkPolicy(in *EgressNetwork
 }
 
 func autoConvert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *api.EgressNetworkPolicy, out *EgressNetworkPolicy, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -121,7 +115,6 @@ func Convert_api_EgressNetworkPolicy_To_v1_EgressNetworkPolicy(in *api.EgressNet
 }
 
 func autoConvert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *EgressNetworkPolicyList, out *api.EgressNetworkPolicyList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
 	return nil
@@ -132,7 +125,6 @@ func Convert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *Egres
 }
 
 func autoConvert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *api.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
 	return nil
@@ -203,7 +195,6 @@ func Convert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *api.E
 }
 
 func autoConvert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *api.HostSubnet, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Host = in.Host
 	out.HostIP = in.HostIP
@@ -216,7 +207,6 @@ func Convert_v1_HostSubnet_To_api_HostSubnet(in *HostSubnet, out *api.HostSubnet
 }
 
 func autoConvert_api_HostSubnet_To_v1_HostSubnet(in *api.HostSubnet, out *HostSubnet, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Host = in.Host
 	out.HostIP = in.HostIP
@@ -229,7 +219,6 @@ func Convert_api_HostSubnet_To_v1_HostSubnet(in *api.HostSubnet, out *HostSubnet
 }
 
 func autoConvert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *api.HostSubnetList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.HostSubnet)(unsafe.Pointer(&in.Items))
 	return nil
@@ -240,7 +229,6 @@ func Convert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *ap
 }
 
 func autoConvert_api_HostSubnetList_To_v1_HostSubnetList(in *api.HostSubnetList, out *HostSubnetList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]HostSubnet)(unsafe.Pointer(&in.Items))
 	return nil
@@ -251,7 +239,6 @@ func Convert_api_HostSubnetList_To_v1_HostSubnetList(in *api.HostSubnetList, out
 }
 
 func autoConvert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *api.NetNamespace, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.NetName = in.NetName
 	out.NetID = in.NetID
@@ -263,7 +250,6 @@ func Convert_v1_NetNamespace_To_api_NetNamespace(in *NetNamespace, out *api.NetN
 }
 
 func autoConvert_api_NetNamespace_To_v1_NetNamespace(in *api.NetNamespace, out *NetNamespace, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.NetName = in.NetName
 	out.NetID = in.NetID
@@ -275,7 +261,6 @@ func Convert_api_NetNamespace_To_v1_NetNamespace(in *api.NetNamespace, out *NetN
 }
 
 func autoConvert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, out *api.NetNamespaceList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.NetNamespace)(unsafe.Pointer(&in.Items))
 	return nil
@@ -286,7 +271,6 @@ func Convert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, o
 }
 
 func autoConvert_api_NetNamespaceList_To_v1_NetNamespaceList(in *api.NetNamespaceList, out *NetNamespaceList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]NetNamespace)(unsafe.Pointer(&in.Items))
 	return nil

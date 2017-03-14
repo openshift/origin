@@ -38,7 +38,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Group_To_api_Group(in *Group, out *api.Group, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	return nil
@@ -49,7 +48,6 @@ func Convert_v1_Group_To_api_Group(in *Group, out *api.Group, s conversion.Scope
 }
 
 func autoConvert_api_Group_To_v1_Group(in *api.Group, out *Group, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
 	return nil
@@ -60,7 +58,6 @@ func Convert_api_Group_To_v1_Group(in *api.Group, out *Group, s conversion.Scope
 }
 
 func autoConvert_v1_GroupList_To_api_GroupList(in *GroupList, out *api.GroupList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.Group)(unsafe.Pointer(&in.Items))
 	return nil
@@ -71,7 +68,6 @@ func Convert_v1_GroupList_To_api_GroupList(in *GroupList, out *api.GroupList, s 
 }
 
 func autoConvert_api_GroupList_To_v1_GroupList(in *api.GroupList, out *GroupList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
 	return nil
@@ -82,7 +78,6 @@ func Convert_api_GroupList_To_v1_GroupList(in *api.GroupList, out *GroupList, s 
 }
 
 func autoConvert_v1_Identity_To_api_Identity(in *Identity, out *api.Identity, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
@@ -98,7 +93,6 @@ func Convert_v1_Identity_To_api_Identity(in *Identity, out *api.Identity, s conv
 }
 
 func autoConvert_api_Identity_To_v1_Identity(in *api.Identity, out *Identity, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
@@ -114,7 +108,6 @@ func Convert_api_Identity_To_v1_Identity(in *api.Identity, out *Identity, s conv
 }
 
 func autoConvert_v1_IdentityList_To_api_IdentityList(in *IdentityList, out *api.IdentityList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -135,7 +128,6 @@ func Convert_v1_IdentityList_To_api_IdentityList(in *IdentityList, out *api.Iden
 }
 
 func autoConvert_api_IdentityList_To_v1_IdentityList(in *api.IdentityList, out *IdentityList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -156,7 +148,6 @@ func Convert_api_IdentityList_To_v1_IdentityList(in *api.IdentityList, out *Iden
 }
 
 func autoConvert_v1_User_To_api_User(in *User, out *api.User, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
 	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
@@ -169,7 +160,6 @@ func Convert_v1_User_To_api_User(in *User, out *api.User, s conversion.Scope) er
 }
 
 func autoConvert_api_User_To_v1_User(in *api.User, out *User, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
 	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
@@ -182,7 +172,6 @@ func Convert_api_User_To_v1_User(in *api.User, out *User, s conversion.Scope) er
 }
 
 func autoConvert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityMapping, out *api.UserIdentityMapping, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
@@ -198,7 +187,6 @@ func Convert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityM
 }
 
 func autoConvert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *api.UserIdentityMapping, out *UserIdentityMapping, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
@@ -214,7 +202,6 @@ func Convert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *api.UserIdent
 }
 
 func autoConvert_v1_UserList_To_api_UserList(in *UserList, out *api.UserList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.User)(unsafe.Pointer(&in.Items))
 	return nil
@@ -225,7 +212,6 @@ func Convert_v1_UserList_To_api_UserList(in *UserList, out *api.UserList, s conv
 }
 
 func autoConvert_api_UserList_To_v1_UserList(in *api.UserList, out *UserList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
 	return nil

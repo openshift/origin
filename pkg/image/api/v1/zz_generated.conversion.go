@@ -110,7 +110,6 @@ func Convert_api_DockerImageReference_To_v1_DockerImageReference(in *api.DockerI
 }
 
 func autoConvert_v1_Image_To_api_Image(in *Image, out *api.Image, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
 	// TODO: Inefficient conversion - can we improve it?
@@ -128,7 +127,6 @@ func autoConvert_v1_Image_To_api_Image(in *Image, out *api.Image, s conversion.S
 }
 
 func autoConvert_api_Image_To_v1_Image(in *api.Image, out *Image, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
 	// TODO: Inefficient conversion - can we improve it?
@@ -254,7 +252,6 @@ func Convert_api_ImageLayer_To_v1_ImageLayer(in *api.ImageLayer, out *ImageLayer
 }
 
 func autoConvert_v1_ImageList_To_api_ImageList(in *ImageList, out *api.ImageList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -275,7 +272,6 @@ func Convert_v1_ImageList_To_api_ImageList(in *ImageList, out *api.ImageList, s 
 }
 
 func autoConvert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -296,7 +292,6 @@ func Convert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList, s 
 }
 
 func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *api.ImageSignature, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Type = in.Type
 	out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
@@ -314,7 +309,6 @@ func Convert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *ap
 }
 
 func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.Type = in.Type
 	out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
@@ -332,7 +326,6 @@ func Convert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature, out
 }
 
 func autoConvert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *api.ImageStream, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ImageStreamSpec_To_api_ImageStreamSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -348,7 +341,6 @@ func Convert_v1_ImageStream_To_api_ImageStream(in *ImageStream, out *api.ImageSt
 }
 
 func autoConvert_api_ImageStream_To_v1_ImageStream(in *api.ImageStream, out *ImageStream, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ImageStreamSpec_To_v1_ImageStreamSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -364,7 +356,6 @@ func Convert_api_ImageStream_To_v1_ImageStream(in *api.ImageStream, out *ImageSt
 }
 
 func autoConvert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, out *api.ImageStreamImage, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_Image_To_api_Image(&in.Image, &out.Image, s); err != nil {
 		return err
@@ -377,7 +368,6 @@ func Convert_v1_ImageStreamImage_To_api_ImageStreamImage(in *ImageStreamImage, o
 }
 
 func autoConvert_api_ImageStreamImage_To_v1_ImageStreamImage(in *api.ImageStreamImage, out *ImageStreamImage, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
 		return err
@@ -390,7 +380,6 @@ func Convert_api_ImageStreamImage_To_v1_ImageStreamImage(in *api.ImageStreamImag
 }
 
 func autoConvert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport, out *api.ImageStreamImport, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ImageStreamImportSpec_To_api_ImageStreamImportSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -406,7 +395,6 @@ func Convert_v1_ImageStreamImport_To_api_ImageStreamImport(in *ImageStreamImport
 }
 
 func autoConvert_api_ImageStreamImport_To_v1_ImageStreamImport(in *api.ImageStreamImport, out *ImageStreamImport, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ImageStreamImportSpec_To_v1_ImageStreamImportSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -554,7 +542,6 @@ func Convert_api_ImageStreamImportStatus_To_v1_ImageStreamImportStatus(in *api.I
 }
 
 func autoConvert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out *api.ImageStreamList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -575,7 +562,6 @@ func Convert_v1_ImageStreamList_To_api_ImageStreamList(in *ImageStreamList, out 
 }
 
 func autoConvert_api_ImageStreamList_To_v1_ImageStreamList(in *api.ImageStreamList, out *ImageStreamList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -596,7 +582,6 @@ func Convert_api_ImageStreamList_To_v1_ImageStreamList(in *api.ImageStreamList, 
 }
 
 func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStreamMapping, out *api.ImageStreamMapping, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_Image_To_api_Image(&in.Image, &out.Image, s); err != nil {
 		return err
@@ -606,7 +591,6 @@ func autoConvert_v1_ImageStreamMapping_To_api_ImageStreamMapping(in *ImageStream
 }
 
 func autoConvert_api_ImageStreamMapping_To_v1_ImageStreamMapping(in *api.ImageStreamMapping, out *ImageStreamMapping, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	// INFO: in.DockerImageRepository opted out of conversion generation
 	if err := Convert_api_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
@@ -641,7 +625,6 @@ func autoConvert_api_ImageStreamStatus_To_v1_ImageStreamStatus(in *api.ImageStre
 }
 
 func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *api.ImageStreamTag, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if in.Tag != nil {
 		in, out := &in.Tag, &out.Tag
@@ -665,7 +648,6 @@ func Convert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out *ap
 }
 
 func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag, out *ImageStreamTag, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if in.Tag != nil {
 		in, out := &in.Tag, &out.Tag
@@ -689,7 +671,6 @@ func Convert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag, out
 }
 
 func autoConvert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagList, out *api.ImageStreamTagList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -710,7 +691,6 @@ func Convert_v1_ImageStreamTagList_To_api_ImageStreamTagList(in *ImageStreamTagL
 }
 
 func autoConvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *api.ImageStreamTagList, out *ImageStreamTagList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items

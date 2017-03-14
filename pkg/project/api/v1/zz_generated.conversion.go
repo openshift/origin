@@ -35,7 +35,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Project_To_api_Project(in *Project, out *api.Project, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ProjectSpec_To_api_ProjectSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -51,7 +50,6 @@ func Convert_v1_Project_To_api_Project(in *Project, out *api.Project, s conversi
 }
 
 func autoConvert_api_Project_To_v1_Project(in *api.Project, out *Project, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ProjectSpec_To_v1_ProjectSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -67,7 +65,6 @@ func Convert_api_Project_To_v1_Project(in *api.Project, out *Project, s conversi
 }
 
 func autoConvert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *api.ProjectList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]api.Project)(unsafe.Pointer(&in.Items))
 	return nil
@@ -78,7 +75,6 @@ func Convert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *api.Project
 }
 
 func autoConvert_api_ProjectList_To_v1_ProjectList(in *api.ProjectList, out *ProjectList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
 	return nil
@@ -89,7 +85,6 @@ func Convert_api_ProjectList_To_v1_ProjectList(in *api.ProjectList, out *Project
 }
 
 func autoConvert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *api.ProjectRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description
@@ -101,7 +96,6 @@ func Convert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *ap
 }
 
 func autoConvert_api_ProjectRequest_To_v1_ProjectRequest(in *api.ProjectRequest, out *ProjectRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description

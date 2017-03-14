@@ -198,7 +198,6 @@ func Convert_api_DeploymentCondition_To_v1_DeploymentCondition(in *api.Deploymen
 }
 
 func autoConvert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, out *api.DeploymentConfig, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -214,7 +213,6 @@ func Convert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, o
 }
 
 func autoConvert_api_DeploymentConfig_To_v1_DeploymentConfig(in *api.DeploymentConfig, out *DeploymentConfig, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -230,7 +228,6 @@ func Convert_api_DeploymentConfig_To_v1_DeploymentConfig(in *api.DeploymentConfi
 }
 
 func autoConvert_v1_DeploymentConfigList_To_api_DeploymentConfigList(in *DeploymentConfigList, out *api.DeploymentConfigList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -251,7 +248,6 @@ func Convert_v1_DeploymentConfigList_To_api_DeploymentConfigList(in *DeploymentC
 }
 
 func autoConvert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *api.DeploymentConfigList, out *DeploymentConfigList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -272,7 +268,6 @@ func Convert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *api.Deploym
 }
 
 func autoConvert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in *DeploymentConfigRollback, out *api.DeploymentConfigRollback, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Name = in.Name
 	out.UpdatedAnnotations = *(*map[string]string)(unsafe.Pointer(&in.UpdatedAnnotations))
 	if err := Convert_v1_DeploymentConfigRollbackSpec_To_api_DeploymentConfigRollbackSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -286,7 +281,6 @@ func Convert_v1_DeploymentConfigRollback_To_api_DeploymentConfigRollback(in *Dep
 }
 
 func autoConvert_api_DeploymentConfigRollback_To_v1_DeploymentConfigRollback(in *api.DeploymentConfigRollback, out *DeploymentConfigRollback, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Name = in.Name
 	out.UpdatedAnnotations = *(*map[string]string)(unsafe.Pointer(&in.UpdatedAnnotations))
 	if err := Convert_api_DeploymentConfigRollbackSpec_To_v1_DeploymentConfigRollbackSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -496,7 +490,6 @@ func Convert_api_DeploymentDetails_To_v1_DeploymentDetails(in *api.DeploymentDet
 }
 
 func autoConvert_v1_DeploymentLog_To_api_DeploymentLog(in *DeploymentLog, out *api.DeploymentLog, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	return nil
 }
 
@@ -505,7 +498,6 @@ func Convert_v1_DeploymentLog_To_api_DeploymentLog(in *DeploymentLog, out *api.D
 }
 
 func autoConvert_api_DeploymentLog_To_v1_DeploymentLog(in *api.DeploymentLog, out *DeploymentLog, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	return nil
 }
 
@@ -514,7 +506,6 @@ func Convert_api_DeploymentLog_To_v1_DeploymentLog(in *api.DeploymentLog, out *D
 }
 
 func autoConvert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *DeploymentLogOptions, out *api.DeploymentLogOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
@@ -533,7 +524,6 @@ func Convert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *DeploymentL
 }
 
 func autoConvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *api.DeploymentLogOptions, out *DeploymentLogOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
@@ -552,7 +542,6 @@ func Convert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *api.Deploym
 }
 
 func autoConvert_v1_DeploymentRequest_To_api_DeploymentRequest(in *DeploymentRequest, out *api.DeploymentRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Name = in.Name
 	out.Latest = in.Latest
 	out.Force = in.Force
@@ -564,7 +553,6 @@ func Convert_v1_DeploymentRequest_To_api_DeploymentRequest(in *DeploymentRequest
 }
 
 func autoConvert_api_DeploymentRequest_To_v1_DeploymentRequest(in *api.DeploymentRequest, out *DeploymentRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Name = in.Name
 	out.Latest = in.Latest
 	out.Force = in.Force

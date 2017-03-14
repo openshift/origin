@@ -115,7 +115,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *BinaryBuildRequestOptions, out *api.BinaryBuildRequestOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.AsFile = in.AsFile
 	out.Commit = in.Commit
@@ -132,7 +131,6 @@ func Convert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *B
 }
 
 func autoConvert_api_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions(in *api.BinaryBuildRequestOptions, out *BinaryBuildRequestOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	out.AsFile = in.AsFile
 	out.Commit = in.Commit
@@ -167,7 +165,6 @@ func Convert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in *api.BinaryBuildSo
 }
 
 func autoConvert_v1_Build_To_api_Build(in *Build, out *api.Build, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_BuildSpec_To_api_BuildSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -183,7 +180,6 @@ func Convert_v1_Build_To_api_Build(in *Build, out *api.Build, s conversion.Scope
 }
 
 func autoConvert_api_Build_To_v1_Build(in *api.Build, out *Build, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_BuildSpec_To_v1_BuildSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -199,7 +195,6 @@ func Convert_api_Build_To_v1_Build(in *api.Build, out *Build, s conversion.Scope
 }
 
 func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *api.BuildConfig, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -211,7 +206,6 @@ func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *api.Bui
 }
 
 func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *api.BuildConfig, out *BuildConfig, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -227,7 +221,6 @@ func Convert_api_BuildConfig_To_v1_BuildConfig(in *api.BuildConfig, out *BuildCo
 }
 
 func autoConvert_v1_BuildConfigList_To_api_BuildConfigList(in *BuildConfigList, out *api.BuildConfigList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -248,7 +241,6 @@ func Convert_v1_BuildConfigList_To_api_BuildConfigList(in *BuildConfigList, out 
 }
 
 func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *api.BuildConfigList, out *BuildConfigList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -333,7 +325,6 @@ func Convert_api_BuildConfigStatus_To_v1_BuildConfigStatus(in *api.BuildConfigSt
 }
 
 func autoConvert_v1_BuildList_To_api_BuildList(in *BuildList, out *api.BuildList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -354,7 +345,6 @@ func Convert_v1_BuildList_To_api_BuildList(in *BuildList, out *api.BuildList, s 
 }
 
 func autoConvert_api_BuildList_To_v1_BuildList(in *api.BuildList, out *BuildList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -375,7 +365,6 @@ func Convert_api_BuildList_To_v1_BuildList(in *api.BuildList, out *BuildList, s 
 }
 
 func autoConvert_v1_BuildLog_To_api_BuildLog(in *BuildLog, out *api.BuildLog, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	return nil
 }
 
@@ -384,7 +373,6 @@ func Convert_v1_BuildLog_To_api_BuildLog(in *BuildLog, out *api.BuildLog, s conv
 }
 
 func autoConvert_api_BuildLog_To_v1_BuildLog(in *api.BuildLog, out *BuildLog, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	return nil
 }
 
@@ -393,7 +381,6 @@ func Convert_api_BuildLog_To_v1_BuildLog(in *api.BuildLog, out *BuildLog, s conv
 }
 
 func autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, out *api.BuildLogOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
@@ -412,7 +399,6 @@ func Convert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, out 
 }
 
 func autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *api.BuildLogOptions, out *BuildLogOptions, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.Container = in.Container
 	out.Follow = in.Follow
 	out.Previous = in.Previous
@@ -503,7 +489,6 @@ func Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *api.BuildPost
 }
 
 func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *api.BuildRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
@@ -573,7 +558,6 @@ func Convert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *api.Buil
 }
 
 func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *api.BuildRequest, out *BuildRequest, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision

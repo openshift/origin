@@ -39,6 +39,8 @@ func main() {
 	supportingPackages := sets.NewString(
 		"k8s.io/kubernetes/pkg/api/v1",
 		"k8s.io/kubernetes/pkg/api",
+		"k8s.io/apimachinery/pkg/apis/meta/v1",
+		"k8s.io/apimachinery/pkg/apis/meta/internalversion",
 		"k8s.io/apimachinery/pkg/runtime",
 		"k8s.io/apimachinery/pkg/conversion",
 		"github.com/openshift/origin/pkg/authorization/api",

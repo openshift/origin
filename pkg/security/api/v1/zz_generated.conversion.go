@@ -43,7 +43,6 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSecurityPolicyReview, out *api.PodSecurityPolicyReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_v1_PodSecurityPolicyReviewSpec_To_api_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -58,7 +57,6 @@ func Convert_v1_PodSecurityPolicyReview_To_api_PodSecurityPolicyReview(in *PodSe
 }
 
 func autoConvert_api_PodSecurityPolicyReview_To_v1_PodSecurityPolicyReview(in *api.PodSecurityPolicyReview, out *PodSecurityPolicyReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_api_PodSecurityPolicyReviewSpec_To_v1_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -135,7 +133,6 @@ func Convert_api_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyReviewStat
 }
 
 func autoConvert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicySelfSubjectReview, out *api.PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_v1_PodSecurityPolicySelfSubjectReviewSpec_To_api_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -150,7 +147,6 @@ func Convert_v1_PodSecurityPolicySelfSubjectReview_To_api_PodSecurityPolicySelfS
 }
 
 func autoConvert_api_PodSecurityPolicySelfSubjectReview_To_v1_PodSecurityPolicySelfSubjectReview(in *api.PodSecurityPolicySelfSubjectReview, out *PodSecurityPolicySelfSubjectReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -187,7 +183,6 @@ func Convert_api_PodSecurityPolicySelfSubjectReviewSpec_To_v1_PodSecurityPolicyS
 }
 
 func autoConvert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubjectReview, out *api.PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_v1_PodSecurityPolicySubjectReviewSpec_To_api_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -202,7 +197,6 @@ func Convert_v1_PodSecurityPolicySubjectReview_To_api_PodSecurityPolicySubjectRe
 }
 
 func autoConvert_api_PodSecurityPolicySubjectReview_To_v1_PodSecurityPolicySubjectReview(in *api.PodSecurityPolicySubjectReview, out *PodSecurityPolicySubjectReview, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	if err := Convert_api_PodSecurityPolicySubjectReviewSpec_To_v1_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
