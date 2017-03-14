@@ -33,7 +33,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	saUsername := serviceaccount.MakeUsername(saNamespace, saName)
 
 	// Start one OpenShift master as "cluster1" to play the external kube server
-	cluster1MasterConfig, cluster1AdminConfigFile, err := testserver.StartTestMaster()
+	_, cluster1AdminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -105,87 +105,6 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	defer os.Remove(cluster1SAKubeConfigFile.Name())
 	if err := writeClientConfigToKubeConfig(cluster1SAClientConfig, cluster1SAKubeConfigFile.Name()); err != nil {
 		t.Fatalf("error creating kubeconfig: %v", err)
-	}
-
-	// Set up cluster 2 to run against cluster 1 as external kubernetes
-	cluster2MasterConfig, err := testserver.DefaultMasterOptions()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	// Don't start kubernetes in process
-	cluster2MasterConfig.KubernetesMasterConfig = nil
-	// Connect to cluster1 using the service account credentials
-	cluster2MasterConfig.MasterClients.ExternalKubernetesKubeConfig = cluster1SAKubeConfigFile.Name()
-	// Don't start etcd
-	cluster2MasterConfig.EtcdConfig = nil
-	// Use the same credentials as cluster1 to connect to existing etcd
-	cluster2MasterConfig.EtcdClientInfo = cluster1MasterConfig.EtcdClientInfo
-	// Set a custom etcd prefix to make sure data is getting sent to cluster1
-	cluster2MasterConfig.EtcdStorageConfig.KubernetesStoragePrefix += "2"
-	cluster2MasterConfig.EtcdStorageConfig.OpenShiftStoragePrefix += "2"
-	// Don't manage any names in cluster2
-	cluster2MasterConfig.ServiceAccountConfig.ManagedNames = []string{}
-	// Don't create any service account tokens in cluster2
-	cluster2MasterConfig.ServiceAccountConfig.PrivateKeyFile = ""
-	// Use the same public keys to validate tokens as cluster1
-	cluster2MasterConfig.ServiceAccountConfig.PublicKeyFiles = cluster1MasterConfig.ServiceAccountConfig.PublicKeyFiles
-	// don't try to start second dns server
-	cluster2MasterConfig.DNSConfig = nil
-
-	// Start cluster 2 (without clearing etcd) and get admin client configs and clients
-	cluster2Options := testserver.TestOptions{EnableControllers: true}
-	cluster2AdminConfigFile, err := testserver.StartConfiguredMasterWithOptions(cluster2MasterConfig, cluster2Options)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	cluster2AdminConfig, err := testutil.GetClusterAdminClientConfig(cluster2AdminConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	cluster2AdminOSClient, err := testutil.GetClusterAdminClient(cluster2AdminConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Build a client to use the same service account token against cluster2
-	cluster2SAClientConfig := cluster1SAClientConfig
-	cluster2SAClientConfig.Host = cluster2AdminConfig.Host
-	cluster2SAKubeClient, err := kclientset.NewForConfig(&cluster2SAClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Make sure the service account doesn't have access
-	// A forbidden error makes sure the token was recognized, and policy denied us
-	// This exercises the client-based token getter
-	// It also makes sure we don't loop back through the cluster2 kube proxy which would cause an auth loop
-	failNS2 := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-fail2"}}
-	if _, err := cluster2SAKubeClient.Namespaces().Create(failNS2); !errors.IsForbidden(err) {
-		t.Fatalf("expected forbidden error, got %v", err)
-	}
-
-	// Make the service account a cluster admin on cluster2
-	addRoleOptions2 := &policy.RoleModificationOptions{
-		RoleName:            bootstrappolicy.ClusterAdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(cluster2AdminOSClient),
-		Users:               []string{saUsername},
-	}
-	if err := addRoleOptions2.AddRole(); err != nil {
-		t.Fatalf("could not add role to service account")
-	}
-
-	// Give the policy cache a second to catch its breath
-	time.Sleep(time.Second)
-
-	// Make sure the service account now has access to cluster2
-	passNS2 := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass2"}}
-	if _, err := cluster2SAKubeClient.Namespaces().Create(passNS2); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// Make sure the ns actually got created in cluster1
-	if _, err := cluster1SAKubeClient.Namespaces().Get(passNS2.Name); err != nil {
-		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
