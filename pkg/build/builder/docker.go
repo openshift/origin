@@ -354,6 +354,7 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		NoCache:        noCache,
 		Pull:           forcePull,
 		BuildArgs:      buildArgs,
+		NetworkMode:    string(getDockerNetworkMode()),
 	}
 
 	if d.cgLimits != nil {
