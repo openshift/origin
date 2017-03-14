@@ -1,7 +1,9 @@
 {
     "version": "1.0",
     "defaultValues": {
-	"MASTER_SERVICE": "atomic-openshift-master"
+        "MASTER_SERVICE": "atomic-openshift-master.service",
+        "DOCKER_SERVICE": "docker.service",
+        "OPENVSWITCH_SERVICE": "openvswitch.service"
     }
 }
 
