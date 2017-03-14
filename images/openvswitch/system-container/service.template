@@ -1,7 +1,7 @@
 [Unit]
-After=docker.service
-Requires=docker.service
-PartOf=docker.service
+After=${DOCKER_SERVICE}
+Requires=${DOCKER_SERVICE}
+PartOf=${DOCKER_SERVICE}
 
 [Service]
 EnvironmentFile=/etc/sysconfig/$NAME
