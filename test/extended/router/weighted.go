@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -26,10 +27,13 @@ var _ = g.Describe("[Conformance][networking][router] weighted openshift router"
 	)
 
 	g.BeforeEach(func() {
-		// defer oc.Run("delete").Args("-f", configPath).Execute()
+		image := os.Getenv("OPENSHIFT_ROUTER_IMAGE")
+		if len(image) == 0 {
+			g.Skip("Skipping HAProxy router tests, OPENSHIFT_ROUTER_IMAGE is unset")
+		}
 		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:router", oc.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("create").Args("-f", configPath).Execute()
+		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
