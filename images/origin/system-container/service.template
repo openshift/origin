@@ -1,7 +1,7 @@
 [Unit]
-After=docker.service
-Requires=docker.service
-PartOf=docker.service
+After=network-online.target
+After=${ETCD_SERVICE}
+Before=${NODE_SERVICE}
 
 [Service]
 EnvironmentFile=-/etc/sysconfig/$NAME

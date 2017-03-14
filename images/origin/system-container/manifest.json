@@ -1,7 +1,9 @@
 {
     "version": "1.0",
     "defaultValues": {
-	"COMMAND": ""
+        "COMMAND": "",
+        "ETCD_SERVICE": "etcd.service",
+        "NODE_SERVICE": "atomic-openshift-node.service"
     }
 }
 
