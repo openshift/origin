@@ -1,6 +1,7 @@
 package clientcmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
@@ -146,16 +148,20 @@ func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, er
 	return f.kubeClientAccessFactory.DiscoveryClient()
 }
 
-func (f *ring0Factory) ClientSet() (*kclientset.Clientset, error) {
+func (f *ring0Factory) ClientSet() (kclientset.Interface, error) {
 	return f.kubeClientAccessFactory.ClientSet()
 }
 
-func (f *ring0Factory) ClientSetForVersion(requiredVersion *schema.GroupVersion) (*kclientset.Clientset, error) {
+func (f *ring0Factory) ClientSetForVersion(requiredVersion *schema.GroupVersion) (kclientset.Interface, error) {
 	return f.kubeClientAccessFactory.ClientSetForVersion(requiredVersion)
 }
 
 func (f *ring0Factory) ClientConfig() (*restclient.Config, error) {
 	return f.kubeClientAccessFactory.ClientConfig()
+}
+
+func (f *ring0Factory) BareClientConfig() (*restclient.Config, error) {
+	return f.clientConfig.ClientConfig()
 }
 
 func (f *ring0Factory) ClientConfigForVersion(requiredVersion *schema.GroupVersion) (*restclient.Config, error) {
@@ -231,8 +237,8 @@ func (f *ring0Factory) FlagSet() *pflag.FlagSet {
 	return f.kubeClientAccessFactory.FlagSet()
 }
 
-func (f *ring0Factory) Command() string {
-	return f.kubeClientAccessFactory.Command()
+func (f *ring0Factory) Command(cmd *cobra.Command, showSecrets bool) string {
+	return f.kubeClientAccessFactory.Command(cmd, showSecrets)
 }
 
 func (f *ring0Factory) BindFlags(flags *pflag.FlagSet) {
@@ -243,7 +249,7 @@ func (f *ring0Factory) BindExternalFlags(flags *pflag.FlagSet) {
 	f.kubeClientAccessFactory.BindExternalFlags(flags)
 }
 
-func (f *ring0Factory) DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kubectl.PrintOptions {
+func (f *ring0Factory) DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kprinters.PrintOptions {
 	return f.kubeClientAccessFactory.DefaultResourceFilterOptions(cmd, withNamespace)
 }
 
@@ -257,30 +263,25 @@ func (f *ring0Factory) SuggestedPodTemplateResources() []schema.GroupResource {
 
 // Saves current resource name (or alias if any) in PrintOptions. Once saved, it will not be overwritten by the
 // kubernetes resource alias look-up, as it will notice a non-empty value in `options.Kind`
-func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kubectl.PrintOptions) (kubectl.ResourcePrinter, error) {
+func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
 	if mapping != nil {
 		options.Kind = mapping.Resource
 		if alias, ok := resourceShortFormFor(mapping.Resource); ok {
 			options.Kind = alias
 		}
 	}
-	return describe.NewHumanReadablePrinter(options), nil
+	return describe.NewHumanReadablePrinter(f.JSONEncoder(), f.Decoder(true), options), nil
 }
 
-func (f *ring0Factory) Pauser(info *resource.Info) (bool, error) {
+func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
 		if t.Spec.Paused {
-			return true, nil
+			return nil, errors.New("is already paused")
 		}
 		t.Spec.Paused = true
-		oc, _, err := f.Clients()
-		if err != nil {
-			return false, err
-		}
-		_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
 		// TODO: Pause the deployer containers.
-		return false, err
+		return runtime.Encode(f.JSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Pauser(info)
 	}
@@ -326,20 +327,15 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	return imageutil.ResolveImagePullSpec(oc, oc, options.Source, image, namespace)
 }
 
-func (f *ring0Factory) Resumer(info *resource.Info) (bool, error) {
+func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
 		if !t.Spec.Paused {
-			return true, nil
+			return nil, errors.New("is not paused")
 		}
 		t.Spec.Paused = false
-		oc, _, err := f.Clients()
-		if err != nil {
-			return false, err
-		}
-		_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
 		// TODO: Resume the deployer containers.
-		return false, err
+		return runtime.Encode(f.JSONEncoder(), info.Object)
 	default:
 		return f.kubeClientAccessFactory.Resumer(info)
 	}

@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/discovery"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -66,38 +67,14 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := kcmdutil.PrinterForCommand(cmd)
-	if err != nil {
-		return nil
-	}
-	if !generic {
-		for _, info := range infos {
-			mapping := info.ResourceMapping()
-			printer, err := f.PrinterForMapping(cmd, mapping, false)
-			if err != nil {
-				return err
-			}
-			if err := printer.PrintObj(info.Object, out); err != nil {
-				return nil
-			}
+	for _, info := range infos {
+		if err := kcmdutil.PrintResourceInfoForCommand(cmd, info, f, out); err != nil {
+			// TODO(rebase-1.6) we may want to aggregate errors and return them at the end?
+			return err
 		}
-		return nil
 	}
 
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
-	object, err := resource.AsVersionedObject(infos, len(infos) != 1, outputVersion, api.Codecs.LegacyCodec(outputVersion))
-	if err != nil {
-		return err
-	}
-	return printer.PrintObj(object, out)
-
+	return nil
 }
 
 // FlagBinder represents an interface that allows to bind extra flags into commands.
@@ -233,7 +210,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 }
 
 func (f *Factory) PodForResource(resource string, timeout time.Duration) (string, error) {
-	sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+	sortBy := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return "", err
@@ -257,7 +234,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -290,7 +267,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -308,7 +285,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -326,7 +303,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -357,7 +334,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
-func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
+func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
 	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err
@@ -381,12 +358,12 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 	if err != nil {
 		return nil, err
 	}
-	for apiVersion, v := range all {
-		gv, err := schema.ParseGroupVersion(apiVersion)
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
 		if err != nil {
 			continue
 		}
-		for _, r := range v.APIResources {
+		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
 				continue

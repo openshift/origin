@@ -25,8 +25,8 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 	}
 
 	availableResources := []schema.GroupVersionResource{}
-	for groupVersionString, resourceList := range apiResources {
-		currVersion, err := schema.ParseGroupVersion(groupVersionString)
+	for _, resourceList := range apiResources {
+		currVersion, err := schema.ParseGroupVersion(resourceList.GroupVersion)
 		if err != nil {
 			return defaultMapper
 		}
@@ -73,8 +73,8 @@ func (e ShortcutExpander) RESTMapping(gk schema.GroupKind, versions ...string) (
 	return e.RESTMapper.RESTMapping(gk, versions...)
 }
 
-func (e ShortcutExpander) RESTMappings(gk schema.GroupKind) ([]*meta.RESTMapping, error) {
-	return e.RESTMapper.RESTMappings(gk)
+func (e ShortcutExpander) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
+	return e.RESTMapper.RESTMappings(gk, versions...)
 }
 
 // userResources are the resource names that apply to the primary, user facing resources used by
