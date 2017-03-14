@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	rcutils "k8s.io/kubernetes/pkg/controller/replication"
@@ -120,12 +121,22 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
 			// Show details if the current deployment is the active one or it is the
 			// initial deployment.
-			printDeploymentRc(deployment, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
+			versioned := &v1.ReplicationController{}
+			if err := kapi.Scheme.Convert(deployment, versioned, nil); err == nil {
+				printDeploymentRc(versioned, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
+			}
 		}
 
 		// We don't show the deployment history when running `oc rollback --dry-run`.
 		if d.config == nil && !isNotDeployed {
-			sorted := deploymentsHistory
+			var sorted []*v1.ReplicationController
+			// TODO(rebase-1.6): we should really convert the describer to use a versioned clientset
+			for i := range deploymentsHistory {
+				versioned := &v1.ReplicationController{}
+				if err := kapi.Scheme.Convert(deploymentsHistory[i], versioned, nil); err == nil {
+					sorted = append(sorted, versioned)
+				}
+			}
 			sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
 			counter := 1
 			for _, item := range sorted {
@@ -142,13 +153,14 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 
 		if settings.ShowEvents {
 			// Events
-			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(deploymentConfig); err == nil && events != nil {
+			if events, err := d.kubeClient.Core().Events(deploymentConfig.Namespace).Search(kapi.Scheme, deploymentConfig); err == nil && events != nil {
 				latestDeploymentEvents := &kapi.EventList{Items: []kapi.Event{}}
 				for i := len(events.Items); i != 0 && i > len(events.Items)-maxDisplayDeploymentsEvents; i-- {
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])
 				}
 				fmt.Fprintln(out)
-				kinternalprinters.DescribeEvents(latestDeploymentEvents, out)
+				pw := kinternalprinters.NewPrefixWriter(out)
+				kinternalprinters.DescribeEvents(latestDeploymentEvents, pw)
 			}
 		}
 		return nil
@@ -310,8 +322,12 @@ func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kc
 
 	for _, hpa := range scaledBy {
 		cpuUtil := ""
-		if hpa.Spec.TargetCPUUtilizationPercentage != nil {
-			cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", *hpa.Spec.TargetCPUUtilizationPercentage)
+		// TODO(rebase-1.6): flesh this out for full hpa support, consider using upstream code
+		// For right now I'm just doing parity with 1.5
+		for _, metric := range hpa.Spec.Metrics {
+			if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource.Name == kapi.ResourceCPU && metric.Resource.TargetAverageUtilization != nil {
+				cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", *metric.Resource.TargetAverageUtilization)
+			}
 		}
 		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas%s\n", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, cpuUtil)
 		// TODO: Print a warning in case of multiple hpas.
@@ -320,7 +336,7 @@ func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kc
 	}
 }
 
-func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclientset.Interface, w io.Writer, header string, verbose bool) error {
+func printDeploymentRc(deployment *v1.ReplicationController, kubeClient kclientset.Interface, w io.Writer, header string, verbose bool) error {
 	if len(header) > 0 {
 		fmt.Fprintf(w, "%v:\n", header)
 	}
@@ -346,7 +362,7 @@ func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclien
 	return nil
 }
 
-func getPodStatusForDeployment(deployment *kapi.ReplicationController, kubeClient kclientset.Interface) (running, waiting, succeeded, failed int, err error) {
+func getPodStatusForDeployment(deployment *v1.ReplicationController, kubeClient kclientset.Interface) (running, waiting, succeeded, failed int, err error) {
 	rcPods, err := kubeClient.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.Set(deployment.Spec.Selector).AsSelector().String()})
 	if err != nil {
 		return

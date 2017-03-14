@@ -10,10 +10,11 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kprinters "k8s.io/kubernetes/pkg/printers"
+	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -69,82 +70,82 @@ var (
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
-func NewHumanReadablePrinter(printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
+func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
 	// TODO: support cross namespace listing
-	p := kctl.NewHumanReadablePrinter(printOptions)
-	p.Handler(buildColumns, printBuild)
-	p.Handler(buildColumns, printBuildList)
-	p.Handler(buildConfigColumns, printBuildConfig)
-	p.Handler(buildConfigColumns, printBuildConfigList)
-	p.Handler(imageColumns, printImage)
-	p.Handler(imageStreamTagColumns, printImageStreamTag)
-	p.Handler(imageStreamTagColumns, printImageStreamTagList)
-	p.Handler(imageStreamImageColumns, printImageStreamImage)
-	p.Handler(imageColumns, printImageList)
-	p.Handler(imageStreamColumns, printImageStream)
-	p.Handler(imageStreamColumns, printImageStreamList)
-	p.Handler(projectColumns, printProject)
-	p.Handler(projectColumns, printProjectList)
-	p.Handler(routeColumns, printRoute)
-	p.Handler(routeColumns, printRouteList)
-	p.Handler(deploymentConfigColumns, printDeploymentConfig)
-	p.Handler(deploymentConfigColumns, printDeploymentConfigList)
-	p.Handler(templateColumns, printTemplate)
-	p.Handler(templateColumns, printTemplateList)
+	p := kprinters.NewHumanReadablePrinter(encoder, decoder, printOptions)
+	p.Handler(buildColumns, nil, printBuild)
+	p.Handler(buildColumns, nil, printBuildList)
+	p.Handler(buildConfigColumns, nil, printBuildConfig)
+	p.Handler(buildConfigColumns, nil, printBuildConfigList)
+	p.Handler(imageColumns, nil, printImage)
+	p.Handler(imageStreamTagColumns, nil, printImageStreamTag)
+	p.Handler(imageStreamTagColumns, nil, printImageStreamTagList)
+	p.Handler(imageStreamImageColumns, nil, printImageStreamImage)
+	p.Handler(imageColumns, nil, printImageList)
+	p.Handler(imageStreamColumns, nil, printImageStream)
+	p.Handler(imageStreamColumns, nil, printImageStreamList)
+	p.Handler(projectColumns, nil, printProject)
+	p.Handler(projectColumns, nil, printProjectList)
+	p.Handler(routeColumns, nil, printRoute)
+	p.Handler(routeColumns, nil, printRouteList)
+	p.Handler(deploymentConfigColumns, nil, printDeploymentConfig)
+	p.Handler(deploymentConfigColumns, nil, printDeploymentConfigList)
+	p.Handler(templateColumns, nil, printTemplate)
+	p.Handler(templateColumns, nil, printTemplateList)
 
-	p.Handler(policyColumns, printPolicy)
-	p.Handler(policyColumns, printPolicyList)
-	p.Handler(policyBindingColumns, printPolicyBinding)
-	p.Handler(policyBindingColumns, printPolicyBindingList)
-	p.Handler(roleBindingColumns, printRoleBinding)
-	p.Handler(roleBindingColumns, printRoleBindingList)
-	p.Handler(roleColumns, printRole)
-	p.Handler(roleColumns, printRoleList)
+	p.Handler(policyColumns, nil, printPolicy)
+	p.Handler(policyColumns, nil, printPolicyList)
+	p.Handler(policyBindingColumns, nil, printPolicyBinding)
+	p.Handler(policyBindingColumns, nil, printPolicyBindingList)
+	p.Handler(roleBindingColumns, nil, printRoleBinding)
+	p.Handler(roleBindingColumns, nil, printRoleBindingList)
+	p.Handler(roleColumns, nil, printRole)
+	p.Handler(roleColumns, nil, printRoleList)
 
-	p.Handler(policyColumns, printClusterPolicy)
-	p.Handler(policyColumns, printClusterPolicyList)
-	p.Handler(policyBindingColumns, printClusterPolicyBinding)
-	p.Handler(policyBindingColumns, printClusterPolicyBindingList)
-	p.Handler(roleColumns, printClusterRole)
-	p.Handler(roleColumns, printClusterRoleList)
-	p.Handler(roleBindingColumns, printClusterRoleBinding)
-	p.Handler(roleBindingColumns, printClusterRoleBindingList)
+	p.Handler(policyColumns, nil, printClusterPolicy)
+	p.Handler(policyColumns, nil, printClusterPolicyList)
+	p.Handler(policyBindingColumns, nil, printClusterPolicyBinding)
+	p.Handler(policyBindingColumns, nil, printClusterPolicyBindingList)
+	p.Handler(roleColumns, nil, printClusterRole)
+	p.Handler(roleColumns, nil, printClusterRoleList)
+	p.Handler(roleBindingColumns, nil, printClusterRoleBinding)
+	p.Handler(roleBindingColumns, nil, printClusterRoleBindingList)
 
-	p.Handler(oauthClientColumns, printOAuthClient)
-	p.Handler(oauthClientColumns, printOAuthClientList)
-	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorization)
-	p.Handler(oauthClientAuthorizationColumns, printOAuthClientAuthorizationList)
-	p.Handler(oauthAccessTokenColumns, printOAuthAccessToken)
-	p.Handler(oauthAccessTokenColumns, printOAuthAccessTokenList)
-	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeToken)
-	p.Handler(oauthAuthorizeTokenColumns, printOAuthAuthorizeTokenList)
+	p.Handler(oauthClientColumns, nil, printOAuthClient)
+	p.Handler(oauthClientColumns, nil, printOAuthClientList)
+	p.Handler(oauthClientAuthorizationColumns, nil, printOAuthClientAuthorization)
+	p.Handler(oauthClientAuthorizationColumns, nil, printOAuthClientAuthorizationList)
+	p.Handler(oauthAccessTokenColumns, nil, printOAuthAccessToken)
+	p.Handler(oauthAccessTokenColumns, nil, printOAuthAccessTokenList)
+	p.Handler(oauthAuthorizeTokenColumns, nil, printOAuthAuthorizeToken)
+	p.Handler(oauthAuthorizeTokenColumns, nil, printOAuthAuthorizeTokenList)
 
-	p.Handler(userColumns, printUser)
-	p.Handler(userColumns, printUserList)
-	p.Handler(identityColumns, printIdentity)
-	p.Handler(identityColumns, printIdentityList)
-	p.Handler(userIdentityMappingColumns, printUserIdentityMapping)
-	p.Handler(groupColumns, printGroup)
-	p.Handler(groupColumns, printGroupList)
+	p.Handler(userColumns, nil, printUser)
+	p.Handler(userColumns, nil, printUserList)
+	p.Handler(identityColumns, nil, printIdentity)
+	p.Handler(identityColumns, nil, printIdentityList)
+	p.Handler(userIdentityMappingColumns, nil, printUserIdentityMapping)
+	p.Handler(groupColumns, nil, printGroup)
+	p.Handler(groupColumns, nil, printGroupList)
 
-	p.Handler(IsPersonalSubjectAccessReviewColumns, printIsPersonalSubjectAccessReview)
+	p.Handler(IsPersonalSubjectAccessReviewColumns, nil, printIsPersonalSubjectAccessReview)
 
-	p.Handler(hostSubnetColumns, printHostSubnet)
-	p.Handler(hostSubnetColumns, printHostSubnetList)
-	p.Handler(netNamespaceColumns, printNetNamespaceList)
-	p.Handler(netNamespaceColumns, printNetNamespace)
-	p.Handler(clusterNetworkColumns, printClusterNetwork)
-	p.Handler(clusterNetworkColumns, printClusterNetworkList)
-	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicy)
-	p.Handler(egressNetworkPolicyColumns, printEgressNetworkPolicyList)
+	p.Handler(hostSubnetColumns, nil, printHostSubnet)
+	p.Handler(hostSubnetColumns, nil, printHostSubnetList)
+	p.Handler(netNamespaceColumns, nil, printNetNamespaceList)
+	p.Handler(netNamespaceColumns, nil, printNetNamespace)
+	p.Handler(clusterNetworkColumns, nil, printClusterNetwork)
+	p.Handler(clusterNetworkColumns, nil, printClusterNetworkList)
+	p.Handler(egressNetworkPolicyColumns, nil, printEgressNetworkPolicy)
+	p.Handler(egressNetworkPolicyColumns, nil, printEgressNetworkPolicyList)
 
-	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuota)
-	p.Handler(clusterResourceQuotaColumns, printClusterResourceQuotaList)
-	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuota)
-	p.Handler(clusterResourceQuotaColumns, printAppliedClusterResourceQuotaList)
+	p.Handler(clusterResourceQuotaColumns, nil, printClusterResourceQuota)
+	p.Handler(clusterResourceQuotaColumns, nil, printClusterResourceQuotaList)
+	p.Handler(clusterResourceQuotaColumns, nil, printAppliedClusterResourceQuota)
+	p.Handler(clusterResourceQuotaColumns, nil, printAppliedClusterResourceQuotaList)
 
-	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestriction)
-	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestrictionList)
+	p.Handler(roleBindingRestrictionColumns, nil, printRoleBindingRestriction)
+	p.Handler(roleBindingRestrictionColumns, nil, printRoleBindingRestrictionList)
 
 	return p
 }
@@ -1022,10 +1023,10 @@ func printEgressNetworkPolicyList(list *sdnapi.EgressNetworkPolicyList, w io.Wri
 }
 
 func appendItemLabels(itemLabels map[string]string, w io.Writer, columnLabels []string, showLabels bool) error {
-	if _, err := fmt.Fprint(w, kctl.AppendLabels(itemLabels, columnLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kinternalprinters.AppendLabels(itemLabels, columnLabels)); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprint(w, kctl.AppendAllLabels(showLabels, itemLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kinternalprinters.AppendAllLabels(showLabels, itemLabels)); err != nil {
 		return err
 	}
 	return nil
@@ -1043,10 +1044,10 @@ func printClusterResourceQuota(resourceQuota *quotaapi.ClusterResourceQuota, w i
 	if _, err := fmt.Fprintf(w, "\t%s", resourceQuota.Spec.Selector.AnnotationSelector); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprint(w, kctl.AppendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kinternalprinters.AppendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {
 		return err
 	}
-	_, err := fmt.Fprint(w, kctl.AppendAllLabels(options.ShowLabels, resourceQuota.Labels))
+	_, err := fmt.Fprint(w, kinternalprinters.AppendAllLabels(options.ShowLabels, resourceQuota.Labels))
 	return err
 }
 

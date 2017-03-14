@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
@@ -123,13 +122,13 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 	if err != nil {
 		return "", err
 	}
-	events, _ := d.kubeClient.Core().Events(namespace).Search(build)
+	events, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, build)
 	if events == nil {
 		events = &kapi.EventList{}
 	}
 	// get also pod events and merge it all into one list for describe
 	if pod, err := d.kubeClient.Core().Pods(namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{}); err == nil {
-		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(pod); podEvents != nil {
+		if podEvents, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, pod); podEvents != nil {
 			events.Items = append(events.Items, podEvents.Items...)
 		}
 	}
@@ -165,7 +164,7 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
 
 		if settings.ShowEvents {
-			kinternalprinters.DescribeEvents(events, out)
+			kinternalprinters.DescribeEvents(events, kinternalprinters.NewPrefixWriter(out))
 		}
 
 		return nil
@@ -486,10 +485,10 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 		}
 
 		if settings.ShowEvents {
-			events, _ := d.kubeClient.Core().Events(namespace).Search(buildConfig)
+			events, _ := d.kubeClient.Core().Events(namespace).Search(kapi.Scheme, buildConfig)
 			if events != nil {
 				fmt.Fprint(out, "\n")
-				kinternalprinters.DescribeEvents(events, out)
+				kinternalprinters.DescribeEvents(events, kinternalprinters.NewPrefixWriter(out))
 			}
 		}
 		return nil
@@ -841,12 +840,12 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 		return "", err
 	}
 	resourceQuotasClient := d.kubeClient.Core().ResourceQuotas(name)
-	resourceQuotaList, err := resourceQuotasClient.List(metainternal.ListOptions{})
+	resourceQuotaList, err := resourceQuotasClient.List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	limitRangesClient := d.kubeClient.Core().LimitRanges(name)
-	limitRangeList, err := limitRangesClient.List(metainternal.ListOptions{})
+	limitRangeList, err := limitRangesClient.List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -878,7 +877,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 				for resource := range resourceQuota.Status.Hard {
 					resources = append(resources, resource)
 				}
-				sort.Sort(kctl.SortableResourceNames(resources))
+				sort.Sort(kinternalprinters.SortableResourceNames(resources))
 
 				msg := "\t%v\t%v\t%v\n"
 				for i := range resources {
@@ -1251,7 +1250,8 @@ func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule,
 
 		buffer := new(bytes.Buffer)
 
-		printer := NewHumanReadablePrinter(kctl.PrintOptions{NoHeaders: true})
+		// TODO(rebase-1.6): we probably need a non-nil encoder and decoder
+		printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{NoHeaders: true})
 		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
 			extensionString = strings.TrimSpace(buffer.String())
 		}
@@ -1554,7 +1554,7 @@ func DescribeClusterQuota(quota *quotaapi.ClusterResourceQuota) (string, error) 
 		for resource := range quota.Status.Total.Hard {
 			resources = append(resources, resource)
 		}
-		sort.Sort(kctl.SortableResourceNames(resources))
+		sort.Sort(kinternalprinters.SortableResourceNames(resources))
 
 		msg := "%v\t%v\t%v\n"
 		for i := range resources {
