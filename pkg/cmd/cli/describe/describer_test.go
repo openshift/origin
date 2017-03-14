@@ -109,7 +109,8 @@ main:
 			}
 		}
 
-		_, ok := DescriberFor(api.SchemeGroupVersion.WithKind(apiType.Name()).GroupKind(), c, kfake.NewSimpleClientset(), "")
+		gk := api.SchemeGroupVersion.WithKind(apiType.Name()).GroupKind()
+		_, ok := DescriberFor(gk, c, kfake.NewSimpleClientset(), "")
 		if !ok {
 			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}

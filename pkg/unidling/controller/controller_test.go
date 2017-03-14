@@ -112,7 +112,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 			if scale.Kind == "DeploymentConfig" && obj.Name == scale.Name {
 				newScale := scale
 				newScale.Spec.Replicas = obj.Spec.Replicas
-				res.resMap[unidlingapi.CrossGroupObjectReference{Name: obj.Name, Kind: "DeploymentConfig"}] = newScale
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: obj.Name, Kind: "DeploymentConfig", Group: deployapi.GroupName}] = newScale
 				return true, &deployapi.DeploymentConfig{}, nil
 			}
 		}
@@ -143,7 +143,7 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 			if scale.Kind == "DeploymentConfig" && patchAction.GetName() == scale.Name {
 				newScale := scale
 				newScale.Spec.Replicas = patch.Spec.Replicas
-				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "DeploymentConfig"}] = newScale
+				res.resMap[unidlingapi.CrossGroupObjectReference{Name: patchAction.GetName(), Kind: "DeploymentConfig", Group: deployapi.GroupName}] = newScale
 				return true, &deployapi.DeploymentConfig{}, nil
 			}
 		}
@@ -265,6 +265,9 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 
 	for _, scale := range baseScales {
 		scaleRef := unidlingapi.CrossGroupObjectReference{Kind: scale.Kind, Name: scale.Name}
+		if scale.Kind == "DeploymentConfig" {
+			scaleRef.Group = deployapi.GroupName
+		}
 		resScale, ok := res.resMap[scaleRef]
 		if scale.Spec.Replicas != 0 {
 			stillPresent[scaleRef] = struct{}{}
@@ -300,6 +303,9 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 		t.Errorf("Expected the new target list to contain the unscaled scalables only, but it was %v", resTargets)
 	}
 	for _, target := range resTargets {
+		if target.Kind == "DeploymentConfig" {
+			target.CrossGroupObjectReference.Group = deployapi.GroupName
+		}
 		if _, ok := stillPresent[target.CrossGroupObjectReference]; !ok {
 			t.Errorf("Expected new target list to contain the unscaled scalables only, but it was %v", resTargets)
 		}
@@ -336,7 +342,8 @@ func TestControllerUnidlesProperly(t *testing.T) {
 				Name: "somedc",
 			},
 			TypeMeta: kunversioned.TypeMeta{
-				Kind: "DeploymentConfig",
+				Kind:       "DeploymentConfig",
+				APIVersion: "apps.openshift.io/v1",
 			},
 			Spec: kextapi.ScaleSpec{
 				Replicas: 0,
@@ -367,7 +374,11 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	}
 
 	for _, scale := range baseScales {
-		resScale, ok := res.resMap[unidlingapi.CrossGroupObjectReference{Kind: scale.Kind, Name: scale.Name}]
+		ref := unidlingapi.CrossGroupObjectReference{Kind: scale.Kind, Name: scale.Name}
+		if scale.Kind == "DeploymentConfig" {
+			ref.Group = deployapi.GroupName
+		}
+		resScale, ok := res.resMap[ref]
 		if !ok {
 			t.Errorf("Expected to %s %q to have been scaled, but it was not", scale.Kind, scale.Name)
 			continue
@@ -513,8 +524,9 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 		},
 		{
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
-				Kind: "DeploymentConfig",
-				Name: "somedc",
+				Kind:  "DeploymentConfig",
+				Group: deployapi.GroupName,
+				Name:  "somedc",
 			},
 			Replicas: 2,
 		},
@@ -527,8 +539,9 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 	outScalables := []unidlingapi.RecordedScaleReference{
 		{
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
-				Kind: "DeploymentConfig",
-				Name: "somedc",
+				Kind:  "DeploymentConfig",
+				Group: deployapi.GroupName,
+				Name:  "somedc",
 			},
 			Replicas: 2,
 		},
@@ -586,7 +599,8 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			scaleGets: []kextapi.Scale{
 				{
 					TypeMeta: kunversioned.TypeMeta{
-						Kind: "DeploymentConfig",
+						Kind:       "DeploymentConfig",
+						APIVersion: "apps.openshift.io/v1",
 					},
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "somedc",
@@ -623,7 +637,8 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 				},
 				{
 					TypeMeta: kunversioned.TypeMeta{
-						Kind: "DeploymentConfig",
+						Kind:       "DeploymentConfig",
+						APIVersion: "apps.openshift.io/v1",
 					},
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "somedc",
@@ -661,7 +676,8 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 				},
 				{
 					TypeMeta: kunversioned.TypeMeta{
-						Kind: "DeploymentConfig",
+						Kind:       "DeploymentConfig",
+						APIVersion: "apps.openshift.io/v1",
 					},
 					ObjectMeta: kapi.ObjectMeta{
 						Name: "somedc",

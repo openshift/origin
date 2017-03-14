@@ -9,7 +9,7 @@ items:
     scaleRef:
       kind: DeploymentConfig 
       name: frontend 
-      apiVersion: v1 
+      apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
@@ -23,7 +23,7 @@ items:
     scaleRef:
       kind: DeploymentConfig 
       name: frontend 
-      apiVersion: v1 
+      apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
@@ -37,7 +37,7 @@ items:
     scaleRef:
       kind: DeploymentConfig 
       name: frontend 
-      apiVersion: v1 
+      apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 
@@ -51,7 +51,7 @@ items:
     scaleRef:
       kind: DeploymentConfig 
       name: someotherdc 
-      apiVersion: v1 
+      apiVersion: apps.openshift.io/v1
       subresource: scale
     minReplicas: 1 
     maxReplicas: 10 

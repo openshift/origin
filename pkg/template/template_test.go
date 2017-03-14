@@ -232,7 +232,7 @@ func TestProcessValue(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	expect := `{"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"i1":1,"invalidjsonarray":"[\"key\":\"value\"","invalidjsonmap":"{\"key\":\"value\"","key1":"1","key2":"$1","quoted_string":"string1","s1_s1":"string1_string1","s1_s2":"string1_string2","untouched":"a${{INT_1}}","untouched2":"${{INT_1}}a","untouched3":"${{INVALID_PARAMETER}}","untouched4":"${{INVALID PARAMETER}}","validjsonarray":["key","value"],"validjsonmap":{"key":"value"}}}}],"parameters":[{"name":"VALUE","value":"1"},{"name":"STRING_1","value":"string1"},{"name":"STRING_2","value":"string2"},{"name":"INT_1","value":"1"},{"name":"VALID_JSON_MAP","value":"{\"key\":\"value\"}"},{"name":"INVALID_JSON_MAP","value":"{\"key\":\"value\""},{"name":"VALID_JSON_ARRAY","value":"[\"key\",\"value\"]"},{"name":"INVALID_JSON_ARRAY","value":"[\"key\":\"value\""}]}`
+	expect := `{"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},"objects":[{"apiVersion":"v1","kind":"Service","metadata":{"labels":{"i1":1,"invalidjsonarray":"[\"key\":\"value\"","invalidjsonmap":"{\"key\":\"value\"","key1":"1","key2":"$1","quoted_string":"string1","s1_s1":"string1_string1","s1_s2":"string1_string2","untouched":"a${{INT_1}}","untouched2":"${{INT_1}}a","untouched3":"${{INVALID_PARAMETER}}","untouched4":"${{INVALID PARAMETER}}","validjsonarray":["key","value"],"validjsonmap":{"key":"value"}}}}],"parameters":[{"name":"VALUE","value":"1"},{"name":"STRING_1","value":"string1"},{"name":"STRING_2","value":"string2"},{"name":"INT_1","value":"1"},{"name":"VALID_JSON_MAP","value":"{\"key\":\"value\"}"},{"name":"INVALID_JSON_MAP","value":"{\"key\":\"value\""},{"name":"VALID_JSON_ARRAY","value":"[\"key\",\"value\"]"},{"name":"INVALID_JSON_ARRAY","value":"[\"key\":\"value\""}]}`
 	stringResult := strings.TrimSpace(string(result))
 	if expect != stringResult {
 		//t.Errorf("unexpected output, expected: \n%s\nGot:\n%s\n", expect, stringResult)
@@ -259,7 +259,7 @@ func TestEvaluateLabels(t *testing.T) {
 				]
 			}`,
 			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
 						"apiVersion":"v1","kind":"Service","metadata":{
@@ -279,7 +279,7 @@ func TestEvaluateLabels(t *testing.T) {
 				]
 			}`,
 			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
 						"apiVersion":"v1","kind":"Service","metadata":{
@@ -305,7 +305,7 @@ func TestEvaluateLabels(t *testing.T) {
 				]
 			}`,
 			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
 						"apiVersion":"v1","kind":"Service",
@@ -328,7 +328,7 @@ func TestEvaluateLabels(t *testing.T) {
 				]
 			}`,
 			Output: `{
-				"kind":"Template","apiVersion":"v1","metadata":{"creationTimestamp":null},
+				"kind":"Template","apiVersion":"template.openshift.io/v1","metadata":{"creationTimestamp":null},
 				"objects":[
 					{
 						"apiVersion":"v1","kind":"Service","metadata":{
