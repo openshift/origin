@@ -14,8 +14,7 @@ import (
 )
 
 func TestCLIGetToken(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatal(err)

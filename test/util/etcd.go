@@ -40,11 +40,22 @@ func init() {
 // url is the url for the launched etcd server
 var url string
 
+type EtcdTestServer struct {
+	*etcdtest.EtcdTestServer
+}
+
 // RequireEtcd verifies if the etcd is running and accessible for testing
-func RequireEtcd(t *testing.T) *etcdtest.EtcdTestServer {
+// TODO: make this use etcd3
+func RequireEtcd(t *testing.T) EtcdTestServer {
+	return RequireEtcd2(t)
+}
+
+// RequireEtcd verifies if the etcd is running and accessible for testing
+// TODO: remove use of etcd2 specific apis in 1.6
+func RequireEtcd2(t *testing.T) EtcdTestServer {
 	s := etcdtest.NewUnsecuredEtcdTestClientServer(t)
 	url = s.Client.Endpoints()[0]
-	return s
+	return EtcdTestServer{s}
 }
 
 func RequireEtcd3(t *testing.T) (*etcdtest.EtcdTestServer, *storagebackend.Config) {
@@ -96,7 +107,11 @@ func GetEtcdURL() string {
 	return url
 }
 
-func DumpEtcdOnFailure(t *testing.T) {
+func (s EtcdTestServer) DumpEtcdOnFailure(t *testing.T) {
+	defer func() {
+		s.Terminate(t)
+		os.RemoveAll(s.DataDir)
+	}()
 	if !t.Failed() {
 		return
 	}

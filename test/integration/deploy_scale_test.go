@@ -18,8 +18,7 @@ import (
 func TestDeployScale(t *testing.T) {
 	const namespace = "test-deploy-scale"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)

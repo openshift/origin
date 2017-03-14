@@ -17,8 +17,7 @@ import (
 )
 
 func TestRestrictUsers(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {

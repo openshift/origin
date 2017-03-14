@@ -82,8 +82,7 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 }
 
 func TestAccessOriginWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -110,8 +109,7 @@ func TestAccessOriginWebConsole(t *testing.T) {
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -149,8 +147,7 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 }
 
 func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -243,8 +240,7 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 }
 
 func TestAccessStandaloneOriginWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {

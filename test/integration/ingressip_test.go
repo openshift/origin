@@ -26,7 +26,7 @@ const sentinelName = "sentinel"
 // TestIngressIPAllocation validates that ingress ip allocation is
 // performed correctly even when multiple controllers are running.
 func TestIngressIPAllocation(t *testing.T) {
-	testutil.RequireEtcd(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {

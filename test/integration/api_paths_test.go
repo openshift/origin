@@ -17,8 +17,7 @@ import (
 )
 
 func TestRootAPIPaths(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterConfig, adminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {

@@ -12,8 +12,7 @@ import (
 )
 
 func TestOAuthDisabled(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	// Build master config
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {

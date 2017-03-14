@@ -20,8 +20,7 @@ import (
 )
 
 func TestProjectRequestError(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	const (
 		ns                = "testns"

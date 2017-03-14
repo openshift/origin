@@ -12,7 +12,6 @@ import (
 )
 
 func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client) {
-	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -35,8 +34,8 @@ func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client) {
 }
 
 func TestBasicFunctionalityWithAudit(t *testing.T) {
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	kubeClient, _ := setupAuditTest(t)
-	defer testutil.DumpEtcdOnFailure(t)
 
 	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)

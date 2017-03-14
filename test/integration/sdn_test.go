@@ -75,8 +75,7 @@ func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, a
 }
 
 func TestOadmPodNetwork(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

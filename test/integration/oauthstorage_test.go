@@ -53,8 +53,7 @@ func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, e
 }
 
 func TestOAuthStorage(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {

@@ -21,20 +21,20 @@ import (
 )
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameClusterAdmin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	oclient, kclientset := setupClusterAdminPodNodeConstraintsTest(t, &pluginapi.PodNodeConstraintsConfig{})
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node name, cluster admin", kclientset, oclient, "nodename.example.com", nil, false)
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeNameNonAdmin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	config := &pluginapi.PodNodeConstraintsConfig{}
 	oclient, kclientset := setupUserPodNodeConstraintsTest(t, config, "derples")
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node name, regular user", kclientset, oclient, "nodename.example.com", nil, true)
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorClusterAdmin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	config := &pluginapi.PodNodeConstraintsConfig{
 		NodeSelectorLabelBlacklist: []string{"hostname"},
 	}
@@ -43,7 +43,7 @@ func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorClusterAdmin(t *testing
 }
 
 func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorNonAdmin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	config := &pluginapi.PodNodeConstraintsConfig{
 		NodeSelectorLabelBlacklist: []string{"hostname"},
 	}
@@ -52,7 +52,6 @@ func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorNonAdmin(t *testing.T) 
 }
 
 func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig) (*client.Client, kclientset.Interface) {
-	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -90,7 +89,6 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 }
 
 func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig, user string) (*client.Client, kclientset.Interface) {
-	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

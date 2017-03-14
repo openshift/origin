@@ -26,7 +26,7 @@ import (
 var buildPodAdmissionTestTimeout time.Duration = 30 * time.Second
 
 func TestBuildDefaultGitHTTPProxy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	httpProxy := "http://my.test.proxy:12345"
 	oclient, kclientset := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPProxy: httpProxy,
@@ -38,7 +38,7 @@ func TestBuildDefaultGitHTTPProxy(t *testing.T) {
 }
 
 func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	httpsProxy := "https://my.test.proxy:12345"
 	oclient, kclientset := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		GitHTTPSProxy: httpsProxy,
@@ -50,7 +50,7 @@ func TestBuildDefaultGitHTTPSProxy(t *testing.T) {
 }
 
 func TestBuildDefaultEnvironment(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	env := []kapi.EnvVar{
 		{
 			Name:  "VAR1",
@@ -71,7 +71,7 @@ func TestBuildDefaultEnvironment(t *testing.T) {
 }
 
 func TestBuildDefaultLabels(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
 	oclient, kclientset := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		ImageLabels: labels,
@@ -83,7 +83,7 @@ func TestBuildDefaultLabels(t *testing.T) {
 }
 
 func TestBuildDefaultNodeSelectors(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	selectors := map[string]string{"KEY": "VALUE"}
 	oclient, kclientset := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		NodeSelector: selectors,
@@ -95,7 +95,7 @@ func TestBuildDefaultNodeSelectors(t *testing.T) {
 }
 
 func TestBuildDefaultAnnotations(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	annotations := map[string]string{"KEY": "VALUE"}
 	oclient, kclientset := setupBuildDefaultsAdmissionTest(t, &defaultsapi.BuildDefaultsConfig{
 		Annotations: annotations,
@@ -107,7 +107,7 @@ func TestBuildDefaultAnnotations(t *testing.T) {
 }
 
 func TestBuildOverrideForcePull(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	oclient, kclientset := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
@@ -118,7 +118,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 }
 
 func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	oclient, kclientset := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ForcePull: true,
 	})
@@ -132,7 +132,7 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 }
 
 func TestBuildOverrideLabels(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	labels := []buildapi.ImageLabel{{Name: "KEY", Value: "VALUE"}}
 	oclient, kclientset := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		ImageLabels: labels,
@@ -144,7 +144,7 @@ func TestBuildOverrideLabels(t *testing.T) {
 }
 
 func TestBuildOverrideNodeSelectors(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	selectors := map[string]string{"KEY": "VALUE"}
 	oclient, kclientset := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		NodeSelector: selectors,
@@ -156,7 +156,7 @@ func TestBuildOverrideNodeSelectors(t *testing.T) {
 }
 
 func TestBuildOverrideAnnotations(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	annotations := map[string]string{"KEY": "VALUE"}
 	oclient, kclientset := setupBuildOverridesAdmissionTest(t, &overridesapi.BuildOverridesConfig{
 		Annotations: annotations,
@@ -258,7 +258,6 @@ func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesap
 }
 
 func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, kclientset.Interface) {
-	testutil.RequireEtcd(t)
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("%v", err)

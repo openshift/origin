@@ -44,7 +44,7 @@ func testPodDuration(t *testing.T, name string, kclientset kclientset.Interface,
 }
 
 func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,
@@ -57,7 +57,7 @@ func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
 }
 
 func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,
@@ -72,7 +72,6 @@ func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
 }
 
 func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) kclientset.Interface {
-	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)

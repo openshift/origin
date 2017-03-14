@@ -15,8 +15,7 @@ import (
 
 func TestOwnerRefRestriction(t *testing.T) {
 	// functionality of the plugin has a unit test, we just need to make sure its called.
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
