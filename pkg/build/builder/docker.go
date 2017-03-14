@@ -22,10 +22,10 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -395,7 +395,7 @@ func parseDockerfile(dockerfilePath string) (*parser.Node, error) {
 	}
 
 	// Parse the Dockerfile.
-	node, err := parser.Parse(f)
+	node, err := dockerfile.Parse(f)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func replaceLastFrom(node *parser.Node, image string) error {
 			if err != nil {
 				return err
 			}
-			fromTree, err := parser.Parse(strings.NewReader(from))
+			fromTree, err := dockerfile.Parse(strings.NewReader(from))
 			if err != nil {
 				return err
 			}

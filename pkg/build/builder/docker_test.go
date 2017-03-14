@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/fsouza/go-dockerclient"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,8 +15,8 @@ import (
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
 	"github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/generate/git"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {
@@ -68,12 +67,12 @@ ENV "PATH"="/bin" "GOPATH"="/go" "PATH"="/go/bin:$PATH"
 RUN echo "hello world"`},
 	}
 	for name, test := range tests {
-		got, err := parser.Parse(strings.NewReader(test.original))
+		got, err := dockerfile.Parse(strings.NewReader(test.original))
 		if err != nil {
 			t.Errorf("%s: %v", name, err)
 			continue
 		}
-		want, err := parser.Parse(strings.NewReader(test.want))
+		want, err := dockerfile.Parse(strings.NewReader(test.want))
 		if err != nil {
 			t.Errorf("%s: %v", name, err)
 			continue
@@ -120,12 +119,12 @@ RUN echo "hello world"
 		},
 	}
 	for i, test := range tests {
-		got, err := parser.Parse(strings.NewReader(test.original))
+		got, err := dockerfile.Parse(strings.NewReader(test.original))
 		if err != nil {
 			t.Errorf("test[%d]: %v", i, err)
 			continue
 		}
-		want, err := parser.Parse(strings.NewReader(test.want))
+		want, err := dockerfile.Parse(strings.NewReader(test.want))
 		if err != nil {
 			t.Errorf("test[%d]: %v", i, err)
 			continue
