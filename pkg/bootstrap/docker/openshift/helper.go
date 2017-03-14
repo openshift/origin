@@ -13,8 +13,8 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+	"k8s.io/client-go/util/homedir"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/homedir"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
