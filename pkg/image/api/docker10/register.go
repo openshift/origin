@@ -5,14 +5,21 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 )
 
-const GroupName = ""
+const (
+	GroupName       = "image.openshift.io"
+	LegacyGroupName = ""
+)
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = unversioned.GroupVersion{Group: GroupName, Version: "1.0"}
-
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	AddToScheme   = SchemeBuilder.AddToScheme
+	SchemeGroupVersion       = unversioned.GroupVersion{Group: GroupName, Version: "1.0"}
+	LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: "1.0"}
+
+	SchemeBuilder       = runtime.NewSchemeBuilder(addKnownTypes)
+	LegacySchemeBuilder = runtime.NewSchemeBuilder(addLegacyKnownTypes)
+
+	AddToScheme            = SchemeBuilder.AddToScheme
+	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.
@@ -23,4 +30,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func (obj *DockerImage) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func addLegacyKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(LegacySchemeGroupVersion,
+		&DockerImage{},
+	)
+	return nil
+}
