@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/util/workqueue"
+	"k8s.io/client-go/util/workqueue"
 
 	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
