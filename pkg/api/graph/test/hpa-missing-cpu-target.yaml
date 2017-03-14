@@ -1,4 +1,4 @@
-apiVersion: autoscaling/v1
+apiVersion: autoscaling/v2alpha1
 kind: HorizontalPodAutoscaler
 metadata:
   name: test-autoscaler 
@@ -8,4 +8,10 @@ spec:
     name: frontend 
     apiVersion: v1
   minReplicas: 1 
-  maxReplicas: 10  
+  maxReplicas: 10
+  metrics:
+    # a memory resource stops the default of 80% for cpu to apply
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: 42
