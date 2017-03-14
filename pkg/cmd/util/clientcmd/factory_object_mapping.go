@@ -9,7 +9,6 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/emicklei/go-restful/swagger"
-	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +20,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -293,47 +291,6 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*kapi.Pod,
 	default:
 		return f.kubeObjectMappingFactory.AttachablePodForObject(object)
 	}
-}
-
-// PrinterForMapping returns a printer suitable for displaying the provided resource type.
-// Requires that printer flags have been added to cmd (see AddPrinterFlags).
-func (f *ring1Factory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (kubectl.ResourcePrinter, error) {
-	/*
-		// TODO FIX ME. COPIED FROM KUBE AS PART OF THE COPY/PASTE FOR
-		// PrinterForMapping
-		if latest.OriginKind(mapping.GroupVersionKind) {
-			printer, ok, err := kcmdutil.PrinterForCommand(cmd)
-			if err != nil {
-				return nil, err
-			}
-			if ok && mapping != nil {
-				printer = kubectl.NewVersionedPrinter(printer, mapping.ObjectConvertor, mapping.GroupVersionKind.GroupVersion())
-			} else {
-				// Some callers do not have "label-columns" so we can't use the GetFlagStringSlice() helper
-				columnLabel, err := cmd.Flags().GetStringSlice("label-columns")
-				if err != nil {
-					columnLabel = []string{}
-				}
-				printer, err = f.Printer(mapping, kubectl.PrintOptions{
-					NoHeaders:          kcmdutil.GetFlagBool(cmd, "no-headers"),
-					WithNamespace:      withNamespace,
-					Wide:               kcmdutil.GetWideFlag(cmd),
-					ShowAll:            kcmdutil.GetFlagBool(cmd, "show-all"),
-					ShowLabels:         kcmdutil.GetFlagBool(cmd, "show-labels"),
-					AbsoluteTimestamps: isWatch(cmd),
-					ColumnLabels:       columnLabel,
-				})
-				if err != nil {
-					return nil, err
-				}
-				printer = maybeWrapSortingPrinter(cmd, printer)
-			}
-
-			return printer, nil
-		}
-	*/
-
-	return f.kubeObjectMappingFactory.PrinterForMapping(cmd, mapping, withNamespace)
 }
 
 func (f *ring1Factory) Validator(validate bool, cacheDir string) (validation.Schema, error) {
