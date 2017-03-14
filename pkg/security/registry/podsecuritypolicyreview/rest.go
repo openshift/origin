@@ -88,7 +88,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 				glog.Errorf("unable to fill PodSecurityPolicyReviewStatus from constraint %v", err)
 				continue
 			}
-			sapsprs := securityapi.ServiceAccountPodSecurityPolicyReviewStatus{pspsrs, sa.Name}
+			sapsprs := securityapi.ServiceAccountPodSecurityPolicyReviewStatus{PodSecurityPolicySubjectReviewStatus: pspsrs, Name: sa.Name}
 			newStatus.AllowedServiceAccounts = append(newStatus.AllowedServiceAccounts, sapsprs)
 		}
 	}
