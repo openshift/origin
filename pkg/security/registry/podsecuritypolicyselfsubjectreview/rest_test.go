@@ -24,7 +24,14 @@ func validPodTemplateSpec() kapi.PodTemplateSpec {
 			Volumes: []kapi.Volume{
 				{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
 			},
-			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			Containers: []kapi.Container{
+				{
+					Name:                     "ctr",
+					Image:                    "image",
+					ImagePullPolicy:          "IfNotPresent",
+					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+				},
+			},
 			RestartPolicy: kapi.RestartPolicyAlways,
 			NodeSelector: map[string]string{
 				"key": "value",
@@ -33,6 +40,7 @@ func validPodTemplateSpec() kapi.PodTemplateSpec {
 			DNSPolicy:             kapi.DNSClusterFirst,
 			ActiveDeadlineSeconds: &activeDeadlineSeconds,
 			ServiceAccountName:    "acct",
+			SchedulerName:         kapi.DefaultSchedulerName,
 		},
 	}
 }
@@ -68,11 +76,19 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 			Spec: securityapi.PodSecurityPolicySelfSubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
-						Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+						Containers: []kapi.Container{
+							{
+								Name:                     "ctr",
+								Image:                    "image",
+								ImagePullPolicy:          "IfNotPresent",
+								TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+							},
+						},
 						RestartPolicy:      kapi.RestartPolicyAlways,
 						SecurityContext:    &kapi.PodSecurityContext{},
 						DNSPolicy:          kapi.DNSClusterFirst,
 						ServiceAccountName: "default",
+						SchedulerName:      kapi.DefaultSchedulerName,
 					},
 				},
 			},
