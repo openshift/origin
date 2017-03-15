@@ -437,6 +437,7 @@ type RepositoryImportSpec struct {
 	From kapi.ObjectReference
 
 	ImportPolicy    TagImportPolicy
+	ReferencePolicy TagReferencePolicy
 	IncludeManifest bool
 }
 
@@ -457,6 +458,7 @@ type ImageImportSpec struct {
 	To   *kapi.LocalObjectReference
 
 	ImportPolicy    TagImportPolicy
+	ReferencePolicy TagReferencePolicy
 	IncludeManifest bool
 }
 

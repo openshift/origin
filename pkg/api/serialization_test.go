@@ -272,6 +272,10 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 				j.From.Kind = specs[c.Intn(len(specs))]
 			}
 		},
+		func(j *image.TagReferencePolicy, c fuzz.Continue) {
+			c.FuzzNoCustom(j)
+			j.Type = image.SourceTagReferencePolicy
+		},
 		func(j *build.BuildConfigSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.RunPolicy = build.BuildRunPolicySerial

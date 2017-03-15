@@ -132,6 +132,7 @@ func DeepCopy_v1_ImageImportSpec(in interface{}, out interface{}, c *conversion.
 			out.To = nil
 		}
 		out.ImportPolicy = in.ImportPolicy
+		out.ReferencePolicy = in.ReferencePolicy
 		out.IncludeManifest = in.IncludeManifest
 		return nil
 	}
@@ -538,6 +539,7 @@ func DeepCopy_v1_RepositoryImportSpec(in interface{}, out interface{}, c *conver
 		out := out.(*RepositoryImportSpec)
 		out.From = in.From
 		out.ImportPolicy = in.ImportPolicy
+		out.ReferencePolicy = in.ReferencePolicy
 		out.IncludeManifest = in.IncludeManifest
 		return nil
 	}

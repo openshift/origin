@@ -13720,6 +13720,12 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.TagImportPolicy"),
 						},
 					},
+					"referencePolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReferencePolicy defines how other components should consume the image",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TagReferencePolicy"),
+						},
+					},
 					"includeManifest": {
 						SchemaProps: spec.SchemaProps{
 							Description: "IncludeManifest determines if the manifest for each image is returned in the response",
@@ -13732,7 +13738,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 			},
 		},
 		Dependencies: []string{
-			"v1.LocalObjectReference", "v1.ObjectReference", "v1.TagImportPolicy"},
+			"v1.LocalObjectReference", "v1.ObjectReference", "v1.TagImportPolicy", "v1.TagReferencePolicy"},
 	},
 	"v1.ImageImportStatus": {
 		Schema: spec.Schema{
@@ -20271,6 +20277,12 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.TagImportPolicy"),
 						},
 					},
+					"referencePolicy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReferencePolicy defines how other components should consume the image",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TagReferencePolicy"),
+						},
+					},
 					"includeManifest": {
 						SchemaProps: spec.SchemaProps{
 							Description: "IncludeManifest determines if the manifest for each image is returned in the response",
@@ -20283,7 +20295,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 			},
 		},
 		Dependencies: []string{
-			"v1.ObjectReference", "v1.TagImportPolicy"},
+			"v1.ObjectReference", "v1.TagImportPolicy", "v1.TagReferencePolicy"},
 	},
 	"v1.RepositoryImportStatus": {
 		Schema: spec.Schema{
