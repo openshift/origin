@@ -14,8 +14,8 @@ import (
 )
 
 func init() {
-	kadmission.RegisterPlugin("SCCExecRestrictions", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		execAdmitter := NewSCCExecRestrictions(client)
+	admission.RegisterPlugin("SCCExecRestrictions", func(config io.Reader) (admission.Interface, error) {
+		execAdmitter := NewSCCExecRestrictions()
 		return execAdmitter, nil
 	})
 }
@@ -59,12 +59,16 @@ func (d *sccExecRestrictions) Admit(a admission.Attributes) (err error) {
 }
 
 // NewSCCExecRestrictions creates a new admission controller that denies an exec operation on a privileged pod
-func NewSCCExecRestrictions(client clientset.Interface) *sccExecRestrictions {
+func NewSCCExecRestrictions() *sccExecRestrictions {
 	return &sccExecRestrictions{
-		client:              client,
 		Handler:             admission.NewHandler(admission.Connect),
 		constraintAdmission: NewConstraint(),
 	}
+}
+
+func (d *sccExecRestrictions) SetInternalKubeClientSet(c kclientset.Interface) {
+	d.client = c
+	d.constraintAdmission.SetInternalKubeClientSet(c)
 }
 
 // SetInformers implements WantsInformers interface for sccExecRestrictions.

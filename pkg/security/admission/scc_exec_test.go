@@ -92,11 +92,12 @@ func TestExecAdmit(t *testing.T) {
 		})
 
 		// create the admission plugin
-		p := NewSCCExecRestrictions(tc)
+		p := NewSCCExecRestrictions()
 		p.constraintAdmission.sccLister = &oscache.IndexerToSecurityContextConstraintsLister{
 			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
 				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
 		}
+		p.SetInternalKubeClientSet(tc)
 
 		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)
