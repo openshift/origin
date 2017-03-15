@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 
 	// Admission control plug-ins used by OpenShift
 	_ "github.com/openshift/origin/pkg/authorization/admission/restrictusers"

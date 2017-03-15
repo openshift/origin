@@ -1,8 +1,9 @@
 package admission
 
 import (
+	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/admission"
+	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -45,7 +46,7 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		if wantsAuthorizer, ok := plugin.(WantsAuthorizer); ok {
 			wantsAuthorizer.SetAuthorizer(i.Authorizer)
 		}
-		if kubeWantsAuthorizer, ok := plugin.(admission.WantsAuthorizer); ok {
+		if kubeWantsAuthorizer, ok := plugin.(kubeapiserveradmission.WantsAuthorizer); ok {
 			kubeAuthorizer, err := adapter.NewAuthorizer(i.Authorizer)
 			// this shouldn't happen
 			if err != nil {
@@ -62,8 +63,8 @@ func (i *PluginInitializer) Initialize(plugins []admission.Interface) {
 		if wantsInformers, ok := plugin.(WantsInformers); ok {
 			wantsInformers.SetInformers(i.Informers)
 		}
-		if wantsInformerFactory, ok := plugin.(admission.WantsInformerFactory); ok {
-			wantsInformerFactory.SetInformerFactory(i.Informers.KubernetesInformers())
+		if wantsInformerFactory, ok := plugin.(kubeapiserveradmission.WantsInternalKubeInformerFactory); ok {
+			wantsInformerFactory.SetInternalKubeInformerFactory(i.Informers.InternalKubernetesInformers())
 		}
 		if wantsClusterQuotaMapper, ok := plugin.(WantsClusterQuotaMapper); ok {
 			wantsClusterQuotaMapper.SetClusterQuotaMapper(i.ClusterQuotaMapper)
