@@ -4,9 +4,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -24,6 +25,7 @@ type REST struct {
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.ImageStream{} },
 		NewListFunc:       func() runtime.Object { return &api.ImageStreamList{} },
 		PredicateFunc:     imagestream.Matcher,
@@ -41,10 +43,8 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: imagestream.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, &store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: imagestream.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, nil, err
 	}
 
