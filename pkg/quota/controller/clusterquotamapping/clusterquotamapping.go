@@ -14,8 +14,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/controller/informers"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -48,7 +49,7 @@ import (
 // test where I caught the problem.
 
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
-func NewClusterQuotaMappingController(namespaceInformer informers.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
+func NewClusterQuotaMappingController(namespaceInformer kcoreinformers.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := &ClusterQuotaMappingController{
 		namespaceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_namespaces"),
 
@@ -78,7 +79,7 @@ func NewClusterQuotaMappingController(namespaceInformer informers.NamespaceInfor
 
 type ClusterQuotaMappingController struct {
 	namespaceQueue   workqueue.RateLimitingInterface
-	namespaceLister  *cache.IndexerToNamespaceLister
+	namespaceLister  kcorelisters.NamespaceLister
 	namespacesSynced func() bool
 
 	quotaQueue   workqueue.RateLimitingInterface
@@ -265,8 +266,8 @@ func (c *ClusterQuotaMappingController) namespaceWork() bool {
 	}
 	defer c.namespaceQueue.Done(key)
 
-	namespace, exists, err := c.namespaceLister.GetByKey(key.(string))
-	if !exists {
+	namespace, err := c.namespaceLister.Get(key.(string))
+	if kapierrors.IsNotFound(err) {
 		c.namespaceQueue.Forget(key)
 		return false
 	}
@@ -275,7 +276,7 @@ func (c *ClusterQuotaMappingController) namespaceWork() bool {
 		return false
 	}
 
-	err = c.syncNamespace(namespace.(*kapi.Namespace))
+	err = c.syncNamespace(namespace)
 	outOfRetries := c.namespaceQueue.NumRequeues(key) > 5
 	switch {
 	case err != nil && outOfRetries:
