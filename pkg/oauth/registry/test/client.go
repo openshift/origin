@@ -2,6 +2,7 @@ package test
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -18,7 +19,7 @@ func (r *ClientRegistry) ListClients(ctx apirequest.Context, options *metaintern
 	return r.Clients, r.Err
 }
 
-func (r *ClientRegistry) GetClient(ctx apirequest.Context, name string) (*api.OAuthClient, error) {
+func (r *ClientRegistry) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error) {
 	return r.Client, r.Err
 }
 

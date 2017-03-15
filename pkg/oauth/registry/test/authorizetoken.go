@@ -2,6 +2,7 @@ package test
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -18,7 +19,7 @@ func (r *AuthorizeTokenRegistry) ListAuthorizeTokens(ctx apirequest.Context, opt
 	return r.AuthorizeTokens, r.Err
 }
 
-func (r *AuthorizeTokenRegistry) GetAuthorizeToken(ctx apirequest.Context, name string) (*api.OAuthAuthorizeToken, error) {
+func (r *AuthorizeTokenRegistry) GetAuthorizeToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthAuthorizeToken, error) {
 	return r.AuthorizeToken, r.Err
 }
 

@@ -3,6 +3,7 @@ package test
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -33,7 +34,7 @@ func NewUserRegistry() *UserRegistry {
 	}
 }
 
-func (r *UserRegistry) GetUser(ctx apirequest.Context, name string) (*api.User, error) {
+func (r *UserRegistry) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error) {
 	*r.Actions = append(*r.Actions, Action{"GetUser", name})
 	if user, ok := r.Get[name]; ok {
 		return user, nil

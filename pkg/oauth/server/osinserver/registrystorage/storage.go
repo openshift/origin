@@ -98,7 +98,7 @@ func (s *storage) Close() {
 
 // GetClient loads the client by id (client_id)
 func (s *storage) GetClient(id string) (osin.Client, error) {
-	c, err := s.client.GetClient(apirequest.NewContext(), id)
+	c, err := s.client.GetClient(apirequest.NewContext(), id, &metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, nil
@@ -122,7 +122,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
-	authorize, err := s.authorizetoken.GetAuthorizeToken(apirequest.NewContext(), code)
+	authorize, err := s.authorizetoken.GetAuthorizeToken(apirequest.NewContext(), code, &metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		glog.V(5).Info("Authorization code not found")
 		return nil, nil
@@ -154,7 +154,7 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
-	access, err := s.accesstoken.GetAccessToken(apirequest.NewContext(), token)
+	access, err := s.accesstoken.GetAccessToken(apirequest.NewContext(), token, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(apirequest.NewContext(), authorize.ClientName)
+	client, err := s.client.GetClient(apirequest.NewContext(), authorize.ClientName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.Ac
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(apirequest.NewContext(), access.ClientName)
+	client, err := s.client.GetClient(apirequest.NewContext(), access.ClientName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

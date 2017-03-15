@@ -3,6 +3,7 @@ package test
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user/api"
@@ -37,7 +38,7 @@ func NewIdentityRegistry() *IdentityRegistry {
 	}
 }
 
-func (r *IdentityRegistry) GetIdentity(ctx apirequest.Context, name string) (*api.Identity, error) {
+func (r *IdentityRegistry) GetIdentity(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Identity, error) {
 	*r.Actions = append(*r.Actions, Action{"GetIdentity", name})
 	if identity, ok := r.Get[name]; ok {
 		return identity, nil

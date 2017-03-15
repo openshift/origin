@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -32,7 +33,7 @@ func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx apirequest.Co
 	return r.ClientAuthorizations, r.GetErr
 }
 
-func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx apirequest.Context, name string) (*api.OAuthClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error) {
 	return r.ClientAuthorization, r.GetErr
 }
 
