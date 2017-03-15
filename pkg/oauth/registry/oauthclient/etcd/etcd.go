@@ -2,8 +2,9 @@ package etcd
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -18,6 +19,7 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against oauth clients
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.OAuthClient{} },
 		NewListFunc:       func() runtime.Object { return &api.OAuthClientList{} },
 		PredicateFunc:     oauthclient.Matcher,
@@ -27,10 +29,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: oauthclient.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthclient.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthclient.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
