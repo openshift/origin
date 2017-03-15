@@ -2,8 +2,9 @@ package etcd
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
@@ -17,6 +18,7 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against ClusterPolicy.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
 		QualifiedResource: authorizationapi.Resource("clusterpolicies"),
@@ -26,10 +28,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: clusterpolicy.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterpolicy.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterpolicy.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
