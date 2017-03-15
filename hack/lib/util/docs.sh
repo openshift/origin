@@ -11,6 +11,7 @@ function generate_manual_pages() {
 	local skipprefix="${3:-}"
 
 	os::util::environment::setup_tmpdir_vars generate/manuals
+	os::cleanup::tmpdir
 
 	# We do this in a tmpdir in case the dest has other non-autogenned files
 	# We don't want to include them in the list of gen'd files
@@ -50,6 +51,7 @@ function generate_documentation() {
 	local skipprefix="${1:-}"
 
 	os::util::environment::setup_tmpdir_vars generate/docs
+	os::cleanup::tmpdir
 
 	# We do this in a tmpdir in case the dest has other non-autogenned files
 	# We don't want to include them in the list of gen'd files
