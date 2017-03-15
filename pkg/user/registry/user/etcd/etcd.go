@@ -10,8 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
@@ -28,6 +29,7 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against users
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.User{} },
 		NewListFunc:       func() runtime.Object { return &api.UserList{} },
 		PredicateFunc:     user.Matcher,
@@ -37,10 +39,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: user.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
