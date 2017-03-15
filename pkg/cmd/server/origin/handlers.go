@@ -11,7 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/endpoints/request"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
@@ -77,7 +77,7 @@ func namespacingFilter(handler http.Handler, contextMapper apirequest.RequestCon
 		}
 
 		if _, exists := apirequest.NamespaceFrom(ctx); !exists {
-			if requestInfo, ok := request.RequestInfoFrom(ctx); ok && requestInfo != nil {
+			if requestInfo, ok := apirequest.RequestInfoFrom(ctx); ok && requestInfo != nil {
 				// only set the namespace if the apiRequestInfo was resolved
 				// keep in mind that GetAPIRequestInfo will fail on non-api requests, so don't fail the entire http request on that
 				// kind of failure.
@@ -164,7 +164,7 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper api
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if ctx, ok := contextMapper.Get(req); ok {
-			if requestInfo, ok := request.RequestInfoFrom(ctx); ok && requestInfo != nil && !requestInfo.IsResourceRequest {
+			if requestInfo, ok := apirequest.RequestInfoFrom(ctx); ok && requestInfo != nil && !requestInfo.IsResourceRequest {
 				handler.ServeHTTP(w, req)
 				return
 			}
