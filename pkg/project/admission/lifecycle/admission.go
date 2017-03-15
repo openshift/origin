@@ -26,8 +26,8 @@ import (
 // TODO: modify the upstream plug-in so this can be collapsed
 // need ability to specify a RESTMapper on upstream version
 func init() {
-	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewLifecycle(client, recommendedCreatableResources)
+	admission.RegisterPlugin("OriginNamespaceLifecycle", func(config io.Reader) (admission.Interface, error) {
+		return NewLifecycle(recommendedCreatableResources)
 	})
 }
 
@@ -55,6 +55,7 @@ var recommendedCreatableResources = map[schema.GroupResource]bool{
 	authorizationapi.LegacyResource("subjectrulesreviews"):        true,
 }
 var _ = oadmission.WantsProjectCache(&lifecycle{})
+var _ = kadmission.WantsInternalKubeClientSet(&lifecycle{})
 
 // Admit enforces that a namespace must have the openshift finalizer associated with it in order to create origin API objects within it
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {
@@ -128,6 +129,10 @@ func (e *lifecycle) SetProjectCache(c *cache.ProjectCache) {
 	e.cache = c
 }
 
+func (q *lifecycle) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.client = c
+}
+
 func (e *lifecycle) Validate() error {
 	if e.cache == nil {
 		return fmt.Errorf("project lifecycle plugin needs a project cache")
@@ -135,9 +140,8 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client clientset.Interface, creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
+func NewLifecycle(creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
 	return &lifecycle{
-		client:             client,
 		creatableResources: creatableResources,
 	}, nil
 }
