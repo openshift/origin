@@ -92,7 +92,7 @@ func init() {
 	cachedLayers = cache
 
 	// load the client when the middleware is initialized, which allows test code to change
-	// DefaultRegistryClient before starting a registry.
+	// the registry client before starting a registry.
 	repomw.Register("openshift",
 		func(ctx context.Context, repo distribution.Repository, options map[string]interface{}) (distribution.Repository, error) {
 			if dockerRegistry == nil {
@@ -103,7 +103,7 @@ func init() {
 				panic(fmt.Sprintf("Configuration error: OpenShift storage driver middleware not activated"))
 			}
 
-			registryOSClient, kClient, errClients := DefaultRegistryClient.Clients()
+			registryOSClient, kClient, errClients := RegistryClientFrom(ctx).Clients()
 			if errClients != nil {
 				return nil, errClients
 			}
@@ -237,13 +237,13 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 	// we do a verification of our own
 	// TODO: let upstream do the verification once they pass correct context object to their manifest handler
 	opts := append(options, registrystorage.SkipLayerVerification())
-	ms, err := r.Repository.Manifests(WithRepository(ctx, r), opts...)
+	ms, err := r.Repository.Manifests(withRepository(ctx, r), opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	ms = &manifestService{
-		ctx:           WithRepository(ctx, r),
+		ctx:           withRepository(ctx, r),
 		repo:          r,
 		manifests:     ms,
 		acceptschema2: r.acceptschema2,
@@ -333,7 +333,7 @@ func (r *repository) createImageStream(ctx context.Context) (*imageapi.ImageStre
 	stream := imageapi.ImageStream{}
 	stream.Name = r.name
 
-	uclient, ok := UserClientFrom(ctx)
+	uclient, ok := userClientFrom(ctx)
 	if !ok {
 		errmsg := "error creating user client to auto provision image stream: user client to master API unavailable"
 		context.GetLogger(ctx).Errorf(errmsg)
@@ -469,11 +469,11 @@ func (r *repository) checkPendingErrors(ctx context.Context) error {
 }
 
 func checkPendingErrors(ctx context.Context, logger context.Logger, namespace, name string) error {
-	if !AuthPerformed(ctx) {
+	if !authPerformed(ctx) {
 		return fmt.Errorf("openshift.auth.completed missing from context")
 	}
 
-	deferredErrors, haveDeferredErrors := DeferredErrorsFrom(ctx)
+	deferredErrors, haveDeferredErrors := deferredErrorsFrom(ctx)
 	if !haveDeferredErrors {
 		return nil
 	}

@@ -22,8 +22,6 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
@@ -43,14 +41,6 @@ func TestPullthroughServeBlob(t *testing.T) {
 	}
 	client := &testclient.Fake{}
 	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
-
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
 
 	remoteRegistryServer := createTestRegistryServer(t, context.Background())
 	defer remoteRegistryServer.Close()
@@ -229,14 +219,6 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	}
 	client := &testclient.Fake{}
 	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
-
-	// TODO: get rid of those nasty global vars
-	backupRegistryClient := DefaultRegistryClient
-	DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-	defer func() {
-		// set it back once this test finishes to make other unit tests working again
-		DefaultRegistryClient = backupRegistryClient
-	}()
 
 	reader, dgst, err := registrytest.CreateRandomTarFile()
 	if err != nil {
@@ -687,14 +669,6 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 		},
 	} {
 		client := &testclient.Fake{}
-
-		// TODO: get rid of those nasty global vars
-		backupRegistryClient := DefaultRegistryClient
-		DefaultRegistryClient = makeFakeRegistryClient(client, fake.NewSimpleClientset())
-		defer func() {
-			// set it back once this test finishes to make other unit tests working again
-			DefaultRegistryClient = backupRegistryClient
-		}()
 
 		tc.imageStreamInit(client)
 

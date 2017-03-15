@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	context "github.com/docker/distribution/context"
 	registryauth "github.com/docker/distribution/registry/auth"
 
@@ -45,6 +44,10 @@ const (
 
 	RealmKey      = "realm"
 	TokenRealmKey = "tokenrealm"
+
+	// AccessControllerOptionParams is an option name for passing
+	// AccessControllerParams to AccessController.
+	AccessControllerOptionParams = "_params"
 )
 
 // RegistryClient encapsulates getting access to the OpenShift API.
@@ -54,9 +57,6 @@ type RegistryClient interface {
 	// SafeClientConfig returns a client config without authentication info.
 	SafeClientConfig() restclient.Config
 }
-
-// DefaultRegistryClient is exposed for testing the registry with fake client.
-var DefaultRegistryClient = NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
 // registryClient implements RegistryClient
 type registryClient struct {
@@ -85,19 +85,6 @@ func init() {
 	registryauth.Register(OpenShiftAuth, registryauth.InitFunc(newAccessController))
 }
 
-type contextKey int
-
-var userClientKey contextKey = 0
-
-func WithUserClient(parent context.Context, userClient client.Interface) context.Context {
-	return context.WithValue(parent, userClientKey, userClient)
-}
-
-func UserClientFrom(ctx context.Context) (client.Interface, bool) {
-	userClient, ok := ctx.Value(userClientKey).(client.Interface)
-	return userClient, ok
-}
-
 // WithUserInfoLogger creates a new context with provided user infomation.
 func WithUserInfoLogger(ctx context.Context, username, userid string) context.Context {
 	ctx = context.WithValue(ctx, audit.AuditUserEntry, username)
@@ -108,27 +95,6 @@ func WithUserInfoLogger(ctx context.Context, username, userid string) context.Co
 		audit.AuditUserEntry,
 		audit.AuditUserIDEntry,
 	))
-}
-
-const authPerformedKey = "openshift.auth.performed"
-
-func WithAuthPerformed(parent context.Context) context.Context {
-	return context.WithValue(parent, authPerformedKey, true)
-}
-
-func AuthPerformed(ctx context.Context) bool {
-	authPerformed, ok := ctx.Value(authPerformedKey).(bool)
-	return ok && authPerformed
-}
-
-const deferredErrorsKey = "openshift.auth.deferredErrors"
-
-func WithDeferredErrors(parent context.Context, errs deferredErrors) context.Context {
-	return context.WithValue(parent, deferredErrorsKey, errs)
-}
-func DeferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
-	errs, ok := ctx.Value(deferredErrorsKey).(deferredErrors)
-	return errs, ok
 }
 
 type AccessController struct {
@@ -198,8 +164,19 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 	return tokenRealm, nil
 }
 
+// AccessControllerParams is the parameters for newAccessController
+type AccessControllerParams struct {
+	Logger           context.Logger
+	SafeClientConfig restclient.Config
+}
+
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	log.Info("Using Origin Auth handler")
+	params, ok := options[AccessControllerOptionParams].(AccessControllerParams)
+	if !ok {
+		return nil, fmt.Errorf("no parameters provided to Origin Auth handler")
+	}
+
+	params.Logger.Info("Using Origin Auth handler")
 
 	realm, err := getStringOption("", RealmKey, "origin", options)
 	if err != nil {
@@ -214,7 +191,7 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 	ac := &AccessController{
 		realm:      realm,
 		tokenRealm: tokenRealm,
-		config:     DefaultRegistryClient.SafeClientConfig(),
+		config:     params.SafeClientConfig,
 	}
 
 	if audit, ok := options["audit"]; ok {
@@ -446,12 +423,12 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	// Conditionally add auth errors we want to handle later to the context
 	if !possibleCrossMountErrors.Empty() {
 		context.GetLogger(ctx).Debugf("Origin auth: deferring errors: %#v", possibleCrossMountErrors)
-		ctx = WithDeferredErrors(ctx, possibleCrossMountErrors)
+		ctx = withDeferredErrors(ctx, possibleCrossMountErrors)
 	}
 	// Always add a marker to the context so we know auth was run
-	ctx = WithAuthPerformed(ctx)
+	ctx = withAuthPerformed(ctx)
 
-	return WithUserClient(ctx, osClient), nil
+	return withUserClient(ctx, osClient), nil
 }
 
 func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error) {

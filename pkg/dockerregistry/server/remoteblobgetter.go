@@ -236,7 +236,10 @@ func (rbgs *remoteBlobGetterService) findCandidateRepository(
 
 	// search the remaining registries for this digest
 	for _, repo := range repositoryCandidates {
-		spec := search[repo]
+		spec, ok := search[repo]
+		if !ok {
+			continue
+		}
 		desc, err := rbgs.proxyStat(ctx, retriever, &spec, dgst)
 		if err != nil {
 			continue
