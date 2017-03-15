@@ -94,7 +94,7 @@ func (ctx *RoleBindingRestrictionContext) labelSetForUser(subject kapi.ObjectRef
 		return labelSet, nil
 	}
 
-	user, err := ctx.oclient.Users().Get(subject.Name)
+	user, err := ctx.oclient.Users().Get(subject.Name, metav1.GetOptions{})
 	if err != nil {
 		return labels.Set{}, err
 	}
@@ -132,7 +132,7 @@ func (ctx *RoleBindingRestrictionContext) labelSetForGroup(subject kapi.ObjectRe
 		return labelSet, nil
 	}
 
-	group, err := ctx.oclient.Groups().Get(subject.Name)
+	group, err := ctx.oclient.Groups().Get(subject.Name, metav1.GetOptions{})
 	if err != nil {
 		return labels.Set{}, err
 	}
