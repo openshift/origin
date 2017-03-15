@@ -28,11 +28,19 @@ func TestNoErrors(t *testing.T) {
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -75,12 +83,14 @@ func TestNoErrors(t *testing.T) {
 											Add: []kapi.Capability{"foo"},
 										},
 									},
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -169,11 +179,19 @@ func TestErrors(t *testing.T) {
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "A.B.C.D.E",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -186,11 +204,19 @@ func TestErrors(t *testing.T) {
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -243,15 +269,17 @@ func TestSpecificSAs(t *testing.T) {
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{
-									Name:            "ctr",
-									Image:           "image",
-									ImagePullPolicy: "IfNotPresent",
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"my-sa", "yours-sa"},
@@ -307,15 +335,17 @@ func TestSpecificSAs(t *testing.T) {
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{
-									Name:            "ctr",
-									Image:           "image",
-									ImagePullPolicy: "IfNotPresent",
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"bad-sa"},
