@@ -24,8 +24,8 @@ const PluginName = "openshift.io/OriginResourceQuota"
 
 func init() {
 	admission.RegisterPlugin(PluginName,
-		func(kClient clientset.Interface, config io.Reader) (admission.Interface, error) {
-			return NewOriginResourceQuota(kClient), nil
+		func(config io.Reader) (admission.Interface, error) {
+			return NewOriginResourceQuota(), nil
 		})
 }
 
@@ -39,14 +39,14 @@ type originQuotaAdmission struct {
 }
 
 var _ = oadmission.WantsOriginQuotaRegistry(&originQuotaAdmission{})
+var _ = kadmission.WantsInternalKubeClientSet(&originQuotaAdmission{})
 
 // NewOriginResourceQuota creates a new OriginResourceQuota admission plugin that takes care of admission of
 // origin resources abusing resource quota.
-func NewOriginResourceQuota(kClient clientset.Interface) admission.Interface {
+func NewOriginResourceQuota() admission.Interface {
 	// defer an initialization of upstream controller until os client is set
 	return &originQuotaAdmission{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
-		kClient: kClient,
 	}
 }
 
@@ -56,11 +56,21 @@ func (a *originQuotaAdmission) Admit(as admission.Attributes) error {
 
 func (a *originQuotaAdmission) SetOriginQuotaRegistry(registry kquota.Registry) {
 	// TODO: Make the number of evaluators configurable?
-	quotaAdmission, err := resourcequota.NewResourceQuota(a.kClient, registry, 5, wait.NeverStop)
+	quotaAdmission, err := resourcequota.NewResourceQuota(registry, &resourcequotaapi.Configuration{}, 5, wait.NeverStop)
 	if err != nil {
 		glog.Fatalf("failed to initialize %s plugin: %v", PluginName, err)
 	}
-	a.kQuotaAdmission = quotaAdmission
+	a.quotaAdmission = quotaAdmission
+	if a.kclient != nil {
+		a.quotaAdmission.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(a.kclient)
+	}
+}
+
+func (a *originQuotaAdmission) SetInternalKubeClientSet(c kclientset.Interface) {
+	a.kclient = c
+	if a.quotaAdmission != nil {
+		a.quotaAdmission.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
+	}
 }
 
 func (a *originQuotaAdmission) Validate() error {

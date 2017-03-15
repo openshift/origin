@@ -27,7 +27,7 @@ import (
 const allowedTerminatingProjects = 2
 
 func init() {
-	admission.RegisterPlugin("ProjectRequestLimit", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("ProjectRequestLimit", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
