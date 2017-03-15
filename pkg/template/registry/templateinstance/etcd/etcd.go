@@ -19,19 +19,21 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against templateinstances.
 func NewREST(optsGetter restoptions.Getter, oc *client.Client) (*REST, error) {
-	strategy := templateinstance.NewStrategy(oc)
+	strategy := rest.NewStrategy(oc)
 
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.TemplateInstance{} },
 		NewListFunc:       func() runtime.Object { return &api.TemplateInstanceList{} },
-		PredicateFunc:     templateinstance.Matcher,
+		PredicateFunc:     rest.Matcher,
 		QualifiedResource: api.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
