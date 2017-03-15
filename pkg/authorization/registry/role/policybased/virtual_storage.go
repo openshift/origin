@@ -72,8 +72,8 @@ func (m *VirtualStorage) List(ctx apirequest.Context, options *metainternal.List
 	return roleList, nil
 }
 
-func (m *VirtualStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
+func (m *VirtualStorage) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName, options)
 	if kapierrors.IsNotFound(err) {
 		return nil, kapierrors.NewNotFound(m.Resource, name)
 	}
@@ -89,10 +89,9 @@ func (m *VirtualStorage) Get(ctx apirequest.Context, name string) (runtime.Objec
 	return role, nil
 }
 
-// Delete(ctx apirequest.Context, name string) (runtime.Object, error)
-func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
+func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
+		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return kapierrors.NewNotFound(m.Resource, name)
 		}
@@ -109,10 +108,10 @@ func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *me
 
 		return m.PolicyStorage.UpdatePolicy(ctx, policy)
 	}); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
 func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
@@ -176,7 +175,7 @@ func (m *VirtualStorage) updateRole(ctx apirequest.Context, name string, objInfo
 
 	// Retry if the policy update hits a conflict
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
+		policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return kapierrors.NewNotFound(m.Resource, name)
 		}
@@ -248,7 +247,7 @@ func (m *VirtualStorage) updateRole(ctx apirequest.Context, name string, objInfo
 // EnsurePolicy returns the policy object for the specified namespace.  If one does not exist, it is created for you.  Permission to
 // create, update, or delete roles in a namespace implies the ability to create a Policy object itself.
 func (m *VirtualStorage) EnsurePolicy(ctx apirequest.Context) (*authorizationapi.Policy, error) {
-	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
+	policy, err := m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
@@ -263,7 +262,7 @@ func (m *VirtualStorage) EnsurePolicy(ctx apirequest.Context) (*authorizationapi
 			}
 		}
 
-		policy, err = m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName)
+		policy, err = m.PolicyStorage.GetPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
