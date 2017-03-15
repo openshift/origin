@@ -74,6 +74,7 @@ export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
+export HOME="${FAKE_HOME_DIR}"
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then
