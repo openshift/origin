@@ -2,7 +2,7 @@ package restoptions
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic"
 )
 
 type Getter interface {

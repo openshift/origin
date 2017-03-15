@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	core "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

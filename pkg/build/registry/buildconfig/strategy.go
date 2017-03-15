@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/build/api"
@@ -19,11 +20,11 @@ import (
 // strategy implements behavior for BuildConfig objects
 type strategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating BuildConfig objects.
-var Strategy = strategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
 
 func (strategy) NamespaceScoped() bool {
 	return true

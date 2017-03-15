@@ -2,8 +2,8 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	core "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"

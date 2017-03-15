@@ -2,9 +2,9 @@ package testclient
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	core "k8s.io/client-go/testing"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client"
 )

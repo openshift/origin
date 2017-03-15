@@ -2,8 +2,8 @@ package restoptions
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
 )
 
 type simpleGetter struct {

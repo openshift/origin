@@ -44,7 +44,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx a
 		return errors.NewNotFound(buildapi.Resource("buildconfighook"), hookType)
 	}
 
-	config, err := w.registry.GetBuildConfig(ctx, name)
+	config, err := w.registry.GetBuildConfig(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		// clients should not be able to find information about build configs in
 		// the system unless the config exists and the secret matches

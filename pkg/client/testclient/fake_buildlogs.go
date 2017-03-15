@@ -2,7 +2,7 @@ package testclient
 
 import (
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	core "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )

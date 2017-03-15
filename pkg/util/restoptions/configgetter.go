@@ -9,13 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/storage/storagebackend"
 	"k8s.io/kubernetes/pkg/storage/storagebackend/factory"
 
@@ -32,10 +32,10 @@ type configRESTOptionsGetter struct {
 	masterOptions configapi.MasterConfig
 
 	restOptionsLock sync.Mutex
-	restOptionsMap  map[schema.GroupResource]genericrest.RESTOptions
+	restOptionsMap  map[schema.GroupResource]generic.RESTOptions
 
-	storageFactory        genericapiserver.StorageFactory
-	defaultResourceConfig *genericapiserver.ResourceConfig
+	storageFactory        serverstorage.StorageFactory
+	defaultResourceConfig *serverstorage.ResourceConfig
 
 	cacheEnabled            bool
 	defaultCacheSize        int
@@ -47,13 +47,13 @@ type configRESTOptionsGetter struct {
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
 // By default, the etcd watch cache is enabled with a size of 1000 per resource type.
 // TODO: this class should either not need to know about configapi.MasterConfig, or not be in pkg/util
-func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *genericapiserver.ResourceConfig, defaultResourcePrefixes map[schema.GroupResource]string, quorumResources map[schema.GroupResource]struct{}) Getter {
+func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig *serverstorage.ResourceConfig, defaultResourcePrefixes map[schema.GroupResource]string, quorumResources map[schema.GroupResource]struct{}) Getter {
 	getter := &configRESTOptionsGetter{
 		masterOptions:           masterOptions,
 		cacheEnabled:            true,
 		defaultCacheSize:        1000,
 		cacheSizes:              map[schema.GroupResource]int{},
-		restOptionsMap:          map[schema.GroupResource]genericrest.RESTOptions{},
+		restOptionsMap:          map[schema.GroupResource]generic.RESTOptions{},
 		defaultResourceConfig:   defaultResourceConfig,
 		quorumResources:         quorumResources,
 		defaultResourcePrefixes: defaultResourcePrefixes,
@@ -161,7 +161,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 	return kerrors.NewAggregate(errs)
 }
 
-func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (genericrest.RESTOptions, error) {
+func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (generic.RESTOptions, error) {
 	g.restOptionsLock.Lock()
 	defer g.restOptionsLock.Unlock()
 	if resourceOptions, ok := g.restOptionsMap[resource]; ok {
