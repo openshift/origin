@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kerrors "k8s.io/kubernetes/pkg/util/errors"
@@ -75,6 +76,13 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	if createConfig {
+		// Deleting the ClusterNetwork in an already-deployed cluster may lead to serious
+		// breakage, so log a prominent warning about it for post-mortem debugging.
+		_, err = master.osClient.NetNamespaces().Get(kapi.NamespaceDefault)
+		if err == nil || !kapierrors.IsNotFound(err) {
+			log.Errorf("Default ClusterNetwork record has been deleted! Recreating...")
+		}
+
 		cn, err := master.osClient.ClusterNetwork().Create(cn)
 		if err != nil {
 			return err
@@ -146,17 +154,6 @@ func (master *OsdnMaster) validateNetworkConfig() error {
 		}
 		if !ni.ClusterNetwork.Contains(subnetIP) {
 			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
-		}
-	}
-
-	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(kapi.NamespaceAll).List(kapi.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, svc := range services.Items {
-		if !ni.ServiceNetwork.Contains(net.ParseIP(svc.Spec.ClusterIP)) {
-			errList = append(errList, fmt.Errorf("existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
 		}
 	}
 
