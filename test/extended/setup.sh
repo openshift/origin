@@ -34,7 +34,6 @@ function os::test::extended::setup () {
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	os::util::environment::setup_time_vars
-	os::util::environment::setup_tmpdir_vars "test-extended/core"
 
 	# Allow setting $JUNIT_REPORT to toggle output behavior
 	if [[ -n "${JUNIT_REPORT:-}" ]]; then
@@ -73,6 +72,7 @@ function os::test::extended::setup () {
 	trap "cleanup" EXIT
 
 	os::util::environment::use_sudo
+	os::cleanup::tmpdir
 	os::util::environment::setup_all_server_vars
 	os::util::ensure::iptables_privileges_exist
 

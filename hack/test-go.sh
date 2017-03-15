@@ -39,7 +39,7 @@ trap exit_trap EXIT
 start_time=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
-os::util::environment::setup_tmpdir_vars "test-go"
+os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
 dry_run="${DRY_RUN:-}"

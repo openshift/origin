@@ -6,7 +6,7 @@ os::build::setup_env
 
 export API_SCHEME="http"
 export API_BIND_HOST="127.0.0.1"
-os::util::environment::setup_tmpdir_vars "test-integration/"
+os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
 function cleanup() {

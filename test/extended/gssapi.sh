@@ -12,7 +12,7 @@ os::build::setup_env
 
 os::util::environment::use_sudo
 os::util::environment::setup_time_vars
-os::util::environment::setup_tmpdir_vars "${test_name}"
+os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
 os::log::system::start

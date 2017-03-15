@@ -20,7 +20,6 @@ trap exit_trap EXIT
 
 start_time=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
-os::util::environment::setup_tmpdir_vars "test-lib"
 
 cd "${OS_ROOT}"
 
