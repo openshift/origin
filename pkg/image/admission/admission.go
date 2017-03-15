@@ -27,8 +27,8 @@ func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceN
 }
 
 func init() {
-	kadmission.RegisterPlugin(PluginName, func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-		plugin, err := NewImageLimitRangerPlugin(client, config)
+	admission.RegisterPlugin(PluginName, func(config io.Reader) (admission.Interface, error) {
+		plugin, err := NewImageLimitRangerPlugin(config)
 		if err != nil {
 			return nil, err
 		}
@@ -44,29 +44,29 @@ type imageLimitRangerPlugin struct {
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
-var _ kadmission.WantsInformerFactory = &imageLimitRangerPlugin{}
 var _ admission.Validator = &imageLimitRangerPlugin{}
+var _ kadmission.WantsInternalKubeInformerFactory = &imageLimitRangerPlugin{}
+var _ kadmission.WantsInternalKubeClientSet = &imageLimitRangerPlugin{}
 
 // NewImageLimitRangerPlugin provides a new imageLimitRangerPlugin.
-func NewImageLimitRangerPlugin(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+func NewImageLimitRangerPlugin(config io.Reader) (admission.Interface, error) {
 	plugin := &imageLimitRangerPlugin{
-		Handler: kadmission.NewHandler(kadmission.Create),
+		Handler: admission.NewHandler(admission.Create),
 	}
-	limitRanger, err := limitranger.NewLimitRanger(client, plugin)
+	limitRanger, err := limitranger.NewLimitRanger(plugin)
 	if err != nil {
 		return nil, err
 	}
 	plugin.limitRanger = limitRanger
-
 	return plugin, nil
 }
 
-func (a *imageLimitRangerPlugin) SetInformerFactory(f informers.SharedInformerFactory) {
-	w, ok := a.limitRanger.(kadmission.WantsInformerFactory)
-	if !ok {
-		return
-	}
-	w.SetInformerFactory(f)
+func (q *imageLimitRangerPlugin) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.limitRanger.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
+}
+
+func (a *imageLimitRangerPlugin) SetInternalKubeInformerFactory(f informers.SharedInformerFactory) {
+	a.limitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(f)
 }
 
 func (a *imageLimitRangerPlugin) Validate() error {

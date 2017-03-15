@@ -24,9 +24,9 @@ import (
 )
 
 func init() {
-	kadmission.RegisterPlugin("SecurityContextConstraint",
-		func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
-			return NewConstraint(client), nil
+	admission.RegisterPlugin("SecurityContextConstraint",
+		func(config io.Reader) (admission.Interface, error) {
+			return NewConstraint(), nil
 		})
 }
 
@@ -38,12 +38,12 @@ type constraint struct {
 
 var _ admission.Interface = &constraint{}
 var _ = oadmission.WantsInformers(&constraint{})
+var _ = kadmission.WantsInternalKubeClientSet(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
-func NewConstraint(kclient clientset.Interface) *constraint {
+func NewConstraint() *constraint {
 	return &constraint{
-		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
-		client:  kclient,
+		Handler: admission.NewHandler(admission.Create, admission.Update),
 	}
 }
 
@@ -130,6 +130,10 @@ func (c *constraint) Admit(a admission.Attributes) error {
 // SetInformers implements WantsInformers interface for constraint.
 func (c *constraint) SetInformers(informers shared.InformerFactory) {
 	c.sccLister = informers.SecurityContextConstraints().Lister()
+}
+
+func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
+	c.client = client
 }
 
 // Validate defines actions to vallidate security admission
