@@ -143,13 +143,15 @@ func TestDefaults(t *testing.T) {
 							Containers: []kapiv1.Container{
 								{
 									Name: "test",
-									TerminationMessagePath: "/dev/termination-log",
+									TerminationMessagePath:   "/dev/termination-log",
+									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
 									// The pull policy will be "PullAlways" only when the
 									// image tag is 'latest'. In other case it will be
 									// "PullIfNotPresent".
 									ImagePullPolicy: kapiv1.PullIfNotPresent,
 								},
 							},
+							SchedulerName: kapiv1.DefaultSchedulerName,
 						},
 					},
 				},
@@ -397,14 +399,16 @@ func TestDefaults(t *testing.T) {
 							Containers: []kapiv1.Container{
 								{
 									Name: "first",
-									TerminationMessagePath: "/dev/termination-log",
-									ImagePullPolicy:        kapiv1.PullIfNotPresent,
+									TerminationMessagePath:   "/dev/termination-log",
+									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
+									ImagePullPolicy:          kapiv1.PullIfNotPresent,
 								},
 							},
 							RestartPolicy:                 kapiv1.RestartPolicyAlways,
 							TerminationGracePeriodSeconds: mkintp(30),
 							SecurityContext:               &kapiv1.PodSecurityContext{},
 							DNSPolicy:                     kapiv1.DNSClusterFirst,
+							SchedulerName:                 kapiv1.DefaultSchedulerName,
 						},
 					},
 					Strategy: deployv1.DeploymentStrategy{
@@ -467,14 +471,16 @@ func TestDefaults(t *testing.T) {
 							Containers: []kapiv1.Container{
 								{
 									Name: "first",
-									TerminationMessagePath: "/dev/termination-log",
-									ImagePullPolicy:        kapiv1.PullIfNotPresent,
+									TerminationMessagePath:   "/dev/termination-log",
+									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
+									ImagePullPolicy:          kapiv1.PullIfNotPresent,
 								},
 							},
 							RestartPolicy:                 kapiv1.RestartPolicyAlways,
 							TerminationGracePeriodSeconds: mkintp(30),
 							SecurityContext:               &kapiv1.PodSecurityContext{},
 							DNSPolicy:                     kapiv1.DNSClusterFirst,
+							SchedulerName:                 kapiv1.DefaultSchedulerName,
 						},
 					},
 					Strategy: deployv1.DeploymentStrategy{
