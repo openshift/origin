@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -340,7 +341,7 @@ func configEquals(a, b *requestlimitapi.ProjectRequestLimitConfig) bool {
 
 func fakeNs(name string, terminating bool) *kapi.Namespace {
 	ns := &kapi.Namespace{}
-	ns.Name = kapi.SimpleNameGenerator.GenerateName("testns")
+	ns.Name = names.SimpleNameGenerator.GenerateName("testns")
 	ns.Annotations = map[string]string{
 		"openshift.io/requester": name,
 	}

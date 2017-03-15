@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -13,7 +14,7 @@ import (
 // Strategy implements behavior for image stream mappings.
 type Strategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 
 	defaultRegistry api.DefaultRegistry
 }
@@ -23,7 +24,7 @@ type Strategy struct {
 func NewStrategy(defaultRegistry api.DefaultRegistry) Strategy {
 	return Strategy{
 		kapi.Scheme,
-		kapi.SimpleNameGenerator,
+		names.SimpleNameGenerator,
 		defaultRegistry,
 	}
 }

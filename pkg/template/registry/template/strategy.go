@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/template/api"
@@ -18,12 +19,12 @@ import (
 // templateStrategy implements behavior for Templates
 type templateStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating Template
 // objects via the REST API.
-var Strategy = templateStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = templateStrategy{kapi.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is true for templates.
 func (templateStrategy) NamespaceScoped() bool {

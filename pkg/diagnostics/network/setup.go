@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -22,14 +23,14 @@ import (
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {
-	d.nsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
-	d.nsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName1 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
 
 	nsList := []string{d.nsName1, d.nsName2}
 	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
-		d.globalnsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		d.globalnsName1 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName1)
-		d.globalnsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		d.globalnsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName2)
 	}
 
@@ -129,7 +130,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			// Create 2 pods and a service in global and non-global network diagnostic namespaces
 			var testPodName string
 			for i := 0; i < 2; i++ {
-				testPodName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
+				testPodName = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
 				if _, err := d.KubeClient.Core().Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
 					errList = append(errList, fmt.Errorf("Creating network diagnostic test pod '%s/%s' on node %q failed: %v", nsName, testPodName, node.Name, err))
@@ -138,7 +139,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			}
 
 			// Create network diags test service on the given node for the given namespace
-			testServiceName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
+			testServiceName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
 			if _, err := d.KubeClient.Core().Services(nsName).Create(GetTestService(testServiceName, testPodName, node.Name)); err != nil {
 				errList = append(errList, fmt.Errorf("Creating network diagnostic test service '%s/%s' on node %q failed: %v", nsName, testServiceName, node.Name, err))
 				continue

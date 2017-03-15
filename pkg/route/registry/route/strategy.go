@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/route"
@@ -23,7 +24,7 @@ const HostGeneratedAnnotationKey = "openshift.io/host.generated"
 
 type routeStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 	route.RouteAllocator
 }
 
@@ -32,7 +33,7 @@ type routeStrategy struct {
 func NewStrategy(allocator route.RouteAllocator) routeStrategy {
 	return routeStrategy{
 		kapi.Scheme,
-		kapi.SimpleNameGenerator,
+		names.SimpleNameGenerator,
 		allocator,
 	}
 }

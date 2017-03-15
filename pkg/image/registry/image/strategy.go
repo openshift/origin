@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/generic"
 
@@ -20,12 +21,12 @@ import (
 // imageStrategy implements behavior for Images.
 type imageStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 }
 
 // Strategy is the default logic that applies when creating and updating
 // Image objects via the REST API.
-var Strategy = imageStrategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = imageStrategy{kapi.Scheme, names.SimpleNameGenerator}
 
 // NamespaceScoped is false for images.
 func (imageStrategy) NamespaceScoped() bool {

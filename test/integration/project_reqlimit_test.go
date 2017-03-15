@@ -6,6 +6,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apiserver/pkg/storage/names"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -196,7 +197,7 @@ func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientCo
 			t.Fatalf("Error getting client for user %s: %v", user, err)
 		}
 		projectRequest := &projectapi.ProjectRequest{}
-		projectRequest.Name = kapi.SimpleNameGenerator.GenerateName("test-projectreq")
+		projectRequest.Name = names.SimpleNameGenerator.GenerateName("test-projectreq")
 		_, err = oclient.ProjectRequests().Create(projectRequest)
 		if err != nil && expectSuccess {
 			t.Errorf("%s: unexpected error for user %s: %v", errorPrefix, user, err)

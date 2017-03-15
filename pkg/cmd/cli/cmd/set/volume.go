@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -403,7 +404,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	if len(v.AddOpts.ClaimSize) > 0 {
 		v.AddOpts.CreateClaim = true
 		if len(v.AddOpts.ClaimName) == 0 {
-			v.AddOpts.ClaimName = kapi.SimpleNameGenerator.GenerateName("pvc-")
+			v.AddOpts.ClaimName = names.SimpleNameGenerator.GenerateName("pvc-")
 		}
 		q, err := kresource.ParseQuantity(v.AddOpts.ClaimSize)
 		if err != nil {
@@ -708,7 +709,7 @@ func (v *VolumeOptions) getVolumeName(spec *kapi.PodSpec, singleResource bool) (
 			return "", fmt.Errorf("ambiguous --overwrite, specify --name or --mount-path")
 		}
 	} else { // Generate volume name
-		name := kapi.SimpleNameGenerator.GenerateName(volumePrefix)
+		name := names.SimpleNameGenerator.GenerateName(volumePrefix)
 		if len(v.Output) == 0 {
 			fmt.Fprintf(v.Err, "info: Generated volume name: %s\n", name)
 		}

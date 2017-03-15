@@ -18,6 +18,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -59,7 +60,7 @@ type CLI struct {
 func NewCLI(project, adminConfigPath string) *CLI {
 	// Avoid every caller needing to provide a unique project name
 	// SetupProject already treats this as a baseName
-	uniqueProject := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", project))
+	uniqueProject := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", project))
 
 	client := &CLI{}
 	client.kubeFramework = e2e.NewDefaultFramework(uniqueProject)
@@ -149,7 +150,7 @@ func (c *CLI) SetOutputDir(dir string) *CLI {
 // All resources will be then created within this project and Kubernetes E2E
 // suite will destroy the project after test case finish.
 func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[string]string) (*kapi.Namespace, error) {
-	newNamespace := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
+	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("extended-test-%s-", name))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", c.Namespace()))
 	e2e.Logf("The user is now %q", c.Username())
 

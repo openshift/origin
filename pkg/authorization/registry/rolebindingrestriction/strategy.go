@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -17,10 +18,10 @@ import (
 
 type strategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 }
 
-var Strategy = strategy{kapi.Scheme, kapi.SimpleNameGenerator}
+var Strategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
 
 func (strategy) NamespaceScoped() bool {
 	return true

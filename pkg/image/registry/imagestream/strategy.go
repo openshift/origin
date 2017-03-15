@@ -15,6 +15,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kstorage "k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -31,7 +32,7 @@ type ResourceGetter interface {
 // Strategy implements behavior for ImageStreams.
 type Strategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 	defaultRegistry   api.DefaultRegistry
 	tagVerifier       *TagVerifier
 	limitVerifier     imageadmission.LimitVerifier
@@ -43,7 +44,7 @@ type Strategy struct {
 func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
 		ObjectTyper:       kapi.Scheme,
-		NameGenerator:     kapi.SimpleNameGenerator,
+		NameGenerator:     names.SimpleNameGenerator,
 		defaultRegistry:   defaultRegistry,
 		tagVerifier:       &TagVerifier{subjectAccessReviewClient},
 		limitVerifier:     limitVerifier,
