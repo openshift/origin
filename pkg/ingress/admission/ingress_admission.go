@@ -20,7 +20,7 @@ const (
 )
 
 func init() {
-	kadmission.RegisterPlugin(IngressAdmission, func(clien clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+	admission.RegisterPlugin(IngressAdmission, func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

@@ -87,7 +87,7 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 func registerAdmissionPlugins(t *testing.T, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(client kclientset.Interface, config io.Reader) (admission.Interface, error) {
+		admission.RegisterPlugin(pluginName, func(config io.Reader) (admission.Interface, error) {
 			plugin := &testAdmissionPlugin{
 				name: pluginName,
 			}

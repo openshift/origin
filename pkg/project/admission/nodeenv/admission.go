@@ -16,8 +16,8 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("OriginPodNodeEnvironment", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewPodNodeEnvironment(client)
+	admission.RegisterPlugin("OriginPodNodeEnvironment", func(config io.Reader) (admission.Interface, error) {
+		return NewPodNodeEnvironment()
 	})
 }
 
@@ -29,6 +29,7 @@ type podNodeEnvironment struct {
 }
 
 var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
+var _ = kadmission.WantsInternalKubeClientSet(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
@@ -75,6 +76,10 @@ func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {
 	p.cache = c
 }
 
+func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.client = c
+}
+
 func (p *podNodeEnvironment) Validate() error {
 	if p.cache == nil {
 		return fmt.Errorf("project node environment plugin needs a project cache")
@@ -82,9 +87,8 @@ func (p *podNodeEnvironment) Validate() error {
 	return nil
 }
 
-func NewPodNodeEnvironment(client clientset.Interface) (admission.Interface, error) {
+func NewPodNodeEnvironment() (admission.Interface, error) {
 	return &podNodeEnvironment{
 		Handler: admission.NewHandler(admission.Create),
-		client:  client,
 	}, nil
 }

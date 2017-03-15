@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	//kcache "k8s.io/client-go/tools/cache"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -570,20 +571,19 @@ func TestAdmission(t *testing.T) {
 		kclientset := fake.NewSimpleClientset(tc.objects...)
 		oclient := otestclient.NewSimpleFake(tc.objects...)
 
-		plugin, err := NewRestrictUsersAdmission(kclientset)
+		plugin, err := NewRestrictUsersAdmission()
 		if err != nil {
 			t.Errorf("unexpected error initializing admission plugin: %v", err)
 		}
 
-		plugins := []admission.Interface{plugin}
-
+		plugin.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kclientset)
 		plugin.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(oclient)
 
 		groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
 		plugin.(oadmission.WantsGroupCache).SetGroupCache(groupCache)
 		groupCache.Run()
 
-		err = admission.Validate(plugins)
+		err = admission.Validate(plugin)
 		if err != nil {
 			t.Errorf("unexpected error validating admission plugin: %v", err)
 		}

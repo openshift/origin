@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, input io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin(api.PluginName, func(input io.Reader) (admission.Interface, error) {
 		obj, err := configlatest.ReadYAML(input)
 		if err != nil {
 			return nil, err
@@ -45,7 +45,7 @@ func init() {
 			return nil, errs.ToAggregate()
 		}
 		glog.V(5).Infof("%s admission controller loaded with config: %#v", api.PluginName, config)
-		return newImagePolicyPlugin(client, config)
+		return newImagePolicyPlugin(config)
 	})
 }
 
@@ -78,7 +78,7 @@ type imageResolver interface {
 
 // imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
 // cluster.
-func newImagePolicyPlugin(client clientset.Interface, parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
+func newImagePolicyPlugin(parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
 	m := integratedRegistryMatcher{
 		RegistryMatcher: rules.NewRegistryMatcher(nil),
 	}

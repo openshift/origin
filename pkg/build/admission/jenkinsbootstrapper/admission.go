@@ -30,8 +30,8 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewJenkinsBootstrapper(c.Core()), nil
+	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(config io.Reader) (admission.Interface, error) {
+		return NewJenkinsBootstrapper(), nil
 	})
 }
 
@@ -48,12 +48,12 @@ type jenkinsBootstrapper struct {
 var _ = oadmission.WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsRESTClientConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsOpenshiftClient(&jenkinsBootstrapper{})
+var _ = kadmission.WantsInternalKubeClientSet(&jenkinsBootstrapper{})
 
 // NewJenkinsBootstrapper returns an admission plugin that will create required jenkins resources as the user if they are needed.
-func NewJenkinsBootstrapper(serviceClient coreclient.ServicesGetter) admission.Interface {
+func NewJenkinsBootstrapper() admission.Interface {
 	return &jenkinsBootstrapper{
-		Handler:       admission.NewHandler(admission.Create),
-		serviceClient: serviceClient,
+		Handler: admission.NewHandler(admission.Create),
 	}
 }
 
@@ -174,6 +174,10 @@ func (a *jenkinsBootstrapper) SetJenkinsPipelineConfig(jenkinsConfig configapi.J
 
 func (a *jenkinsBootstrapper) SetRESTClientConfig(restClientConfig restclient.Config) {
 	a.privilegedRESTClientConfig = restClientConfig
+}
+
+func (q *jenkinsBootstrapper) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.serviceClient = c.Core()
 }
 
 func (a *jenkinsBootstrapper) SetOpenshiftClient(oclient client.Interface) {

@@ -274,12 +274,12 @@ func getImageStreamMapping() *imageapi.ImageStreamMapping {
 }
 
 func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.SharedInformerFactory, error) {
-	plugin, err := NewImageLimitRangerPlugin(c, nil)
+	plugin, err := NewImageLimitRangerPlugin(nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	pluginInitializer := kubeadmission.NewPluginInitializer(f, nil, nil, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil)
 	pluginInitializer.Initialize(plugin)
 	err = kadmission.Validate(plugin)
 	return plugin, f, err
