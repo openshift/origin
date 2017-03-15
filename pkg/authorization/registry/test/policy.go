@@ -43,8 +43,8 @@ func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.
 	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }
 
 // ListPolicies obtains a list of policies that match a selector.
@@ -78,7 +78,7 @@ func (r *PolicyRegistry) ListPolicies(ctx apirequest.Context, options *metainter
 }
 
 // GetPolicy retrieves a specific policy.
-func (r *PolicyRegistry) GetPolicy(ctx apirequest.Context, id string) (*authorizationapi.Policy, error) {
+func (r *PolicyRegistry) GetPolicy(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.Policy, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -107,7 +107,7 @@ func (r *PolicyRegistry) CreatePolicy(ctx apirequest.Context, policy *authorizat
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
-	if existing, _ := r.GetPolicy(ctx, policy.Name); existing != nil {
+	if existing, _ := r.GetPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing != nil {
 		return fmt.Errorf("Policy %v::%v already exists", namespace, policy.Name)
 	}
 
@@ -126,7 +126,7 @@ func (r *PolicyRegistry) UpdatePolicy(ctx apirequest.Context, policy *authorizat
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
-	if existing, _ := r.GetPolicy(ctx, policy.Name); existing == nil {
+	if existing, _ := r.GetPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing == nil {
 		return fmt.Errorf("Policy %v::%v not found", namespace, policy.Name)
 	}
 

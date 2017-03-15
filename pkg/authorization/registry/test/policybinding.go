@@ -44,8 +44,8 @@ func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizat
 	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.
@@ -79,7 +79,7 @@ func (r *PolicyBindingRegistry) ListPolicyBindings(ctx apirequest.Context, optio
 }
 
 // GetPolicyBinding retrieves a specific policyBinding.
-func (r *PolicyBindingRegistry) GetPolicyBinding(ctx apirequest.Context, id string) (*authorizationapi.PolicyBinding, error) {
+func (r *PolicyBindingRegistry) GetPolicyBinding(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -108,7 +108,7 @@ func (r *PolicyBindingRegistry) CreatePolicyBinding(ctx apirequest.Context, poli
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
-	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing != nil {
+	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing != nil {
 		return fmt.Errorf("PolicyBinding %v::%v already exists", namespace, policyBinding.Name)
 	}
 
@@ -127,7 +127,7 @@ func (r *PolicyBindingRegistry) UpdatePolicyBinding(ctx apirequest.Context, poli
 	if len(namespace) == 0 {
 		return errors.New("invalid request.  Namespace parameter required.")
 	}
-	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name); existing == nil {
+	if existing, _ := r.GetPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing == nil {
 		return kapierrors.NewNotFound(authorizationapi.Resource("policybinding"), policyBinding.Name)
 	}
 
