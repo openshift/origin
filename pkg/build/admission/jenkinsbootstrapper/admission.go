@@ -11,12 +11,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -30,8 +31,8 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewJenkinsBootstrapper(c.Core()), nil
+	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(config io.Reader) (admission.Interface, error) {
+		return NewJenkinsBootstrapper(), nil
 	})
 }
 
@@ -48,12 +49,12 @@ type jenkinsBootstrapper struct {
 var _ = oadmission.WantsJenkinsPipelineConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsRESTClientConfig(&jenkinsBootstrapper{})
 var _ = oadmission.WantsOpenshiftClient(&jenkinsBootstrapper{})
+var _ = kadmission.WantsInternalKubeClientSet(&jenkinsBootstrapper{})
 
 // NewJenkinsBootstrapper returns an admission plugin that will create required jenkins resources as the user if they are needed.
-func NewJenkinsBootstrapper(serviceClient coreclient.ServicesGetter) admission.Interface {
+func NewJenkinsBootstrapper() admission.Interface {
 	return &jenkinsBootstrapper{
-		Handler:       admission.NewHandler(admission.Create),
-		serviceClient: serviceClient,
+		Handler: admission.NewHandler(admission.Create),
 	}
 }
 
@@ -178,6 +179,10 @@ func (a *jenkinsBootstrapper) SetJenkinsPipelineConfig(jenkinsConfig configapi.J
 
 func (a *jenkinsBootstrapper) SetRESTClientConfig(restClientConfig restclient.Config) {
 	a.privilegedRESTClientConfig = restClientConfig
+}
+
+func (q *jenkinsBootstrapper) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.serviceClient = c.Core()
 }
 
 func (a *jenkinsBootstrapper) SetOpenshiftClient(oclient client.Interface) {

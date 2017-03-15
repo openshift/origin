@@ -12,9 +12,8 @@ import (
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
@@ -28,7 +27,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin(api.PluginName, func(client clientset.Interface, input io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin(api.PluginName, func(input io.Reader) (admission.Interface, error) {
 		obj, err := configlatest.ReadYAML(input)
 		if err != nil {
 			return nil, err
@@ -44,7 +43,7 @@ func init() {
 			return nil, errs.ToAggregate()
 		}
 		glog.V(5).Infof("%s admission controller loaded with config: %#v", api.PluginName, config)
-		return newImagePolicyPlugin(client, config)
+		return newImagePolicyPlugin(config)
 	})
 }
 
@@ -77,7 +76,7 @@ type imageResolver interface {
 
 // imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
 // cluster.
-func newImagePolicyPlugin(client clientset.Interface, parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
+func newImagePolicyPlugin(parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, error) {
 	m := integratedRegistryMatcher{
 		RegistryMatcher: rules.NewRegistryMatcher(nil),
 	}

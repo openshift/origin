@@ -11,9 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -25,13 +26,13 @@ import (
 // TODO: modify the upstream plug-in so this can be collapsed
 // need ability to specify a RESTMapper on upstream version
 func init() {
-	admission.RegisterPlugin("OriginNamespaceLifecycle", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewLifecycle(client, recommendedCreatableResources)
+	admission.RegisterPlugin("OriginNamespaceLifecycle", func(config io.Reader) (admission.Interface, error) {
+		return NewLifecycle(recommendedCreatableResources)
 	})
 }
 
 type lifecycle struct {
-	client clientset.Interface
+	client kclientset.Interface
 	cache  *cache.ProjectCache
 
 	// creatableResources is a set of resources that can be created even if the namespace is terminating
@@ -54,6 +55,7 @@ var recommendedCreatableResources = map[schema.GroupResource]bool{
 	authorizationapi.LegacyResource("subjectrulesreviews"):        true,
 }
 var _ = oadmission.WantsProjectCache(&lifecycle{})
+var _ = kadmission.WantsInternalKubeClientSet(&lifecycle{})
 
 // Admit enforces that a namespace must have the openshift finalizer associated with it in order to create origin API objects within it
 func (e *lifecycle) Admit(a admission.Attributes) (err error) {
@@ -127,6 +129,10 @@ func (e *lifecycle) SetProjectCache(c *cache.ProjectCache) {
 	e.cache = c
 }
 
+func (q *lifecycle) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.client = c
+}
+
 func (e *lifecycle) Validate() error {
 	if e.cache == nil {
 		return fmt.Errorf("project lifecycle plugin needs a project cache")
@@ -134,9 +140,8 @@ func (e *lifecycle) Validate() error {
 	return nil
 }
 
-func NewLifecycle(client clientset.Interface, creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
+func NewLifecycle(creatableResources map[schema.GroupResource]bool) (admission.Interface, error) {
 	return &lifecycle{
-		client:             client,
 		creatableResources: creatableResources,
 	}, nil
 }

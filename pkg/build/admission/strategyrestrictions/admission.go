@@ -6,9 +6,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -17,7 +16,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("BuildByStrategy", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("BuildByStrategy", func(config io.Reader) (admission.Interface, error) {
 		return NewBuildByStrategy(), nil
 	})
 }
@@ -148,13 +147,13 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 func (a *buildByStrategy) checkBuildRequestAuthorization(req *buildapi.BuildRequest, attr admission.Attributes) error {
 	switch attr.GetResource().GroupResource() {
 	case buildsResource, legacyBuildsResource:
-		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
+		build, err := a.client.Builds(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
 		return a.checkBuildAuthorization(build, attr)
 	case buildConfigsResource, legacyBuildConfigsResource:
-		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name, metav1.GetOptions{})
+		build, err := a.client.BuildConfigs(attr.GetNamespace()).Get(req.Name)
 		if err != nil {
 			return admission.NewForbidden(attr, err)
 		}
