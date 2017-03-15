@@ -32,8 +32,8 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 func (r *ClusterPolicyBindingRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return r.ListClusterPolicyBindings(apirequest.NewContext(), &options)
 }
-func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	return r.GetClusterPolicyBinding(apirequest.NewContext(), name)
+func (r *ClusterPolicyBindingRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.GetClusterPolicyBinding(apirequest.NewContext(), name, &options)
 }
 
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
@@ -67,7 +67,7 @@ func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx apirequest.
 }
 
 // GetClusterPolicyBinding retrieves a specific policyBinding.
-func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx apirequest.Context, id string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -96,7 +96,7 @@ func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx apirequest
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing != nil {
+	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing != nil {
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
@@ -115,7 +115,7 @@ func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx apirequest
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing == nil {
+	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing == nil {
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
