@@ -138,15 +138,6 @@
         },
         {
 	    "type": "bind",
-	    "source": "/usr/bin/docker-current",
-	    "destination": "/usr/bin/docker-current",
-	    "options": [
-		"rbind",
-		"ro"
-	    ]
-        },
-        {
-	    "type": "bind",
 	    "source": "/etc/localtime",
 	    "destination": "/etc/localtime",
 	    "options": [
@@ -161,16 +152,6 @@
 	    "options": [
 		"rbind",
 		"ro"
-	    ]
-        },
-        {
-	    "type": "bind",
-	    "source": "/etc/origin/sdn",
-	    "destination": "/etc/openshift-sdn",
-	    "options": [
-		"rbind",
-		"rw",
-		"mode=755"
 	    ]
         },
         {
@@ -215,7 +196,7 @@
         },
         {
 	    "type": "bind",
-	    "source": "/etc/origin/openvswitch",
+	    "source": "$ORIGIN_CONFIG_DIR/openvswitch",
 	    "destination": "/etc/openvswitch",
 	    "options": [
 		"rbind",
@@ -225,7 +206,7 @@
         },
         {
 	    "type": "bind",
-	    "source": "/var/lib/origin",
+	    "source": "$ORIGIN_DATA_DIR",
 	    "destination": "/var/lib/origin",
 	    "options": [
 		"rbind",
@@ -295,8 +276,28 @@
         },
         {
 	    "type": "bind",
-	    "source": "/etc/origin/node",
+	    "source": "$ORIGIN_CONFIG_DIR/sdn",
+	    "destination": "/etc/openshift-sdn",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "$ORIGIN_CONFIG_DIR/node",
 	    "destination": "/etc/origin/node",
+	    "options": [
+		"rbind",
+		"rw",
+		"mode=755"
+	    ]
+        },
+        {
+	    "type": "bind",
+	    "source": "$ORIGIN_CONFIG_DIR/cloudprovider",
+	    "destination": "/etc/origin/cloudprovider",
 	    "options": [
 		"rbind",
 		"rw",
