@@ -44,8 +44,8 @@ func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizat
 	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
+func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.

@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type BuildsNamespacer interface {
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
 	List(opts metainternal.ListOptions) (*buildapi.BuildList, error)
-	Get(name string) (*buildapi.Build, error)
+	Get(name string, options metav1.GetOptions) (*buildapi.Build, error)
 	Create(build *buildapi.Build) (*buildapi.Build, error)
 	Update(build *buildapi.Build) (*buildapi.Build, error)
 	Delete(name string) error
@@ -52,9 +53,9 @@ func (c *builds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error
 }
 
 // Get returns information about a particular build and error if one occurs.
-func (c *builds) Get(name string) (*buildapi.Build, error) {
+func (c *builds) Get(name string, options metav1.GetOptions) (*buildapi.Build, error) {
 	result := &buildapi.Build{}
-	err := c.r.Get().Namespace(c.ns).Resource("builds").Name(name).Do().Into(result)
+	err := c.r.Get().Namespace(c.ns).Resource("builds").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return result, err
 }
 

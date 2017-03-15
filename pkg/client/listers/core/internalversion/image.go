@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/image/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type ImageNamespaceLister interface {
 	// List lists all Images in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.Image, err error)
 	// Get retrieves the Image from the indexer for a given namespace and name.
-	Get(name string) (*api.Image, error)
+	Get(name string, options metav1.GetOptions) (*api.Image, error)
 	ImageNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s imageNamespaceLister) List(selector labels.Selector) (ret []*api.Image, 
 }
 
 // Get retrieves the Image from the indexer for a given namespace and name.
-func (s imageNamespaceLister) Get(name string) (*api.Image, error) {
+func (s imageNamespaceLister) Get(name string, options metav1.GetOptions) (*api.Image, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

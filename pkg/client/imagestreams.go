@@ -5,6 +5,7 @@ import (
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -22,7 +23,7 @@ type ImageStreamsNamespacer interface {
 // ImageStreamInterface exposes methods on ImageStream resources.
 type ImageStreamInterface interface {
 	List(opts metainternal.ListOptions) (*imageapi.ImageStreamList, error)
-	Get(name string) (*imageapi.ImageStream, error)
+	Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error)
 	Create(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Delete(name string) error
@@ -63,9 +64,9 @@ func (c *imageStreams) List(opts metainternal.ListOptions) (result *imageapi.Ima
 }
 
 // Get returns information about a particular image stream and error if one occurs.
-func (c *imageStreams) Get(name string) (result *imageapi.ImageStream, err error) {
+func (c *imageStreams) Get(name string, options metav1.GetOptions) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	err = c.r.Get().Namespace(c.ns).Resource("imageStreams").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageStreams").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

@@ -60,7 +60,7 @@ func (i *indexerToPolicyLister) List(options metainternal.ListOptions) (*authori
 	return policyList, nil
 }
 
-func (i *indexerToPolicyLister) Get(name string) (*authorizationapi.Policy, error) {
+func (i *indexerToPolicyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
 	keyObj := &authorizationapi.Policy{ObjectMeta: metav1.ObjectMeta{Namespace: i.namespace, Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 

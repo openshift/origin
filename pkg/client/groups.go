@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type GroupsInterface interface {
 // GroupInterface exposes methods on group resources.
 type GroupInterface interface {
 	List(opts metainternal.ListOptions) (*userapi.GroupList, error)
-	Get(name string) (*userapi.Group, error)
+	Get(name string, options metav1.GetOptions) (*userapi.Group, error)
 	Create(group *userapi.Group) (*userapi.Group, error)
 	Update(group *userapi.Group) (*userapi.Group, error)
 	Delete(name string) error
@@ -47,9 +48,9 @@ func (c *groups) List(opts metainternal.ListOptions) (result *userapi.GroupList,
 }
 
 // Get returns information about a particular group or an error
-func (c *groups) Get(name string) (result *userapi.Group, err error) {
+func (c *groups) Get(name string, options metav1.GetOptions) (result *userapi.Group, err error) {
 	result = &userapi.Group{}
-	err = c.r.Get().Resource("groups").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("groups").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

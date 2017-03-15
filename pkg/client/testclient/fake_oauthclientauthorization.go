@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -15,7 +16,7 @@ type FakeOAuthClientAuthorization struct {
 
 var oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
 
-func (c *FakeOAuthClientAuthorization) Get(name string) (*oauthapi.OAuthClientAuthorization, error) {
+func (c *FakeOAuthClientAuthorization) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClientAuthorization, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(oAuthClientAuthorizationsResource, name), &oauthapi.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err

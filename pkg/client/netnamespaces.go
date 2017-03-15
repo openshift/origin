@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type NetNamespacesInterface interface {
 // NetNamespaceInterface exposes methods on NetNamespace resources.
 type NetNamespaceInterface interface {
 	List(opts metainternal.ListOptions) (*sdnapi.NetNamespaceList, error)
-	Get(name string) (*sdnapi.NetNamespace, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error)
 	Create(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
 	Update(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
 	Delete(name string) error
@@ -47,7 +48,7 @@ func (c *netNamespace) List(opts metainternal.ListOptions) (result *sdnapi.NetNa
 }
 
 // Get returns information about a particular NetNamespace or an error
-func (c *netNamespace) Get(netname string) (result *sdnapi.NetNamespace, err error) {
+func (c *netNamespace) Get(netname string, options metav1.GetOptions) (result *sdnapi.NetNamespace, err error) {
 	result = &sdnapi.NetNamespace{}
 	err = c.r.Get().Resource("netNamespaces").Name(netname).Do().Into(result)
 	return

@@ -43,8 +43,8 @@ func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.
 	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
+func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
 }
 
 // ListPolicies obtains a list of policies that match a selector.

@@ -25,8 +25,12 @@ func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry,
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		nil,
 		nil,
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
+		},
 	)
 
 	return &ClusterRoleStorage{
@@ -57,21 +61,21 @@ func (s *ClusterRoleStorage) List(ctx apirequest.Context, options *metainternal.
 	return authorizationapi.ToClusterRoleList(ret.(*authorizationapi.RoleList)), err
 }
 
-func (s *ClusterRoleStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	ret, err := s.roleStorage.Get(ctx, name)
+func (s *ClusterRoleStorage) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	ret, err := s.roleStorage.Get(ctx, name, options)
 	if ret == nil {
 		return nil, err
 	}
 
 	return authorizationapi.ToClusterRole(ret.(*authorizationapi.Role)), err
 }
-func (s *ClusterRoleStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
-	ret, err := s.roleStorage.Delete(ctx, name, options)
+func (s *ClusterRoleStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	ret, immediate, err := s.roleStorage.Delete(ctx, name, options)
 	if ret == nil {
-		return nil, err
+		return nil, immediate, err
 	}
 
-	return ret.(*metav1.Status), err
+	return ret.(*metav1.Status), false, err
 }
 
 func (s *ClusterRoleStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {

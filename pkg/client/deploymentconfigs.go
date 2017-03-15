@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -20,7 +21,7 @@ type DeploymentConfigsNamespacer interface {
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
 	List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
-	Get(name string) (*deployapi.DeploymentConfig, error)
+	Get(name string, options metav1.GetOptions) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Delete(name string) error
@@ -61,9 +62,9 @@ func (c *deploymentConfigs) List(opts metainternal.ListOptions) (result *deploya
 }
 
 // Get returns information about a particular deploymentConfig
-func (c *deploymentConfigs) Get(name string) (result *deployapi.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Get(name string, options metav1.GetOptions) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -177,7 +178,7 @@ func UpdateConfigWithRetries(dn DeploymentConfigsNamespacer, namespace, name str
 
 	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
-		config, err = dn.DeploymentConfigs(namespace).Get(name)
+		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

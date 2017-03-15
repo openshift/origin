@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type RoutesNamespacer interface {
 // RouteInterface exposes methods on Route resources
 type RouteInterface interface {
 	List(opts metainternal.ListOptions) (*routeapi.RouteList, error)
-	Get(name string) (*routeapi.Route, error)
+	Get(name string, options metav1.GetOptions) (*routeapi.Route, error)
 	Create(route *routeapi.Route) (*routeapi.Route, error)
 	Update(route *routeapi.Route) (*routeapi.Route, error)
 	UpdateStatus(route *routeapi.Route) (*routeapi.Route, error)
@@ -51,9 +52,9 @@ func (c *routes) List(opts metainternal.ListOptions) (result *routeapi.RouteList
 }
 
 // Get takes the name of the route, and returns the corresponding Route object, and an error if it occurs
-func (c *routes) Get(name string) (result *routeapi.Route, err error) {
+func (c *routes) Get(name string, options metav1.GetOptions) (result *routeapi.Route, err error) {
 	result = &routeapi.Route{}
-	err = c.r.Get().Namespace(c.ns).Resource("routes").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("routes").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

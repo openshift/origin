@@ -38,7 +38,7 @@ func (i *InformerToClusterPolicyLister) List(options metainternal.ListOptions) (
 	return clusterPolicyList, nil
 }
 
-func (i *InformerToClusterPolicyLister) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+func (i *InformerToClusterPolicyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	keyObj := &authorizationapi.ClusterPolicy{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 

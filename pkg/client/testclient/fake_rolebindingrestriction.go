@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -19,7 +20,7 @@ type FakeRoleBindingRestrictions struct {
 
 var roleBindingRestritionsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindingrestrictions"}
 
-func (c *FakeRoleBindingRestrictions) Get(name string) (*authorizationapi.RoleBindingRestriction, error) {
+func (c *FakeRoleBindingRestrictions) Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBindingRestriction, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(roleBindingRestritionsResource, c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
 	if obj == nil {
 		return nil, err

@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type ClusterPolicyBindingsInterface interface {
 // ClusterPolicyBindingInterface exposes methods on ClusterPolicyBindings resources
 type ClusterPolicyBindingInterface interface {
 	List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
-	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 	Create(policyBinding *authorizationapi.ClusterPolicyBinding) (*authorizationapi.ClusterPolicyBinding, error)
 	Delete(name string) error
 	Watch(opts metainternal.ListOptions) (watch.Interface, error)
@@ -27,7 +28,7 @@ type ClusterPolicyBindingsListerInterface interface {
 }
 type ClusterPolicyBindingLister interface {
 	List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
-	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 }
 type SyncedClusterPolicyBindingsListerInterface interface {
 	ClusterPolicyBindingsListerInterface
@@ -53,9 +54,9 @@ func (c *clusterPolicyBindings) List(opts metainternal.ListOptions) (result *aut
 }
 
 // Get returns information about a particular clusterPolicyBindings and error if one occurs.
-func (c *clusterPolicyBindings) Get(name string) (result *authorizationapi.ClusterPolicyBinding, err error) {
+func (c *clusterPolicyBindings) Get(name string, options metav1.GetOptions) (result *authorizationapi.ClusterPolicyBinding, err error) {
 	result = &authorizationapi.ClusterPolicyBinding{}
-	err = c.r.Get().Resource("clusterPolicyBindings").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterPolicyBindings").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

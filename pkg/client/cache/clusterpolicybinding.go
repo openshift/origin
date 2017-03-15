@@ -38,7 +38,7 @@ func (i *InformerToClusterPolicyBindingLister) List(options metainternal.ListOpt
 	return clusterPolicyBindingList, nil
 }
 
-func (i *InformerToClusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (i *InformerToClusterPolicyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 

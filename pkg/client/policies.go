@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type PoliciesNamespacer interface {
 // PolicyInterface exposes methods on Policy resources.
 type PolicyInterface interface {
 	List(opts metainternal.ListOptions) (*authorizationapi.PolicyList, error)
-	Get(name string) (*authorizationapi.Policy, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error)
 	Delete(name string) error
 	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
@@ -30,7 +31,7 @@ type SyncedPoliciesListerNamespacer interface {
 }
 type PolicyLister interface {
 	List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error)
-	Get(name string) (*authorizationapi.Policy, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error)
 }
 
 // policies implements PoliciesNamespacer interface
@@ -55,9 +56,9 @@ func (c *policies) List(opts metainternal.ListOptions) (result *authorizationapi
 }
 
 // Get returns information about a particular policy and error if one occurs.
-func (c *policies) Get(name string) (result *authorizationapi.Policy, err error) {
+func (c *policies) Get(name string, options metav1.GetOptions) (result *authorizationapi.Policy, err error) {
 	result = &authorizationapi.Policy{}
-	err = c.r.Get().Namespace(c.ns).Resource("policies").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("policies").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

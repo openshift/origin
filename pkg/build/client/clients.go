@@ -4,6 +4,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // BuildConfigGetter provides methods for getting BuildConfigs
@@ -27,8 +28,8 @@ func NewOSClientBuildConfigClient(client osclient.Interface) *OSClientBuildConfi
 }
 
 // Get returns a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Get(namespace, name string) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name)
+func (c OSClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	return c.Client.BuildConfigs(namespace).Get(name, options)
 }
 
 // Update updates a BuildConfig using the OpenShift client.

@@ -130,3 +130,15 @@ func (s ReadOnlyClusterPolicyBinding) List(options metainternal.ListOptions) (*a
 func (s ReadOnlyClusterPolicyBinding) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	return s.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
 }
+
+type ReadOnlyClusterPolicyBindingClientShim struct {
+	ReadOnlyClusterPolicyBinding
+}
+
+func (r *ReadOnlyClusterPolicyBindingClientShim) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return r.ReadOnlyClusterPolicyBinding.List(options)
+}
+
+func (r *ReadOnlyClusterPolicyBindingClientShim) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.ReadOnlyClusterPolicyBinding.Get(name, &options)
+}

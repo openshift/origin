@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -15,7 +16,7 @@ type OAuthClientsInterface interface {
 type OAuthClientInterface interface {
 	Create(obj *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error)
 	List(opts metainternal.ListOptions) (*oauthapi.OAuthClientList, error)
-	Get(name string) (*oauthapi.OAuthClient, error)
+	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error)
 	Delete(name string) error
 	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 	Update(client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error)
@@ -43,9 +44,9 @@ func (c *oauthClients) List(opts metainternal.ListOptions) (result *oauthapi.OAu
 	return
 }
 
-func (c *oauthClients) Get(name string) (result *oauthapi.OAuthClient, err error) {
+func (c *oauthClients) Get(name string, options metav1.GetOptions) (result *oauthapi.OAuthClient, err error) {
 	result = &oauthapi.OAuthClient{}
-	err = c.r.Get().Resource("oauthclients").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("oauthclients").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

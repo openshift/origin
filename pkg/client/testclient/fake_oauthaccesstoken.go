@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	core "k8s.io/client-go/testing"
 
@@ -31,7 +32,7 @@ func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauth
 }
 
 // Get returns information about a particular image and error if one occurs.
-func (c *FakeOAuthAccessTokens) Get(name string) (*oauthapi.OAuthAccessToken, error) {
+func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthAccessToken, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
 	if obj == nil {
 		return nil, err

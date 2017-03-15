@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -17,7 +18,7 @@ type FakeProjects struct {
 
 var projectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
 
-func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
+func (c *FakeProjects) Get(name string, options metav1.GetOptions) (*projectapi.Project, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(projectsResource, name), &projectapi.Project{})
 	if obj == nil {
 		return nil, err

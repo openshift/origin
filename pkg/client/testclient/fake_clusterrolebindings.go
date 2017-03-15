@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	core "k8s.io/client-go/testing"
 
@@ -16,7 +17,7 @@ type FakeClusterRoleBindings struct {
 
 var clusterRoleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterrolebindings"}
 
-func (c *FakeClusterRoleBindings) Get(name string) (*authorizationapi.ClusterRoleBinding, error) {
+func (c *FakeClusterRoleBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterRoleBinding, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterRoleBindingsResource, name), &authorizationapi.ClusterRoleBinding{})
 	if obj == nil {
 		return nil, err

@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type EgressNetworkPoliciesNamespacer interface {
 // EgressNetworkPolicyInterface exposes methods on egressNetworkPolicy resources.
 type EgressNetworkPolicyInterface interface {
 	List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error)
-	Get(name string) (*sdnapi.EgressNetworkPolicy, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error)
 	Create(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Update(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Delete(name string) error
@@ -50,9 +51,9 @@ func (c *egressNetworkPolicy) List(opts metainternal.ListOptions) (result *sdnap
 }
 
 // Get returns information about a particular firewall
-func (c *egressNetworkPolicy) Get(name string) (result *sdnapi.EgressNetworkPolicy, err error) {
+func (c *egressNetworkPolicy) Get(name string, options metav1.GetOptions) (result *sdnapi.EgressNetworkPolicy, err error) {
 	result = &sdnapi.EgressNetworkPolicy{}
-	err = c.r.Get().Namespace(c.ns).Resource("egressNetworkPolicies").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("egressNetworkPolicies").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

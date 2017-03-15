@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/template/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type TemplateNamespaceLister interface {
 	// List lists all Templates in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.Template, err error)
 	// Get retrieves the Template from the indexer for a given namespace and name.
-	Get(name string) (*api.Template, error)
+	Get(name string, options metav1.GetOptions) (*api.Template, error)
 	TemplateNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s templateNamespaceLister) List(selector labels.Selector) (ret []*api.Temp
 }
 
 // Get retrieves the Template from the indexer for a given namespace and name.
-func (s templateNamespaceLister) Get(name string) (*api.Template, error) {
+func (s templateNamespaceLister) Get(name string, options metav1.GetOptions) (*api.Template, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

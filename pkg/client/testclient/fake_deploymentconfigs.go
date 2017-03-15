@@ -20,7 +20,7 @@ type FakeDeploymentConfigs struct {
 
 var deploymentConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "deploymentconfigs"}
 
-func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, error) {
+func (c *FakeDeploymentConfigs) Get(name string, options metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(deploymentConfigsResource, c.Namespace, name), &deployapi.DeploymentConfig{})
 	if obj == nil {
 		return nil, err

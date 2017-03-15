@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/route/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type RouteNamespaceLister interface {
 	// List lists all Routes in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.Route, err error)
 	// Get retrieves the Route from the indexer for a given namespace and name.
-	Get(name string) (*api.Route, error)
+	Get(name string, options metav1.GetOptions) (*api.Route, error)
 	RouteNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s routeNamespaceLister) List(selector labels.Selector) (ret []*api.Route, 
 }
 
 // Get retrieves the Route from the indexer for a given namespace and name.
-func (s routeNamespaceLister) Get(name string) (*api.Route, error) {
+func (s routeNamespaceLister) Get(name string, options metav1.GetOptions) (*api.Route, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

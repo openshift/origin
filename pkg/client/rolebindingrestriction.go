@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -14,7 +15,7 @@ type RoleBindingRestrictionsNamespacer interface {
 
 type RoleBindingRestrictionInterface interface {
 	List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error)
-	Get(name string) (*authorizationapi.RoleBindingRestriction, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBindingRestriction, error)
 	Create(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Update(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Delete(name string) error
@@ -45,7 +46,7 @@ func (c *roleBindingRestrictions) List(opts metainternal.ListOptions) (result *a
 	return
 }
 
-func (c *roleBindingRestrictions) Get(name string) (result *authorizationapi.RoleBindingRestriction, err error) {
+func (c *roleBindingRestrictions) Get(name string, options metav1.GetOptions) (result *authorizationapi.RoleBindingRestriction, err error) {
 	result = &authorizationapi.RoleBindingRestriction{}
 	err = c.r.Get().
 		Namespace(c.ns).

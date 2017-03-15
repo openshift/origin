@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -15,7 +16,7 @@ type ClusterRoleBindingsInterface interface {
 // ClusterRoleBindingInterface exposes methods on ClusterRoleBindings resources
 type ClusterRoleBindingInterface interface {
 	List(opts metainternal.ListOptions) (*authorizationapi.ClusterRoleBindingList, error)
-	Get(name string) (*authorizationapi.ClusterRoleBinding, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterRoleBinding, error)
 	Update(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
 	Create(roleBinding *authorizationapi.ClusterRoleBinding) (*authorizationapi.ClusterRoleBinding, error)
 	Delete(name string) error
@@ -40,9 +41,9 @@ func (c *clusterRoleBindings) List(opts metainternal.ListOptions) (result *autho
 }
 
 // Get returns information about a particular roleBinding and error if one occurs.
-func (c *clusterRoleBindings) Get(name string) (result *authorizationapi.ClusterRoleBinding, err error) {
+func (c *clusterRoleBindings) Get(name string, options metav1.GetOptions) (result *authorizationapi.ClusterRoleBinding, err error) {
 	result = &authorizationapi.ClusterRoleBinding{}
-	err = c.r.Get().Resource("clusterRoleBindings").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterRoleBindings").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

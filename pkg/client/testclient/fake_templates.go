@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -18,7 +19,7 @@ type FakeTemplates struct {
 
 var templatesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
 
-func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
+func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateapi.Template, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})
 	if obj == nil {
 		return nil, err

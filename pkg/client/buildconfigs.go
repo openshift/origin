@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -24,7 +25,7 @@ type BuildConfigsNamespacer interface {
 // BuildConfigInterface exposes methods on BuildConfig resources
 type BuildConfigInterface interface {
 	List(opts metainternal.ListOptions) (*buildapi.BuildConfigList, error)
-	Get(name string) (*buildapi.BuildConfig, error)
+	Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error)
 	Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
@@ -63,9 +64,9 @@ func (c *buildConfigs) List(opts metainternal.ListOptions) (result *buildapi.Bui
 }
 
 // Get returns information about a particular buildconfig and error if one occurs.
-func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error) {
+func (c *buildConfigs) Get(name string, options metav1.GetOptions) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -74,9 +75,9 @@ func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error
 func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
 	switch {
 	case trigger.GenericWebHook != nil:
-		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
 	case trigger.GitHubWebHook != nil:
-		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
+		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}

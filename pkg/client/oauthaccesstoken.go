@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -15,7 +16,7 @@ type OAuthAccessTokensInterface interface {
 // OAuthAccessTokenInterface exposes methods on OAuthAccessTokens resources.
 type OAuthAccessTokenInterface interface {
 	Create(token *oauthapi.OAuthAccessToken) (*oauthapi.OAuthAccessToken, error)
-	Get(name string) (*oauthapi.OAuthAccessToken, error)
+	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthAccessToken, error)
 	List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error)
 	Delete(name string) error
 }
@@ -31,9 +32,9 @@ func newOAuthAccessTokens(c *Client) *oauthAccessTokenInterface {
 }
 
 // Get returns information about a particular token and error if one occurs.
-func (c *oauthAccessTokenInterface) Get(name string) (result *oauthapi.OAuthAccessToken, err error) {
+func (c *oauthAccessTokenInterface) Get(name string, options metav1.GetOptions) (result *oauthapi.OAuthAccessToken, err error) {
 	result = &oauthapi.OAuthAccessToken{}
-	err = c.r.Get().Resource("oauthaccesstokens").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("oauthaccesstokens").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -18,7 +19,7 @@ type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Update(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
-	Get(name string) (*projectapi.Project, error)
+	Get(name string, options metav1.GetOptions) (*projectapi.Project, error)
 	List(opts metainternal.ListOptions) (*projectapi.ProjectList, error)
 	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
@@ -35,9 +36,9 @@ func newProjects(c *Client) *projects {
 }
 
 // Get returns information about a particular project or an error
-func (c *projects) Get(name string) (result *projectapi.Project, err error) {
+func (c *projects) Get(name string, options metav1.GetOptions) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Get().Resource("projects").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("projects").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

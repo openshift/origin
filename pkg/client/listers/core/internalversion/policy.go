@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type PolicyNamespaceLister interface {
 	// List lists all Policies in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.Policy, err error)
 	// Get retrieves the Policy from the indexer for a given namespace and name.
-	Get(name string) (*api.Policy, error)
+	Get(name string, options metav1.GetOptions) (*api.Policy, error)
 	PolicyNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s policyNamespaceLister) List(selector labels.Selector) (ret []*api.Policy
 }
 
 // Get retrieves the Policy from the indexer for a given namespace and name.
-func (s policyNamespaceLister) Get(name string) (*api.Policy, error) {
+func (s policyNamespaceLister) Get(name string, options metav1.GetOptions) (*api.Policy, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

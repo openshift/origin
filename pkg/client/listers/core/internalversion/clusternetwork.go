@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/sdn/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type ClusterNetworkNamespaceLister interface {
 	// List lists all ClusterNetworks in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.ClusterNetwork, err error)
 	// Get retrieves the ClusterNetwork from the indexer for a given namespace and name.
-	Get(name string) (*api.ClusterNetwork, error)
+	Get(name string, options metav1.GetOptions) (*api.ClusterNetwork, error)
 	ClusterNetworkNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s clusterNetworkNamespaceLister) List(selector labels.Selector) (ret []*ap
 }
 
 // Get retrieves the ClusterNetwork from the indexer for a given namespace and name.
-func (s clusterNetworkNamespaceLister) Get(name string) (*api.ClusterNetwork, error) {
+func (s clusterNetworkNamespaceLister) Get(name string, options metav1.GetOptions) (*api.ClusterNetwork, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

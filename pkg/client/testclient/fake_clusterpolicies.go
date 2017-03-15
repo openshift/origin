@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -17,7 +18,7 @@ type FakeClusterPolicies struct {
 
 var clusterPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterpolicies"}
 
-func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
 	if obj == nil {
 		return nil, err

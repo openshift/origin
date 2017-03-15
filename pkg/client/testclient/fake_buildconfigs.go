@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -23,7 +24,7 @@ type FakeBuildConfigs struct {
 
 var buildConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
 
-func (c *FakeBuildConfigs) Get(name string) (*buildapi.BuildConfig, error) {
+func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
 	if obj == nil {
 		return nil, err

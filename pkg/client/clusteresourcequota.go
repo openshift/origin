@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -14,7 +15,7 @@ type ClusterResourceQuotasInterface interface {
 
 type ClusterResourceQuotaInterface interface {
 	List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
-	Get(name string) (*quotaapi.ClusterResourceQuota, error)
+	Get(name string, options metav1.GetOptions) (*quotaapi.ClusterResourceQuota, error)
 	Create(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Update(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Delete(name string) error
@@ -40,9 +41,9 @@ func (c *clusterResourceQuotas) List(opts metainternal.ListOptions) (result *quo
 	return
 }
 
-func (c *clusterResourceQuotas) Get(name string) (result *quotaapi.ClusterResourceQuota, err error) {
+func (c *clusterResourceQuotas) Get(name string, options metav1.GetOptions) (result *quotaapi.ClusterResourceQuota, err error) {
 	result = &quotaapi.ClusterResourceQuota{}
-	err = c.r.Get().Resource("clusterresourcequotas").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterresourcequotas").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

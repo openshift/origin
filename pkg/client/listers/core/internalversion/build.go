@@ -5,6 +5,7 @@ package internalversion
 import (
 	api "github.com/openshift/origin/pkg/build/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -46,7 +47,7 @@ type BuildNamespaceLister interface {
 	// List lists all Builds in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*api.Build, err error)
 	// Get retrieves the Build from the indexer for a given namespace and name.
-	Get(name string) (*api.Build, error)
+	Get(name string, options metav1.GetOptions) (*api.Build, error)
 	BuildNamespaceListerExpansion
 }
 
@@ -66,7 +67,7 @@ func (s buildNamespaceLister) List(selector labels.Selector) (ret []*api.Build, 
 }
 
 // Get retrieves the Build from the indexer for a given namespace and name.
-func (s buildNamespaceLister) Get(name string) (*api.Build, error) {
+func (s buildNamespaceLister) Get(name string, options metav1.GetOptions) (*api.Build, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

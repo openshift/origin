@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	core "k8s.io/client-go/testing"
 
@@ -20,7 +21,7 @@ var _ client.ImageInterface = &FakeImages{}
 
 var imagesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "images"}
 
-func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
+func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Image, error) {
 	obj, err := c.Fake.Invokes(core.NewRootGetAction(imagesResource, name), &imageapi.Image{})
 	if obj == nil {
 		return nil, err

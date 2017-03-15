@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -18,7 +19,7 @@ type FakePolicyBindings struct {
 
 var policyBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "policybindings"}
 
-func (c *FakePolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (c *FakePolicyBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(policyBindingsResource, c.Namespace, name), &authorizationapi.PolicyBinding{})
 	if obj == nil {
 		return nil, err

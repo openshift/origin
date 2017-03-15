@@ -25,8 +25,12 @@ func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Re
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		nil,
 		nil,
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		},
 	)
 
 	return &ClusterRoleBindingStorage{
@@ -58,21 +62,21 @@ func (s *ClusterRoleBindingStorage) List(ctx apirequest.Context, options *metain
 	return authorizationapi.ToClusterRoleBindingList(ret.(*authorizationapi.RoleBindingList)), err
 }
 
-func (s *ClusterRoleBindingStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	ret, err := s.roleBindingStorage.Get(ctx, name)
+func (s *ClusterRoleBindingStorage) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	ret, err := s.roleBindingStorage.Get(ctx, name, options)
 	if ret == nil {
 		return nil, err
 	}
 
 	return authorizationapi.ToClusterRoleBinding(ret.(*authorizationapi.RoleBinding)), err
 }
-func (s *ClusterRoleBindingStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
-	ret, err := s.roleBindingStorage.Delete(ctx, name, options)
+func (s *ClusterRoleBindingStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	ret, immediate, err := s.roleBindingStorage.Delete(ctx, name, options)
 	if ret == nil {
-		return nil, err
+		return nil, immediate, err
 	}
 
-	return ret.(*metav1.Status), err
+	return ret.(*metav1.Status), false, err
 }
 
 func (s *ClusterRoleBindingStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {

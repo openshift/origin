@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type TemplatesNamespacer interface {
 // TemplateInterface exposes methods on Template resources.
 type TemplateInterface interface {
 	List(opts metainternal.ListOptions) (*templateapi.TemplateList, error)
-	Get(name string) (*templateapi.Template, error)
+	Get(name string, options metav1.GetOptions) (*templateapi.Template, error)
 	Create(template *templateapi.Template) (*templateapi.Template, error)
 	Update(template *templateapi.Template) (*templateapi.Template, error)
 	Delete(name string) error
@@ -50,9 +51,9 @@ func (c *templates) List(opts metainternal.ListOptions) (result *templateapi.Tem
 }
 
 // Get returns information about a particular template and error if one occurs.
-func (c *templates) Get(name string) (result *templateapi.Template, err error) {
+func (c *templates) Get(name string, options metav1.GetOptions) (result *templateapi.Template, err error) {
 	result = &templateapi.Template{}
-	err = c.r.Get().Namespace(c.ns).Resource("templates").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("templates").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

@@ -79,7 +79,7 @@ func (m *VirtualStorage) List(ctx apirequest.Context, options *metainternal.List
 	return roleBindingList, nil
 }
 
-func (m *VirtualStorage) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (m *VirtualStorage) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	policyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 	if kapierrors.IsNotFound(err) {
 		return nil, kapierrors.NewNotFound(m.Resource, name)
@@ -95,7 +95,7 @@ func (m *VirtualStorage) Get(ctx apirequest.Context, name string) (runtime.Objec
 	return binding, nil
 }
 
-func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, error) {
+func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		owningPolicyBinding, err := m.getPolicyBindingOwningRoleBinding(ctx, name)
 		if kapierrors.IsNotFound(err) {
@@ -114,10 +114,10 @@ func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *me
 
 		return m.BindingRegistry.UpdatePolicyBinding(ctx, owningPolicyBinding)
 	}); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return &metav1.Status{Status: metav1.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
 func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
@@ -185,7 +185,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx apirequest.Context, name string, 
 
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		// Do an initial fetch
-		old, err := m.Get(ctx, name)
+		old, err := m.Get(ctx, name, &metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -280,7 +280,7 @@ func (m *VirtualStorage) confirmNoEscalation(ctx apirequest.Context, roleBinding
 
 // ensurePolicyBindingToMaster returns a PolicyBinding object that has a PolicyRef pointing to the Policy in the passed namespace.
 func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx apirequest.Context, policyNamespace, policyBindingName string) (*authorizationapi.PolicyBinding, error) {
-	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)
+	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
@@ -295,7 +295,7 @@ func (m *VirtualStorage) ensurePolicyBindingToMaster(ctx apirequest.Context, pol
 			}
 		}
 
-		policyBinding, err = m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName)
+		policyBinding, err = m.BindingRegistry.GetPolicyBinding(ctx, policyBindingName, &metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -316,7 +316,7 @@ func (m *VirtualStorage) getPolicyBindingForPolicy(ctx apirequest.Context, polic
 		return m.ensurePolicyBindingToMaster(ctx, policyNamespace, authorizationapi.GetPolicyBindingName(policyNamespace))
 	}
 
-	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, authorizationapi.GetPolicyBindingName(policyNamespace))
+	policyBinding, err := m.BindingRegistry.GetPolicyBinding(ctx, authorizationapi.GetPolicyBindingName(policyNamespace), &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

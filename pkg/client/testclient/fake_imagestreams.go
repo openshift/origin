@@ -2,6 +2,7 @@ package testclient
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -23,7 +24,7 @@ var _ client.ImageStreamInterface = &FakeImageStreams{}
 var imageStreamsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreams"}
 var imageStreamImportsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
 
-func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
+func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
 	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
 	if obj == nil {
 		return nil, err

@@ -29,7 +29,7 @@ func (i *IndexerToClusterResourceQuotaLister) List(options metainternal.ListOpti
 	return ret, nil
 }
 
-func (i *IndexerToClusterResourceQuotaLister) Get(name string) (*quotaapi.ClusterResourceQuota, error) {
+func (i *IndexerToClusterResourceQuotaLister) Get(name string, options metav1.GetOptions) (*quotaapi.ClusterResourceQuota, error) {
 	keyObj := &quotaapi.ClusterResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 

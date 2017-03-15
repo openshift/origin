@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type HostSubnetsInterface interface {
 // HostSubnetInterface exposes methods on HostSubnet resources.
 type HostSubnetInterface interface {
 	List(opts metainternal.ListOptions) (*sdnapi.HostSubnetList, error)
-	Get(name string) (*sdnapi.HostSubnet, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.HostSubnet, error)
 	Create(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
 	Update(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
 	Delete(name string) error
@@ -47,9 +48,9 @@ func (c *hostSubnet) List(opts metainternal.ListOptions) (result *sdnapi.HostSub
 }
 
 // Get returns host subnet information for a given host or an error
-func (c *hostSubnet) Get(hostName string) (result *sdnapi.HostSubnet, err error) {
+func (c *hostSubnet) Get(hostName string, options metav1.GetOptions) (result *sdnapi.HostSubnet, err error) {
 	result = &sdnapi.HostSubnet{}
-	err = c.r.Get().Resource("hostSubnets").Name(hostName).Do().Into(result)
+	err = c.r.Get().Resource("hostSubnets").Name(hostName).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -320,7 +321,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter cli
 		return nil, err
 	}
 
-	policy, err := clusterPolicyGetter.Get("default")
+	policy, err := clusterPolicyGetter.Get("default", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

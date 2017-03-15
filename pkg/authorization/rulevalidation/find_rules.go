@@ -3,6 +3,7 @@ package rulevalidation
 import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -83,7 +84,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBi
 	name := roleBinding.RoleRef().Name
 
 	if len(namespace) == 0 {
-		policy, err := a.clusterPolicyGetter.Get(authorizationapi.PolicyName)
+		policy, err := a.clusterPolicyGetter.Get(authorizationapi.PolicyName, metav1.GetOptions{})
 		if kapierror.IsNotFound(err) {
 			return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 		}
@@ -103,7 +104,7 @@ func (a *DefaultRuleResolver) GetRole(roleBinding authorizationinterfaces.RoleBi
 		return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 	}
 
-	policy, err := a.policyGetter.Policies(namespace).Get(authorizationapi.PolicyName)
+	policy, err := a.policyGetter.Policies(namespace).Get(authorizationapi.PolicyName, metav1.GetOptions{})
 	if kapierror.IsNotFound(err) {
 		return nil, kapierror.NewNotFound(authorizationapi.Resource("role"), name)
 	}

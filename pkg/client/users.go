@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type UsersInterface interface {
 // UserInterface exposes methods on user resources.
 type UserInterface interface {
 	List(opts metainternal.ListOptions) (*userapi.UserList, error)
-	Get(name string) (*userapi.User, error)
+	Get(name string, options metav1.GetOptions) (*userapi.User, error)
 	Create(user *userapi.User) (*userapi.User, error)
 	Update(user *userapi.User) (*userapi.User, error)
 	Delete(name string) error
@@ -47,9 +48,9 @@ func (c *users) List(opts metainternal.ListOptions) (result *userapi.UserList, e
 }
 
 // Get returns information about a particular user or an error
-func (c *users) Get(name string) (result *userapi.User, err error) {
+func (c *users) Get(name string, options metav1.GetOptions) (result *userapi.User, err error) {
 	result = &userapi.User{}
-	err = c.r.Get().Resource("users").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("users").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

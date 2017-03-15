@@ -2,6 +2,7 @@ package client
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +17,7 @@ type ClusterPoliciesInterface interface {
 // ClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ClusterPolicyInterface interface {
 	List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error)
-	Get(name string) (*authorizationapi.ClusterPolicy, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error)
 	Delete(name string) error
 	Watch(opts metainternal.ListOptions) (watch.Interface, error)
 }
@@ -26,7 +27,7 @@ type ClusterPoliciesListerInterface interface {
 }
 type ClusterPolicyLister interface {
 	List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error)
-	Get(name string) (*authorizationapi.ClusterPolicy, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error)
 }
 type SyncedClusterPoliciesListerInterface interface {
 	ClusterPoliciesListerInterface
@@ -51,9 +52,9 @@ func (c *clusterPolicies) List(opts metainternal.ListOptions) (result *authoriza
 }
 
 // Get returns information about a particular policy and error if one occurs.
-func (c *clusterPolicies) Get(name string) (result *authorizationapi.ClusterPolicy, err error) {
+func (c *clusterPolicies) Get(name string, options metav1.GetOptions) (result *authorizationapi.ClusterPolicy, err error) {
 	result = &authorizationapi.ClusterPolicy{}
-	err = c.r.Get().Resource("clusterPolicies").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterPolicies").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
