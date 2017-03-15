@@ -28,7 +28,7 @@ var kindsToIgnore = []schema.GroupKind{
 }
 
 func init() {
-	admission.RegisterPlugin("PodNodeConstraints", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("PodNodeConstraints", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

@@ -24,7 +24,7 @@ import (
 
 func init() {
 	admission.RegisterPlugin("openshift.io/ClusterResourceQuota",
-		func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+		func(config io.Reader) (admission.Interface, error) {
 			return NewClusterResourceQuota()
 		})
 }
@@ -86,7 +86,7 @@ func (q *clusterQuotaAdmission) Admit(a admission.Attributes) (err error) {
 
 	q.init.Do(func() {
 		clusterQuotaAccessor := newQuotaAccessor(q.clusterQuotaLister, q.namespaceLister, q.clusterQuotaClient, q.clusterQuotaMapper)
-		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, q.registry, q.lockAquisition, numEvaluatorThreads, utilwait.NeverStop)
+		q.evaluator = resourcequota.NewQuotaEvaluator(clusterQuotaAccessor, q.registry, q.lockAquisition, &resourcequotaapi.Configuration{}, numEvaluatorThreads, utilwait.NeverStop)
 	})
 
 	return q.evaluator.Evaluate(a)

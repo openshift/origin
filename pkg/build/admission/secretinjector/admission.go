@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/BuildConfigSecretInjector", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("openshift.io/BuildConfigSecretInjector", func(config io.Reader) (admission.Interface, error) {
 		return &secretInjector{
 			Handler: admission.NewHandler(admission.Create),
 		}, nil

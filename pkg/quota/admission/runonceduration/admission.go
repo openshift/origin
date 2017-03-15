@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("RunOnceDuration", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("RunOnceDuration", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
