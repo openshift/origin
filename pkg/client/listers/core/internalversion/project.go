@@ -15,7 +15,7 @@ type ProjectLister interface {
 	// List lists all Projects in the indexer.
 	List(selector labels.Selector) (ret []*api.Project, err error)
 	// Get retrieves the Project from the index for a given name.
-	Get(name string, options metav1.GetOptions) (*api.Project, error)
+	Get(name string) (*api.Project, error)
 	ProjectListerExpansion
 }
 
@@ -38,7 +38,7 @@ func (s *projectLister) List(selector labels.Selector) (ret []*api.Project, err 
 }
 
 // Get retrieves the Project from the index for a given name.
-func (s *projectLister) Get(name string, options metav1.GetOptions) (*api.Project, error) {
+func (s *projectLister) Get(name string) (*api.Project, error) {
 	key := &api.Project{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {

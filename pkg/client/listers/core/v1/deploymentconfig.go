@@ -6,7 +6,6 @@ import (
 	api "github.com/openshift/origin/pkg/deploy/api"
 	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -48,7 +47,7 @@ type DeploymentConfigNamespaceLister interface {
 	// List lists all DeploymentConfigs in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*v1.DeploymentConfig, err error)
 	// Get retrieves the DeploymentConfig from the indexer for a given namespace and name.
-	Get(name string, options metav1.GetOptions) (*v1.DeploymentConfig, error)
+	Get(name string) (*v1.DeploymentConfig, error)
 	DeploymentConfigNamespaceListerExpansion
 }
 
@@ -68,7 +67,7 @@ func (s deploymentConfigNamespaceLister) List(selector labels.Selector) (ret []*
 }
 
 // Get retrieves the DeploymentConfig from the indexer for a given namespace and name.
-func (s deploymentConfigNamespaceLister) Get(name string, options metav1.GetOptions) (*v1.DeploymentConfig, error) {
+func (s deploymentConfigNamespaceLister) Get(name string) (*v1.DeploymentConfig, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

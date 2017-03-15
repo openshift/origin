@@ -6,7 +6,6 @@ import (
 	api "github.com/openshift/origin/pkg/user/api"
 	v1 "github.com/openshift/origin/pkg/user/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -48,7 +47,7 @@ type UserNamespaceLister interface {
 	// List lists all Users in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*v1.User, err error)
 	// Get retrieves the User from the indexer for a given namespace and name.
-	Get(name string, options metav1.GetOptions) (*v1.User, error)
+	Get(name string) (*v1.User, error)
 	UserNamespaceListerExpansion
 }
 
@@ -68,7 +67,7 @@ func (s userNamespaceLister) List(selector labels.Selector) (ret []*v1.User, err
 }
 
 // Get retrieves the User from the indexer for a given namespace and name.
-func (s userNamespaceLister) Get(name string, options metav1.GetOptions) (*v1.User, error) {
+func (s userNamespaceLister) Get(name string) (*v1.User, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

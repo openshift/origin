@@ -6,7 +6,6 @@ import (
 	api "github.com/openshift/origin/pkg/oauth/api"
 	v1 "github.com/openshift/origin/pkg/oauth/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -48,7 +47,7 @@ type OAuthClientNamespaceLister interface {
 	// List lists all OAuthClients in the indexer for a given namespace.
 	List(selector labels.Selector) (ret []*v1.OAuthClient, err error)
 	// Get retrieves the OAuthClient from the indexer for a given namespace and name.
-	Get(name string, options metav1.GetOptions) (*v1.OAuthClient, error)
+	Get(name string) (*v1.OAuthClient, error)
 	OAuthClientNamespaceListerExpansion
 }
 
@@ -68,7 +67,7 @@ func (s oAuthClientNamespaceLister) List(selector labels.Selector) (ret []*v1.OA
 }
 
 // Get retrieves the OAuthClient from the indexer for a given namespace and name.
-func (s oAuthClientNamespaceLister) Get(name string, options metav1.GetOptions) (*v1.OAuthClient, error) {
+func (s oAuthClientNamespaceLister) Get(name string) (*v1.OAuthClient, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
