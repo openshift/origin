@@ -77,3 +77,7 @@ func (p *ExtendedValidator) HandleNamespaces(namespaces sets.String) error {
 func (p *ExtendedValidator) SetLastSyncProcessed(processed bool) error {
 	return p.plugin.SetLastSyncProcessed(processed)
 }
+
+func (p *ExtendedValidator) SetSyncedAtLeastOnce() error {
+	return p.plugin.SetSyncedAtLeastOnce()
+}
