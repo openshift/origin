@@ -11,13 +11,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/registry/rest"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
+	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
-	"k8s.io/kubernetes/pkg/storage/storagebackend/factory"
+	"k8s.io/kubernetes/pkg/kubeapiserver"
 
 	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -74,29 +74,29 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 		}
 	}
 
-	storageGroupsToEncodingVersion, err := options.GenericServerRunOptions.StorageGroupsToEncodingVersion()
+	storageGroupsToEncodingVersion, err := options.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
 		return err
 	}
 
-	storageConfig := options.GenericServerRunOptions.StorageConfig
+	storageConfig := options.Etcd.StorageConfig
 	storageConfig.Prefix = g.masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix
 	storageConfig.ServerList = g.masterOptions.EtcdClientInfo.URLs
 	storageConfig.KeyFile = g.masterOptions.EtcdClientInfo.ClientCert.KeyFile
 	storageConfig.CertFile = g.masterOptions.EtcdClientInfo.ClientCert.CertFile
 	storageConfig.CAFile = g.masterOptions.EtcdClientInfo.CA
 
-	resourceEncodingConfig := genericapiserver.NewDefaultResourceEncodingConfig()
+	resourceEncodingConfig := serverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
 
-	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
+	storageFactory, err := kubeapiserver.NewStorageFactory(
 		storageConfig,
-		options.GenericServerRunOptions.DefaultStorageMediaType,
+		options.Etcd.DefaultStorageMediaType,
 		kapi.Codecs,
 		resourceEncodingConfig,
 		storageGroupsToEncodingVersion,
 		nil,
 		g.defaultResourceConfig,
-		options.GenericServerRunOptions.RuntimeConfig)
+		options.APIEnablement.RuntimeConfig)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (g *configRESTOptionsGetter) loadSettings() error {
 	storageFactory.DefaultResourcePrefixes = g.defaultResourcePrefixes
 	g.storageFactory = storageFactory
 
-	g.cacheEnabled = options.GenericServerRunOptions.EnableWatchCache
+	g.cacheEnabled = options.Etcd.EnableWatchCache
 
 	errs := []error{}
 	for _, c := range options.GenericServerRunOptions.WatchCacheSizes {
@@ -170,7 +170,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 
 	config, err := g.storageFactory.NewConfig(resource)
 	if err != nil {
-		return genericrest.RESTOptions{}, err
+		return generic.RESTOptions{}, err
 	}
 
 	if _, ok := g.quorumResources[resource]; ok {
@@ -182,7 +182,17 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 		configuredCacheSize = g.defaultCacheSize
 	}
 
-	decorator := func(s *storagebackend.Config, requestedSize int, objectType runtime.Object, resourcePrefix string, scopeStrategy rest.NamespaceScopedStrategy, newListFn func() runtime.Object, triggerFn storage.TriggerPublisherFunc) (storage.Interface, factory.DestroyFunc) {
+	decorator := func(
+		copier runtime.ObjectCopier,
+		storageConfig *storagebackend.Config,
+		requestedSize int,
+		objectType runtime.Object,
+		resourcePrefix string,
+		keyFunc func(obj runtime.Object) (string, error),
+		newListFn func() runtime.Object,
+		getAttrsFunc storage.AttrFunc,
+		triggerFn storage.TriggerPublisherFunc,
+	) (storage.Interface, factory.DestroyFunc) {
 		capacity := requestedSize
 		if capacity == UseConfiguredCacheSize {
 			capacity = configuredCacheSize
@@ -190,14 +200,14 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 
 		if capacity == 0 || !g.cacheEnabled {
 			glog.V(5).Infof("using uncached watch storage for %s", resource.String())
-			return genericrest.UndecoratedStorage(s, capacity, objectType, resourcePrefix, scopeStrategy, newListFn, triggerFn)
+			return generic.UndecoratedStorage(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 		}
 
-		glog.V(5).Infof("using watch cache storage (capacity=%d) for %s %#v", capacity, resource.String(), s)
-		return registry.StorageWithCacher(s, capacity, objectType, resourcePrefix, scopeStrategy, newListFn, triggerFn)
+		glog.V(5).Infof("using watch cache storage (capacity=%d) for %s %#v", capacity, resource.String(), storageConfig)
+		return registry.StorageWithCacher(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 	}
 
-	resourceOptions := genericrest.RESTOptions{
+	resourceOptions := generic.RESTOptions{
 		StorageConfig:           config,
 		Decorator:               decorator,
 		DeleteCollectionWorkers: 1,
