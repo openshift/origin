@@ -14,7 +14,7 @@ import (
 const ExternalIPPluginName = "ExternalIPRanger"
 
 func init() {
-	kadmission.RegisterPlugin("ExternalIPRanger", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+	admission.RegisterPlugin("ExternalIPRanger", func(config io.Reader) (admission.Interface, error) {
 		return NewExternalIPRanger(nil, nil, false), nil
 	})
 }

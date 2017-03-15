@@ -22,9 +22,8 @@ import (
 
 func init() {
 	admission.RegisterPlugin("openshift.io/RestrictSubjectBindings",
-		func(kclient kclientset.Interface, config io.Reader) (admission.Interface,
-			error) {
-			return NewRestrictUsersAdmission(kclient)
+		func(config io.Reader) (admission.Interface, error) {
+			return NewRestrictUsersAdmission()
 		})
 }
 
@@ -41,14 +40,18 @@ type restrictUsersAdmission struct {
 
 var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsGroupCache(&restrictUsersAdmission{})
+var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
-func NewRestrictUsersAdmission(kclient kclientset.Interface) (admission.Interface, error) {
+func NewRestrictUsersAdmission() (admission.Interface, error) {
 	return &restrictUsersAdmission{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
-		kclient: kclient,
 	}, nil
+}
+
+func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.kclient = c
 }
 
 func (q *restrictUsersAdmission) SetOpenshiftClient(c oclient.Interface) {
