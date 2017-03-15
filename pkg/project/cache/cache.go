@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -12,7 +13,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/golang/glog"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -57,7 +57,7 @@ func (p *ProjectCache) GetNamespace(name string) (*kapi.Namespace, error) {
 		namespace = namespaceObj.(*kapi.Namespace)
 	} else {
 		// Our watch maybe latent, so we make a best effort to get the object, and only fail if not found
-		namespace, err = p.Client.Get(name)
+		namespace, err = p.Client.Get(name, metav1.GetOptions{})
 		// the namespace does not exist, so prevent create and update in that namespace
 		if err != nil {
 			return nil, fmt.Errorf("namespace %s does not exist", name)
@@ -96,10 +96,10 @@ func (c *ProjectCache) Run() {
 	store := NewCacheStore(cache.MetaNamespaceKeyFunc)
 	reflector := cache.NewReflector(
 		&cache.ListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return c.Client.List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return c.Client.Watch(options)
 			},
 		},

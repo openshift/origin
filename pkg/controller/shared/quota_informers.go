@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
+	"github.com/openshift/origin/pkg/controller"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
 
@@ -39,7 +40,7 @@ func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("clusterresourcequotas"))
 	if lw == nil {
-		lw = &cache.ListWatch{
+		lw = &controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterResourceQuotas().List(options)
 			},

@@ -32,11 +32,11 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
 	_, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				opts := api.ListOptions{FieldSelector: dockercfgSelector}
 				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
 			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
 				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
 			},

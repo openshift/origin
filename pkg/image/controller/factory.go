@@ -28,7 +28,7 @@ type ImportControllerFactory struct {
 
 // Create creates an ImportController.
 func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
-	lw := &cache.ListWatch{
+	lw := &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return f.Client.ImageStreams(metav1.NamespaceAll).List(options)
 		},

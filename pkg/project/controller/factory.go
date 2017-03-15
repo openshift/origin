@@ -25,7 +25,7 @@ type NamespaceControllerFactory struct {
 
 // Create creates a NamespaceController.
 func (factory *NamespaceControllerFactory) Create() controller.RunnableController {
-	namespaceLW := &cache.ListWatch{
+	namespaceLW := &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return factory.KubeClient.Core().Namespaces().List(options)
 		},

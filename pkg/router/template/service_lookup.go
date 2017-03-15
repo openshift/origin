@@ -10,6 +10,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+
+	"github.com/openshift/origin/pkg/controller"
 )
 
 // ServiceLookup is an interface for fetching the service associated with the given endpoints
@@ -19,7 +21,7 @@ type ServiceLookup interface {
 
 func NewListWatchServiceLookup(svcGetter kcoreclient.ServicesGetter, resync time.Duration) ServiceLookup {
 	svcStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	lw := &cache.ListWatch{
+	lw := &controller.InternalListWatch{
 		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
 			return svcGetter.Services(api.NamespaceAll).List(options)
 		},

@@ -11,6 +11,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	oscache "github.com/openshift/origin/pkg/client/cache"
+	"github.com/openshift/origin/pkg/controller"
 )
 
 type BuildConfigInformer interface {
@@ -35,7 +36,7 @@ func (f *buildConfigInformer) Informer() cache.SharedIndexInformer {
 	}
 
 	informer = cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.BuildConfigs(metav1.NamespaceAll).List(options)
 			},

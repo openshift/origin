@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	testapi "github.com/openshift/origin/pkg/deploy/api/test"
@@ -24,7 +25,7 @@ import (
 var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 	dcInformer = cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
@@ -50,7 +51,7 @@ var (
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 	streamInformer = cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).List(options)
 			},

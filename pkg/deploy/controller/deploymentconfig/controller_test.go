@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -361,7 +362,7 @@ func TestHandleScenarios(t *testing.T) {
 		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 		dcInformer := cache.NewSharedIndexInformer(
-			&cache.ListWatch{
+			&controller.InternalListWatch{
 				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 					return oc.DeploymentConfigs(metav1.NamespaceAll).List(options)
 				},

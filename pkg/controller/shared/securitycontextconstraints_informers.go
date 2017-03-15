@@ -10,6 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
+	"github.com/openshift/origin/pkg/controller"
 )
 
 type SecurityContextConstraintsInformer interface {
@@ -34,7 +35,7 @@ func (s *securityContextConstraintsInformer) Informer() cache.SharedIndexInforme
 	}
 
 	informer = cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return s.kubeClient.Core().SecurityContextConstraints().List(options)
 			},

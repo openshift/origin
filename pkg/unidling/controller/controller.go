@@ -96,11 +96,11 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 	_, controller := cache.NewInformer(
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
 				return evtNS.Events(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fieldSelector
 				return evtNS.Events(metav1.NamespaceAll).Watch(options)
 			},

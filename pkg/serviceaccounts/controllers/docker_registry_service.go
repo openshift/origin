@@ -54,11 +54,11 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 
 	e.serviceCache, e.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(opts metainternal.ListOptions) (runtime.Object, error) {
+			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
 				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Core().Services(options.RegistryNamespace).List(opts)
 			},
-			WatchFunc: func(opts metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
 				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
 				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
 			},

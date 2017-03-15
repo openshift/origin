@@ -19,19 +19,20 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kutilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/admission"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller/informers"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	kutilrand "k8s.io/kubernetes/pkg/util/rand"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
@@ -68,6 +69,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/controller"
 	"github.com/openshift/origin/pkg/controller/shared"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
@@ -213,7 +215,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
 	}
 
-	requestContextMapper := kapi.NewRequestContextMapper()
+	requestContextMapper := apirequest.NewRequestContextMapper()
 
 	groupStorage, err := groupstorage.NewREST(restOptsGetter)
 	if err != nil {
@@ -249,7 +251,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
 	// Authorizer as the 2nd arg. It's currently only used by PSP.
-	kubePluginInitializer := admission.NewPluginInitializer(kubeInformerFactory, nil)
+	kubePluginInitializer := kadmission.NewPluginInitializer(kubeInformerFactory, nil, nil, nil)
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
@@ -510,10 +512,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			lc, err := lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces)
+			lc, err := lifecycle.NewLifecycle(immortalNamespaces)
 			if err != nil {
 				return nil, err
 			}
+			lc.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kubeClientSet)
 			plugins = append(plugins, lc)
 
 		case serviceadmit.ExternalIPPluginName:
@@ -736,7 +739,7 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}
 	registry := clusterpolicyregistry.NewRegistry(storage)
 
-	return &cache.ListWatch{
+	return &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicies(ctx, &options)
 		},
@@ -755,7 +758,7 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 	}
 	registry := clusterpolicybindingregistry.NewRegistry(storage)
 
-	return &cache.ListWatch{
+	return &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicyBindings(ctx, &options)
 		},
@@ -774,7 +777,7 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	}
 	registry := policyregistry.NewRegistry(storage)
 
-	return &cache.ListWatch{
+	return &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicies(ctx, &options)
 		},
@@ -793,7 +796,7 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}
 	registry := policybindingregistry.NewRegistry(storage)
 
-	return &cache.ListWatch{
+	return &controller.InternalListWatch{
 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicyBindings(ctx, &options)
 		},
@@ -812,7 +815,7 @@ func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, inform
 
 func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
 	// Default API request info factory
-	requestInfoFactory := &request.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
 	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
 	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
 		requestContextMapper,

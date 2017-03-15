@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/api"

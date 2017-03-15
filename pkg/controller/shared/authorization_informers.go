@@ -12,6 +12,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
+	"github.com/openshift/origin/pkg/controller"
 )
 
 type ClusterPolicyInformer interface {
@@ -38,7 +39,7 @@ func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicies"))
 	if lw == nil {
-		lw = &cache.ListWatch{
+		lw = &controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicies().List(options)
 			},
@@ -92,7 +93,7 @@ func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicybindings"))
 	if lw == nil {
-		lw = &cache.ListWatch{
+		lw = &controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicyBindings().List(options)
 			},
@@ -146,7 +147,7 @@ func (f *policyInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policies"))
 	if lw == nil {
-		lw = &cache.ListWatch{
+		lw = &controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.Policies(metav1.NamespaceAll).List(options)
 			},
@@ -200,7 +201,7 @@ func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policybindings"))
 	if lw == nil {
-		lw = &cache.ListWatch{
+		lw = &controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.PolicyBindings(metav1.NamespaceAll).List(options)
 			},

@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
+	"github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -35,7 +36,7 @@ func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
 	}
 
 	informer = cache.NewSharedIndexInformer(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return f.originClient.ImageStreams(metav1.NamespaceAll).List(options)
 			},
