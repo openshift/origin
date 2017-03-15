@@ -14,7 +14,14 @@ func validPodSpec() kapi.PodSpec {
 		Volumes: []kapi.Volume{
 			{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
 		},
-		Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+		Containers: []kapi.Container{
+			{
+				Name:                     "ctr",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+			},
+		},
 		RestartPolicy: kapi.RestartPolicyAlways,
 		NodeSelector: map[string]string{
 			"key": "value",
@@ -23,12 +30,13 @@ func validPodSpec() kapi.PodSpec {
 		DNSPolicy:             kapi.DNSClusterFirst,
 		ActiveDeadlineSeconds: &activeDeadlineSeconds,
 		ServiceAccountName:    "acct",
+		SchedulerName:         kapi.DefaultSchedulerName,
 	}
 }
 
 func invalidPodSpec() kapi.PodSpec {
 	return kapi.PodSpec{
-		Containers:    []kapi.Container{{}},
+		Containers:    []kapi.Container{{TerminationMessagePolicy: kapi.TerminationMessageReadFile}},
 		RestartPolicy: kapi.RestartPolicyAlways,
 		DNSPolicy:     kapi.DNSClusterFirst,
 	}
