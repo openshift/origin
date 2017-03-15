@@ -516,10 +516,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if len(options.PolicyConfig.OpenShiftInfrastructureNamespace) > 0 {
 				immortalNamespaces.Insert(options.PolicyConfig.OpenShiftInfrastructureNamespace)
 			}
-			lc, err := lifecycle.NewLifecycle(kubeClientSet, immortalNamespaces)
+			lc, err := lifecycle.NewLifecycle(immortalNamespaces)
 			if err != nil {
 				return nil, err
 			}
+			lc.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kubeClientSet)
 			plugins = append(plugins, lc)
 
 		case serviceadmit.ExternalIPPluginName:
@@ -560,11 +561,12 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}
-
 		}
 	}
 
-	kubePluginInitializer.Initialize(plugins)
+	for _, plugin := range plugins {
+		kubePluginInitializer.Initialize(plugin)
+	}
 	pluginInitializer.Initialize(plugins)
 	// ensure that plugins have been properly initialized
 	if err := oadmission.Validate(plugins); err != nil {
