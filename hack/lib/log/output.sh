@@ -86,7 +86,7 @@ readonly -f os::log::debug
 # Arguments:
 #  - all: message to write
 function os::log::internal::to_logfile() {
-	if [[ -n "${LOG_DIR:-}" ]]; then
+	if [[ -n "${LOG_DIR:-}" && -d "${LOG_DIR-}" ]]; then
 		echo "$*" >>"${LOG_DIR}/scripts.log"
 	fi
 }
