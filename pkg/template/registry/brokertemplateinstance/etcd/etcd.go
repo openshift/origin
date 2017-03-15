@@ -19,17 +19,19 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against brokertemplateinstances.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.BrokerTemplateInstance{} },
 		NewListFunc:       func() runtime.Object { return &api.BrokerTemplateInstanceList{} },
-		PredicateFunc:     brokertemplateinstance.Matcher,
+		PredicateFunc:     rest.Matcher,
 		QualifiedResource: api.Resource("brokertemplateinstances"),
 
-		CreateStrategy: brokertemplateinstance.Strategy,
-		UpdateStrategy: brokertemplateinstance.Strategy,
-		DeleteStrategy: brokertemplateinstance.Strategy,
+		CreateStrategy: rest.Strategy,
+		UpdateStrategy: rest.Strategy,
+		DeleteStrategy: rest.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
