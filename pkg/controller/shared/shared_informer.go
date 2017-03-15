@@ -8,7 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	oclient "github.com/openshift/origin/pkg/client"
 )
@@ -32,7 +33,8 @@ type InformerFactory interface {
 	SecurityContextConstraints() SecurityContextConstraintsInformer
 	ClusterResourceQuotas() ClusterResourceQuotaInformer
 
-	KubernetesInformers() informers.SharedInformerFactory
+	KubernetesInformers() kinformers.SharedInformerFactory
+	InternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 }
 
 // ListerWatcherOverrides allows a caller to specify special behavior for particular ListerWatchers
@@ -49,13 +51,21 @@ func (o DefaultListerWatcherOverrides) GetListerWatcher(resource schema.GroupRes
 	return o[resource]
 }
 
-func NewInformerFactory(kubeInformers informers.SharedInformerFactory, kubeClient kclientset.Interface, originClient oclient.Interface, customListerWatchers ListerWatcherOverrides, defaultResync time.Duration) InformerFactory {
+func NewInformerFactory(
+	internalKubeInformers kinternalinformers.SharedInformerFactory,
+	kubeInformers kinformers.SharedInformerFactory,
+	kubeClient kclientset.Interface,
+	originClient oclient.Interface,
+	customListerWatchers ListerWatcherOverrides,
+	defaultResync time.Duration,
+) InformerFactory {
 	return &sharedInformerFactory{
-		kubeInformers:        kubeInformers,
-		kubeClient:           kubeClient,
-		originClient:         originClient,
-		customListerWatchers: customListerWatchers,
-		defaultResync:        defaultResync,
+		internalKubeInformers: internalKubeInformers,
+		kubeInformers:         kubeInformers,
+		kubeClient:            kubeClient,
+		originClient:          originClient,
+		customListerWatchers:  customListerWatchers,
+		defaultResync:         defaultResync,
 
 		informers:            map[reflect.Type]cache.SharedIndexInformer{},
 		coreInformers:        map[reflect.Type]cache.SharedIndexInformer{},
@@ -65,11 +75,12 @@ func NewInformerFactory(kubeInformers informers.SharedInformerFactory, kubeClien
 }
 
 type sharedInformerFactory struct {
-	kubeInformers        informers.SharedInformerFactory
-	kubeClient           kclientset.Interface
-	originClient         oclient.Interface
-	customListerWatchers ListerWatcherOverrides
-	defaultResync        time.Duration
+	internalKubeInformers kinternalinformers.SharedInformerFactory
+	kubeInformers         kinformers.SharedInformerFactory
+	kubeClient            kclientset.Interface
+	originClient          oclient.Interface
+	customListerWatchers  ListerWatcherOverrides
+	defaultResync         time.Duration
 
 	informers            map[reflect.Type]cache.SharedIndexInformer
 	coreInformers        map[reflect.Type]cache.SharedIndexInformer
@@ -146,6 +157,10 @@ func (f *sharedInformerFactory) ClusterResourceQuotas() ClusterResourceQuotaInfo
 	return &clusterResourceQuotaInformer{sharedInformerFactory: f}
 }
 
-func (f *sharedInformerFactory) KubernetesInformers() informers.SharedInformerFactory {
+func (f *sharedInformerFactory) KubernetesInformers() kinformers.SharedInformerFactory {
 	return f.kubeInformers
+}
+
+func (f *sharedInformerFactory) InternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
+	return f.internalKubeInformers
 }
