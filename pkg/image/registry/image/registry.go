@@ -2,6 +2,7 @@ package image
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -16,7 +17,7 @@ type Registry interface {
 	// ListImages obtains a list of images that match a selector.
 	ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error)
 	// GetImage retrieves a specific image.
-	GetImage(ctx apirequest.Context, id string) (*api.Image, error)
+	GetImage(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.Image, error)
 	// CreateImage creates a new image.
 	CreateImage(ctx apirequest.Context, image *api.Image) error
 	// DeleteImage deletes an image.
@@ -57,8 +58,8 @@ func (s *storage) ListImages(ctx apirequest.Context, options *metainternal.ListO
 	return obj.(*api.ImageList), nil
 }
 
-func (s *storage) GetImage(ctx apirequest.Context, imageID string) (*api.Image, error) {
-	obj, err := s.Get(ctx, imageID)
+func (s *storage) GetImage(ctx apirequest.Context, imageID string, options *metav1.GetOptions) (*api.Image, error) {
+	obj, err := s.Get(ctx, imageID, options)
 	if err != nil {
 		return nil, err
 	}

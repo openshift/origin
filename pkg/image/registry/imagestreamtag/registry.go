@@ -10,7 +10,7 @@ import (
 
 // Registry is an interface for things that know how to store ImageStreamTag objects.
 type Registry interface {
-	GetImageStreamTag(ctx apirequest.Context, nameAndTag string) (*api.ImageStreamTag, error)
+	GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error)
 	DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error)
 }
 
@@ -31,8 +31,8 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string) (*api.ImageStreamTag, error) {
-	obj, err := s.Get(ctx, nameAndTag)
+func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error) {
+	obj, err := s.Get(ctx, nameAndTag, options)
 	if err != nil {
 		return nil, err
 	}

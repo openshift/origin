@@ -17,7 +17,7 @@ type Registry interface {
 	// ListImageStreams obtains a list of image streams that match a selector.
 	ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error)
 	// GetImageStream retrieves a specific image stream.
-	GetImageStream(ctx apirequest.Context, id string) (*api.ImageStream, error)
+	GetImageStream(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error)
 	// CreateImageStream creates a new image stream.
 	CreateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	// UpdateImageStream updates an image stream.
@@ -64,8 +64,8 @@ func (s *storage) ListImageStreams(ctx apirequest.Context, options *metainternal
 	return obj.(*api.ImageStreamList), nil
 }
 
-func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string) (*api.ImageStream, error) {
-	obj, err := s.Get(ctx, imageStreamID)
+func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, options *metav1.GetOptions) (*api.ImageStream, error) {
+	obj, err := s.Get(ctx, imageStreamID, options)
 	if err != nil {
 		return nil, err
 	}
