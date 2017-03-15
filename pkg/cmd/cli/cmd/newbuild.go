@@ -53,7 +53,7 @@ var (
 	  %[1]s %[2]s -D $'FROM centos:7\nRUN yum install -y httpd'
 
 	  # Create a build config from a remote repository and add custom environment variables
-	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world RACK_ENV=development
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world -e RACK_ENV=development
 
 	  # Create a build config from a remote repository and inject the npmrc into a build
 	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
