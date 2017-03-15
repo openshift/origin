@@ -2,11 +2,13 @@ package etcd
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
+	"github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -18,6 +20,7 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against subnets
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.ClusterNetwork{} },
 		NewListFunc:       func() runtime.Object { return &api.ClusterNetworkList{} },
 		PredicateFunc:     clusternetwork.Matcher,
@@ -27,10 +30,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: clusternetwork.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 

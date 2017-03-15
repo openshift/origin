@@ -7,9 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/apiserver/pkg/storage"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
@@ -28,6 +29,7 @@ type REST struct {
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
 		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
 		PredicateFunc:     deployconfig.Matcher,
@@ -38,10 +40,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 		DeleteStrategy: deployconfig.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployconfig.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployconfig.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, nil, err
 	}
 
