@@ -1,0 +1,1 @@
+package fluentd-gcp-gci
