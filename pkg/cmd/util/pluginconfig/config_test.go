@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apinachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
