@@ -31,7 +31,12 @@ func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Imag
 }
 
 func (c *FakeImages) List(opts metainternal.ListOptions) (*imageapi.ImageList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(imagesResource, optsv1), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -29,7 +29,12 @@ func (c *FakeBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Buil
 }
 
 func (c *FakeBuilds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(buildsResource, c.Namespace, opts), &buildapi.BuildList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(buildsResource, c.Namespace, optsv1), &buildapi.BuildList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -61,7 +66,12 @@ func (c *FakeBuilds) Delete(name string) error {
 }
 
 func (c *FakeBuilds) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(buildsResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(buildsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {

@@ -27,7 +27,12 @@ func (c *FakeClusterRoles) Get(name string, options metav1.GetOptions) (*authori
 }
 
 func (c *FakeClusterRoles) List(opts metainternal.ListOptions) (*authorizationapi.ClusterRoleList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterRolesResource, opts), &authorizationapi.ClusterRoleList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterRolesResource, optsv1), &authorizationapi.ClusterRoleList{})
 	if obj == nil {
 		return nil, err
 	}

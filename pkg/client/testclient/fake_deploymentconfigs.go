@@ -30,7 +30,12 @@ func (c *FakeDeploymentConfigs) Get(name string, options metav1.GetOptions) (*de
 }
 
 func (c *FakeDeploymentConfigs) List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(deploymentConfigsResource, c.Namespace, opts), &deployapi.DeploymentConfigList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(deploymentConfigsResource, c.Namespace, optsv1), &deployapi.DeploymentConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -62,7 +67,12 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 }
 
 func (c *FakeDeploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(deploymentConfigsResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(deploymentConfigsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {

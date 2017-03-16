@@ -29,7 +29,12 @@ func (c *FakePolicies) Get(name string, options metav1.GetOptions) (*authorizati
 }
 
 func (c *FakePolicies) List(opts metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(policiesResource, c.Namespace, opts), &authorizationapi.PolicyList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(policiesResource, c.Namespace, optsv1), &authorizationapi.PolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,5 +48,10 @@ func (c *FakePolicies) Delete(name string) error {
 }
 
 func (c *FakePolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(policiesResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(policiesResource, c.Namespace, optsv1))
 }

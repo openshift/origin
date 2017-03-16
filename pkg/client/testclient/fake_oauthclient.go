@@ -26,7 +26,12 @@ func (c *FakeOAuthClient) Get(name string, options metav1.GetOptions) (*oauthapi
 }
 
 func (c *FakeOAuthClient) List(opts metainternal.ListOptions) (*oauthapi.OAuthClientList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthClientsResource, opts), &oauthapi.OAuthClientList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthClientsResource, optsv1), &oauthapi.OAuthClientList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -49,7 +54,12 @@ func (c *FakeOAuthClient) Delete(name string) error {
 }
 
 func (c *FakeOAuthClient) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(oAuthClientsResource, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewRootWatchAction(oAuthClientsResource, optsv1))
 }
 
 func (c *FakeOAuthClient) Update(client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {

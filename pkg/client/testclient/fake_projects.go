@@ -28,7 +28,12 @@ func (c *FakeProjects) Get(name string, options metav1.GetOptions) (*projectapi.
 }
 
 func (c *FakeProjects) List(opts metainternal.ListOptions) (*projectapi.ProjectList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(projectsResource, opts), &projectapi.ProjectList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(projectsResource, optsv1), &projectapi.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -60,5 +65,10 @@ func (c *FakeProjects) Delete(name string) error {
 }
 
 func (c *FakeProjects) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(projectsResource, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewRootWatchAction(projectsResource, optsv1))
 }

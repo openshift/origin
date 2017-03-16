@@ -42,7 +42,12 @@ func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oa
 }
 
 func (c *FakeOAuthAccessTokens) List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthAccessTokensResource, opts), &oauthapi.OAuthAccessTokenList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthAccessTokensResource, optsv1), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err
 	}
