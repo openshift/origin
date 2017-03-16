@@ -563,8 +563,8 @@ var (
 )
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
-func NewCmdApply(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdApply(f, out)
+func NewCmdApply(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+	cmd := kcmd.NewCmdApply(f, out, errOut)
 	cmd.Long = applyLong
 	cmd.Example = fmt.Sprintf(applyExample, fullName)
 	return cmd

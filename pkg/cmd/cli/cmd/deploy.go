@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -315,12 +314,12 @@ func (o DeployOptions) retry(config *deployapi.DeploymentConfig) error {
 	}
 
 	// Delete the deployer pod as well as the deployment hooks pods, if any
-	pods, err := o.kubeClient.Core().Pods(config.Namespace).List(metainternal.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName)})
+	pods, err := o.kubeClient.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.DeployerPodSelector(deploymentName).String()})
 	if err != nil {
 		return fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)
 	}
 	for _, pod := range pods.Items {
-		err := o.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+		err := o.kubeClient.Core().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 		if err != nil {
 			return fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)
 		}
@@ -348,7 +347,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 	if config.Spec.Paused {
 		return fmt.Errorf("cannot cancel a paused deployment config")
 	}
-	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return err
 	}

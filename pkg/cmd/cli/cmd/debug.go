@@ -12,9 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
@@ -304,15 +302,6 @@ func (o DebugOptions) Validate() error {
 	return nil
 }
 
-// SingleObject returns a ListOptions for watching a single object.
-// TODO: move to pkg/api/helpers.go upstream.
-func SingleObject(meta metav1.ObjectMeta) metainternal.ListOptions {
-	return metainternal.ListOptions{
-		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name),
-		ResourceVersion: meta.ResourceVersion,
-	}
-}
-
 // Debug creates and runs a debugging pod.
 func (o *DebugOptions) Debug() error {
 	pod, originalCommand := o.transformPodForDebug(o.Annotations)
@@ -344,7 +333,7 @@ func (o *DebugOptions) Debug() error {
 				stderr = os.Stderr
 			}
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
-			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
+			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
@@ -354,7 +343,7 @@ func (o *DebugOptions) Debug() error {
 
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
-		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
+		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(metav1.SingleObject(pod.ObjectMeta))
 		if err != nil {
 			return err
 		}
@@ -370,7 +359,7 @@ func (o *DebugOptions) Debug() error {
 			return fmt.Errorf(msg)
 			// switch to logging output
 		case err == kclient.ErrPodCompleted, err == kclient.ErrContainerTerminated, !o.Attach.Stdin:
-			_, err := kcmd.LogsOptions{
+			return kcmd.LogsOptions{
 				Object: pod,
 				Options: &kapi.PodLogOptions{
 					Container: o.Attach.ContainerName,
@@ -380,7 +369,6 @@ func (o *DebugOptions) Debug() error {
 
 				LogsForObject: o.LogsForObject,
 			}.RunLogs()
-			return err
 		case err != nil:
 			return err
 		default:
@@ -622,7 +610,7 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// delete the existing pod
-	if err := o.Attach.PodClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
+	if err := o.Attach.PodClient.Pods(namespace).Delete(name, metav1.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("unable to delete existing debug pod %q: %v", name, err)
 	}
 	return o.Attach.PodClient.Pods(namespace).Create(pod)

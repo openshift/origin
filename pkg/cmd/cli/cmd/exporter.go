@@ -12,13 +12,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/core/controller"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
 	"k8s.io/kubernetes/pkg/registry/core/namespace"
 	"k8s.io/kubernetes/pkg/registry/core/node"
 	"k8s.io/kubernetes/pkg/registry/core/persistentvolume"
 	"k8s.io/kubernetes/pkg/registry/core/persistentvolumeclaim"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
+	"k8s.io/kubernetes/pkg/registry/core/replicationcontroller"
 	"k8s.io/kubernetes/pkg/registry/core/resourcequota"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
@@ -90,7 +90,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 	case *kapi.PersistentVolume:
 		persistentvolume.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.ReplicationController:
-		controller.Strategy.PrepareForCreate(ctx, obj)
+		replicationcontroller.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.Pod:
 		pod.Strategy.PrepareForCreate(ctx, obj)
 	case *kapi.PodTemplate:

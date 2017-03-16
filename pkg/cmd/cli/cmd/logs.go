@@ -188,6 +188,5 @@ func (o OpenShiftLogsOptions) RunLog() error {
 		// Use our own options object.
 		o.KubeLogOptions.Options = o.Options
 	}
-	_, err := o.KubeLogOptions.RunLogs()
-	return err
+	return o.KubeLogOptions.RunLogs()
 }

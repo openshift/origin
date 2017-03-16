@@ -339,7 +339,7 @@ func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Pr
 		return nil, err
 	}
 
-	namespaces, err := kClient.Core().Namespaces().List(metainternal.ListOptions{})
+	namespaces, err := kClient.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
