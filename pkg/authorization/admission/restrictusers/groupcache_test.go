@@ -2,6 +2,7 @@ package restrictusers
 
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watch "k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -16,7 +17,7 @@ type groupCache struct {
 func (groupCache *groupCache) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	return &userapi.GroupList{Items: groupCache.groups}, nil
 }
-func (groupCache *groupCache) GetGroup(ctx apirequest.Context, name string) (*userapi.Group, error) {
+func (groupCache *groupCache) GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.Group, error) {
 	return nil, nil
 }
 func (*groupCache) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
