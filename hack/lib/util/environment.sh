@@ -140,7 +140,8 @@ function os::util::environment::setup_tmpdir_vars() {
 
     BASETMPDIR="${TMPDIR:-/tmp}/openshift/${sub_dir}"
     export BASETMPDIR
-    LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
+    #LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
+    LOG_DIR=$(mktemp -d)
     export LOG_DIR
     VOLUME_DIR="${BASETMPDIR}/volumes"
     export VOLUME_DIR
