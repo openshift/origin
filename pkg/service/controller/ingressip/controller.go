@@ -15,12 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
@@ -80,7 +81,7 @@ type serviceChange struct {
 // TODO this should accept a shared informer
 func NewIngressIPController(kc kclientset.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: kc.Core().Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kc.Core().Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "ingressip-controller"})
 
 	ic := &IngressIPController{

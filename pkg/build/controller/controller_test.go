@@ -8,8 +8,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"

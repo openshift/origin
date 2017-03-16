@@ -13,12 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/watch"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -91,7 +92,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: factory.KubeClient.Core().Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
@@ -105,7 +106,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 			SourceBuildStrategy: factory.SourceBuildStrategy,
 			CustomBuildStrategy: factory.CustomBuildStrategy,
 		},
-		Recorder:       eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-controller"}),
+		Recorder:       eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "build-controller"}),
 		BuildDefaults:  factory.BuildDefaults,
 		BuildOverrides: factory.BuildOverrides,
 	}
@@ -353,11 +354,11 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: factory.KubeClient.Core().Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
-		Recorder:                eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-config-controller"}),
+		Recorder:                eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "build-config-controller"}),
 	}
 
 	return &controller.RetryController{

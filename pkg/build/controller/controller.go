@@ -9,9 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"

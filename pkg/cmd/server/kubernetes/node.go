@@ -20,12 +20,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/record"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -376,7 +376,7 @@ func (c *NodeConfig) RunProxy() {
 	hostname := utilnode.GetHostname(c.KubeletServer.HostnameOverride)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: c.Client.Core().Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: hostname})
 
 	execer := kexec.New()

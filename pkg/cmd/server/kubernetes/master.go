@@ -14,14 +14,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/record"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	certcontroller "k8s.io/kubernetes/pkg/controller/certificates"
 	"k8s.io/kubernetes/pkg/controller/cronjob"
@@ -109,7 +109,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client *kclientset.Clientse
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *kclientset.Clientset) {
 	s := c.ControllerManager
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink((&kcoreclient.EventSinkImpl{Interface: c.KubeClient.Core().Events("")}))
+	eventBroadcaster.StartRecordingToSink((&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "controller-manager"})
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
@@ -279,7 +279,7 @@ func (c *MasterConfig) RunScheduler() {
 	}
 	eventcast := record.NewBroadcaster()
 	config.Recorder = eventcast.NewRecorder(kapi.EventSource{Component: kapi.DefaultSchedulerName})
-	eventcast.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: c.KubeClient.Core().Events("")})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
 
 	s := scheduler.New(config)
 	s.Run()
