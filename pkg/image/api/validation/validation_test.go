@@ -409,7 +409,7 @@ func TestValidateImageStream(t *testing.T) {
 			namespace: "!$",
 			name:      "foo",
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])? (e.g. 'my-name' or '123-abc')`),
+				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')`),
 			},
 		},
 		"invalid dockerImageRepository": {
@@ -739,7 +739,7 @@ func TestValidateImageStreamImport(t *testing.T) {
 		"invalid namespace": {
 			isi: &api.ImageStreamImport{ObjectMeta: metav1.ObjectMeta{Namespace: "!$", Name: "foo"}, Spec: validSpec},
 			expected: field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])? (e.g. 'my-name' or '123-abc')`),
+				field.Invalid(field.NewPath("metadata", "namespace"), "!$", `a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')`),
 			},
 		},
 		"invalid dockerImageRepository": {

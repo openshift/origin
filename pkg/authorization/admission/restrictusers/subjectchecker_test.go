@@ -340,8 +340,8 @@ func TestSubjectCheckers(t *testing.T) {
 		},
 	}
 
-	kclient := fake.NewSimpleClientset(objects...)
-	oclient := otestclient.NewSimpleFake(objects...)
+	kclient := fake.NewSimpleClientset(otestclient.UpstreamObjects(objects)...)
+	oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(objects)...)
 	groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
 	groupCache.Run()
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race

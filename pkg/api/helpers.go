@@ -2,9 +2,12 @@ package api
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/validation"
 )
 
@@ -40,4 +43,32 @@ func GetFieldLabelConversionFunc(supportedLabels map[string]string, overrideLabe
 // resource that is unique across the cluster.
 func GetResourceKey(obj metav1.ObjectMeta) string {
 	return fmt.Sprintf("%s/%s", obj.Namespace, obj.Name)
+}
+
+// OriginObjects returns the origin types.
+func OriginObjects(objs []runtime.Object) []runtime.Object {
+	ret := []runtime.Object{}
+	for _, obj := range objs {
+		if !upstreamType(obj) {
+			ret = append(ret, obj)
+		}
+	}
+	return ret
+}
+
+// UpstreamObjects returns the non-origin types.
+func UpstreamObjects(objs []runtime.Object) []runtime.Object {
+	ret := []runtime.Object{}
+	for _, obj := range objs {
+		if upstreamType(obj) {
+			ret = append(ret, obj)
+		}
+	}
+	return ret
+}
+
+// upstreamType returns true for Kubernetes types.
+func upstreamType(obj runtime.Object) bool {
+	t := reflect.TypeOf(obj).Elem()
+	return strings.Contains(t.PkgPath(), "k8s.io/kubernetes/")
 }
