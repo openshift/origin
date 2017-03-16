@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -19,7 +19,7 @@ type FakeNetNamespace struct {
 var netNamespacesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "netnamespaces"}
 
 func (c *FakeNetNamespace) Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
 	if obj == nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *FakeNetNamespace) List(opts metainternal.ListOptions) (*sdnapi.NetNames
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewRootListAction(netNamespacesResource, optsv1), &sdnapi.NetNamespaceList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(netNamespacesResource, optsv1), &sdnapi.NetNamespaceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *FakeNetNamespace) List(opts metainternal.ListOptions) (*sdnapi.NetNames
 }
 
 func (c *FakeNetNamespace) Create(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(netNamespacesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(netNamespacesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *FakeNetNamespace) Create(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamesp
 }
 
 func (c *FakeNetNamespace) Update(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(netNamespacesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(netNamespacesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *FakeNetNamespace) Update(inObj *sdnapi.NetNamespace) (*sdnapi.NetNamesp
 }
 
 func (c *FakeNetNamespace) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
 	return err
 }
 
@@ -70,5 +70,5 @@ func (c *FakeNetNamespace) Watch(opts metainternal.ListOptions) (watch.Interface
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(netNamespacesResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(netNamespacesResource, optsv1))
 }

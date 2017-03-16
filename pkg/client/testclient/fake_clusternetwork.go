@@ -3,7 +3,7 @@ package testclient
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -17,7 +17,7 @@ type FakeClusterNetwork struct {
 var clusterNetworksResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusternetworks"}
 
 func (c *FakeClusterNetwork) Get(name string, options metav1.GetOptions) (*sdnapi.ClusterNetwork, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterNetworksResource, name), &sdnapi.ClusterNetwork{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterNetworksResource, name), &sdnapi.ClusterNetwork{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (c *FakeClusterNetwork) Get(name string, options metav1.GetOptions) (*sdnap
 }
 
 func (c *FakeClusterNetwork) Create(inObj *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(clusterNetworksResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(clusterNetworksResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func (c *FakeClusterNetwork) Create(inObj *sdnapi.ClusterNetwork) (*sdnapi.Clust
 }
 
 func (c *FakeClusterNetwork) Update(inObj *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(clusterNetworksResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(clusterNetworksResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}

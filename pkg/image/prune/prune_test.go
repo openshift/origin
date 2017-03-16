@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest/fake"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -972,7 +972,7 @@ func TestImageDeleter(t *testing.T) {
 
 	for name, test := range tests {
 		imageClient := testclient.Fake{}
-		imageClient.AddReactor("delete", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		imageClient.AddReactor("delete", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
 		imageDeleter := NewImageDeleter(imageClient.Images())

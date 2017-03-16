@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -123,7 +123,7 @@ func TestUpdateQuota(t *testing.T) {
 
 		var actualQuota *quotaapi.ClusterResourceQuota
 		for _, action := range client.Actions() {
-			updateAction, ok := action.(core.UpdateActionImpl)
+			updateAction, ok := action.(clientgotesting.UpdateActionImpl)
 			if !ok {
 				continue
 			}

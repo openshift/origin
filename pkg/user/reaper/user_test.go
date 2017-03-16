@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -37,7 +37,7 @@ func TestUserReaper(t *testing.T) {
 			user:    "bob",
 			objects: []runtime.Object{},
 			expected: []interface{}{
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -61,12 +61,12 @@ func TestUserReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -90,12 +90,12 @@ func TestUserReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -117,11 +117,11 @@ func TestUserReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &kapi.SecurityContextConstraints{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &kapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -147,7 +147,7 @@ func TestUserReaper(t *testing.T) {
 			},
 			expected: []interface{}{
 				// Make sure identities are not messed with, only the user is removed
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -172,15 +172,15 @@ func TestUserReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
 					ObjectMeta: metav1.ObjectMeta{Name: "group-one-user"},
 					Users:      []string{},
 				}},
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
 					ObjectMeta: metav1.ObjectMeta{Name: "group-multiple-users"},
 					Users:      []string{"bob2", "steve"},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -204,9 +204,9 @@ func TestUserReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-1"},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-2"},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-1"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-2"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 	}
@@ -216,11 +216,11 @@ func TestUserReaper(t *testing.T) {
 		ktc := fake.NewSimpleClientset(test.objects...)
 
 		actual := []interface{}{}
-		oreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}
-		kreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		kreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}

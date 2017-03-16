@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -59,7 +59,7 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage = "someotherresolveddockerimagereference"
 
 		fake := &testclient.Fake{}
-		fake.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if !test.expected {
 				t.Errorf("unexpected imagestream call")
 			}
@@ -96,7 +96,7 @@ func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	config.Spec.Triggers[0].ImageChangeParams.From.Name = imageapi.JoinImageStreamTag(stream.Name, "unrelatedtag")
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, stream, nil
 	})
 
@@ -210,9 +210,9 @@ func TestProcess_matchScenarios(t *testing.T) {
 		t.Logf("running test %q", test.name)
 
 		fake := &testclient.Fake{}
-		fake.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if test.notFound {
-				name := action.(core.GetAction).GetName()
+				name := action.(clientgotesting.GetAction).GetName()
 				return true, nil, errors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			}
 			stream := fakeStream(deploytest.ImageStreamName, imageapi.DefaultImageTag, deploytest.DockerImageReference, deploytest.ImageID)
@@ -663,7 +663,7 @@ func TestCanTrigger(t *testing.T) {
 		t.Logf("running scenario %q", test.name)
 
 		client := &fake.Clientset{}
-		client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		client.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			config := test.decoded
 			if config == nil {
 				config = test.config

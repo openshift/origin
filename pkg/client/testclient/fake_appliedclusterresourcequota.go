@@ -4,7 +4,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
@@ -17,7 +17,7 @@ type FakeAppliedClusterResourceQuotas struct {
 var appliedClusterResourceQuotasResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "appliedclusterresourcequotas"}
 
 func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOptions) (*quotaapi.AppliedClusterResourceQuota, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
 	if obj == nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (c *FakeAppliedClusterResourceQuotas) List(opts metainternal.ListOptions) (
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, optsv1), &quotaapi.AppliedClusterResourceQuotaList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, optsv1), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

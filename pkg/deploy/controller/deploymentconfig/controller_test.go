@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller"
@@ -343,19 +343,19 @@ func TestHandleScenarios(t *testing.T) {
 		}
 
 		oc := &testclient.Fake{}
-		oc.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			dc := action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+		oc.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			dc := action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
 			return true, dc, nil
 		})
 		kc := &fake.Clientset{}
-		kc.AddReactor("create", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.CreateAction).GetObject().(*kapi.ReplicationController)
+		kc.AddReactor("create", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.CreateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
-		kc.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		kc.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})

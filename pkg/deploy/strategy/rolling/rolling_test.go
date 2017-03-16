@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -70,12 +70,12 @@ func TestRolling_deployRolling(t *testing.T) {
 	deploymentUpdated := false
 
 	client := &fake.Clientset{}
-	client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.GetAction).GetName()
+	client.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.GetAction).GetName()
 		return true, deployments[name], nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		deploymentUpdated = true
 		return true, updated, nil
 	})
@@ -162,12 +162,12 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	deployments := map[string]*kapi.ReplicationController{latest.Name: latest}
 
 	client := &fake.Clientset{}
-	client.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.GetAction).GetName()
+	client.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.GetAction).GetName()
 		return true, deployments[name], nil
 	})
-	client.AddReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		return true, updated, nil
 	})
 

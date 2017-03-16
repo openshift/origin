@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -25,7 +25,7 @@ var imageStreamImagesResource = schema.GroupVersionResource{Group: "", Version: 
 func (c *FakeImageStreamImages) Get(repo, imageID string) (*imageapi.ImageStreamImage, error) {
 	name := fmt.Sprintf("%s@%s", repo, imageID)
 
-	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamImagesResource, c.Namespace, name), &imageapi.ImageStreamImage{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(imageStreamImagesResource, c.Namespace, name), &imageapi.ImageStreamImage{})
 	if obj == nil {
 		return nil, err
 	}

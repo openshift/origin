@@ -16,7 +16,7 @@ import (
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -99,7 +99,7 @@ func TestDefaultPolicy(t *testing.T) {
 	client := &testclient.Fake{}
 	imageResp := 0
 	// respond to images in this order: goodImage, badImage
-	client.AddReactor("get", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		image := goodImage
 		if imageResp%2 == 1 {
 			image = badImage
@@ -109,7 +109,7 @@ func TestDefaultPolicy(t *testing.T) {
 	})
 	tagResp := 0
 	// respond to imagestreamtags in this order: notFoundTag, goodTag, badTag
-	client.AddReactor("get", "imagestreamtags", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if tagResp%3 == 0 {
 			tagResp += 1
 			return true, nil, notFoundTag

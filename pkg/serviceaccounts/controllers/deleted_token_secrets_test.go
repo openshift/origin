@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 // emptySecretReferences is used by a service account without any secrets
@@ -132,33 +132,33 @@ func TestTokenDeletion(t *testing.T) {
 
 		DeletedSecret *api.Secret
 
-		ExpectedActions []core.Action
+		ExpectedActions []clientgotesting.Action
 	}{
 		"deleted token secret without serviceaccount": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 			DeletedSecret: serviceAccountTokenSecret(),
 
-			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount with reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: serviceAccountTokenSecret(),
-			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 		"deleted token secret with serviceaccount without reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: serviceAccountTokenSecret(),
-			ExpectedActions: []core.Action{
-				core.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
-				core.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector}),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "default-dockercfg-fplln"),
 			},
 		},
 	}

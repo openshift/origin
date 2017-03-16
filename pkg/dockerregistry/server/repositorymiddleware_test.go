@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -765,7 +765,7 @@ func testNewDescriptorForLayer(layer imageapi.ImageLayer) distribution.Descripto
 	}
 }
 
-func compareActions(t *testing.T, testCaseName string, actions []core.Action, expectedActions []clientAction) {
+func compareActions(t *testing.T, testCaseName string, actions []clientgotesting.Action, expectedActions []clientAction) {
 	for i, action := range actions {
 		if i >= len(expectedActions) {
 			t.Errorf("[%s] got unexpected client action: %#+v", testCaseName, action)

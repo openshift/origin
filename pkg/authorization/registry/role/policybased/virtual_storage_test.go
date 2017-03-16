@@ -278,7 +278,7 @@ func TestDeleteError(t *testing.T) {
 	storage := makeLocalTestStorage()
 
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	_, err := storage.Delete(ctx, "foo", nil)
+	_, _, err := storage.Delete(ctx, "foo", nil)
 
 	if err == nil {
 		t.Errorf("expected error")
@@ -295,7 +295,7 @@ func TestDeleteValid(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
 	})
 
-	obj, err := storage.Delete(ctx, "my-role", nil)
+	obj, _, err := storage.Delete(ctx, "my-role", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

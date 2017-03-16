@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -17,11 +17,11 @@ import (
 func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) client.Interface {
 	fake := &testclient.Fake{}
 
-	fake.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, imageStreams, nil
 	})
-	fake.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		return true, images[action.(core.GetAction).GetName()], nil
+	fake.AddReactor("get", "imagestreamimages", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, images[action.(clientgotesting.GetAction).GetName()], nil
 	})
 
 	return fake

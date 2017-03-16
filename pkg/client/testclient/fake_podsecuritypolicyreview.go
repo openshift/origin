@@ -3,7 +3,7 @@ package testclient
 import (
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 // FakePodSecurityPolicyReviews implements the PodSecurityPolicyReviews interface.
@@ -17,7 +17,7 @@ type FakePodSecurityPolicyReviews struct {
 var podSecurityPolicyReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyreviews"}
 
 func (c *FakePodSecurityPolicyReviews) Create(inObj *securityapi.PodSecurityPolicyReview) (*securityapi.PodSecurityPolicyReview, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicyReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicyReview{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(podSecurityPolicyReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicyReview{})
 	if cast, ok := obj.(*securityapi.PodSecurityPolicyReview); ok {
 		return cast, err
 	}

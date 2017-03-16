@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -25,7 +25,7 @@ type FakeBuildConfigs struct {
 var buildConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
 
 func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (c *FakeBuildConfigs) List(opts metainternal.ListOptions) (*buildapi.BuildC
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewListAction(buildConfigsResource, c.Namespace, optsv1), &buildapi.BuildConfigList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, optsv1), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *FakeBuildConfigs) List(opts metainternal.ListOptions) (*buildapi.BuildC
 }
 
 func (c *FakeBuildConfigs) Create(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(buildConfigsResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(buildConfigsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *FakeBuildConfigs) Create(inObj *buildapi.BuildConfig) (*buildapi.BuildC
 }
 
 func (c *FakeBuildConfigs) Update(inObj *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(buildConfigsResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(buildConfigsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *FakeBuildConfigs) Update(inObj *buildapi.BuildConfig) (*buildapi.BuildC
 }
 
 func (c *FakeBuildConfigs) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
 	return err
 }
 
@@ -76,7 +76,7 @@ func (c *FakeBuildConfigs) Watch(opts metainternal.ListOptions) (watch.Interface
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewWatchAction(buildConfigsResource, c.Namespace, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(buildConfigsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
@@ -91,7 +91,7 @@ func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTrigge
 }
 
 func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error) {
-	action := core.NewCreateAction(buildapi.LegacySchemeGroupVersion.WithResource("builds"), c.Namespace, request)
+	action := clientgotesting.NewCreateAction(buildapi.LegacySchemeGroupVersion.WithResource("builds"), c.Namespace, request)
 	action.Subresource = "instantiate"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {
@@ -102,7 +102,7 @@ func (c *FakeBuildConfigs) Instantiate(request *buildapi.BuildRequest) (result *
 }
 
 func (c *FakeBuildConfigs) InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
-	action := core.NewCreateAction(buildapi.LegacySchemeGroupVersion.WithResource("builds"), c.Namespace, request)
+	action := clientgotesting.NewCreateAction(buildapi.LegacySchemeGroupVersion.WithResource("builds"), c.Namespace, request)
 	action.Subresource = "instantiatebinary"
 	obj, err := c.Fake.Invokes(action, &buildapi.Build{})
 	if obj == nil {

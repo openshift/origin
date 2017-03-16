@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/controller/informers"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -54,12 +54,12 @@ func runFuzzer(t *testing.T) {
 	startingNamespaces := CreateStartingNamespaces()
 	kubeclient := fake.NewSimpleClientset(startingNamespaces...)
 	nsWatch := watch.NewFake()
-	kubeclient.PrependWatchReactor("namespaces", core.DefaultWatchReactor(nsWatch, nil))
+	kubeclient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
 	startingQuotas := CreateStartingQuotas()
 	originclient := testclient.NewSimpleFake(startingQuotas...)
 	quotaWatch := watch.NewFake()
-	originclient.PrependWatchReactor("clusterresourcequotas", core.DefaultWatchReactor(quotaWatch, nil))
+	originclient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 
 	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclient, 10*time.Minute)
 	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeclient, originclient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)

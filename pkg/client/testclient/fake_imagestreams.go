@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -25,7 +25,7 @@ var imageStreamsResource = schema.GroupVersionResource{Group: "", Version: "", R
 var imageStreamImportsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
 
 func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageS
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewListAction(imageStreamsResource, c.Namespace, optsv1), &imageapi.ImageStreamList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, c.Namespace, optsv1), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageS
 }
 
 func (c *FakeImageStreams) Create(inObj *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(imageStreamsResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(imageStreamsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *FakeImageStreams) Create(inObj *imageapi.ImageStream) (*imageapi.ImageS
 }
 
 func (c *FakeImageStreams) Update(inObj *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(imageStreamsResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(imageStreamsResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *FakeImageStreams) Update(inObj *imageapi.ImageStream) (*imageapi.ImageS
 }
 
 func (c *FakeImageStreams) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
 	return err
 }
 
@@ -76,11 +76,11 @@ func (c *FakeImageStreams) Watch(opts metainternal.ListOptions) (watch.Interface
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewWatchAction(imageStreamsResource, c.Namespace, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(imageStreamsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
-	action := core.CreateActionImpl{}
+	action := clientgotesting.CreateActionImpl{}
 	action.Verb = "update"
 	action.Resource = imageStreamsResource
 	action.Subresource = "status"
@@ -95,7 +95,7 @@ func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *im
 }
 
 func (c *FakeImageStreams) Import(inObj *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
-	action := core.CreateActionImpl{}
+	action := clientgotesting.CreateActionImpl{}
 	action.Verb = "create"
 	action.Resource = imageStreamImportsResource
 	action.Object = inObj

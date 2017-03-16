@@ -34,8 +34,8 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 func (r *ClusterPolicyRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	return r.ListClusterPolicies(apirequest.NewContext(), &options)
 }
-func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return r.GetClusterPolicy(apirequest.NewContext(), name)
+func (r *ClusterPolicyRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
+	return r.GetClusterPolicy(apirequest.NewContext(), name, &options)
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
@@ -69,7 +69,7 @@ func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx apirequest.Context, opti
 }
 
 // GetClusterPolicy retrieves a specific policy.
-func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx apirequest.Context, id string) (*authorizationapi.ClusterPolicy, error) {
+func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -98,7 +98,7 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx apirequest.Context, poli
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicy(ctx, policy.Name); existing != nil {
+	if existing, _ := r.GetClusterPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing != nil {
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("ClusterPolicy"), policy.Name)
 	}
 
@@ -117,7 +117,7 @@ func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx apirequest.Context, poli
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicy(ctx, policy.Name); existing == nil {
+	if existing, _ := r.GetClusterPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing == nil {
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicy"), policy.Name)
 	}
 

@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -14,7 +14,7 @@ import (
 
 func testTemplateClient(templates *templateapi.TemplateList) client.Interface {
 	fake := &testclient.Fake{}
-	fake.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if len(action.GetNamespace()) > 0 {
 			matchingTemplates := &templateapi.TemplateList{
 				Items: []templateapi.Template{},
