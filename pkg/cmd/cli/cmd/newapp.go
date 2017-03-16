@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -388,7 +389,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 		LogsForObject: logsForObjectFn,
 		Out:           config.Out,
 	}
-	_, logErr := opts.RunLogs()
+	logErr := opts.RunLogs()
 
 	// status of the pod may take tens of seconds to propagate
 	if err := wait.PollImmediate(500*time.Millisecond, 30*time.Second, installationComplete(podClient, pod.Name, config.Out)); err != nil {

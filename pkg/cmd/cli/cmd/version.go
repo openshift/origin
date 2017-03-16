@@ -10,6 +10,7 @@ import (
 	etcdversion "github.com/coreos/etcd/version"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kubeversiontypes "k8s.io/apimachinery/pkg/version"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -146,7 +147,7 @@ func (o VersionOptions) RunVersion() error {
 		kubeVersionBody, err := kRESTClient.Get().AbsPath("/version").Do().Raw()
 		switch {
 		case err == nil:
-			var kubeServerInfo kubeversion.Info
+			var kubeServerInfo kubeversiontypes.Info
 			err = json.Unmarshal(kubeVersionBody, &kubeServerInfo)
 			if err != nil && len(kubeVersionBody) > 0 {
 				done <- err

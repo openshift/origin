@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -161,7 +161,7 @@ func (o *ImportImageOptions) Run() error {
 
 		// optimization, use the image stream returned by the call
 		d := describe.ImageStreamDescriber{Interface: o.osClient}
-		info, err := d.Describe(o.Namespace, stream.Name, kctl.DescriberSettings{})
+		info, err := d.Describe(o.Namespace, stream.Name, kprinters.DescriberSettings{})
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func (o *ImportImageOptions) Run() error {
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
 	d := describe.ImageStreamDescriber{Interface: o.osClient}
-	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kctl.DescriberSettings{})
+	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kprinters.DescriberSettings{})
 	if err != nil {
 		return err
 	}

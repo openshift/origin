@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -24,7 +23,7 @@ const (
 )
 
 func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string) error {
-	template, err := client.Templates(templateNamespace).Get(templateName)
+	template, err := client.Templates(templateNamespace).Get(templateName, metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve template %q from namespace %q", templateName, templateNamespace).WithCause(err)
 	}
@@ -93,7 +92,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Label all nodes with default fluentd label
-	nodeList, err := kubeClient.Core().Nodes().List(metainternal.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err).WithDetails(h.OriginLog())
 	}

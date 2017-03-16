@@ -19,6 +19,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -638,7 +639,7 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 		return nil
 	}
 
-	webConsoleOAuth, err := oc.OAuthClients().Get(defaultRedirectClient)
+	webConsoleOAuth, err := oc.OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)

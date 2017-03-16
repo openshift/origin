@@ -203,7 +203,7 @@ func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory)
 		if pod, ok := podsLoaded[ref]; ok {
 			return pod, nil
 		}
-		pod, err := client.Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
+		pod, err := client.Core().Pods(ref.Namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -483,7 +483,7 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 }
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
-func patchObj(obj runtime.Object, metadata meta.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
+func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
 	newData, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
@@ -500,7 +500,7 @@ func patchObj(obj runtime.Object, metadata meta.Object, oldData []byte, mapping 
 	}
 	helper := resource.NewHelper(client, mapping)
 
-	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), kapi.StrategicMergePatchType, patchBytes)
+	return helper.Patch(metadata.GetNamespace(), metadata.GetName(), types.StrategicMergePatchType, patchBytes)
 }
 
 type scaleInfo struct {
