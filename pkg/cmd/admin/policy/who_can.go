@@ -76,7 +76,7 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 }
 
 func resourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersionResource {
-	fullySpecifiedGVR, groupResource := metav1.ParseResourceArg(strings.ToLower(resourceArg))
+	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(strings.ToLower(resourceArg))
 	gvr := schema.GroupVersionResource{}
 	if fullySpecifiedGVR != nil {
 		gvr, _ = mapper.ResourceFor(*fullySpecifiedGVR)
