@@ -20,8 +20,9 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api/v1"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -35,23 +36,23 @@ func TestMostRequested(t *testing.T) {
 		"bar": "foo",
 		"baz": "blah",
 	}
-	noResources := api.PodSpec{
-		Containers: []api.Container{},
+	noResources := v1.PodSpec{
+		Containers: []v1.Container{},
 	}
-	cpuOnly := api.PodSpec{
+	cpuOnly := v1.PodSpec{
 		NodeName: "machine1",
-		Containers: []api.Container{
+		Containers: []v1.Container{
 			{
-				Resources: api.ResourceRequirements{
-					Requests: api.ResourceList{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
 						"cpu":    resource.MustParse("1000m"),
 						"memory": resource.MustParse("0"),
 					},
 				},
 			},
 			{
-				Resources: api.ResourceRequirements{
-					Requests: api.ResourceList{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
 						"cpu":    resource.MustParse("2000m"),
 						"memory": resource.MustParse("0"),
 					},
@@ -61,20 +62,20 @@ func TestMostRequested(t *testing.T) {
 	}
 	cpuOnly2 := cpuOnly
 	cpuOnly2.NodeName = "machine2"
-	cpuAndMemory := api.PodSpec{
+	cpuAndMemory := v1.PodSpec{
 		NodeName: "machine2",
-		Containers: []api.Container{
+		Containers: []v1.Container{
 			{
-				Resources: api.ResourceRequirements{
-					Requests: api.ResourceList{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
 						"cpu":    resource.MustParse("1000m"),
 						"memory": resource.MustParse("2000"),
 					},
 				},
 			},
 			{
-				Resources: api.ResourceRequirements{
-					Requests: api.ResourceList{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
 						"cpu":    resource.MustParse("2000m"),
 						"memory": resource.MustParse("3000"),
 					},
@@ -82,10 +83,31 @@ func TestMostRequested(t *testing.T) {
 			},
 		},
 	}
+	bigCpuAndMemory := v1.PodSpec{
+		NodeName: "machine1",
+		Containers: []v1.Container{
+			{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
+						"cpu":    resource.MustParse("2000m"),
+						"memory": resource.MustParse("4000"),
+					},
+				},
+			},
+			{
+				Resources: v1.ResourceRequirements{
+					Requests: v1.ResourceList{
+						"cpu":    resource.MustParse("3000m"),
+						"memory": resource.MustParse("5000"),
+					},
+				},
+			},
+		},
+	}
 	tests := []struct {
-		pod          *api.Pod
-		pods         []*api.Pod
-		nodes        []*api.Node
+		pod          *v1.Pod
+		pods         []*v1.Pod
+		nodes        []*v1.Node
 		expectedList schedulerapi.HostPriorityList
 		test         string
 	}{
@@ -101,8 +123,8 @@ func TestMostRequested(t *testing.T) {
 				Memory Score: (0 * 10 / 10000 = 0
 				Node2 Score: (0 + 0) / 2 = 0
 			*/
-			pod:          &api.Pod{Spec: noResources},
-			nodes:        []*api.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 4000, 10000)},
+			pod:          &v1.Pod{Spec: noResources},
+			nodes:        []*v1.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 4000, 10000)},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 0}, {Host: "machine2", Score: 0}},
 			test:         "nothing scheduled, nothing requested",
 		},
@@ -118,8 +140,8 @@ func TestMostRequested(t *testing.T) {
 				Memory Score: (5000 * 10 / 10000 = 5
 				Node2 Score: (5 + 5) / 2 = 5
 			*/
-			pod:          &api.Pod{Spec: cpuAndMemory},
-			nodes:        []*api.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 6000, 10000)},
+			pod:          &v1.Pod{Spec: cpuAndMemory},
+			nodes:        []*v1.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 6000, 10000)},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 6}, {Host: "machine2", Score: 5}},
 			test:         "nothing scheduled, resources requested, differently sized machines",
 		},
@@ -135,15 +157,15 @@ func TestMostRequested(t *testing.T) {
 				Memory Score: (5000 * 10) / 20000 = 2.5
 				Node2 Score: (6 + 2.5) / 2 = 4
 			*/
-			pod:          &api.Pod{Spec: noResources},
-			nodes:        []*api.Node{makeNode("machine1", 10000, 20000), makeNode("machine2", 10000, 20000)},
+			pod:          &v1.Pod{Spec: noResources},
+			nodes:        []*v1.Node{makeNode("machine1", 10000, 20000), makeNode("machine2", 10000, 20000)},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 3}, {Host: "machine2", Score: 4}},
 			test:         "no resources requested, pods scheduled with resources",
-			pods: []*api.Pod{
-				{Spec: cpuOnly, ObjectMeta: api.ObjectMeta{Labels: labels2}},
-				{Spec: cpuOnly, ObjectMeta: api.ObjectMeta{Labels: labels1}},
-				{Spec: cpuOnly2, ObjectMeta: api.ObjectMeta{Labels: labels1}},
-				{Spec: cpuAndMemory, ObjectMeta: api.ObjectMeta{Labels: labels1}},
+			pods: []*v1.Pod{
+				{Spec: cpuOnly, ObjectMeta: metav1.ObjectMeta{Labels: labels2}},
+				{Spec: cpuOnly, ObjectMeta: metav1.ObjectMeta{Labels: labels1}},
+				{Spec: cpuOnly2, ObjectMeta: metav1.ObjectMeta{Labels: labels1}},
+				{Spec: cpuAndMemory, ObjectMeta: metav1.ObjectMeta{Labels: labels1}},
 			},
 		},
 		{
@@ -158,14 +180,31 @@ func TestMostRequested(t *testing.T) {
 				Memory Score: (10000 * 10) / 20000 = 5
 				Node2 Score: (6 + 5) / 2 = 5
 			*/
-			pod:          &api.Pod{Spec: cpuAndMemory},
-			nodes:        []*api.Node{makeNode("machine1", 10000, 20000), makeNode("machine2", 10000, 20000)},
+			pod:          &v1.Pod{Spec: cpuAndMemory},
+			nodes:        []*v1.Node{makeNode("machine1", 10000, 20000), makeNode("machine2", 10000, 20000)},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 4}, {Host: "machine2", Score: 5}},
 			test:         "resources requested, pods scheduled with resources",
-			pods: []*api.Pod{
+			pods: []*v1.Pod{
 				{Spec: cpuOnly},
 				{Spec: cpuAndMemory},
 			},
+		},
+		{
+			/*
+				Node1 scores on 0-10 scale
+				CPU Score: 5000 > 4000 return 0
+				Memory Score: (9000 * 10) / 10000 = 9
+				Node1 Score: (0 + 9) / 2 = 4
+
+				Node2 scores on 0-10 scale
+				CPU Score: (5000 * 10) / 10000 = 5
+				Memory Score: 9000 > 8000 return 0
+				Node2 Score: (5 + 0) / 2 = 2
+			*/
+			pod:          &v1.Pod{Spec: bigCpuAndMemory},
+			nodes:        []*v1.Node{makeNode("machine1", 4000, 10000), makeNode("machine2", 10000, 8000)},
+			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 4}, {Host: "machine2", Score: 2}},
+			test:         "resources requested with more than the node, pods scheduled with resources",
 		},
 	}
 

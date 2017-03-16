@@ -23,11 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -119,8 +118,8 @@ func GroupSize(group string) (int, error) {
 }
 
 func WaitForGroupSize(group string, size int32) error {
-	timeout := 10 * time.Minute
-	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
+	timeout := 30 * time.Minute
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(20 * time.Second) {
 		currentSize, err := GroupSize(group)
 		if err != nil {
 			framework.Logf("Failed to get node instance group size: %v", err)
@@ -136,17 +135,17 @@ func WaitForGroupSize(group string, size int32) error {
 	return fmt.Errorf("timeout waiting %v for node instance group size to be %d", timeout, size)
 }
 
-func svcByName(name string, port int) *api.Service {
-	return &api.Service{
-		ObjectMeta: api.ObjectMeta{
+func svcByName(name string, port int) *v1.Service {
+	return &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: api.ServiceSpec{
-			Type: api.ServiceTypeNodePort,
+		Spec: v1.ServiceSpec{
+			Type: v1.ServiceTypeNodePort,
 			Selector: map[string]string{
 				"name": name,
 			},
-			Ports: []api.ServicePort{{
+			Ports: []v1.ServicePort{{
 				Port:       int32(port),
 				TargetPort: intstr.FromInt(port),
 			}},
@@ -159,65 +158,19 @@ func newSVCByName(c clientset.Interface, ns, name string) error {
 	return err
 }
 
-func rcByNamePort(name string, replicas int32, image string, port int, protocol api.Protocol,
-	labels map[string]string, gracePeriod *int64) *api.ReplicationController {
-
-	return rcByNameContainer(name, replicas, image, labels, api.Container{
-		Name:  name,
-		Image: image,
-		Ports: []api.ContainerPort{{ContainerPort: int32(port), Protocol: protocol}},
-	}, gracePeriod)
-}
-
-func rcByNameContainer(name string, replicas int32, image string, labels map[string]string, c api.Container,
-	gracePeriod *int64) *api.ReplicationController {
-
-	zeroGracePeriod := int64(0)
-
-	// Add "name": name to the labels, overwriting if it exists.
-	labels["name"] = name
-	if gracePeriod == nil {
-		gracePeriod = &zeroGracePeriod
-	}
-	return &api.ReplicationController{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       "ReplicationController",
-			APIVersion: registered.GroupOrDie(api.GroupName).GroupVersion.String(),
-		},
-		ObjectMeta: api.ObjectMeta{
-			Name: name,
-		},
-		Spec: api.ReplicationControllerSpec{
-			Replicas: replicas,
-			Selector: map[string]string{
-				"name": name,
-			},
-			Template: &api.PodTemplateSpec{
-				ObjectMeta: api.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: api.PodSpec{
-					Containers:                    []api.Container{c},
-					TerminationGracePeriodSeconds: gracePeriod,
-				},
-			},
-		},
-	}
-}
-
 // newRCByName creates a replication controller with a selector by name of name.
-func newRCByName(c clientset.Interface, ns, name string, replicas int32, gracePeriod *int64) (*api.ReplicationController, error) {
+func newRCByName(c clientset.Interface, ns, name string, replicas int32, gracePeriod *int64) (*v1.ReplicationController, error) {
 	By(fmt.Sprintf("creating replication controller %s", name))
-	return c.Core().ReplicationControllers(ns).Create(rcByNamePort(
-		name, replicas, serveHostnameImage, 9376, api.ProtocolTCP, map[string]string{}, gracePeriod))
+	return c.Core().ReplicationControllers(ns).Create(framework.RcByNamePort(
+		name, replicas, serveHostnameImage, 9376, v1.ProtocolTCP, map[string]string{}, gracePeriod))
 }
 
 func resizeRC(c clientset.Interface, ns, name string, replicas int32) error {
-	rc, err := c.Core().ReplicationControllers(ns).Get(name)
+	rc, err := c.Core().ReplicationControllers(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	rc.Spec.Replicas = replicas
+	*(rc.Spec.Replicas) = replicas
 	_, err = c.Core().ReplicationControllers(rc.Namespace).Update(rc)
 	return err
 }
@@ -284,10 +237,10 @@ var _ = framework.KubeDescribe("Nodes [Disruptive]", func() {
 			// Many e2e tests assume that the cluster is fully healthy before they start.  Wait until
 			// the cluster is restored to health.
 			By("waiting for system pods to successfully restart")
-			err := framework.WaitForPodsRunningReady(c, api.NamespaceSystem, systemPodsNo, framework.PodReadyBeforeTimeout, ignoreLabels)
+			err := framework.WaitForPodsRunningReady(c, metav1.NamespaceSystem, systemPodsNo, 0, framework.PodReadyBeforeTimeout, ignoreLabels, true)
 			Expect(err).NotTo(HaveOccurred())
 			By("waiting for image prepulling pods to complete")
-			framework.WaitForPodsSuccess(c, api.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingTimeout)
+			framework.WaitForPodsSuccess(c, metav1.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingTimeout)
 		})
 
 		It("should be able to delete nodes", func() {

@@ -58,6 +58,9 @@ func waitForPathToExistInternal(devicePath string, maxRetries int, deviceTranspo
 		if err != nil && !os.IsNotExist(err) {
 			return false
 		}
+		if i == maxRetries-1 {
+			break
+		}
 		time.Sleep(time.Second)
 	}
 	return false
@@ -95,11 +98,12 @@ func makePDNameInternal(host volume.VolumeHost, portal string, iqn string, lun s
 type ISCSIUtil struct{}
 
 func (util *ISCSIUtil) MakeGlobalPDName(iscsi iscsiDisk) string {
-	return makePDNameInternal(iscsi.plugin.host, iscsi.portal, iscsi.iqn, iscsi.lun, iscsi.iface)
+	return makePDNameInternal(iscsi.plugin.host, iscsi.portals[0], iscsi.iqn, iscsi.lun, iscsi.iface)
 }
 
 func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 	var devicePath string
+	var devicePaths []string
 	var iscsiTransport string
 
 	out, err := b.plugin.execCommand("iscsiadm", []string{"-m", "iface", "-I", b.iface, "-o", "show"})
@@ -110,40 +114,57 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 
 	iscsiTransport = extractTransportname(string(out))
 
-	// Rescan sessions to discover newly mapped LUNs. Do not specify the interface when rescanning
-	// to avoid establishing additional sessions to the same target.
-	out, err = b.plugin.execCommand("iscsiadm", []string{"-m", "node", "-p", b.portal, "-T", b.iqn, "-R"})
-	if err != nil {
-		glog.Errorf("iscsi: failed to rescan session with error: %s (%v)", string(out), err)
+	bkpPortal := b.portals
+	for _, tp := range bkpPortal {
+		// Rescan sessions to discover newly mapped LUNs. Do not specify the interface when rescanning
+		// to avoid establishing additional sessions to the same target.
+		out, err := b.plugin.execCommand("iscsiadm", []string{"-m", "node", "-p", tp, "-T", b.iqn, "-R"})
+		if err != nil {
+			glog.Errorf("iscsi: failed to rescan session with error: %s (%v)", string(out), err)
+		}
+
+		if iscsiTransport == "" {
+			glog.Errorf("iscsi: could not find transport name in iface %s", b.iface)
+			return errors.New(fmt.Sprintf("Could not parse iface file for %s", b.iface))
+		} else if iscsiTransport == "tcp" {
+			devicePath = strings.Join([]string{"/dev/disk/by-path/ip", tp, "iscsi", b.iqn, "lun", b.lun}, "-")
+		} else {
+			devicePath = strings.Join([]string{"/dev/disk/by-path/pci", "*", "ip", tp, "iscsi", b.iqn, "lun", b.lun}, "-")
+		}
+		exist := waitForPathToExist(devicePath, 1, iscsiTransport)
+		if exist == false {
+			// discover iscsi target
+			out, err := b.plugin.execCommand("iscsiadm", []string{"-m", "discovery", "-t", "sendtargets", "-p", tp, "-I", b.iface})
+			if err != nil {
+				glog.Errorf("iscsi: failed to sendtargets to portal %s error: %s", tp, string(out))
+				continue
+			}
+			// login to iscsi target
+			out, err = b.plugin.execCommand("iscsiadm", []string{"-m", "node", "-p", tp, "-T", b.iqn, "-I", b.iface, "--login"})
+			if err != nil {
+				glog.Errorf("iscsi: failed to attach disk:Error: %s (%v)", string(out), err)
+				continue
+			}
+			exist = waitForPathToExist(devicePath, 10, iscsiTransport)
+			if !exist {
+				glog.Errorf("Could not attach disk: Timeout after 10s")
+			} else {
+				devicePaths = append(devicePaths, devicePath)
+			}
+		} else {
+			glog.V(4).Infof("iscsi: devicepath (%s) exists", devicePath)
+			devicePaths = append(devicePaths, devicePath)
+		}
 	}
 
-	if iscsiTransport == "" {
-		glog.Errorf("iscsi: could not find transport name in iface %s", b.iface)
-		return errors.New(fmt.Sprintf("Could not parse iface file for %s", b.iface))
-	} else if iscsiTransport == "tcp" {
-		devicePath = strings.Join([]string{"/dev/disk/by-path/ip", b.portal, "iscsi", b.iqn, "lun", b.lun}, "-")
-	} else {
-		devicePath = strings.Join([]string{"/dev/disk/by-path/pci", "*", "ip", b.portal, "iscsi", b.iqn, "lun", b.lun}, "-")
+	if len(devicePaths) == 0 {
+		glog.Errorf("iscsi: failed to get any path for iscsi disk")
+		return errors.New("failed to get any path for iscsi disk")
 	}
-	exist := waitForPathToExist(devicePath, 1, iscsiTransport)
-	if exist == false {
-		// discover iscsi target
-		out, err := b.plugin.execCommand("iscsiadm", []string{"-m", "discovery", "-t", "sendtargets", "-p", b.portal, "-I", b.iface})
-		if err != nil {
-			glog.Errorf("iscsi: failed to sendtargets to portal %s error: %s", b.portal, string(out))
-			return err
-		}
-		// login to iscsi target
-		out, err = b.plugin.execCommand("iscsiadm", []string{"-m", "node", "-p", b.portal, "-T", b.iqn, "-I", b.iface, "--login"})
-		if err != nil {
-			glog.Errorf("iscsi: failed to attach disk:Error: %s (%v)", string(out), err)
-			return err
-		}
-		exist = waitForPathToExist(devicePath, 10, iscsiTransport)
-		if !exist {
-			return errors.New("Could not attach disk: Timeout after 10s")
-		}
-	}
+
+	//Make sure we use a valid devicepath to find mpio device.
+	devicePath = devicePaths[0]
+
 	// mount it
 	globalPDPath := b.manager.MakeGlobalPDName(*b.iscsiDisk)
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(globalPDPath)
@@ -157,9 +178,17 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 		return err
 	}
 
-	// check if the dev is using mpio and if so mount it via the dm-XX device
-	if mappedDevicePath := b.deviceUtil.FindMultipathDeviceForDevice(devicePath); mappedDevicePath != "" {
-		devicePath = mappedDevicePath
+	for _, path := range devicePaths {
+		// There shouldnt be any empty device paths. However adding this check
+		// for safer side to avoid the possibility of an empty entry.
+		if path == "" {
+			continue
+		}
+		// check if the dev is using mpio and if so mount it via the dm-XX device
+		if mappedDevicePath := b.deviceUtil.FindMultipathDeviceForDevice(path); mappedDevicePath != "" {
+			devicePath = mappedDevicePath
+			break
+		}
 	}
 	err = b.mounter.FormatAndMount(devicePath, globalPDPath, b.fsType, nil)
 	if err != nil {
@@ -187,7 +216,6 @@ func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, mntPath string) error {
 			return err
 		}
 		refCount, err := getDevicePrefixRefCount(c.mounter, prefix)
-
 		if err == nil && refCount == 0 {
 			// This portal/iqn/iface is no longer referenced, log out.
 			// Extract the portal and iqn from device path.
