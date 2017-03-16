@@ -74,7 +74,7 @@ preload-dep "google.golang.org" "cloud"  "$( go run "${OS_ROOT}/tools/godepversi
 echo "Starting to download all godeps. This takes a while"
 
 pushd "${GOPATH}/src/github.com/openshift/origin" > /dev/null
-"${GODEP}" restore
+  GOPATH=$GOPATH:${PWD}/vendor/k8s.io/kubernetes/staging "${GODEP}" restore "$@"
 popd > /dev/null
 
 echo "Download finished into ${GOPATH}"
