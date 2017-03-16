@@ -13,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -212,8 +213,8 @@ func TestUserReaper(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tc := testclient.NewSimpleFake(test.objects...)
-		ktc := fake.NewSimpleClientset(test.objects...)
+		tc := testclient.NewSimpleFake(oapi.OriginObjects(test.objects)...)
+		ktc := fake.NewSimpleClientset(oapi.UpstreamObjects(test.objects)...)
 
 		actual := []interface{}{}
 		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {

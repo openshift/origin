@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -340,8 +341,8 @@ func TestSubjectCheckers(t *testing.T) {
 		},
 	}
 
-	kclient := fake.NewSimpleClientset(objects...)
-	oclient := otestclient.NewSimpleFake(objects...)
+	kclient := fake.NewSimpleClientset(oapi.UpstreamObjects(objects)...)
+	oclient := otestclient.NewSimpleFake(oapi.OriginObjects(objects)...)
 	groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
 	groupCache.Run()
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race
