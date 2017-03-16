@@ -288,7 +288,7 @@ type fakePolicyGetter struct {
 }
 
 func (f *fakePolicyGetter) List(metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	policy, err := f.Get("")
+	policy, err := f.Get("", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func (f *fakePolicyGetter) List(metainternal.ListOptions) (*authorizationapi.Clu
 	return ret, f.err
 }
 
-func (f *fakePolicyGetter) Get(id string) (*authorizationapi.ClusterPolicy, error) {
+func (f *fakePolicyGetter) Get(id string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	ret := &authorizationapi.ClusterPolicy{}
 	ret.Roles = map[string]*authorizationapi.ClusterRole{}
 	for i := range f.clusterRoles {
