@@ -1340,6 +1340,9 @@ const (
 // Capability represent POSIX capabilities type
 type Capability string
 
+// CapabilityAll represent all POSIX capabilities types.
+var CapabilityAll Capability = "*"
+
 // Adds and removes POSIX capabilities from running containers.
 type Capabilities struct {
 	// Added capabilities
@@ -4076,6 +4079,7 @@ type SecurityContextConstraints struct {
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
+	// To allow all capabilities you may use '*'.
 	AllowedCapabilities []Capability `json:"allowedCapabilities" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	// +k8s:conversion-gen=false

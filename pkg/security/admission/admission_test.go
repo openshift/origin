@@ -49,6 +49,10 @@ func TestAdmitCaps(t *testing.T) {
 	requiresFooToBeDropped.Name = "requireDrop"
 	requiresFooToBeDropped.RequiredDropCapabilities = []kapi.Capability{"foo"}
 
+	allowAllInAllowed := restrictiveSCC()
+	allowAllInAllowed.Name = "allowAllCapsInAllowed"
+	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{kapi.CapabilityAll}
+
 	tc := map[string]struct {
 		pod                  *kapi.Pod
 		sccs                 []*kapi.SecurityContextConstraints
@@ -107,6 +111,12 @@ func TestAdmitCaps(t *testing.T) {
 			expectedCapabilities: &kapi.Capabilities{
 				Drop: []kapi.Capability{"foo"},
 			},
+		},
+		// UC 8: using '*' in allowed caps
+		"should accept cap add when all caps are allowed": {
+			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:       []*kapi.SecurityContextConstraints{restricted, allowAllInAllowed},
+			shouldPass: true,
 		},
 	}
 
