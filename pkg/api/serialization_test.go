@@ -388,8 +388,8 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					}
 				}
 				if c.RandBool() {
-					params.MaxUnavailable = intstr.FromInt(int(c.RandUint64()))
-					params.MaxSurge = intstr.FromInt(int(c.RandUint64()))
+					params.MaxUnavailable = intstr.FromInt(c.Rand.Int())
+					params.MaxSurge = intstr.FromInt(c.Rand.Int())
 				} else {
 					params.MaxSurge = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
