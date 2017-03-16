@@ -5,9 +5,9 @@ import (
 
 	"github.com/openshift/origin/pkg/route/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/types"
 )
 
 type testAllocator struct {

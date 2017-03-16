@@ -10,8 +10,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
-	ktypes "k8s.io/kubernetes/pkg/types"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
