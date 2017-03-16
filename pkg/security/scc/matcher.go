@@ -141,7 +141,7 @@ func resolveContainerSecurityContext(provider kscc.SecurityContextConstraintsPro
 	// since that is how the sc provider will eventually apply settings in the runtime.
 	// This results in an SC that is based on the Pod's PSC with the set fields from the container
 	// overriding pod level settings.
-	container.SecurityContext = sc.DetermineEffectiveSecurityContext(pod, container)
+	container.SecurityContext = sc.InternalDetermineEffectiveSecurityContext(pod, container)
 
 	csc, err := provider.CreateContainerSecurityContext(pod, container)
 	if err != nil {
