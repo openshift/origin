@@ -338,6 +338,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 						Name:      "registry-storage",
 						MountPath: opts.Config.Volume,
 					}),
+					ImagePullPolicy: kapi.PullIfNotPresent,
 					SecurityContext: &kapi.SecurityContext{
 						Privileged: &mountHost,
 					},
