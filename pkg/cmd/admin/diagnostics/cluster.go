@@ -120,7 +120,7 @@ func (o DiagnosticsOptions) findClusterClients(rawConfig *clientcmdapi.Config) (
 }
 
 // makes the client from the specified context and determines whether it is a cluster-admin.
-func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapirequest.Context) (*client.Client, kclientset.Interface, bool, string, error) {
+func (o DiagnosticsOptions) makeClusterClients(rawConfig *clientcmdapi.Config, contextName string, context *clientcmdapi.Context) (*client.Client, kclientset.Interface, bool, string, error) {
 	overrides := &clientcmd.ConfigOverrides{Context: *context}
 	clientConfig := clientcmd.NewDefaultClientConfig(*rawConfig, overrides)
 	serverUrl := rawConfig.Clusters[context.Cluster].Server

@@ -189,8 +189,8 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		CertificateAuthorityData: caData,
 	}
 
-	contexts := make(map[string]*clientcmdapirequest.Context)
-	contexts[contextNick] = &clientcmdapirequest.Context{Cluster: clusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
+	contexts := make(map[string]*clientcmdapi.Context)
+	contexts[contextNick] = &clientcmdapi.Context{Cluster: clusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
 
 	createPublic := (len(o.PublicAPIServerURL) > 0) && o.APIServerURL != o.PublicAPIServerURL
 	if createPublic {
@@ -204,7 +204,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 			Server: o.PublicAPIServerURL,
 			CertificateAuthorityData: caData,
 		}
-		contexts[publicContextNick] = &clientcmdapirequest.Context{Cluster: publicClusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
+		contexts[publicContextNick] = &clientcmdapi.Context{Cluster: publicClusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}
 	}
 
 	kubeConfig := &clientcmdapi.Config{
