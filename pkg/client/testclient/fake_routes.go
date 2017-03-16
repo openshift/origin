@@ -29,7 +29,12 @@ func (c *FakeRoutes) Get(name string, options metav1.GetOptions) (*routeapi.Rout
 }
 
 func (c *FakeRoutes) List(opts metainternal.ListOptions) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(routesResource, c.Namespace, opts), &routeapi.RouteList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(routesResource, c.Namespace, optsv1), &routeapi.RouteList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -72,5 +77,10 @@ func (c *FakeRoutes) Delete(name string) error {
 }
 
 func (c *FakeRoutes) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(routesResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(routesResource, c.Namespace, optsv1))
 }

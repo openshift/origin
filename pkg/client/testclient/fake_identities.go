@@ -27,7 +27,12 @@ func (c *FakeIdentities) Get(name string, options metav1.GetOptions) (*userapi.I
 }
 
 func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(identitiesResource, opts), &userapi.IdentityList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(identitiesResource, optsv1), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -278,9 +278,8 @@ func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	plugins := []kadmission.Interface{plugin}
 	pluginInitializer := kadmission.NewPluginInitializer(f, nil)
-	pluginInitializer.Initialize(plugins)
-	err = kadmission.Validate(plugins)
+	pluginInitializer.Initialize(plugin)
+	err = kadmission.Validate(plugin)
 	return plugin, f, err
 }

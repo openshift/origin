@@ -27,7 +27,12 @@ func (c *FakeClusterRoleBindings) Get(name string, options metav1.GetOptions) (*
 }
 
 func (c *FakeClusterRoleBindings) List(opts metainternal.ListOptions) (*authorizationapi.ClusterRoleBindingList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterRoleBindingsResource, opts), &authorizationapi.ClusterRoleBindingList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterRoleBindingsResource, optsv1), &authorizationapi.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}

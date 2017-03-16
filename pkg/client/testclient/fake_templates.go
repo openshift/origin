@@ -29,7 +29,12 @@ func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateap
 }
 
 func (c *FakeTemplates) List(opts metainternal.ListOptions) (*templateapi.TemplateList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(templatesResource, c.Namespace, optsv1), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -61,5 +66,10 @@ func (c *FakeTemplates) Delete(name string) error {
 }
 
 func (c *FakeTemplates) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(templatesResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(templatesResource, c.Namespace, optsv1))
 }

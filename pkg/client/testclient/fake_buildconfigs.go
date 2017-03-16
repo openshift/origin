@@ -34,7 +34,12 @@ func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildap
 }
 
 func (c *FakeBuildConfigs) List(opts metainternal.ListOptions) (*buildapi.BuildConfigList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(buildConfigsResource, c.Namespace, opts), &buildapi.BuildConfigList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(buildConfigsResource, c.Namespace, optsv1), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -66,7 +71,12 @@ func (c *FakeBuildConfigs) Delete(name string) error {
 }
 
 func (c *FakeBuildConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(buildConfigsResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(buildConfigsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {

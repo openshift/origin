@@ -28,7 +28,12 @@ func (c *FakeClusterResourceQuotas) Get(name string, options metav1.GetOptions) 
 }
 
 func (c *FakeClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(clusteResourceQuotasResource, opts), &quotaapi.ClusterResourceQuotaList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(clusteResourceQuotasResource, optsv1), &quotaapi.ClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -59,7 +64,12 @@ func (c *FakeClusterResourceQuotas) Delete(name string) error {
 }
 
 func (c *FakeClusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(clusteResourceQuotasResource, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewRootWatchAction(clusteResourceQuotasResource, optsv1))
 }
 
 func (c *FakeClusterResourceQuotas) UpdateStatus(inObj *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error) {

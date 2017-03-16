@@ -29,7 +29,12 @@ func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*
 }
 
 func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(egressNetworkPoliciesResource, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(egressNetworkPoliciesResource, c.Namespace, optsv1), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -61,5 +66,10 @@ func (c *FakeEgressNetworkPolicy) Delete(name string) error {
 }
 
 func (c *FakeEgressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, optsv1))
 }

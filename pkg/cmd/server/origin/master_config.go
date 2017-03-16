@@ -557,11 +557,12 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if plugin != nil {
 				plugins = append(plugins, plugin)
 			}
-
 		}
 	}
 
-	kubePluginInitializer.Initialize(plugins)
+	for _, plugin := range plugins {
+		kubePluginInitializer.Initialize(plugin)
+	}
 	pluginInitializer.Initialize(plugins)
 	// ensure that plugins have been properly initialized
 	if err := oadmission.Validate(plugins); err != nil {

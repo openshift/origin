@@ -2,10 +2,8 @@ package testclient
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
-	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	core "k8s.io/client-go/testing"
@@ -27,11 +25,9 @@ type Fake struct {
 	WatchReactionChain []core.WatchReactor
 }
 
-var registry = registered.NewOrDie(os.Getenv("KUBE_API_VERSIONS"))
-
 // NewSimpleFake returns a client that will respond with the provided objects
 func NewSimpleFake(objects ...runtime.Object) *Fake {
-	o := core.NewObjectTracker(registry, kapi.Scheme, kapi.Codecs.UniversalDecoder())
+	o := core.NewObjectTracker(kapi.Registry, kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)

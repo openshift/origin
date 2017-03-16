@@ -28,7 +28,12 @@ func (c *FakeUsers) Get(name string, options metav1.GetOptions) (*userapi.User, 
 }
 
 func (c *FakeUsers) List(opts metainternal.ListOptions) (*userapi.UserList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(usersResource, opts), &userapi.UserList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewRootListAction(usersResource, optsv1), &userapi.UserList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -60,5 +65,10 @@ func (c *FakeUsers) Delete(name string) error {
 }
 
 func (c *FakeUsers) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(usersResource, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewRootWatchAction(usersResource, optsv1))
 }

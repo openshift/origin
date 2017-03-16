@@ -28,7 +28,12 @@ func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationa
 }
 
 func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(rolesResource, c.Namespace, optsv1), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}

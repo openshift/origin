@@ -34,7 +34,12 @@ func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageap
 }
 
 func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageStreamList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(imageStreamsResource, c.Namespace, opts), &imageapi.ImageStreamList{})
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := c.Fake.Invokes(core.NewListAction(imageStreamsResource, c.Namespace, optsv1), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -66,7 +71,12 @@ func (c *FakeImageStreams) Delete(name string) error {
 }
 
 func (c *FakeImageStreams) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(imageStreamsResource, c.Namespace, opts))
+	optsv1 := metav1.ListOptions{}
+	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Fake.InvokesWatch(core.NewWatchAction(imageStreamsResource, c.Namespace, optsv1))
 }
 
 func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
