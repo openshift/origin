@@ -568,8 +568,8 @@ func TestAdmission(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		kclientset := fake.NewSimpleClientset(tc.objects...)
-		oclient := otestclient.NewSimpleFake(tc.objects...)
+		kclientset := fake.NewSimpleClientset(otestclient.UpstreamObjects(tc.objects)...)
+		oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(tc.objects)...)
 
 		plugin, err := NewRestrictUsersAdmission()
 		if err != nil {
