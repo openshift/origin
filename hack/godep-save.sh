@@ -31,4 +31,4 @@ REQUIRED_BINS=(
   "./..."
 )
 
-"${GODEP}" save -t "${REQUIRED_BINS[@]}"
+GOPATH=$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save -t "${REQUIRED_BINS[@]}"
