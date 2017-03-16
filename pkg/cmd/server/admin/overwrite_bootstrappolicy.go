@@ -11,6 +11,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -158,8 +159,12 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyListerNamespacer{registry: policyRegistry},
 		policyBindingListerNamespacer{registry: policyBindingRegistry},
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		},
 	)
 
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver, nil, authorizationapi.Resource("role"))
@@ -310,8 +315,8 @@ func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.
 	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name)
+func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
 }
 
 type policyBindingListerNamespacer struct {
@@ -331,6 +336,6 @@ func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizat
 	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
 }
 
-func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name)
+func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
 }
