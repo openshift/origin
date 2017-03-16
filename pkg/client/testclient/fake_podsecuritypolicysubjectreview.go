@@ -3,7 +3,7 @@ package testclient
 import (
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 // FakePodSecurityPolicySubjectReviews implements the PodSecurityPolicySubjectReviews interface.
@@ -17,7 +17,7 @@ type FakePodSecurityPolicySubjectReviews struct {
 var podSecurityPolicySubjectReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicysubjectreviews"}
 
 func (c *FakePodSecurityPolicySubjectReviews) Create(inObj *securityapi.PodSecurityPolicySubjectReview) (*securityapi.PodSecurityPolicySubjectReview, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicySubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySubjectReview{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(podSecurityPolicySubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySubjectReview{})
 	if cast, ok := obj.(*securityapi.PodSecurityPolicySubjectReview); ok {
 		return cast, err
 	}
@@ -35,7 +35,7 @@ type FakePodSecurityPolicySelfSubjectReviews struct {
 var podSecurityPolicySelfSubjectReviewsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "podsecuritypolicyselfsubjectreviews"}
 
 func (c *FakePodSecurityPolicySelfSubjectReviews) Create(inObj *securityapi.PodSecurityPolicySelfSubjectReview) (*securityapi.PodSecurityPolicySelfSubjectReview, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(podSecurityPolicySelfSubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySelfSubjectReview{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(podSecurityPolicySelfSubjectReviewsResource, c.Namespace, inObj), &securityapi.PodSecurityPolicySelfSubjectReview{})
 	if cast, ok := obj.(*securityapi.PodSecurityPolicySelfSubjectReview); ok {
 		return cast, err
 	}

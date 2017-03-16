@@ -4,7 +4,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -18,7 +18,7 @@ type FakeIdentities struct {
 var identitiesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "identities"}
 
 func (c *FakeIdentities) Get(name string, options metav1.GetOptions) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(identitiesResource, name), &userapi.Identity{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(identitiesResource, name), &userapi.Identity{})
 	if obj == nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityL
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewRootListAction(identitiesResource, optsv1), &userapi.IdentityList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(identitiesResource, optsv1), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityL
 }
 
 func (c *FakeIdentities) Create(inObj *userapi.Identity) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(identitiesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(identitiesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (c *FakeIdentities) Create(inObj *userapi.Identity) (*userapi.Identity, err
 }
 
 func (c *FakeIdentities) Update(inObj *userapi.Identity) (*userapi.Identity, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(identitiesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(identitiesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -59,6 +59,6 @@ func (c *FakeIdentities) Update(inObj *userapi.Identity) (*userapi.Identity, err
 }
 
 func (c *FakeIdentities) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(identitiesResource, name), nil)
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(identitiesResource, name), nil)
 	return err
 }

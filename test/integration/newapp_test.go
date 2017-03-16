@@ -28,7 +28,7 @@ import (
 	utilerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -310,7 +310,7 @@ func TestNewAppRunAll(t *testing.T) {
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 	failClient := &client.Fake{}
-	failClient.AddReactor("get", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	failClient.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.NewInternalError(fmt.Errorf(""))
 	})
 	tests := []struct {
@@ -2103,13 +2103,13 @@ func dockerBuilderImage() *docker.Image {
 
 func fakeImageStreamSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("get", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStream(), nil
 	})
-	client.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStreams(), nil
 	})
-	client.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("get", "imagestreamimages", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImage(), nil
 	})
 
@@ -2122,7 +2122,7 @@ func fakeImageStreamSearcher() app.Searcher {
 
 func fakeTemplateSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 

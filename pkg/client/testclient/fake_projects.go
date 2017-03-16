@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -19,7 +19,7 @@ type FakeProjects struct {
 var projectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
 
 func (c *FakeProjects) Get(name string, options metav1.GetOptions) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(projectsResource, name), &projectapi.Project{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(projectsResource, name), &projectapi.Project{})
 	if obj == nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *FakeProjects) List(opts metainternal.ListOptions) (*projectapi.ProjectL
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewRootListAction(projectsResource, optsv1), &projectapi.ProjectList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(projectsResource, optsv1), &projectapi.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *FakeProjects) List(opts metainternal.ListOptions) (*projectapi.ProjectL
 }
 
 func (c *FakeProjects) Create(inObj *projectapi.Project) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(projectsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(projectsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *FakeProjects) Create(inObj *projectapi.Project) (*projectapi.Project, e
 }
 
 func (c *FakeProjects) Update(inObj *projectapi.Project) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(projectsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(projectsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *FakeProjects) Update(inObj *projectapi.Project) (*projectapi.Project, e
 }
 
 func (c *FakeProjects) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(projectsResource, name), &projectapi.Project{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(projectsResource, name), &projectapi.Project{})
 	return err
 }
 
@@ -70,5 +70,5 @@ func (c *FakeProjects) Watch(opts metainternal.ListOptions) (watch.Interface, er
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(projectsResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(projectsResource, optsv1))
 }

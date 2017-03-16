@@ -14,7 +14,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	ostestclient "github.com/openshift/origin/pkg/client/testclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
@@ -40,8 +40,8 @@ func TestGetClient(t *testing.T) {
 		expectedDelegation  bool
 		expectedErr         string
 		expectedClient      *oauthapi.OAuthClient
-		expectedKubeActions []core.Action
-		expectedOSActions   []core.Action
+		expectedKubeActions []clientgotesting.Action
+		expectedOSActions   []clientgotesting.Action
 	}{
 		{
 			name:                "delegate",
@@ -49,8 +49,8 @@ func TestGetClient(t *testing.T) {
 			kubeClient:          fake.NewSimpleClientset(),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedDelegation:  true,
-			expectedKubeActions: []core.Action{},
-			expectedOSActions:   []core.Action{},
+			expectedKubeActions: []clientgotesting.Action{},
+			expectedOSActions:   []clientgotesting.Action{},
 		},
 		{
 			name:                "missing sa",
@@ -58,8 +58,8 @@ func TestGetClient(t *testing.T) {
 			kubeClient:          fake.NewSimpleClientset(),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `ServiceAccount "missing-sa" not found`,
-			expectedKubeActions: []core.Action{core.NewGetAction(serviceAccountsResource, "ns-01", "missing-sa")},
-			expectedOSActions:   []core.Action{},
+			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "missing-sa")},
+			expectedOSActions:   []clientgotesting.Action{},
 		},
 		{
 			name:       "sa no redirects",
@@ -74,8 +74,8 @@ func TestGetClient(t *testing.T) {
 				}),
 			osClient:            ostestclient.NewSimpleFake(),
 			expectedErr:         `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
-			expectedKubeActions: []core.Action{core.NewGetAction(serviceAccountsResource, "ns-01", "default")},
-			expectedOSActions:   []core.Action{},
+			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default")},
+			expectedOSActions:   []clientgotesting.Action{},
 		},
 		{
 			name:       "sa no tokens",
@@ -90,11 +90,11 @@ func TestGetClient(t *testing.T) {
 				}),
 			osClient:    ostestclient.NewSimpleFake(),
 			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{},
+			expectedOSActions: []clientgotesting.Action{},
 		},
 		{
 			name:       "good SA",
@@ -128,11 +128,11 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{},
+			expectedOSActions: []clientgotesting.Action{},
 		},
 		{
 			name:       "good SA with valid, simple route redirects",
@@ -186,12 +186,12 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere", "https://example1.com/defaultpath"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{
-				core.NewGetAction(routesResource, "ns-01", "route1"),
+			expectedOSActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 		{
@@ -249,11 +249,11 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{},
+			expectedOSActions: []clientgotesting.Action{},
 		},
 		{
 			name:       "good SA with a route that don't have a host",
@@ -307,12 +307,12 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{
-				core.NewGetAction(routesResource, "ns-01", "route1"),
+			expectedOSActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 		{
@@ -393,12 +393,12 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"http://anywhere", "https://a.com/defaultpath", "https://a.com/path2", "https://b.com/defaultpath", "https://b.com/path2"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{
-				core.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
+			expectedOSActions: []clientgotesting.Action{
+				clientgotesting.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
 			},
 		},
 		{
@@ -472,12 +472,12 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"https://google.com/otherpath", "https://redhat.com/defaultpath"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{
-				core.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
+			expectedOSActions: []clientgotesting.Action{
+				clientgotesting.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
 			},
 		},
 		{
@@ -533,12 +533,12 @@ func TestGetClient(t *testing.T) {
 				RedirectURIs:      []string{"https://woot.com/awesomepath", "https://woot.com:8000"},
 				GrantMethod:       oauthapi.GrantHandlerPrompt,
 			},
-			expectedKubeActions: []core.Action{
-				core.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				core.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+			expectedKubeActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
 			},
-			expectedOSActions: []core.Action{
-				core.NewGetAction(routesResource, "ns-01", "route1"),
+			expectedOSActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
 			},
 		},
 	}

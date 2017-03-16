@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -198,8 +198,8 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 	emptyResponse := &authorizationapi.SubjectAccessReviewResponse{}
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("create", "localsubjectaccessreviews", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		review, ok := action.(core.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
+	fake.AddReactor("create", "localsubjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		review, ok := action.(clientgotesting.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
 		if !ok {
 			return true, emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 		}
@@ -209,10 +209,10 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 		}
 		return true, reviewResponse, nil
 	})
-	fake.AddReactor("get", "buildconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("get", "buildconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, obj, nil
 	})
-	fake.AddReactor("get", "builds", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("get", "builds", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, obj, nil
 	})
 

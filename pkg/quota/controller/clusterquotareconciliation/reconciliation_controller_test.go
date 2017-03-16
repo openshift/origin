@@ -11,7 +11,7 @@ import (
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -253,7 +253,7 @@ func TestSyncFunc(t *testing.T) {
 
 		var actualQuota *quotaapi.ClusterResourceQuota
 		for _, action := range client.Actions() {
-			updateAction, ok := action.(core.UpdateActionImpl)
+			updateAction, ok := action.(clientgotesting.UpdateActionImpl)
 			if !ok {
 				continue
 			}

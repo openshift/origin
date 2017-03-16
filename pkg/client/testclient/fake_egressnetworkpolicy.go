@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -20,7 +20,7 @@ type FakeEgressNetworkPolicy struct {
 var egressNetworkPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
 
 func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
 	if obj == nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.E
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewListAction(egressNetworkPoliciesResource, c.Namespace, optsv1), &sdnapi.EgressNetworkPolicyList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, c.Namespace, optsv1), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.E
 }
 
 func (c *FakeEgressNetworkPolicy) Create(inObj *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (c *FakeEgressNetworkPolicy) Create(inObj *sdnapi.EgressNetworkPolicy) (*sd
 }
 
 func (c *FakeEgressNetworkPolicy) Update(inObj *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (c *FakeEgressNetworkPolicy) Update(inObj *sdnapi.EgressNetworkPolicy) (*sd
 }
 
 func (c *FakeEgressNetworkPolicy) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
 	return err
 }
 
@@ -71,5 +71,5 @@ func (c *FakeEgressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.In
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, optsv1))
 }

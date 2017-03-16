@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -40,7 +40,7 @@ func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 // TestAdmissionExists verifies you cannot create Origin content if namespace is not known
 func TestAdmissionExists(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	mockClient.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient.AddReactor("*", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Namespace{}, fmt.Errorf("DOES NOT EXIST")
 	})
 
@@ -83,7 +83,7 @@ func TestAdmissionExists(t *testing.T) {
 func TestSAR(t *testing.T) {
 	store := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
 	mockClient := &fake.Clientset{}
-	mockClient.AddReactor("get", "namespaces", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	mockClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, fmt.Errorf("shouldn't get here")
 	})
 	cache := projectcache.NewFake(mockClient.Core().Namespaces(), store, "")

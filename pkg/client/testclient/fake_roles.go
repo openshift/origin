@@ -4,7 +4,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -19,7 +19,7 @@ type FakeRoles struct {
 var rolesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "roles"}
 
 func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
 	if obj == nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleL
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewListAction(rolesResource, c.Namespace, optsv1), &authorizationapi.RoleList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, c.Namespace, optsv1), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleL
 }
 
 func (c *FakeRoles) Create(inObj *authorizationapi.Role) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(rolesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(rolesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *FakeRoles) Create(inObj *authorizationapi.Role) (*authorizationapi.Role
 }
 
 func (c *FakeRoles) Update(inObj *authorizationapi.Role) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(rolesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(rolesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -60,6 +60,6 @@ func (c *FakeRoles) Update(inObj *authorizationapi.Role) (*authorizationapi.Role
 }
 
 func (c *FakeRoles) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
 	return err
 }

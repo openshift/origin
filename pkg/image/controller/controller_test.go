@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -403,7 +403,7 @@ func TestScheduledImport(t *testing.T) {
 
 	// encountering a not found error for image streams should drop the controller
 	fake = &client.Fake{}
-	fake.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("*", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewNotFound(api.Resource("imagestreams"), "test")
 	})
 	b.controller.streams = fake

@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -87,8 +87,8 @@ func makeBuildList(configName string, version int) *buildapi.BuildList {
 
 func newBuildListFake(objects ...runtime.Object) *testclient.Fake {
 	fake := testclient.NewSimpleFake(objects...)
-	fake.PrependReactor("list", "builds", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		selector := action.(core.ListAction).GetListRestrictions().Labels
+	fake.PrependReactor("list", "builds", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		selector := action.(clientgotesting.ListAction).GetListRestrictions().Labels
 		retList := &buildapi.BuildList{}
 		for _, obj := range objects {
 			list, ok := obj.(*buildapi.BuildList)
@@ -106,7 +106,7 @@ func newBuildListFake(objects ...runtime.Object) *testclient.Fake {
 	return fake
 }
 
-func actionsAreEqual(a, b core.Action) bool {
+func actionsAreEqual(a, b clientgotesting.Action) bool {
 	if reflect.DeepEqual(a, b) {
 		return true
 	}
@@ -115,7 +115,7 @@ func actionsAreEqual(a, b core.Action) bool {
 		a.GetNamespace() == b.GetNamespace() &&
 		a.GetResource() == b.GetResource() &&
 		a.GetSubresource() == b.GetSubresource() {
-		ret := reflect.DeepEqual(a.(core.UpdateAction).GetObject(), b.(core.UpdateAction).GetObject())
+		ret := reflect.DeepEqual(a.(clientgotesting.UpdateAction).GetObject(), b.(clientgotesting.UpdateAction).GetObject())
 		return ret
 	}
 	return false
@@ -123,78 +123,78 @@ func actionsAreEqual(a, b core.Action) bool {
 
 func TestStop(t *testing.T) {
 	notFoundClient := &testclient.Fake{} //(notFound(), makeBuildList(configName, 2))
-	notFoundClient.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	notFoundClient.AddReactor("*", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewNotFound(buildapi.Resource("BuildConfig"), configName)
 	})
 
 	tests := map[string]struct {
 		targetBC string
 		oc       *testclient.Fake
-		expected []core.Action
+		expected []clientgotesting.Action
 		err      bool
 	}{
 		"simple stop": {
 			targetBC: configName,
 			oc:       newBuildListFake(makeBuildConfig(configName, 0, false)),
-			expected: []core.Action{
-				core.NewGetAction(buildConfigsResource, "default", configName),
+			expected: []clientgotesting.Action{
+				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
 				// Since there are no builds associated with this build config, do not expect an update
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
-				core.NewDeleteAction(buildConfigsResource, "default", configName),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,
 		},
 		"multiple builds": {
 			targetBC: configName,
 			oc:       newBuildListFake(makeBuildConfig(configName, 4, false), makeBuildList(configName, 4)),
-			expected: []core.Action{
-				core.NewGetAction(buildConfigsResource, "default", configName),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
-				core.NewGetAction(buildConfigsResource, "default", configName),                              // Second GET to enable conflict retry logic
-				core.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(configName, 4, true)), // Because this bc has builds, it is paused
-				core.NewDeleteAction(buildsResource, "default", "build-"+configName+"-1"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+configName+"-2"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+configName+"-3"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+configName+"-4"),
-				core.NewDeleteAction(buildConfigsResource, "default", configName),
+			expected: []clientgotesting.Action{
+				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),                              // Second GET to enable conflict retry logic
+				clientgotesting.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(configName, 4, true)), // Because this bc has builds, it is paused
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+configName+"-1"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+configName+"-2"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+configName+"-3"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+configName+"-4"),
+				clientgotesting.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,
 		},
 		"long name builds": {
 			targetBC: longConfigNameA,
 			oc:       newBuildListFake(makeBuildConfig(longConfigNameA, 4, false), makeBuildList(longConfigNameA, 4), makeBuildList(longConfigNameB, 4)),
-			expected: []core.Action{
-				core.NewGetAction(buildConfigsResource, "default", longConfigNameA),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
-				core.NewGetAction(buildConfigsResource, "default", longConfigNameA),                              // Second GET to enable conflict retry logic
-				core.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(longConfigNameA, 4, true)), // Because this bc has builds, it is paused
-				core.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-1"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-2"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-3"),
-				core.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-4"),
-				core.NewDeleteAction(buildConfigsResource, "default", longConfigNameA),
+			expected: []clientgotesting.Action{
+				clientgotesting.NewGetAction(buildConfigsResource, "default", longConfigNameA),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
+				clientgotesting.NewGetAction(buildConfigsResource, "default", longConfigNameA),                              // Second GET to enable conflict retry logic
+				clientgotesting.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(longConfigNameA, 4, true)), // Because this bc has builds, it is paused
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-1"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-2"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-3"),
+				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-4"),
+				clientgotesting.NewDeleteAction(buildConfigsResource, "default", longConfigNameA),
 			},
 			err: false,
 		},
 		"no config, no or some builds": {
 			targetBC: configName,
 			oc:       notFoundClient,
-			expected: []core.Action{
-				core.NewGetAction(buildConfigsResource, "default", configName),
+			expected: []clientgotesting.Action{
+				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
 			},
 			err: true,
 		},
 		"config, no builds": {
 			targetBC: configName,
 			oc:       testclient.NewSimpleFake(makeBuildConfig(configName, 0, false)),
-			expected: []core.Action{
-				core.NewGetAction(buildConfigsResource, "default", configName),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				core.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
-				core.NewDeleteAction(buildConfigsResource, "default", configName),
+			expected: []clientgotesting.Action{
+				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,
 		},

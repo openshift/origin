@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 )
 
@@ -36,17 +36,17 @@ func controllerSetup(t *testing.T, startingObjects []runtime.Object) (*fake.Clie
 	client := fake.NewSimpleClientset(startingObjects...)
 
 	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("*", core.DefaultWatchReactor(fakeWatch, nil))
+	client.PrependWatchReactor("*", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 
-	client.PrependReactor("create", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.CreateAction).GetObject()
+	client.PrependReactor("create", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		obj := action.(clientgotesting.CreateAction).GetObject()
 		fakeWatch.Add(obj)
 		return true, obj, nil
 	})
 
 	// Ensure that updates the controller makes are passed through to the watcher.
-	client.PrependReactor("update", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		obj := action.(core.CreateAction).GetObject()
+	client.PrependReactor("update", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		obj := action.(clientgotesting.CreateAction).GetObject()
 		fakeWatch.Modify(obj)
 		return true, obj, nil
 	})

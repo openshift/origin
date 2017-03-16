@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 )
@@ -87,7 +87,7 @@ func TestExecAdmit(t *testing.T) {
 
 	for k, v := range testCases {
 		tc := clientsetfake.NewSimpleClientset(v.pod)
-		tc.PrependReactor("get", "pods", func(action testingcore.Action) (handled bool, ret runtime.Object, err error) {
+		tc.PrependReactor("get", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, v.pod, nil
 		})
 

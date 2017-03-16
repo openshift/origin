@@ -4,7 +4,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -18,7 +18,7 @@ type FakeProjectRequests struct {
 var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
 
 func (c *FakeProjectRequests) List(opts metainternal.ListOptions) (*metav1.Status, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(newProjectsResource, opts), &metav1.Status{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, opts), &metav1.Status{})
 	if obj == nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func (c *FakeProjectRequests) List(opts metainternal.ListOptions) (*metav1.Statu
 }
 
 func (c *FakeProjectRequests) Create(inObj *projectapi.ProjectRequest) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(newProjectsResource, inObj), &projectapi.Project{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(newProjectsResource, inObj), &projectapi.Project{})
 	if obj == nil {
 		return nil, err
 	}

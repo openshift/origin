@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -89,7 +89,7 @@ func checkResult(t *testing.T, err error, c *testclient.Fake, admitter *StatusAd
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[actionInd].(core.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[actionInd].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != ingressInd+1 || obj.Status.Ingress[ingressInd].Host != targetHost {
 		t.Fatalf("expected route reset: expected %q / actual %q -- %#v", targetHost, obj.Status.Ingress[ingressInd].Host, obj)
 	}
@@ -147,7 +147,7 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
@@ -182,7 +182,7 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
@@ -229,7 +229,7 @@ func TestStatusRecordRejection(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -313,7 +313,7 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -362,7 +362,7 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -381,7 +381,7 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
@@ -415,7 +415,7 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	if action.GetVerb() != "update" || action.GetResource().Resource != "routes" || action.GetSubresource() != "status" {
 		t.Fatalf("unexpected action: %#v", action)
 	}
-	obj := c.Actions()[0].(core.UpdateAction).GetObject().(*routeapi.Route)
+	obj := c.Actions()[0].(clientgotesting.UpdateAction).GetObject().(*routeapi.Route)
 	if len(obj.Status.Ingress) != 1 || obj.Status.Ingress[0].Host != "route1.test.local" {
 		t.Fatalf("expected route reset: %#v", obj)
 	}
@@ -479,7 +479,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	touched1 := metav1.Time{Time: now1.Add(-time.Minute)}
 	c1 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	returnConflict := true
-	c1.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	c1.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
@@ -566,7 +566,7 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 	// initialize a new client
 	c := testclient.NewSimpleFake(srcObj)
 	if conflict {
-		c.PrependReactor("update", "routes", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if action.GetSubresource() != "status" {
 				return false, nil, nil
 			}

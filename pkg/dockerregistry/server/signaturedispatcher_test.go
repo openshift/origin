@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
@@ -163,8 +163,8 @@ func TestSignaturePut(t *testing.T) {
 	}
 	var newImageSignature *imageapi.ImageSignature
 
-	client.AddReactor("create", "imagesignatures", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		sign, ok := action.(core.CreateAction).GetObject().(*imageapi.ImageSignature)
+	client.AddReactor("create", "imagesignatures", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		sign, ok := action.(clientgotesting.CreateAction).GetObject().(*imageapi.ImageSignature)
 		if !ok {
 			return true, nil, fmt.Errorf("unexpected object received: %#v", sign)
 		}

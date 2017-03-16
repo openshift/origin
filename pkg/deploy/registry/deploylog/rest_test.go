@@ -14,7 +14,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 
@@ -98,7 +98,7 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 	// Fake deploymentConfig
 	config := deploytest.OkDeploymentConfig(version)
 	fakeDn := testclient.NewSimpleFake(config)
-	fakeDn.PrependReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fakeDn.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
 
@@ -114,13 +114,13 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 	// Fake deployments
 	fakeDeployments := makeDeploymentList(version)
 	fakeRn := fake.NewSimpleClientset(fakeDeployments)
-	fakeRn.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fakeRn.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &fakeDeployments.Items[desired-1], nil
 	})
 
 	// Fake watcher for deployments
 	fakeWatch := watch.NewFake()
-	fakeRn.PrependWatchReactor("replicationcontrollers", core.DefaultWatchReactor(fakeWatch, nil))
+	fakeRn.PrependWatchReactor("replicationcontrollers", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	obj := &fakeDeployments.Items[desired-1]
 	obj.Annotations[api.DeploymentStatusAnnotation] = string(status)
 	go fakeWatch.Add(obj)
@@ -129,10 +129,10 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 	if status == api.DeploymentStatusComplete {
 		// If the deployment is complete, we will try to get the logs from the oldest
 		// application pod...
-		fakePn.PrependReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		fakePn.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, fakePodList, nil
 		})
-		fakePn.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		fakePn.PrependReactor("get", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, &fakePodList.Items[0], nil
 		})
 	} else {
@@ -154,7 +154,7 @@ func mockREST(version, desired int64, status api.DeploymentStatus) *REST {
 				Phase: kapi.PodRunning,
 			},
 		}
-		fakePn.PrependReactor("get", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		fakePn.PrependReactor("get", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, fakeDeployer, nil
 		})
 	}

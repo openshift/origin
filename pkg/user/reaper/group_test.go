@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/davecgh/go-spew/spew"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -37,7 +37,7 @@ func TestGroupReaper(t *testing.T) {
 			group:   "mygroup",
 			objects: []runtime.Object{},
 			expected: []interface{}{
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
 			},
 		},
 		{
@@ -61,12 +61,12 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
 			},
 		},
 		{
@@ -90,12 +90,12 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
 			},
 		},
 		{
@@ -117,11 +117,11 @@ func TestGroupReaper(t *testing.T) {
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: groupsResource}, Name: "mygroup"},
 			},
 		},
 	}
@@ -131,11 +131,11 @@ func TestGroupReaper(t *testing.T) {
 		ktc := fake.NewSimpleClientset(test.objects...)
 
 		actual := []interface{}{}
-		oreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}
-		kreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		kreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}

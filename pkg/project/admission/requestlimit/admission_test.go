@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -377,9 +377,9 @@ func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectC
 	return pCache
 }
 
-func userFn(usersAndLabels map[string]labels.Set) core.ReactionFunc {
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(core.GetAction).GetName()
+func userFn(usersAndLabels map[string]labels.Set) clientgotesting.ReactionFunc {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		name := action.(clientgotesting.GetAction).GetName()
 		return true, fakeUser(name, map[string]string(usersAndLabels[name])), nil
 	}
 }

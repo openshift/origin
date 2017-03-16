@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -19,7 +19,7 @@ type FakeClusterPolicies struct {
 var clusterPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterpolicies"}
 
 func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizatio
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewRootListAction(clusterPoliciesResource, optsv1), &authorizationapi.ClusterPolicyList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource, optsv1), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizatio
 }
 
 func (c *FakeClusterPolicies) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
 	return err
 }
 
@@ -52,5 +52,5 @@ func (c *FakeClusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interf
 	if err != nil {
 		return nil, err
 	}
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(clusterPoliciesResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPoliciesResource, optsv1))
 }

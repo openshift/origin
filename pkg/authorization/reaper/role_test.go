@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -92,8 +92,8 @@ func TestRoleReaper(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "rolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
+		tc.PrependReactor("delete", "rolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(clientgotesting.DeleteAction).GetName())
 			return true, nil, nil
 		})
 

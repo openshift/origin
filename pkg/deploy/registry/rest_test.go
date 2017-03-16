@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -21,7 +21,7 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 
 	kubeclient := fake.NewSimpleClientset([]runtime.Object{fakeController}...)
 	fakeWatch := watch.NewFake()
-	kubeclient.PrependWatchReactor("replicationcontrollers", core.DefaultWatchReactor(fakeWatch, nil))
+	kubeclient.PrependWatchReactor("replicationcontrollers", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	stopChan := make(chan struct{})
 
 	go func() {
@@ -52,14 +52,14 @@ func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
 	fakeWatch := watch.NewFake()
 
 	watchCalledChan := make(chan struct{})
-	kubeclient.PrependWatchReactor("replicationcontrollers", func(action core.Action) (bool, watch.Interface, error) {
+	kubeclient.PrependWatchReactor("replicationcontrollers", func(action clientgotesting.Action) (bool, watch.Interface, error) {
 		fakeWatch.Reset()
 		watchCalledChan <- struct{}{}
-		return core.DefaultWatchReactor(fakeWatch, nil)(action)
+		return clientgotesting.DefaultWatchReactor(fakeWatch, nil)(action)
 	})
 
 	getReceivedChan := make(chan struct{})
-	kubeclient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (bool, runtime.Object, error) {
+	kubeclient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		close(getReceivedChan)
 		return true, fakeController, nil
 	})

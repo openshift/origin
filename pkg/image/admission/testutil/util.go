@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -44,13 +44,13 @@ func (f *FakeImageStreamLimitVerifier) VerifyLimits(ns string, is *imageapi.Imag
 
 // GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
 // namespace. Additionally, a shared image stream will be listed if the requested namespace is "shared".
-func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) core.ReactionFunc {
+func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
 	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
 	allISs := append(sharedISs, iss...)
 
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case core.ListAction:
+		case clientgotesting.ListAction:
 			res := &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{},
 			}
@@ -71,13 +71,13 @@ func GetFakeImageStreamListHandler(t *testing.T, iss ...imageapi.ImageStream) co
 // GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with  core.Fake client
 // that handles Get request on image stream resource. Matching is from given image stream list will be
 // returned if found. Additionally, a shared image stream may be requested.
-func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) core.ReactionFunc {
+func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
 	sharedISs := []imageapi.ImageStream{*GetSharedImageStream("shared", "is")}
 	allISs := append(sharedISs, iss...)
 
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case core.GetAction:
+		case clientgotesting.GetAction:
 			for _, is := range allISs {
 				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
 					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)

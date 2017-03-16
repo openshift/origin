@@ -2,7 +2,7 @@ package testclient
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -21,6 +21,6 @@ var _ client.ImageStreamMappingInterface = &FakeImageStreamMappings{}
 var imageStreamMappingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreammappings"}
 
 func (c *FakeImageStreamMappings) Create(inObj *imageapi.ImageStreamMapping) error {
-	_, err := c.Fake.Invokes(core.NewCreateAction(imageStreamMappingsResource, c.Namespace, inObj), inObj)
+	_, err := c.Fake.Invokes(clientgotesting.NewCreateAction(imageStreamMappingsResource, c.Namespace, inObj), inObj)
 	return err
 }

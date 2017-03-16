@@ -2,7 +2,7 @@ package testclient
 
 import (
 	restclient "k8s.io/client-go/rest"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -15,7 +15,7 @@ type FakeBuildLogs struct {
 }
 
 func (c *FakeBuildLogs) Get(name string, opt buildapi.BuildLogOptions) *restclient.Request {
-	action := core.GenericActionImpl{}
+	action := clientgotesting.GenericActionImpl{}
 	action.Verb = "get"
 	action.Namespace = c.Namespace
 	action.Resource = buildsResource

@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	client "github.com/openshift/origin/pkg/client/testclient"
@@ -235,7 +235,7 @@ func TestBuildTemplates(t *testing.T) {
 
 func fakeTemplateSearcher() app.Searcher {
 	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 	return app.TemplateSearcher{

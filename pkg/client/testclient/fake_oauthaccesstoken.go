@@ -4,7 +4,7 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	core "k8s.io/client-go/testing"
+	clientgotesting "k8s.io/client-go/testing"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
@@ -18,12 +18,12 @@ type FakeOAuthAccessTokens struct {
 var oAuthAccessTokensResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthaccesstokens"}
 
 func (c *FakeOAuthAccessTokens) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
 	return err
 }
 
 func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauthapi.OAuthAccessToken, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(oAuthAccessTokensResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(oAuthAccessTokensResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (c *FakeOAuthAccessTokens) Create(inObj *oauthapi.OAuthAccessToken) (*oauth
 
 // Get returns information about a particular image and error if one occurs.
 func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthAccessToken, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
 	if obj == nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (c *FakeOAuthAccessTokens) List(opts metainternal.ListOptions) (*oauthapi.O
 	if err != nil {
 		return nil, err
 	}
-	obj, err := c.Fake.Invokes(core.NewRootListAction(oAuthAccessTokensResource, optsv1), &oauthapi.OAuthAccessTokenList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthAccessTokensResource, optsv1), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err
 	}

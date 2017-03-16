@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller"
@@ -106,7 +106,7 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
@@ -130,7 +130,7 @@ func TestHandle_imageChangeTrigger(t *testing.T) {
 	updated := false
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		updated = true
 		return true, nil, nil
 	})
