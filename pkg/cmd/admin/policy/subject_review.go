@@ -13,7 +13,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -113,19 +112,11 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	o.RESTClientFactory = f.ClientForMapping
 
 	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
-		clientConfig, err := f.ClientConfig()
+		printer, _, err := f.PrinterForCommand(cmd)
 		if err != nil {
 			return err
 		}
-		version, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-		if err != nil {
-			return err
-		}
-		p, _, err := kcmdutil.PrinterForCommand(cmd)
-		if err != nil {
-			return err
-		}
-		o.printer = &sccSubjectReviewOutputPrinter{kubectl.NewVersionedPrinter(p, kapi.Scheme, version)}
+		o.printer = &sccSubjectReviewOutputPrinter{printer}
 	} else {
 		o.printer = &sccSubjectReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
