@@ -5,6 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
@@ -91,7 +92,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
 	case *kapi.ReplicationController:
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
@@ -110,7 +111,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
 	}
 	return err
 }
