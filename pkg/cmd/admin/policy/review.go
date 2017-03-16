@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
@@ -206,7 +207,7 @@ type sccReviewPrinter interface {
 }
 
 type sccReviewOutputPrinter struct {
-	kubectl.ResourcePrinter
+	kprinters.ResourcePrinter
 }
 
 var _ sccReviewPrinter = &sccReviewOutputPrinter{}
