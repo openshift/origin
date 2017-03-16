@@ -2389,6 +2389,7 @@ items:
     - events
     verbs:
     - create
+    - list
     - patch
     - update
     - watch

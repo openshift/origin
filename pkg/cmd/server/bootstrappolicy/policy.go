@@ -828,7 +828,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 				// Needed for watching provisioning success and failure events
-				authorizationapi.NewRule("create", "update", "patch", "watch").Groups(kapiGroup).Resources("events").RuleOrDie(),
+				authorizationapi.NewRule("create", "update", "patch", "list", "watch").Groups(kapiGroup).Resources("events").RuleOrDie(),
 			},
 		},
 
