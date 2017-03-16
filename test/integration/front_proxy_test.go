@@ -156,6 +156,7 @@ func TestFrontProxy(t *testing.T) {
 				"david-project",
 				"jordan-project",
 				"default",
+				"kube-public",
 				"kube-system",
 				"openshift",
 				"openshift-infra",

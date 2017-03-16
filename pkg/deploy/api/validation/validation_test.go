@@ -78,7 +78,7 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 	})
 
 	if len(errs) > 0 {
-		t.Errorf("Unxpected non-empty error list: %#v", errs)
+		t.Errorf("Unxpected non-empty error list: %s", errs)
 	}
 }
 
