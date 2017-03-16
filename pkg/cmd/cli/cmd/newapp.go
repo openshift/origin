@@ -408,7 +408,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 
 func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.SecretInterface) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.Get(name)
+		pod, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -416,7 +416,7 @@ func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.
 			return false, nil
 		}
 		// delete a secret named the same as the pod if it exists
-		if secret, err := s.Get(name); err == nil {
+		if secret, err := s.Get(name, metav1.GetOptions{}); err == nil {
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
 				if err := s.Delete(name, nil); err != nil {
@@ -430,7 +430,7 @@ func installationStarted(c kcoreclient.PodInterface, name string, s kcoreclient.
 
 func installationComplete(c kcoreclient.PodInterface, name string, out io.Writer) wait.ConditionFunc {
 	return func() (bool, error) {
-		pod, err := c.Get(name)
+		pod, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
 				return false, fmt.Errorf("installation pod was deleted; unable to determine whether it completed successfully")

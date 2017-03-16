@@ -865,7 +865,7 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 
 		if isContext == nil {
 			var err error
-			isContext, err = c.OSClient.ImageStreams(isNS).Get(isName)
+			isContext, err = c.OSClient.ImageStreams(isNS).Get(isName, metav1.GetOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("Unable to check for circular build input/outputs: %v", err)
 			}

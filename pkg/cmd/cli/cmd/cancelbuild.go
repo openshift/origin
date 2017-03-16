@@ -163,7 +163,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 	var builds []*buildapi.Build
 
 	for _, name := range o.BuildNames {
-		build, err := o.BuildClient.Get(name)
+		build, err := o.BuildClient.Get(name, metav1.GetOptions{})
 		if err != nil {
 			o.ReportError(fmt.Errorf("build %s/%s not found", o.Namespace, name))
 			continue
@@ -210,7 +210,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				case err == nil:
 					return true, nil
 				case kapierrors.IsConflict(err):
-					build, err = o.BuildClient.Get(build.Name)
+					build, err = o.BuildClient.Get(build.Name, metav1.GetOptions{})
 					return false, err
 				}
 				return true, err
@@ -222,7 +222,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 
 			// Make sure the build phase is really cancelled.
 			err = wait.Poll(500*time.Millisecond, 30*time.Second, func() (bool, error) {
-				updatedBuild, err := o.BuildClient.Get(build.Name)
+				updatedBuild, err := o.BuildClient.Get(build.Name, metav1.GetOptions{})
 				if err != nil {
 					return true, err
 				}

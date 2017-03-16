@@ -230,7 +230,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 			if len(srcNamespace) == 0 {
 				srcNamespace = o.namespace
 			}
-			is, err := o.osClient.ImageStreams(srcNamespace).Get(ref.Name)
+			is, err := o.osClient.ImageStreams(srcNamespace).Get(ref.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -361,7 +361,7 @@ func (o TagOptions) RunTag() error {
 				}
 
 				// try the old way
-				target, err := isc.Get(destName)
+				target, err := isc.Get(destName, metav1.GetOptions{})
 				if err != nil {
 					if !kerrors.IsNotFound(err) {
 						return err
@@ -474,7 +474,7 @@ func (o TagOptions) RunTag() error {
 
 			}
 
-			target, err := isc.Get(destName)
+			target, err := isc.Get(destName, metav1.GetOptions{})
 			if kerrors.IsNotFound(err) {
 				target = &imageapi.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{

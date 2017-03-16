@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -193,7 +194,7 @@ func (o *RollbackOptions) Run() error {
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
 		dcName := deployutil.DeploymentConfigNameFor(r)
-		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName)
+		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

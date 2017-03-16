@@ -12,6 +12,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
@@ -281,7 +282,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	if len(o.DefaultNamespace) > 0 && !projects.Has(o.DefaultNamespace) {
 		// Attempt a direct get of our current project in case it hasn't appeared in the list yet
-		if currentProject, err := oClient.Projects().Get(o.DefaultNamespace); err == nil {
+		if currentProject, err := oClient.Projects().Get(o.DefaultNamespace, metav1.GetOptions{}); err == nil {
 			// If we get it successfully, add it to the list
 			projectsItems = append(projectsItems, *currentProject)
 			projects.Insert(currentProject.Name)
@@ -313,7 +314,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			}
 		}
 
-		current, err := oClient.Projects().Get(namespace)
+		current, err := oClient.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
 			return err
 		}

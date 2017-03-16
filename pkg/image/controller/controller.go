@@ -172,7 +172,7 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 }
 
 func (c *ImportController) NextTimedByName(namespace, name string) error {
-	stream, err := c.streams.ImageStreams(namespace).Get(name)
+	stream, err := c.streams.ImageStreams(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
 			return ErrNotImportable

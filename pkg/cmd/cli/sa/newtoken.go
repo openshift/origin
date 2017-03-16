@@ -142,7 +142,7 @@ func (o *NewServiceAccountTokenOptions) Validate() error {
 
 // Run creates a new token secret, waits for the service account token controller to fulfill it, then adds the token to the service account
 func (o *NewServiceAccountTokenOptions) Run() error {
-	serviceAccount, err := o.SAClient.Get(o.SAName)
+	serviceAccount, err := o.SAClient.Get(o.SAName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

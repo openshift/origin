@@ -12,6 +12,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -85,7 +86,7 @@ func (p *ProjectOptions) Validate() error {
 		errList = append(errList, errors.New("must provide --selector=<project_selector> or projects"))
 	}
 
-	clusterNetwork, err := p.Oclient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+	clusterNetwork, err := p.Oclient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		if kapierrors.IsNotFound(err) {
 			errList = append(errList, errors.New("Managing pod network is only supported for openshift multitenant network plugin"))
@@ -154,7 +155,7 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 
 func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetworkAction, args string) error {
 	// Get corresponding NetNamespace for given namespace
-	netns, err := p.Oclient.NetNamespaces().Get(nsName)
+	netns, err := p.Oclient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -175,7 +176,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetwor
 		Factor:   1.1,
 	}
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		updatedNetNs, err := p.Oclient.NetNamespaces().Get(netns.NetName)
+		updatedNetNs, err := p.Oclient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

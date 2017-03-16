@@ -72,7 +72,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 
 	projectRequest := obj.(*projectapi.ProjectRequest)
 
-	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name); err == nil {
+	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
 		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
 	}
 
@@ -177,7 +177,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		r.waitForRoleBinding(projectName, lastRoleBinding.Name)
 	}
 
-	return r.openshiftClient.Projects().Get(projectName)
+	return r.openshiftClient.Projects().Get(projectName, metav1.GetOptions{})
 }
 
 func (r *REST) waitForRoleBinding(namespace, name string) {
@@ -209,7 +209,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 		return DefaultTemplate(), nil
 	}
 
-	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName)
+	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
 }
 
 var _ = rest.Lister(&REST{})

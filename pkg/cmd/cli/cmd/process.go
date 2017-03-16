@@ -213,7 +213,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 			return fmt.Errorf("invalid value syntax %q", templateName)
 		}
 
-		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate)
+		templateObj, err := client.Templates(sourceNamespace).Get(storedTemplate, metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("template %q could not be found", storedTemplate)

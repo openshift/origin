@@ -9,6 +9,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -305,7 +306,7 @@ func (o ProjectOptions) RunProject() error {
 }
 
 // returns a context by the given contextName and a boolean true if the context exists
-func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapirequest.Context, bool) {
+func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapi.Context, bool) {
 	if context, contextExists := o.Config.Contexts[contextName]; !o.ProjectOnly && contextExists {
 		return context, true
 	}
@@ -314,7 +315,7 @@ func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapire
 }
 
 func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclientset.Interface) error {
-	_, projectErr := oClient.Projects().Get(currentProject)
+	_, projectErr := oClient.Projects().Get(currentProject, metav1.GetOptions{})
 	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}

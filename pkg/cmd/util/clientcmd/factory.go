@@ -244,7 +244,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		dc, err := oc.DeploymentConfigs(namespace).Get(name)
+		dc, err := oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}

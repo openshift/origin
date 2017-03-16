@@ -33,7 +33,7 @@ type BuildConfigReaper struct {
 
 // Stop deletes the build configuration and all of the associated builds.
 func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
-	_, err := reaper.oc.BuildConfigs(namespace).Get(name)
+	_, err := reaper.oc.BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		// Add paused annotation to the build config pending the deletion
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 
-			bc, err := reaper.oc.BuildConfigs(namespace).Get(name)
+			bc, err := reaper.oc.BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}

@@ -416,7 +416,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
 	}
 
-	dc, err := o.Client.DeploymentConfigs(o.Attach.Pod.Namespace).Get(dcname)
+	dc, err := o.Client.DeploymentConfigs(o.Attach.Pod.Namespace).Get(dcname, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -118,7 +118,7 @@ type BuildDescriber struct {
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.osClient.Builds(namespace)
-	build, err := c.Get(name)
+	build, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -444,7 +444,7 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 // Describe returns the description of a buildConfig
 func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.BuildConfigs(namespace)
-	buildConfig, err := c.Get(name)
+	buildConfig, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -502,7 +502,7 @@ type OAuthAccessTokenDescriber struct {
 
 func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.OAuthAccessTokens()
-	oAuthAccessToken, err := c.Get(name)
+	oAuthAccessToken, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -530,7 +530,7 @@ type ImageDescriber struct {
 // Describe returns the description of an image
 func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Images()
-	image, err := c.Get(name)
+	image, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -674,7 +674,7 @@ type ImageStreamDescriber struct {
 // Describe returns the description of an imageStream
 func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ImageStreams(namespace)
-	imageStream, err := c.Get(name)
+	imageStream, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -701,7 +701,7 @@ type routeEndpointInfo struct {
 // Describe returns the description of a route
 func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Routes(namespace)
-	route, err := c.Get(name)
+	route, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -835,7 +835,7 @@ type ProjectDescriber struct {
 // Describe returns the description of a project
 func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	projectsClient := d.osClient.Projects()
-	project, err := projectsClient.Get(name)
+	project, err := projectsClient.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1027,7 +1027,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 // Describe returns the description of a template
 func (d *TemplateDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Templates(namespace)
-	template, err := c.Get(name)
+	template, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1064,7 +1064,7 @@ func (d *IdentityDescriber) Describe(namespace, name string, settings kprinters.
 	userClient := d.Users()
 	identityClient := d.Identities()
 
-	identity, err := identityClient.Get(name)
+	identity, err := identityClient.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1076,7 +1076,7 @@ func (d *IdentityDescriber) Describe(namespace, name string, settings kprinters.
 			formatString(out, "User Name", identity.User.Name)
 			formatString(out, "User UID", identity.User.UID)
 		} else {
-			resolvedUser, err := userClient.Get(identity.User.Name)
+			resolvedUser, err := userClient.Get(identity.User.Name, metav1.GetOptions{})
 
 			nameValue := identity.User.Name
 			uidValue := string(identity.User.UID)
@@ -1111,7 +1111,7 @@ type UserIdentityMappingDescriber struct {
 func (d *UserIdentityMappingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.UserIdentityMappings()
 
-	mapping, err := c.Get(name)
+	mapping, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1135,7 +1135,7 @@ func (d *UserDescriber) Describe(namespace, name string, settings kprinters.Desc
 	userClient := d.Users()
 	identityClient := d.Identities()
 
-	user, err := userClient.Get(name)
+	user, err := userClient.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1150,7 +1150,7 @@ func (d *UserDescriber) Describe(namespace, name string, settings kprinters.Desc
 			formatString(out, "Identities", "<none>")
 		} else {
 			for i, identity := range user.Identities {
-				resolvedIdentity, err := identityClient.Get(identity)
+				resolvedIdentity, err := identityClient.Get(identity, metav1.GetOptions{})
 
 				value := identity
 				if kerrs.IsNotFound(err) {
@@ -1181,7 +1181,7 @@ type GroupDescriber struct {
 
 // Describe returns the description of a group
 func (d *GroupDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	group, err := d.c.Get(name)
+	group, err := d.c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1215,7 +1215,7 @@ type PolicyDescriber struct {
 // TODO make something a lot prettier
 func (d *PolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Policies(namespace)
-	policy, err := c.Get(name)
+	policy, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1275,7 +1275,7 @@ type RoleDescriber struct {
 // Describe returns the description of a role
 func (d *RoleDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.Roles(namespace)
-	role, err := c.Get(name)
+	role, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1305,7 +1305,7 @@ type PolicyBindingDescriber struct {
 // Describe returns the description of a policyBinding
 func (d *PolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.PolicyBindings(namespace)
-	policyBinding, err := c.Get(name)
+	policyBinding, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1345,7 +1345,7 @@ type RoleBindingDescriber struct {
 // Describe returns the description of a roleBinding
 func (d *RoleBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.RoleBindings(namespace)
-	roleBinding, err := c.Get(name)
+	roleBinding, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1353,10 +1353,10 @@ func (d *RoleBindingDescriber) Describe(namespace, name string, settings kprinte
 	var role *authorizationapi.Role
 	if len(roleBinding.RoleRef.Namespace) == 0 {
 		var clusterRole *authorizationapi.ClusterRole
-		clusterRole, err = d.ClusterRoles().Get(roleBinding.RoleRef.Name)
+		clusterRole, err = d.ClusterRoles().Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
 		role = authorizationapi.ToRole(clusterRole)
 	} else {
-		role, err = d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name)
+		role, err = d.Roles(roleBinding.RoleRef.Namespace).Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
 	}
 
 	return DescribeRoleBinding(roleBinding, role, err)
@@ -1402,7 +1402,7 @@ type ClusterPolicyDescriber struct {
 // TODO make something a lot prettier
 func (d *ClusterPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterPolicies()
-	policy, err := c.Get(name)
+	policy, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1417,7 +1417,7 @@ type ClusterRoleDescriber struct {
 // Describe returns the description of a role
 func (d *ClusterRoleDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterRoles()
-	role, err := c.Get(name)
+	role, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1433,7 +1433,7 @@ type ClusterPolicyBindingDescriber struct {
 // Describe returns the description of a policyBinding
 func (d *ClusterPolicyBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterPolicyBindings()
-	policyBinding, err := c.Get(name)
+	policyBinding, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1449,12 +1449,12 @@ type ClusterRoleBindingDescriber struct {
 // Describe returns the description of a roleBinding
 func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.ClusterRoleBindings()
-	roleBinding, err := c.Get(name)
+	roleBinding, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name)
+	role, err := d.ClusterRoles().Get(roleBinding.RoleRef.Name, metav1.GetOptions{})
 	return DescribeRoleBinding(authorizationapi.ToRoleBinding(roleBinding), authorizationapi.ToRole(role), err)
 }
 
@@ -1514,7 +1514,7 @@ type ClusterQuotaDescriber struct {
 }
 
 func (d *ClusterQuotaDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	quota, err := d.ClusterResourceQuotas().Get(name)
+	quota, err := d.ClusterResourceQuotas().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1572,7 +1572,7 @@ type AppliedClusterQuotaDescriber struct {
 }
 
 func (d *AppliedClusterQuotaDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	quota, err := d.AppliedClusterResourceQuotas(namespace).Get(name)
+	quota, err := d.AppliedClusterResourceQuotas(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1585,7 +1585,7 @@ type ClusterNetworkDescriber struct {
 
 // Describe returns the description of a ClusterNetwork
 func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	cn, err := d.ClusterNetwork().Get(name)
+	cn, err := d.ClusterNetwork().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1605,7 +1605,7 @@ type HostSubnetDescriber struct {
 
 // Describe returns the description of a HostSubnet
 func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	hs, err := d.HostSubnets().Get(name)
+	hs, err := d.HostSubnets().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1624,7 +1624,7 @@ type NetNamespaceDescriber struct {
 
 // Describe returns the description of a NetNamespace
 func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	netns, err := d.NetNamespaces().Get(name)
+	netns, err := d.NetNamespaces().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1643,7 +1643,7 @@ type EgressNetworkPolicyDescriber struct {
 // Describe returns the description of an EgressNetworkPolicy
 func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
 	c := d.osClient.EgressNetworkPolicies(namespace)
-	policy, err := c.Get(name)
+	policy, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1662,7 +1662,7 @@ type RoleBindingRestrictionDescriber struct {
 
 // Describe returns the description of a RoleBindingRestriction.
 func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	rbr, err := d.RoleBindingRestrictions(namespace).Get(name)
+	rbr, err := d.RoleBindingRestrictions(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

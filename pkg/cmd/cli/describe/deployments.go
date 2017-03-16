@@ -68,7 +68,7 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		deploymentConfig = d.config
 	} else {
 		var err error
-		deploymentConfig, err = d.osClient.DeploymentConfigs(namespace).Get(name)
+		deploymentConfig, err = d.osClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -401,7 +401,7 @@ func NewLatestDeploymentsDescriber(client client.Interface, kclient kclientset.I
 func (d *LatestDeploymentsDescriber) Describe(namespace, name string) (string, error) {
 	var f formatter
 
-	config, err := d.osClient.DeploymentConfigs(namespace).Get(name)
+	config, err := d.osClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

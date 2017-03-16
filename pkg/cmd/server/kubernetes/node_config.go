@@ -419,7 +419,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
 	if sdnapi.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
-		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault)
+		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
 		} else if err != nil {

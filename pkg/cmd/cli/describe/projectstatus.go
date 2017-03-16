@@ -157,7 +157,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	allNamespaces := namespace == metav1.NamespaceAll
 	var project *projectapi.Project
 	if !allNamespaces {
-		p, err := d.C.Projects().Get(namespace)
+		p, err := d.C.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil {
 			// a forbidden error here (without a --namespace value) means that
 			// the user has not created any projects, and is therefore using a

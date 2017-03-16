@@ -128,7 +128,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 
 		// Tag references are already validated
 		name, tag, _ := imageapi.SplitImageStreamTag(params.From.Name)
-		stream, err := isn.ImageStreams(params.From.Namespace).Get(name)
+		stream, err := isn.ImageStreams(params.From.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				errs = append(errs, err)

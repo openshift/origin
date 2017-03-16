@@ -505,7 +505,7 @@ func (c *NodeConfig) RunProxy() {
 // getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
 func getNodeIP(client *kclientset.Clientset, hostname string) net.IP {
 	var nodeIP net.IP
-	node, err := client.Core().Nodes().Get(hostname)
+	node, err := client.Core().Nodes().Get(hostname, metav1.GetOptions{})
 	if err != nil {
 		glog.Warningf("Failed to retrieve node info: %v", err)
 		return nil

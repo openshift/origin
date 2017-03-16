@@ -125,13 +125,13 @@ func (o *CreateKubeconfigOptions) Validate() error {
 }
 
 func (o *CreateKubeconfigOptions) Run() error {
-	serviceAccount, err := o.SAClient.Get(o.SAName)
+	serviceAccount, err := o.SAClient.Get(o.SAName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	for _, reference := range serviceAccount.Secrets {
-		secret, err := o.SecretsClient.Get(reference.Name)
+		secret, err := o.SecretsClient.Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}

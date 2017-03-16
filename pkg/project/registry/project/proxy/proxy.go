@@ -112,7 +112,7 @@ var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
 func (s *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	namespace, err := s.client.Get(name)
+	namespace, err := s.client.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

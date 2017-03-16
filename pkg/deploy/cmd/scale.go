@@ -45,7 +45,7 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 	}
 	// TODO: convert to a watch and use resource version from the ScaleCondition - kubernetes/kubernetes#31051
 	if waitForReplicas != nil {
-		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name)
+		dc, err := scaler.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

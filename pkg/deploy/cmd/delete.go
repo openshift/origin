@@ -58,7 +58,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Determine if the deployment config controller noticed the pause.
 	if !configNotFound {
 		if err := wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name)
+			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}

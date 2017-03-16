@@ -253,7 +253,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 
 	// when listing webhooks, allow --from-build to lookup a build config
 	if (resource == buildapi.Resource("builds") || resource == buildapi.LegacyResource("builds")) && len(o.ListWebhooks) > 0 {
-		build, err := client.Builds(namespace).Get(name)
+		build, err := client.Builds(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -429,7 +429,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	}
 	client := o.Client
 
-	config, err := client.BuildConfigs(o.Namespace).Get(o.Name)
+	config, err := client.BuildConfigs(o.Namespace).Get(o.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

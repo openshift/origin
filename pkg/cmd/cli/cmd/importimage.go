@@ -277,7 +277,7 @@ func (o *ImportImageOptions) waitForImport(resourceVersion string) (*imageapi.Im
 
 func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imageapi.ImageStreamImport, error) {
 	var isi *imageapi.ImageStreamImport
-	stream, err := o.isClient.Get(o.Name)
+	stream, err := o.isClient.Get(o.Name, metav1.GetOptions{})
 	// no stream, try creating one
 	if err != nil {
 		if !errors.IsNotFound(err) {

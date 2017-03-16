@@ -127,7 +127,7 @@ func getHostPort(hostURL string) (string, string, *url.URL, error) {
 func whoAmI(clientConfig *restclient.Config) (*api.User, error) {
 	client, err := client.New(clientConfig)
 
-	me, err := client.Users().Get("~")
+	me, err := client.Users().Get("~", metav1.GetOptions{})
 
 	// if we're talking to kube (or likely talking to kube),
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {

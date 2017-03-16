@@ -5,6 +5,7 @@ import (
 	"net"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -131,7 +132,7 @@ func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 			continue
 		}
 
-		group, err := l.client.Get(name)
+		group, err := l.client.Get(name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

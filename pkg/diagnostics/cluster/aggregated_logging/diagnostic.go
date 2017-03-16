@@ -56,7 +56,7 @@ func (d *AggregatedLogging) getScc(name string) (*kapi.SecurityContextConstraint
 }
 
 func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {
-	return d.OsClient.ClusterRoleBindings().Get(name)
+	return d.OsClient.ClusterRoleBindings().Get(name, metav1.GetOptions{})
 }
 
 func (d *AggregatedLogging) routes(project string, options metainternal.ListOptions) (*routesapi.RouteList, error) {
