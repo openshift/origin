@@ -274,10 +274,10 @@ type podGetter struct {
 	podsNamespacer kcoreclient.PodsGetter
 }
 
-func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.podsNamespacer.Pods(ns).Get(name, metav1.GetOptions{})
+	return g.podsNamespacer.Pods(ns).Get(name, *options)
 }
