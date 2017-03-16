@@ -357,7 +357,7 @@ func TestDeleteError(t *testing.T) {
 
 	storage := NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}), nil, authorizationapi.Resource("rolebinding"))
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	_, err := storage.Delete(ctx, "foo", nil)
+	_, _, err := storage.Delete(ctx, "foo", nil)
 	if err != bindingRegistry.Err {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -367,7 +367,7 @@ func TestDeleteValid(t *testing.T) {
 	storage := makeClusterTestStorage()
 
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), ""), &user.DefaultInfo{Name: "system:admin"})
-	obj, err := storage.Delete(ctx, "cluster-admins", nil)
+	obj, _, err := storage.Delete(ctx, "cluster-admins", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
