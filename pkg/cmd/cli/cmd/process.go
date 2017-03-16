@@ -13,12 +13,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -304,18 +306,23 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 	objects = append(objects, resultObj.Objects...)
 
-	p, _, err := kcmdutil.PrinterForCommand(cmd)
+	p, _, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return err
 	}
-	gv := mapping.GroupVersionKind.GroupVersion()
-	version, err := kcmdutil.OutputVersion(cmd, &gv)
-	if err != nil {
-		return err
+	var version schema.GroupVersion
+	outputVersionString := kcmdutil.GetFlagString(cmd, "output-version")
+	if len(outputVersionString) == 0 {
+		version = mapping.GroupVersionKind.GroupVersion()
+	} else {
+		version, err = schema.ParseGroupVersion(outputVersionString)
+		if err != nil {
+			return err
+		}
 	}
 	// Prefer the Kubernetes core group for the List over the template.openshift.io
 	version.Group = kapi.GroupName
-	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, version)
+	p = kprinters.NewVersionedPrinter(p, kapi.Scheme, version)
 
 	// use generic output
 	if kcmdutil.GetFlagBool(cmd, "raw") {
