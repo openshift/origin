@@ -9,14 +9,15 @@ import (
 	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiinstall "github.com/openshift/origin/pkg/cmd/server/api/install"
@@ -36,6 +37,7 @@ type PatchOptions struct {
 	PatchType types.PatchType
 
 	Builder *resource.Builder
+	Printer kprinters.ResourcePrinter
 
 	Out io.Writer
 }
@@ -82,6 +84,14 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	}
 
 	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
+
+	var err error
+	mapper, typer := f.Object()
+	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
+	o.Printer, _, err = kprinters.GetStandardPrinter("yaml", "", false, false, mapper, typer, decoders)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -137,11 +147,8 @@ func (o *PatchOptions) RunPatch() error {
 	rawExtension := &runtime.Unknown{
 		Raw: originalPatchedObjJS,
 	}
-	printer, _, err := kubectl.GetPrinter("yaml", "", false, true)
-	if err != nil {
-		return err
-	}
-	if err := printer.PrintObj(rawExtension, o.Out); err != nil {
+
+	if err := o.Printer.PrintObj(rawExtension, o.Out); err != nil {
 		return err
 	}
 
