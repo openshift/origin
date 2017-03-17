@@ -5,15 +5,18 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -27,16 +30,29 @@ const (
 )
 
 // NewDeploymentController creates a new DeploymentController.
-func NewDeploymentController(rcInformer, podInformer cache.SharedIndexInformer, kc kclientset.Interface, sa, image string, env []kapi.EnvVar, codec runtime.Codec) *DeploymentController {
+func NewDeploymentController(
+	rcInformer kcoreinformers.ReplicationControllerInformer,
+	podInformer kcoreinformers.PodInformer,
+	kc kclientset.Interface,
+	sa,
+	image string,
+	env []kapi.EnvVar,
+	codec runtime.Codec,
+) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer-controller"})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kc.Core().RESTClient()).Events("")})
+	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
 		rn: kc.Core(),
 		pn: kc.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+
+		rcLister:        rcInformer.Lister(),
+		rcListerSynced:  rcInformer.Informer().HasSynced,
+		podLister:       podInformer.Lister(),
+		podListerSynced: podInformer.Informer().HasSynced,
 
 		serviceAccount: sa,
 		deployerImage:  image,
@@ -45,20 +61,15 @@ func NewDeploymentController(rcInformer, podInformer cache.SharedIndexInformer, 
 		codec:          codec,
 	}
 
-	c.rcStore.Indexer = rcInformer.GetIndexer()
-	rcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	rcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addReplicationController,
 		UpdateFunc: c.updateReplicationController,
 	})
 
-	c.podStore.Indexer = podInformer.GetIndexer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: c.updatePod,
 		DeleteFunc: c.deletePod,
 	})
-
-	c.rcStoreSynced = rcInformer.HasSynced
-	c.podStoreSynced = podInformer.HasSynced
 
 	return c
 }
@@ -66,36 +77,24 @@ func NewDeploymentController(rcInformer, podInformer cache.SharedIndexInformer, 
 // Run begins watching and syncing.
 func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	defer c.queue.ShutDown()
+
+	glog.Infof("Starting deployer controller")
 
 	// Wait for the dc store to sync before starting any work in this controller.
-	ready := make(chan struct{})
-	go c.waitForSyncedStores(ready, stopCh)
-	select {
-	case <-ready:
-	case <-stopCh:
+	if !cache.WaitForCacheSync(stopCh, c.rcListerSynced, c.podListerSynced) {
 		return
 	}
+
+	glog.Infof("Deployer controller caches are synced. Starting workers.")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
+
 	<-stopCh
+
 	glog.Infof("Shutting down deployer controller")
-	c.queue.ShutDown()
-}
-
-func (c *DeploymentController) waitForSyncedStores(ready chan<- struct{}, stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-
-	for !c.rcStoreSynced() || !c.podStoreSynced() {
-		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployer controller workers")
-		select {
-		case <-time.After(storeSyncedPollPeriod):
-		case <-stopCh:
-			return
-		}
-	}
-	close(ready)
 }
 
 func (c *DeploymentController) addReplicationController(obj interface{}) {
@@ -211,15 +210,20 @@ func (c *DeploymentController) work() bool {
 }
 
 func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController, error) {
-	obj, exists, err := c.rcStore.Indexer.GetByKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		c.queue.AddRateLimited(key)
 		return nil, err
 	}
-	if !exists {
+	rc, err := c.rcLister.ReplicationControllers(namespace).Get(name)
+	if errors.IsNotFound(err) {
 		glog.V(4).Infof("Replication controller %q has been deleted", key)
 		return nil, nil
 	}
+	if err != nil {
+		glog.Infof("Unable to retrieve replication controller %q from store: %v", key, err)
+		c.queue.AddRateLimited(key)
+		return nil, err
+	}
 
-	return obj.(*kapi.ReplicationController), nil
+	return rc, nil
 }

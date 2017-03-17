@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -65,14 +66,14 @@ type DeploymentController struct {
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
 
-	// rcStore is a store of replication controllers.
-	rcStore cache.StoreToReplicationControllerLister
-	// podStore is a store of pods.
-	podStore cache.StoreToPodLister
-	// rcStoreSynced makes sure the rc store is synced before reconcling any deployment.
-	rcStoreSynced func() bool
-	// podStoreSynced makes sure the pod store is synced before reconcling any deployment.
-	podStoreSynced func() bool
+	// rcLister can list/get replication controllers from a shared informer's cache
+	rcLister kcorelisters.ReplicationControllerLister
+	// rcListerSynced makes sure the rc store is synced before reconcling any deployment.
+	rcListerSynced cache.InformerSynced
+	// podLister can list/get pods from a shared informer's cache
+	podLister kcorelisters.PodLister
+	// podListerSynced makes sure the pod store is synced before reconcling any deployment.
+	podListerSynced cache.InformerSynced
 
 	// deployerImage specifies which Docker image can support the default strategies.
 	deployerImage string
@@ -102,7 +103,7 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 	nextStatus := currentStatus
 
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
-	deployer, deployerErr := c.podStore.Pods(deployment.Namespace).Get(deployerPodName, metav1.GetOptions{})
+	deployer, deployerErr := c.podLister.Pods(deployment.Namespace).Get(deployerPodName)
 	if deployerErr == nil {
 		nextStatus = c.nextStatus(deployer, deployment, updatedAnnotations)
 	}
@@ -415,7 +416,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *deployapi.Deploym
 
 func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationController) error {
 	selector := deployutil.DeployerPodSelector(deployment.Name)
-	deployerList, err := c.podStore.Pods(deployment.Namespace).List(selector)
+	deployerList, err := c.podLister.Pods(deployment.Namespace).List(selector)
 	if err != nil {
 		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeployment(deployment), err)
 	}
