@@ -5,8 +5,8 @@ import (
 	"time"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/record"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 

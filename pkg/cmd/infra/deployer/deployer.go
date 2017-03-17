@@ -10,10 +10,10 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -133,10 +133,10 @@ func NewDeployer(client kclientset.Interface, oclient client.Interface, out, err
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kcoreclient.EventSinkImpl{Interface: client.Core().Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}

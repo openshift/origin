@@ -38,7 +38,7 @@ func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, osClie
 // Process processes the Jenkins template. If an error occurs
 func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 	var errors []error
-	jenkinsTemplate, err := t.osClient.Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName)
+	jenkinsTemplate, err := t.osClient.Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName, metav1.GetOptions{})
 	if err != nil {
 		if kerrs.IsNotFound(err) {
 			errors = append(errors, fmt.Errorf("Jenkins pipeline template %s/%s not found", t.Config.TemplateNamespace, t.Config.TemplateName))

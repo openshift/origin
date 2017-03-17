@@ -10,12 +10,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
@@ -36,12 +36,12 @@ type podGetter struct {
 	kcoreclient.PodsGetter
 }
 
-func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.Pods(ns).Get(name, metav1.GetOptions{})
+	return g.Pods(ns).Get(name, *options)
 }
 
 const defaultTimeout time.Duration = 10 * time.Second
@@ -81,7 +81,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		// Use the previous version
 		version--
 		previousBuildName := buildutil.BuildNameForConfigVersion(buildutil.ConfigNameForBuild(build), version)
-		previous, err := r.Getter.Get(ctx, previousBuildName)
+		previous, err := r.Getter.Get(ctx, previousBuildName, &metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

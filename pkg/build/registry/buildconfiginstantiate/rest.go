@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -21,7 +22,6 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
-	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/generator"
@@ -274,10 +274,10 @@ type podGetter struct {
 	podsNamespacer kcoreclient.PodsGetter
 }
 
-func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.podsNamespacer.Pods(ns).Get(name, metav1.GetOptions{})
+	return g.podsNamespacer.Pods(ns).Get(name, *options)
 }
