@@ -225,10 +225,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	err = plugin.ovs.SetFrags("nx-match")
-	if err != nil {
-		return false, err
-	}
 	_ = plugin.ovs.DeletePort(VXLAN)
 	_, err = plugin.ovs.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
 	if err != nil {
@@ -461,21 +457,11 @@ func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
 	glog.V(5).Infof("AddServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()
-	action := fmt.Sprintf(", priority=100, actions=load:%d->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80", netID)
-
-	// Add blanket rule allowing subsequent IP fragments
-	otx.AddFlow(generateBaseServiceRule(service.Spec.ClusterIP) + ", ip_frag=later" + action)
-
 	for _, port := range service.Spec.Ports {
-		baseRule, err := generateBaseAddServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port))
-		if err != nil {
-			glog.Errorf("Error creating OVS flow for service %v, netid %d: %v", service, netID, err)
+		otx.AddFlow(generateAddServiceRule(netID, service.Spec.ClusterIP, port.Protocol, int(port.Port)))
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err)
 		}
-		otx.AddFlow(baseRule + action)
-	}
-
-	if err := otx.EndTransaction(); err != nil {
-		glog.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err)
 	}
 }
 
@@ -483,22 +469,23 @@ func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 
 	otx := plugin.ovs.NewTransaction()
-	otx.DeleteFlows(generateBaseServiceRule(service.Spec.ClusterIP))
-	otx.EndTransaction()
-}
-
-func generateBaseServiceRule(IP string) string {
-	return fmt.Sprintf("table=60, ip, nw_dst=%s", IP)
-}
-
-func generateBaseAddServiceRule(IP string, protocol kapi.Protocol, port int) (string, error) {
-	var dst string
-	if protocol == kapi.ProtocolUDP {
-		dst = fmt.Sprintf(", udp, udp_dst=%d", port)
-	} else if protocol == kapi.ProtocolTCP {
-		dst = fmt.Sprintf(", tcp, tcp_dst=%d", port)
-	} else {
-		return "", fmt.Errorf("unhandled protocol %v", protocol)
+	for _, port := range service.Spec.Ports {
+		otx.DeleteFlows(generateDeleteServiceRule(service.Spec.ClusterIP, port.Protocol, int(port.Port)))
+		if err := otx.EndTransaction(); err != nil {
+			glog.Errorf("Error deleting OVS flows for service %v: %v", service, err)
+		}
 	}
-	return generateBaseServiceRule(IP) + dst, nil
+}
+
+func generateBaseServiceRule(IP string, protocol kapi.Protocol, port int) string {
+	return fmt.Sprintf("table=60, %s, nw_dst=%s, tp_dst=%d", strings.ToLower(string(protocol)), IP, port)
+}
+
+func generateAddServiceRule(netID uint32, IP string, protocol kapi.Protocol, port int) string {
+	baseRule := generateBaseServiceRule(IP, protocol, port)
+	return fmt.Sprintf("%s, priority=100, actions=load:%d->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80", baseRule, netID)
+}
+
+func generateDeleteServiceRule(IP string, protocol kapi.Protocol, port int) string {
+	return generateBaseServiceRule(IP, protocol, port)
 }
