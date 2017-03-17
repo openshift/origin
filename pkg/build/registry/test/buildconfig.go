@@ -5,6 +5,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -25,7 +26,7 @@ func (r *BuildConfigRegistry) ListBuildConfigs(ctx apirequest.Context, options *
 	return r.BuildConfigs, r.Err
 }
 
-func (r *BuildConfigRegistry) GetBuildConfig(ctx apirequest.Context, id string) (*api.BuildConfig, error) {
+func (r *BuildConfigRegistry) GetBuildConfig(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.BuildConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.BuildConfig != nil && r.BuildConfig.Name == id {

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -139,8 +138,8 @@ func TestStop(t *testing.T) {
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
 				// Since there are no builds associated with this build config, do not expect an update
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName).String()}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName).String()}),
 				clientgotesting.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,
@@ -150,8 +149,8 @@ func TestStop(t *testing.T) {
 			oc:       newBuildListFake(makeBuildConfig(configName, 4, false), makeBuildList(configName, 4)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName).String()}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName).String()}),
 				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),                              // Second GET to enable conflict retry logic
 				clientgotesting.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(configName, 4, true)), // Because this bc has builds, it is paused
 				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+configName+"-1"),
@@ -167,8 +166,8 @@ func TestStop(t *testing.T) {
 			oc:       newBuildListFake(makeBuildConfig(longConfigNameA, 4, false), makeBuildList(longConfigNameA, 4), makeBuildList(longConfigNameB, 4)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(buildConfigsResource, "default", longConfigNameA),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA)}),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA)}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(longConfigNameA).String()}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(longConfigNameA).String()}),
 				clientgotesting.NewGetAction(buildConfigsResource, "default", longConfigNameA),                              // Second GET to enable conflict retry logic
 				clientgotesting.NewUpdateAction(buildConfigsResource, "default", makeBuildConfig(longConfigNameA, 4, true)), // Because this bc has builds, it is paused
 				clientgotesting.NewDeleteAction(buildsResource, "default", "build-"+longConfigNameA+"-1"),
@@ -192,8 +191,8 @@ func TestStop(t *testing.T) {
 			oc:       testclient.NewSimpleFake(makeBuildConfig(configName, 0, false)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(buildConfigsResource, "default", configName),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName)}),
-				clientgotesting.NewListAction(buildsResource, "default", metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName)}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(configName).String()}),
+				clientgotesting.NewListAction(buildsResource, "default", metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(configName).String()}),
 				clientgotesting.NewDeleteAction(buildConfigsResource, "default", configName),
 			},
 			err: false,

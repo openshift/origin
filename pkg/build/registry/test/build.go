@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -64,7 +65,7 @@ type BuildStorage struct {
 	sync.Mutex
 }
 
-func (r *BuildStorage) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
+func (r *BuildStorage) Get(ctx apirequest.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
 	r.Lock()
 	defer r.Unlock()
 	// TODO: Use the list of builds in all of the rest registry calls

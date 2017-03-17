@@ -14,10 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
@@ -25,7 +25,7 @@ import (
 
 type testPodGetter struct{}
 
-func (p *testPodGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (p *testPodGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "pending-build":
@@ -44,7 +44,7 @@ func (p *testPodGetter) Get(ctx apirequest.Context, name string) (runtime.Object
 
 type fakeConnectionInfoGetter struct{}
 
-func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx apirequest.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
 	rt, err := kubeletclient.MakeTransport(&kubeletclient.KubeletClientConfig{})
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ type buildWatcher struct {
 	Err     error
 }
 
-func (r *buildWatcher) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (r *buildWatcher) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	return r.Build, nil
 }
 
@@ -285,7 +285,7 @@ func mockBuild(status api.BuildPhase, podName string, version int) *api.Build {
 
 type anotherTestPodGetter struct{}
 
-func (p *anotherTestPodGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (p *anotherTestPodGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "bc-1-build":
