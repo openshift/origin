@@ -24,7 +24,6 @@ func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 		ObjectMeta: kapi.ObjectMeta{
 			Name:      "config",
 			Namespace: kapi.NamespaceDefault,
-			SelfLink:  "/oapi/v1/namespaces/default/deploymentconfig/config",
 		},
 		Spec:   OkDeploymentConfigSpec(),
 		Status: OkDeploymentConfigStatus(version),

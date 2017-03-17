@@ -34,4 +34,5 @@ var AllEvaluatedGroupKinds = []unversioned.GroupKind{
 	kapi.Kind("ConfigMap"),
 
 	imageapi.Kind("ImageStream"),
+	imageapi.LegacyKind("ImageStream"),
 }

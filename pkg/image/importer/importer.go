@@ -718,5 +718,5 @@ func setImageImportStatus(images *api.ImageStreamImport, i int, tag string, err 
 }
 
 func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
-	return kapierrors.NewInvalid(api.Kind(""), position, errs).ErrStatus
+	return kapierrors.NewInvalid(api.LegacyKind(""), position, errs).ErrStatus
 }

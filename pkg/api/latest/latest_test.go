@@ -10,6 +10,7 @@ import (
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 	_ "github.com/openshift/origin/pkg/user/api/install"
+	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
 )
 
 func TestRESTRootScope(t *testing.T) {
@@ -24,9 +25,21 @@ func TestRESTRootScope(t *testing.T) {
 	}
 }
 
-func TestResourceToKind(t *testing.T) {
+func TestLegacyResourceToKind(t *testing.T) {
 	// Ensure we resolve to latest.Version
 	expectedGVK := Version.WithKind("User")
+	gvk, err := registered.RESTMapper().KindFor(userapi.LegacySchemeGroupVersion.WithResource("User"))
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	if gvk != expectedGVK {
+		t.Fatalf("Expected RESTMapper.KindFor('user') to be %#v, got %#v", expectedGVK, gvk)
+	}
+}
+
+func TestResourceToKind(t *testing.T) {
+	// Ensure we resolve to latest.Version
+	expectedGVK := userapiv1.SchemeGroupVersion.WithKind("User")
 	gvk, err := registered.RESTMapper().KindFor(userapi.SchemeGroupVersion.WithResource("User"))
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)

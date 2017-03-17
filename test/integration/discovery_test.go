@@ -35,14 +35,20 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		allowedVersions := sets.NewString(configapi.KubeAPIGroupsToAllowedVersions[gv.Group]...)
-		if !allowedVersions.Has(gv.Version) {
+		allowedKubeVersions := sets.NewString(configapi.KubeAPIGroupsToAllowedVersions[gv.Group]...)
+		allowedOriginVersions := sets.NewString(configapi.OriginAPIGroupsToAllowedVersions[gv.Group]...)
+		if !allowedKubeVersions.Has(gv.Version) && !allowedOriginVersions.Has(gv.Version) {
 			t.Errorf("Disallowed group/version found in discovery: %#v", gv)
 		}
 	}
 
 	expectedGroupVersions := sets.NewString()
 	for group, versions := range configapi.KubeAPIGroupsToAllowedVersions {
+		for _, version := range versions {
+			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
+		}
+	}
+	for group, versions := range configapi.OriginAPIGroupsToAllowedVersions {
 		for _, version := range versions {
 			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
 		}

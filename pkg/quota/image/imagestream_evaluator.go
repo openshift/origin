@@ -22,7 +22,7 @@ func NewImageStreamEvaluator(store *oscache.StoreToImageStreamLister) kquota.Eva
 
 	return &generic.GenericEvaluator{
 		Name:              imageStreamEvaluatorName,
-		InternalGroupKind: imageapi.Kind("ImageStream"),
+		InternalGroupKind: imageapi.LegacyKind("ImageStream"),
 		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{
 			admission.Create: allResources,
 		},

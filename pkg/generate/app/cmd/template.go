@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
@@ -37,7 +38,10 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 
 	// ensure the template objects are decoded
 	// TODO: in the future, this should be more automatic
-	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
+	// TODO: this should use the UniversalDecoder() once we deprecate legacy group. Until
+	// then we have to maintain the backward compatibility with old servers so this will
+	// force to decode the list as legacy/core API.
+	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.LegacyCodec(latest.Version)); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
 		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}

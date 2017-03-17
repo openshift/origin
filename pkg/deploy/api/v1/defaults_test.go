@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/util/intstr"
 
-	v1 "github.com/openshift/origin/pkg/api/v1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
@@ -559,7 +558,7 @@ func TestDefaults(t *testing.T) {
 }
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), obj)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(deployv1.LegacySchemeGroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil

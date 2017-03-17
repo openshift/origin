@@ -444,7 +444,7 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 		subjectAccessReview := authorizationapi.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
 			Action: authorizationapi.Action{
 				Verb:         "get",
-				Group:        api.GroupName,
+				Group:        api.LegacyGroupName,
 				Resource:     "imagestreams/layers",
 				ResourceName: streamName,
 			},

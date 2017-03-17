@@ -453,10 +453,14 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
 			op := r.Operation
 			path := r.Path
-			//TODO/REBASE this is gross
+			// DEPRECATED: These endpoints are going to be removed in 1.8 or 1.9 release.
 			if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/processedtemplates") {
 				op = "createNamespacedProcessedTemplate"
+			} else if strings.HasPrefix(path, "/apis/template.openshift.io/v1/namespaces/{namespace}/processedtemplates") {
+				op = "createNamespacedProcessedTemplateV1"
 			} else if strings.HasPrefix(path, "/oapi/v1/processedtemplates") {
+				op = "createProcessedTemplateForAllNamespacesV1"
+			} else if strings.HasPrefix(path, "/apis/template.openshift.io/v1/processedtemplates") {
 				op = "createProcessedTemplateForAllNamespaces"
 			} else if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/generatedeploymentconfigs") {
 				op = "generateNamespacedDeploymentConfig"

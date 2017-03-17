@@ -261,7 +261,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		return pod.Name, nil
-	case deployapi.Resource("deploymentconfigs"):
+	case deployapi.Resource("deploymentconfigs"), deployapi.LegacyResource("deploymentconfigs"):
 		oc, kc, err := f.Clients()
 		if err != nil {
 			return "", err

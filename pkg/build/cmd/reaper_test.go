@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/build/api/install"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client/testclient"
 )

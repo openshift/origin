@@ -22,7 +22,7 @@ const importPrefix = "github.com/openshift/origin/pkg/quota/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{quotaapiv1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{quotaapiv1.LegacySchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
@@ -33,7 +33,7 @@ func init() {
 		}
 	}
 	if len(externalVersions) == 0 {
-		glog.V(4).Infof("No version is registered for group %v", quotaapi.GroupName)
+		glog.V(4).Infof("No version is registered for group %v", quotaapi.LegacyGroupName)
 		return
 	}
 
@@ -80,7 +80,7 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 // string, or an error if the version is not known.
 func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case quotaapiv1.SchemeGroupVersion:
+	case quotaapiv1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,
@@ -93,7 +93,7 @@ func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, e
 
 func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 	// add the internal version to Scheme
-	quotaapi.AddToScheme(kapi.Scheme)
+	quotaapi.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		if !registered.IsEnabledVersion(v) {
@@ -101,8 +101,8 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 			continue
 		}
 		switch v {
-		case quotaapiv1.SchemeGroupVersion:
-			quotaapiv1.AddToScheme(kapi.Scheme)
+		case quotaapiv1.LegacySchemeGroupVersion:
+			quotaapiv1.AddToSchemeInCoreGroup(kapi.Scheme)
 		}
 	}
 }

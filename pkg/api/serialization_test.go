@@ -608,13 +608,17 @@ func TestSpecificKind(t *testing.T) {
 
 // Keep this in sync with the respective upstream set
 // WatchEvent does not have TypeMeta and cannot be roundtripped.
-var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent")
+// DeleteOptions, ExportOptions, Status and ListOptions will cause the quota API group to
+// fail because the quota api just references them from kubernetes.
+var nonInternalRoundTrippableTypes = sets.NewString("WatchEvent", "DeleteOptions", "ExportOptions", "Status", "ListOptions")
 
 // TestTypes will try to roundtrip all OpenShift and Kubernetes stable api types
 func TestTypes(t *testing.T) {
 	internalVersionToExternalVersions := map[unversioned.GroupVersion][]unversioned.GroupVersion{
-		osapi.SchemeGroupVersion:    {v1.SchemeGroupVersion},
-		quotaapi.SchemeGroupVersion: {quotaapiv1.SchemeGroupVersion},
+		osapi.SchemeGroupVersion: {v1.SchemeGroupVersion},
+		// Test the API groups
+		quotaapi.LegacySchemeGroupVersion: {quotaapiv1.LegacySchemeGroupVersion},
+		quotaapi.SchemeGroupVersion:       {quotaapiv1.SchemeGroupVersion},
 	}
 
 	for internalVersion, externalVersions := range internalVersionToExternalVersions {
@@ -627,6 +631,7 @@ func TestTypes(t *testing.T) {
 			}
 
 			for _, externalVersion := range externalVersions {
+				t.Logf("external=%#+v, kind=%#+v", externalVersion, kind)
 				// Try a few times, since runTest uses random values.
 				for i := 0; i < fuzzIters; i++ {
 					item, err := kapi.Scheme.New(internalVersion.WithKind(kind))

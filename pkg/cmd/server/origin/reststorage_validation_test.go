@@ -37,38 +37,39 @@ func TestValidationRegistration(t *testing.T) {
 	config := fakeMasterConfig()
 
 	storageMap := config.GetRestStorage()
-	for key, storage := range storageMap {
-		obj := storage.New()
-		kindType := reflect.TypeOf(obj)
+	for key, resourceStorage := range storageMap {
+		for resource, storage := range resourceStorage {
+			obj := storage.New()
+			kindType := reflect.TypeOf(obj)
 
-		validationInfo, validatorExists := validation.Validator.GetInfo(obj)
+			validationInfo, validatorExists := validation.Validator.GetInfo(obj)
 
-		if _, ok := storage.(rest.Creater); ok {
-			// if we're a creater, then we must have a validate method registered
-			if !validatorExists {
-				t.Errorf("No validator registered for %v (used by %v).  Register in pkg/api/validation/register.go.", kindType, key)
-			}
-		}
-
-		if _, ok := storage.(rest.Updater); ok {
-			exempted := false
-			for _, t := range KnownUpdateValidationExceptions {
-				if t == kindType {
-					exempted = true
-					break
+			if _, ok := storage.(rest.Creater); ok {
+				// if we're a creater, then we must have a validate method registered
+				if !validatorExists {
+					t.Errorf("No validator registered for %v (used by %s/%s).  Register in pkg/api/validation/register.go.", kindType, resource, key)
 				}
 			}
 
-			// if we're an updater, then we must have a validateUpdate method registered
-			if !validatorExists && !exempted {
-				t.Errorf("No validator registered for %v (used by %v).  Register in pkg/api/validation/register.go.", kindType, key)
-			}
+			if _, ok := storage.(rest.Updater); ok {
+				exempted := false
+				for _, t := range KnownUpdateValidationExceptions {
+					if t == kindType {
+						exempted = true
+						break
+					}
+				}
 
-			if !validationInfo.UpdateAllowed && !exempted {
-				t.Errorf("No validateUpdate method registered for %v (used by %v).  Register in pkg/api/validation/register.go.", kindType, key)
+				// if we're an updater, then we must have a validateUpdate method registered
+				if !validatorExists && !exempted {
+					t.Errorf("No validator registered for %v (used by %s/%s).  Register in pkg/api/validation/register.go.", kindType, resource, key)
+				}
+
+				if !validationInfo.UpdateAllowed && !exempted {
+					t.Errorf("No validateUpdate method registered for %v (used by %s/%s).  Register in pkg/api/validation/register.go.", kindType, resource, key)
+				}
 			}
 		}
-
 	}
 }
 

@@ -22,7 +22,7 @@ const importPrefix = "github.com/openshift/origin/pkg/authorization/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.LegacySchemeGroupVersion}
 
 func init() {
 	registered.RegisterVersions(availableVersions)
@@ -69,7 +69,7 @@ func enableVersions(externalVersions []unversioned.GroupVersion) error {
 
 func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 	// add the internal version to Scheme
-	api.AddToScheme(kapi.Scheme)
+	api.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		if !registered.IsEnabledVersion(v) {
@@ -77,8 +77,8 @@ func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 			continue
 		}
 		switch v {
-		case v1.SchemeGroupVersion:
-			v1.AddToScheme(kapi.Scheme)
+		case v1.LegacySchemeGroupVersion:
+			v1.AddToSchemeInCoreGroup(kapi.Scheme)
 
 		default:
 			glog.Errorf("Version %s is not known, so it will not be added to the Scheme.", v)
@@ -95,7 +95,7 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 
 func interfacesFor(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case v1.SchemeGroupVersion:
+	case v1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,

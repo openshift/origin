@@ -68,23 +68,89 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 
 			Include: []string{"*"},
 			DefaultExcludes: []unversioned.GroupResource{
+				// openshift resources:
 				{Resource: "appliedclusterresourcequotas"},
-				{Resource: "bindings"},
-				{Resource: "deploymentconfigrollbacks"},
-				{Resource: "events"},
 				{Resource: "imagestreamimages"}, {Resource: "imagestreamtags"}, {Resource: "imagestreammappings"}, {Resource: "imagestreamimports"},
 				{Resource: "projectrequests"}, {Resource: "projects"},
-				{Resource: "componentstatuses"},
 				{Resource: "clusterrolebindings"}, {Resource: "rolebindings"},
 				{Resource: "clusterroles"}, {Resource: "roles"},
 				{Resource: "resourceaccessreviews"}, {Resource: "localresourceaccessreviews"}, {Resource: "subjectaccessreviews"},
 				{Resource: "selfsubjectrulesreviews"}, {Resource: "localsubjectaccessreviews"},
+				{Resource: "useridentitymappings"},
+				{Resource: "podsecuritypolicyreviews"}, {Resource: "podsecuritypolicyselfsubjectreviews"}, {Resource: "podsecuritypolicysubjectreviews"},
+
+				// kubernetes resources:
+				{Resource: "bindings"},
+				{Resource: "deploymentconfigrollbacks"},
+				{Resource: "events"},
+				{Resource: "componentstatuses"},
 				{Resource: "replicationcontrollerdummies.extensions"},
 				{Resource: "podtemplates"},
-				{Resource: "useridentitymappings"},
+				{Resource: "selfsubjectaccessreviews", Group: "authorization.k8s.io"}, {Resource: "localsubjectaccessreviews", Group: "authorization.k8s.io"},
 			},
 			// Resources known to share the same storage
 			OverlappingResources: []sets.String{
+				// openshift resources:
+				sets.NewString("deploymentconfigs.apps.openshift.io", "deploymentconfigs"),
+
+				sets.NewString("clusterpolicies.authorization.openshift.io", "clusterpolicies"),
+				sets.NewString("clusterpolicybindings.authorization.openshift.io", "clusterpolicybindings"),
+				sets.NewString("clusterrolebindings.authorization.openshift.io", "clusterrolebindings"),
+				sets.NewString("clusterroles.authorization.openshift.io", "clusterroles"),
+				sets.NewString("localresourceaccessreviews.authorization.openshift.io", "localresourceaccessreviews"),
+				sets.NewString("localsubjectaccessreviews.authorization.openshift.io", "localsubjectaccessreviews"),
+				sets.NewString("policies.authorization.openshift.io", "policies"),
+				sets.NewString("policybindings.authorization.openshift.io", "policybindings"),
+				sets.NewString("resourceaccessreviews.authorization.openshift.io", "resourceaccessreviews"),
+				sets.NewString("rolebindingrestrictions.authorization.openshift.io", "rolebindingrestrictions"),
+				sets.NewString("rolebindings.authorization.openshift.io", "rolebindings"),
+				sets.NewString("roles.authorization.openshift.io", "roles"),
+				sets.NewString("selfsubjectrulesreviews.authorization.openshift.io", "selfsubjectrulesreviews"),
+				sets.NewString("subjectaccessreviews.authorization.openshift.io", "subjectaccessreviews"),
+				sets.NewString("subjectrulesreviews.authorization.openshift.io", "subjectrulesreviews"),
+
+				sets.NewString("builds.build.openshift.io", "builds"),
+				sets.NewString("buildconfigs.build.openshift.io", "buildconfigs"),
+
+				sets.NewString("images.image.openshift.io", "images"),
+				sets.NewString("imagesignatures.image.openshift.io", "imagesignatures"),
+				sets.NewString("imagestreamimages.image.openshift.io", "imagestreamimages"),
+				sets.NewString("imagestreamimports.image.openshift.io", "imagestreamimports"),
+				sets.NewString("imagestreammappings.image.openshift.io", "imagestreammappings"),
+				sets.NewString("imagestreams.image.openshift.io", "imagestreams"),
+				sets.NewString("imagestreamtags.image.openshift.io", "imagestreamtags"),
+
+				sets.NewString("clusternetworks.network.openshift.io", "clusternetworks"),
+				sets.NewString("egressnetworkpolicies.network.openshift.io", "egressnetworkpolicies"),
+				sets.NewString("hostsubnets.network.openshift.io", "hostsubnets"),
+				sets.NewString("netnamespaces.network.openshift.io", "netnamespaces"),
+
+				sets.NewString("oauthaccesstokens.oauth.openshift.io", "oauthaccesstokens"),
+				sets.NewString("oauthauthorizetokens.oauth.openshift.io", "oauthauthorizetokens"),
+				sets.NewString("oauthclientauthorizations.oauth.openshift.io", "oauthclientauthorizations"),
+				sets.NewString("oauthclients.oauth.openshift.io", "oauthclients"),
+
+				sets.NewString("projectrequests.project.openshift.io", "projectrequests"),
+				sets.NewString("projects.project.openshift.io", "projects"),
+
+				sets.NewString("appliedclusterresourcequotas.quota.openshift.io", "appliedclusterresourcequotas"),
+				sets.NewString("clusterresourcequotas.quota.openshift.io", "clusterresourcequotas"),
+
+				sets.NewString("routes.route.openshift.io", "routes"),
+
+				sets.NewString("podsecuritypolicyreviews.security.openshift.io", "podsecuritypolicyreviews"),
+				sets.NewString("podsecuritypolicyselfsubjectreviews.security.openshift.io", "podsecuritypolicyselfsubjectreviews"),
+				sets.NewString("podsecuritypolicysubjectreviews.security.openshift.io", "podsecuritypolicysubjectreviews"),
+
+				sets.NewString("processedtemplates.template.openshift.io", "processedtemplates"),
+				sets.NewString("templates.template.openshift.io", "templates"),
+
+				sets.NewString("groups.user.openshift.io", "groups"),
+				sets.NewString("identities.user.openshift.io", "identities"),
+				sets.NewString("useridentitymappings.user.openshift.io", "useridentitymappings"),
+				sets.NewString("users.user.openshift.io", "users"),
+
+				// kubernetes resources:
 				sets.NewString("horizontalpodautoscalers.autoscaling", "horizontalpodautoscalers.extensions"),
 				sets.NewString("jobs.batch", "jobs.extensions"),
 			},

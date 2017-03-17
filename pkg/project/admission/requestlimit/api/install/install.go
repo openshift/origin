@@ -16,7 +16,7 @@ const importPrefix = "github.com/openshift/origin/pkg/project/admission/requestl
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion}
+var availableVersions = []unversioned.GroupVersion{v1.SchemeGroupVersion, v1.LegacySchemeGroupVersion}
 
 func init() {
 	if err := enableVersions(availableVersions); err != nil {
@@ -36,11 +36,14 @@ func enableVersions(externalVersions []unversioned.GroupVersion) error {
 func addVersionsToScheme(externalVersions ...unversioned.GroupVersion) {
 	// add the internal version to Scheme
 	api.AddToScheme(configapi.Scheme)
+	api.AddToSchemeInCoreGroup(configapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		switch v {
 		case v1.SchemeGroupVersion:
 			v1.AddToScheme(configapi.Scheme)
+		case v1.LegacySchemeGroupVersion:
+			v1.AddToSchemeInCoreGroup(configapi.Scheme)
 
 		default:
 			glog.Errorf("Version %s is not known, so it will not be added to the Scheme.", v)

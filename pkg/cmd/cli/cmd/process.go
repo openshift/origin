@@ -315,6 +315,8 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	if err != nil {
 		return err
 	}
+	// Prefer the Kubernetes core group for the List over the template.openshift.io
+	version.Group = kapi.GroupName
 	p = kubectl.NewVersionedPrinter(p, kapi.Scheme, version)
 
 	// use generic output

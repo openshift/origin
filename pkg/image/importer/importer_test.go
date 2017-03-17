@@ -104,8 +104,8 @@ func TestImport(t *testing.T) {
 				if !expectStatusError(isi.Status.Images[1].Status, "Internal error occurred: no such digest") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[1].Status)
 				}
-				if !expectStatusError(isi.Status.Images[2].Status, " \"\" is invalid: from.name: Invalid value: \"test///un/parse/able/image\": invalid name: invalid reference format") {
-					t.Errorf("unexpected status: %#v", isi.Status.Images[2].Status)
+				if !expectStatusError(isi.Status.Images[2].Status, ` "" is invalid: from.name: Invalid value: "test///un/parse/able/image": invalid name: invalid reference format`) {
+					t.Errorf("unexpected status: %s", isi.Status.Images[2].Status.Message)
 				}
 				// non DockerImage refs are no-ops
 				if status := isi.Status.Images[3].Status; status.Status != "" {
