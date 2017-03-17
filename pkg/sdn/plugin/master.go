@@ -14,7 +14,6 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -46,7 +45,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 
 	createConfig := false
 	updateConfig := false
-	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err == nil {
 		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
 			networkConfig.HostSubnetLength != cn.HostSubnetLength ||
@@ -56,7 +55,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		}
 	} else {
 		cn = &osapi.ClusterNetwork{
-			TypeMeta:   kapimetav1.TypeMeta{Kind: "ClusterNetwork"},
+			TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
 			ObjectMeta: metav1.ObjectMeta{Name: osapi.ClusterNetworkDefault},
 		}
 		createConfig = true
