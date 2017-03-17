@@ -86,9 +86,6 @@ readonly -f os::util::environment::setup_time_vars
 #  - export USE_IMAGES
 #  - export TAG
 function os::util::environment::setup_all_server_vars() {
-    local subtempdir=$1
-
-    os::util::environment::setup_tmpdir_vars "${subtempdir}"
     os::util::environment::setup_kubelet_vars
     os::util::environment::setup_etcd_vars
     os::util::environment::setup_server_vars
@@ -123,9 +120,6 @@ readonly -f os::util::environment::update_path_var
 #
 # Globals:
 #  - TMPDIR
-#  - LOG_DIR
-#  - ARTIFACT_DIR
-#  - USE_SUDO
 # Arguments:
 #  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
 # Returns:
@@ -135,6 +129,7 @@ readonly -f os::util::environment::update_path_var
 #  - export ARTIFACT_DIR
 #  - export FAKE_HOME_DIR
 #  - export HOME
+#  - export OS_TMP_ENV_SET
 function os::util::environment::setup_tmpdir_vars() {
     local sub_dir=$1
 
@@ -146,26 +141,12 @@ function os::util::environment::setup_tmpdir_vars() {
     export VOLUME_DIR
     ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
     export ARTIFACT_DIR
-
-    # change the location of $HOME so no one does anything naughty
     FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
     export FAKE_HOME_DIR
-    HOME="${FAKE_HOME_DIR}"
-    export HOME
 
-    # ensure that the directories are clean
-    if os::util::find::system_binary "findmnt" &>/dev/null; then
-        for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
-            if [[ "${target}" == "${BASETMPDIR}"* ]]; then
-                ${USE_SUDO:+sudo} umount "${target}"
-            fi
-        done
-    fi
+    mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}"
 
-    for directory in "${BASETMPDIR}" "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${HOME}"; do
-        ${USE_SUDO:+sudo} rm -rf "${directory}"
-        mkdir -p "${directory}"
-    done
+    export OS_TMP_ENV_SET="${sub_dir}"
 }
 readonly -f os::util::environment::setup_tmpdir_vars
 

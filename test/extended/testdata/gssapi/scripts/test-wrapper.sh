@@ -9,7 +9,7 @@ source hack/lib/init.sh
 
 export TEST_NAME="test-extended/gssapiproxy-tests/$(uname -n)-${CLIENT}-${SERVER}"
 os::util::environment::setup_time_vars
-os::util::environment::setup_tmpdir_vars "${TEST_NAME}"
+os::cleanup::tmpdir
 export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 
 # use a subshell and `if` statement to prevent `exit` calls from killing this script

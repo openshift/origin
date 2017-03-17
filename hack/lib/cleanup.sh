@@ -76,7 +76,30 @@ function os::cleanup::dump_container_logs() {
 }
 readonly -f os::cleanup::dump_container_logs
 
+# os::cleanup::tmpdir performs cleanup of temp directories as a precondition for running a test. It tries to
+# clean up mounts in the temp directories.
+#
+# Globals:
+#  - BASETMPDIR
+#  - USE_SUDO
+# Returns:
+#  None
+function os::cleanup::tmpdir() {
+    # ensure that the directories are clean
+    if os::util::find::system_binary "findmnt" &>/dev/null; then
+        for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
+            if [[ "${target}" == "${BASETMPDIR}"* ]]; then
+                ${USE_SUDO:+sudo} umount "${target}"
+            fi
+        done
+    fi
 
+		# delete any sub directory underneath BASETMPDIR
+    for directory in $( find "${BASETMPDIR}" -d 2 ); do
+        ${USE_SUDO:+sudo} rm -rf "${directory}"
+    done
+}
+readonly -f os::cleanup::tmpdir
 
 # os::cleanup::internal::list_k8s_containers returns a space-delimited list of
 # docker containers that belonged to k8s.

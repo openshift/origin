@@ -3,7 +3,9 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
-os::util::environment::setup_all_server_vars "test-os-cmd/"
+os::cleanup::tmpdir
+os::util::environment::setup_all_server_vars
+export HOME="${FAKE_HOME_DIR}"
 export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 
 # set verbosity so we can see that command output renders correctly

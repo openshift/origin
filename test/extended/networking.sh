@@ -316,7 +316,7 @@ else
     "${OPENSHIFT_CLUSTER_ID}-node-2"
   )
 
-  os::util::environment::setup_tmpdir_vars "test-extended/networking"
+  os::cleanup::tmpdir
 
   # Allow setting $JUNIT_REPORT to toggle output behavior
   if [[ -n "${JUNIT_REPORT:-}" ]]; then
