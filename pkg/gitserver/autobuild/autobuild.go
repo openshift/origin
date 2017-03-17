@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -113,7 +114,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 		if hasItem(builders, b) {
 			continue
 		}
-		config, err := a.Client.BuildConfigs(b.Namespace).Get(b.Name)
+		config, err := a.Client.BuildConfigs(b.Namespace).Get(b.Name, metav1.GetOptions{})
 		if err != nil {
 			errs = append(errs, err)
 			continue
