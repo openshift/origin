@@ -3,8 +3,8 @@ package generictrigger
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	kcorelisterinternal "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -32,7 +32,7 @@ type DeploymentTriggerController struct {
 	// dcListerSynced makes sure the dc store is synced before reconcling any deployment config.
 	dcListerSynced func() bool
 	// rcLister provides a local cache for replication controllers.
-	rcLister cache.StoreToReplicationControllerLister
+	rcLister kcorelisterinternal.ReplicationControllerLister
 	// rcListerSynced makes sure the dc store is synced before reconcling any replication controller.
 	rcListerSynced func() bool
 

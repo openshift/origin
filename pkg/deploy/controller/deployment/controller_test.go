@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -16,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
@@ -29,26 +29,39 @@ var (
 	codec = kapi.Codecs.LegacyCodec(deployapiv1.SchemeGroupVersion)
 )
 
-func okDeploymentController(client kclientset.Interface, deployment *kapi.ReplicationController, hookPodNames []string, related bool, deployerStatus kapi.PodPhase) *DeploymentController {
-	rcInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.ReplicationController{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	podInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.Pod{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func alwaysReady() bool { return true }
+
+type deploymentController struct {
+	*DeploymentController
+	podIndexer cache.Indexer
+}
+
+func okDeploymentController(client kclientset.Interface, deployment *kapi.ReplicationController, hookPodNames []string, related bool, deployerStatus kapi.PodPhase) *deploymentController {
+	informerFactory := kinformers.NewSharedInformerFactory(client, 0)
+	rcInformer := informerFactory.Core().InternalVersion().ReplicationControllers()
+	podInformer := informerFactory.Core().InternalVersion().Pods()
 
 	c := NewDeploymentController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env, codec)
+	c.podListerSynced = alwaysReady
+	c.rcListerSynced = alwaysReady
 
 	// deployer pod
 	if deployment != nil {
 		pod := deployerPod(deployment, "", related)
 		pod.Status.Phase = deployerStatus
-		c.podStore.Indexer.Add(pod)
+		podInformer.Informer().GetIndexer().Add(pod)
 	}
 
 	// hook pods
 	for _, name := range hookPodNames {
 		pod := deployerPod(deployment, name, related)
-		c.podStore.Indexer.Add(pod)
+		podInformer.Informer().GetIndexer().Add(pod)
 	}
 
-	return c
+	return &deploymentController{
+		c,
+		podInformer.Informer().GetIndexer(),
+	}
 }
 
 func deployerPod(deployment *kapi.ReplicationController, alternateName string, related bool) *kapi.Pod {
@@ -580,7 +593,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
 	pod := deployerPod(deployment, "", true)
 	pod.Labels[deployapi.DeployerPodForDeploymentLabel] = "unrelated"
-	controller.podStore.Indexer.Update(pod)
+	controller.podIndexer.Update(pod)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
