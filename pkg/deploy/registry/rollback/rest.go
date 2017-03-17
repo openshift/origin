@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -54,7 +55,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, kerrors.NewInvalid(deployapi.Kind("DeploymentConfigRollback"), rollback.Name, errs)
 	}
 
-	from, err := r.dn.DeploymentConfigs(namespace).Get(rollback.Name)
+	from, err := r.dn.DeploymentConfigs(namespace).Get(rollback.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("cannot get deployment config %q: %v", rollback.Name, err))
 	}

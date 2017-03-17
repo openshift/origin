@@ -25,7 +25,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
-	ref, err := kapi.GetReference(obj)
+	ref, err := kapi.GetReference(kapi.Scheme, obj)
 	if err != nil {
 		glog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return
@@ -57,7 +57,7 @@ func RecordConfigWarnings(client kcoreclient.EventsGetter, rc *kapi.ReplicationC
 	if rc == nil {
 		return
 	}
-	events, err := client.Events(rc.Namespace).Search(rc)
+	events, err := client.Events(rc.Namespace).Search(kapi.Scheme, rc)
 	if err != nil {
 		fmt.Fprintf(out, "--> Error listing events for replication controller %s: %v\n", rc.Name, err)
 		return

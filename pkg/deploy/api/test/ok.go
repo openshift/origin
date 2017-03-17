@@ -151,8 +151,9 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 							Value: "VAL1",
 						},
 					},
-					ImagePullPolicy:        kapi.PullIfNotPresent,
-					TerminationMessagePath: "/dev/termination-log",
+					ImagePullPolicy:          kapi.PullIfNotPresent,
+					TerminationMessagePath:   "/dev/termination-log",
+					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 				},
 				{
 					Name:                     "container2",

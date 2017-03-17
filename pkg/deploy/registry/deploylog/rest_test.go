@@ -12,11 +12,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -85,7 +85,7 @@ var (
 
 type fakeConnectionInfoGetter struct{}
 
-func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx apirequest.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
 	return &kubeletclient.ConnectionInfo{
 		Scheme:   "https",
 		Hostname: "some-host",
