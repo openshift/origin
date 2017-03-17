@@ -11,11 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"

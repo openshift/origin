@@ -14,9 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"

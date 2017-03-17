@@ -19,8 +19,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"

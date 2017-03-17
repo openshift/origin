@@ -12,9 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	ostestclient "github.com/openshift/origin/pkg/client/testclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"

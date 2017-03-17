@@ -109,7 +109,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client *kclientset.Clientse
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client *kclientset.Clientset) {
 	s := c.ControllerManager
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink((&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "controller-manager"})
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(

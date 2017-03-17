@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
 	clientgotesting "k8s.io/client-go/testing"
+	kapi "k8s.io/kubernetes/pkg/api"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client/testclient"

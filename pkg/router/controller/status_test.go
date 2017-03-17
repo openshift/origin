@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
-	kapi "k8s.io/kubernetes/pkg/api"
 	clientgotesting "k8s.io/client-go/testing"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"

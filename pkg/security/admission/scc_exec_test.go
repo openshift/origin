@@ -7,10 +7,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kadmission "k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 )

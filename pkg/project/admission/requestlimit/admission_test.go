@@ -9,10 +9,10 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/storage/names"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

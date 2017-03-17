@@ -6,8 +6,8 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/api"
 	clientgotesting "k8s.io/client-go/testing"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"

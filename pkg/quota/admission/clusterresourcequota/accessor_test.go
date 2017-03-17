@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientgotesting "k8s.io/client-go/testing"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/client/testclient"
