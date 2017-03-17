@@ -161,10 +161,10 @@ function test-osdn-plugin() {
 
   if deploy-cluster "${name}" "${plugin}" "${log_dir}"; then
     os::log::info "Running networking e2e tests against the ${name} plugin"
-    export TEST_REPORT_FILE_NAME="${name}-junit"
 
     local kubeconfig="$(get-kubeconfig-from-root "${OPENSHIFT_CONFIG_ROOT}")"
-    if ! TEST_REPORT_FILE_NAME=networking_${name}_${isolation} \
+    if ! TEST_REPORT_FILE_NAME="networking_${name}_${isolation}-junit" \
+         TEST_REPORT_DIR="${ARTIFACT_DIR}" \
          OPENSHIFT_NETWORK_ISOLATION="${isolation}" \
          run-extended-tests "${kubeconfig}" "${log_dir}/test.log"; then
       tests_failed=1
