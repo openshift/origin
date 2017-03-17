@@ -6,14 +6,15 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/client"
 )
 
 // NewFixtureClients returns mocks of the OpenShift and Kubernetes clients
 // with data populated from provided path.
 func NewFixtureClients(objs ...runtime.Object) (client.Interface, kclientset.Interface) {
-	oc := NewSimpleFake(objs...)
-	kc := fake.NewSimpleClientset(objs...)
+	oc := NewSimpleFake(oapi.OriginObjects(objs)...)
+	kc := fake.NewSimpleClientset(oapi.UpstreamObjects(objs)...)
 	return oc, kc
 }
 
