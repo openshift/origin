@@ -98,7 +98,7 @@ func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 	}
 	o.Streams = allStreams
 
-	allPods, err := kClient.Core().Pods(namespace).List(metainternal.ListOptions{})
+	allPods, err := kClient.Core().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
