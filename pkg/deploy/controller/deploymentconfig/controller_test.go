@@ -14,15 +14,17 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
+
+func alwaysReady() bool { return true }
 
 func TestHandleScenarios(t *testing.T) {
 	type deployment struct {
@@ -373,36 +375,17 @@ func TestHandleScenarios(t *testing.T) {
 			2*time.Minute,
 			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 		)
-		rcInformer := cache.NewSharedIndexInformer(
-			&cache.ListWatch{
-				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-					return kc.Core().ReplicationControllers(metav1.NamespaceAll).List(options)
-				},
-				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-					return kc.Core().ReplicationControllers(metav1.NamespaceAll).Watch(options)
-				},
-			},
-			&kapi.ReplicationController{},
-			2*time.Minute,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-		)
-		podInformer := cache.NewSharedIndexInformer(
-			&cache.ListWatch{
-				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-					return kc.Core().Pods(metav1.NamespaceAll).List(options)
-				},
-				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-					return kc.Core().Pods(metav1.NamespaceAll).Watch(options)
-				},
-			},
-			&kapi.Pod{},
-			2*time.Minute,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-		)
+
+		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
+		rcInformer := kubeInformerFactory.Core().InternalVersion().ReplicationControllers()
+		podInformer := kubeInformerFactory.Core().InternalVersion().Pods()
 		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, codec)
+		c.dcStoreSynced = alwaysReady
+		c.podListerSynced = alwaysReady
+		c.rcListerSynced = alwaysReady
 
 		for i := range toStore {
-			c.rcStore.Indexer.Add(toStore[i])
+			rcInformer.Informer().GetStore().Add(toStore[i])
 		}
 
 		config := deploytest.OkDeploymentConfig(test.newVersion)
