@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
@@ -39,6 +37,11 @@ func createTestRegistryServer(t *testing.T, ctx context.Context) *httptest.Serve
 			"delete": configuration.Parameters{
 				"enabled": true,
 			},
+			"maintenance": configuration.Parameters{
+				"uploadpurging": map[interface{}]interface{}{
+					"enabled": false,
+				},
+			},
 		},
 	})
 
@@ -59,7 +62,6 @@ func TestPullthroughManifests(t *testing.T) {
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 	tag := "latest"
 
-	log.SetLevel(log.DebugLevel)
 	client := &testclient.Fake{}
 
 	installFakeAccessController(t)
@@ -179,7 +181,6 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 	repo := "zapp"
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 
-	log.SetLevel(log.DebugLevel)
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
