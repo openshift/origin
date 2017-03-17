@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/clock"
+	"k8s.io/client-go/util/clock"
 )
 
 const (

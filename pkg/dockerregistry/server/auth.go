@@ -12,6 +12,7 @@ import (
 	registryauth "github.com/docker/distribution/registry/auth"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -486,7 +487,7 @@ func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error
 }
 
 func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) (string, string, error) {
-	userInfo, err := client.Users().Get("~")
+	userInfo, err := client.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
