@@ -127,7 +127,7 @@
         },
 	{
 	    "type": "bind",
-	    "source": "/etc/origin",
+	    "source": "$ORIGIN_CONFIG_DIR",
 	    "destination": "/etc/origin",
 	    "options": [
 		"bind",
@@ -137,7 +137,7 @@
 	},
 	{
 	    "type": "bind",
-	    "source": "/var/lib/origin",
+	    "source": "$ORIGIN_DATA_DIR",
 	    "destination": "/var/lib/origin",
 	    "options": [
 		"rbind",

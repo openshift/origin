@@ -1,0 +1,7 @@
+{
+    "version": "1.0",
+    "defaultValues": {
+        "ORIGIN_CONFIG_DIR": "/etc/origin",
+        "DOCKER_SERVICE": "docker.service"
+    }
+}

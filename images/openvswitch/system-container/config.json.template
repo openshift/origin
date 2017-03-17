@@ -117,7 +117,7 @@
         },
         {
 	    "type": "bind",
-	    "source": "/etc/origin/openvswitch",
+	    "source": "$ORIGIN_CONFIG_DIR/openvswitch",
 	    "destination": "/etc/openvswitch",
 	    "options": [
 		"rbind",
