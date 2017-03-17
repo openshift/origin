@@ -58,6 +58,7 @@ import (
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -242,7 +243,7 @@ func BuildKubernetesMasterConfig(
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cmserver.AddFlags); len(err) > 0 {
+	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
