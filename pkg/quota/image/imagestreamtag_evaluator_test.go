@@ -215,7 +215,10 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 		}
 		evaluator := NewImageStreamTagEvaluator(&store, fakeClient)
 
-		usage := evaluator.Usage(&tc.ist)
+		usage, err := evaluator.Usage(&tc.ist)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 
 		expectedUsage := imagetest.ExpectedResourceListFor(tc.expectedISCount)
 		expectedResources := kquota.ResourceNames(expectedUsage)
