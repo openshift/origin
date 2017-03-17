@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/docker/distribution"
@@ -50,10 +49,10 @@ func (pbs *pullthroughBlobStore) Stat(ctx context.Context, dgst digest.Digest) (
 // to check existence of a layer. If the layer with the digest is available, this function MUST return
 // success response with no actual body content.
 // [1] https://docs.docker.com/registry/spec/api/#existing-layers
-func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
+func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, rw http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*pullthroughBlobStore).ServeBlob: starting with dgst=%s", dgst.String())
 	// This call should be done without BlobGetterService in the context.
-	err := pbs.BlobStore.ServeBlob(ctx, w, req, dgst)
+	err := pbs.BlobStore.ServeBlob(ctx, rw, req, dgst)
 	switch {
 	case err == distribution.ErrBlobUnknown:
 		// continue on to the code below and look up the blob in a remote store since it is not in
@@ -65,31 +64,28 @@ func (pbs *pullthroughBlobStore) ServeBlob(ctx context.Context, w http.ResponseW
 		return err
 	}
 
-	remoteGetter := pbs.repo.remoteBlobGetter
+	var bw distribution.BlobWriter
 
-	// store the content locally if requested, but ensure only one instance at a time
-	// is storing to avoid excessive local writes
 	if pbs.mirror {
-		mu.Lock()
-		if _, ok := inflight[dgst]; ok {
-			mu.Unlock()
-			context.GetLogger(ctx).Infof("Serving %q while mirroring in background", dgst)
-			_, err := pbs.copyContent(remoteGetter, ctx, dgst, w, req)
+		bw, err = pbs.BlobStore.Create(ctx)
+		if err != nil {
 			return err
 		}
-		inflight[dgst] = struct{}{}
-		mu.Unlock()
 
-		go func(dgst digest.Digest) {
-			context.GetLogger(ctx).Infof("Start background mirroring of %q", dgst)
-			if err := pbs.storeLocal(remoteGetter, ctx, dgst); err != nil {
-				context.GetLogger(ctx).Errorf("Error committing to storage: %s", err.Error())
-			}
-			context.GetLogger(ctx).Infof("Completed mirroring of %q", dgst)
-		}(dgst)
+		rw = &blobResponseMirrorer{
+			ResponseWriter: rw,
+			writer:         io.MultiWriter(rw, bw),
+		}
 	}
 
-	_, err = pbs.copyContent(remoteGetter, ctx, dgst, w, req)
+	desc, err := pbs.copyContent(ctx, rw, req, dgst, pbs.repo.remoteBlobGetter)
+	if pbs.mirror {
+		if err == nil {
+			bw.Commit(ctx, desc)
+		} else {
+			bw.Cancel(ctx)
+		}
+	}
 	return err
 }
 
@@ -112,7 +108,7 @@ func setResponseHeaders(w http.ResponseWriter, length int64, mediaType string, d
 }
 
 // serveRemoteContent tries to use http.ServeContent for remote content.
-func serveRemoteContent(rw http.ResponseWriter, req *http.Request, desc distribution.Descriptor, remoteReader io.ReadSeeker) (bool, error) {
+func (pbs *pullthroughBlobStore) serveRemoteContent(rw http.ResponseWriter, req *http.Request, desc distribution.Descriptor, remoteReader io.ReadSeeker) (bool, error) {
 	// Set the appropriate content serving headers.
 	setResponseHeaders(rw, desc.Size, desc.MediaType, desc.Digest)
 
@@ -140,15 +136,8 @@ func serveRemoteContent(rw http.ResponseWriter, req *http.Request, desc distribu
 	return true, nil
 }
 
-// inflight tracks currently downloading blobs
-var inflight = make(map[digest.Digest]struct{})
-
-// mu protects inflight
-var mu sync.Mutex
-
-// copyContent attempts to load and serve the provided blob. If req != nil and writer is an instance of http.ResponseWriter,
-// response headers will be set and range requests honored.
-func (pbs *pullthroughBlobStore) copyContent(store BlobGetterService, ctx context.Context, dgst digest.Digest, writer io.Writer, req *http.Request) (distribution.Descriptor, error) {
+// copyContent attempts to load and serve the provided blob.
+func (pbs *pullthroughBlobStore) copyContent(ctx context.Context, writer http.ResponseWriter, req *http.Request, dgst digest.Digest, store BlobGetterService) (distribution.Descriptor, error) {
 	desc, err := store.Stat(ctx, dgst)
 	if err != nil {
 		return distribution.Descriptor{}, err
@@ -159,52 +148,31 @@ func (pbs *pullthroughBlobStore) copyContent(store BlobGetterService, ctx contex
 		return distribution.Descriptor{}, err
 	}
 
-	rw, ok := writer.(http.ResponseWriter)
-	if ok {
-		contentHandled, err := serveRemoteContent(rw, req, desc, remoteReader)
-		if err != nil {
-			return distribution.Descriptor{}, err
-		}
-
-		if contentHandled {
-			return desc, nil
-		}
-
-		rw.Header().Set("Content-Length", fmt.Sprintf("%d", desc.Size))
+	contentHandled, err := pbs.serveRemoteContent(writer, req, desc, remoteReader)
+	if err != nil {
+		return distribution.Descriptor{}, err
 	}
+
+	if contentHandled {
+		return desc, nil
+	}
+
+	writer.Header().Set("Content-Length", fmt.Sprintf("%d", desc.Size))
 
 	if _, err = io.CopyN(writer, remoteReader, desc.Size); err != nil {
 		return distribution.Descriptor{}, err
 	}
+
 	return desc, nil
 }
 
-// storeLocal retrieves the named blob from the provided store and writes it into the local store.
-func (pbs *pullthroughBlobStore) storeLocal(remoteGetter BlobGetterService, ctx context.Context, dgst digest.Digest) error {
-	defer func() {
-		mu.Lock()
-		delete(inflight, dgst)
-		mu.Unlock()
-	}()
+// blobResponseMirrorer wraps a http.ResponseWriter to duplicates its writes to multiple streams.
+type blobResponseMirrorer struct {
+	http.ResponseWriter
 
-	var desc distribution.Descriptor
-	var err error
-	var bw distribution.BlobWriter
+	writer io.Writer
+}
 
-	bw, err = pbs.BlobStore.Create(ctx)
-	if err != nil {
-		return err
-	}
-
-	desc, err = pbs.copyContent(remoteGetter, ctx, dgst, bw, nil)
-	if err != nil {
-		return err
-	}
-
-	_, err = bw.Commit(ctx, desc)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (brm *blobResponseMirrorer) Write(p []byte) (int, error) {
+	return brm.writer.Write(p)
 }
