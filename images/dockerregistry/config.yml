@@ -27,7 +27,7 @@ middleware:
   repository:
     - name: openshift
       options:
-        acceptschema2: false
+        acceptschema2: true
         pullthrough: true
         mirrorpullthrough: true
         enforcequota: false
