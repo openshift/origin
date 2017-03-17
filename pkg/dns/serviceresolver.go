@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"net"
@@ -12,9 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kendpoints "k8s.io/kubernetes/pkg/api/endpoints"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/skynetservices/skydns/msg"
@@ -210,14 +207,6 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 			return nil, errNoSuchName
 		}
 
-		hostnameMappings := noHostnameMappings
-		if savedHostnames := endpoints.Annotations[kendpoints.PodHostnamesAnnotation]; len(savedHostnames) > 0 {
-			mapped := make(map[string]kendpoints.HostRecord)
-			if err = json.Unmarshal([]byte(savedHostnames), &mapped); err == nil {
-				hostnameMappings = mapped
-			}
-		}
-
 		matchHostname := len(segments) > 3 && !hasAllPrefixedSegments(segments[3:4], "_")
 
 		services := make([]msg.Service, 0, len(endpoints.Subsets)*4)
@@ -232,7 +221,7 @@ func (b *ServiceResolver) Records(dnsName string, exact bool) ([]msg.Service, er
 					Ttl:      30,
 				}
 				var endpointName string
-				if hostname, ok := getHostname(&a, hostnameMappings); ok {
+				if hostname, ok := getHostname(&a); ok {
 					endpointName = hostname
 				} else {
 					endpointName = getHash(defaultService.Host)
@@ -358,12 +347,9 @@ func buildDNSName(labels ...string) string {
 }
 
 // getHostname returns true if the provided address has a hostname, or false otherwise.
-func getHostname(address *kapi.EndpointAddress, podHostnames map[string]kendpoints.HostRecord) (string, bool) {
+func getHostname(address *kapi.EndpointAddress) (string, bool) {
 	if len(address.Hostname) > 0 {
 		return address.Hostname, true
-	}
-	if hostRecord, exists := podHostnames[address.IP]; exists && len(validation.IsDNS1123Label(hostRecord.HostName)) == 0 {
-		return hostRecord.HostName, true
 	}
 	return "", false
 }
@@ -390,5 +376,3 @@ func hasAllPrefixedSegments(segments []string, prefix string) bool {
 	}
 	return true
 }
-
-var noHostnameMappings = map[string]kendpoints.HostRecord{}
