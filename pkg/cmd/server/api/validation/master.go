@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/util/labelselector"
+	"github.com/spf13/pflag"
 )
 
 // TODO: this should just be two return arrays, no need to be clever
@@ -654,7 +655,12 @@ func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *f
 }
 
 func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	return ValidateExtendedArguments(config, controlleroptions.NewCMServer().AddFlags, fldPath)
+	addFlags := func(fs *pflag.FlagSet) {
+		// The 2 empty string slices are for allControllers and disabledByDefaultControllers, but
+		// AddFlags only uses them for display in the usage text.
+		controlleroptions.NewCMServer().AddFlags(fs, []string{}, []string{})
+	}
+	return ValidateExtendedArguments(config, addFlags, fldPath)
 }
 
 func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) field.ErrorList {
