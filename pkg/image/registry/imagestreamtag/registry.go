@@ -40,7 +40,7 @@ func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string, o
 }
 
 func (s *storage) DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error) {
-	obj, _, err := s.Delete(ctx, nameAndTag)
+	obj, err := s.Delete(ctx, nameAndTag)
 	if err != nil {
 		return nil, err
 	}

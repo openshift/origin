@@ -13,10 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apiserver/pkg/admission"
+	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	clientgotesting "k8s.io/client-go/testing"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -67,7 +67,7 @@ func TestDefaultPolicy(t *testing.T) {
 		t.Fatal(errs.ToAggregate())
 	}
 
-	plugin, err := newImagePolicyPlugin(nil, config)
+	plugin, err := newImagePolicyPlugin(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 func TestAdmissionWithoutPodSpec(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "nodes"}}
-	p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{ImageCondition: api.ImageCondition{OnResources: onResources}},
 		},
@@ -352,7 +352,7 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 
 func TestAdmissionResolution(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "pods"}}
-	p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 		ResolveImages: api.AttemptRewrite,
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{ImageCondition: api.ImageCondition{OnResources: onResources}},
@@ -617,7 +617,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 	}
 	for i, test := range testCases {
 		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
-		p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+		p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 			ResolveImages: api.RequiredRewrite,
 			ExecutionRules: []api.ImageExecutionPolicyRule{
 				{ImageCondition: api.ImageCondition{OnResources: onResources}},

@@ -48,7 +48,7 @@ func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
 	}
 
 	imageName := event.Image
-	image, err := r.imageRegistry.GetImage(ctx, imageName)
+	image, err := r.imageRegistry.GetImage(ctx, imageName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

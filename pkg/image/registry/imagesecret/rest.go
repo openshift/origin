@@ -38,11 +38,15 @@ func (r *REST) Get(ctx apirequest.Context, _ string, options runtime.Object) (ru
 	if !ok {
 		return nil, fmt.Errorf("unexpected options: %v", listOptions)
 	}
+	listOptionsv1 := metav1.ListOptions{}
+	if err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(listOptions, &listOptionsv1, nil); err != nil {
+		return nil, err
+	}
 	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		ns = metav1.NamespaceAll
 	}
-	secrets, err := r.secrets.Secrets(ns).List(*listOptions)
+	secrets, err := r.secrets.Secrets(ns).List(listOptionsv1)
 	if err != nil {
 		return nil, err
 	}

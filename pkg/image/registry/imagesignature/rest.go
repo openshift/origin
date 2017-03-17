@@ -40,7 +40,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, kapierrors.NewBadRequest(err.Error())
 	}
 
-	image, err := r.imageClient.Get(imageName)
+	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 		return nil, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
 
-	image, err := r.imageClient.Get(imageName)
+	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
