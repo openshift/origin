@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/selection"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -94,7 +95,7 @@ func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAda
 	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, []string{openshiftValue})
 	podSelector := labels.NewSelector().Add(*compReq, *provReq)
 	r.Debug("AGL0070", fmt.Sprintf("Getting pods that match selector '%s'", podSelector))
-	podList, err := adapter.pods(project, metainternal.ListOptions{LabelSelector: podSelector})
+	podList, err := adapter.pods(project, metav1.ListOptions{LabelSelector: podSelector.String()})
 	if err != nil {
 		r.Error("AGL0075", err, fmt.Sprintf("There was an error while trying to retrieve the pods for the AggregatedLogging stack: %s", err))
 		return

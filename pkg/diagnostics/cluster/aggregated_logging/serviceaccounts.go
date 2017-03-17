@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -17,7 +17,7 @@ properly without them.  You may need to re-run the installer.
 
 func checkServiceAccounts(d diagnosticReporter, f saAdapter, project string) {
 	d.Debug("AGL0500", fmt.Sprintf("Checking ServiceAccounts in project '%s'...", project))
-	saList, err := f.serviceAccounts(project, metainternal.ListOptions{})
+	saList, err := f.serviceAccounts(project, metav1.ListOptions{})
 	if err != nil {
 		d.Error("AGL0505", err, fmt.Sprintf("There was an error while trying to retrieve the pods for the AggregatedLogging stack: %s", err))
 		return

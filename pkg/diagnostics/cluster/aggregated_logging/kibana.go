@@ -25,7 +25,7 @@ const (
 
 //checkKibana verifies the various integration points between Kibana and logging
 func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string) {
-	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
+	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
 		return
