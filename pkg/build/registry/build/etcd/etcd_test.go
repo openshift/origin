@@ -6,9 +6,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"

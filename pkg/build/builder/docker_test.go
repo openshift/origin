@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/test/util"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {
@@ -193,7 +192,7 @@ func TestDockerfilePath(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
+		buildDir, err := ioutil.TempDir("", "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue
@@ -314,6 +313,7 @@ func TestEmptySource(t *testing.T) {
 		}
 	}
 }
+
 func TestGetDockerfileFrom(t *testing.T) {
 	tests := map[string]struct {
 		dockerfileContent string
@@ -339,7 +339,7 @@ RUN echo "hello world"
 		},
 	}
 	for i, test := range tests {
-		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
+		buildDir, err := ioutil.TempDir("", "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue

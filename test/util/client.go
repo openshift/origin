@@ -91,7 +91,7 @@ func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.
 	if _, _, _, err := GetClientForUser(clientConfig, username); err != nil {
 		return nil, nil, nil, err
 	}
-	user, err := adminClient.Users().Get(username)
+	user, err := adminClient.Users().Get(username, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -130,7 +130,7 @@ func GetClientForServiceAccount(adminClient *kclientset.Clientset, clientConfig 
 
 	sa, err := adminClient.Core().ServiceAccounts(namespace).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	if kerrs.IsAlreadyExists(err) {
-		sa, err = adminClient.Core().ServiceAccounts(namespace).Get(name)
+		sa, err = adminClient.Core().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 	}
 	if err != nil {
 		return nil, nil, nil, err
