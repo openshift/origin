@@ -7,6 +7,9 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/runtime"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/client"
@@ -15,8 +18,9 @@ import (
 )
 
 // NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
-func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, plugins map[string]webhook.Plugin) *rest.WebHook {
+func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, groupVersion unversioned.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
 	hook := &WebHook{
+		groupVersion: groupVersion,
 		registry:     registry,
 		instantiator: instantiator,
 		plugins:      plugins,
@@ -25,6 +29,7 @@ func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiat
 }
 
 type WebHook struct {
+	groupVersion unversioned.GroupVersion
 	registry     Registry
 	instantiator client.BuildConfigInstantiator
 	plugins      map[string]webhook.Plugin
@@ -73,9 +78,18 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx k
 		Env:         envvars,
 		DockerStrategyOptions: dockerStrategyOptions,
 	}
-	if _, err := w.instantiator.Instantiate(config.Namespace, request); err != nil {
+	newBuild, err := w.instantiator.Instantiate(config.Namespace, request)
+	if err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}
+
+	// Send back the build name so that the client can alert the user.
+	if newBuildEncoded, err := runtime.Encode(kapi.Codecs.LegacyCodec(w.groupVersion), newBuild); err != nil {
+		utilruntime.HandleError(err)
+	} else {
+		writer.Write(newBuildEncoded)
+	}
+
 	return warning
 }
 

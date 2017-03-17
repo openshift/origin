@@ -772,6 +772,10 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
 		buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient),
+		// We use the buildapiv1 schemegroup to encode the Build that gets
+		// returned. As such, we need to make sure that the GroupVersion we use
+		// is the same API version that the storage is going to be used for.
+		buildapiv1.SchemeGroupVersion,
 		map[string]webhook.Plugin{
 			"generic": generic.New(),
 			"github":  github.New(),
