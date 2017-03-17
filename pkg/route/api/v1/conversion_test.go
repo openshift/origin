@@ -14,7 +14,7 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Route",
+	testutil.CheckFieldLabelConversions(t, "v1", "Route", true,
 		// Ensure all currently returned labels are supported
 		api.RouteToSelectableFields(&api.Route{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST

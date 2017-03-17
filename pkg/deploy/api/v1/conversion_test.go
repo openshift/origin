@@ -225,7 +225,7 @@ func newIntOrString(ios intstr.IntOrString) *intstr.IntOrString {
 }
 
 func TestFieldSelectors(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "DeploymentConfig",
+	testutil.CheckFieldLabelConversions(t, "v1", "DeploymentConfig", true,
 		// Ensure all currently returned labels are supported
 		newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}),
 	)

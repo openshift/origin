@@ -16,14 +16,14 @@ import (
 var Convert = knewer.Scheme.Convert
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Build",
+	testutil.CheckFieldLabelConversions(t, "v1", "Build", true,
 		// Ensure all currently returned labels are supported
 		newer.BuildToSelectableFields(&newer.Build{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"name", "status", "podName",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "BuildConfig",
+	testutil.CheckFieldLabelConversions(t, "v1", "BuildConfig", true,
 		// Ensure all currently returned labels are supported
 		newer.BuildConfigToSelectableFields(&newer.BuildConfig{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST

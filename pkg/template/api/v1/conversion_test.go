@@ -11,7 +11,7 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Template",
+	testutil.CheckFieldLabelConversions(t, "v1", "Template", false,
 		// Ensure all currently returned labels are supported
 		api.TemplateToSelectableFields(&api.Template{}),
 	)

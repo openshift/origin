@@ -11,19 +11,19 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Group",
+	testutil.CheckFieldLabelConversions(t, "v1", "Group", false,
 		// Ensure all currently returned labels are supported
 		api.GroupToSelectableFields(&api.Group{}),
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "Identity",
+	testutil.CheckFieldLabelConversions(t, "v1", "Identity", false,
 		// Ensure all currently returned labels are supported
 		api.IdentityToSelectableFields(&api.Identity{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"providerName", "providerUserName", "user.name", "user.uid",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "User",
+	testutil.CheckFieldLabelConversions(t, "v1", "User", false,
 		// Ensure all currently returned labels are supported
 		api.UserToSelectableFields(&api.User{}),
 	)

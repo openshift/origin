@@ -11,26 +11,26 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAccessToken",
+	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAccessToken", false,
 		// Ensure all currently returned labels are supported
 		api.OAuthAccessTokenToSelectableFields(&api.OAuthAccessToken{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"clientName", "userName", "userUID", "authorizeToken",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAuthorizeToken",
+	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAuthorizeToken", false,
 		// Ensure all currently returned labels are supported
 		api.OAuthAuthorizeTokenToSelectableFields(&api.OAuthAuthorizeToken{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"clientName", "userName", "userUID",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClient",
+	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClient", false,
 		// Ensure all currently returned labels are supported
 		api.OAuthClientToSelectableFields(&api.OAuthClient{}),
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClientAuthorization",
+	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClientAuthorization", false,
 		// Ensure all currently returned labels are supported
 		api.OAuthClientAuthorizationToSelectableFields(&api.OAuthClientAuthorization{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
