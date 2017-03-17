@@ -15,6 +15,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -217,7 +218,7 @@ func (g *cachedImageStreamGetter) get() (*imageapi.ImageStream, error) {
 		context.GetLogger(g.ctx).Debugf("(*cachedImageStreamGetter).getImageStream: returning cached copy")
 		return g.cachedImageStream, nil
 	}
-	is, err := g.isNamespacer.ImageStreams(g.namespace).Get(g.name)
+	is, err := g.isNamespacer.ImageStreams(g.namespace).Get(g.name, metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(g.ctx).Errorf("failed to get image stream: %v", err)
 		switch {

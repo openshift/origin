@@ -396,8 +396,8 @@ func TestAccessController(t *testing.T) {
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
 		DefaultRegistryClient = NewRegistryClient(&clientcmd.Config{
 			CommonConfig: restclient.Config{
-				Host:     server.URL,
-				Insecure: true,
+				Host:            server.URL,
+				TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
 			},
 			SkipEnv: true,
 		})

@@ -153,7 +153,7 @@ func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descr
 		return distribution.ErrRepositoryUnknown{Name: t.repo.Named().Name()}
 	}
 
-	image, err := t.repo.registryOSClient.Images().Get(dgst.Digest.String())
+	image, err := t.repo.registryOSClient.Images().Get(dgst.Digest.String(), metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("unable to get image: %s", dgst.Digest.String())
 		return err
