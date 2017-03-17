@@ -1,10 +1,9 @@
 package image
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
@@ -12,27 +11,19 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-const imageStreamEvaluatorName = "Evaluator.ImageStream"
-
 // NewImageStreamEvaluator computes resource usage of ImageStreams. Instantiating this is necessary for
 // resource quota admission controller to properly work on image stream related objects.
 func NewImageStreamEvaluator(store *oscache.StoreToImageStreamLister) kquota.Evaluator {
-	allResources := []kapi.ResourceName{
-		imageapi.ResourceImageStreams,
-	}
-
-	return &generic.GenericEvaluator{
-		Name:              imageStreamEvaluatorName,
-		InternalGroupKind: imageapi.LegacyKind("ImageStream"),
-		InternalOperationResources: map[admission.Operation][]kapi.ResourceName{
-			admission.Create: allResources,
-		},
-		MatchedResourceNames: allResources,
-		MatchesScopeFunc:     generic.MatchesNoScopeFunc,
-		ConstraintsFunc:      generic.ObjectCountConstraintsFunc(imageapi.ResourceImageStreams),
-		UsageFunc:            generic.ObjectCountUsageFunc(imageapi.ResourceImageStreams),
-		ListFuncByNamespace: func(namespace string, options metainternal.ListOptions) ([]runtime.Object, error) {
-			list, err := store.ImageStreams(namespace).List(options.LabelSelector)
+	return &generic.ObjectCountEvaluator{
+		AllowCreateOnUpdate: false,
+		InternalGroupKind:   imageapi.Kind("ImageStream"),
+		ResourceName:        imageapi.ResourceImageStreams,
+		ListFuncByNamespace: func(namespace string, options metav1.ListOptions) ([]runtime.Object, error) {
+			labelSelector, err := labels.Parse(options.LabelSelector)
+			if err != nil {
+				return nil, err
+			}
+			list, err := store.ImageStreams(namespace).List(labelSelector)
 			if err != nil {
 				return nil, err
 			}

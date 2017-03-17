@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -93,7 +94,12 @@ func TestImageStreamEvaluatorUsageStats(t *testing.T) {
 		}
 		evaluator := NewImageStreamEvaluator(&store)
 
-		stats, err := evaluator.UsageStats(kquota.UsageStatsOptions{Namespace: tc.namespace})
+		stats, err := evaluator.UsageStats(
+			kquota.UsageStatsOptions{
+				Resources: []kapi.ResourceName{imageapi.ResourceImageStreams},
+				Namespace: tc.namespace,
+			},
+		)
 		if err != nil {
 			t.Errorf("[%s]: could not get usage stats for namespace %q: %v", tc.name, tc.namespace, err)
 			continue
@@ -185,7 +191,10 @@ func TestImageStreamEvaluatorUsage(t *testing.T) {
 		}
 		evaluator := NewImageStreamEvaluator(&store)
 
-		usage := evaluator.Usage(newIS)
+		usage, err := evaluator.Usage(newIS)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		expectedUsage := imagetest.ExpectedResourceListFor(tc.expectedISCount)
 		expectedResources := kquota.ResourceNames(expectedUsage)
 		if len(usage) != len(expectedResources) {
