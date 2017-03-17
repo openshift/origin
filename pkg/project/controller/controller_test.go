@@ -3,7 +3,6 @@ package controller
 import (
 	"testing"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -42,18 +41,18 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 
 	// TODO: we will expect a finalize namespace call after rebase
 	expectedActionSet := []clientgotesting.Action{
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", metainternal.ListOptions{}),
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", metainternal.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", metav1.ListOptions{}),
 	}
 	kubeActionSet := []clientgotesting.Action{}
 	originActionSet := []clientgotesting.Action{}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -80,7 +81,7 @@ func (t *testReadOnlyPolicyBinding) List(options metainternal.ListOptions) (*aut
 	return ret, nil
 }
 
-func (t *testReadOnlyPolicyBinding) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (t *testReadOnlyPolicyBinding) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	return t.binding, nil

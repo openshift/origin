@@ -111,8 +111,12 @@ func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) 
 var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
-func (s *REST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	namespace, err := s.client.Get(name, metav1.GetOptions{})
+func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	opts := metav1.GetOptions{}
+	if options != nil {
+		opts = *options
+	}
+	namespace, err := s.client.Get(name, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +131,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
+	rest.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
@@ -142,7 +146,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 var _ = rest.Updater(&REST{})
 
 func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	oldObj, err := s.Get(ctx, name)
+	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

@@ -132,7 +132,7 @@ func TestHandles(t *testing.T) {
 		admission.Connect: false,
 		admission.Delete:  false,
 	} {
-		nodeEnvionment, err := NewPodNodeEnvironment(nil)
+		nodeEnvionment, err := NewPodNodeEnvironment()
 		if err != nil {
 			t.Errorf("%v: error getting node environment: %v", op, err)
 			continue
