@@ -102,7 +102,7 @@ func TestCreateProjectOK(t *testing.T) {
 func TestGetProjectOK(t *testing.T) {
 	mockClient := fake.NewSimpleClientset(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})
 	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
-	project, err := storage.Get(apirequest.NewContext(), "foo")
+	project, err := storage.Get(apirequest.NewContext(), "foo", &metav1.GetOptions{})
 	if project == nil {
 		t.Error("Unexpected nil project")
 	}

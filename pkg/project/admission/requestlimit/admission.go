@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
@@ -126,7 +127,7 @@ func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool
 		return 0, false, nil
 	}
 
-	user, err := o.client.Users().Get(userName)
+	user, err := o.client.Users().Get(userName, metav1.GetOptions{})
 	if err != nil {
 		return 0, false, err
 	}

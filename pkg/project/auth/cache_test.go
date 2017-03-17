@@ -32,7 +32,7 @@ func (this MockPolicyGetter) List(options metainternal.ListOptions) (*authorizat
 	return &authorizationapi.PolicyList{}, nil
 }
 
-func (this MockPolicyGetter) Get(name string) (*authorizationapi.Policy, error) {
+func (this MockPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
 	return &authorizationapi.Policy{}, nil
 }
 
@@ -47,7 +47,7 @@ func (this MockClusterPolicyGetter) List(options metainternal.ListOptions) (*aut
 	return &authorizationapi.ClusterPolicyList{}, nil
 }
 
-func (this MockClusterPolicyGetter) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+func (this MockClusterPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	return &authorizationapi.ClusterPolicy{}, nil
 }
 
@@ -62,7 +62,7 @@ func (this MockPolicyBindingGetter) List(options metainternal.ListOptions) (*aut
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
-func (this MockPolicyBindingGetter) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (this MockPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	return &authorizationapi.PolicyBinding{}, nil
 }
 
@@ -77,7 +77,7 @@ func (this MockClusterPolicyBindingGetter) List(options metainternal.ListOptions
 	return &authorizationapi.ClusterPolicyBindingList{}, nil
 }
 
-func (this MockClusterPolicyBindingGetter) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (this MockClusterPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	return &authorizationapi.ClusterPolicyBinding{}, nil
 }
 

@@ -23,7 +23,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller"
 )
 
 // Lister enforces ability to enumerate a resource based on policy
@@ -190,11 +189,11 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kcoreclient.Nam
 func (ac *AuthorizationCache) Run(period time.Duration) {
 
 	namespaceReflector := cache.NewReflector(
-		&controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return ac.namespaceInterface.List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return ac.namespaceInterface.Watch(options)
 			},
 		},
