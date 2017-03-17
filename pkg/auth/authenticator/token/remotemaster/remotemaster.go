@@ -1,6 +1,7 @@
 package remotemaster
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
 
@@ -35,7 +36,7 @@ func (a *Authenticator) AuthenticateToken(value string) (user.Info, bool, error)
 		return nil, false, err
 	}
 
-	u, err := c.Users().Get("~")
+	u, err := c.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}
