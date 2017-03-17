@@ -146,7 +146,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 // findStreamForMapping retrieves an ImageStream whose DockerImageRepository matches dockerRepo.
 func (s *REST) findStreamForMapping(ctx apirequest.Context, mapping *api.ImageStreamMapping) (*api.ImageStream, error) {
 	if len(mapping.Name) > 0 {
-		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name)
+		return s.imageStreamRegistry.GetImageStream(ctx, mapping.Name, &metav1.GetOptions{})
 	}
 	if len(mapping.DockerImageRepository) != 0 {
 		list, err := s.imageStreamRegistry.ListImageStreams(ctx, &metainternal.ListOptions{})

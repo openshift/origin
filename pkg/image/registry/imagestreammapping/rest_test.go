@@ -17,11 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage/etcd/etcdtest"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -178,7 +178,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
 
-	image, err := storage.imageRegistry.GetImage(ctx, testImageID)
+	image, err := storage.imageRegistry.GetImage(ctx, testImageID, &metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error retrieving image: %#v", err)
 	}
@@ -189,7 +189,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "somerepo")
+	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "somerepo", &metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil err: %#v", err)
 	}
@@ -265,7 +265,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		t.Errorf("Unexpected error creating image stream mapping%v", err)
 	}
 
-	image, err := storage.imageRegistry.GetImage(ctx, imageID)
+	image, err := storage.imageRegistry.GetImage(ctx, imageID, &metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
@@ -276,7 +276,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "somerepo")
+	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "somerepo", &metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected non-nil err: %#v", err)
 	}
@@ -361,7 +361,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
 
-	image, err := storage.imageRegistry.GetImage(ctx, imageID)
+	image, err := storage.imageRegistry.GetImage(ctx, imageID, &metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Unexpected error retrieving image: %#v", err)
 	}
@@ -372,7 +372,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		t.Errorf("Expected %#v, got %#v", mapping.Image, image)
 	}
 
-	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "newrepo")
+	repo, err := storage.imageStreamRegistry.GetImageStream(ctx, "newrepo", &metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected non-nil err: %#v", err)
 	}
@@ -553,7 +553,7 @@ func TestTrackingTags(t *testing.T) {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
 
-	stream, err = storage.imageStreamRegistry.GetImageStream(apirequest.NewDefaultContext(), "stream")
+	stream, err = storage.imageStreamRegistry.GetImageStream(apirequest.NewDefaultContext(), "stream", &metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error extracting updated stream: %v", err)
 	}
@@ -596,7 +596,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error) {
 				return validImageStream(), nil
 			},
 			listImageStreams: func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
@@ -630,7 +630,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error) {
 				stream := validImageStream()
 				stream.Status = api.ImageStreamStatus{
 					Tags: map[string]api.TagEventList{
@@ -673,7 +673,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 			},
 		},
 		imageStreamRegistry: &fakeImageStreamRegistry{
-			getImageStream: func(ctx apirequest.Context, id string) (*api.ImageStream, error) {
+			getImageStream: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error) {
 				// For the first get, return a stream with a latest tag pointing to "original"
 				if firstGet {
 					firstGet = false
@@ -719,7 +719,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 
 type fakeImageRegistry struct {
 	listImages  func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error)
-	getImage    func(ctx apirequest.Context, id string) (*api.Image, error)
+	getImage    func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.Image, error)
 	createImage func(ctx apirequest.Context, image *api.Image) error
 	deleteImage func(ctx apirequest.Context, id string) error
 	watchImages func(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
@@ -729,8 +729,8 @@ type fakeImageRegistry struct {
 func (f *fakeImageRegistry) ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error) {
 	return f.listImages(ctx, options)
 }
-func (f *fakeImageRegistry) GetImage(ctx apirequest.Context, id string) (*api.Image, error) {
-	return f.getImage(ctx, id)
+func (f *fakeImageRegistry) GetImage(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.Image, error) {
+	return f.getImage(ctx, id, options)
 }
 func (f *fakeImageRegistry) CreateImage(ctx apirequest.Context, image *api.Image) error {
 	return f.createImage(ctx, image)
@@ -747,7 +747,7 @@ func (f *fakeImageRegistry) UpdateImage(ctx apirequest.Context, image *api.Image
 
 type fakeImageStreamRegistry struct {
 	listImageStreams        func(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error)
-	getImageStream          func(ctx apirequest.Context, id string) (*api.ImageStream, error)
+	getImageStream          func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error)
 	createImageStream       func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStream       func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
 	updateImageStreamSpec   func(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
@@ -759,8 +759,8 @@ type fakeImageStreamRegistry struct {
 func (f *fakeImageStreamRegistry) ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
 	return f.listImageStreams(ctx, options)
 }
-func (f *fakeImageStreamRegistry) GetImageStream(ctx apirequest.Context, id string) (*api.ImageStream, error) {
-	return f.getImageStream(ctx, id)
+func (f *fakeImageStreamRegistry) GetImageStream(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error) {
+	return f.getImageStream(ctx, id, options)
 }
 func (f *fakeImageStreamRegistry) CreateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error) {
 	return f.createImageStream(ctx, repo)

@@ -26,7 +26,7 @@ import (
 )
 
 type ResourceGetter interface {
-	Get(apirequest.Context, string) (runtime.Object, error)
+	Get(apirequest.Context, string, *metav1.GetOptions) (runtime.Object, error)
 }
 
 // Strategy implements behavior for ImageStreams.
@@ -212,7 +212,7 @@ func (s Strategy) tagsChanged(old, stream *api.ImageStream) field.ErrorList {
 			streamRefNamespace = stream.Namespace
 		}
 		if streamRefNamespace != stream.Namespace || tagRefStreamName != stream.Name {
-			obj, err := s.imageStreamGetter.Get(apirequest.WithNamespace(apirequest.NewContext(), streamRefNamespace), tagRefStreamName)
+			obj, err := s.imageStreamGetter.Get(apirequest.WithNamespace(apirequest.NewContext(), streamRefNamespace), tagRefStreamName, &metav1.GetOptions{})
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					errs = append(errs, field.NotFound(fromPath.Child("name"), tagRef.From.Name))

@@ -10,6 +10,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
@@ -247,7 +248,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 				return &rules.ImagePolicyAttributes{Name: ref, Image: cached.image}, nil
 			}
 		}
-		image, err := c.images.Get(ref.ID)
+		image, err := c.images.Get(ref.ID, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

@@ -67,7 +67,7 @@ func TestDefaultPolicy(t *testing.T) {
 		t.Fatal(errs.ToAggregate())
 	}
 
-	plugin, err := newImagePolicyPlugin(nil, config)
+	plugin, err := newImagePolicyPlugin(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +331,7 @@ func TestDefaultPolicy(t *testing.T) {
 
 func TestAdmissionWithoutPodSpec(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "nodes"}}
-	p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{ImageCondition: api.ImageCondition{OnResources: onResources}},
 		},
@@ -352,7 +352,7 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 
 func TestAdmissionResolution(t *testing.T) {
 	onResources := []schema.GroupResource{{Resource: "pods"}}
-	p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+	p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 		ResolveImages: api.AttemptRewrite,
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{ImageCondition: api.ImageCondition{OnResources: onResources}},
@@ -617,7 +617,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 	}
 	for i, test := range testCases {
 		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
-		p, err := newImagePolicyPlugin(nil, &api.ImagePolicyConfig{
+		p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
 			ResolveImages: api.RequiredRewrite,
 			ExecutionRules: []api.ImageExecutionPolicyRule{
 				{ImageCondition: api.ImageCondition{OnResources: onResources}},

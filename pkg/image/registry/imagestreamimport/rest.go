@@ -135,7 +135,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	}
 
 	create := false
-	stream, err := r.streams.GetImageStream(ctx, isi.Name)
+	stream, err := r.streams.GetImageStream(ctx, isi.Name, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err

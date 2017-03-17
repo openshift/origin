@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -88,13 +87,13 @@ func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 }
 
 // Get retrieves an image that has been tagged by stream and tag. `id` is of the format <stream name>:<tag>.
-func (r *REST) Get(ctx apirequest.Context, id string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions) (runtime.Object, error) {
 	name, tag, err := nameAndTag(id)
 	if err != nil {
 		return nil, err
 	}
 
-	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +124,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, fmt.Errorf("%q must be of the form <stream_name>:<tag>", istag.Name)
 	}
 
-	target, err := r.imageStreamRegistry.GetImageStream(ctx, imageStreamName)
+	target, err := r.imageStreamRegistry.GetImageStream(ctx, imageStreamName, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
@@ -172,7 +171,7 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 	}
 
 	create := false
-	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	imageStream, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, false, err
@@ -187,7 +186,7 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 				Name:      name,
 			},
 		}
-		kapi.FillObjectMetaSystemFields(ctx, &imageStream.ObjectMeta)
+		rest.FillObjectMetaSystemFields(ctx, &imageStream.ObjectMeta)
 		create = true
 	}
 
@@ -274,7 +273,7 @@ func (r *REST) Delete(ctx apirequest.Context, id string) (runtime.Object, error)
 		return nil, err
 	}
 
-	stream, err := r.imageStreamRegistry.GetImageStream(ctx, name)
+	stream, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +310,7 @@ func (r *REST) imageFor(ctx apirequest.Context, tag string, imageStream *imageap
 		return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), imageapi.JoinImageStreamTag(imageStream.Name, tag))
 	}
 
-	return r.imageRegistry.GetImage(ctx, event.Image)
+	return r.imageRegistry.GetImage(ctx, event.Image, &metav1.GetOptions{})
 }
 
 // newISTag initializes an image stream tag from an image stream and image. The allowEmptyEvent will create a tag even

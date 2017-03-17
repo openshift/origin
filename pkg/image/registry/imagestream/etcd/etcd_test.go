@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -97,7 +97,7 @@ func TestGetImageStreamError(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 
-	image, err := storage.Get(apirequest.NewDefaultContext(), "image1")
+	image, err := storage.Get(apirequest.NewDefaultContext(), "image1", &metav1.GetOptions{})
 	if !errors.IsNotFound(err) {
 		t.Errorf("Expected not-found error, got %v", err)
 	}
@@ -113,7 +113,7 @@ func TestGetImageStreamOK(t *testing.T) {
 
 	image := create(t, storage, validImageStream())
 
-	obj, err := storage.Get(apirequest.NewDefaultContext(), name)
+	obj, err := storage.Get(apirequest.NewDefaultContext(), name, &metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Unexpected error: %#v", err)
 	}

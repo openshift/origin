@@ -553,7 +553,7 @@ type fakeImageStreamGetter struct {
 	stream *api.ImageStream
 }
 
-func (f *fakeImageStreamGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (f *fakeImageStreamGetter) Get(ctx apirequest.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
 	return f.stream, nil
 }
 
