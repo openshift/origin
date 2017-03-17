@@ -282,6 +282,8 @@ func StartBuild(oc *CLI, args ...string) (stdout, stderr string, err error) {
 
 var buildPathPattern = regexp.MustCompile(`^build/([\w\-\._]+)$`)
 
+type LogDumperFunc func(oc *CLI, br *BuildResult) (string, error)
+
 type BuildResult struct {
 	// BuildPath is a resource qualified name (e.g. "build/test-1").
 	BuildPath string
@@ -308,6 +310,8 @@ type BuildResult struct {
 	BuildCancelled bool
 	// BuildTimeout is true if there was a timeout waiting for the build to finish.
 	BuildTimeout bool
+	// Alternate log dumper function. If set, this is called instead of 'oc logs'
+	LogDumper LogDumperFunc
 	// The openshift client which created this build.
 	oc *CLI
 }
@@ -354,6 +358,10 @@ func (t *BuildResult) DumpLogs() {
 func (t *BuildResult) Logs() (string, error) {
 	if t == nil || t.BuildPath == "" {
 		return "", fmt.Errorf("Not enough information to retrieve logs for %#v", *t)
+	}
+
+	if t.LogDumper != nil {
+		return t.LogDumper(t.oc, t)
 	}
 
 	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()

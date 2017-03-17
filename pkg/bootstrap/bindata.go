@@ -4973,6 +4973,7 @@ objects:
           def project=""
           def tag="blue"
           def altTag="green"
+          def verbose="${VERBOSE}"
 
           node {
             project = env.PROJECT_NAME
@@ -4989,12 +4990,12 @@ objects:
 
             stage("Build") {
               echo "building tag ${tag}"
-              openshiftBuild buildConfig: appName, showBuildLogs: "true"
+              openshiftBuild buildConfig: appName, showBuildLogs: "true", verbose: verbose
             }
 
             stage("Deploy Test") {
-              openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag
-              openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}"
+              openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag, verbose: verbose
+              openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}", verbose: verbose
             }
 
             stage("Test") {
@@ -5383,6 +5384,11 @@ parameters:
   name: NAMESPACE
   required: true
   value: openshift
+- description: Whether to enable verbose logging of Jenkinsfile steps in pipeline
+  displayName: Verbose
+  name: VERBOSE
+  required: true
+  value: "false"
 `)
 
 func examplesJenkinsPipelineBluegreenPipelineYamlBytes() ([]byte, error) {

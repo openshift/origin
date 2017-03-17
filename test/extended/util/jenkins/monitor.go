@@ -61,6 +61,13 @@ func (jmon *JobMon) Await(timeout time.Duration) error {
 		}
 
 		ginkgolog("Jenkins job %q build complete:\n%s\n\n", jmon.jobName, body)
+		// If Jenkins job has completed, output its log
+		body, status, err = jmon.j.GetResource("job/%s/%s/consoleText", jmon.jobName, jmon.buildNumber)
+		if err != nil || status != 200 {
+			ginkgolog("Unable to retrieve job log from Jenkins.\nStatus code: %d\nError: %v\nResponse Text: %s\n", status, err, body)
+			return true, nil
+		}
+		ginkgolog("Jenkins job %q log:\n%s\n\n", jmon.jobName, body)
 		return true, nil
 	})
 	return err
