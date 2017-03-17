@@ -133,9 +133,7 @@ var _ = g.Describe("[Conformance][volumes] Test local storage quota", func() {
 			o.Expect(volDir).NotTo(o.Equal(""))
 			args := []string{"-f", "-c", "'%T'", volDir}
 			outBytes, _ := exec.Command("stat", args...).Output()
-			if !strings.Contains(string(outBytes), "xfs") {
-				g.Skip("Volume directory is not on an XFS filesystem, skipping...")
-			}
+			o.Expect(strings.Contains(string(outBytes), "xfs")).To(o.BeTrue())
 
 			g.By("lookup test projects fsGroup ID")
 			fsGroup, err := lookupFSGroup(oc, project)
