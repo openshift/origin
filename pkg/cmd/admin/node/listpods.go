@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 )
 
 type ListPodsOptions struct {
@@ -29,7 +29,7 @@ func (l *ListPodsOptions) Run() error {
 		return err
 	}
 
-	var printer kubectl.ResourcePrinter
+	var printer kprinters.ResourcePrinter
 	if l.Options.CmdPrinterOutput {
 		printer = l.Options.CmdPrinter
 	} else {
@@ -57,7 +57,7 @@ func (l *ListPodsOptions) Run() error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourcePrinter) error {
+func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kprinters.ResourcePrinter) error {
 	labelSelector, err := labels.Parse(l.Options.PodSelector)
 	if err != nil {
 		return err
@@ -79,7 +79,7 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kubectl.ResourceP
 // handleRESTOutput receives a list of nodes, and a REST output type, and combines *kapi.PodList
 // objects for every node, into a single list. This allows output containing multiple nodes to be
 // printed to a single writer, and be easily parsed as a single data format.
-func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kubectl.ResourcePrinter) []error {
+func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kprinters.ResourcePrinter) []error {
 	unifiedPodList := &kapi.PodList{}
 
 	errList := []error{}
