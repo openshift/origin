@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -83,7 +84,7 @@ type cachedServiceNamespacer struct {
 
 var _ kcoreclient.ServiceInterface = cachedServiceNamespacer{}
 
-func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
+func (a cachedServiceNamespacer) Get(name string, options metav1.GetOptions) (*api.Service, error) {
 	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace, Name: name}})
 	if err != nil {
 		return nil, err
@@ -95,7 +96,7 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 }
 
 func (a cachedServiceNamespacer) List(options metav1.ListOptions) (*api.ServiceList, error) {
-	if !options.LabelSelector.Empty() {
+	if len(options.LabelSelector) > 0 {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}
 	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace}})
@@ -130,7 +131,7 @@ func (a cachedServiceNamespacer) DeleteCollection(options *metav1.DeleteOptions,
 func (a cachedServiceNamespacer) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Service, error) {
+func (a cachedServiceNamespacer) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
@@ -160,7 +161,7 @@ type cachedEndpointsNamespacer struct {
 
 var _ kcoreclient.EndpointsInterface = cachedEndpointsNamespacer{}
 
-func (a cachedEndpointsNamespacer) Get(name string) (*api.Endpoints, error) {
+func (a cachedEndpointsNamespacer) Get(name string, options metav1.GetOptions) (*api.Endpoints, error) {
 	item, ok, err := a.accessor.store.Get(&api.Endpoints{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace, Name: name}})
 	if err != nil {
 		return nil, err
@@ -189,6 +190,6 @@ func (a cachedEndpointsNamespacer) DeleteCollection(options *metav1.DeleteOption
 func (a cachedEndpointsNamespacer) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedEndpointsNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Endpoints, error) {
+func (a cachedEndpointsNamespacer) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*api.Endpoints, error) {
 	return nil, fmt.Errorf("not implemented")
 }
