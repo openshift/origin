@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	kcorelistersinternal "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -46,8 +47,9 @@ func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache
 	})
 
 	c.dcLister.Indexer = dcInformer.GetIndexer()
-	c.rcLister.Indexer = rcInformer.GetIndexer()
 	c.dcListerSynced = dcInformer.HasSynced
+
+	c.rcLister = kcorelistersinternal.NewReplicationControllerLister(rcInformer.GetIndexer())
 	c.rcListerSynced = rcInformer.HasSynced
 	return c
 }
@@ -131,7 +133,7 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 	// we will try to instantiate a deployment config at the expense of duplicating some of the
 	// work that the instantiate endpoint is already doing but I think this is fine.
 	shouldInstantiate := true
-	latestRc, err := c.rcLister.ReplicationControllers(newDc.Namespace).Get(deployutil.LatestDeploymentNameForConfig(newDc), metav1.GetOptions{})
+	latestRc, err := c.rcLister.ReplicationControllers(newDc.Namespace).Get(deployutil.LatestDeploymentNameForConfig(newDc))
 	if err != nil {
 		// If we get an error here it may be due to the rc cache lagging behind. In such a case
 		// just defer to the api server (instantiate REST) where we will retry this.
