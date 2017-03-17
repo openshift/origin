@@ -14,16 +14,15 @@ import (
 	kuval "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/util/labelselector"
-	"github.com/spf13/pflag"
 )
 
 // TODO: this should just be two return arrays, no need to be clever
@@ -655,12 +654,7 @@ func ValidateAPIServerExtendedArguments(config api.ExtendedArguments, fldPath *f
 }
 
 func ValidateControllerExtendedArguments(config api.ExtendedArguments, fldPath *field.Path) field.ErrorList {
-	addFlags := func(fs *pflag.FlagSet) {
-		// The 2 empty string slices are for allControllers and disabledByDefaultControllers, but
-		// AddFlags only uses them for display in the usage text.
-		controlleroptions.NewCMServer().AddFlags(fs, []string{}, []string{})
-	}
-	return ValidateExtendedArguments(config, addFlags, fldPath)
+	return ValidateExtendedArguments(config, cm.OriginControllerManagerAddFlags, fldPath)
 }
 
 func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginConfig, fieldPath *field.Path) field.ErrorList {
