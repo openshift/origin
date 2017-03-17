@@ -181,7 +181,10 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 			Spec: tc.isiSpec,
 		}
 
-		usage := evaluator.Usage(isi)
+		usage, err := evaluator.Usage(isi)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		expectedUsage := imagetest.ExpectedResourceListFor(tc.expectedISCount)
 		expectedResources := kquota.ResourceNames(expectedUsage)
 		if len(usage) != len(expectedResources) {
