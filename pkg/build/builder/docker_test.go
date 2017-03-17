@@ -192,6 +192,14 @@ func TestDockerfilePath(t *testing.T) {
 		"\"io.openshift.build.commit.message\"=\"message\"",
 	}
 
+	if isNew, err := util.CreateBaseDir(util.GetBaseDir()); err == nil {
+		if isNew {
+			defer os.RemoveAll(util.GetBaseDir())
+		}
+	} else {
+		t.Errorf("failed to create BaseDir: %v", err)
+	}
+
 	for _, test := range tests {
 		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
@@ -338,6 +346,15 @@ RUN echo "hello world"
 			want: []string{"scratch", "busybox"},
 		},
 	}
+
+	if isNew, err := util.CreateBaseDir(util.GetBaseDir()); err == nil {
+		if isNew {
+			defer os.RemoveAll(util.GetBaseDir())
+		}
+	} else {
+		t.Errorf("failed to create BaseDir: %v", err)
+	}
+
 	for i, test := range tests {
 		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {

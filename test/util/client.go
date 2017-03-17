@@ -31,6 +31,20 @@ func GetBaseDir() string {
 	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
 }
 
+// CreateBaseDir creates baseDir if not exist or returns nil if exist,
+// and also returns whether baseDir is a new created directory
+func CreateBaseDir(baseDir string) (isNewDir bool, err error) {
+	if _, err = os.Stat(baseDir); err == nil {
+		return false, nil
+	}
+	if os.IsNotExist(err) {
+		if err = os.MkdirAll(baseDir, os.FileMode(0766)); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
 func KubeConfigPath() string {
 	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
 }
