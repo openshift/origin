@@ -16,6 +16,7 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -124,6 +125,34 @@ func (a *imagePolicyPlugin) Validate() error {
 	return nil
 }
 
+// mutateAttributesToLegacyResources mutates the admission attributes in a way where the
+// Origin API groups are converted to "legacy" or "core" group.
+// This provides a backward compatibility with existing configurations and also closes the
+// hole where clients might bypass the admission by using API group endpoint and API group
+// resource instead of legacy one.
+func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attributes {
+	resource := attr.GetResource()
+	if len(resource.Group) > 0 && latest.IsOriginAPIGroup(resource.Group) {
+		resource.Group = ""
+	}
+	kind := attr.GetKind()
+	if len(kind.Group) > 0 && latest.IsOriginAPIGroup(kind.Group) {
+		kind.Group = ""
+	}
+	attrs := admission.NewAttributesRecord(
+		attr.GetObject(),
+		attr.GetOldObject(),
+		kind,
+		attr.GetNamespace(),
+		attr.GetName(),
+		resource,
+		attr.GetSubresource(),
+		attr.GetOperation(),
+		attr.GetUserInfo(),
+	)
+	return attrs
+}
+
 // Admit attempts to apply the image policy to the incoming resource.
 func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 	switch attr.GetOperation() {
@@ -138,19 +167,23 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		return nil
 	}
 
-	gr := attr.GetResource().GroupResource()
+	newAttr := mutateAttributesToLegacyResources(attr)
+
+	// This will convert any non-legacy Origin resource to a legacy resource, so specifying
+	// a 'builds.build.openshift.io' is converted to 'builds'.
+	gr := newAttr.GetResource().GroupResource()
 	if !a.accepter.Covers(gr) {
 		return nil
 	}
 
-	m, err := meta.GetImageReferenceMutator(attr.GetObject())
+	m, err := meta.GetImageReferenceMutator(newAttr.GetObject())
 	if err != nil {
-		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
+		return apierrs.NewForbidden(gr, newAttr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", newAttr.GetObject(), err))
 	}
 
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
-	if ns := attr.GetNamespace(); len(ns) > 0 {
+	if ns := newAttr.GetNamespace(); len(ns) > 0 {
 		if ns, err := a.projectCache.GetNamespace(ns); err == nil {
 			if value := ns.Annotations[api.IgnorePolicyRulesAnnotation]; len(value) > 0 {
 				excluded = sets.NewString(strings.Split(value, ",")...)
@@ -158,7 +191,7 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		}
 	}
 
-	if err := accept(a.accepter, a.config.ResolveImages, a.resolver, m, attr, excluded); err != nil {
+	if err := accept(a.accepter, a.config.ResolveImages, a.resolver, m, newAttr, excluded); err != nil {
 		return err
 	}
 
