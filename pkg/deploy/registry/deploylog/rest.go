@@ -12,14 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -42,12 +43,12 @@ type podGetter struct {
 }
 
 // Get is responsible for retrieving the deployer pod
-func (g *podGetter) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
+func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, errors.NewBadRequest("namespace parameter required.")
 	}
-	return g.pn.Pods(namespace).Get(name, metav1.GetOptions{})
+	return g.pn.Pods(namespace).Get(name, *options)
 }
 
 // REST is an implementation of RESTStorage for the api server.
@@ -221,7 +222,7 @@ func (r *REST) waitForExistingDeployment(namespace, name string) (*kapi.Replicat
 // view its logs.
 func (r *REST) returnApplicationPodName(target *kapi.ReplicationController) (string, error) {
 	selector := labels.Set(target.Spec.Selector).AsSelector()
-	sortBy := func(pods []*kapi.Pod) sort.Interface { return controller.ByLogging(pods) }
+	sortBy := func(pods []*kapiv1.Pod) sort.Interface { return controller.ByLogging(pods) }
 
 	pod, _, err := kcmdutil.GetFirstPod(r.pn, target.Namespace, selector, r.timeout, sortBy)
 	if err != nil {

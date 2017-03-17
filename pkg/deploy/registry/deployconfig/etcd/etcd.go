@@ -68,8 +68,8 @@ func (r *ScaleREST) New() runtime.Object {
 }
 
 // Get retrieves (computes) the Scale subresource for the given DeploymentConfig name.
-func (r *ScaleREST) Get(ctx apirequest.Context, name string) (runtime.Object, error) {
-	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
+func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string) (runtime.Object, er
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
 func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name)
+	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
 	}

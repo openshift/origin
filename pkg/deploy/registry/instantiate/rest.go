@@ -52,7 +52,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
 
-	configObj, err := r.store.Get(ctx, req.Name)
+	configObj, err := r.store.Get(ctx, req.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
