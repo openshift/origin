@@ -466,8 +466,17 @@ func (inClusterClientConfig) ConfigAccess() ConfigAccess {
 // Possible returns true if loading an inside-kubernetes-cluster is possible.
 func (inClusterClientConfig) Possible() bool {
 	fi, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token")
-	return os.Getenv("KUBERNETES_SERVICE_HOST") != "" &&
-		os.Getenv("KUBERNETES_SERVICE_PORT") != "" &&
+	k8s_host := os.Getenv("KUBERNETES_SERVICE_HOST")
+	k8s_port := os.Getenv("KUBERNETES_SERVICE_PORT")
+	glog.V(4).Infof("Possible:469 '%v'", k8s_host)
+	glog.V(4).Infof("Possible:469 '%v'", k8s_port)
+	if err == nil {
+		glog.V(4).Infof("Possible:469 '%v'", fi.IsDir())
+	} else {
+		glog.V(4).Infof("Possible:469 '%v'", err)
+	}
+	return k8s_host != "" &&
+		k8s_port != "" &&
 		err == nil && !fi.IsDir()
 }
 

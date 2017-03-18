@@ -18,6 +18,7 @@ package logs
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -34,12 +35,27 @@ func init() {
 }
 
 // GlogWriter serves as a bridge between the standard log package and the glog package.
-type GlogWriter struct{}
+type GlogWriter struct {
+	special bool
+}
 
 // Write implements the io.Writer interface.
 func (writer GlogWriter) Write(data []byte) (n int, err error) {
+	if writer.special {
+		fmt.Println(string(data))
+	}
 	glog.Info(string(data))
 	return len(data), nil
+}
+
+// InitLogs initializes logs the way we want for kubernetes.
+func SpecialInitLogs() {
+	gw := GlogWriter{}
+	gw.special = true
+	log.SetOutput(gw)
+	log.SetFlags(0)
+	// The default glog flush interval is 30 seconds, which is frighteningly long.
+	go wait.Until(glog.Flush, *logFlushFreq, wait.NeverStop)
 }
 
 // InitLogs initializes logs the way we want for kubernetes.

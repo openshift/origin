@@ -95,6 +95,7 @@ func (config *DeferredLoadingClientConfig) RawConfig() (clientcmdapi.Config, err
 
 // ClientConfig implements ClientConfig
 func (config *DeferredLoadingClientConfig) ClientConfig() (*restclient.Config, error) {
+	glog.V(4).Infof("ClientConfig:98")
 	mergedClientConfig, err := config.createClientConfig()
 	if err != nil {
 		return nil, err
@@ -113,13 +114,14 @@ func (config *DeferredLoadingClientConfig) ClientConfig() (*restclient.Config, e
 		// the configuration is valid, but if this is equal to the defaults we should try
 		// in-cluster configuration
 		if !config.loader.IsDefaultConfig(mergedConfig) {
+			glog.V(4).Infof("ClientConfig:117")
 			return mergedConfig, nil
 		}
 	}
 
 	// check for in-cluster configuration and use it
 	if config.icc.Possible() {
-		glog.V(4).Infof("Using in-cluster configuration")
+		glog.V(4).Infof("(k8s) Using in-cluster configuration")
 		return config.icc.ClientConfig()
 	}
 
