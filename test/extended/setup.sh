@@ -24,7 +24,6 @@ function os::test::extended::setup () {
 	# build binaries
 	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
 	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
-	os::util::ensure::built_binary_exists 'openshift'
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
 	os::util::ensure::built_binary_exists 'junitmerge'
@@ -70,6 +69,8 @@ function os::test::extended::setup () {
 
 	trap "exit" INT TERM
 	trap "cleanup" EXIT
+
+	os::util::ensure::built_binary_exists 'openshift'
 
 	os::util::environment::use_sudo
 	os::cleanup::tmpdir
