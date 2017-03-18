@@ -177,7 +177,6 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 	case UserAccessCheck:
 		return []authorizationapi.PolicyRule{
 			authorizationapi.NewRule("create").Groups(kauthorizationapi.GroupName).Resources("selfsubjectaccessreviews").RuleOrDie(),
-			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName, authorizationapi.LegacyGroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName, authorizationapi.LegacyGroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
 	case UserListScopedProjects:

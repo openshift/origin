@@ -45,12 +45,12 @@ func TestUserEvaluator(t *testing.T) {
 		{
 			name:     "access",
 			scopes:   []string{UserAccessCheck},
-			numRules: 4,
+			numRules: 3,
 		},
 		{
 			name:     "both",
 			scopes:   []string{UserInfo, UserAccessCheck},
-			numRules: 5,
+			numRules: 4,
 		},
 		{
 			name:     "list--scoped-projects",

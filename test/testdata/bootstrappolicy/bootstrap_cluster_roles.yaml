@@ -1631,17 +1631,6 @@ items:
     verbs:
     - create
   - apiGroups:
-    - authorization.openshift.io
-    - ""
-    attributeRestrictions:
-      apiVersion: authorization.openshift.io/v1
-      kind: IsPersonalSubjectAccessReview
-    resources:
-    - localsubjectaccessreviews
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
     - authorization.k8s.io
     attributeRestrictions: null
     resources:
@@ -1662,17 +1651,6 @@ items:
     attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
-    verbs:
-    - create
-  - apiGroups:
-    - authorization.openshift.io
-    - ""
-    attributeRestrictions:
-      apiVersion: authorization.openshift.io/v1
-      kind: IsPersonalSubjectAccessReview
-    resources:
-    - localsubjectaccessreviews
-    - subjectaccessreviews
     verbs:
     - create
   - apiGroups:
