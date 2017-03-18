@@ -9,7 +9,6 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
-	"github.com/docker/distribution/reference"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
@@ -115,11 +114,12 @@ func TestTagGet(t *testing.T) {
 			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
 		}
 
-		localTagService := newTestTagService(nil)
-
-		r := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, tc.pullthrough)
+		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: tc.pullthrough,
+		})
 		ts := &tagService{
-			TagService: localTagService,
+			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
@@ -151,31 +151,25 @@ func TestTagGetWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
-
-	ctx := context.Background()
 
 	serverURL, _ := url.Parse("docker.io/centos")
 
+	client := &testclient.Fake{}
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
 	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
 
 	testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
 
-	localTagService := newTestTagService(nil)
-
-	named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, true)
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client: client,
+	})
 	ts := &tagService{
-		TagService: localTagService,
+		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	_, err = ts.Get(ctx, tag)
+	ctx := context.Background()
+	_, err := ts.Get(ctx, tag)
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -235,19 +229,16 @@ func TestTagCreation(t *testing.T) {
 			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
 		}
 
-		localTagService := newTestTagService(nil)
-
-		named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-		if err != nil {
-			t.Fatal(err)
-		}
-		r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, tc.pullthrough)
+		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: tc.pullthrough,
+		})
 		ts := &tagService{
-			TagService: localTagService,
+			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		err = ts.Tag(ctx, tc.tagName, tc.tagValue)
+		err := ts.Tag(ctx, tc.tagName, tc.tagValue)
 		if tc.expectedError {
 			if err == nil {
 				t.Fatalf("[%s] error expected", tc.title)
@@ -268,26 +259,22 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	tag := "latest"
 	client := &testclient.Fake{}
 
-	ctx := context.Background()
-
 	serverURL, _ := url.Parse("docker.io/centos")
 
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
 	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
 
-	localTagService := newTestTagService(nil)
-
-	named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, true)
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client:            client,
+		enablePullThrough: true,
+	})
 	ts := &tagService{
-		TagService: localTagService,
+		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	err = ts.Tag(ctx, tag, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
+	ctx := context.Background()
+	err := ts.Tag(ctx, tag, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -355,20 +342,16 @@ func TestTagDeletion(t *testing.T) {
 			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
 		}
 
-		localTagService := newTestTagService(nil)
-
-		named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, tc.pullthrough)
+		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: tc.pullthrough,
+		})
 		ts := &tagService{
-			TagService: localTagService,
+			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		err = ts.Untag(ctx, tc.tagName)
+		err := ts.Untag(ctx, tc.tagName)
 
 		switch err.(type) {
 		case distribution.ErrTagUnknown:
@@ -401,19 +384,16 @@ func TestTagDeletionWithoutImageStream(t *testing.T) {
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
 	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
 
-	localTagService := newTestTagService(nil)
-
-	named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, true)
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client:            client,
+		enablePullThrough: true,
+	})
 	ts := &tagService{
-		TagService: localTagService,
+		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	err = ts.Untag(ctx, tag)
+	err := ts.Untag(ctx, tag)
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -468,15 +448,12 @@ func TestTagGetAll(t *testing.T) {
 			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
 		}
 
-		localTagService := newTestTagService(nil)
-
-		named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-		if err != nil {
-			t.Fatal(err)
-		}
-		r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, tc.pullthrough)
+		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: tc.pullthrough,
+		})
 		ts := &tagService{
-			TagService: localTagService,
+			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
@@ -505,19 +482,16 @@ func TestTagGetAllWithoutImageStream(t *testing.T) {
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
 	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
 
-	localTagService := newTestTagService(nil)
-
-	named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, true)
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client:            client,
+		enablePullThrough: true,
+	})
 	ts := &tagService{
-		TagService: localTagService,
+		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	_, err = ts.All(ctx)
+	_, err := ts.All(ctx)
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -583,15 +557,12 @@ func TestTagLookup(t *testing.T) {
 			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
 		}
 
-		localTagService := newTestTagService(nil)
-
-		named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-		if err != nil {
-			t.Fatal(err)
-		}
-		r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, tc.pullthrough)
+		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: tc.pullthrough,
+		})
 		ts := &tagService{
-			TagService: localTagService,
+			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
@@ -627,20 +598,16 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
 	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
 
-	localTagService := newTestTagService(nil)
-
-	named, err := reference.ParseNamed(fmt.Sprintf("%s/%s", namespace, repo))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := newTestRepositoryForPullthrough(t, ctx, &testRepository{name: named}, namespace, repo, client, true)
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client:            client,
+		enablePullThrough: true,
+	})
 	ts := &tagService{
-		TagService: localTagService,
+		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	_, err = ts.Lookup(ctx, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
+	_, err := ts.Lookup(ctx, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -649,16 +616,6 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected error: %#+v", err)
 	}
-}
-
-type testRepository struct {
-	distribution.Repository
-
-	name reference.Named
-}
-
-func (r *testRepository) Named() reference.Named {
-	return r.name
 }
 
 type testTagService struct {

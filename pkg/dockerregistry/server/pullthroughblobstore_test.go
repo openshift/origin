@@ -141,7 +141,10 @@ func TestPullthroughServeBlob(t *testing.T) {
 		localBlobStore := newTestBlobStore(tc.localBlobs)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, name, client, true)
+		repo := newTestRepository(t, namespace, name, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 		ptbs := &pullthroughBlobStore{
 			BlobStore: localBlobStore,
 			repo:      repo,
@@ -295,7 +298,10 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	localBlobStore := newTestBlobStore(nil)
 
 	ctx := WithTestPassthroughToUpstream(context.Background(), false)
-	repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, name, client, true)
+	repo := newTestRepository(t, namespace, name, testRepositoryOptions{
+		client:            client,
+		enablePullThrough: true,
+	})
 	ptbs := &pullthroughBlobStore{
 		BlobStore: localBlobStore,
 		repo:      repo,
@@ -671,7 +677,10 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo1, client, true)
+		repo := newTestRepository(t, namespace, repo1, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 
 		ptbs := &pullthroughBlobStore{
 			BlobStore: localBlobStore,
@@ -732,51 +741,6 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 			t.Errorf("[%s] unexpected number of bytes served locally: %d != %d", tc.name, localBlobStore.bytesServed, tc.expectedBytesServed)
 		}
 	}
-}
-
-func newTestRepositoryForPullthrough(
-	t *testing.T,
-	ctx context.Context,
-	wrappedRepository distribution.Repository,
-	namespace, name string,
-	client *testclient.Fake,
-	enablePullThrough bool,
-) *repository {
-	cachedLayers, err := newDigestToRepositoryCache(10)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	isGetter := &cachedImageStreamGetter{
-		ctx:          ctx,
-		namespace:    namespace,
-		name:         name,
-		isNamespacer: client,
-	}
-
-	r := &repository{
-		Repository:        wrappedRepository,
-		ctx:               ctx,
-		namespace:         namespace,
-		name:              name,
-		pullthrough:       enablePullThrough,
-		cachedLayers:      cachedLayers,
-		registryOSClient:  client,
-		imageStreamGetter: isGetter,
-		cachedImages:      make(map[digest.Digest]*imageapi.Image),
-	}
-
-	if enablePullThrough {
-		r.remoteBlobGetter = NewBlobGetterService(
-			namespace,
-			name,
-			defaultBlobRepositoryCacheTTL,
-			isGetter.get,
-			client,
-			cachedLayers)
-	}
-
-	return r
 }
 
 const (

@@ -134,7 +134,10 @@ func TestPullthroughManifests(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
+		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,
@@ -377,7 +380,10 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
+		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 		ctx = withRepository(ctx, repo)
 
 		ptms := &pullthroughManifestService{
