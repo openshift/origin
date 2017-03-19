@@ -624,4 +624,4 @@ backend be_secure:{{$cfgIdx}}
 {{         end -}}
 {{      end -}}
 {{     end -}}
-{{ end -}}{{/* end cert_config map template */}}
+{{ end }}{{/* end cert_config map template */}}
