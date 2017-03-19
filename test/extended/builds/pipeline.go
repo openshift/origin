@@ -32,6 +32,7 @@ const (
 
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
 	if !br.BuildSuccess {
+		br.LogDumper = jenkins.DumpLogs
 		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
 		j := jenkins.NewRef(oc)
 		jobLog, err := j.GetLastJobConsoleLogs(name)
@@ -218,7 +219,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		g.It("Blue-green pipeline should build and complete successfully", func() {
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", blueGreenPipelinePath))
-			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath).Execute()
+			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath, "-p", "VERBOSE=true").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			buildAndSwitch := func(newColour string) {
