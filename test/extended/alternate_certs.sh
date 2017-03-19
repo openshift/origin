@@ -6,8 +6,6 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
-export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
-
 function cleanup()
 {
 	out=$?

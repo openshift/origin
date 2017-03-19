@@ -208,7 +208,6 @@ function run-extended-tests() {
   fi
 
   export KUBECONFIG="${kubeconfig}"
-  export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 
   local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
 '--ginkgo.focus=${focus_regex}' ${TEST_EXTRA_ARGS}"
@@ -230,7 +229,7 @@ function run-extended-tests() {
     fi
   fi
 
-  pushd "${EXTENDED_TEST_PATH}/networking" > /dev/null
+  pushd "${OS_ROOT}/test/extended/networking" > /dev/null
     eval "${test_cmd}; "'exit_status=${PIPESTATUS[0]}'
   popd > /dev/null
 

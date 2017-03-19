@@ -29,7 +29,6 @@ function os::test::extended::setup () {
 	os::util::ensure::built_binary_exists 'junitmerge'
 
 	# ensure proper relative directories are set
-	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
 	os::util::environment::setup_time_vars
