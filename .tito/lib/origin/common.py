@@ -21,7 +21,7 @@ def inject_os_git_vars(spec_file):
             " ".join(["{}={}".format(key, value) for key, value in os_git_vars.items()]),
             spec_file
         )
-    output = run_command(update_os_git_vars)
+    run_command(update_os_git_vars)
 
 def get_os_git_vars():
     """
@@ -57,4 +57,4 @@ def update_global_hash(spec_file):
             git_hash,
             spec_file
         )
-    output = run_command(update_commit)
+    run_command(update_commit)
