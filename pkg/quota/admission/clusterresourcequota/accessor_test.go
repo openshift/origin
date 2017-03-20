@@ -12,6 +12,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -292,7 +293,7 @@ func TestGetQuota(t *testing.T) {
 		for i := range tc.availableNamespaces {
 			namespaceIndexer.Add(tc.availableNamespaces[i])
 		}
-		namespaceLister := &cache.IndexerToNamespaceLister{Indexer: namespaceIndexer}
+		namespaceLister := kcorelisters.NewNamespaceLister(namespaceIndexer)
 
 		client := testclient.NewSimpleFake()
 

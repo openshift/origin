@@ -28,7 +28,7 @@ func NewReplenishmentControllerFactory(isInformer shared.ImageStreamInformer) kr
 	}
 }
 
-func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.ControllerInterface, error) {
+func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.Controller, error) {
 	switch options.GroupKind {
 	case imageapi.Kind("ImageStream"), imageapi.LegacyKind("ImageStream"):
 		r.isInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -55,7 +55,7 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
 func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, osClient osclient.Interface, kubeClientSet clientset.Interface) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
-		kresourcequota.NewReplenishmentControllerFactory(informerFactory.KubernetesInformers(), kubeClientSet),
+		kresourcequota.NewReplenishmentControllerFactory(informerFactory.KubernetesInformers()),
 		NewReplenishmentControllerFactory(informerFactory.ImageStreams()),
 	}
 }
