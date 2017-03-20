@@ -5,16 +5,20 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/fake"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 func TestResolveResource(t *testing.T) {
-	mapper := clientcmd.ShortcutExpander{RESTMapper: kcmdutil.ShortcutExpander{RESTMapper: kapi.Registry.RESTMapper()}}
+	dc := fake.NewSimpleClientset().Discovery()
+	mapper, err := kcmdutil.NewShortcutExpander(kapi.Registry.RESTMapper(), dc)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	tests := []struct {
 		name             string
@@ -165,7 +169,7 @@ func TestResolveResource(t *testing.T) {
 			name:             "singular, implicit api group",
 			defaultResource:  schema.GroupResource{},
 			resourceString:   "job/myjob",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
+			expectedResource: schema.GroupResource{Group: "batch", Resource: "jobs"},
 			expectedName:     "myjob",
 			expectedErr:      false,
 		},
@@ -173,9 +177,9 @@ func TestResolveResource(t *testing.T) {
 			name:             "singular, explicit extensions api group",
 			defaultResource:  schema.GroupResource{},
 			resourceString:   "job.extensions/myjob",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
-			expectedName:     "myjob",
-			expectedErr:      false,
+			expectedResource: schema.GroupResource{},
+			expectedName:     "",
+			expectedErr:      true,
 		},
 		{
 			name:             "singular, explicit batch api group",
@@ -189,7 +193,7 @@ func TestResolveResource(t *testing.T) {
 			name:             "shortname, implicit api group",
 			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa/myhpa",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
+			expectedResource: schema.GroupResource{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 			expectedName:     "myhpa",
 			expectedErr:      false,
 		},
@@ -197,9 +201,9 @@ func TestResolveResource(t *testing.T) {
 			name:             "shortname, explicit extensions api group",
 			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa.extensions/myhpa",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
-			expectedName:     "myhpa",
-			expectedErr:      false,
+			expectedResource: schema.GroupResource{},
+			expectedName:     "",
+			expectedErr:      true,
 		},
 		{
 			name:             "shortname, explicit autoscaling api group",
