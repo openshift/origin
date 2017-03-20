@@ -78,7 +78,7 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 }
 
 func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
-	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

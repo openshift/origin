@@ -41,8 +41,8 @@ func (node *OsdnNode) Capabilities() utilsets.Int {
 	return utilsets.NewInt(knetwork.NET_PLUGIN_CAPABILITY_SHAPING)
 }
 
-func (node *OsdnNode) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID) error {
-	return node.kubeletCniPlugin.SetUpPod(namespace, name, id)
+func (node *OsdnNode) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID, annotations map[string]string) error {
+	return node.kubeletCniPlugin.SetUpPod(namespace, name, id, annotations)
 }
 
 func (node *OsdnNode) TearDownPod(namespace string, name string, id kubeletTypes.ContainerID) error {

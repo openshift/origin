@@ -56,7 +56,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	}
 
 	// Check if subnet needs to be created or updated
-	sub, err := master.osClient.HostSubnets().Get(nodeName)
+	sub, err := master.osClient.HostSubnets().Get(nodeName, metav1.GetOptions{})
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nil
@@ -79,7 +79,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	}
 
 	sub = &osapi.HostSubnet{
-		TypeMeta:   kapimetav1.TypeMeta{Kind: "HostSubnet"},
+		TypeMeta:   metav1.TypeMeta{Kind: "HostSubnet"},
 		ObjectMeta: metav1.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
 		Host:       nodeName,
 		HostIP:     nodeIP,
@@ -95,7 +95,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
-	sub, err := master.osClient.HostSubnets().Get(nodeName)
+	sub, err := master.osClient.HostSubnets().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error fetching subnet for node %q for deletion: %v", nodeName, err)
 	}
@@ -150,7 +150,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 			condition.Status = kapi.ConditionFalse
 			condition.Reason = "RouteCreated"
 			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
-			condition.LastTransitionTime = kapimetav1.Now()
+			condition.LastTransitionTime = metav1.Now()
 			knode, err = master.kClient.Nodes().UpdateStatus(knode)
 			if err == nil {
 				cleared = true

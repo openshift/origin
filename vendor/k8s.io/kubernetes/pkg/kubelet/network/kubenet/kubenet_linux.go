@@ -381,7 +381,7 @@ func (plugin *kubenetNetworkPlugin) setup(namespace string, name string, id kube
 			return err
 		}
 
-		newPodPortMapping := constructPodPortMapping(pod, ip4)
+		newPodPortMapping := ConstructPodPortMapping(pod, ip4)
 		if err := plugin.hostportSyncer.OpenPodHostportsAndSync(newPodPortMapping, BridgeName, activePodPortMappings); err != nil {
 			return err
 		}
@@ -638,13 +638,15 @@ func (plugin *kubenetNetworkPlugin) getPodPortMappings() ([]*hostport.PodPortMap
 			continue
 		}
 		if pod, ok := plugin.host.GetPodByName(p.Namespace, p.Name); ok {
-			activePodPortMappings = append(activePodPortMappings, constructPodPortMapping(pod, podIP))
+			activePodPortMappings = append(activePodPortMappings, ConstructPodPortMapping(pod, podIP))
 		}
 	}
 	return activePodPortMappings, nil
 }
 
-func constructPodPortMapping(pod *v1.Pod, podIP net.IP) *hostport.PodPortMapping {
+// ConstructPodPortMapping creates a PodPortMapping from the ports specified in the pod's
+// containers.
+func ConstructPodPortMapping(pod *v1.Pod, podIP net.IP) *hostport.PodPortMapping {
 	portMappings := make([]*hostport.PortMapping, 0)
 	for _, c := range pod.Spec.Containers {
 		for _, port := range c.Ports {

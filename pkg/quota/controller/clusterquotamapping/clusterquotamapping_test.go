@@ -14,8 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	externalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	internalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -52,22 +54,26 @@ func runFuzzer(t *testing.T) {
 	defer close(stopCh)
 
 	startingNamespaces := CreateStartingNamespaces()
-	kubeclient := fake.NewSimpleClientset(startingNamespaces...)
+	internalKubeClient := internalfake.NewSimpleClientset(startingNamespaces...)
+	externalKubeClient := externalfake.NewSimpleClientset(startingNamespaces...)
 	nsWatch := watch.NewFake()
-	kubeclient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
+	internalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
+	externalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
 	startingQuotas := CreateStartingQuotas()
 	originclient := testclient.NewSimpleFake(startingQuotas...)
 	quotaWatch := watch.NewFake()
 	originclient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 
-	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclient, 10*time.Minute)
-	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeclient, originclient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
-	controller := NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
+	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
+	externalKubeInformerFactory := kexternalinformers.NewSharedInformerFactory(externalKubeClient, 10*time.Minute)
+	informerFactory := shared.NewInformerFactory(internalKubeInformerFactory, externalKubeInformerFactory, internalKubeClient, originclient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
+	controller := NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas())
 	go controller.Run(5, stopCh)
 	informerFactory.Start(stopCh)
 	informerFactory.StartCore(stopCh)
-	kubeInformerFactory.Start(stopCh)
+	internalKubeInformerFactory.Start(stopCh)
+	externalKubeInformerFactory.Start(stopCh)
 
 	finalNamespaces := map[string]*kapi.Namespace{}
 	finalQuotas := map[string]*quotaapi.ClusterResourceQuota{}

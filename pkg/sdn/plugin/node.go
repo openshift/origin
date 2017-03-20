@@ -19,7 +19,6 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -292,9 +291,9 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 
 func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
-	opts := metainternal.ListOptions{
-		LabelSelector: labels.Everything(),
-		FieldSelector: fieldSelector,
+	opts := metav1.ListOptions{
+		LabelSelector: labels.Everything().String(),
+		FieldSelector: fieldSelector.String(),
 	}
 	podList, err := node.kClient.Core().Pods(namespace).List(opts)
 	if err != nil {
