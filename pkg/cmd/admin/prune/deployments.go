@@ -136,7 +136,7 @@ func (o PruneDeploymentsOptions) Run() error {
 		deploymentConfigs = append(deploymentConfigs, &deploymentConfigList.Items[i])
 	}
 
-	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metainternal.ListOptions{})
+	deploymentList, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
