@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -63,8 +62,7 @@ type DeploymentHookOptions struct {
 	Builder *resource.Builder
 	Infos   []*resource.Info
 
-	Encoder       runtime.Encoder
-	OutputVersion schema.GroupVersion
+	Encoder runtime.Encoder
 
 	Filenames []string
 	Container string
@@ -147,14 +145,6 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}

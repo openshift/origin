@@ -138,16 +138,6 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		return err
 	}
 
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
-
 	var resources []string
 	for _, arg := range args {
 		if !strings.Contains(arg, "=") {
@@ -216,10 +206,17 @@ func (o *BackendsOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
+		var object runtime.Object
+		if len(infos) == 1 && singleItemImplied {
+			object = infos[0].Object
+		} else {
+			var items []runtime.Object
+			for i := range infos {
+				items = append(items, infos[i].Object)
+			}
+			object = &kapi.List{Items: items}
 		}
+
 		return o.PrintObject(object)
 	}
 
