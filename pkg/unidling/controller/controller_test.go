@@ -218,7 +218,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kmetav1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -229,7 +229,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kmetav1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "DeploymentConfig",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -330,7 +330,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somerc",
 			},
-			TypeMeta: kmetav1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind: "ReplicationController",
 			},
 			Spec: kextapi.ScaleSpec{
@@ -341,7 +341,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "somedc",
 			},
-			TypeMeta: kmetav1.TypeMeta{
+			TypeMeta: metav1.TypeMeta{
 				Kind:       "DeploymentConfig",
 				APIVersion: "apps.openshift.io/v1",
 			},
@@ -598,7 +598,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kmetav1.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
@@ -627,7 +627,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kmetav1.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -636,7 +636,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kmetav1.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},
@@ -666,7 +666,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			},
 			scaleGets: []kextapi.Scale{
 				{
-					TypeMeta: kmetav1.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind: "ReplicationController",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -675,7 +675,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 					Spec: kextapi.ScaleSpec{Replicas: 0},
 				},
 				{
-					TypeMeta: kmetav1.TypeMeta{
+					TypeMeta: metav1.TypeMeta{
 						Kind:       "DeploymentConfig",
 						APIVersion: "apps.openshift.io/v1",
 					},

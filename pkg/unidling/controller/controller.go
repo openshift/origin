@@ -64,7 +64,7 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 }
 
 type UnidlingController struct {
-	controller          *cache.Controller
+	controller          cache.Controller
 	scaleNamespacer     kextclient.ScalesGetter
 	endpointsNamespacer kcoreclient.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
@@ -96,11 +96,11 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fieldSelector
+				options.FieldSelector = fieldSelector.String()
 				return evtNS.Events(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fieldSelector
+				options.FieldSelector = fieldSelector.String()
 				return evtNS.Events(metav1.NamespaceAll).Watch(options)
 			},
 		},
