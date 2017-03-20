@@ -214,7 +214,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		c, err := newClusterResourceOverride(fake.NewSimpleClientset(), test.config)
+		c, err := newClusterResourceOverride(test.config)
 		if err != nil {
 			t.Errorf("%s: config de/serialize failed: %v", test.name, err)
 			continue

@@ -8,8 +8,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	kexternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
@@ -32,12 +34,16 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 			},
 		},
 	}
-	kubeClient := kfake.NewSimpleClientset(resourceQuota)
+	internalKubeClient := kinternalfake.NewSimpleClientset(resourceQuota)
+	externalKubeClient := kexternalfake.NewSimpleClientset(resourceQuota)
 	osClient := testclient.NewSimpleFake()
-	kubeInformerFactory := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	informerFactory := shared.NewInformerFactory(kubeInformerFactory, kubeClient, osClient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
-	plugin := NewOriginResourceQuota(kubeClient).(*originQuotaAdmission)
+	externalKubeInformerFactory := kexternalinformers.NewSharedInformerFactory(externalKubeClient, 10*time.Minute)
+	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
+	informerFactory := shared.NewInformerFactory(internalKubeInformerFactory, externalKubeInformerFactory, internalKubeClient, osClient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
+	plugin := NewOriginResourceQuota().(*originQuotaAdmission)
 	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistry(informerFactory.ImageStreams(), osClient))
+	plugin.SetInternalKubeClientSet(internalKubeClient)
+	plugin.SetInternalKubeInformerFactory(internalKubeInformerFactory)
 	if err := plugin.Validate(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
