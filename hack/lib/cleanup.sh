@@ -89,13 +89,15 @@ function os::cleanup::tmpdir() {
     if os::util::find::system_binary "findmnt" &>/dev/null; then
         for target in $( ${USE_SUDO:+sudo} findmnt --output TARGET --list ); do
             if [[ "${target}" == "${BASETMPDIR}"* ]]; then
+                os::log::info "###>>> Unmounting ${target}"
                 ${USE_SUDO:+sudo} umount "${target}"
             fi
         done
     fi
 
-		# delete any sub directory underneath BASETMPDIR
-    for directory in $( find "${BASETMPDIR}" -d 2 ); do
+    # delete anything in subdirectories underneath BASETMPDIR
+    for directory in $( find "${BASETMPDIR}" -mindepth 2); do
+        os::log::info "###>>> Removing ${directory}"
         ${USE_SUDO:+sudo} rm -rf "${directory}"
     done
 }
