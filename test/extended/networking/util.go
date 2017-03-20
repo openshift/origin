@@ -162,7 +162,11 @@ func checkConnectivityToHost(f *e2e.Framework, nodeName string, podName string, 
 }
 
 func pluginIsolatesNamespaces() bool {
-	return os.Getenv("OPENSHIFT_NETWORK_ISOLATION") == "true"
+	return os.Getenv("NETWORKING_E2E_ISOLATION") == "true"
+}
+
+func pluginImplementsNetworkPolicy() bool {
+	return os.Getenv("NETWORKING_E2E_NETWORKPOLICY") == "true"
 }
 
 func makeNamespaceGlobal(ns *api.Namespace) {
@@ -217,10 +221,10 @@ func checkServiceConnectivity(serverFramework, clientFramework *e2e.Framework, n
 }
 
 func InSingleTenantContext(body func()) {
-	Context("when using a single-tenant plugin", func() {
+	Context("when using a plugin that does not isolate namespaces by default", func() {
 		BeforeEach(func() {
 			if pluginIsolatesNamespaces() {
-				e2e.Skipf("Not a single-tenant plugin.")
+				e2e.Skipf("This plugin isolates namespaces by default.")
 			}
 		})
 
@@ -229,10 +233,22 @@ func InSingleTenantContext(body func()) {
 }
 
 func InMultiTenantContext(body func()) {
-	Context("when using a multi-tenant plugin", func() {
+	Context("when using a plugin that isolates namespaces by default", func() {
 		BeforeEach(func() {
 			if !pluginIsolatesNamespaces() {
-				e2e.Skipf("Not a multi-tenant plugin.")
+				e2e.Skipf("This plugin does not isolate namespaces by default.")
+			}
+		})
+
+		body()
+	})
+}
+
+func InNetworkPolicyContext(body func()) {
+	Context("when using a plugin that implements NetworkPolicy", func() {
+		BeforeEach(func() {
+			if !pluginImplementsNetworkPolicy() {
+				e2e.Skipf("This plugin does not implement NetworkPolicy.")
 			}
 		})
 
