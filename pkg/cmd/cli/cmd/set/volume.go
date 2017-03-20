@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -120,12 +119,11 @@ type VolumeOptions struct {
 	List   bool
 
 	// Common optional params
-	Name          string
-	Containers    string
-	Confirm       bool
-	Output        string
-	PrintObject   func([]*resource.Info) error
-	OutputVersion schema.GroupVersion
+	Name        string
+	Containers  string
+	Confirm     bool
+	Output      string
+	PrintObject func([]*resource.Info) error
 
 	// Add op params
 	AddOpts *AddVolumeOptions
@@ -361,14 +359,6 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 }
 
 func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errOut io.Writer) error {
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	v.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
 	_, kc, err := f.Clients()
 	if err != nil {
 		return err
