@@ -45,6 +45,7 @@ function os::test::extended::setup () {
 	if [[ -n "${TEST_ONLY-}" ]]; then
 		function cleanup() {
 			out=$?
+			os::cleanup::dump_container_logs
 			os::test::junit::generate_oscmd_report
 			os::log::info "Exiting"
 			return $out
