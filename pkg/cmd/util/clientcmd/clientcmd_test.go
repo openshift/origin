@@ -123,7 +123,7 @@ func TestAnonymousConfig(t *testing.T) {
 
 		// this is the list of known security related fields, add to this list if a new field
 		// is added to restclient.Config, update AnonymousClientConfig to preserve the field otherwise.
-		expected.Impersonate = ""
+		expected.Impersonate = restclient.ImpersonationConfig{}
 		expected.BearerToken = ""
 		expected.Username = ""
 		expected.Password = ""
