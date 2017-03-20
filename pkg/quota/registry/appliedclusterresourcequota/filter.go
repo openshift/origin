@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/client-go/tools/cache"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	ocache "github.com/openshift/origin/pkg/client/cache"
@@ -18,10 +18,10 @@ import (
 type AppliedClusterResourceQuotaREST struct {
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
 	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister *cache.IndexerToNamespaceLister
+	namespaceLister kcorelisters.NamespaceLister
 }
 
-func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *cache.IndexerToNamespaceLister) *AppliedClusterResourceQuotaREST {
+func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
 	return &AppliedClusterResourceQuotaREST{
 		quotaMapper:     quotaMapper,
 		quotaLister:     quotaLister,
