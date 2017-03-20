@@ -14,6 +14,7 @@ import (
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 func TestNoErrors(t *testing.T) {
@@ -28,11 +29,19 @@ func TestNoErrors(t *testing.T) {
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -75,12 +84,14 @@ func TestNoErrors(t *testing.T) {
 											Add: []kapi.Capability{"foo"},
 										},
 									},
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -130,14 +141,12 @@ func TestNoErrors(t *testing.T) {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		serviceAccount.Namespace = namespace.Name
-		saCache.Indexer.Add(serviceAccount)
+		saIndexer.Add(serviceAccount)
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
@@ -173,28 +182,44 @@ func TestErrors(t *testing.T) {
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "A.B.C.D.E",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
 			},
 			serviceAccount: admissionttesting.CreateSAForTest(),
-			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D.E": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
+			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D.E": a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')`,
 		},
 		"no SA": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
-							Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+							Containers: []kapi.Container{
+								{
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+								},
+							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -212,15 +237,13 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		if testcase.serviceAccount != nil {
 			serviceAccount.Namespace = namespace.Name
-			saCache.Indexer.Add(serviceAccount)
+			saIndexer.Add(serviceAccount)
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 
@@ -251,15 +274,17 @@ func TestSpecificSAs(t *testing.T) {
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{
-									Name:            "ctr",
-									Image:           "image",
-									ImagePullPolicy: "IfNotPresent",
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"my-sa", "yours-sa"},
@@ -315,15 +340,17 @@ func TestSpecificSAs(t *testing.T) {
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{
-									Name:            "ctr",
-									Image:           "image",
-									ImagePullPolicy: "IfNotPresent",
+									Name:                     "ctr",
+									Image:                    "image",
+									ImagePullPolicy:          "IfNotPresent",
+									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 								},
 							},
 							RestartPolicy:      kapi.RestartPolicyAlways,
 							SecurityContext:    &kapi.PodSecurityContext{},
 							DNSPolicy:          kapi.DNSClusterFirst,
 							ServiceAccountName: "default",
+							SchedulerName:      kapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"bad-sa"},
@@ -373,12 +400,10 @@ func TestSpecificSAs(t *testing.T) {
 			}
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		for i := range testcase.serviceAccounts {
-			saCache.Indexer.Add(testcase.serviceAccounts[i])
+			saIndexer.Add(testcase.serviceAccounts[i])
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}

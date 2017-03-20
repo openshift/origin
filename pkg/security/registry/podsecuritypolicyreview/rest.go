@@ -7,13 +7,12 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -26,12 +25,12 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher oscc.SCCMatcher
-	saCache    *cache.StoreToServiceAccountLister
+	saCache    kcorelisters.ServiceAccountLister
 	client     clientset.Interface
 }
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, saCache *cache.StoreToServiceAccountLister, c clientset.Interface) *REST {
+func NewREST(m oscc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clientset.Interface) *REST {
 	return &REST{sccMatcher: m, saCache: saCache, client: c}
 }
 
@@ -101,7 +100,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	return pspr, nil
 }
 
-func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache *cache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
+func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache kcorelisters.ServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 	//  TODO: express 'all service accounts'
 	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(metainternal.ListOptions{}); err == nil {
