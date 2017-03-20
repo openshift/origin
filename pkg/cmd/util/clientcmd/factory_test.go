@@ -16,9 +16,9 @@ func TestRunGenerators(t *testing.T) {
 		// kube generators
 		"run/v1",
 		"run-pod/v1",
+		"deployment/apps.v1beta1",
 		"deployment/v1beta1",
 		"job/v1",
-		"job/v1beta1",
 		"scheduledjob/v2alpha1",
 		"cronjob/v2alpha1",
 
