@@ -335,7 +335,7 @@ func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r typ
 			r.Warn("DClu1016", err, fmt.Sprintf(clRegISDelFail, imgStream.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
 		}
 	}()
-	imgStream, err = d.OsClient.ImageStreams(metav1.NamespaceDefault).Get(imgStream.ObjectMeta.Name) // status is filled in post-create
+	imgStream, err = d.OsClient.ImageStreams(metav1.NamespaceDefault).Get(imgStream.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
 	if err != nil {
 		r.Error("DClu1017", err, fmt.Sprintf("Getting created test ImageStream failed. Error: (%T) %[1]v", err))
 		return

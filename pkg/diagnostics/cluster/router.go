@@ -125,7 +125,7 @@ func (d *ClusterRouter) Check() types.DiagnosticResult {
 }
 
 func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.DeploymentConfig {
-	dc, err := d.OsClient.DeploymentConfigs(metav1.NamespaceDefault).Get(routerName)
+	dc, err := d.OsClient.DeploymentConfigs(metav1.NamespaceDefault).Get(routerName, metav1.GetOptions{})
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu2001", err, fmt.Sprintf(clGetRtNone, routerName))
 		return nil
@@ -138,7 +138,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.Deploym
 }
 
 func (d *ClusterRouter) getRouterPods(dc *deployapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
-	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector).String()})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))
 		return nil

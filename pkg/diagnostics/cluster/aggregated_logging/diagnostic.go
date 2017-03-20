@@ -75,11 +75,11 @@ func (d *AggregatedLogging) endpointsForService(project string, service string) 
 	return d.KubeClient.Core().Endpoints(project).Get(service, metav1.GetOptions{})
 }
 
-func (d *AggregatedLogging) daemonsets(project string, options metainternal.ListOptions) (*kapisext.DaemonSetList, error) {
+func (d *AggregatedLogging) daemonsets(project string, options metav1.ListOptions) (*kapisext.DaemonSetList, error) {
 	return d.KubeClient.Extensions().DaemonSets(project).List(metav1.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector().String()})
 }
 
-func (d *AggregatedLogging) nodes(options metainternal.ListOptions) (*kapi.NodeList, error) {
+func (d *AggregatedLogging) nodes(options metav1.ListOptions) (*kapi.NodeList, error) {
 	return d.KubeClient.Core().Nodes().List(metav1.ListOptions{})
 }
 
@@ -199,7 +199,7 @@ func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.Maste
 		r.Error("AGL0014", errors.New(message), message)
 		return ""
 	}
-	project, err := osClient.Projects().Get(projectName)
+	project, err := osClient.Projects().Get(projectName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0018", err, fmt.Sprintf("There was an error retrieving project '%s' which is most likely a transient error: %s", projectName, err))
 		return ""

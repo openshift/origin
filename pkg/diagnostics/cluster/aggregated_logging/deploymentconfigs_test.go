@@ -71,7 +71,7 @@ func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, opti
 	return &f.fakeDcs, nil
 }
 
-func (f *fakeDeploymentConfigsDiagnostic) pods(project string, options metainternal.ListOptions) (*kapi.PodList, error) {
+func (f *fakeDeploymentConfigsDiagnostic) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	value, ok := f.clienterrors[testDcPodsKey]
 	if ok {
 		return nil, value

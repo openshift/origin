@@ -8,7 +8,6 @@ import (
 	"time"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -80,7 +79,7 @@ func (d *NetworkDiagnostic) Cleanup() {
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {
-	podList, err := d.KubeClient.Core().Pods(nsName).List(metainternal.ListOptions{})
+	podList, err := d.KubeClient.Core().Pods(nsName).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +167,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	var netns *sdnapi.NetNamespace
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		netns, err = d.OSClient.NetNamespaces().Get(nsName)
+		netns, err = d.OSClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			// NetNamespace not created yet
 			return false, nil
@@ -188,7 +187,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	}
 
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName)
+		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

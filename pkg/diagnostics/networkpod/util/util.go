@@ -40,7 +40,7 @@ var (
 )
 
 func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
-	cn, err := osClient.ClusterNetwork().Get(api.ClusterNetworkDefault)
+	cn, err := osClient.ClusterNetwork().Get(api.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return "", false, nil
@@ -205,7 +205,7 @@ func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in i
 			Stdin:         in != nil,
 		},
 		Executor:  &kubecmd.DefaultRemoteExecutor{},
-		PodClient: client,
+		PodClient: client.Core(),
 		Config:    config,
 		Command:   command,
 	}

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -83,7 +83,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 func (d *MasterNode) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult(MasterNodeName)
 
-	nodes, err := d.KubeClient.Core().Nodes().List(metainternal.ListOptions{})
+	nodes, err := d.KubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		r.Error("DClu3002", err, fmt.Sprintf(clientErrorGettingNodes, err))
 		return r
