@@ -111,7 +111,7 @@ function os::util::environment::update_path_var() {
         prefix+="${GOPATH}/bin:"
     fi
 
-    PATH="${prefix}${PATH}"
+    PATH="${prefix:-}${PATH}"
     export PATH
 }
 readonly -f os::util::environment::update_path_var
