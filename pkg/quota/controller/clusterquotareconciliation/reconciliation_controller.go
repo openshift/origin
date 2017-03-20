@@ -59,7 +59,7 @@ type ClusterQuotaReconcilationController struct {
 	// knows how to calculate usage
 	registry utilquota.Registry
 	// controllers monitoring to notify for replenishment
-	replenishmentControllers []cache.ControllerInterface
+	replenishmentControllers []cache.Controller
 }
 
 type workItem struct {
@@ -334,7 +334,6 @@ func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind schema.Gr
 	quotaNames, _ := c.clusterQuotaMapper.GetClusterQuotasFor(namespace)
 
 	// only queue those quotas that are tracking a resource associated with this kind.
-	matchedResources := evaluator.MatchesResources()
 	for _, quotaName := range quotaNames {
 		quota, err := c.clusterQuotaLister.Get(quotaName)
 		if err != nil {
@@ -343,7 +342,8 @@ func (c *ClusterQuotaReconcilationController) replenishQuota(groupKind schema.Gr
 		}
 
 		resourceQuotaResources := utilquota.ResourceNames(quota.Status.Total.Hard)
-		if len(utilquota.Intersection(matchedResources, resourceQuotaResources)) > 0 {
+		matchedResources := evaluator.MatchingResources(resourceQuotaResources)
+		if len(matchedResources) > 0 {
 			// TODO: make this support targeted replenishment to a specific kind, right now it does a full recalc on that quota.
 			c.forceCalculation(quotaName, namespace)
 		}
