@@ -101,13 +101,13 @@ const VXLAN_PORT = "4789"
 // Get openshift iptables rules
 func (n *NodeIPTables) getStaticNodeIPTablesRules() []FirewallRule {
 	return []FirewallRule{
-		{"nat", "POSTROUTING", []string{"-s", n.clusterNetworkCIDR, "-j", "MASQUERADE"}},
-		{"filter", "INPUT", []string{"-p", "udp", "-m", "multiport", "--dports", VXLAN_PORT, "-m", "comment", "--comment", "001 vxlan incoming", "-j", "ACCEPT"}},
-		{"filter", "INPUT", []string{"-i", TUN, "-m", "comment", "--comment", "traffic from SDN", "-j", "ACCEPT"}},
-		{"filter", "INPUT", []string{"-i", "docker0", "-m", "comment", "--comment", "traffic from docker", "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-s", n.clusterNetworkCIDR, "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"}},
-		{"filter", "FORWARD", []string{"-d", n.clusterNetworkCIDR, "-j", "ACCEPT"}},
-		{"filter", "FORWARD", []string{"-s", n.clusterNetworkCIDR, "-j", "ACCEPT"}},
+		{"nat", "POSTROUTING", []string{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-service and pod-to-external traffic", "-j", "MASQUERADE"}},
+		{"filter", "INPUT", []string{"-p", "udp", "--dport", VXLAN_PORT, "-m", "comment", "--comment", "VXLAN incoming", "-j", "ACCEPT"}},
+		{"filter", "INPUT", []string{"-i", TUN, "-m", "comment", "--comment", "from SDN to localhost", "-j", "ACCEPT"}},
+		{"filter", "INPUT", []string{"-i", "docker0", "-m", "comment", "--comment", "from docker to localhost", "-j", "ACCEPT"}},
+		{"filter", "FORWARD", []string{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "attempted resend after connection close", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"}},
+		{"filter", "FORWARD", []string{"-d", n.clusterNetworkCIDR, "-m", "comment", "--comment", "forward traffic from SDN", "-j", "ACCEPT"}},
+		{"filter", "FORWARD", []string{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "forward traffic to SDN", "-j", "ACCEPT"}},
 		{"filter", "FORWARD", []string{"-i", TUN, "!", "-o", TUN, "-m", "comment", "--comment", "administrator overrides", "-j", string(OutputFilteringChain)}},
 	}
 }
