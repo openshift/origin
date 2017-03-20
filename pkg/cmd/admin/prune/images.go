@@ -196,12 +196,12 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allPods, err := o.KClient.Core().Pods(o.Namespace).List(metainternal.ListOptions{})
+	allPods, err := o.KClient.Core().Pods(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metainternal.ListOptions{})
+	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(metainternal.ListOptions{})
+	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -431,7 +431,7 @@ func (t *migrateTracker) try(info *resource.Info) (attemptResult, error) {
 			}
 			if canRetry(err) {
 				if t.retries > 0 {
-					if glog.V(1) && err != ErrRecalculate {
+					if bool(glog.V(1)) && err != ErrRecalculate {
 						t.report("retry:", info, err)
 					}
 					result, err := t.try(info)
