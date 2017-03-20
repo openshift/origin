@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/test/util"
 )
 
 func TestInsertEnvAfterFrom(t *testing.T) {
@@ -192,20 +191,18 @@ func TestDockerfilePath(t *testing.T) {
 		"\"io.openshift.build.commit.message\"=\"message\"",
 	}
 
-	if isNew, err := util.CreateBaseDir(util.GetBaseDir()); err == nil {
-		if isNew {
-			defer os.RemoveAll(util.GetBaseDir())
-		}
-	} else {
-		t.Errorf("failed to create BaseDir: %v", err)
-	}
-
 	for _, test := range tests {
-		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
+		buildDir, err := ioutil.TempDir("", "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue
 		}
+		defer func() {
+			if err := os.RemoveAll(buildDir); err != nil {
+				t.Fatal(err)
+			}
+		}()
+
 		absoluteDockerfilePath := filepath.Join(buildDir, test.contextDir, test.dockerfilePath)
 		if err = os.MkdirAll(filepath.Dir(absoluteDockerfilePath), os.FileMode(0750)); err != nil {
 			t.Errorf("failed to create directory %s: %v", filepath.Dir(absoluteDockerfilePath), err)
@@ -347,20 +344,17 @@ RUN echo "hello world"
 		},
 	}
 
-	if isNew, err := util.CreateBaseDir(util.GetBaseDir()); err == nil {
-		if isNew {
-			defer os.RemoveAll(util.GetBaseDir())
-		}
-	} else {
-		t.Errorf("failed to create BaseDir: %v", err)
-	}
-
 	for i, test := range tests {
-		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
+		buildDir, err := ioutil.TempDir("", "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
 			continue
 		}
+		defer func() {
+			if err := os.RemoveAll(buildDir); err != nil {
+				t.Fatal(err)
+			}
+		}()
 		dockerfilePath := filepath.Join(buildDir, defaultDockerfilePath)
 		dockerfileContent := test.dockerfileContent
 		if err = os.MkdirAll(filepath.Dir(dockerfilePath), os.FileMode(0750)); err != nil {
