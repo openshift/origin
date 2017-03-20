@@ -116,7 +116,7 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 	}
 
 	// Retrieve the current list of endpoints...
-	e, err := r.endpointRegistry.GetEndpoints(ctx, serviceName)
+	e, err := r.endpointRegistry.GetEndpoints(ctx, serviceName, &metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err

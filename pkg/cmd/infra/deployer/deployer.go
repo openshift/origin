@@ -133,10 +133,10 @@ func NewDeployer(client kclientset.Interface, oclient client.Interface, out, err
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
