@@ -201,6 +201,10 @@ func TestDockerfilePath(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		if err := os.MkdirAll(util.GetBaseDir(), os.FileMode(0750)); err != nil {
+			t.Errorf("failed to create directory %s: %v", util.GetBaseDir(), err)
+			continue
+		}
 		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
@@ -356,6 +360,10 @@ RUN echo "hello world"
 	}
 
 	for i, test := range tests {
+		if err := os.MkdirAll(util.GetBaseDir(), os.FileMode(0750)); err != nil {
+			t.Errorf("failed to create directory %s: %v", util.GetBaseDir(), err)
+			continue
+		}
 		buildDir, err := ioutil.TempDir(util.GetBaseDir(), "dockerfile-path")
 		if err != nil {
 			t.Errorf("failed to create tmpdir: %v", err)
