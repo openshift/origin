@@ -4,14 +4,13 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-
-	"github.com/openshift/origin/pkg/controller"
 )
 
 // ServiceLookup is an interface for fetching the service associated with the given endpoints
@@ -21,11 +20,11 @@ type ServiceLookup interface {
 
 func NewListWatchServiceLookup(svcGetter kcoreclient.ServicesGetter, resync time.Duration) ServiceLookup {
 	svcStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	lw := &controller.InternalListWatch{
-		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return svcGetter.Services(api.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return svcGetter.Services(api.NamespaceAll).Watch(options)
 		},
 	}
