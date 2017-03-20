@@ -470,7 +470,13 @@ func (t *testManifestService) Get(ctx context.Context, dgst digest.Digest, optio
 
 func (t *testManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
 	t.calls["Put"]++
-	return "", fmt.Errorf("method not implemented")
+	_, payload, err := manifest.Payload()
+	if err != nil {
+		return "", err
+	}
+	dgst := digest.FromBytes(payload)
+	t.data[dgst] = manifest
+	return dgst, nil
 }
 
 func (t *testManifestService) Delete(ctx context.Context, dgst digest.Digest) error {
