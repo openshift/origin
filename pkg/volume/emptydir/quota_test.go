@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 const expectedDevice = "/dev/sdb2"
@@ -218,7 +218,7 @@ func TestApplyQuota(t *testing.T) {
 		mockCmdRunner.RunFSTypeCommandResponse = test.FSTypeCmdResponse
 
 		quota := resource.MustParse(test.Quota)
-		err := quotaApplicator.Apply(fakeDir, kapi.StorageMediumDefault, &kapi.Pod{}, test.FSGroupID, quota)
+		err := quotaApplicator.Apply(fakeDir, kapiv1.StorageMediumDefault, &kapiv1.Pod{}, test.FSGroupID, quota)
 		if test.ExpError == "" && !test.ExpSkipped {
 			// Expecting success case:
 			if mockCmdRunner.RanApplyQuotaFSDevice != "/dev/sdb2" {
