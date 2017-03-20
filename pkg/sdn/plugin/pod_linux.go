@@ -20,10 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ksets "k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
 
 	"github.com/containernetworking/cni/pkg/invoke"
@@ -387,15 +388,19 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	defer func() {
 		if !success {
 			m.ipamDel(req.ContainerId)
-			if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
+			if err := m.hostportSyncer.SyncHostports(TUN, m.getRunningPods()); err != nil {
 				glog.Warningf("failed syncing hostports: %v", err)
 			}
 		}
 	}()
 
 	// Open any hostports the pod wants
-	newPod := &kubehostport.ActivePod{Pod: pod, IP: podIP}
-	if err := m.hostportHandler.OpenPodHostportsAndSync(newPod, TUN, m.getRunningPods()); err != nil {
+	var v1Pod kapiv1.Pod
+	if err := kapiv1.Convert_api_Pod_To_v1_Pod(pod, &v1Pod, nil); err != nil {
+		return nil, nil, err
+	}
+	podPortMapping := kubenet.ConstructPodPortMapping(&v1Pod, podIP)
+	if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, TUN, m.getRunningPods()); err != nil {
 		return nil, nil, err
 	}
 
@@ -455,7 +460,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 
 	m.policy.RefVNID(podConfig.vnid)
 	success = true
-	return ipamResult, &runningPod{activePod: newPod, vnid: podConfig.vnid, ofport: ofport}, nil
+	return ipamResult, &runningPod{podPortMapping: podPortMapping, vnid: podConfig.vnid, ofport: ofport}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -537,7 +542,7 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		return err
 	}
 
-	if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
+	if err := m.hostportSyncer.SyncHostports(TUN, m.getRunningPods()); err != nil {
 		return err
 	}
 

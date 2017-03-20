@@ -11,7 +11,6 @@ import (
 	"github.com/golang/glog"
 
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -100,7 +99,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	namespaces, err := np.node.kClient.Namespaces().List(metainternal.ListOptions{})
+	namespaces, err := np.node.kClient.Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

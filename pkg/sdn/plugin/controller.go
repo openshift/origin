@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
@@ -64,7 +65,7 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName)
+		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName, metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		} else if kapierrors.IsNotFound(err) {
