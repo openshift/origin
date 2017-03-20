@@ -150,7 +150,7 @@ func TestGet(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	mapping, err := rest.Get(apirequest.NewContext(), identity.Name)
+	mapping, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -166,7 +166,7 @@ func TestGetMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Get(apirequest.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -181,7 +181,7 @@ func TestGetIdentityWithoutUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(apirequest.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -200,7 +200,7 @@ func TestGetMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Get(apirequest.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -220,7 +220,7 @@ func TestGetUserWithoutIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Get(apirequest.NewContext(), identity.Name)
+	_, err := rest.Get(apirequest.NewContext(), identity.Name, &metav1.GetOptions{})
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
