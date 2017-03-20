@@ -12,9 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utiltesting "k8s.io/client-go/util/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -100,28 +98,13 @@ func (pt *podTester) addExpectedPod(t *testing.T, op *operation) {
 }
 
 func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
-	activePod := &khostport.ActivePod{
-		Pod: &kapi.Pod{
-			TypeMeta: kmetav1.TypeMeta{
-				Kind: "Pod",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
-			Spec: kapi.PodSpec{
-				Containers: []kapi.Container{
-					{
-						Name:  "foobareasadfa",
-						Image: "awesome-image",
-					},
-				},
-			},
-		},
-		IP: ip,
+	podPortMapping := &khostport.PodPortMapping{
+		Namespace: namespace,
+		Name:      name,
+		IP:        ip,
 	}
 
-	return &runningPod{activePod: activePod, vnid: 0}
+	return &runningPod{podPortMapping: podPortMapping, vnid: 0}
 }
 
 func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
@@ -191,6 +174,10 @@ func (fnh *fakeHost) GetRuntime() kcontainer.Runtime {
 
 func (fnh *fakeHost) GetNetNS(containerID string) (string, error) {
 	return "", nil
+}
+
+func (fnh *fakeHost) GetPodPortMappings(containerID string) ([]*khostport.PortMapping, error) {
+	return nil, nil
 }
 
 func (fnh *fakeHost) SupportsLegacyFeatures() bool {

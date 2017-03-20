@@ -25,9 +25,9 @@ type podHandler interface {
 }
 
 type runningPod struct {
-	activePod *kubehostport.ActivePod
-	vnid      uint32
-	ofport    int
+	podPortMapping *kubehostport.PodPortMapping
+	vnid           uint32
+	ofport         int
 }
 
 type podManager struct {
@@ -44,13 +44,13 @@ type podManager struct {
 	kClient         kclientset.Interface
 	policy          osdnPolicy
 	mtu     uint32
-	oc      *ovsController
 
 	// Things only accessed through the processCNIRequests() goroutine
 	// and thus can be set from Start()
 	ipamConfig      []byte
-	hostportHandler kubehostport.HostportHandler
 	host            knetwork.Host
+	hostportSyncer kubehostport.HostportSyncer
+	ovs            *ovsController
 }
 
 // Creates a new live podManager; used by node code
@@ -59,9 +59,18 @@ func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, 
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
+
+	pm.hostportSyncer = kubehostport.NewHostportSyncer()
 	pm.podHandler = pm
-	pm.oc = oc
-	return pm
+	pm.ovs = oc
+
+	var err error
+	pm.ipamConfig, err = getIPAMConfig(netInfo.ClusterNetwork, localSubnetCIDR)
+	if err != nil {
+		return nil, err
+	}
+
+	return pm, nil
 }
 
 // Creates a new basic podManager; used by testcases
@@ -146,18 +155,18 @@ func getPodKey(request *cniserver.PodRequest) string {
 	return fmt.Sprintf("%s/%s", request.PodNamespace, request.PodName)
 }
 
-func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.ActivePod {
+func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPortMapping {
 	if pod := m.runningPods[getPodKey(request)]; pod != nil {
-		return pod.activePod
+		return pod.podPortMapping
 	}
 	return nil
 }
 
 // Return a list of Kubernetes RunningPod objects for hostport operations
-func (m *podManager) getRunningPods() []*kubehostport.ActivePod {
-	pods := make([]*kubehostport.ActivePod, 0)
+func (m *podManager) getRunningPods() []*kubehostport.PodPortMapping {
+	pods := make([]*kubehostport.PodPortMapping, 0)
 	for _, runningPod := range m.runningPods {
-		pods = append(pods, runningPod.activePod)
+		pods = append(pods, runningPod.podPortMapping)
 	}
 	return pods
 }
@@ -193,7 +202,7 @@ func (m *podManager) updateLocalMulticastRulesWithLock(vnid uint32) {
 		}
 	}
 
-	if err := m.oc.UpdateLocalMulticastFlows(vnid, enabled, ofports); err != nil {
+	if err := m.ovs.UpdateLocalMulticastFlows(vnid, enabled, ofports); err != nil {
 		glog.Errorf("Error updating OVS multicast flows for VNID %d: %v", vnid, err)
 
 	}
@@ -232,7 +241,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 			result.Response, err = json.Marshal(ipamResult)
 			if result.Err == nil {
 				m.runningPods[pk] = runningPod
-				if m.oc != nil {
+				if m.ovs != nil {
 					m.updateLocalMulticastRulesWithLock(runningPod.vnid)
 				}
 			}
@@ -251,7 +260,7 @@ func (m *podManager) processRequest(request *cniserver.PodRequest) *cniserver.Po
 	case cniserver.CNI_DEL:
 		if runningPod, exists := m.runningPods[pk]; exists {
 			delete(m.runningPods, pk)
-			if m.oc != nil {
+			if m.ovs != nil {
 				m.updateLocalMulticastRulesWithLock(runningPod.vnid)
 			}
 		}
