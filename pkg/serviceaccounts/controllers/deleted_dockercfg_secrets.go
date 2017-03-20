@@ -39,11 +39,11 @@ func NewDockercfgDeletedController(cl kclientset.Interface, options DockercfgDel
 	_, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector}
+				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String()}
 				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
+				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String(), ResourceVersion: options.ResourceVersion}
 				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
 			},
 		},
@@ -64,7 +64,7 @@ type DockercfgDeletedController struct {
 
 	client kclientset.Interface
 
-	secretController *cache.Controller
+	secretController cache.Controller
 }
 
 // Runs controller loops and returns immediately

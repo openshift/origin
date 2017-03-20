@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang/glog"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,11 +54,11 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.serviceCache, e.serviceController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
 				return e.client.Core().Services(options.RegistryNamespace).List(opts)
 			},
 			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName)
+				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
 				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
 			},
 		},
@@ -80,7 +79,7 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
-	dockercfgOptions := metainternal.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)})}
+	dockercfgOptions := metav1.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)}).String()}
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
@@ -109,12 +108,12 @@ type DockerRegistryServiceController struct {
 
 	dockercfgController *DockercfgController
 
-	serviceController           *cache.Controller
+	serviceController           cache.Controller
 	serviceCache                cache.Store
 	servicesSynced              func() bool
 	syncRegistryLocationHandler func(key string) error
 
-	secretController  *cache.Controller
+	secretController  cache.Controller
 	secretCache       cache.Store
 	secretsSynced     func() bool
 	syncSecretHandler func(key string) error
