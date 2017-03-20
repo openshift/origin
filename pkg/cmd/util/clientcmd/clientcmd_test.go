@@ -123,7 +123,9 @@ func TestAnonymousConfig(t *testing.T) {
 
 		// this is the list of known security related fields, add to this list if a new field
 		// is added to restclient.Config, update AnonymousClientConfig to preserve the field otherwise.
-		expected.Impersonate = ""
+		expected.Impersonate.Extra = nil
+		expected.Impersonate.Groups = nil
+		expected.Impersonate.UserName = ""
 		expected.BearerToken = ""
 		expected.Username = ""
 		expected.Password = ""
@@ -133,6 +135,7 @@ func TestAnonymousConfig(t *testing.T) {
 		expected.TLSClientConfig.CertFile = ""
 		expected.TLSClientConfig.KeyData = nil
 		expected.TLSClientConfig.KeyFile = ""
+		expected.TLSClientConfig.ServerName = ""
 
 		// The DeepEqual cannot handle the func comparison, so we just verify if the
 		// function return the expected object.
