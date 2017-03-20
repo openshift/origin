@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
-	admission "k8s.io/kubernetes/pkg/admission"
+	"k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
@@ -47,20 +47,15 @@ func init() {
 func NewPodNodeConstraints(config *api.PodNodeConstraintsConfig) admission.Interface {
 	plugin := podNodeConstraints{
 		config:  config,
-		Handler: admission.NewHandler(admission.Create, admission.Update),
+		Handler: admission.NewHandler(admission.Create),
 	}
-	if config != nil {
-		plugin.selectorLabelBlacklist = sets.NewString(config.NodeSelectorLabelBlacklist...)
-	}
-
 	return &plugin
 }
 
 type podNodeConstraints struct {
 	*admission.Handler
-	selectorLabelBlacklist sets.String
-	config                 *api.PodNodeConstraintsConfig
-	authorizer             authorizer.Authorizer
+	config     *api.PodNodeConstraintsConfig
+	authorizer authorizer.Authorizer
 }
 
 func shouldCheckResource(resource unversioned.GroupResource, kind unversioned.GroupKind) (bool, error) {
@@ -137,8 +132,12 @@ func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec
 func (o *podNodeConstraints) admitPodSpec(attr admission.Attributes, ps kapi.PodSpec) error {
 	matchingLabels := []string{}
 	// nodeSelector blacklist filter
+	var selectorLabelBlacklist sets.String
+	if o.config != nil {
+		selectorLabelBlacklist = sets.NewString(o.config.NodeSelectorLabelBlacklist...)
+	}
 	for nodeSelectorLabel := range ps.NodeSelector {
-		if o.selectorLabelBlacklist.Has(nodeSelectorLabel) {
+		if selectorLabelBlacklist.Has(nodeSelectorLabel) {
 			matchingLabels = append(matchingLabels, nodeSelectorLabel)
 		}
 	}
