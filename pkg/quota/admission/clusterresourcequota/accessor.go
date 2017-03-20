@@ -7,10 +7,10 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
+	etcd "k8s.io/apiserver/pkg/storage/etcd"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	utilquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/storage/etcd"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
@@ -20,7 +20,7 @@ import (
 
 type clusterQuotaAccessor struct {
 	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister    *cache.IndexerToNamespaceLister
+	namespaceLister    kcorelisters.NamespaceLister
 	clusterQuotaClient oclient.ClusterResourceQuotasInterface
 
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
@@ -32,7 +32,12 @@ type clusterQuotaAccessor struct {
 }
 
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
-func newQuotaAccessor(clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *cache.IndexerToNamespaceLister, clusterQuotaClient oclient.ClusterResourceQuotasInterface, clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper) *clusterQuotaAccessor {
+func newQuotaAccessor(
+	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister,
+	namespaceLister kcorelisters.NamespaceLister,
+	clusterQuotaClient oclient.ClusterResourceQuotasInterface,
+	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper,
+) *clusterQuotaAccessor {
 	updatedCache, err := lru.New(100)
 	if err != nil {
 		// this should never happen

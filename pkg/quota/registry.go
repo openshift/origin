@@ -3,7 +3,7 @@ package quota
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
 
