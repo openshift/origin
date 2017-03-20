@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -80,9 +79,8 @@ type ProbeOptions struct {
 
 	Encoder runtime.Encoder
 
-	ShortOutput   bool
-	Mapper        meta.RESTMapper
-	OutputVersion schema.GroupVersion
+	ShortOutput bool
+	Mapper      meta.RESTMapper
 
 	PrintObject            func([]*resource.Info) error
 	UpdatePodSpecForObject func(runtime.Object, func(spec *kapi.PodSpec) error) (bool, error)
@@ -171,16 +169,6 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 	}
 
 	cmdNamespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}
