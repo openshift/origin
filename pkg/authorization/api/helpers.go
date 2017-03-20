@@ -366,6 +366,10 @@ func (r *PolicyRuleBuilder) RuleOrDie() PolicyRule {
 }
 
 func (r *PolicyRuleBuilder) Rule() (PolicyRule, error) {
+	if r.PolicyRule.AttributeRestrictions != nil {
+		return PolicyRule{}, fmt.Errorf("rule may not have attributeRestrictions because they are deprecated and ignored: %#v", r.PolicyRule)
+	}
+
 	if len(r.PolicyRule.Verbs) == 0 {
 		return PolicyRule{}, fmt.Errorf("verbs are required: %#v", r.PolicyRule)
 	}
