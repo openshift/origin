@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -66,7 +66,7 @@ var MissingPrinterCoverageExceptions = []reflect.Type{
 }
 
 func TestPrinterCoverage(t *testing.T) {
-	printer := NewHumanReadablePrinter(kctl.PrintOptions{})
+	printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{})
 
 main:
 	for _, apiType := range kapi.Scheme.KnownTypes(api.SchemeGroupVersion) {
@@ -140,7 +140,7 @@ func TestPrintImageStream(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := printImageStream(test.stream, buf, kctl.PrintOptions{}); err != test.expectedErr {
+		if err := printImageStream(test.stream, buf, kprinters.PrintOptions{}); err != test.expectedErr {
 			t.Errorf("error mismatch: expected %v, got %v", test.expectedErr, err)
 			continue
 		}
@@ -336,7 +336,7 @@ func TestPrintTemplate(t *testing.T) {
 
 	for i, test := range tests {
 		buf := bytes.NewBuffer([]byte{})
-		err := printTemplate(&test.template, buf, kctl.PrintOptions{})
+		err := printTemplate(&test.template, buf, kprinters.PrintOptions{})
 		if err != nil {
 			t.Errorf("[%d] unexpected error: %v", i, err)
 			continue

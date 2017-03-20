@@ -282,8 +282,10 @@ func TestDialToHTTPSServer(t *testing.T) {
 	for name, test := range testCases {
 		t.Logf("evaluating test: %s", name)
 		clientConfig := &restclient.Config{
-			Host:     test.serverURL,
-			Insecure: test.skipTLSVerify,
+			Host: test.serverURL,
+			TLSClientConfig: restclient.TLSClientConfig{
+				Insecure: test.skipTLSVerify,
+			},
 		}
 		if err := dialToServer(*clientConfig); err != nil {
 			if test.evalExpectedErr == nil || !test.evalExpectedErr(err) {

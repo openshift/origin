@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -102,8 +103,8 @@ func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, 
 		o.ContextNamespace = namespace
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -181,8 +182,8 @@ func NewFakeTestBuilds(c *testclient.Fake, ns string) *FakeTestBuilds {
 	return &f
 }
 
-func (c *FakeTestBuilds) Get(name string) (*buildapi.Build, error) {
-	obj, err := c.FakeBuilds.Get(name)
+func (c *FakeTestBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Build, error) {
+	obj, err := c.FakeBuilds.Get(name, options)
 	if c.Obj == nil {
 		c.Obj = obj
 	}
