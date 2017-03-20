@@ -10,6 +10,7 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kcmdauth "k8s.io/kubernetes/pkg/kubectl/cmd/auth"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -736,5 +737,10 @@ var (
 func NewCmdCp(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdCp(f, in, out, errout)
 	cmd.Example = fmt.Sprintf(cpExample, fullName)
+	return cmd
+}
+
+func NewCmdAuth(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+	cmd := kcmdauth.NewCmdAuth(f, out, errout)
 	return cmd
 }
