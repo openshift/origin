@@ -27,9 +27,9 @@ type podHandler interface {
 }
 
 type runningPod struct {
-	activePod *kubehostport.ActivePod
-	vnid      uint32
-	ofport    int
+	podPortMapping *kubehostport.PodPortMapping
+	vnid           uint32
+	ofport         int
 }
 
 type podManager struct {
@@ -43,13 +43,13 @@ type podManager struct {
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient         kclientset.Interface
-	policy          osdnPolicy
-	ipamConfig      []byte
-	mtu             uint32
-	hostportHandler kubehostport.HostportHandler
-	host            knetwork.Host
-	ovs             *ovs.Interface
+	kClient        kclientset.Interface
+	policy         osdnPolicy
+	ipamConfig     []byte
+	mtu            uint32
+	hostportSyncer kubehostport.HostportSyncer
+	host           knetwork.Host
+	ovs            *ovs.Interface
 }
 
 // Creates a new live podManager; used by node code
@@ -58,7 +58,7 @@ func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkI
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
-	pm.hostportHandler = kubehostport.NewHostportHandler()
+	pm.hostportSyncer = kubehostport.NewHostportSyncer()
 	pm.podHandler = pm
 	pm.ovs = ovs
 
@@ -146,18 +146,18 @@ func getPodKey(request *cniserver.PodRequest) string {
 	return fmt.Sprintf("%s/%s", request.PodNamespace, request.PodName)
 }
 
-func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.ActivePod {
+func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPortMapping {
 	if pod := m.runningPods[getPodKey(request)]; pod != nil {
-		return pod.activePod
+		return pod.podPortMapping
 	}
 	return nil
 }
 
 // Return a list of Kubernetes RunningPod objects for hostport operations
-func (m *podManager) getRunningPods() []*kubehostport.ActivePod {
-	pods := make([]*kubehostport.ActivePod, 0)
+func (m *podManager) getRunningPods() []*kubehostport.PodPortMapping {
+	pods := make([]*kubehostport.PodPortMapping, 0)
 	for _, runningPod := range m.runningPods {
-		pods = append(pods, runningPod.activePod)
+		pods = append(pods, runningPod.podPortMapping)
 	}
 	return pods
 }
