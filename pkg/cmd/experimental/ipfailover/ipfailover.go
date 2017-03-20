@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -212,7 +211,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 
 func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string) error {
 
-	sccList, err := client.Core().SecurityContextConstraints().List(metainternal.ListOptions{})
+	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)
