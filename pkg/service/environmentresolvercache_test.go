@@ -41,7 +41,7 @@ type fakeRetriever struct {
 	err     error
 }
 
-func (r fakeRetriever) Get(name string) (*kapi.Service, error) {
+func (r fakeRetriever) Get(name string, options metav1.GetOptions) (*kapi.Service, error) {
 	return r.service, r.err
 }
 

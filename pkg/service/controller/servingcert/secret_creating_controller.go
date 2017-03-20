@@ -58,11 +58,11 @@ type ServiceServingCertController struct {
 	maxRetries int
 
 	serviceCache      cache.Store
-	serviceController *cache.Controller
+	serviceController cache.Controller
 	serviceHasSynced  informerSynced
 
 	secretCache      cache.Store
-	secretController *cache.Controller
+	secretController cache.Controller
 	secretHasSynced  informerSynced
 
 	ca         *crypto.CA
