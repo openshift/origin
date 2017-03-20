@@ -53,7 +53,7 @@ middleware:
   repository:
     - name: openshift
       options:
-        acceptschema2: false
+        acceptschema2: true
         pullthrough: true
         enforcequota: false
         projectcachettl: 1m
