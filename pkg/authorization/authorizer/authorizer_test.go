@@ -47,7 +47,7 @@ func TestAPIGroupDeny(t *testing.T) {
 			Resource:        "pods",
 		},
 		expectedAllowed: false,
-		expectedReason:  `User "Anna" cannot list group.pods in project "adze"`,
+		expectedReason:  `User "Anna" cannot list pods.group in project "adze"`,
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
 	test.policies = append(test.policies, newAdzePolicies()...)

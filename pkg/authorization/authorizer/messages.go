@@ -20,29 +20,29 @@ type ForbiddenMessageResolver struct {
 }
 
 func NewForbiddenMessageResolver(projectRequestForbiddenTemplate string) *ForbiddenMessageResolver {
-	apiGroupIfNotEmpty := "{{if len .Attributes.GetAPIGroup }}{{.Attributes.GetAPIGroup}}.{{end}}"
+	apiGroupIfNotEmpty := "{{if len .Attributes.GetAPIGroup }}.{{.Attributes.GetAPIGroup}}{{end}}"
 	resourceWithSubresourceIfNotEmpty := "{{if len .Attributes.GetSubresource }}{{.Attributes.GetResource}}/{{.Attributes.GetSubresource}}{{else}}{{.Attributes.GetResource}}{{end}}"
 
 	messageResolver := &ForbiddenMessageResolver{
 		namespacedVerbsToResourcesToForbiddenMessageMaker: map[string]map[string]ForbiddenMessageMaker{},
 		rootScopedVerbsToResourcesToForbiddenMessageMaker: map[string]map[string]ForbiddenMessageMaker{},
 		nonResourceURLForbiddenMessageMaker:               newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot "{{.Attributes.GetVerb}}" on "{{.Attributes.GetPath}}"`),
-		defaultForbiddenMessageMaker:                      newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot "{{.Attributes.GetVerb}}" "` + apiGroupIfNotEmpty + resourceWithSubresourceIfNotEmpty + `" with name "{{.Attributes.GetName}}" in project "{{.Attributes.GetNamespace}}"`),
+		defaultForbiddenMessageMaker:                      newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot "{{.Attributes.GetVerb}}" "` + resourceWithSubresourceIfNotEmpty + apiGroupIfNotEmpty + `" with name "{{.Attributes.GetName}}" in project "{{.Attributes.GetNamespace}}"`),
 	}
 
 	// general messages
-	messageResolver.addNamespacedForbiddenMessageMaker("create", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot create `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("create", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot create `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` at the cluster scope`))
-	messageResolver.addNamespacedForbiddenMessageMaker("get", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot get `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("get", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot get `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` at the cluster scope`))
-	messageResolver.addNamespacedForbiddenMessageMaker("list", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot list `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("list", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot list all `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in the cluster`))
-	messageResolver.addNamespacedForbiddenMessageMaker("watch", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot watch `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("watch", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot watch all `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in the cluster`))
-	messageResolver.addNamespacedForbiddenMessageMaker("update", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot update `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("update", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot update `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` at the cluster scope`))
-	messageResolver.addNamespacedForbiddenMessageMaker("delete", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot delete `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
-	messageResolver.addRootScopedForbiddenMessageMaker("delete", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot delete `+apiGroupIfNotEmpty+resourceWithSubresourceIfNotEmpty+` at the cluster scope`))
+	messageResolver.addNamespacedForbiddenMessageMaker("create", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot create `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("create", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot create `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` at the cluster scope`))
+	messageResolver.addNamespacedForbiddenMessageMaker("get", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot get `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("get", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot get `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` at the cluster scope`))
+	messageResolver.addNamespacedForbiddenMessageMaker("list", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot list `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("list", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot list all `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in the cluster`))
+	messageResolver.addNamespacedForbiddenMessageMaker("watch", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot watch `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("watch", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot watch all `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in the cluster`))
+	messageResolver.addNamespacedForbiddenMessageMaker("update", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot update `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("update", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot update `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` at the cluster scope`))
+	messageResolver.addNamespacedForbiddenMessageMaker("delete", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot delete `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` in project "{{.Attributes.GetNamespace}}"`))
+	messageResolver.addRootScopedForbiddenMessageMaker("delete", authorizationapi.ResourceAll, newTemplateForbiddenMessageMaker(`User "{{.Attributes.GetUser.GetName}}" cannot delete `+resourceWithSubresourceIfNotEmpty+apiGroupIfNotEmpty+` at the cluster scope`))
 
 	// project request rejection
 	projectRequestDeny := projectRequestForbiddenTemplate

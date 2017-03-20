@@ -1094,7 +1094,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: dannySARGetter,
 		err:               `User "danny" cannot create subjectaccessreviews at the cluster scope`,
-		kubeErr:           `User "danny" cannot create authorization.k8s.io.subjectaccessreviews at the cluster scope`,
+		kubeErr:           `User "danny" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "as anonymous, can I make cluster subject access reviews",
@@ -1102,7 +1102,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: anonymousSARGetter,
 		err:               `User "system:anonymous" cannot create subjectaccessreviews at the cluster scope`,
-		kubeErr:           `User "system:anonymous" cannot create authorization.k8s.io.subjectaccessreviews at the cluster scope`,
+		kubeErr:           `User "system:anonymous" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
@@ -1175,7 +1175,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "mallet-project",
 		err:               `User "harold" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "harold" cannot create authorization.k8s.io.localsubjectaccessreviews in project "mallet-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project mallet-project",
@@ -1184,7 +1184,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "mallet-project",
 		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "system:anonymous" cannot create authorization.k8s.io.localsubjectaccessreviews in project "mallet-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
 	}.run(t)
 	// ensure message does not leak whether the namespace exists or not
 	subjectAccessReviewTest{
@@ -1194,7 +1194,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "nonexistent-project",
 		err:               `User "harold" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "harold" cannot create authorization.k8s.io.localsubjectaccessreviews in project "nonexistent-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project nonexistent-project",
@@ -1203,7 +1203,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "nonexistent-project",
 		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "system:anonymous" cannot create authorization.k8s.io.localsubjectaccessreviews in project "nonexistent-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
@@ -1243,7 +1243,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		clusterReview:     askCanClusterAdminsCreateProject,
 		kubeAuthInterface: haroldSARGetter,
 		err:               `User "harold" cannot create subjectaccessreviews at the cluster scope`,
-		kubeErr:           `User "harold" cannot create authorization.k8s.io.subjectaccessreviews at the cluster scope`,
+		kubeErr:           `User "harold" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 
 	askCanICreatePods := &authorizationapi.LocalSubjectAccessReview{
