@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -167,11 +168,11 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) (bool, error) {
+		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
 			rc.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 			delete(rc.Annotations, deployapi.DeploymentStatusReasonAnnotation)
 			delete(rc.Annotations, deployapi.DeploymentCancelledAnnotation)
-			return true, nil
+			return runtime.Encode(o.Encoder, rc)
 		})
 
 		if len(patches) == 0 {
@@ -179,7 +180,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch); err != nil {
+		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}
