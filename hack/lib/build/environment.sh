@@ -14,11 +14,15 @@ function os::build::environment::create() {
     additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
     if [[ "${OS_BUILD_ENV_LOCAL_DOCKER:-n}" == "y" ]]; then
-      # if OS_BUILD_ENV_LOCAL_DOCKER==y, add the local OS_ROOT as the bind mount to the working dir
-      # and set the running user to the current user
+      # when running `hack/env` in "local" mode, we will want to use the currently
+      # running user as the user inside of the container and mount in volumes from
+      # the local filesystem for the:
+      #  - working directory with the Origin repository
+      #  - temporary directory for output
+      #  - home directory for the user running `hack/env`
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
-      additional_context+=" -v ${OS_ROOT}:${workingdir} -u $(id -u)"
+      additional_context+=" -v /tmp/openshift:/openshifttmp -v ${OS_ROOT}:${workingdir} -v ${HOME}:${HOME} -u $(id -u)"
     elif [[ -n "${OS_BUILD_ENV_VOLUME:-}" ]]; then
       if docker volume inspect "${OS_BUILD_ENV_VOLUME}" >/dev/null 2>&1; then
         os::log::debug "Re-using volume ${OS_BUILD_ENV_VOLUME}"
