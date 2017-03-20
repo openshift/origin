@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/registry/template"
+	rest "github.com/openshift/origin/pkg/template/registry/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -20,16 +20,16 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		NewFunc:           func() runtime.Object { return &api.Template{} },
 		NewListFunc:       func() runtime.Object { return &api.TemplateList{} },
-		PredicateFunc:     template.Matcher,
+		PredicateFunc:     rest.Matcher,
 		QualifiedResource: api.Resource("templates"),
 
-		CreateStrategy: template.Strategy,
-		UpdateStrategy: template.Strategy,
+		CreateStrategy: rest.Strategy,
+		UpdateStrategy: rest.Strategy,
 
 		ReturnDeletedObject: true,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: tregistry.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
