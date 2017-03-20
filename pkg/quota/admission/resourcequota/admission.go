@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
@@ -40,6 +41,7 @@ type originQuotaAdmission struct {
 
 var _ = oadmission.WantsOriginQuotaRegistry(&originQuotaAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&originQuotaAdmission{})
+var _ = kadmission.WantsInternalKubeInformerFactory(&originQuotaAdmission{})
 
 // NewOriginResourceQuota creates a new OriginResourceQuota admission plugin that takes care of admission of
 // origin resources abusing resource quota.
@@ -70,6 +72,12 @@ func (a *originQuotaAdmission) SetInternalKubeClientSet(c kclientset.Interface) 
 	a.kclient = c
 	if a.quotaAdmission != nil {
 		a.quotaAdmission.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
+	}
+}
+
+func (a *originQuotaAdmission) SetInternalKubeInformerFactory(f kinternalinformers.SharedInformerFactory) {
+	if a.quotaAdmission != nil {
+		a.quotaAdmission.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(f)
 	}
 }
 
