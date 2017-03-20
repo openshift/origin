@@ -1,8 +1,6 @@
 package server
 
 import (
-	"fmt"
-	"net/url"
 	"reflect"
 	"testing"
 
@@ -10,62 +8,21 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
-
-func createTestImageReactor(t *testing.T, client *testclient.Fake, serverURL *url.URL, namespace, repo string) *imageapi.Image {
-	_, testManifest, _, err := registrytest.CreateRandomManifest(registrytest.ManifestSchema1, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, testManifestSchema1, err := testManifest.Payload()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testImage, err := registrytest.NewImageForManifest(
-		fmt.Sprintf("%s/%s", namespace, repo),
-		string(testManifestSchema1),
-		"",
-		false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	testImage.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, testImage.Name)
-
-	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
-
-	return testImage
-}
-
-func createTestImageStreamReactor(t *testing.T, client *testclient.Fake, testImage *imageapi.Image, namespace, repo, tag string) *imageapi.ImageStream {
-	testImageStream := registrytest.TestNewImageStreamObject(namespace, repo, tag, testImage.Name, testImage.DockerImageReference)
-	if testImageStream.Annotations == nil {
-		testImageStream.Annotations = make(map[string]string)
-	}
-	testImageStream.Annotations[imageapi.InsecureRepositoryAnnotation] = "true"
-
-	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
-
-	return testImageStream
-}
 
 func TestTagGet(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testcases := []struct {
 		title                 string
@@ -118,12 +75,13 @@ func TestTagGet(t *testing.T) {
 			client:            client,
 			enablePullThrough: tc.pullthrough,
 		})
+
 		ts := &tagService{
 			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		resultDesc, err := ts.Get(ctx, tc.tagName)
+		resultDesc, err := ts.Get(context.Background(), tc.tagName)
 
 		switch err.(type) {
 		case distribution.ErrTagUnknown:
@@ -152,24 +110,18 @@ func TestTagGetWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	client := &testclient.Fake{}
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
-
-	testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: client,
 	})
+
 	ts := &tagService{
 		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	ctx := context.Background()
-	_, err := ts.Get(ctx, tag)
+	_, err := ts.Get(context.Background(), tag)
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -184,14 +136,13 @@ func TestTagCreation(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testcases := []struct {
 		title         string
@@ -233,12 +184,13 @@ func TestTagCreation(t *testing.T) {
 			client:            client,
 			enablePullThrough: tc.pullthrough,
 		})
+
 		ts := &tagService{
 			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		err := ts.Tag(ctx, tc.tagName, tc.tagValue)
+		err := ts.Tag(context.Background(), tc.tagName, tc.tagValue)
 		if tc.expectedError {
 			if err == nil {
 				t.Fatalf("[%s] error expected", tc.title)
@@ -246,9 +198,9 @@ func TestTagCreation(t *testing.T) {
 			continue
 		}
 
-		_, err = ts.Get(ctx, tc.tagName)
+		_, err = ts.Get(context.Background(), tc.tagName)
 		if err == nil {
-			t.Fatalf("error expected")
+			t.Fatalf("[%s] error expected", tc.title)
 		}
 	}
 }
@@ -257,24 +209,26 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	serverURL, _ := url.Parse("docker.io/centos")
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
+	anotherImage, err := registrytest.RegisterRandomImage(os, namespace, repo+"-another", tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client:            client,
-		enablePullThrough: true,
+		client: client,
 	})
+
 	ts := &tagService{
 		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	ctx := context.Background()
-	err := ts.Tag(ctx, tag, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
+	err = ts.Tag(context.Background(), tag, distribution.Descriptor{
+		Digest: digest.Digest(anotherImage.Name),
+	})
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -289,14 +243,13 @@ func TestTagDeletion(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testcases := []struct {
 		title                 string
@@ -346,12 +299,13 @@ func TestTagDeletion(t *testing.T) {
 			client:            client,
 			enablePullThrough: tc.pullthrough,
 		})
+
 		ts := &tagService{
 			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		err := ts.Untag(ctx, tc.tagName)
+		err := ts.Untag(context.Background(), tc.tagName)
 
 		switch err.(type) {
 		case distribution.ErrTagUnknown:
@@ -375,25 +329,19 @@ func TestTagDeletionWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
-
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
+	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client:            client,
-		enablePullThrough: true,
+		client: client,
 	})
+
 	ts := &tagService{
 		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	err := ts.Untag(ctx, tag)
+	err := ts.Untag(context.Background(), tag)
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -408,14 +356,13 @@ func TestTagGetAll(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testcases := []struct {
 		title         string
@@ -452,12 +399,13 @@ func TestTagGetAll(t *testing.T) {
 			client:            client,
 			enablePullThrough: tc.pullthrough,
 		})
+
 		ts := &tagService{
 			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		result, err := ts.All(ctx)
+		result, err := ts.All(context.Background())
 
 		if err != nil && !tc.expectedError {
 			t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
@@ -472,26 +420,19 @@ func TestTagGetAll(t *testing.T) {
 func TestTagGetAllWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
-	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
-
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
+	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client:            client,
-		enablePullThrough: true,
+		client: client,
 	})
+
 	ts := &tagService{
 		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	_, err := ts.All(ctx)
+	_, err := ts.All(context.Background())
 	if err == nil {
 		t.Fatalf("error expected")
 	}
@@ -506,14 +447,13 @@ func TestTagLookup(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo, tag)
+	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	testcases := []struct {
 		title         string
@@ -561,12 +501,13 @@ func TestTagLookup(t *testing.T) {
 			client:            client,
 			enablePullThrough: tc.pullthrough,
 		})
+
 		ts := &tagService{
 			TagService: newTestTagService(nil),
 			repo:       r,
 		}
 
-		result, err := ts.Lookup(ctx, tc.tagValue)
+		result, err := ts.Lookup(context.Background(), tc.tagValue)
 
 		if err != nil {
 			if !tc.expectedError {
@@ -589,25 +530,26 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
-	client := &testclient.Fake{}
 
-	ctx := context.Background()
+	os, client := registrytest.NewFakeOpenShiftWithClient()
 
-	serverURL, _ := url.Parse("docker.io/centos")
-
-	testImage := createTestImageReactor(t, client, serverURL, namespace, repo)
-	createTestImageStreamReactor(t, client, testImage, namespace, repo+"-another", tag)
+	anotherImage, err := registrytest.RegisterRandomImage(os, namespace, repo+"-another", tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client:            client,
-		enablePullThrough: true,
+		client: client,
 	})
+
 	ts := &tagService{
 		TagService: newTestTagService(nil),
 		repo:       r,
 	}
 
-	_, err := ts.Lookup(ctx, distribution.Descriptor{Digest: digest.Digest(testImage.Name)})
+	_, err = ts.Lookup(context.Background(), distribution.Descriptor{
+		Digest: digest.Digest(anotherImage.Name),
+	})
 	if err == nil {
 		t.Fatalf("error expected")
 	}
