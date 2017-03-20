@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -92,7 +91,7 @@ func TestGetClient(t *testing.T) {
 			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{},
 		},
@@ -130,7 +129,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{},
 		},
@@ -188,7 +187,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
@@ -251,7 +250,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{},
 		},
@@ -309,7 +308,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
@@ -395,10 +394,10 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{
-				clientgotesting.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(routesResource, "ns-01", metav1.ListOptions{}),
 			},
 		},
 		{
@@ -474,10 +473,10 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{
-				clientgotesting.NewListAction(routesResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(routesResource, "ns-01", metav1.ListOptions{}),
 			},
 		},
 		{
@@ -535,7 +534,7 @@ func TestGetClient(t *testing.T) {
 			},
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
-				clientgotesting.NewListAction(secretsResource, "ns-01", metainternal.ListOptions{}),
+				clientgotesting.NewListAction(secretsResource, "ns-01", metav1.ListOptions{}),
 			},
 			expectedOSActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(routesResource, "ns-01", "route1"),
@@ -546,7 +545,7 @@ func TestGetClient(t *testing.T) {
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
 		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient.Core(), tc.kubeClient.Core(), tc.osClient, delegate, oauthapi.GrantHandlerPrompt)
-		client, err := getter.GetClient(apirequest.NewContext(), tc.clientName)
+		client, err := getter.GetClient(apirequest.NewContext(), tc.clientName, &metav1.GetOptions{})
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil,
@@ -583,7 +582,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) GetClient(ctx apirequest.Context, name string) (*oauthapi.OAuthClient, error) {
+func (d *fakeDelegate) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }

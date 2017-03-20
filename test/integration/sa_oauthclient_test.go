@@ -23,6 +23,7 @@ import (
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -96,7 +97,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default")
+		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -111,6 +112,11 @@ func TestSAAsOAuthClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defaultSAv1 := &kapiv1.ServiceAccount{}
+	err = kapiv1.Convert_api_ServiceAccount_To_v1_ServiceAccount(defaultSA, defaultSAv1, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
@@ -120,9 +126,14 @@ func TestSAAsOAuthClient(t *testing.T) {
 			return false, err
 		}
 		for i := range allSecrets.Items {
-			secret := allSecrets.Items[i]
-			if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
-				oauthSecret = &secret
+			secret := &allSecrets.Items[i]
+			secretv1 := &kapiv1.Secret{}
+			err := kapiv1.Convert_api_Secret_To_v1_Secret(secret, secretv1, nil)
+			if err != nil {
+				return false, err
+			}
+			if serviceaccount.IsServiceAccountToken(secretv1, defaultSAv1) {
+				oauthSecret = secret
 				return true, nil
 			}
 		}
@@ -159,7 +170,7 @@ func TestSAAsOAuthClient(t *testing.T) {
 			"scope:user:full",
 		})
 		// verify the persisted client authorization looks like we expect
-		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:" + oauthClientConfig.ClientId); err != nil {
+		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:"+oauthClientConfig.ClientId, metav1.GetOptions{}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
 			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
@@ -530,7 +541,7 @@ func runOAuthFlow(
 			return
 		}
 
-		user, err := whoamiClient.Users().Get("~")
+		user, err := whoamiClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return

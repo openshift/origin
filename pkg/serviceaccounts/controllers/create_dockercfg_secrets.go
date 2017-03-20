@@ -99,11 +99,11 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = tokenSecretSelector
+				options.FieldSelector = tokenSecretSelector.String()
 				return e.client.Core().Secrets(api.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = tokenSecretSelector
+				options.FieldSelector = tokenSecretSelector.String()
 				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
 			},
 		},
@@ -130,9 +130,9 @@ type DockercfgController struct {
 	dockerURLsIntialized chan struct{}
 
 	serviceAccountCache      MutationCache
-	serviceAccountController *cache.Controller
+	serviceAccountController cache.Controller
 	secretCache              cache.Store
-	secretController         *cache.Controller
+	secretController         cache.Controller
 
 	queue workqueue.RateLimitingInterface
 
