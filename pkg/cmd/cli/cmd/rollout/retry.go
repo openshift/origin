@@ -168,11 +168,11 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) (bool, error) {
+		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
 			rc.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 			delete(rc.Annotations, deployapi.DeploymentStatusReasonAnnotation)
 			delete(rc.Annotations, deployapi.DeploymentCancelledAnnotation)
-			return true, nil
+			return runtime.Encode(o.Encoder, rc)
 		})
 
 		if len(patches) == 0 {
