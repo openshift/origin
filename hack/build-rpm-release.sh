@@ -78,6 +78,7 @@ if command -v createrepo >/dev/null 2>&1; then
 baseurl = file://${repo_path}
 gpgcheck = 0
 name = OpenShift Origin Release from Local Source
+enabled = 1
 " > "${repo_path}/origin-local-release.repo"
 
 	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
