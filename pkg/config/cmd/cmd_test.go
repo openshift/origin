@@ -30,6 +30,14 @@ func (bt *bulkTester) ResourceSingularizer(resource string) (string, error) {
 
 func (bt *bulkTester) InfoForObject(obj runtime.Object, preferredGVKs []unversioned.GroupVersionKind) (*resource.Info, error) {
 	bt.infos = append(bt.infos, obj)
+	// These checks are here to make sure the preferredGVKs are set to retain the legacy
+	// behavior for bulk operations.
+	if len(preferredGVKs) == 0 {
+		return nil, fmt.Errorf("expected preferred gvk to not be empty")
+	}
+	if preferredGVKs[0].Group != "" {
+		return nil, fmt.Errorf("expected preferred gvk to be set to prefer the legacy group")
+	}
 	return &resource.Info{Object: obj, Mapping: bt.mapping}, bt.err
 }
 
