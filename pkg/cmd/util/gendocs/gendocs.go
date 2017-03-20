@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 type Examples []*unstructured.Unstructured
@@ -43,7 +43,7 @@ func GenDocs(cmd *cobra.Command, filename string) error {
 		items = append(items, example)
 	}
 
-	printer, _, err := kubectl.GetPrinter("template", string(template), false, false)
+	printer, _, err := printers.GetStandardPrinter("template", string(template), false, false, nil, nil, nil)
 	if err != nil {
 		return err
 	}
