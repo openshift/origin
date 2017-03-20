@@ -27,10 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/jsonpath"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/healthz"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
