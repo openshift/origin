@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/client"
@@ -310,7 +309,7 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclientsetinternal.Clientset, *restclient.Config, error) {
+func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetinternal.Interface, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -332,7 +331,7 @@ func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOve
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetExternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclientsetexternal.Clientset, *restclient.Config, error) {
+func GetExternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetexternal.Interface, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
