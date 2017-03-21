@@ -150,7 +150,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
