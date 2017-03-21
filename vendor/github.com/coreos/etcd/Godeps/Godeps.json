@@ -1,0 +1,70 @@
+{
+	"ImportPath": "github.com/openshift/origin/vendor/github.com/coreos/etcd",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v75",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/grpc-ecosystem/grpc-gateway/runtime",
+			"Comment": "v1.0.0-8-gf52d055",
+			"Rev": "f52d055dc48aec25854ed7d31862f78913cf17d1"
+		},
+		{
+			"ImportPath": "github.com/grpc-ecosystem/grpc-gateway/runtime/internal",
+			"Comment": "v1.0.0-8-gf52d055",
+			"Rev": "f52d055dc48aec25854ed7d31862f78913cf17d1"
+		},
+		{
+			"ImportPath": "github.com/grpc-ecosystem/grpc-gateway/utilities",
+			"Comment": "v1.0.0-8-gf52d055",
+			"Rev": "f52d055dc48aec25854ed7d31862f78913cf17d1"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/codes",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/credentials",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/grpclog",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/internal",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/metadata",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/naming",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/peer",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc/transport",
+			"Comment": "v1.0.4",
+			"Rev": "777daa17ff9b5daef1cfdf915088a2ada3332bf0"
+		}
+	]
+}
