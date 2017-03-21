@@ -31,51 +31,86 @@ func TestAPIServerDefaults(t *testing.T) {
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
-	expectedDefaults := &apiserveroptions.ServerRunOptions{
-		GenericServerRunOptions: &genericapiserveroptions.ServerRunOptions{
-			AnonymousAuth:           false,
-			BindAddress:             net.ParseIP("0.0.0.0"),
-			CertDirectory:           "/var/run/kubernetes",
-			InsecureBindAddress:     net.ParseIP("127.0.0.1"),
-			InsecurePort:            8080,
-			LongRunningRequestRE:    "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
-			MaxRequestsInFlight:     400,
-			SecurePort:              6443,
-			EnableProfiling:         true,
-			EnableGarbageCollection: true,
-			EnableWatchCache:        true,
-			MinRequestTimeout:       1800,
-			ServiceNodePortRange:    genericapiserveroptions.DefaultServiceNodePortRange,
-			RuntimeConfig:           utilconfig.ConfigurationMap{},
-			StorageVersions:         kapi.Registry.AllPreferredGroupVersions(),
-			MasterCount:             1,
-			DefaultStorageVersions:  kapi.Registry.AllPreferredGroupVersions(),
+	expectedDefaults := &kubeapiserveroptions.ServerRunOptions{
+		ServiceNodePortRange: kubeapiserveroptions.DefaultServiceNodePortRange,
+		MasterCount:          1,
+		GenericServerRunOptions: &apiserveroptions.ServerRunOptions{
+			MaxRequestsInFlight:         400,
+			MaxMutatingRequestsInFlight: 200,
+			MinRequestTimeout:           1800,
+			AdmissionControl:            "AlwaysAdmit",
+		},
+		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
+				Copier: kapi.Scheme,
 			},
-			DefaultStorageMediaType:                  "application/json",
-			AdmissionControl:                         "AlwaysAdmit",
-			AuthorizationMode:                        "AlwaysAllow",
-			DeleteCollectionWorkers:                  1,
-			MasterServiceNamespace:                   "default",
-			AuthorizationWebhookCacheAuthorizedTTL:   5 * time.Minute,
-			AuthorizationWebhookCacheUnauthorizedTTL: 30 * time.Second,
+			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
+			DeleteCollectionWorkers: 1,
+			EnableGarbageCollection: true,
+			EnableWatchCache:        true,
+		},
+		SecureServing: &apiserveroptions.SecureServingOptions{
+			ServingOptions: apiserveroptions.ServingOptions{
+				BindAddress: net.ParseIP("0.0.0.0"),
+				BindPort:    6443,
+			},
+			ServerCert: apiserveroptions.GeneratableKeyCert{
+				CertDirectory: "/var/run/kubernetes",
+				PairName:      "apiserver",
+			},
+		},
+		InsecureServing: &apiserveroptions.ServingOptions{
+			BindAddress: net.ParseIP("127.0.0.1"),
+			BindPort:    8080,
 		},
 		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
-			Port: 10250,
+			Port:         10250,
+			ReadOnlyPort: 10255,
 			PreferredAddressTypes: []string{
 				string(apiv1.NodeHostName),
+				string(apiv1.NodeInternalDNS),
 				string(apiv1.NodeInternalIP),
+				string(apiv1.NodeExternalDNS),
 				string(apiv1.NodeExternalIP),
 				string(apiv1.NodeLegacyHostIP),
 			},
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
-		WebhookTokenAuthnCacheTTL: 2 * time.Minute,
+		Audit: &apiserveroptions.AuditLogOptions{},
+		Features: &apiserveroptions.FeatureOptions{
+			EnableProfiling: true,
+		},
+		Authentication: &kubeoptions.BuiltInAuthenticationOptions{
+			Anonymous:       &kubeoptions.AnonymousAuthenticationOptions{Allow: true},
+			AnyToken:        &kubeoptions.AnyTokenAuthenticationOptions{},
+			BootstrapToken:  &kubeoptions.BootstrapTokenAuthenticationOptions{},
+			ClientCert:      &apiserveroptions.ClientCertAuthenticationOptions{},
+			Keystone:        &kubeoptions.KeystoneAuthenticationOptions{},
+			OIDC:            &kubeoptions.OIDCAuthenticationOptions{},
+			PasswordFile:    &kubeoptions.PasswordFileAuthenticationOptions{},
+			RequestHeader:   &apiserveroptions.RequestHeaderAuthenticationOptions{},
+			ServiceAccounts: &kubeoptions.ServiceAccountAuthenticationOptions{},
+			TokenFile:       &kubeoptions.TokenFileAuthenticationOptions{},
+			WebHook:         &kubeoptions.WebHookAuthenticationOptions{CacheTTL: 2 * time.Minute},
+		},
+		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
+			Mode: "AlwaysAllow",
+			WebhookCacheAuthorizedTTL:   5 * time.Minute,
+			WebhookCacheUnauthorizedTTL: 30 * time.Second,
+		},
+		CloudProvider: &kubeoptions.CloudProviderOptions{},
+		StorageSerialization: &kubeoptions.StorageSerializationOptions{
+			StorageVersions:        kapi.Registry.AllPreferredGroupVersions(),
+			DefaultStorageVersions: kapi.Registry.AllPreferredGroupVersions(),
+		},
+		APIEnablement: &kubeoptions.APIEnablementOptions{
+			RuntimeConfig: utilconfig.ConfigurationMap{},
+		},
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
@@ -150,7 +185,9 @@ func TestCMServerDefaults(t *testing.T) {
 			ClusterSigningKeyFile:             "/etc/kubernetes/ca/ca.key",
 			EnableGarbageCollector:            true,
 			DisableAttachDetachReconcilerSync: false,
-			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 5 * time.Second},
+			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 60 * time.Second},
+			Controllers:                       []string{"*"},
+			EnableTaintManager:                true,
 		},
 	}
 
