@@ -287,6 +287,14 @@ var buildPathPattern = regexp.MustCompile(`^build/([\w\-\._]+)$`)
 
 type LogDumperFunc func(oc *CLI, br *BuildResult) (string, error)
 
+func NewBuildResult(oc *CLI, build *buildapi.Build) *BuildResult {
+	return &BuildResult{
+		oc:        oc,
+		BuildName: build.Name,
+		BuildPath: "builds/" + build.Name,
+	}
+}
+
 type BuildResult struct {
 	// BuildPath is a resource qualified name (e.g. "build/test-1").
 	BuildPath string
@@ -440,9 +448,13 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
+	return result, WaitForBuildResult(oc.Client().Builds(oc.Namespace()), result)
+}
 
-	fmt.Fprintf(g.GinkgoWriter, "Waiting for %s to complete\n", result.BuildPath)
-	err = WaitForABuild(oc.Client().Builds(oc.Namespace()), result.BuildName,
+// WaitForBuildResult updates result wit the state of the build
+func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
+	fmt.Fprintf(g.GinkgoWriter, "Waiting for %s to complete\n", result.BuildName)
+	err := WaitForABuild(c, result.BuildName,
 		func(b *buildapi.Build) bool {
 			result.Build = b
 			result.BuildSuccess = CheckBuildSuccessFn(b)
@@ -462,14 +474,14 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 
 	if result.Build == nil {
 		// We only abort here if the build progress was unobservable. Only known cause would be severe, non-build related error in WaitForABuild.
-		return result, fmt.Errorf("Severe error waiting for build: %v", err)
+		return fmt.Errorf("Severe error waiting for build: %v", err)
 	}
 
 	result.BuildAttempt = true
 	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
-	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", result.BuildPath, *result)
-	return result, nil
+	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", result.BuildName, *result)
+	return nil
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
