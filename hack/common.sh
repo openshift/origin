@@ -217,7 +217,7 @@ os::build::internal::build_binaries() {
 
     local host_platform=$(os::build::host_platform)
     local platform
-    for platform in "${platforms[@]}"; do
+    for platform in "${platforms[@]+"${platforms[@]}"}"; do
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
       mkdir -p "${OS_OUTPUT_BINPATH}/${platform}"
 
@@ -306,7 +306,7 @@ function os::build::place_bins() {
     fi
 
     os::build::export_targets "$@"
-    for platform in "${platforms[@]}"; do
+    for platform in "${platforms[@]+"${platforms[@]}"}"; do
       # The substitution on platform_src below will replace all slashes with
       # underscores.  It'll transform darwin/amd64 -> darwin_amd64.
       local platform_src="/${platform//\//_}"
