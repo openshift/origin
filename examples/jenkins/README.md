@@ -33,7 +33,7 @@ Steps
 
         $ oc new-app jenkins-ephemeral
 
-    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/admin_guide/persistent_storage_nfs.html) setup.  
+    **Note**: This template uses an EmptyDir type volume.  If you want to ensure your jenkins configuration/job information is persisted through pod restarts and deployments, you can use the jenkins-persistent-template.json template file which uses a persistent volume but requires additional [PersistentVolume](https://docs.openshift.org/latest/install_config/persistent_storage/persistent_storage_nfs.html) setup.  
     
 1. Create the sample application configuration
 
@@ -47,7 +47,7 @@ Steps
 
     and access the host for the Jenkins route.
 
-    If you do not have a router or your host system does not support xip.io name resolution, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+    If you do not have a router or your host system does not support nip.io name resolution, you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
 
     **Note**: The OpenShift Login plugin by default manages authentication into any Jenkins instance running in OpenShift.  When this is the case, and you do intend to access Jenkins via the Service IP and not the Route, then you will need to annotate the Jenkins service account with a redirect URL so that the OAuth server's whitelist is updated and allow the login to Jenkins to complete. 
 

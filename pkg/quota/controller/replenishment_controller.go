@@ -29,15 +29,16 @@ func NewReplenishmentControllerFactory(isInformer shared.ImageStreamInformer) kr
 }
 
 func (r *replenishmentControllerFactory) NewController(options *kresourcequota.ReplenishmentControllerOptions) (cache.ControllerInterface, error) {
-	switch options.GroupKind {
-	case imageapi.Kind("ImageStream"):
+	gk := options.GroupKind
+	switch {
+	case imageapi.IsKindOrLegacy("ImageStream", gk):
 		r.isInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			UpdateFunc: ImageStreamReplenishmentUpdateFunc(options),
 			DeleteFunc: kresourcequota.ObjectReplenishmentDeleteFunc(options),
 		})
 		return r.isInformer.Informer().GetController(), nil
 	default:
-		return nil, fmt.Errorf("no replenishment controller available for %s", options.GroupKind)
+		return nil, fmt.Errorf("no replenishment controller available for %s", gk)
 	}
 }
 

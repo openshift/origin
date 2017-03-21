@@ -51,7 +51,7 @@ function os::log::system::clean_up() {
     fi
 
     if ! which sadf  >/dev/null 2>&1; then
-        os::log::warn "System logger data could not be unpacked and graphed, 'sadf' binary not found in this environment."
+        os::log::warning "System logger data could not be unpacked and graphed, 'sadf' binary not found in this environment."
         return 0
     fi
 

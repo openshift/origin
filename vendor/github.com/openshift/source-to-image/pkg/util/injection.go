@@ -70,7 +70,7 @@ func ExpandInjectedFiles(fs FileSystem, injections api.VolumeList) ([]string, er
 				if err != nil {
 					// This is not a fatal error. If AtomicWrite tried multiple times, a symlink might not point
 					// to a valid destination.
-					glog.Warningf("Unable to lstat symlink destination [%v]->[%v]. Partial atomic write?", path, linkDest, err)
+					glog.Warningf("Unable to lstat symlink destination [%s]->[%s]. err: %v. Partial atomic write?", path, linkDest, err)
 					return nil
 				}
 			}

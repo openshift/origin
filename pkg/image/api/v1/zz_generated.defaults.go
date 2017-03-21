@@ -28,9 +28,13 @@ func SetObjectDefaults_ImageStream(in *ImageStream) {
 }
 
 func SetObjectDefaults_ImageStreamImport(in *ImageStreamImport) {
+	if in.Spec.Repository != nil {
+		SetDefaults_TagReferencePolicy(&in.Spec.Repository.ReferencePolicy)
+	}
 	for i := range in.Spec.Images {
 		a := &in.Spec.Images[i]
 		SetDefaults_ImageImportSpec(a)
+		SetDefaults_TagReferencePolicy(&a.ReferencePolicy)
 	}
 	if in.Status.Import != nil {
 		SetObjectDefaults_ImageStream(in.Status.Import)

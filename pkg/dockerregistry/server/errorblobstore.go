@@ -23,28 +23,28 @@ func (r *errorBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribu
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return distribution.Descriptor{}, err
 	}
-	return r.store.Stat(WithRepository(ctx, r.repo), dgst)
+	return r.store.Stat(withRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return nil, err
 	}
-	return r.store.Get(WithRepository(ctx, r.repo), dgst)
+	return r.store.Get(withRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return nil, err
 	}
-	return r.store.Open(WithRepository(ctx, r.repo), dgst)
+	return r.store.Open(withRepository(ctx, r.repo), dgst)
 }
 
 func (r *errorBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return distribution.Descriptor{}, err
 	}
-	return r.store.Put(WithRepository(ctx, r.repo), mediaType, p)
+	return r.store.Put(withRepository(ctx, r.repo), mediaType, p)
 }
 
 func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
@@ -52,7 +52,7 @@ func (r *errorBlobStore) Create(ctx context.Context, options ...distribution.Blo
 		return nil, err
 	}
 
-	ctx = WithRepository(ctx, r.repo)
+	ctx = withRepository(ctx, r.repo)
 
 	opts, err := effectiveCreateOptions(options)
 	if err != nil {
@@ -80,21 +80,21 @@ func (r *errorBlobStore) Resume(ctx context.Context, id string) (distribution.Bl
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return nil, err
 	}
-	return r.store.Resume(WithRepository(ctx, r.repo), id)
+	return r.store.Resume(withRepository(ctx, r.repo), id)
 }
 
 func (r *errorBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return err
 	}
-	return r.store.ServeBlob(WithRepository(ctx, r.repo), w, req, dgst)
+	return r.store.ServeBlob(withRepository(ctx, r.repo), w, req, dgst)
 }
 
 func (r *errorBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	if err := r.repo.checkPendingErrors(ctx); err != nil {
 		return err
 	}
-	return r.store.Delete(WithRepository(ctx, r.repo), dgst)
+	return r.store.Delete(withRepository(ctx, r.repo), dgst)
 }
 
 // checkPendingCrossMountErrors returns true if a cross-repo mount has been requested with given create
@@ -108,7 +108,7 @@ func checkPendingCrossMountErrors(ctx context.Context, opts *distribution.Create
 	if err != nil {
 		return err
 	}
-	return checkPendingErrors(context.GetLogger(ctx), ctx, namespace, name)
+	return checkPendingErrors(ctx, context.GetLogger(ctx), namespace, name)
 }
 
 // guardCreateOptions ensures the expected options type is passed, and optionally disables cross mounting

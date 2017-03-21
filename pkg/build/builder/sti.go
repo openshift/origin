@@ -116,9 +116,16 @@ func (s *S2IBuilder) Build() error {
 	// fetch source
 	sourceInfo, err := fetchSource(s.dockerClient, srcDir, s.build, initialURLCheckTimeout, os.Stdin, s.gitClient)
 	if err != nil {
-		s.build.Status.Phase = api.BuildPhaseFailed
-		s.build.Status.Reason = api.StatusReasonFetchSourceFailed
-		s.build.Status.Message = api.StatusMessageFetchSourceFailed
+		switch err.(type) {
+		case contextDirNotFoundError:
+			s.build.Status.Phase = api.BuildPhaseFailed
+			s.build.Status.Reason = api.StatusReasonInvalidContextDirectory
+			s.build.Status.Message = api.StatusMessageInvalidContextDirectory
+		default:
+			s.build.Status.Phase = api.BuildPhaseFailed
+			s.build.Status.Reason = api.StatusReasonFetchSourceFailed
+			s.build.Status.Message = api.StatusMessageFetchSourceFailed
+		}
 		handleBuildStatusUpdate(s.build, s.client, nil)
 		return err
 	}

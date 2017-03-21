@@ -91,18 +91,21 @@ func (strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+	obj, ok := o.(*api.OAuthClientAuthorization)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a OAuthClientAuthorization")
+	}
+	return labels.Set(obj.Labels), SelectableFields(obj), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
-			obj, ok := o.(*api.OAuthClientAuthorization)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a OAuthClientAuthorization")
-			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 

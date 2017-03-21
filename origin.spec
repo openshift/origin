@@ -9,7 +9,7 @@
 %global kube_plugin_path /usr/libexec/kubernetes/kubelet-plugins/net/exec/redhat~openshift-ovs-subnet
 
 # docker_version is the version of docker requires by packages
-%global docker_version 1.9.1
+%global docker_version 1.12
 # tuned_version is the version of tuned requires by packages
 %global tuned_version  2.3
 # openvswitch_version is the version of openvswitch requires by packages
@@ -39,7 +39,7 @@
 %global need_redistributable_set 0
 %endif
 %endif
-%{!?make_redistributable: %global	make_redistributable	%{need_redistributable_set}}
+%{!?make_redistributable: %global make_redistributable %{need_redistributable_set}}
 
 %if "%{dist}" == ".el7aos"
 %global package_name atomic-openshift
@@ -230,6 +230,9 @@ of docker.  Exclude those versions of docker.
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
 %endif
 
+# Generate man pages
+%{os_git_vars} hack/generate-docs.sh
+
 %install
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
@@ -356,6 +359,9 @@ sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-templa
 sed -i "s|@@PACKAGE_LIST-VARIABLE@@|docker*1.13* docker*1.14* docker*1.15* docker*1.16* docker*1.17* docker*1.18* docker*1.19* docker*1.20*|" $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 
+# Install migration scripts
+install -d %{buildroot}%{_datadir}/%{name}/migration
+install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 
 %files
 %doc README.md
@@ -405,6 +411,8 @@ fi
 %files master
 %{_unitdir}/%{name}-master.service
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-master
+%dir %{_datadir}/%{name}/migration/
+%{_datadir}/%{name}/migration/*
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/master
 %ghost %config(noreplace) %{_sysconfdir}/origin/admin.crt
@@ -544,12 +552,19 @@ fi
 %files excluder
 /usr/sbin/%{name}-excluder
 
-%post excluder
-if [ "$1" -eq 1 ] ; then
-  %{name}-excluder exclude
+%pretrans excluder
+# we always want to clear this out using the last
+#   versions script.  Otherwise excludes might get left in
+if [ -s /usr/sbin/%{name}-excluder ] ; then
+  /usr/sbin/%{name}-excluder unexclude
 fi
 
+%posttrans excluder
+# we always want to run this after an install or update
+/usr/sbin/%{name}-excluder exclude
+
 %preun excluder
+# If we are the last one, clean things up
 if [ "$1" -eq 0 ] ; then
   /usr/sbin/%{name}-excluder unexclude
 fi
@@ -557,15 +572,22 @@ fi
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
 
-%post docker-excluder
-# we always want to run this, since the
-#   package-list may be different with each version
-%{name}-docker-excluder exclude
+%pretrans docker-excluder
+# we always want to clear this out using the last
+#   versions script.  Otherwise excludes might get left in
+if [ -s /usr/sbin/%{name}-docker-excluder ] ; then
+  /usr/sbin/%{name}-docker-excluder unexclude
+fi
+
+%posttrans docker-excluder
+# we always want to run this after an install or update
+/usr/sbin/%{name}-docker-excluder exclude
 
 %preun docker-excluder
-# we always want to clear this out, since the
-#   package-list may be different with each version
-/usr/sbin/%{name}-docker-excluder unexclude
+# If we are the last one, clean things up
+if [ "$1" -eq 0 ] ; then
+  /usr/sbin/%{name}-docker-excluder unexclude
+fi
 
 %changelog
 * Mon Feb 20 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.5.0.32-1

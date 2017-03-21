@@ -143,8 +143,8 @@ func verifyMapping(object runtime.Object, user *api.User, identity *api.Identity
 func TestGet(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
@@ -160,7 +160,7 @@ func TestGet(t *testing.T) {
 func TestGetMissingIdentity(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
@@ -175,7 +175,7 @@ func TestGetMissingIdentity(t *testing.T) {
 func TestGetIdentityWithoutUser(t *testing.T) {
 	identity := makeIdentity()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
@@ -193,8 +193,8 @@ func TestGetIdentityWithoutUser(t *testing.T) {
 func TestGetMissingUser(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
@@ -213,8 +213,8 @@ func TestGetUserWithoutIdentity(t *testing.T) {
 	user, identity := makeAssociated()
 	user.Identities = []string{}
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
@@ -233,10 +233,10 @@ func TestCreate(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
-		{"UpdateIdentity", associatedIdentity},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
+		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -257,8 +257,8 @@ func TestCreate(t *testing.T) {
 func TestCreateExists(t *testing.T) {
 	user, identity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -281,7 +281,7 @@ func TestCreateExists(t *testing.T) {
 func TestCreateMissingIdentity(t *testing.T) {
 	user, identity := makeUnassociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
+		{Name: "GetIdentity", Object: identity.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -304,8 +304,8 @@ func TestCreateMissingIdentity(t *testing.T) {
 func TestCreateMissingUser(t *testing.T) {
 	user, identity := makeUnassociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -329,9 +329,9 @@ func TestCreateUserUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
 	}
 	expectedErr := errors.New("Update error")
 
@@ -357,10 +357,10 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", unassociatedIdentity.Name},
-		{"GetUser", unassociatedUser.Name},
-		{"UpdateUser", associatedUser},
-		{"UpdateIdentity", associatedIdentity},
+		{Name: "GetIdentity", Object: unassociatedIdentity.Name},
+		{Name: "GetUser", Object: unassociatedUser.Name},
+		{Name: "UpdateUser", Object: associatedUser},
+		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -391,16 +391,16 @@ func TestUpdate(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 		// Old user cleanup
-		{"UpdateUser", unassociatedUser1},
+		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -431,7 +431,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -461,10 +461,10 @@ func TestUpdateMissingUser(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -490,8 +490,8 @@ func TestUpdateOldUserMatches(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", identity.Name},
-		{"GetUser", user.Name},
+		{Name: "GetIdentity", Object: identity.Name},
+		{Name: "GetUser", Object: user.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -522,8 +522,8 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -552,8 +552,8 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
 	mapping := &api.UserIdentityMapping{
@@ -584,16 +584,16 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 		// Old user cleanup
-		{"UpdateUser", unassociatedUser1},
+		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 	expectedErr := errors.New("Couldn't update old user")
 
@@ -628,12 +628,12 @@ func TestUpdateUserUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 	}
 	expectedErr := errors.New("Couldn't update new user")
 
@@ -666,14 +666,14 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 
 	expectedActions := []test.Action{
 		// Existing mapping lookup
-		{"GetIdentity", associatedIdentity1User1.Name},
-		{"GetUser", associatedUser1.Name},
+		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
+		{Name: "GetUser", Object: associatedUser1.Name},
 		// New user lookup
-		{"GetUser", unassociatedUser2.Name},
+		{Name: "GetUser", Object: unassociatedUser2.Name},
 		// New user update
-		{"UpdateUser", associatedUser2},
+		{Name: "UpdateUser", Object: associatedUser2},
 		// Identity update
-		{"UpdateIdentity", associatedIdentity1User2},
+		{Name: "UpdateIdentity", Object: associatedIdentity1User2},
 	}
 	expectedErr := errors.New("Couldn't update identity")
 
@@ -700,10 +700,10 @@ func TestDelete(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
-		{"UpdateIdentity", unassociatedIdentity},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
+		{Name: "UpdateIdentity", Object: unassociatedIdentity},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity, associatedUser)
@@ -718,7 +718,7 @@ func TestDelete(t *testing.T) {
 func TestDeleteMissingIdentity(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(nil, associatedUser)
@@ -736,8 +736,8 @@ func TestDeleteMissingIdentity(t *testing.T) {
 func TestDeleteMissingUser(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
 	}
 
 	actions, _, _, rest := setupRegistries(associatedIdentity)
@@ -756,9 +756,9 @@ func TestDeleteUserUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, _ := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
 	}
 	expectedErr := errors.New("Cannot update user")
 
@@ -779,10 +779,10 @@ func TestDeleteIdentityUpdateError(t *testing.T) {
 	associatedUser, associatedIdentity := makeAssociated()
 	unassociatedUser, unassociatedIdentity := disassociate(associatedUser, associatedIdentity)
 	expectedActions := []test.Action{
-		{"GetIdentity", associatedIdentity.Name},
-		{"GetUser", associatedUser.Name},
-		{"UpdateUser", unassociatedUser},
-		{"UpdateIdentity", unassociatedIdentity},
+		{Name: "GetIdentity", Object: associatedIdentity.Name},
+		{Name: "GetUser", Object: associatedUser.Name},
+		{Name: "UpdateUser", Object: unassociatedUser},
+		{Name: "UpdateIdentity", Object: unassociatedIdentity},
 	}
 	expectedErr := errors.New("Cannot update identity")
 

@@ -18,6 +18,9 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
+	"k8s.io/kubernetes/pkg/auth/authenticator"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/kubernetes/pkg/auth/group"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -33,14 +36,13 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/headerrequest"
+	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/union"
 
-	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/unionrequest"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
-	"github.com/openshift/origin/pkg/auth/group"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -97,9 +99,10 @@ type MasterConfig struct {
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
 
-	RuleResolver  rulevalidation.AuthorizationRuleResolver
-	Authenticator authenticator.Request
-	Authorizer    authorizer.Authorizer
+	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	Authenticator  authenticator.Request
+	Authorizer     kauthorizer.Authorizer
+	SubjectLocator authorizer.SubjectLocator
 
 	// TODO(sttts): replace AuthorizationAttributeBuilder with kapiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
@@ -229,7 +232,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		informerFactory.ClusterPolicies().Lister().ClusterPolicies(),
 		informerFactory.ClusterPolicyBindings().Lister().ClusterPolicyBindings(),
 	)
-	authorizer := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
+	authorizer, subjectLocator := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
@@ -272,10 +275,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		RuleResolver:                  ruleResolver,
 		Authenticator:                 authenticator,
 		Authorizer:                    authorizer,
+		SubjectLocator:                subjectLocator,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		GroupCache:                    groupCache,
-		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClientset, informerFactory),
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(subjectLocator, privilegedLoopbackKubeClientset, informerFactory),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -647,11 +651,11 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(unionrequest.NewUnionAuthentication(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+			group.NewGroupAdder(union.New(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
 	if len(tokenAuthenticators) > 0 {
-		authenticators = append(authenticators, unionrequest.NewUnionAuthentication(tokenAuthenticators...))
+		authenticators = append(authenticators, union.New(tokenAuthenticators...))
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
@@ -664,21 +668,36 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
-	ret := &unionrequest.Authenticator{
-		FailOnError: true,
-		Handlers: []authenticator.Request{
-			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}),
-			anonymous.NewAuthenticator(),
-		},
+	resultingAuthenticator := union.NewFailOnError(authenticators...)
+
+	topLevelAuthenticators := []authenticator.Request{}
+	// if we have a front proxy providing authentication configuration, wire it up and it should come first
+	if config.AuthConfig.RequestHeader != nil {
+		requestHeaderAuthenticator, err := headerrequest.NewSecure(
+			config.AuthConfig.RequestHeader.ClientCA,
+			config.AuthConfig.RequestHeader.ClientCommonNames,
+			config.AuthConfig.RequestHeader.UsernameHeaders,
+			config.AuthConfig.RequestHeader.GroupHeaders,
+			config.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
+		}
+		topLevelAuthenticators = append(topLevelAuthenticators, union.New(requestHeaderAuthenticator, resultingAuthenticator))
+
+	} else {
+		topLevelAuthenticators = append(topLevelAuthenticators, resultingAuthenticator)
+
 	}
 
-	return ret, nil
+	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
+
+	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
-func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		projectauth.NewAuthorizerReviewer(authorizer),
+		projectauth.NewAuthorizerReviewer(subjectLocator),
 		kubeClient.Core().Namespaces(),
 		informerFactory.ClusterPolicies().Lister(),
 		informerFactory.ClusterPolicyBindings().Lister(),
@@ -715,7 +734,7 @@ func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWat
 func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	storage, err := clusterpolicyetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -734,7 +753,7 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	storage, err := clusterpolicybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +772,7 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := policyetcd.NewStorage(optsGetter)
+	storage, err := policyetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -772,7 +791,7 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	ctx := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
 
-	storage, err := policybindingetcd.NewStorage(optsGetter)
+	storage, err := policybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return nil, err
 	}
@@ -788,11 +807,11 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}, nil
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) authorizer.Authorizer {
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	roleBasedAuthorizer := authorizer.NewAuthorizer(ruleResolver, messageMaker)
+	roleBasedAuthorizer, subjectLocator := authorizer.NewAuthorizer(ruleResolver, messageMaker)
 	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, informerFactory.ClusterPolicies().Lister().ClusterPolicies(), messageMaker)
-	return scopeLimitedAuthorizer
+	return scopeLimitedAuthorizer, subjectLocator
 }
 
 func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
@@ -804,8 +823,10 @@ func newAuthorizationAttributeBuilder(requestContextMapper kapi.RequestContextMa
 		sets.NewString(bootstrappolicy.AuthenticatedGroup),
 		requestInfoFactory,
 	)
+	personalSARRequestInfoResolver := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	projectRequestInfoResolver := authorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
 
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, browserSafeRequestInfoResolver)
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, projectRequestInfoResolver)
 	return authorizationAttributeBuilder
 }
 

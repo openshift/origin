@@ -35,7 +35,7 @@ func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
 		return informer
 	}
 
-	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("clusterpolicies"))
+	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicies"))
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -89,7 +89,7 @@ func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
 		return informer
 	}
 
-	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("clusterpolicybindings"))
+	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicybindings"))
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -143,7 +143,7 @@ func (f *policyInformer) Informer() cache.SharedIndexInformer {
 		return informer
 	}
 
-	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("policies"))
+	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policies"))
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
@@ -197,7 +197,7 @@ func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 		return informer
 	}
 
-	lw := f.customListerWatchers.GetListerWatcher(kapi.Resource("policybindings"))
+	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policybindings"))
 	if lw == nil {
 		lw = &cache.ListWatch{
 			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {

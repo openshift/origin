@@ -13,6 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/apimachinery"
 	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -80,31 +81,44 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 
 	for i := range objs {
 		obj := objs[i]
-		kind, _, err := kapi.Scheme.ObjectKind(obj)
-		if err != nil {
-			return nil, err
-		}
-		groupMeta, err := registered.Group(kind.Group)
+		kinds, _, err := kapi.Scheme.ObjectKinds(obj)
 		if err != nil {
 			return nil, err
 		}
 
-		requestedVersion := unversioned.GroupVersion{}
-		for _, preferredVersion := range preferredVersions {
-			if preferredVersion.Group == kind.Group {
-				requestedVersion = preferredVersion
-				break
+		// Gather all groups where the object kind is known.
+		groups := []*apimachinery.GroupMeta{}
+		for _, kind := range kinds {
+			groupMeta, err := registered.Group(kind.Group)
+			if err != nil {
+				return nil, err
 			}
+			groups = append(groups, groupMeta)
 		}
 
 		actualOutputVersion := unversioned.GroupVersion{}
-		for _, externalVersion := range groupMeta.GroupVersions {
-			if externalVersion == requestedVersion {
-				actualOutputVersion = externalVersion
-				break
+		// Find the first preferred version that contains the object kind group.
+		// If there are more groups for the given resource, prefer those that are first in the
+		// list of preferred versions.
+		for _, version := range preferredVersions {
+			for _, group := range groups {
+				if version.Group == group.GroupVersion.Group {
+					for _, externalVersion := range group.GroupVersions {
+						if version == externalVersion {
+							actualOutputVersion = externalVersion
+							break
+						}
+						if actualOutputVersion.Empty() {
+							actualOutputVersion = externalVersion
+						}
+					}
+				}
+				if !actualOutputVersion.Empty() {
+					break
+				}
 			}
-			if actualOutputVersion.Empty() {
-				actualOutputVersion = externalVersion
+			if !actualOutputVersion.Empty() {
+				break
 			}
 		}
 
@@ -124,11 +138,16 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...unversio
 // TODO: print-objects should have preferred output versions
 func convertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
 	requested := kcmdutil.GetFlagString(cmd, "output-version")
-	version, err := unversioned.ParseGroupVersion(requested)
-	if err != nil {
-		return nil, err
+	versions := []unversioned.GroupVersion{}
+	for _, v := range strings.Split(requested, ",") {
+		version, err := unversioned.ParseGroupVersion(v)
+		if err != nil {
+			return nil, err
+		}
+		versions = append(versions, version)
 	}
-	return convertItemsForDisplay(objs, version)
+
+	return convertItemsForDisplay(objs, versions...)
 }
 
 // VersionedPrintObject handles printing an object in the appropriate version by looking at 'output-version'
@@ -153,6 +172,9 @@ func VersionedPrintObject(fn func(*cobra.Command, meta.RESTMapper, runtime.Objec
 }
 
 func WarnAboutCommaSeparation(errout io.Writer, values []string, flag string) {
+	if errout == nil {
+		return
+	}
 	for _, value := range values {
 		if commaSepVarsPattern.MatchString(value) {
 			fmt.Fprintf(errout, "warning: %s no longer accepts comma-separated lists of values. %q will be treated as a single key-value pair.\n", flag, value)

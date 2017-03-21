@@ -577,6 +577,42 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
+		// resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set.
+		{
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: kapi.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, unversioned.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "Build"},
+				"default", "build1", unversioned.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
 		// resolves builds with image stream images
 		{
 			client: testclient.NewSimpleFake(

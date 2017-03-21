@@ -43,16 +43,35 @@ var (
 	// exposed externally.
 	DeadOpenShiftStorageVersionLevels = []string{"v1beta1", "v1beta3"}
 
-	APIGroupKube           = ""
-	APIGroupExtensions     = "extensions"
-	APIGroupApps           = "apps"
-	APIGroupAuthentication = "authentication.k8s.io"
-	APIGroupAutoscaling    = "autoscaling"
-	APIGroupBatch          = "batch"
-	APIGroupCertificates   = "certificates.k8s.io"
-	APIGroupFederation     = "federation"
-	APIGroupPolicy         = "policy"
-	APIGroupStorage        = "storage.k8s.io"
+	APIGroupKube              = ""
+	APIGroupExtensions        = "extensions"
+	APIGroupApps              = "apps"
+	APIGroupAuthentication    = "authentication.k8s.io"
+	APIGroupAuthorization     = "authorization.k8s.io"
+	APIGroupImagePolicy       = "imagepolicy.k8s.io"
+	APIGroupAutoscaling       = "autoscaling"
+	APIGroupBatch             = "batch"
+	APIGroupCertificates      = "certificates.k8s.io"
+	APIGroupFederation        = "federation"
+	APIGroupPolicy            = "policy"
+	APIGroupStorage           = "storage.k8s.io"
+	APIGroupComponentConfig   = "componentconfig"
+	APIGroupAuthorizationRbac = "rbac.authorization.k8s.io"
+
+	OriginAPIGroupCore                = ""
+	OriginAPIGroupAuthorization       = "authorization.openshift.io"
+	OriginAPIGroupBuild               = "build.openshift.io"
+	OriginAPIGroupDeploy              = "apps.openshift.io"
+	OriginAPIGroupTemplate            = "template.openshift.io"
+	OriginAPIGroupImage               = "image.openshift.io"
+	OriginAPIGroupProject             = "project.openshift.io"
+	OriginAPIGroupProjectRequestLimit = "requestlimit.project.openshift.io"
+	OriginAPIGroupUser                = "user.openshift.io"
+	OriginAPIGroupOAuth               = "oauth.openshift.io"
+	OriginAPIGroupRoute               = "route.openshift.io"
+	OriginAPIGroupNetwork             = "network.openshift.io"
+	OriginAPIGroupQuota               = "quota.openshift.io"
+	OriginAPIGroupSecurity            = "security.openshift.io"
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
@@ -60,6 +79,7 @@ var (
 		APIGroupExtensions:     {"v1beta1"},
 		APIGroupApps:           {"v1beta1"},
 		APIGroupAuthentication: {"v1beta1"},
+		APIGroupAuthorization:  {"v1beta1"},
 		APIGroupAutoscaling:    {"v1"},
 		APIGroupBatch:          {"v1", "v2alpha1"},
 		APIGroupCertificates:   {"v1alpha1"},
@@ -68,6 +88,22 @@ var (
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
+
+	OriginAPIGroupsToAllowedVersions = map[string][]string{
+		OriginAPIGroupAuthorization: {"v1"},
+		OriginAPIGroupBuild:         {"v1"},
+		OriginAPIGroupDeploy:        {"v1"},
+		OriginAPIGroupTemplate:      {"v1"},
+		OriginAPIGroupImage:         {"v1"},
+		OriginAPIGroupProject:       {"v1"},
+		OriginAPIGroupUser:          {"v1"},
+		OriginAPIGroupOAuth:         {"v1"},
+		OriginAPIGroupNetwork:       {"v1"},
+		OriginAPIGroupRoute:         {"v1"},
+		OriginAPIGroupQuota:         {"v1"},
+		OriginAPIGroupSecurity:      {"v1"},
+	}
+
 	// Map of group names to known, but disallowed REST API versions
 	KubeAPIGroupsToDeadVersions = map[string][]string{
 		APIGroupKube:        {"v1beta3"},
@@ -77,7 +113,8 @@ var (
 		APIGroupPolicy:      {},
 		APIGroupApps:        {},
 	}
-	KnownKubeAPIGroups = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
+	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
+	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
 
 	// FeatureAliases maps deprecated names of feature flag to their canonical
 	// names. Aliases must be lower-cased for O(1) lookup.
@@ -252,6 +289,10 @@ type MasterConfig struct {
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo
 
+	// AuthConfig configures authentication options in addition to the standard
+	// oauth token and client certificate authenticators
+	AuthConfig MasterAuthConfig
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
@@ -340,6 +381,29 @@ type MasterConfig struct {
 
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig
+}
+
+// MasterAuthConfig configures authentication options in addition to the standard
+// oauth token and client certificate authenticators
+type MasterAuthConfig struct {
+	// RequestHeader holds options for setting up a front proxy against the the API.  It is optional.
+	RequestHeader *RequestHeaderAuthenticationOptions
+}
+
+// RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
+// API instead of against the /oauth endpoint.
+type RequestHeaderAuthenticationOptions struct {
+	// ClientCA is a file with the trusted signer certs.  It is required.
+	ClientCA string
+	// ClientCommonNames is a required list of common names to require a match from.
+	ClientCommonNames []string
+
+	// UsernameHeaders is the list of headers to check for user information.  First hit wins.
+	UsernameHeaders []string
+	// GroupNameHeader is the set of headers to check for group information.  All are unioned.
+	GroupHeaders []string
+	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
+	ExtraHeaderPrefixes []string
 }
 
 // AuditConfig holds configuration for the audit capabilities
@@ -559,6 +623,12 @@ type ServingInfo struct {
 	ClientCA string
 	// NamedCertificates is a list of certificates to use to secure requests to specific hostnames
 	NamedCertificates []NamedCertificate
+	// MinTLSVersion is the minimum TLS version supported.
+	// Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
+	MinTLSVersion string
+	// CipherSuites contains an overridden list of ciphers for the server to support.
+	// Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants
+	CipherSuites []string
 }
 
 // NamedCertificate specifies a certificate/key, and the names it should be served for

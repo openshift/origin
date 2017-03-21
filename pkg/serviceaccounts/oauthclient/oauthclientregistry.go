@@ -49,6 +49,7 @@ type namesToObjMapperFunc func(namespace string, names sets.String) map[string]r
 
 var emptyGroupKind = unversioned.GroupKind{} // Used with static redirect URIs
 var routeGroupKind = routeapi.SchemeGroupVersion.WithKind(routeKind).GroupKind()
+var legacyRouteGroupKind = routeapi.LegacySchemeGroupVersion.WithKind(routeKind).GroupKind() // to support redirect reference with old group
 
 // TODO add ingress support
 // var ingressGroupKind = routeapi.SchemeGroupVersion.WithKind(IngressKind).GroupKind()
@@ -287,6 +288,9 @@ func (a *saOAuthClientAdapter) extractRedirectURIs(modelsMap map[string]model, n
 
 	for _, m := range modelsMap {
 		gk := m.getGroupKind()
+		if gk == legacyRouteGroupKind {
+			gk = routeGroupKind // support legacy route group without doing extra API calls
+		}
 		if len(m.name) == 0 && gk == emptyGroupKind { // Is this a static redirect URI?
 			uri := redirectURI{} // No defaults wanted
 			uri.merge(&m)

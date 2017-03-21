@@ -130,25 +130,25 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		return r.Err()
 	}
 
-	policyStorage, err := policyetcd.NewStorage(optsGetter)
+	policyStorage, err := policyetcd.NewREST(optsGetter)
 	if err != nil {
 		return err
 	}
 	policyRegistry := policyregistry.NewRegistry(policyStorage)
 
-	policyBindingStorage, err := policybindingetcd.NewStorage(optsGetter)
+	policyBindingStorage, err := policybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return err
 	}
 	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
 
-	clusterPolicyStorage, err := clusterpolicyetcd.NewStorage(optsGetter)
+	clusterPolicyStorage, err := clusterpolicyetcd.NewREST(optsGetter)
 	if err != nil {
 		return err
 	}
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
 
-	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewStorage(optsGetter)
+	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewREST(optsGetter)
 	if err != nil {
 		return err
 	}

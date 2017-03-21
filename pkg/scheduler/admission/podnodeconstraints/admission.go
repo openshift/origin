@@ -12,11 +12,11 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
@@ -175,15 +175,18 @@ func (o *podNodeConstraints) Validate() error {
 
 // build LocalSubjectAccessReview struct to validate role via checkAccess
 func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (bool, error) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
-	authzAttr := authorizer.DefaultAuthorizationAttributes{
-		Verb:     "create",
-		Resource: "pods/binding",
-		APIGroup: kapi.GroupName,
+	authzAttr := authorizer.AttributesRecord{
+		User:            attr.GetUserInfo(),
+		Verb:            "create",
+		Namespace:       attr.GetNamespace(),
+		Resource:        "pods",
+		Subresource:     "binding",
+		APIGroup:        kapi.GroupName,
+		ResourceRequest: true,
 	}
 	if attr.GetResource().GroupResource() == kapi.Resource("pods") {
-		authzAttr.ResourceName = attr.GetName()
+		authzAttr.Name = attr.GetName()
 	}
-	allow, _, err := o.authorizer.Authorize(ctx, authzAttr)
+	allow, _, err := o.authorizer.Authorize(authzAttr)
 	return allow, err
 }

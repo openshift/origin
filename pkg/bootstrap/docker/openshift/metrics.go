@@ -212,5 +212,5 @@ func MetricsHost(routingSuffix, serverIP string) string {
 	if len(routingSuffix) > 0 {
 		return fmt.Sprintf("metrics-openshift-infra.%s", routingSuffix)
 	}
-	return fmt.Sprintf("metrics-openshift-infra.%s.xip.io", serverIP)
+	return fmt.Sprintf("metrics-openshift-infra.%s.nip.io", serverIP)
 }

@@ -1865,28 +1865,30 @@ func TestNewAppListAndSearch(t *testing.T) {
 		{
 			name: "search, no oldversion",
 			options: clicmd.NewAppOptions{
-				Config: &cmd.AppConfig{
-					ComponentInputs: cmd.ComponentInputs{
-						ImageStreams: []string{"ruby"},
-					},
-					AsSearch: true,
-				},
+				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+					Config: &cmd.AppConfig{
+						ComponentInputs: cmd.ComponentInputs{
+							ImageStreams: []string{"ruby"},
+						},
+						AsSearch: true,
+					}},
 			},
 			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
 		},
 		{
 			name: "list, no oldversion",
 			options: clicmd.NewAppOptions{
-				Config: &cmd.AppConfig{
-					AsList: true,
-				},
+				ObjectGeneratorOptions: &clicmd.ObjectGeneratorOptions{
+					Config: &cmd.AppConfig{
+						AsList: true,
+					}},
 			},
 			expectedOutput: "Image streams (oc new-app --image-stream=<image-stream> [--code=<source>])\n-----\nruby\n  Project: default\n  Tags:    latest\n\n",
 		},
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.options.Config)
-		test.options.Out, test.options.ErrOut = stdout, stderr
+		test.options.Action.Out, test.options.ErrOut = stdout, stderr
 		test.options.BaseName = "oc"
 		test.options.CommandName = "new-app"
 
@@ -1927,7 +1929,12 @@ func setupLocalGitRepo(t *testing.T, passwordProtected bool, requireProxy bool) 
 	}
 
 	// Set initial repo contents
-	gitRepo := git.NewRepository()
+	gitRepo := git.NewRepositoryWithEnv([]string{
+		"GIT_AUTHOR_NAME=developer",
+		"GIT_AUTHOR_EMAIL=developer@example.com",
+		"GIT_COMMITTER_NAME=developer",
+		"GIT_COMMITTER_EMAIL=developer@example.com",
+	})
 	if err = gitRepo.Init(initialRepoDir, false); err != nil {
 		t.Fatalf("%v", err)
 	}

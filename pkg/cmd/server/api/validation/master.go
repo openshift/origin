@@ -193,6 +193,34 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	validationResults.Append(ValidateAuditConfig(config.AuditConfig, fldPath.Child("auditConfig")))
 
+	validationResults.Append(ValidateMasterAuthConfig(config.AuthConfig, fldPath.Child("authConfig")))
+
+	return validationResults
+}
+
+func ValidateMasterAuthConfig(config api.MasterAuthConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if config.RequestHeader == nil {
+		return validationResults
+	}
+
+	if len(config.RequestHeader.ClientCA) == 0 {
+		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.clientCA"), "must be specified for a secure connection"))
+	}
+	if len(config.RequestHeader.ClientCommonNames) == 0 {
+		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.clientCommonNames"), "must be specified for a secure connection"))
+	}
+	if len(config.RequestHeader.UsernameHeaders) == 0 {
+		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.usernameHeaders"), "must be specified for a secure connection"))
+	}
+	if len(config.RequestHeader.GroupHeaders) == 0 {
+		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.groupHeaders"), "must be specified for a secure connection"))
+	}
+	if len(config.RequestHeader.ExtraHeaderPrefixes) == 0 {
+		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.extraHeaderPrefixes"), "must be specified for a secure connection"))
+	}
+
 	return validationResults
 }
 

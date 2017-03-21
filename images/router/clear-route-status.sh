@@ -22,9 +22,9 @@ function clear_status_set_by() {
     local router_name="${1}"
 
     for namespace in $( oc get namespaces -o 'jsonpath={.items[*].metadata.name}' ); do
-        local routes; routes=$(oc get routes -o jsonpath='{.items[*].metadata.name}' --namespace="${namespace}" 2>/dev/null)
-        if [[ -n "${routes}" ]]; then
-            for route in "${routes}"; do
+        local routes; routes=($(oc get routes -o jsonpath='{.items[*].metadata.name}' --namespace="${namespace}" 2>/dev/null))
+        if [[ "${#routes[@]}" -ne 0  ]]; then
+            for route in "${routes[@]}"; do
                 clear_routers_status "${namespace}" "${route}" "${router_name}"
             done
         else
@@ -106,9 +106,9 @@ namespace="${1}"
 route_name="${2}"
 
 if [[ "${route_name}" == "ALL" ]]; then
-    routes=$(oc get routes -o jsonpath='{.items[*].metadata.name}' --namespace="${namespace}" 2>/dev/null)
-    if [[ -n "${routes}" ]]; then
-        for route in "${routes}"; do
+    routes=($(oc get routes -o jsonpath='{.items[*].metadata.name}' --namespace="${namespace}" 2>/dev/null))
+    if [[ "${#routes[@]}" -ne 0 ]]; then
+        for route in "${routes[@]}"; do
             clear_status "${namespace}" "${route}"
         done
     else

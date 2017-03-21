@@ -217,9 +217,9 @@ func TestSupports(t *testing.T) {
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.Resource(r).WithVersion("version"), "", kadmission.Create, nil)
+		attr := kadmission.NewAttributesRecord(nil, nil, unversioned.Kind("ImageStreamMapping").WithVersion("version"), "ns", "name", imageapi.LegacyResource(r).WithVersion("version"), "", kadmission.Create, nil)
 		if !ilr.SupportsAttributes(attr) {
-			t.Errorf("plugin is expected to support %s", r)
+			t.Errorf("plugin is expected to support %#v", r)
 		}
 	}
 

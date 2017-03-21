@@ -75,6 +75,9 @@ message ImageImportSpec {
   // ImportPolicy is the policy controlling how the image is imported
   optional TagImportPolicy importPolicy = 3;
 
+  // ReferencePolicy defines how other components should consume the image
+  optional TagReferencePolicy referencePolicy = 5;
+
   // IncludeManifest determines if the manifest for each image is returned in the response
   optional bool includeManifest = 4;
 }
@@ -309,6 +312,9 @@ message RepositoryImportSpec {
 
   // ImportPolicy is the policy controlling how the image is imported
   optional TagImportPolicy importPolicy = 2;
+
+  // ReferencePolicy defines how other components should consume the image
+  optional TagReferencePolicy referencePolicy = 4;
 
   // IncludeManifest determines if the manifest for each image is returned in the response
   optional bool includeManifest = 3;

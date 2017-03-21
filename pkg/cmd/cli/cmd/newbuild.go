@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,8 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -56,7 +53,7 @@ var (
 	  %[1]s %[2]s -D $'FROM centos:7\nRUN yum install -y httpd'
 
 	  # Create a build config from a remote repository and add custom environment variables
-	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world RACK_ENV=development
+	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world -e RACK_ENV=development
 
 	  # Create a build config from a remote repository and inject the npmrc into a build
 	  %[1]s %[2]s https://github.com/openshift/ruby-hello-world --build-secret npmrc:.npmrc
@@ -83,25 +80,14 @@ on the Docker Hub.
 )
 
 type NewBuildOptions struct {
-	Action configcmd.BulkAction
-	Config *newcmd.AppConfig
-
-	BaseName    string
-	CommandPath string
-	CommandName string
-
-	In            io.Reader
-	Out, ErrOut   io.Writer
-	Output        string
-	PrintObject   func(obj runtime.Object) error
-	LogsForObject LogsForObjectFunc
+	*ObjectGeneratorOptions
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
 func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
-	o := &NewBuildOptions{Config: config}
+	o := &NewBuildOptions{ObjectGeneratorOptions: &ObjectGeneratorOptions{Config: config}}
 
 	cmd := &cobra.Command{
 		Use:        fmt.Sprintf("%s (IMAGE | IMAGESTREAM | PATH | URL ...)", name),
@@ -138,6 +124,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 	cmd.MarkFlagFilename("env-file")
 	cmd.Flags().Var(&config.Strategy, "strategy", "Specify the build strategy to use if you don't want to detect (docker|pipeline|source).")
 	cmd.Flags().StringVarP(&config.Dockerfile, "dockerfile", "D", "", "Specify the contents of a Dockerfile to build directly, implies --strategy=docker. Pass '-' to read from STDIN.")
+	cmd.Flags().StringArrayVar(&config.BuildArgs, "build-arg", config.BuildArgs, "Specify a key-value pair to pass to Docker during the build.")
 	cmd.Flags().BoolVar(&config.BinaryBuild, "binary", false, "Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all generated resources.")
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
@@ -155,70 +142,34 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 
 // Complete sets any default behavior for the command
 func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
-	o.In = in
-	o.Out = out
-	o.ErrOut = errout
-	o.Output = kcmdutil.GetFlagString(c, "output")
-	// Only output="" should print descriptions of intermediate steps. Everything
-	// else should print only some specific output (json, yaml, go-template, ...)
-	o.Config.In = in
-	if len(o.Output) == 0 {
-		o.Config.Out = o.Out
-	} else {
-		o.Config.Out = ioutil.Discard
-	}
-	o.Config.ErrOut = o.ErrOut
-
-	o.Action.Out, o.Action.ErrOut = o.Out, o.ErrOut
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
-	o.Action.Bulk.Op = configcmd.Create
-	// Retry is used to support previous versions of the API server that will
-	// consider the presence of an unknown trigger type to be an error.
-	o.Action.Bulk.Retry = retryBuildConfig
-
-	o.Config.DryRun = o.Action.DryRun
-	o.Config.AllowNonNumericExposedPorts = true
-
-	o.BaseName = baseName
-	o.CommandPath = c.CommandPath()
-	o.CommandName = commandName
-
-	if o.Output == "wide" {
-		return kcmdutil.UsageError(c, "wide mode is not a compatible output format")
-	}
-
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.Environment, "--env")
-	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Config.BuildEnvironment, "--build-env")
-
-	mapper, _ := f.Object()
-	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
-	o.LogsForObject = f.LogsForObject
-	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {
+	bo := o.ObjectGeneratorOptions
+	err := bo.Complete(baseName, commandName, f, c, args, in, out, errout)
+	if err != nil {
 		return err
 	}
-	if o.Config.Dockerfile == "-" {
+
+	bo.Config.AllowNonNumericExposedPorts = true
+	if bo.Config.Dockerfile == "-" {
 		data, err := ioutil.ReadAll(in)
 		if err != nil {
 			return err
 		}
-		o.Config.Dockerfile = string(data)
+		bo.Config.Dockerfile = string(data)
 	}
-	if err := setAppConfigLabels(c, o.Config); err != nil {
-		return err
-	}
+
 	return nil
 }
 
 // RunNewBuild contains all the necessary functionality for the OpenShift cli new-build command
 func (o *NewBuildOptions) RunNewBuild() error {
 	config := o.Config
-	out := o.Out
+	out := o.Action.Out
 
 	checkGitInstalled(out)
 
 	result, err := config.Run()
 	if err != nil {
-		return handleBuildError(err, o.BaseName, o.CommandName, o.CommandPath)
+		return handleError(err, o.BaseName, o.CommandName, o.CommandPath, config, transformBuildError)
 	}
 
 	if len(config.Labels) == 0 && len(result.Name) > 0 {
@@ -258,29 +209,6 @@ func (o *NewBuildOptions) RunNewBuild() error {
 	return nil
 }
 
-func handleBuildError(err error, baseName, commandName, commandPath string) error {
-	if err == nil {
-		return nil
-	}
-	errs := []error{err}
-	if agg, ok := err.(errors.Aggregate); ok {
-		errs = agg.Errors()
-	}
-	groups := errorGroups{}
-	for _, err := range errs {
-		transformBuildError(err, baseName, commandName, commandPath, groups)
-	}
-	buf := &bytes.Buffer{}
-	for _, group := range groups {
-		fmt.Fprint(buf, kcmdutil.MultipleErrors("error: ", group.errs))
-		if len(group.suggestion) > 0 {
-			fmt.Fprintln(buf)
-		}
-		fmt.Fprint(buf, group.suggestion)
-	}
-	return fmt.Errorf(buf.String())
-}
-
 func transformBuildError(err error, baseName, commandName, commandPath string, groups errorGroups) {
 	switch t := err.(type) {
 	case newapp.ErrNoMatch:
@@ -308,5 +236,5 @@ func transformBuildError(err error, baseName, commandName, commandPath string, g
 		groups.Add("", "", usageError(commandPath, newBuildNoInput, baseName, commandName))
 		return
 	}
-	transformError(err, baseName, commandName, commandPath, groups)
+	transformRunError(err, baseName, commandName, commandPath, groups)
 }

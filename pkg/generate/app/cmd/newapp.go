@@ -53,6 +53,7 @@ type GenerationInputs struct {
 	TemplateParameters []string
 	Environment        []string
 	BuildEnvironment   []string
+	BuildArgs          []string
 	Labels             map[string]string
 
 	TemplateParameterFiles []string
@@ -117,6 +118,13 @@ type AppConfig struct {
 
 	OSClient        client.Interface
 	OriginNamespace string
+
+	ArgumentClassificationErrors []ArgumentClassificationError
+}
+
+type ArgumentClassificationError struct {
+	Key   string
+	Value error
 }
 
 type ErrRequiresExplicitAccess struct {
@@ -219,30 +227,92 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 	}
 }
 
+func (c *AppConfig) tryToAddEnvironmentArguments(s string) bool {
+	rc := cmdutil.IsEnvironmentArgument(s)
+	if rc {
+		glog.V(2).Infof("treating %s as possible environment argument\n", s)
+		c.Environment = append(c.Environment, s)
+	}
+	return rc
+}
+
+func (c *AppConfig) tryToAddSourceArguments(s string) bool {
+	remote, rerr := app.IsRemoteRepository(s)
+	local, derr := app.IsDirectory(s)
+
+	if remote || local {
+		glog.V(2).Infof("treating %s as possible source repo\n", s)
+		c.SourceRepositories = append(c.SourceRepositories, s)
+		return true
+	}
+
+	if rerr != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a Git repository URL", s),
+			Value: rerr,
+		})
+	}
+
+	if derr != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a local directory pointing to a Git repository", s),
+			Value: derr,
+		})
+	}
+
+	return false
+}
+
+func (c *AppConfig) tryToAddComponentArguments(s string) bool {
+	err := app.IsComponentReference(s)
+	if err == nil {
+		glog.V(2).Infof("treating %s as a component ref\n", s)
+		c.Components = append(c.Components, s)
+		return true
+	}
+	c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+		Key:   fmt.Sprintf("%s as a template loaded in an accessible project, an imagestream tag, or a docker image reference", s),
+		Value: err,
+	})
+
+	return false
+}
+
+func (c *AppConfig) tryToAddTemplateArguments(s string) bool {
+	rc, err := app.IsPossibleTemplateFile(s)
+	if rc {
+		glog.V(2).Infof("treating %s as possible template file\n", s)
+		c.Components = append(c.Components, s)
+		return true
+	}
+	if err != nil {
+		c.ArgumentClassificationErrors = append(c.ArgumentClassificationErrors, ArgumentClassificationError{
+			Key:   fmt.Sprintf("%s as a template stored in a local file", s),
+			Value: err,
+		})
+	}
+	return false
+}
+
 // AddArguments converts command line arguments into the appropriate bucket based on what they look like
 func (c *AppConfig) AddArguments(args []string) []string {
 	unknown := []string{}
+	c.ArgumentClassificationErrors = []ArgumentClassificationError{}
 	for _, s := range args {
+		if len(s) == 0 {
+			continue
+		}
+
 		switch {
-		case cmdutil.IsEnvironmentArgument(s):
-			glog.V(2).Infof("treating %s as possible environment argument\n", s)
-			c.Environment = append(c.Environment, s)
-		case app.IsPossibleSourceRepository(s):
-			glog.V(2).Infof("treating %s as possible source repo\n", s)
-			c.SourceRepositories = append(c.SourceRepositories, s)
-		case app.IsComponentReference(s):
-			glog.V(2).Infof("treating %s as a component ref\n", s)
-			c.Components = append(c.Components, s)
-		case app.IsPossibleTemplateFile(s):
-			glog.V(2).Infof("treating %s as possible template file\n", s)
-			c.Components = append(c.Components, s)
+		case c.tryToAddEnvironmentArguments(s):
+		case c.tryToAddSourceArguments(s):
+		case c.tryToAddComponentArguments(s):
+		case c.tryToAddTemplateArguments(s):
 		default:
 			glog.V(2).Infof("treating %s as unknown\n", s)
-			if len(s) == 0 {
-				break
-			}
 			unknown = append(unknown, s)
 		}
+
 	}
 	return unknown
 }
@@ -287,7 +357,22 @@ func validateOutputImageReference(ref string) error {
 // buildPipelines converts a set of resolved, valid references into pipelines.
 func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
-	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), c.OutputDocker).To(c.To)
+
+	buildArgs, err := cmdutil.ParseBuildArg(c.BuildArgs, c.In)
+	if err != nil {
+		return nil, err
+	}
+
+	var DockerStrategyOptions *buildapi.DockerStrategyOptions
+	if len(c.BuildArgs) > 0 {
+		DockerStrategyOptions = &buildapi.DockerStrategyOptions{
+			BuildArgs: buildArgs,
+		}
+	}
+
+	numDockerBuilds := 0
+
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), DockerStrategyOptions, c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}
@@ -299,8 +384,13 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			switch {
 			case refInput.ExpectToBuild:
 				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
+
 				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
+				}
+
+				if refInput.Uses.GetStrategy() == generate.StrategyDocker {
+					numDockerBuilds++
 				}
 
 				var (
@@ -360,6 +450,16 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 		}
 		pipelines = append(pipelines, common...)
 	}
+
+	if len(c.BuildArgs) > 0 {
+		if numDockerBuilds == 0 {
+			return nil, fmt.Errorf("Cannot use '--build-arg' without a Docker build")
+		}
+		if numDockerBuilds > 1 {
+			fmt.Fprintf(c.ErrOut, "--> WARNING: Applying --build-arg to multiple Docker builds.\n")
+		}
+	}
+
 	return pipelines, nil
 }
 
@@ -630,7 +730,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 	// TODO: I don't belong here
 	c.ensureDockerSearch()
 
-	resolved, err := Resolve(&c.Resolvers, &c.ComponentInputs, &c.GenerationInputs)
+	resolved, err := Resolve(c)
 	if err != nil {
 		return nil, err
 	}
@@ -806,6 +906,15 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 		if !strings.Contains(copy.Name, ":") {
 			copy.Name += ":" + imageapi.DefaultImageTag
 		}
+		return &copy, nil
+	}
+
+	if ref.Kind == "ImageStreamImage" {
+		// even if the associated tag for this ImageStreamImage matches a output ImageStreamTag, when the image
+		// is built it will have a new sha ... you are essentially using a single/unique older version of a image as the base
+		// to build future images;  all this means we can leave the ref name as is and return with no error
+		// also do shallow copy like above
+		copy := *ref
 		return &copy, nil
 	}
 

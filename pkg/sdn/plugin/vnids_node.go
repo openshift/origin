@@ -73,7 +73,7 @@ func (vmap *nodeVNIDMap) GetVNID(name string) (uint32, error) {
 	if id, ok := vmap.ids[name]; ok {
 		return id, nil
 	}
-	return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+	return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 }
 
 func (vmap *nodeVNIDMap) GetMulticastEnabled(id uint32) bool {
@@ -113,7 +113,7 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	if err == nil {
 		return id, nil
 	} else {
-		return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+		return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 	}
 }
 
@@ -137,7 +137,7 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 
 	id, found := vmap.ids[name]
 	if !found {
-		return 0, fmt.Errorf("Failed to find netid for namespace: %s in vnid map", name)
+		return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 	}
 	vmap.removeNamespaceFromSet(name, id)
 	delete(vmap.ids, name)

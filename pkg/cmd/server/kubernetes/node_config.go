@@ -161,8 +161,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
 	server.PodsPerCore = 10
-	server.SerializeImagePulls = false          // disable serialized image pulls by default
-	server.EnableControllerAttachDetach = false // stay consistent with existing config, but admins should enable it
 	if enableDNS {
 		// if we are running local DNS, skydns will load the default recursive nameservers for us
 		server.ResolverConfig = ""
@@ -275,6 +273,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
 				// which we do not control when running with http.Server#ListenAndServeTLS
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+				MinVersion:     crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion),
+				CipherSuites:   crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites),
 			}),
 			CertFile: options.ServingInfo.ServerCert.CertFile,
 			KeyFile:  options.ServingInfo.ServerCert.KeyFile,

@@ -1,4 +1,5 @@
-d   /var/lib/origin - - - - -
+d   $ORIGIN_DATA_DIR - - - - -
 d   /var/lib/cni - - - - -
 d   /var/run/secrets - - - - -
-d   /etc/origin/sdn - - - - -
+d   $ORIGIN_CONFIG_DIR/sdn - - - - -
+d   $ORIGIN_CONFIG_DIR/cloudprovider  - - - - -

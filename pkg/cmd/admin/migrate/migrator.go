@@ -153,6 +153,15 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		}
 		exclude := sets.NewString()
 		for _, gr := range o.DefaultExcludes {
+			if len(o.OverlappingResources) > 0 {
+				for _, others := range o.OverlappingResources {
+					if !others.Has(gr.String()) {
+						continue
+					}
+					exclude.Insert(others.List()...)
+					break
+				}
+			}
 			exclude.Insert(gr.String())
 		}
 		candidate := sets.NewString()

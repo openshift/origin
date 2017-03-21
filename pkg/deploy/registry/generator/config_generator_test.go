@@ -21,7 +21,7 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
 			DCFn: func(ctx kapi.Context, id string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), id)
+				return nil, kerrors.NewNotFound(deployapi.LegacyResource("DeploymentConfig"), id)
 			},
 		},
 	}
@@ -166,7 +166,7 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
-				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
+				return nil, kerrors.NewNotFound(imageapi.LegacyResource("ImageStream"), name)
 			},
 		},
 	}
@@ -183,10 +183,10 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
 			DCFn: func(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), name)
+				return nil, kerrors.NewNotFound(deployapi.LegacyResource("DeploymentConfig"), name)
 			},
 			ISFn: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
-				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
+				return nil, kerrors.NewNotFound(imageapi.LegacyResource("ImageStream"), name)
 			},
 		},
 	}
@@ -194,7 +194,7 @@ func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) 
 	if err == nil || !kerrors.IsNotFound(err) {
 		t.Fatalf("Unexpected error type: %v", err)
 	}
-	if !strings.Contains(err.Error(), "DeploymentConfig \"deploy1\" not found") {
+	if !strings.Contains(err.Error(), `DeploymentConfig "deploy1" not found`) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }

@@ -81,18 +81,21 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 	return validation.ValidateLocalPolicyBindingUpdate(obj.(*authorizationapi.PolicyBinding), old.(*authorizationapi.PolicyBinding))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	policyBinding, ok := obj.(*authorizationapi.PolicyBinding)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a PolicyBinding")
+	}
+	return labels.Set(policyBinding.ObjectMeta.Labels), authorizationapi.PolicyBindingToSelectableFields(policyBinding), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			policyBinding, ok := obj.(*authorizationapi.PolicyBinding)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a policyBinding")
-			}
-			return labels.Set(policyBinding.ObjectMeta.Labels), authorizationapi.PolicyBindingToSelectableFields(policyBinding), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 

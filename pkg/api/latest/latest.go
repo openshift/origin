@@ -21,7 +21,21 @@ var OldestVersion = unversioned.GroupVersion{Group: "", Version: "v1"}
 // may be assumed to be most preferred to least preferred, and clients may
 // choose to prefer the earlier items in the list over the latter items when presented
 // with a set of versions to choose.
-var Versions = []unversioned.GroupVersion{{Group: "", Version: "v1"}}
+var Versions = []unversioned.GroupVersion{
+	{Group: "authorization.openshift.io", Version: "v1"},
+	{Group: "build.openshift.io", Version: "v1"},
+	{Group: "apps.openshift.io", Version: "v1"},
+	{Group: "template.openshift.io", Version: "v1"},
+	{Group: "image.openshift.io", Version: "v1"},
+	{Group: "project.openshift.io", Version: "v1"},
+	{Group: "user.openshift.io", Version: "v1"},
+	{Group: "oauth.openshift.io", Version: "v1"},
+	{Group: "network.openshift.io", Version: "v1"},
+	{Group: "route.openshift.io", Version: "v1"},
+	{Group: "quota.openshift.io", Version: "v1"},
+	{Group: "security.openshift.io", Version: "v1"},
+	{Group: "", Version: "v1"},
+}
 
 // originTypes are the hardcoded types defined by the OpenShift API.
 var originTypes map[unversioned.GroupVersionKind]bool
@@ -34,6 +48,21 @@ var originTypesLock sync.Once
 // OriginKind returns true if OpenShift owns the GroupVersionKind.
 func OriginKind(gvk unversioned.GroupVersionKind) bool {
 	return getOrCreateOriginKinds()[gvk]
+}
+
+// OriginLegacyKind returns true for OriginKinds which are not in their own api group.
+func OriginLegacyKind(gvk unversioned.GroupVersionKind) bool {
+	return OriginKind(gvk) && gvk.Group == ""
+}
+
+// IsOriginAPIGroup returns true if the provided group name belongs to Origin API.
+func IsOriginAPIGroup(groupName string) bool {
+	for _, v := range Versions {
+		if v.Group == groupName {
+			return true
+		}
+	}
+	return false
 }
 
 // IsKindInAnyOriginGroup returns true if OpenShift owns the kind described in any apiVersion.

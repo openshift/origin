@@ -26,25 +26,49 @@ import (
 
 var (
 	pmu     sync.Mutex
-	proxies map[*clientv3.Client]grpcAPI = make(map[*clientv3.Client]grpcAPI)
+	proxies map[*clientv3.Client]grpcClientProxy = make(map[*clientv3.Client]grpcClientProxy)
 )
+
+type grpcClientProxy struct {
+	grpc    grpcAPI
+	wdonec  <-chan struct{}
+	kvdonec <-chan struct{}
+}
 
 func toGRPC(c *clientv3.Client) grpcAPI {
 	pmu.Lock()
 	defer pmu.Unlock()
 
 	if v, ok := proxies[c]; ok {
-		return v
+		return v.grpc
 	}
-	api := grpcAPI{
+
+	wp, wpch := grpcproxy.NewWatchProxy(c)
+	kvp, kvpch := grpcproxy.NewKvProxy(c)
+	grpc := grpcAPI{
 		pb.NewClusterClient(c.ActiveConnection()),
-		grpcproxy.KvServerToKvClient(grpcproxy.NewKvProxy(c)),
+		grpcproxy.KvServerToKvClient(kvp),
 		pb.NewLeaseClient(c.ActiveConnection()),
-		grpcproxy.WatchServerToWatchClient(grpcproxy.NewWatchProxy(c)),
+		grpcproxy.WatchServerToWatchClient(wp),
 		pb.NewMaintenanceClient(c.ActiveConnection()),
+		pb.NewAuthClient(c.ActiveConnection()),
 	}
-	proxies[c] = api
-	return api
+	proxies[c] = grpcClientProxy{grpc: grpc, wdonec: wpch, kvdonec: kvpch}
+	return grpc
+}
+
+type proxyCloser struct {
+	clientv3.Watcher
+	wdonec  <-chan struct{}
+	kvdonec <-chan struct{}
+}
+
+func (pc *proxyCloser) Close() error {
+	// client ctx is canceled before calling close, so kv will close out
+	<-pc.kvdonec
+	err := pc.Watcher.Close()
+	<-pc.wdonec
+	return err
 }
 
 func newClientV3(cfg clientv3.Config) (*clientv3.Client, error) {
@@ -54,6 +78,12 @@ func newClientV3(cfg clientv3.Config) (*clientv3.Client, error) {
 	}
 	rpc := toGRPC(c)
 	c.KV = clientv3.NewKVFromKVClient(rpc.KV)
-	c.Watcher = clientv3.NewWatchFromWatchClient(rpc.Watch)
+	pmu.Lock()
+	c.Watcher = &proxyCloser{
+		Watcher: clientv3.NewWatchFromWatchClient(rpc.Watch),
+		wdonec:  proxies[c].wdonec,
+		kvdonec: proxies[c].kvdonec,
+	}
+	pmu.Unlock()
 	return c, nil
 }

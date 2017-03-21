@@ -61,6 +61,9 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
+	// SyncedAtLeastOnce indicates an initial sync has been performed
+	SyncedAtLeastOnce() bool
+
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.
@@ -194,7 +197,7 @@ func (p *TemplatePlugin) HandleRoute(eventType watch.EventType, route *routeapi.
 	return nil
 }
 
-// HandleAllowedNamespaces limits the scope of valid routes to only those that match
+// HandleNamespaces limits the scope of valid routes to only those that match
 // the provided namespace list.
 func (p *TemplatePlugin) HandleNamespaces(namespaces sets.String) error {
 	p.Router.FilterNamespaces(namespaces)

@@ -66,30 +66,25 @@ func (d dockerfileContents) Contents() string {
 	return d.contents
 }
 
-// IsPossibleSourceRepository checks whether the provided string is a source repository or not
-func IsPossibleSourceRepository(s string) bool {
-	return IsRemoteRepository(s) || isDirectory(s)
-}
-
 // IsRemoteRepository checks whether the provided string is a remote repository or not
-func IsRemoteRepository(s string) bool {
+func IsRemoteRepository(s string) (bool, error) {
 	if !s2igit.New(s2iutil.NewFileSystem()).ValidCloneSpecRemoteOnly(s) {
 		glog.V(5).Infof("%s is not a valid remote git clone spec", s)
-		return false
+		return false, nil
 	}
 	url, err := url.Parse(s)
 	if err != nil {
 		glog.V(5).Infof("%s is not a valid url: %v", s, err)
-		return false
+		return false, err
 	}
 	url.Fragment = ""
 	gitRepo := git.NewRepository()
 	if _, _, err := gitRepo.ListRemote(url.String()); err != nil {
 		glog.V(5).Infof("could not list git remotes for %s: %v", s, err)
-		return false
+		return false, err
 	}
 	glog.V(5).Infof("%s is a valid remote git repository", s)
-	return true
+	return true, nil
 }
 
 // SourceRepository represents a code repository that may be the target of a build.

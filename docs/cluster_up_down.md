@@ -70,6 +70,7 @@ a URL to access the management console for your cluster.
      firewall-cmd --permanent --zone dockerc --add-source 172.17.0.0/16
      firewall-cmd --permanent --zone dockerc --add-port 8443/tcp
      firewall-cmd --permanent --zone dockerc --add-port 53/udp
+     firewall-cmd --permanent --zone dockerc --add-port 8053/udp
      firewall-cmd --reload
      ```
 
@@ -95,7 +96,7 @@ $ oc cluster down
 1. Install [Docker for Mac](https://docs.docker.com/docker-for-mac/) making sure you meet the [prerequisites](https://docs.docker.com/docker-for-mac/#/what-to-know-before-you-install).
 2. Once Docker is running, add an insecure registry of `172.30.0.0/16`:
    - From the Docker menu in the toolbar, select `Preferences...`
-   - Click on `Advanced` in the preferences dialog
+   - Click on `Daemon` in the preferences dialog (note: on some older versions of Docker for Mac this is under `Advanced`)
    - Under `Insecure registries:`, click on the `+` icon to add a new entry
    - Enter `172.30.0.0/16` and press `return`
    - Click on `Apply and Restart`
@@ -372,7 +373,7 @@ If a host data directory is not specified, the data directory used by OpenShift 
 
 ## Routing
 
-The default routing suffix used by `oc cluster up` is CLUSTER_IP.xip.io where CLUSTER_IP is the IP address of your cluster.
+The default routing suffix used by `oc cluster up` is CLUSTER_IP.nip.io where CLUSTER_IP is the IP address of your cluster.
 To use a different suffix, specify it with `--routing-suffix`.
 
 ## Specifying Images to Use

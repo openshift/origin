@@ -436,6 +436,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	if opts.Config.Action.ShouldPrint() {
 		mapper, _ := opts.factory.Object()
+		opts.cmd.Flag("output-version").Value.Set("extensions/v1beta1,v1")
 		fn := cmdutil.VersionedPrintObject(opts.factory.PrintObject, opts.cmd, mapper, opts.out)
 		if err := fn(list); err != nil {
 			return fmt.Errorf("unable to print object: %v", err)

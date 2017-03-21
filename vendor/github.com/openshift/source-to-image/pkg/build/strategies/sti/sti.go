@@ -36,6 +36,8 @@ var (
 		api.DefaultScripts,
 		api.UserScripts,
 	}
+
+	errMissingRequirements = errors.New("missing requirements")
 )
 
 // STI strategy executes the S2I build.
@@ -84,6 +86,11 @@ type STI struct {
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
 func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*STI, error) {
+	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
+	if err != nil {
+		return nil, err
+	}
+
 	docker, err := dockerpkg.New(config.DockerConfig, config.PullAuthentication)
 	if err != nil {
 		return nil, err
@@ -105,7 +112,7 @@ func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*ST
 		fs,
 	)
 	tarHandler := tar.New(fs)
-	tarHandler.SetExclusionPattern(regexp.MustCompile(config.ExcludeRegExp))
+	tarHandler.SetExclusionPattern(excludePattern)
 
 	builder := &STI{
 		installer:              inst,
@@ -222,21 +229,18 @@ func (builder *STI) Build(config *api.Config) (*api.Result, error) {
 		glog.V(1).Infof("Running %q in %q", api.Assemble, config.Tag)
 	}
 	if err := builder.scripts.Execute(api.Assemble, config.AssembleUser, config); err != nil {
-
-		switch e := err.(type) {
-		case s2ierr.ContainerError:
-			if !isMissingRequirements(e.Output) {
-				builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-					utilstatus.ReasonAssembleFailed,
-					utilstatus.ReasonMessageAssembleFailed,
-				)
-				return builder.result, err
-			}
+		if err == errMissingRequirements {
 			glog.V(1).Info("Image is missing basic requirements (sh or tar), layered build will be performed")
 			return builder.layered.Build(config)
-		default:
-			return builder.result, err
 		}
+		if _, ok := err.(s2ierr.ContainerError); ok {
+			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonAssembleFailed,
+				utilstatus.ReasonMessageAssembleFailed,
+			)
+		}
+
+		return builder.result, err
 	}
 	builder.result.Success = true
 
@@ -660,10 +664,15 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 	c := dockerpkg.StreamContainerIO(errReader, &errOutput, func(s string) { glog.Info(s) })
 
 	err := builder.docker.RunContainer(opts)
-	if e, ok := err.(s2ierr.ContainerError); ok {
+	if err != nil {
 		// Must wait for StreamContainerIO goroutine above to exit before reading errOutput.
 		<-c
-		err = s2ierr.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
+
+		if isMissingRequirements(errOutput) {
+			err = errMissingRequirements
+		} else if e, ok := err.(s2ierr.ContainerError); ok {
+			err = s2ierr.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
+		}
 	}
 
 	return err

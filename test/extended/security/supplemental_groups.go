@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fsouza/go-dockerclient"
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -22,10 +21,8 @@ var _ = g.Describe("[security] supplemental groups", func() {
 		f = e2e.NewDefaultFramework("security-supgroups")
 	)
 
-	g.Describe("Ensure supplemental groups propagate to docker", func() {
+	g.Describe("[Conformance]Ensure supplemental groups propagate to docker", func() {
 		g.It("should propagate requested groups to the docker host config [local]", func() {
-			// Before running any of this test we need to first check that
-			// the docker version being used supports the supplemental groups feature
 			g.By("getting the docker client")
 			dockerCli, err := testutil.NewDockerClient()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -72,23 +69,15 @@ var _ = g.Describe("[security] supplemental groups", func() {
 			o.Expect(groupAdd).ToNot(o.BeEmpty(), fmt.Sprintf("groupAdd on host config was %v", groupAdd))
 
 			g.By("ensuring the groups are set")
-			o.Expect(configHasGroup(fsGroup, dockerContainer.HostConfig)).To(o.Equal(true), fmt.Sprintf("fsGroup should exist on host config: %v", groupAdd))
-			o.Expect(configHasGroup(supGroup, dockerContainer.HostConfig)).To(o.Equal(true), fmt.Sprintf("supGroup should exist on host config: %v", groupAdd))
+			group := strconv.FormatInt(fsGroup, 10)
+			o.Expect(groupAdd).To(o.ContainElement(group), fmt.Sprintf("fsGroup %v should exist on host config: %v", fsGroup, groupAdd))
+
+			group = strconv.FormatInt(supGroup, 10)
+			o.Expect(groupAdd).To(o.ContainElement(group), fmt.Sprintf("supGroup %v should exist on host config: %v", supGroup, groupAdd))
 		})
 
 	})
 })
-
-// configHasGroup is a helper to ensure that a group is in the host config's addGroups field.
-func configHasGroup(group int64, config *docker.HostConfig) bool {
-	strGroup := strconv.FormatInt(group, 10)
-	for _, g := range config.GroupAdd {
-		if g == strGroup {
-			return true
-		}
-	}
-	return false
-}
 
 // getContainerID is a helper to parse the docker container id from a status.
 func getContainerID(p *kapi.Pod) (string, error) {

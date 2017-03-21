@@ -1,8 +1,10 @@
 package buildconfig
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,7 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/runtime"
 
+	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/github"
@@ -29,25 +33,34 @@ type buildConfigInstantiator struct {
 
 func (i *buildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
 	i.Request = request
-	return i.Build, i.Err
+	if i.Build != nil {
+		return i.Build, i.Err
+	}
+	return &api.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Name:      request.Name,
+			Namespace: namespace,
+		},
+	}, i.Err
 }
 
 type plugin struct {
-	Secret, Path string
-	Err          error
-	Env          []kapi.EnvVar
-	Proceed      bool
+	Secret, Path          string
+	Err                   error
+	Env                   []kapi.EnvVar
+	DockerStrategyOptions *api.DockerStrategyOptions
+	Proceed               bool
 }
 
-func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
+func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
 	p.Secret, p.Path = secret, path
-	return nil, p.Env, p.Proceed, p.Err
+	return nil, p.Env, p.DockerStrategyOptions, p.Proceed, p.Err
 }
 
 func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigRegistry) {
 	mockRegistry := &test.BuildConfigRegistry{}
 	bci := &buildConfigInstantiator{}
-	hook := NewWebHookREST(mockRegistry, bci, map[string]webhook.Plugin{
+	hook := NewWebHookREST(mockRegistry, bci, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{
 		"ok": &plugin{Proceed: true},
 		"okenv": &plugin{
 			Env: []kapi.EnvVar{
@@ -144,7 +157,18 @@ func TestConnectWebHook(t *testing.T) {
 			Obj:   &api.BuildConfig{ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool { return err == nil },
 			WFn: func(w *httptest.ResponseRecorder) bool {
-				return w.Code == http.StatusOK
+				body, _ := ioutil.ReadAll(w.Body)
+				// We want to make sure that we return the created build in the body.
+				if w.Code == http.StatusOK && len(body) > 0 {
+					// The returned json needs to be a v1 Build specifically
+					newBuild := &buildapiv1.Build{}
+					err := json.Unmarshal(body, newBuild)
+					if err == nil {
+						return true
+					}
+					return false
+				}
+				return false
 			},
 			Instantiate: true,
 		},
@@ -208,7 +232,12 @@ func TestConnectWebHook(t *testing.T) {
 type okBuildConfigInstantiator struct{}
 
 func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
-	return &api.Build{}, nil
+	return &api.Build{
+		ObjectMeta: kapi.ObjectMeta{
+			Namespace: namespace,
+			Name:      request.Name,
+		},
+	}, nil
 }
 
 type errorBuildConfigInstantiator struct{}
@@ -233,15 +262,15 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
 	p.Path = path
-	return nil, []kapi.EnvVar{}, true, nil
+	return nil, []kapi.EnvVar{}, nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, bool, error) {
-	return nil, []kapi.EnvVar{}, false, errors.New("Plugin error!")
+func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
+	return nil, []kapi.EnvVar{}, nil, false, errors.New("Plugin error!")
 }
 
 var testBuildConfig = &api.BuildConfig{
@@ -277,7 +306,7 @@ var mockBuildStrategy = api.BuildStrategy{
 func TestParseUrlError(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"github": github.New()}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"github": github.New()}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: ""}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -295,7 +324,7 @@ func TestParseUrlError(t *testing.T) {
 func TestParseUrlOK(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -313,7 +342,7 @@ func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": plugin}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": plugin}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin/some/more/args"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -331,7 +360,7 @@ func TestParseUrlLong(t *testing.T) {
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/missingplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -341,15 +370,15 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	if !responder.called ||
-		!strings.Contains(responder.err.Error(), "buildconfighook \"missingplugin\" not found") {
-		t.Errorf("Expected BadRequest, got %s, expected error %s!", responder.err.Error(), "buildconfighook \"missingplugin\" not found")
+		!strings.Contains(responder.err.Error(), `buildconfighook "missingplugin" not found`) {
+		t.Errorf("Expected BadRequest, got %s, expected error %s!", responder.err.Error(), `buildconfighook.build.openshift.io "missingplugin" not found`)
 	}
 }
 
 func TestInvokeWebhookErrorBuildConfigInstantiate(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &errorBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	handler, _ := NewWebHookREST(bcRegistry, &errorBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -367,7 +396,7 @@ func TestInvokeWebhookErrorBuildConfigInstantiate(t *testing.T) {
 func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(kapi.NewDefaultContext(), "badbuild100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -387,7 +416,7 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, map[string]webhook.Plugin{"errPlugin": &errPlugin{}}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"errPlugin": &errPlugin{}}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: "secret101/errPlugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()

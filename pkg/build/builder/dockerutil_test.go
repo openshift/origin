@@ -17,6 +17,7 @@ import (
 
 type FakeDocker struct {
 	pushImageFunc   func(opts docker.PushImageOptions, auth docker.AuthConfiguration) error
+	pullImageFunc   func(opts docker.PullImageOptions, auth docker.AuthConfiguration) error
 	buildImageFunc  func(opts docker.BuildImageOptions) error
 	removeImageFunc func(name string) error
 
@@ -51,6 +52,20 @@ func fakePushImageFunc(opts docker.PushImageOptions, auth docker.AuthConfigurati
 	}
 	return nil
 }
+
+func fakePullImageFunc(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+	switch opts.Repository {
+	case "repo_test_succ_foo_bar":
+		return nil
+	case "repo_test_err_exist_foo_bar":
+		fooBarRunTimes++
+		return errors.New(RetriableErrors[0])
+	case "repo_test_err_no_exist_foo_bar":
+		return errors.New("no_exist_err_foo_bar")
+	}
+	return nil
+}
+
 func (d *FakeDocker) BuildImage(opts docker.BuildImageOptions) error {
 	if d.buildImageFunc != nil {
 		return d.buildImageFunc(opts)
@@ -77,6 +92,9 @@ func (d *FakeDocker) DownloadFromContainer(id string, opts docker.DownloadFromCo
 	return nil
 }
 func (d *FakeDocker) PullImage(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+	if d.pullImageFunc != nil {
+		return d.pullImageFunc(opts, auth)
+	}
 	return nil
 }
 func (d *FakeDocker) RemoveContainer(opts docker.RemoveContainerOptions) error {
@@ -93,6 +111,9 @@ func (d *FakeDocker) WaitContainer(id string) (int, error) {
 }
 func (d *FakeDocker) Logs(opts docker.LogsOptions) error {
 	return nil
+}
+func (d *FakeDocker) AttachToContainerNonBlocking(opts docker.AttachToContainerOptions) (docker.CloseWaiter, error) {
+	return nil, nil
 }
 func (d *FakeDocker) TagImage(name string, opts docker.TagImageOptions) error {
 	d.callLog = append(d.callLog, methodCall{"TagImage", []interface{}{name, opts}})
@@ -138,23 +159,23 @@ func TestTagImage(t *testing.T) {
 func TestPushImage(t *testing.T) {
 	var testImageName string
 
-	bakRetryCount := DefaultPushRetryCount
-	bakRetryDelay := DefaultPushRetryDelay
+	bakRetryCount := DefaultPushOrPullRetryCount
+	bakRetryDelay := DefaultPushOrPullRetryDelay
 
 	fakeDocker := NewFakeDockerClient()
 	fakeDocker.pushImageFunc = fakePushImageFunc
 	testAuth := docker.AuthConfiguration{
-		Username:      "usernname_foo_bar",
+		Username:      "username_foo_bar",
 		Password:      "password_foo_bar",
 		Email:         "email_foo_bar",
 		ServerAddress: "serveraddress_foo_bar",
 	}
 
 	//make test quickly, and recover the value after testing
-	DefaultPushRetryCount = 2
-	defer func() { DefaultPushRetryCount = bakRetryCount }()
-	DefaultPushRetryDelay = 1
-	defer func() { DefaultPushRetryDelay = bakRetryDelay }()
+	DefaultPushOrPullRetryCount = 2
+	defer func() { DefaultPushOrPullRetryCount = bakRetryCount }()
+	DefaultPushOrPullRetryDelay = 1
+	defer func() { DefaultPushOrPullRetryDelay = bakRetryDelay }()
 
 	//expect succ
 	testImageName = "repo_foo_bar:tag_test_succ_foo_bar"
@@ -169,7 +190,7 @@ func TestPushImage(t *testing.T) {
 		t.Errorf("Unexpect push image : %v, want error", err)
 	}
 	//expect run 3 times
-	if fooBarRunTimes != (DefaultPushRetryCount + 1) {
+	if fooBarRunTimes != (DefaultPushOrPullRetryCount + 1) {
 		t.Errorf("Unexpect run times : %d, we expect run three times", fooBarRunTimes)
 	}
 
@@ -177,6 +198,52 @@ func TestPushImage(t *testing.T) {
 	testImageName = "repo_foo_bar:tag_test_err_no_exist_foo_bar"
 	if _, err := pushImage(fakeDocker, testImageName, testAuth); err == nil {
 		t.Errorf("Unexpect push image : %v, want error", err)
+	}
+	defer func() { fooBarRunTimes = 0 }()
+}
+
+func TestPullImage(t *testing.T) {
+	var testImageName string
+
+	bakRetryCount := DefaultPushOrPullRetryCount
+	bakRetryDelay := DefaultPushOrPullRetryDelay
+
+	fakeDocker := NewFakeDockerClient()
+	fakeDocker.pullImageFunc = fakePullImageFunc
+	testAuth := docker.AuthConfiguration{
+		Username:      "username_foo_bar",
+		Password:      "password_foo_bar",
+		Email:         "email_foo_bar",
+		ServerAddress: "serveraddress_foo_bar",
+	}
+
+	//make test quickly, and recover the value after testing
+	DefaultPushOrPullRetryCount = 2
+	defer func() { DefaultPushOrPullRetryCount = bakRetryCount }()
+	DefaultPushOrPullRetryDelay = 1
+	defer func() { DefaultPushOrPullRetryDelay = bakRetryDelay }()
+
+	//expect succ
+	testImageName = "repo_test_succ_foo_bar"
+	if err := pullImage(fakeDocker, testImageName, testAuth); err != nil {
+		t.Errorf("Unexpect pull image : %v, want succ", err)
+	}
+
+	//expect fail
+	testImageName = "repo_test_err_exist_foo_bar"
+	err := pullImage(fakeDocker, testImageName, testAuth)
+	if err == nil {
+		t.Errorf("Unexpect pull image : %v, want error", err)
+	}
+	//expect run 3 times
+	if fooBarRunTimes != (DefaultPushOrPullRetryCount + 1) {
+		t.Errorf("Unexpect run times : %d, we expect run three times", fooBarRunTimes)
+	}
+
+	//expect fail
+	testImageName = "repo_test_err_no_exist_foo_bar"
+	if err := pullImage(fakeDocker, testImageName, testAuth); err == nil {
+		t.Errorf("Unexpect pull image : %v, want error", err)
 	}
 	defer func() { fooBarRunTimes = 0 }()
 }

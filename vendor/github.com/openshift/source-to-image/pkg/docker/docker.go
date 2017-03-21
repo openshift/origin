@@ -328,7 +328,7 @@ func New(config *api.DockerConfig, auth api.AuthConfig) (Docker, error) {
 
 func getDefaultContext() (context.Context, context.CancelFunc) {
 	// the intention is: all docker API calls with the exception of known long-
-	// running calls (ContainerWait, ImagePull, ImageBuild) must complete within a
+	// running calls (ContainerWait, ImagePull, ImageBuild, ImageCommit) must complete within a
 	// certain timeout otherwise we bail.
 	return context.WithTimeout(context.Background(), DefaultDockerTimeout)
 }
@@ -851,11 +851,13 @@ func (d *stiDocker) holdHijackedConnection(tty bool, inputStream io.Reader, outp
 	if inputStream != nil {
 		_, err = io.Copy(resp.Conn, inputStream)
 		if err != nil {
+			<-receiveStdout
 			return err
 		}
 	}
 	err = resp.CloseWrite()
 	if err != nil {
+		<-receiveStdout
 		return err
 	}
 
@@ -1027,8 +1029,6 @@ func (d *stiDocker) GetImageID(name string) (string, error) {
 // CommitContainer commits a container to an image with a specific tag.
 // The new image ID is returned
 func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error) {
-	ctx, cancel := getDefaultContext()
-	defer cancel()
 	dockerOpts := dockertypes.ContainerCommitOptions{
 		Reference: opts.Repository,
 	}
@@ -1044,7 +1044,7 @@ func (d *stiDocker) CommitContainer(opts CommitContainerOptions) (string, error)
 		glog.V(2).Infof("Committing container with dockerOpts: %+v, config: %+v", dockerOpts, config)
 	}
 
-	resp, err := d.client.ContainerCommit(ctx, opts.ContainerID, dockerOpts)
+	resp, err := d.client.ContainerCommit(context.Background(), opts.ContainerID, dockerOpts)
 	if err == nil {
 		return resp.ID, nil
 	}

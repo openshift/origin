@@ -1,6 +1,9 @@
 apiVersion: v1
-kind: List
-items:
+kind: Template
+parameters:
+- name: IMAGE
+  value: openshift/origin-haproxy-router:latest
+objects:
 # a weighted router
 - apiVersion: v1
   kind: Pod
@@ -11,7 +14,8 @@ items:
   spec:
     containers:
     - name: router
-      image: openshift/origin-haproxy-router
+      image: ${IMAGE}
+      imagePullPolicy: IfNotPresent
       env:
       - name: POD_NAMESPACE
         valueFrom:

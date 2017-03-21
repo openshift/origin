@@ -77,7 +77,7 @@ verify: build
 	{ \
 	hack/verify-gofmt.sh ||r=1;\
 	hack/verify-govet.sh ||r=1;\
-	hack/verify-generated-bootstrap-bindata.sh ||r=1;\
+	hack/verify-generated-bindata.sh ||r=1;\
 	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-conversions.sh ||r=1;\
 	hack/verify-generated-clientsets.sh ||r=1;\
@@ -107,7 +107,7 @@ verify-commits:
 # Example:
 #   make update
 update: build
-	hack/update-generated-bootstrap-bindata.sh
+	hack/update-generated-bindata.sh
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-clientsets.sh
@@ -120,6 +120,21 @@ update: build
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-swagger-spec.sh
 .PHONY: update
+
+# Update all generated artifacts for the API
+#
+# Example:
+#   make update-api
+update-api:
+	hack/update-generated-deep-copies.sh
+	hack/update-generated-conversions.sh
+	hack/update-generated-defaulters.sh
+	hack/update-generated-swagger-descriptions.sh
+	hack/update-generated-protobuf.sh
+	$(MAKE) build
+	hack/update-generated-swagger-spec.sh
+	hack/update-generated-openapi.sh
+.PHONY: update-api
 
 # Build and run the complete test-suite.
 #

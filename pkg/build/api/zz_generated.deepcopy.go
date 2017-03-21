@@ -44,6 +44,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_CommonSpec, InType: reflect.TypeOf(&CommonSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_CustomBuildStrategy, InType: reflect.TypeOf(&CustomBuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DockerBuildStrategy, InType: reflect.TypeOf(&DockerBuildStrategy{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_DockerStrategyOptions, InType: reflect.TypeOf(&DockerStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GenericWebHookCause, InType: reflect.TypeOf(&GenericWebHookCause{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GenericWebHookEvent, InType: reflect.TypeOf(&GenericWebHookEvent{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_GitBuildSource, InType: reflect.TypeOf(&GitBuildSource{})},
@@ -382,6 +383,15 @@ func DeepCopy_api_BuildRequest(in interface{}, out interface{}, c *conversion.Cl
 		} else {
 			out.TriggeredBy = nil
 		}
+		if in.DockerStrategyOptions != nil {
+			in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+			*out = new(DockerStrategyOptions)
+			if err := DeepCopy_api_DockerStrategyOptions(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.DockerStrategyOptions = nil
+		}
 		return nil
 	}
 }
@@ -563,7 +573,9 @@ func DeepCopy_api_BuildStrategy(in interface{}, out interface{}, c *conversion.C
 		if in.JenkinsPipelineStrategy != nil {
 			in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
 			*out = new(JenkinsPipelineBuildStrategy)
-			**out = **in
+			if err := DeepCopy_api_JenkinsPipelineBuildStrategy(*in, *out, c); err != nil {
+				return err
+			}
 		} else {
 			out.JenkinsPipelineStrategy = nil
 		}
@@ -757,8 +769,38 @@ func DeepCopy_api_DockerBuildStrategy(in interface{}, out interface{}, c *conver
 		} else {
 			out.Env = nil
 		}
+		if in.BuildArgs != nil {
+			in, out := &in.BuildArgs, &out.BuildArgs
+			*out = make([]pkg_api.EnvVar, len(*in))
+			for i := range *in {
+				if err := pkg_api.DeepCopy_api_EnvVar(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.BuildArgs = nil
+		}
 		out.ForcePull = in.ForcePull
 		out.DockerfilePath = in.DockerfilePath
+		return nil
+	}
+}
+
+func DeepCopy_api_DockerStrategyOptions(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*DockerStrategyOptions)
+		out := out.(*DockerStrategyOptions)
+		if in.BuildArgs != nil {
+			in, out := &in.BuildArgs, &out.BuildArgs
+			*out = make([]pkg_api.EnvVar, len(*in))
+			for i := range *in {
+				if err := pkg_api.DeepCopy_api_EnvVar(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.BuildArgs = nil
+		}
 		return nil
 	}
 }
@@ -804,6 +846,15 @@ func DeepCopy_api_GenericWebHookEvent(in interface{}, out interface{}, c *conver
 			}
 		} else {
 			out.Env = nil
+		}
+		if in.DockerStrategyOptions != nil {
+			in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+			*out = new(DockerStrategyOptions)
+			if err := DeepCopy_api_DockerStrategyOptions(*in, *out, c); err != nil {
+				return err
+			}
+		} else {
+			out.DockerStrategyOptions = nil
 		}
 		return nil
 	}
@@ -970,6 +1021,17 @@ func DeepCopy_api_JenkinsPipelineBuildStrategy(in interface{}, out interface{}, 
 		out := out.(*JenkinsPipelineBuildStrategy)
 		out.JenkinsfilePath = in.JenkinsfilePath
 		out.Jenkinsfile = in.Jenkinsfile
+		if in.Env != nil {
+			in, out := &in.Env, &out.Env
+			*out = make([]pkg_api.EnvVar, len(*in))
+			for i := range *in {
+				if err := pkg_api.DeepCopy_api_EnvVar(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Env = nil
+		}
 		return nil
 	}
 }

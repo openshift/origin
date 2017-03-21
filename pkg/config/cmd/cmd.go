@@ -67,7 +67,7 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 
 	errs := []error{}
 	for i, item := range list.Items {
-		info, err := b.Mapper.InfoForObject(item, nil)
+		info, err := b.Mapper.InfoForObject(item, []unversioned.GroupVersionKind{{Group: ""}})
 		if err != nil {
 			errs = append(errs, err)
 			if after(info, err) {

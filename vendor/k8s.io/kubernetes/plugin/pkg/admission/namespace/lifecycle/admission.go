@@ -200,12 +200,15 @@ func (l *lifecycle) Validate() error {
 
 // TODO move this upstream once they have namespaced access review checks
 var accessReviewResources = map[unversioned.GroupResource]bool{
-	unversioned.GroupResource{Group: "", Resource: "subjectaccessreviews"}:       true,
-	unversioned.GroupResource{Group: "", Resource: "localsubjectaccessreviews"}:  true,
-	unversioned.GroupResource{Group: "", Resource: "resourceaccessreviews"}:      true,
-	unversioned.GroupResource{Group: "", Resource: "localresourceaccessreviews"}: true,
-	unversioned.GroupResource{Group: "", Resource: "selfsubjectrulesreviews"}:    true,
-	unversioned.GroupResource{Group: "", Resource: "subjectrulesreviews"}:        true,
+	unversioned.GroupResource{Group: "", Resource: "subjectaccessreviews"}:                          true,
+	unversioned.GroupResource{Group: "", Resource: "localsubjectaccessreviews"}:                     true,
+	unversioned.GroupResource{Group: "", Resource: "resourceaccessreviews"}:                         true,
+	unversioned.GroupResource{Group: "", Resource: "localresourceaccessreviews"}:                    true,
+	unversioned.GroupResource{Group: "", Resource: "selfsubjectrulesreviews"}:                       true,
+	unversioned.GroupResource{Group: "", Resource: "subjectrulesreviews"}:                           true,
+	unversioned.GroupResource{Group: "authorization.k8s.io", Resource: "subjectaccessreviews"}:      true,
+	unversioned.GroupResource{Group: "authorization.k8s.io", Resource: "selfsubjectaccessreviews"}:  true,
+	unversioned.GroupResource{Group: "authorization.k8s.io", Resource: "localsubjectaccessreviews"}: true,
 }
 
 func isAccessReview(a admission.Attributes) bool {

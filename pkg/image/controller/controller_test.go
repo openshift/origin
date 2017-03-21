@@ -274,6 +274,26 @@ func TestControllerStart(t *testing.T) {
 				},
 			},
 		},
+		// test external repo
+		{
+			run: true,
+			stream: &api.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{
+					Name:      "test",
+					Namespace: "other",
+				},
+				Spec: api.ImageStreamSpec{
+					Tags: map[string]api.TagReference{
+						"1.1": {
+							From: &kapi.ObjectReference{
+								Kind: "DockerImage",
+								Name: "some/repo:mytag",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, test := range testCases {
@@ -288,8 +308,13 @@ func TestControllerStart(t *testing.T) {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		}
 		if test.run {
-			if len(fake.Actions()) == 0 {
+			actions := fake.Actions()
+			if len(actions) == 0 {
 				t.Errorf("%d: expected remote calls: %#v", i, fake)
+				continue
+			}
+			if !actions[0].Matches("create", "imagestreamimports") {
+				t.Errorf("expected a create action: %#v", actions)
 			}
 		} else {
 			if !kapi.Semantic.DeepEqual(test.stream, other) {
@@ -299,38 +324,6 @@ func TestControllerStart(t *testing.T) {
 				t.Errorf("%d: did not expect remote calls", i)
 			}
 		}
-	}
-}
-
-func TestControllerExternalRepo(t *testing.T) {
-	fake := &client.Fake{}
-	c := ImportController{streams: fake}
-
-	stream := api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
-			Name:      "test",
-			Namespace: "other",
-		},
-		Spec: api.ImageStreamSpec{
-			Tags: map[string]api.TagReference{
-				"1.1": {
-					From: &kapi.ObjectReference{
-						Kind: "DockerImage",
-						Name: "some/repo:mytag",
-					},
-				},
-			},
-		},
-	}
-	if err := c.Next(&stream, nil); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	actions := fake.Actions()
-	if len(actions) != 1 {
-		t.Fatalf("expected 1 actions, got %#v", actions)
-	}
-	if !actions[0].Matches("create", "imagestreamimports") {
-		t.Errorf("expected a create action: %#v", actions)
 	}
 }
 

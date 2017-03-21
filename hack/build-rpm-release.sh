@@ -26,7 +26,7 @@ if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 	# provided by the Origin build scripts to the
 	# version that RPM will expect.
 	rpm_version="${BASH_REMATCH[1]}"
-	rpm_release="0${BASH_REMATCH[3]//-/.}"
+	rpm_release="999${BASH_REMATCH[3]//-/.}"
 fi
 tito tag --use-version="${rpm_version}" \
          --use-release="${rpm_release}" \
@@ -50,8 +50,8 @@ elif [[ "${#output_directories[@]}" -gt 1 ]]; then
 			output_directory="${directory}"
 		fi
 	done
-	os::log::warn 'After the tito build, more than one rpmbuild directory was found!'
-	os::log::warn 'This script will unpack the most recently modified directory: '"${output_directory}"
+	os::log::warning 'After the tito build, more than one rpmbuild directory was found!'
+	os::log::warning 'This script will unpack the most recently modified directory: '"${output_directory}"
 else
 	output_directory="${output_directories[0]}"
 fi
@@ -68,7 +68,7 @@ make clean
 mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
 mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
-mv "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
 
 if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
@@ -78,10 +78,11 @@ if command -v createrepo >/dev/null 2>&1; then
 baseurl = file://${repo_path}
 gpgcheck = 0
 name = OpenShift Origin Release from Local Source
+enabled = 1
 " > "${repo_path}/origin-local-release.repo"
 
 	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
 	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
 else
-	os::log::warn "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
+	os::log::warning "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
 fi

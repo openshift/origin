@@ -1,0 +1,19 @@
+kind: Pod
+id: nginx-mysql
+apiVersion: v1
+metadata:
+  name: nginx-mysql
+  labels:
+    name: nginx-mysql
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - hostPort: 85
+      containerPort: 80
+  - name: mysql
+    image: mysql
+    ports:
+    - hostPort: 3306
+      containerPort: 3306

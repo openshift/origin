@@ -71,6 +71,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
 		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
 		Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy,
+		Convert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions,
+		Convert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions,
 		Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause,
 		Convert_api_GenericWebHookCause_To_v1_GenericWebHookCause,
 		Convert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent,
@@ -553,6 +555,15 @@ func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *api.
 	} else {
 		out.TriggeredBy = nil
 	}
+	if in.DockerStrategyOptions != nil {
+		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+		*out = new(api.DockerStrategyOptions)
+		if err := Convert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DockerStrategyOptions = nil
+	}
 	return nil
 }
 
@@ -614,6 +625,15 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *api.BuildRequest, out *
 		}
 	} else {
 		out.TriggeredBy = nil
+	}
+	if in.DockerStrategyOptions != nil {
+		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+		*out = new(DockerStrategyOptions)
+		if err := Convert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DockerStrategyOptions = nil
 	}
 	return nil
 }
@@ -870,7 +890,15 @@ func autoConvert_v1_BuildStrategy_To_api_BuildStrategy(in *BuildStrategy, out *a
 	} else {
 		out.CustomStrategy = nil
 	}
-	out.JenkinsPipelineStrategy = (*api.JenkinsPipelineBuildStrategy)(unsafe.Pointer(in.JenkinsPipelineStrategy))
+	if in.JenkinsPipelineStrategy != nil {
+		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
+		*out = new(api.JenkinsPipelineBuildStrategy)
+		if err := Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -906,7 +934,15 @@ func autoConvert_api_BuildStrategy_To_v1_BuildStrategy(in *api.BuildStrategy, ou
 	} else {
 		out.CustomStrategy = nil
 	}
-	out.JenkinsPipelineStrategy = (*JenkinsPipelineBuildStrategy)(unsafe.Pointer(in.JenkinsPipelineStrategy))
+	if in.JenkinsPipelineStrategy != nil {
+		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
+		*out = new(JenkinsPipelineBuildStrategy)
+		if err := Convert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.JenkinsPipelineStrategy = nil
+	}
 	return nil
 }
 
@@ -1207,6 +1243,17 @@ func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBui
 	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
+	if in.BuildArgs != nil {
+		in, out := &in.BuildArgs, &out.BuildArgs
+		*out = make([]pkg_api.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BuildArgs = nil
+	}
 	return nil
 }
 
@@ -1241,6 +1288,17 @@ func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *api.Docke
 	} else {
 		out.Env = nil
 	}
+	if in.BuildArgs != nil {
+		in, out := &in.BuildArgs, &out.BuildArgs
+		*out = make([]api_v1.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BuildArgs = nil
+	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
 	return nil
@@ -1248,6 +1306,44 @@ func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *api.Docke
 
 func Convert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *api.DockerBuildStrategy, out *DockerBuildStrategy, s conversion.Scope) error {
 	return autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in, out, s)
+}
+
+func autoConvert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions(in *DockerStrategyOptions, out *api.DockerStrategyOptions, s conversion.Scope) error {
+	if in.BuildArgs != nil {
+		in, out := &in.BuildArgs, &out.BuildArgs
+		*out = make([]pkg_api.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BuildArgs = nil
+	}
+	return nil
+}
+
+func Convert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions(in *DockerStrategyOptions, out *api.DockerStrategyOptions, s conversion.Scope) error {
+	return autoConvert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions(in, out, s)
+}
+
+func autoConvert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(in *api.DockerStrategyOptions, out *DockerStrategyOptions, s conversion.Scope) error {
+	if in.BuildArgs != nil {
+		in, out := &in.BuildArgs, &out.BuildArgs
+		*out = make([]api_v1.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.BuildArgs = nil
+	}
+	return nil
+}
+
+func Convert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(in *api.DockerStrategyOptions, out *DockerStrategyOptions, s conversion.Scope) error {
+	return autoConvert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(in, out, s)
 }
 
 func autoConvert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHookCause, out *api.GenericWebHookCause, s conversion.Scope) error {
@@ -1308,6 +1404,15 @@ func autoConvert_v1_GenericWebHookEvent_To_api_GenericWebHookEvent(in *GenericWe
 	} else {
 		out.Env = nil
 	}
+	if in.DockerStrategyOptions != nil {
+		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+		*out = new(api.DockerStrategyOptions)
+		if err := Convert_v1_DockerStrategyOptions_To_api_DockerStrategyOptions(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DockerStrategyOptions = nil
+	}
 	return nil
 }
 
@@ -1335,6 +1440,15 @@ func autoConvert_api_GenericWebHookEvent_To_v1_GenericWebHookEvent(in *api.Gener
 		}
 	} else {
 		out.Env = nil
+	}
+	if in.DockerStrategyOptions != nil {
+		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
+		*out = new(DockerStrategyOptions)
+		if err := Convert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.DockerStrategyOptions = nil
 	}
 	return nil
 }
@@ -1623,6 +1737,17 @@ func Convert_api_ImageSourcePath_To_v1_ImageSourcePath(in *api.ImageSourcePath, 
 func autoConvert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy(in *JenkinsPipelineBuildStrategy, out *api.JenkinsPipelineBuildStrategy, s conversion.Scope) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]pkg_api.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_v1_EnvVar_To_api_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 
@@ -1633,6 +1758,17 @@ func Convert_v1_JenkinsPipelineBuildStrategy_To_api_JenkinsPipelineBuildStrategy
 func autoConvert_api_JenkinsPipelineBuildStrategy_To_v1_JenkinsPipelineBuildStrategy(in *api.JenkinsPipelineBuildStrategy, out *JenkinsPipelineBuildStrategy, s conversion.Scope) error {
 	out.JenkinsfilePath = in.JenkinsfilePath
 	out.Jenkinsfile = in.Jenkinsfile
+	if in.Env != nil {
+		in, out := &in.Env, &out.Env
+		*out = make([]api_v1.EnvVar, len(*in))
+		for i := range *in {
+			if err := api_v1.Convert_api_EnvVar_To_v1_EnvVar(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Env = nil
+	}
 	return nil
 }
 

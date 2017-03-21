@@ -269,7 +269,8 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 	}
 
 	// Autoscaling info
-	printAutoscalingInfo(deployapi.Resource("DeploymentConfig"), dc.Namespace, dc.Name, kc, w)
+	// FIXME: The CrossVersionObjectReference should specify the Group
+	printAutoscalingInfo([]unversioned.GroupResource{deployapi.Resource("DeploymentConfig"), deployapi.LegacyResource("DeploymentConfig")}, dc.Namespace, dc.Name, kc, w)
 
 	// Triggers
 	printTriggers(spec.Triggers, w)
@@ -290,7 +291,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 }
 
 // TODO: Move this upstream
-func printAutoscalingInfo(res unversioned.GroupResource, namespace, name string, kclient kclientset.Interface, w *tabwriter.Writer) {
+func printAutoscalingInfo(res []unversioned.GroupResource, namespace, name string, kclient kclientset.Interface, w *tabwriter.Writer) {
 	hpaList, err := kclient.Autoscaling().HorizontalPodAutoscalers(namespace).List(kapi.ListOptions{LabelSelector: labels.Everything()})
 	if err != nil {
 		return
@@ -298,8 +299,10 @@ func printAutoscalingInfo(res unversioned.GroupResource, namespace, name string,
 
 	scaledBy := []autoscaling.HorizontalPodAutoscaler{}
 	for _, hpa := range hpaList.Items {
-		if hpa.Spec.ScaleTargetRef.Name == name && hpa.Spec.ScaleTargetRef.Kind == res.String() {
-			scaledBy = append(scaledBy, hpa)
+		for _, r := range res {
+			if hpa.Spec.ScaleTargetRef.Name == name && hpa.Spec.ScaleTargetRef.Kind == r.String() {
+				scaledBy = append(scaledBy, hpa)
+			}
 		}
 	}
 

@@ -20,7 +20,6 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 
 	// install all APIs
@@ -391,20 +390,21 @@ func TestAccessController(t *testing.T) {
 		if len(test.bearerToken) > 0 {
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", test.bearerToken))
 		}
-		ctx := context.WithValue(context.Background(), "http.request", req)
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
-		DefaultRegistryClient = NewRegistryClient(&clientcmd.Config{
-			CommonConfig: restclient.Config{
+		options[AccessControllerOptionParams] = AccessControllerParams{
+			Logger: context.GetLogger(context.Background()),
+			SafeClientConfig: restclient.Config{
 				Host:     server.URL,
 				Insecure: true,
 			},
-			SkipEnv: true,
-		})
+		}
 		accessController, err := newAccessController(options)
 		if err != nil {
 			t.Fatal(err)
 		}
+		ctx := context.Background()
+		ctx = context.WithRequest(ctx, req)
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()
 
@@ -426,11 +426,11 @@ func TestAccessController(t *testing.T) {
 				t.Errorf("%s: expected auth context but got nil", k)
 				continue
 			}
-			if !AuthPerformed(authCtx) {
+			if !authPerformed(authCtx) {
 				t.Errorf("%s: expected AuthPerformed to be true", k)
 				continue
 			}
-			deferredErrors, hasDeferred := DeferredErrorsFrom(authCtx)
+			deferredErrors, hasDeferred := deferredErrorsFrom(authCtx)
 			if len(test.expectedRepoErr) > 0 {
 				if !hasDeferred || deferredErrors[test.expectedRepoErr] == nil {
 					t.Errorf("%s: expected deferred error for repo %s, got none", k, test.expectedRepoErr)

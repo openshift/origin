@@ -174,6 +174,10 @@ type MasterConfig struct {
 	// ServingInfo describes how to start serving
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
+	// AuthConfig configures authentication options in addition to the standard
+	// oauth token and client certificate authenticators
+	AuthConfig MasterAuthConfig `json:"authConfig"`
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
@@ -262,6 +266,29 @@ type MasterConfig struct {
 
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig `json:"auditConfig"`
+}
+
+// MasterAuthConfig configures authentication options in addition to the standard
+// oauth token and client certificate authenticators
+type MasterAuthConfig struct {
+	// RequestHeader holds options for setting up a front proxy against the the API.  It is optional.
+	RequestHeader *RequestHeaderAuthenticationOptions `json:"requestHeader"`
+}
+
+// RequestHeaderAuthenticationOptions provides options for setting up a front proxy against the entire
+// API instead of against the /oauth endpoint.
+type RequestHeaderAuthenticationOptions struct {
+	// ClientCA is a file with the trusted signer certs.  It is required.
+	ClientCA string `json:"clientCA"`
+	// ClientCommonNames is a required list of common names to require a match from.
+	ClientCommonNames []string `json:"clientCommonNames"`
+
+	// UsernameHeaders is the list of headers to check for user information.  First hit wins.
+	UsernameHeaders []string `json:"usernameHeaders"`
+	// GroupNameHeader is the set of headers to check for group information.  All are unioned.
+	GroupHeaders []string `json:"groupHeaders"`
+	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
+	ExtraHeaderPrefixes []string `json:"extraHeaderPrefixes"`
 }
 
 // AuditConfig holds configuration for the audit capabilities
@@ -511,6 +538,12 @@ type ServingInfo struct {
 	ClientCA string `json:"clientCA"`
 	// NamedCertificates is a list of certificates to use to secure requests to specific hostnames
 	NamedCertificates []NamedCertificate `json:"namedCertificates"`
+	// MinTLSVersion is the minimum TLS version supported.
+	// Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
+	MinTLSVersion string `json:"minTLSVersion,omitempty"`
+	// CipherSuites contains an overridden list of ciphers for the server to support.
+	// Values must match cipher suite IDs from https://golang.org/pkg/crypto/tls/#pkg-constants
+	CipherSuites []string `json:"cipherSuites,omitempty"`
 }
 
 // NamedCertificate specifies a certificate/key, and the names it should be served for

@@ -29,24 +29,7 @@ function cleanup()
         go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
-    # TODO(skuznets): un-hack this nonsense once traps are in a better state
-    if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-      # get the jUnit output file into a workable state in case we crashed in the middle of testing something
-      os::test::junit::reconcile_output
-
-      # check that we didn't mangle jUnit output
-      os::test::junit::check_test_counters
-
-      # use the junitreport tool to generate us a report
-      os::util::ensure::built_binary_exists 'junitreport'
-
-      cat "${JUNIT_REPORT_OUTPUT}"                        \
-        | junitreport --type oscmd                        \
-                      --suites nested                     \
-                      --roots github.com/openshift/origin \
-                      --output "${ARTIFACT_DIR}/report.xml"
-      cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
-    fi
+    os::test::junit::generate_oscmd_report
 
     ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
     os::log::info "Exiting with ${out}"
@@ -89,7 +72,9 @@ export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
-os::util::environment::setup_all_server_vars "test-cmd/"
+os::cleanup::tmpdir
+os::util::environment::setup_all_server_vars
+export HOME="${FAKE_HOME_DIR}"
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then

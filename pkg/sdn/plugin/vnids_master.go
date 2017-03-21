@@ -288,11 +288,11 @@ func (master *OsdnMaster) watchNamespaces() {
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			if err := master.vnids.assignVNID(master.osClient, name); err != nil {
-				return fmt.Errorf("Error assigning netid: %v", err)
+				return fmt.Errorf("error assigning netid: %v", err)
 			}
 		case cache.Deleted:
 			if err := master.vnids.revokeVNID(master.osClient, name); err != nil {
-				return fmt.Errorf("Error revoking netid: %v", err)
+				return fmt.Errorf("error revoking netid: %v", err)
 			}
 		}
 		return nil
@@ -309,7 +309,7 @@ func (master *OsdnMaster) watchNetNamespaces() {
 		case cache.Sync, cache.Added, cache.Updated:
 			err := master.vnids.updateVNID(master.osClient, netns)
 			if err != nil {
-				return fmt.Errorf("Error updating netid: %v", err)
+				return fmt.Errorf("error updating netid: %v", err)
 			}
 		}
 		return nil

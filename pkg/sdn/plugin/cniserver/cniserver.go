@@ -182,7 +182,7 @@ func cniRequestToPodRequest(r *http.Request) (*PodRequest, error) {
 
 	cmd, ok := cr.Env["CNI_COMMAND"]
 	if !ok {
-		return nil, fmt.Errorf("Unexpected or missing CNI_COMMAND")
+		return nil, fmt.Errorf("unexpected or missing CNI_COMMAND")
 	}
 
 	req := &PodRequest{

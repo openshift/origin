@@ -15,35 +15,6 @@ function kill_all_processes() {
 }
 readonly -f kill_all_processes
 
-# dump_container_logs writes container logs to $LOG_DIR
-function dump_container_logs() {
-	if ! docker version >/dev/null 2>&1; then
-		return
-	fi
-
-	mkdir -p ${LOG_DIR}
-
-	os::log::info "Dumping container logs to ${LOG_DIR}"
-	for container in $(docker ps -aq); do
-		container_name=$(docker inspect -f "{{.Name}}" $container)
-		# strip off leading /
-		container_name=${container_name:1}
-		if [[ "$container_name" =~ ^k8s_ ]]; then
-			pod_name=$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $4 }')
-			container_name=${pod_name}-$(echo $container_name | awk 'BEGIN { FS="[_.]+" }; { print $2 }')
-		fi
-		docker logs "$container" >&"${LOG_DIR}/container-${container_name}.log"
-	done
-}
-readonly -f dump_container_logs
-
-# delete_empty_logs deletes empty logs
-function delete_empty_logs() {
-	# Clean up zero byte log files
-	find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -empty \) -delete
-}
-readonly -f delete_empty_logs
-
 # truncate_large_logs truncates large logs
 function truncate_large_logs() {
 	# Clean up large log files so they don't end up on jenkins
@@ -71,25 +42,18 @@ function cleanup_openshift() {
 	ETCD_PORT="${ETCD_PORT:-4001}"
 
 	set +e
-	dump_container_logs
-
 	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
 	# really have it smack people in their logs.  This is a severe correctness problem
 	grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
 
-	os::cleanup::dump_etcd
+	os::cleanup::dump_container_logs
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
+		os::cleanup::dump_etcd
 		os::log::info "Tearing down test"
 		kill_all_processes
 
-		if docker version >/dev/null 2>&1; then
-			os::log::info "Stopping k8s docker containers"; docker ps | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker stop -t 1 >/dev/null
-			if [[ -z "${SKIP_IMAGE_CLEANUP-}" ]]; then
-				os::log::info "Removing k8s docker containers"; docker ps -a | awk 'index($NF,"k8s_")==1 { print $1 }' | xargs -l -r docker rm -v >/dev/null
-			fi
-		fi
-
+		os::cleanup::containers
 		os::log::info "Pruning etcd data directory..."
 		local sudo="${USE_SUDO:+sudo}"
 		${sudo} rm -rf "${ETCD_DATA_DIR}"
@@ -102,7 +66,6 @@ function cleanup_openshift() {
 		journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
 	fi
 
-	delete_empty_logs
 	truncate_large_logs
 
 	os::log::info "Cleanup complete"
@@ -123,6 +86,7 @@ function find_files() {
 		-o -wholename './pkg/assets/*/bindata.go' \
 		-o -wholename './pkg/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
+		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \

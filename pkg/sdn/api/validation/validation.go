@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"fmt"
 	"net"
 
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -85,10 +86,14 @@ func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.Cluste
 func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&hs.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
+	if hs.Host != hs.Name {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("host"), hs.Host, fmt.Sprintf("must be the same as metadata.name: %q", hs.Name)))
+	}
+
 	if hs.Subnet == "" {
 		// check if annotation exists, then let the Subnet field be empty
 		if _, ok := hs.Annotations[sdnapi.AssignHostSubnetAnnotation]; !ok {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "Field cannot be empty"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "field cannot be empty"))
 		}
 	} else {
 		_, _, err := net.ParseCIDR(hs.Subnet)
@@ -117,8 +122,12 @@ func ValidateHostSubnetUpdate(obj *sdnapi.HostSubnet, old *sdnapi.HostSubnet) fi
 func ValidateNetNamespace(netnamespace *sdnapi.NetNamespace) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&netnamespace.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
+	if netnamespace.NetName != netnamespace.Name {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("netname"), netnamespace.NetName, fmt.Sprintf("must be the same as metadata.name: %q", netnamespace.Name)))
+	}
+
 	if err := sdnapi.ValidVNID(netnamespace.NetID); err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("netID"), netnamespace.NetID, err.Error()))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("netid"), netnamespace.NetID, err.Error()))
 	}
 	return allErrs
 }

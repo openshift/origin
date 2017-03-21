@@ -68,18 +68,21 @@ func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.
 	return validation.ValidateBuildConfigUpdate(obj.(*api.BuildConfig), old.(*api.BuildConfig))
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	buildConfig, ok := obj.(*api.BuildConfig)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a BuildConfig")
+	}
+	return labels.Set(buildConfig.ObjectMeta.Labels), api.BuildConfigToSelectableFields(buildConfig), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			buildConfig, ok := obj.(*api.BuildConfig)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a BuildConfig")
-			}
-			return labels.Set(buildConfig.ObjectMeta.Labels), api.BuildConfigToSelectableFields(buildConfig), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 

@@ -1,17 +1,17 @@
 [Unit]
-After=docker.service
-Requires=docker.service
-PartOf=docker.service
+After=${DOCKER_SERVICE}
+Requires=${DOCKER_SERVICE}
+PartOf=${DOCKER_SERVICE}
 
 [Service]
 EnvironmentFile=/etc/sysconfig/$NAME
 ExecStartPre=/bin/bash -c 'export -p > /run/$NAME-env'
 ExecStart=$EXEC_START
-ExecStartPost=/usr/bin/sleep 5
 ExecStop=$EXEC_STOP
 SyslogIdentifier=$NAME
 Restart=always
-RestartSec=5s
+Type=notify
+NotifyAccess=all
 WorkingDirectory=$DESTDIR
 RuntimeDirectory=${NAME}
 

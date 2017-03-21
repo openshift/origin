@@ -112,9 +112,9 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/groups"
 os::cmd::expect_success_and_text 'oadm groups new shortoutputgroup -o name' 'group/shortoutputgroup'
-os::cmd::expect_failure_and_text 'oadm groups new shortoutputgroup' 'groups "shortoutputgroup" already exists'
+os::cmd::expect_failure_and_text 'oadm groups new shortoutputgroup' 'groups.user.openshift.io "shortoutputgroup" already exists'
 os::cmd::expect_failure_and_text 'oadm groups new errorgroup -o blah' 'error: output format "blah" not recognized'
-os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups "errorgroup" not found'
+os::cmd::expect_failure_and_text 'oc get groups/errorgroup' 'groups.user.openshift.io "errorgroup" not found'
 os::cmd::expect_success_and_text 'oadm groups new group1 foo bar' 'group1.*foo, bar'
 os::cmd::expect_success_and_text 'oc get groups/group1 --no-headers' 'foo, bar'
 os::cmd::expect_success 'oadm groups add-users group1 baz'
@@ -505,6 +505,7 @@ os::test::junit::declare_suite_start "cmd/admin/images"
 os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/stable-busybox.yaml"
 os::cmd::expect_success_and_text "oadm top images" "sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6\W+default/busybox \(latest\)\W+<none>\W+<none>\W+yes\W+0\.65MiB"
 os::cmd::expect_success_and_text "oadm top imagestreams" "default/busybox\W+0.65MiB\W+1\W+1"
+os::cmd::expect_success "oc delete is/busybox -n default"
 
 # log in as an image-pruner and test that oadm prune images works against the atomic binary
 os::cmd::expect_success "oadm policy add-cluster-role-to-user system:image-pruner pruner --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'"

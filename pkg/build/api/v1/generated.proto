@@ -302,12 +302,16 @@ message BuildRequest {
   // not be generated.
   optional int64 lastVersion = 6;
 
-  // env contains additional environment variables you want to pass into a builder container
+  // env contains additional environment variables you want to pass into a builder container.
+  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 7;
 
   // triggeredBy describes which triggers started the most recent update to the
   // build configuration and contains information about those triggers.
   repeated BuildTriggerCause triggeredBy = 8;
+
+  // DockerStrategyOptions contains additional docker-strategy specific options for the build
+  optional DockerStrategyOptions dockerStrategyOptions = 9;
 }
 
 // BuildSource is the SCM used for the build.
@@ -533,7 +537,8 @@ message CustomBuildStrategy {
   // registries
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
 
-  // env contains additional environment variables you want to pass into a builder container
+  // env contains additional environment variables you want to pass into a builder container.
+  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 
   // exposeDockerSocket will allow running Docker commands (and build Docker images) from
@@ -568,7 +573,8 @@ message DockerBuildStrategy {
   // --no-cache=true flag
   optional bool noCache = 3;
 
-  // env contains additional environment variables you want to pass into a builder container
+  // env contains additional environment variables you want to pass into a builder container.
+  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 4;
 
   // forcePull describes if the builder should pull the images from registry prior to building.
@@ -577,6 +583,17 @@ message DockerBuildStrategy {
   // dockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
   // relative to the root of the context (contextDir).
   optional string dockerfilePath = 6;
+
+  // Args contains any build arguments that are to be passed to Docker.  See
+  // https://docs.docker.com/engine/reference/builder/#/arg for more details
+  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 7;
+}
+
+// DockerStrategyOptions contains extra strategy options for Docker builds
+message DockerStrategyOptions {
+  // Args contains any build arguments that are to be passed to Docker.  See
+  // https://docs.docker.com/engine/reference/builder/#/arg for more details
+  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 1;
 }
 
 // GenericWebHookCause holds information about a generic WebHook that
@@ -599,8 +616,12 @@ message GenericWebHookEvent {
   // git is the git information if the Type is BuildSourceGit
   optional GitInfo git = 2;
 
-  // env contains additional environment variables you want to pass into a builder container
+  // env contains additional environment variables you want to pass into a builder container.
+  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
+
+  // DockerStrategyOptions contains additional docker-strategy specific options for the build
+  optional DockerStrategyOptions dockerStrategyOptions = 4;
 }
 
 // GitBuildSource defines the parameters of a Git SCM
@@ -720,6 +741,10 @@ message JenkinsPipelineBuildStrategy {
 
   // Jenkinsfile defines the optional raw contents of a Jenkinsfile which defines a Jenkins pipeline build.
   optional string jenkinsfile = 2;
+
+  // env contains additional environment variables you want to pass into a build pipeline.
+  // ValueFrom is not supported.
+  repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 }
 
 // OptionalNodeSelector is a map that may also be left nil to distinguish between set and unset.
@@ -782,7 +807,8 @@ message SourceBuildStrategy {
   // registries
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
 
-  // env contains additional environment variables you want to pass into a builder container
+  // env contains additional environment variables you want to pass into a builder container.
+  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 
   // scripts is the location of Source scripts
@@ -798,14 +824,16 @@ message SourceBuildStrategy {
   // without unneeded dependencies installed. The building of the application
   // is still done in the builder image but, post build, you can copy the
   // needed artifacts in the runtime image for use.
-  // This field and the feature it enables are in tech preview.
+  // Deprecated: This feature will be removed in a future release. Use ImageSource
+  // to copy binary artifacts created from one build into a separate runtime image.
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference runtimeImage = 7;
 
   // runtimeArtifacts specifies a list of source/destination pairs that will be
   // copied from the builder to the runtime image. sourcePath can be a file or
   // directory. destinationDir must be a directory. destinationDir can also be
   // empty or equal to ".", in this case it just refers to the root of WORKDIR.
-  // This field and the feature it enables are in tech preview.
+  // Deprecated: This feature will be removed in a future release. Use ImageSource
+  // to copy binary artifacts created from one build into a separate runtime image.
   repeated ImageSourcePath runtimeArtifacts = 8;
 }
 

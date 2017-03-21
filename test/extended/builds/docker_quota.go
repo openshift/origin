@@ -2,6 +2,8 @@ package builds
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -36,7 +38,9 @@ var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
+			path := exutil.FixturePath("testdata", "build-quota")
+			o.Expect(os.Chmod(filepath.Join(path, ".s2i", "bin", "assemble"), 0755)).NotTo(o.HaveOccurred())
+			br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", path)
 
 			g.By("expecting the build is in Failed phase")
 			br.AssertFailure()

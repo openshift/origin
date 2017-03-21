@@ -1,6 +1,6 @@
 package builds
 
-// these tests are diabled because the xip.io dns hook was proving way too unreliable;
+// these tests are disabled because the xip.io dns hook was proving way too unreliable;
 // we will reenable once an agreeable alternative is derived to get name resolution for the routes
 
 /*import (
@@ -30,7 +30,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 	const (
 		gitServerDeploymentConfigName = "gitserver"
 		sourceSecretName              = "sourcesecret"
-		hostNameSuffix                = "xip.io"
+		hostNameSuffix                = "nip.io"
 		gitUserName                   = "gituser"
 		gitPassword                   = "gituserpassword"
 		buildConfigName               = "gitauthtest"

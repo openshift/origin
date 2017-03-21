@@ -86,6 +86,27 @@ func TestCreateOk(t *testing.T) {
 	}
 }
 
+func TestCreateRollbackToLatest(t *testing.T) {
+	oc := &testclient.Fake{}
+	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		return true, deploytest.OkDeploymentConfig(2), nil
+	})
+
+	_, err := NewREST(oc, &fake.Clientset{}, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+		Name: "config",
+		Spec: deployapi.DeploymentConfigRollbackSpec{
+			Revision: 2,
+		},
+	})
+
+	if err == nil {
+		t.Errorf("expected an error when rolling back to the existing deployed revision")
+	}
+	if err != nil && !strings.Contains(err.Error(), "version 2 is already the latest") {
+		t.Errorf("unexpected error received: %v", err)
+	}
+}
+
 func TestCreateGeneratorError(t *testing.T) {
 	oc := &testclient.Fake{}
 	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {

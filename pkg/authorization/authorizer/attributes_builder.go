@@ -1,10 +1,11 @@
 package authorizer
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 )
 
 type openshiftAuthorizationAttributeBuilder struct {
@@ -16,33 +17,37 @@ func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, i
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoFactory}
 }
 
-func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (Action, error) {
+func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request) (authorizer.Attributes, error) {
+
+	ctx, ok := a.contextMapper.Get(req)
+	if !ok {
+		return nil, errors.New("no context found for request")
+	}
+
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return nil, errors.New("no user found on context")
+	}
+
 	requestInfo, err := a.infoFactory.NewRequestInfo(req)
 	if err != nil {
 		return nil, err
 	}
 
-	if !requestInfo.IsResourceRequest {
-		return DefaultAuthorizationAttributes{
-			Verb:           strings.ToLower(req.Method),
-			NonResourceURL: true,
-			URL:            requestInfo.Path,
-		}, nil
+	attribs := authorizer.AttributesRecord{
+		User: user,
+
+		ResourceRequest: requestInfo.IsResourceRequest,
+		Path:            requestInfo.Path,
+		Verb:            requestInfo.Verb,
+
+		APIGroup:    requestInfo.APIGroup,
+		APIVersion:  requestInfo.APIVersion,
+		Resource:    requestInfo.Resource,
+		Subresource: requestInfo.Subresource,
+		Namespace:   requestInfo.Namespace,
+		Name:        requestInfo.Name,
 	}
 
-	resource := requestInfo.Resource
-	if len(requestInfo.Subresource) > 0 {
-		resource = requestInfo.Resource + "/" + requestInfo.Subresource
-	}
-
-	return DefaultAuthorizationAttributes{
-		Verb:              requestInfo.Verb,
-		APIGroup:          requestInfo.APIGroup,
-		APIVersion:        requestInfo.APIVersion,
-		Resource:          resource,
-		ResourceName:      requestInfo.Name,
-		RequestAttributes: req,
-		NonResourceURL:    false,
-		URL:               requestInfo.Path,
-	}, nil
+	return attribs, nil
 }

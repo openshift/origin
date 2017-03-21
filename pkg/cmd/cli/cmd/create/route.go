@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -160,7 +161,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(actualRoute, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, []unversioned.GroupVersionKind{{Group: ""}})
 	if err != nil {
 		return err
 	}
@@ -266,7 +267,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(actualRoute, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, []unversioned.GroupVersionKind{{Group: ""}})
 	if err != nil {
 		return err
 	}
@@ -404,7 +405,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 		RESTMapper:   mapper,
 		ClientMapper: resource.ClientMapperFunc(f.ClientForMapping),
 	}
-	info, err := resourceMapper.InfoForObject(actualRoute, nil)
+	info, err := resourceMapper.InfoForObject(actualRoute, []unversioned.GroupVersionKind{{Group: ""}})
 	if err != nil {
 		return err
 	}

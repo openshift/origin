@@ -82,7 +82,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 }
 
 func diffBuildSpec(newer buildapi.BuildSpec, older buildapi.BuildSpec) (string, error) {
-	codec := kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion)
+	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
 	newerObj := &buildapi.Build{Spec: newer}
 	olderObj := &buildapi.Build{Spec: older}
 
@@ -547,6 +547,8 @@ func validateJenkinsPipelineStrategy(strategy *buildapi.JenkinsPipelineBuildStra
 			strategy.JenkinsfilePath = cleaned
 		}
 	}
+
+	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
 
 	return allErrs
 }

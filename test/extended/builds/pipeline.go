@@ -19,8 +19,20 @@ import (
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
 
+const (
+	localClientPluginSnapshotImageStream = "jenkins-client-plugin-snapshot-test"
+	localClientPluginSnapshotImage       = "openshift/" + localClientPluginSnapshotImageStream + ":latest"
+	localSyncPluginSnapshotImageStream   = "jenkins-sync-plugin-snapshot-test"
+	localSyncPluginSnapshotImage         = "openshift/" + localSyncPluginSnapshotImageStream + ":latest"
+	clientLicenseText                    = "About OpenShift Client Jenkins Plugin"
+	syncLicenseText                      = "About OpenShift Sync"
+	clientPluginName                     = "openshift-client"
+	syncPluginName                       = "openshift-sync"
+)
+
 func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
 	if !br.BuildSuccess {
+		br.LogDumper = jenkins.DumpLogs
 		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
 		j := jenkins.NewRef(oc)
 		jobLog, err := j.GetLastJobConsoleLogs(name)
@@ -52,8 +64,20 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
 		setupJenkins             = func() {
 			// Deploy Jenkins
-			g.By(fmt.Sprintf("calling oc new-app -f %q", jenkinsTemplatePath))
-			err := oc.Run("new-app").Args("-f", jenkinsTemplatePath).Execute()
+			var licensePrefix, pluginName string
+			newAppArgs := []string{"-f", jenkinsTemplatePath}
+			newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
+			if !useSnapshotImage {
+				newAppArgs, useSnapshotImage = jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
+				licensePrefix = syncLicenseText
+				pluginName = syncPluginName
+			} else {
+				licensePrefix = clientLicenseText
+				pluginName = clientPluginName
+			}
+
+			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
+			err := oc.Run("new-app").Args(newAppArgs...).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
@@ -70,6 +94,13 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			}
 
 			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if useSnapshotImage {
+				g.By("verifying the test image is being used")
+				// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
+				_, err = j.WaitForContent(licensePrefix+` ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/"+pluginName+"/thirdPartyLicenses")
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
 
 			// Start capturing logs from this deployment config.
 			// This command will terminate if the Jenkins instance crashes. This
@@ -188,7 +219,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		g.It("Blue-green pipeline should build and complete successfully", func() {
 			// instantiate the template
 			g.By(fmt.Sprintf("calling oc new-app -f %q", blueGreenPipelinePath))
-			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath).Execute()
+			err := oc.Run("new-app").Args("-f", blueGreenPipelinePath, "-p", "VERBOSE=true").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			buildAndSwitch := func(newColour string) {

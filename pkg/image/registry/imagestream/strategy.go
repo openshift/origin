@@ -444,16 +444,23 @@ func (v *TagVerifier) Verify(old, stream *api.ImageStream, user user.Info) field
 		subjectAccessReview := authorizationapi.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
 			Action: authorizationapi.Action{
 				Verb:         "get",
-				Group:        api.GroupName,
+				Group:        api.LegacyGroupName,
 				Resource:     "imagestreams/layers",
 				ResourceName: streamName,
 			},
 		})
-		ctx := kapi.WithNamespace(kapi.NewContext(), tagRef.From.Namespace)
+		ctx := kapi.WithNamespace(kapi.WithUser(kapi.NewContext(), user), tagRef.From.Namespace)
 		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
-			errors = append(errors, field.Forbidden(fromPath, fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)))
+			message := fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)
+			if resp != nil {
+				message = message + fmt.Sprintf(": %q %q", resp.Reason, resp.EvaluationError)
+			}
+			if err != nil {
+				message = message + fmt.Sprintf("- %v", err)
+			}
+			errors = append(errors, field.Forbidden(fromPath, message))
 			continue
 		}
 	}
@@ -564,18 +571,21 @@ func (s StatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object
 	return errs
 }
 
+// GetAttrs returns labels and fields of a given object for filtering purposes
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+	obj, ok := o.(*api.ImageStream)
+	if !ok {
+		return nil, nil, fmt.Errorf("not an ImageStream")
+	}
+	return labels.Set(obj.Labels), SelectableFields(obj), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
-			obj, ok := o.(*api.ImageStream)
-			if !ok {
-				return nil, nil, fmt.Errorf("not an ImageStream")
-			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }
 

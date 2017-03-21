@@ -15,13 +15,13 @@ import (
 type pullthroughManifestService struct {
 	distribution.ManifestService
 
-	repo                       *repository
-	pullFromInsecureRegistries bool
+	repo *repository
 }
 
 var _ distribution.ManifestService = &pullthroughManifestService{}
 
 func (m *pullthroughManifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+	context.GetLogger(ctx).Debugf("(*pullthroughManifestService).Get: starting with dgst=%s", dgst.String())
 	manifest, err := m.ManifestService.Get(ctx, dgst, options...)
 	switch err.(type) {
 	case distribution.ErrManifestUnknownRevision:
@@ -36,28 +36,20 @@ func (m *pullthroughManifestService) Get(ctx context.Context, dgst digest.Digest
 }
 
 func (m *pullthroughManifestService) remoteGet(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
-	isi, err := m.repo.getImageStreamImage(dgst)
+	context.GetLogger(ctx).Debugf("(*pullthroughManifestService).remoteGet: starting with dgst=%s", dgst.String())
+	image, _, err := m.repo.getImageOfImageStream(dgst)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", m.repo.namespace, m.repo.name, dgst.String(), err)
 		return nil, err
 	}
 
-	m.pullFromInsecureRegistries = false
-
-	if insecure, ok := isi.Annotations[imageapi.InsecureRepositoryAnnotation]; ok {
-		m.pullFromInsecureRegistries = insecure == "true"
-	}
-
-	ref, err := imageapi.ParseDockerImageReference(isi.Image.DockerImageReference)
+	ref, err := imageapi.ParseDockerImageReference(image.DockerImageReference)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("bad DockerImageReference in Image %s/%s@%s: %v", m.repo.namespace, m.repo.name, dgst.String(), err)
+		context.GetLogger(ctx).Errorf("bad DockerImageReference (%q) in Image %s/%s@%s: %v", image.DockerImageReference, m.repo.namespace, m.repo.name, dgst.String(), err)
 		return nil, err
 	}
 	ref = ref.DockerClientDefaults()
 
-	retriever := m.repo.importContext()
-
-	repo, err := retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), m.pullFromInsecureRegistries)
+	repo, err := m.getRemoteRepositoryClient(ctx, &ref, dgst, options...)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("error getting remote repository for image %q: %v", ref.Exact(), err)
 		return nil, err
@@ -80,4 +72,36 @@ func (m *pullthroughManifestService) remoteGet(ctx context.Context, dgst digest.
 	}
 
 	return manifest, err
+}
+
+func (m *pullthroughManifestService) getRemoteRepositoryClient(ctx context.Context, ref *imageapi.DockerImageReference, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Repository, error) {
+	retriever := getImportContext(ctx, m.repo.registryOSClient, m.repo.namespace, m.repo.name)
+
+	// determine, whether to fall-back to insecure transport based on a specification of image's tag
+	// if the client pulls by tag, use that
+	tag := ""
+	for _, option := range options {
+		if opt, ok := option.(distribution.WithTagOption); ok {
+			tag = opt.Tag
+			break
+		}
+	}
+	if len(tag) == 0 {
+		is, err := m.repo.imageStreamGetter.get()
+		if err != nil {
+			return nil, err // this is impossible
+		}
+		// if the client pulled by digest, find the corresponding tag in the image stream
+		tag, _ = imageapi.LatestImageTagEvent(is, dgst.String())
+	}
+	insecure := pullInsecureByDefault(m.repo.imageStreamGetter.get, tag)
+
+	return retriever.Repository(ctx, ref.RegistryURL(), ref.RepositoryName(), insecure)
+}
+
+func (m *pullthroughManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	context.GetLogger(ctx).Debugf("(*pullthroughManifestService).Put: enabling remote blob access check")
+	// manifest dependencies (layers and config) may not be stored locally, we need to be able to stat them in remote repositories
+	ctx = withRemoteBlobAccessCheckEnabled(ctx, true)
+	return m.ManifestService.Put(ctx, manifest, options...)
 }

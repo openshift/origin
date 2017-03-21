@@ -21,6 +21,7 @@ func TestCreateImageImport(t *testing.T) {
 		all                bool
 		confirm            bool
 		insecure           *bool
+		referencePolicy    string
 		err                string
 		expectedImages     []imageapi.ImageImportSpec
 		expectedRepository *imageapi.RepositoryImportSpec
@@ -338,6 +339,67 @@ func TestCreateImageImport(t *testing.T) {
 				ImportPolicy: imageapi.TagImportPolicy{Insecure: false},
 			}},
 		},
+		"import tag setting referencePolicy": {
+			name:            "testis:mytag",
+			referencePolicy: localReferencePolicy,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+						},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From:            kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+				To:              &kapi.LocalObjectReference{Name: "mytag"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			}},
+		},
+		"import all from .spec.tags setting referencePolicy": {
+			name:            "testis",
+			all:             true,
+			referencePolicy: localReferencePolicy,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"}},
+						"other": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From:            kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+					To:              &kapi.LocalObjectReference{Name: "mytag"},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				},
+				{
+					From:            kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:              &kapi.LocalObjectReference{Name: "other"},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+				},
+			},
+		},
+		"import all from .spec.dockerImageRepository setting referencePolicy": {
+			name:            "testis",
+			all:             true,
+			referencePolicy: localReferencePolicy,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			expectedRepository: &imageapi.RepositoryImportSpec{
+				From:            kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
+				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
+			},
+		},
 	}
 
 	for name, test := range testCases {
@@ -348,12 +410,13 @@ func TestCreateImageImport(t *testing.T) {
 			fake = testclient.NewSimpleFake(test.stream)
 		}
 		o := ImportImageOptions{
-			Target:   test.name,
-			From:     test.from,
-			All:      test.all,
-			Insecure: test.insecure,
-			Confirm:  test.confirm,
-			isClient: fake.ImageStreams("other"),
+			Target:          test.name,
+			From:            test.from,
+			All:             test.all,
+			Insecure:        test.insecure,
+			ReferencePolicy: test.referencePolicy,
+			Confirm:         test.confirm,
+			isClient:        fake.ImageStreams("other"),
 		}
 		// we need to run Validate, because it sets appropriate Name and Tag
 		if err := o.Validate(&cobra.Command{}); err != nil {

@@ -3,34 +3,15 @@
 # This scripts starts the OpenShift server with custom TLS certs, and verifies generated kubeconfig files can be used to talk to it.
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
-os::util::environment::setup_all_server_vars "test-extended-alternate-certs/"
-
-export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
+os::cleanup::tmpdir
+os::util::environment::setup_all_server_vars
 
 function cleanup()
 {
 	out=$?
 	kill $OS_PID
 
-	# TODO(skuznets): un-hack this nonsense once traps are in a better state
-	if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-		# get the jUnit output file into a workable state in case we crashed in
-		# the middle of testing something
-		os::test::junit::reconcile_output
-
-		# check that we didn't mangle jUnit output
-		os::test::junit::check_test_counters
-
-		# use the junitreport tool to generate us a report
-		os::util::ensure::built_binary_exists 'junitreport'
-
-		cat "${JUNIT_REPORT_OUTPUT}" \
-			| junitreport --type oscmd \
-			--suites nested \
-			--roots github.com/openshift/origin \
-			--output "${ARTIFACT_DIR}/report.xml"
-		cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
-	fi
+	os::test::junit::generate_oscmd_report
 
 	os::log::info "Exiting"
 	exit $out

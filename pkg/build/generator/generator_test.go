@@ -445,6 +445,124 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 	}
 }
 
+func TestInstantiateWithBuildRequestEnvs(t *testing.T) {
+	buildRequestWithEnv := buildapi.BuildRequest{
+		Env: []kapi.EnvVar{{Name: "FOO", Value: "BAR"}},
+	}
+	buildRequestWithoutEnv := buildapi.BuildRequest{}
+
+	tests := []struct {
+		bcfunc           func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error)
+		req              buildapi.BuildRequest
+		expectedEnvValue string
+	}{
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockDockerStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockCustomStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockJenkinsStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithEnv,
+			expectedEnvValue: "BAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockDockerStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockCustomStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+		{
+			bcfunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockJenkinsStrategyForEnvs(), mocks.MockOutput()), nil
+			},
+			req:              buildRequestWithoutEnv,
+			expectedEnvValue: "VAR",
+		},
+	}
+
+	for _, tc := range tests {
+		generator := mockBuildGenerator()
+		client := generator.Client.(Client)
+		client.GetBuildConfigFunc = tc.bcfunc
+		generator.Client = client
+		build, err := generator.Instantiate(kapi.NewDefaultContext(), &tc.req)
+		if err != nil {
+			t.Errorf("unexpected error %v", err)
+		} else {
+			switch {
+			case build.Spec.Strategy.SourceStrategy != nil:
+				if len(build.Spec.Strategy.SourceStrategy.Env) == 0 {
+					t.Errorf("no envs set for src bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.SourceStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for src bc and req %#v, expected %s", build.Spec.Strategy.SourceStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			case build.Spec.Strategy.DockerStrategy != nil:
+				if len(build.Spec.Strategy.DockerStrategy.Env) == 0 {
+					t.Errorf("no envs set for dock bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.DockerStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for dock bc and req %#v, expected %s", build.Spec.Strategy.DockerStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			case build.Spec.Strategy.CustomStrategy != nil:
+				if len(build.Spec.Strategy.CustomStrategy.Env) == 0 {
+					t.Errorf("no envs set for cust bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else {
+					// custom strategy will also have OPENSHIFT_CUSTOM_BUILD_BASE_IMAGE injected, could be in either order
+					found := false
+					for _, env := range build.Spec.Strategy.CustomStrategy.Env {
+						if env.Value == tc.expectedEnvValue {
+							found = true
+							break
+						}
+					}
+					if !found {
+						t.Errorf("unexpected values %#v for cust bc and req %#v, expected %s", build.Spec.Strategy.CustomStrategy.Env, tc.req, tc.expectedEnvValue)
+					}
+				}
+			case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+				if len(build.Spec.Strategy.JenkinsPipelineStrategy.Env) == 0 {
+					t.Errorf("no envs set for jenk bc and req %#v, expected %s", tc.req, tc.expectedEnvValue)
+				} else if build.Spec.Strategy.JenkinsPipelineStrategy.Env[0].Value != tc.expectedEnvValue {
+					t.Errorf("unexpected value %s for jenk bc and req %#v, expected %s", build.Spec.Strategy.JenkinsPipelineStrategy.Env[0].Value, tc.req, tc.expectedEnvValue)
+				}
+			}
+		}
+	}
+}
+
 func TestInstantiateWithLastVersion(t *testing.T) {
 	g := mockBuildGenerator()
 	c := g.Client.(Client)
@@ -772,6 +890,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	resources := mockResources()
 	bc := &buildapi.BuildConfig{
 		ObjectMeta: kapi.ObjectMeta{
+			UID:       "test-uid",
 			Name:      "test-build-config",
 			Namespace: kapi.NamespaceDefault,
 			Labels:    map[string]string{"testlabel": "testvalue"},
@@ -840,6 +959,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	}
 	if build.Annotations[buildapi.BuildNumberAnnotation] != "13" {
 		t.Errorf("Build number annotation value %s does not match expected value 13", build.Annotations[buildapi.BuildNumberAnnotation])
+	}
+	if len(build.OwnerReferences) == 0 || build.OwnerReferences[0].Kind != "BuildConfig" || build.OwnerReferences[0].Name != bc.Name {
+		t.Errorf("generated build does not have OwnerReference to parent BuildConfig")
 	}
 
 	// Test long name
@@ -1103,6 +1225,14 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
 				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
 			},
+			OwnerReferences: []kapi.OwnerReference{
+				{
+					Name:       "test-owner",
+					Kind:       "BuildConfig",
+					APIVersion: "v1",
+					UID:        "foo",
+				},
+			},
 		},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -1137,6 +1267,10 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildPodNameAnnotation]; ok {
 		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildPodNameAnnotation)
 	}
+	if !reflect.DeepEqual(build.ObjectMeta.OwnerReferences, newBuild.ObjectMeta.OwnerReferences) {
+		t.Errorf("Build OwnerReferences does not match the original Build OwnerReferences")
+	}
+
 }
 
 func TestGenerateBuildFromBuildWithBuildConfig(t *testing.T) {

@@ -45,6 +45,8 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 			Message: "Discover:",
 			Commands: []*cobra.Command{
 				NewCmdWhoCan(WhoCanRecommendedName, fullName+" "+WhoCanRecommendedName, f, out),
+				NewCmdSccSubjectReview(SubjectReviewRecommendedName, fullName+" "+SubjectReviewRecommendedName, f, out),
+				NewCmdSccReview(ReviewRecommendedName, fullName+" "+ReviewRecommendedName, f, out),
 			},
 		},
 		{

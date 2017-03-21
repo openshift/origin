@@ -86,6 +86,8 @@ func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefin
 			config.RequestHeaderConfig.ClientCA,
 			config.RequestHeaderConfig.AllowedClientNames,
 			config.RequestHeaderConfig.UsernameHeaders,
+			[]string{},
+			[]string{},
 		)
 		if err != nil {
 			return nil, nil, err
@@ -198,7 +200,7 @@ func New(config AuthenticatorConfig) (authenticator.Request, *spec.SecurityDefin
 
 	authenticator := union.New(authenticators...)
 
-	authenticator = group.NewGroupAdder(authenticator, []string{user.AllAuthenticated})
+	authenticator = group.NewAuthenticatedGroupAdder(authenticator)
 
 	if config.Anonymous {
 		// If the authenticator chain returns an error, return an error (don't consider a bad bearer token anonymous).

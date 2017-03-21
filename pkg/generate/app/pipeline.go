@@ -35,19 +35,21 @@ type PipelineBuilder interface {
 // The pipelines created with a PipelineBuilder will have access to the given
 // environment. The boolean outputDocker controls whether builds will output to
 // an image stream tag or docker image reference.
-func NewPipelineBuilder(name string, environment Environment, outputDocker bool) PipelineBuilder {
+func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *build.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
 	return &pipelineBuilder{
-		nameGenerator: NewUniqueNameGenerator(name),
-		environment:   environment,
-		outputDocker:  outputDocker,
+		nameGenerator:         NewUniqueNameGenerator(name),
+		environment:           environment,
+		outputDocker:          outputDocker,
+		dockerStrategyOptions: dockerStrategyOptions,
 	}
 }
 
 type pipelineBuilder struct {
-	nameGenerator UniqueNameGenerator
-	environment   Environment
-	outputDocker  bool
-	to            string
+	nameGenerator         UniqueNameGenerator
+	environment           Environment
+	outputDocker          bool
+	to                    string
+	dockerStrategyOptions *build.DockerStrategyOptions
 }
 
 func (pb *pipelineBuilder) To(name string) PipelineBuilder {
@@ -119,6 +121,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		Strategy: strategy,
 		Output:   output,
 		Env:      pb.environment,
+		DockerStrategyOptions: pb.dockerStrategyOptions,
 	}
 
 	return &Pipeline{
@@ -476,7 +479,8 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	return gvk[0].GroupKind() == build.Kind("BuildConfig") || gvk[0].GroupKind() == image.Kind("ImageStream")
+	gk := gvk[0].GroupKind()
+	return build.IsKindOrLegacy("BuildConfig", gk) || image.IsKindOrLegacy("ImageStream", gk)
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

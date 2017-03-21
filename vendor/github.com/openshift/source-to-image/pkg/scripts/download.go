@@ -63,13 +63,13 @@ func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo,
 	defer out.Close()
 
 	if err != nil {
-		glog.Errorf("Unable to create target file %s (%s)", targetFile, err)
+		glog.Errorf("Unable to create target file %s (%v)", targetFile, err)
 		return nil, err
 	}
 
 	if _, err = io.Copy(out, reader); err != nil {
 		os.Remove(targetFile)
-		glog.Warningf("Skipping file %s due to error copying from source: %s", targetFile, err)
+		glog.Warningf("Skipping file %s due to error copying from source: %v", targetFile, err)
 		return nil, err
 	}
 

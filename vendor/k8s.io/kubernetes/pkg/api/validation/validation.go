@@ -3796,6 +3796,11 @@ func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) fie
 	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.DefaultAddCapabilities, field.NewPath("defaultAddCapabilities"))...)
 	allErrs = append(allErrs, validateSCCCapsAgainstDrops(scc.RequiredDropCapabilities, scc.AllowedCapabilities, field.NewPath("allowedCapabilities"))...)
 
+	if hasCap(api.CapabilityAll, scc.AllowedCapabilities) && len(scc.RequiredDropCapabilities) > 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("requiredDropCapabilities"), scc.RequiredDropCapabilities,
+			"required capabilities must be empty when all capabilities are allowed by a wildcard"))
+	}
+
 	return allErrs
 }
 

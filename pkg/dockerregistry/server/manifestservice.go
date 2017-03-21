@@ -10,6 +10,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/distribution/registry/api/errcode"
 	regapi "github.com/docker/distribution/registry/api/v2"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -34,7 +35,7 @@ type manifestService struct {
 func (m *manifestService) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	context.GetLogger(ctx).Debugf("(*manifestService).Exists")
 
-	image, err := m.repo.getImage(dgst)
+	image, _, err := m.repo.getImageOfImageStream(dgst)
 	if err != nil {
 		return false, err
 	}
@@ -45,14 +46,8 @@ func (m *manifestService) Exists(ctx context.Context, dgst digest.Digest) (bool,
 func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	context.GetLogger(ctx).Debugf("(*manifestService).Get")
 
-	if _, err := m.repo.getImageStreamImage(dgst); err != nil {
-		context.GetLogger(ctx).Errorf("error retrieving ImageStreamImage %s/%s@%s: %v", m.repo.namespace, m.repo.name, dgst.String(), err)
-		return nil, err
-	}
-
-	image, err := m.repo.getImage(dgst)
+	image, _, err := m.repo.getImageOfImageStream(dgst)
 	if err != nil {
-		context.GetLogger(ctx).Errorf("error retrieving image %s: %v", dgst.String(), err)
 		return nil, err
 	}
 
@@ -70,13 +65,13 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		ref = ref.DockerClientDefaults().AsRepository()
 	}
 
-	manifest, err := m.manifests.Get(WithRepository(ctx, m.repo), dgst, options...)
+	manifest, err := m.manifests.Get(withRepository(ctx, m.repo), dgst, options...)
 	switch err.(type) {
 	case distribution.ErrManifestUnknownRevision:
 		break
 	case nil:
 		m.repo.rememberLayersOfManifest(dgst, manifest, ref.Exact())
-		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, true)
+		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, true)
 		return manifest, nil
 	default:
 		context.GetLogger(m.ctx).Errorf("unable to get manifest from storage: %v", err)
@@ -94,7 +89,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 
 	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
 	if err == nil {
-		m.migrateManifest(WithRepository(ctx, m.repo), image, dgst, manifest, false)
+		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, false)
 	}
 
 	return manifest, err
@@ -119,11 +114,11 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	}
 
 	// in order to stat the referenced blobs, repository need to be set on the context
-	if err := mh.Verify(WithRepository(ctx, m.repo), false); err != nil {
+	if err := mh.Verify(withRepository(ctx, m.repo), false); err != nil {
 		return "", err
 	}
 
-	_, err = m.manifests.Put(WithRepository(ctx, m.repo), manifest, options...)
+	_, err = m.manifests.Put(withRepository(ctx, m.repo), manifest, options...)
 	if err != nil {
 		return "", err
 	}
@@ -186,22 +181,12 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 			return "", err
 		}
 
-		stream := imageapi.ImageStream{}
-		stream.Name = m.repo.name
-
-		uclient, ok := UserClientFrom(m.ctx)
-		if !ok {
-			context.GetLogger(ctx).Errorf("error creating user client to auto provision image stream: Origin user client unavailable")
-			return "", statusErr
-		}
-
-		if _, err := uclient.ImageStreams(m.repo.namespace).Create(&stream); err != nil {
-			if quotautil.IsErrorQuotaExceeded(err) {
-				context.GetLogger(ctx).Errorf("denied creating ImageStream: %v", err)
-				return "", distribution.ErrAccessDenied
+		if _, err := m.repo.createImageStream(ctx); err != nil {
+			if e, ok := err.(errcode.Error); ok && e.ErrorCode() == errcode.ErrorCodeUnknown {
+				// TODO: convert statusErr to distribution error
+				return "", statusErr
 			}
-			context.GetLogger(ctx).Errorf("error auto provisioning ImageStream: %s", err)
-			return "", statusErr
+			return "", err
 		}
 
 		// try to create the ISM again
@@ -223,7 +208,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 // the content related to the manifest in the registry's storage (signatures).
 func (m *manifestService) Delete(ctx context.Context, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*manifestService).Delete")
-	return m.manifests.Delete(WithRepository(ctx, m.repo), dgst)
+	return m.manifests.Delete(withRepository(ctx, m.repo), dgst)
 }
 
 // manifestInflight tracks currently downloading manifests

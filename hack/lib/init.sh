@@ -52,3 +52,7 @@ os::log::stacktrace::install
 # binaries that we build so we don't have to find
 # them before every invocation.
 os::util::environment::update_path_var
+
+if [[ -z "${OS_TMP_ENV_SET-}" ]]; then
+	os::util::environment::setup_tmpdir_vars "$( basename "$0" ".sh" )"
+fi

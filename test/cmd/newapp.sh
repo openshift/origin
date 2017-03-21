@@ -40,6 +40,16 @@ os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: tru
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
 
+# repo related error message validation
+os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'mysql-persisten as a local directory'
+os::cmd::expect_failure_and_text 'oc new-app mysql-persisten mysql' 'mysql as a local directory'
+os::cmd::expect_failure_and_text 'oc new-app --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'as a Git repository URL:  '
+os::cmd::expect_failure_and_text 'oc new-app https://www.google.com/openshift/nodejs-e' 'as a Git repository URL:  '
+os::cmd::expect_failure_and_text 'oc new-app https://githb.com/openshift/nodejs-e' 'as a Git repository URL:  '
+os::cmd::expect_failure_and_text 'oc new-build --strategy=docker https://192.30.253.113/openshift/ruby-hello-world.git' 'as a Git repository URL:  '
+os::cmd::expect_failure_and_text 'oc new-build https://www.google.com/openshift/nodejs-e' 'as a Git repository URL:  '
+os::cmd::expect_failure_and_text 'oc new-build https://githb.com/openshift/nodejs-e' 'as a Git repository URL:  '
+
 # check label creation
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'
 os::cmd::try_until_success 'oc get imagestreamtags php:5.5'
@@ -70,8 +80,8 @@ os::cmd::expect_success 'oc new-app -f test/testdata/template-with-namespaces.js
 os::cmd::expect_success 'oc delete all -l app=ruby-helloworld-sample'
 
 # ensure non-duplicate invalid label errors show up
-os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream "nginx" is invalid'
-os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'DeploymentConfig "nginx" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'error: ImageStream.image.openshift.io "nginx" is invalid'
+os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'DeploymentConfig.apps.openshift.io "nginx" is invalid'
 os::cmd::expect_failure_and_text 'oc new-app nginx -l qwer1345%$$#=self' 'Service "nginx" is invalid'
 
 # check if we can create from a stored template
@@ -179,6 +189,13 @@ os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null -o
 os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null --env-file ${build_env_file} -o yaml"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
+
+# new-build - check that we can set build args in DockerStrategy 
+os::cmd::expect_success_and_text "oc new-build ${OS_ROOT}/test/testdata/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
+
+# check that we cannot set build args in a non-DockerStrategy build
+os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-hello-world --strategy=source --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
+os::cmd::expect_failure_and_text "oc new-build https://github.com/openshift/ruby-ex --build-arg 'foo=bar'" "error: Cannot use '--build-arg' without a Docker build"
 
 #
 # verify we can create from a template when some objects in the template declare an app label
@@ -374,6 +391,8 @@ os::cmd::expect_failure_and_text 'oc new-build mysql --source-image-path foo' 'e
 # ensure circular ref flagged but allowed for template
 os::cmd::expect_success 'oc create -f test/testdata/circular-is.yaml'
 os::cmd::expect_success_and_text 'oc new-app -f test/testdata/circular.yaml' 'should be different than input'
+# ensure circular does not choke on image stream image
+os::cmd::expect_success_and_not_text 'oc new-app -f test/testdata/bc-from-imagestreamimage.json --dry-run' 'Unable to follow reference type'
 
 # do not allow use of non-existent image (should fail)
 os::cmd::expect_failure_and_text 'oc new-app  openshift/bogusimage https://github.com/openshift/ruby-hello-world.git -o yaml' "no match for"

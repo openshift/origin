@@ -1,5 +1,6 @@
 from tito.common import run_command, get_latest_commit
 
+
 def inject_os_git_vars(spec_file):
     """
     Determine the OpenShift version variables as dictated by the Origin
@@ -21,7 +22,8 @@ def inject_os_git_vars(spec_file):
             " ".join(["{}={}".format(key, value) for key, value in os_git_vars.items()]),
             spec_file
         )
-    output = run_command(update_os_git_vars)
+    run_command(update_os_git_vars)
+
 
 def get_os_git_vars():
     """
@@ -45,6 +47,7 @@ def get_os_git_vars():
     git_vars["OS_IMAGE_PREFIX"] = "openshift3/ose"
     return git_vars
 
+
 def update_global_hash(spec_file):
     """
     Update the specfile to reflect the latest commit. A line
@@ -60,4 +63,4 @@ def update_global_hash(spec_file):
             git_hash,
             spec_file
         )
-    output = run_command(update_commit)
+    run_command(update_commit)

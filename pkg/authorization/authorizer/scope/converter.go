@@ -7,6 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/conversion"
 	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -14,6 +16,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -169,20 +172,20 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 	switch scope {
 	case UserInfo:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("get"), APIGroups: []string{userapi.GroupName}, Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
+			{Verbs: sets.NewString("get"), APIGroups: []string{userapi.GroupName, userapi.LegacyGroupName}, Resources: sets.NewString("users"), ResourceNames: sets.NewString("~")},
 		}, nil
 	case UserAccessCheck:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("create"), APIGroups: []string{authorizationapi.GroupName}, Resources: sets.NewString("subjectaccessreviews", "localsubjectaccessreviews"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
-			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
+			authorizationapi.NewRule("create").Groups(kauthorizationapi.GroupName).Resources("selfsubjectaccessreviews").RuleOrDie(),
+			authorizationapi.NewRule("create").Groups(authorizationapi.GroupName, authorizationapi.LegacyGroupName).Resources("selfsubjectrulesreviews").RuleOrDie(),
 		}, nil
 	case UserListScopedProjects:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName, projectapi.LegacyGroupName}, Resources: sets.NewString("projects")},
 		}, nil
 	case UserListAllProjects:
 		return []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName}, Resources: sets.NewString("projects")},
+			{Verbs: sets.NewString("list", "watch"), APIGroups: []string{projectapi.GroupName, projectapi.LegacyGroupName}, Resources: sets.NewString("projects")},
 			{Verbs: sets.NewString("get"), APIGroups: []string{kapi.GroupName}, Resources: sets.NewString("namespaces")},
 		}, nil
 	case UserFull:
@@ -207,10 +210,27 @@ func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter
 // escalatingScopeResources are resources that are considered escalating for scope evaluation
 var escalatingScopeResources = []unversioned.GroupResource{
 	{Group: kapi.GroupName, Resource: "secrets"},
-	/*imageapi.GroupName*/ {Group: "", Resource: "imagestreams/secrets"},
-	/*oauthapi.GroupName*/ {Group: "", Resource: "oauthauthorizetokens"}, {Group: "", Resource: "oauthaccesstokens"},
-	/*authorizationapi.GroupName*/ {Group: "", Resource: "roles"}, {Group: "", Resource: "rolebindings"},
-	/*authorizationapi.GroupName*/ {Group: "", Resource: "clusterroles"}, {Group: "", Resource: "clusterrolebindings"},
+
+	{Group: imageapi.GroupName, Resource: "imagestreams/secrets"},
+	{Group: imageapi.LegacyGroupName, Resource: "imagestreams/secrets"},
+
+	{Group: oauthapi.GroupName, Resource: "oauthauthorizetokens"},
+	{Group: oauthapi.LegacyGroupName, Resource: "oauthauthorizetokens"},
+
+	{Group: oauthapi.GroupName, Resource: "oauthaccesstokens"},
+	{Group: oauthapi.LegacyGroupName, Resource: "oauthaccesstokens"},
+
+	{Group: authorizationapi.GroupName, Resource: "roles"},
+	{Group: authorizationapi.LegacyGroupName, Resource: "roles"},
+
+	{Group: authorizationapi.GroupName, Resource: "rolebindings"},
+	{Group: authorizationapi.LegacyGroupName, Resource: "rolebindings"},
+
+	{Group: authorizationapi.GroupName, Resource: "clusterroles"},
+	{Group: authorizationapi.LegacyGroupName, Resource: "clusterroles"},
+
+	{Group: authorizationapi.GroupName, Resource: "clusterrolebindings"},
+	{Group: authorizationapi.LegacyGroupName, Resource: "clusterrolebindings"},
 }
 
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
@@ -315,7 +335,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter cli
 	}
 	role, exists := policy.Roles[roleName]
 	if !exists {
-		return nil, kapierrors.NewNotFound(authorizationapi.Resource("clusterrole"), roleName)
+		return nil, kapierrors.NewNotFound(authorizationapi.LegacyResource("clusterrole"), roleName)
 	}
 
 	rules := []authorizationapi.PolicyRule{}
@@ -347,15 +367,16 @@ func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPol
 		return nil, err
 	}
 
-	attributes := authorizer.DefaultAuthorizationAttributes{
-		APIGroup: kapi.GroupName,
-		Verb:     "get",
-		Resource: "namespaces",
+	attributes := kauthorizer.AttributesRecord{
+		APIGroup:        kapi.GroupName,
+		Verb:            "get",
+		Resource:        "namespaces",
+		ResourceRequest: true,
 	}
 
 	errors := []error{}
 	for _, rule := range rules {
-		matches, err := attributes.RuleMatches(rule)
+		matches, err := authorizer.RuleMatches(attributes, rule)
 		if err != nil {
 			errors = append(errors, err)
 			continue

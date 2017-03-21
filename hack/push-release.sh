@@ -80,7 +80,7 @@ if [[ "${tag}" != ":latest" ]]; then
       docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:${source_tag}"
     done
   else
-    os::log::warn "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
+    os::log::warning "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
     if [[ -z "${OS_PUSH_ALWAYS:-}" ]]; then
       echo "  CTRL+C to cancel, or any other key to continue"
       read

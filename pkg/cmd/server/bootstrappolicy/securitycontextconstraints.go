@@ -12,7 +12,7 @@ const (
 
 	// SecurityContextConstraintRestricted is used as the name for the system default restricted scc.
 	SecurityContextConstraintRestricted     = "restricted"
-	SecurityContextConstraintRestrictedDesc = "restricted denies access to all host features and requires pods to be run with a UID, and SELinux context that are allocated to the namespace.  This is the most restrictive SCC."
+	SecurityContextConstraintRestrictedDesc = "restricted denies access to all host features and requires pods to be run with a UID, and SELinux context that are allocated to the namespace.  This is the most restrictive SCC and it is used by default for authenticated users."
 
 	// SecurityContextConstraintNonRoot is used as the name for the system default non-root scc.
 	SecurityContextConstraintNonRoot     = "nonroot"
@@ -30,7 +30,7 @@ const (
 	// SecurityContextConstraintsAnyUID is used as the name for the system default scc that
 	// grants access to run as any uid but is still restricted to specific SELinux contexts.
 	SecurityContextConstraintsAnyUID     = "anyuid"
-	SecurityContextConstraintsAnyUIDDesc = "anyuid provides all features of the restricted SCC but allows users to run with any UID and any GID.  This is the default SCC for authenticated users."
+	SecurityContextConstraintsAnyUIDDesc = "anyuid provides all features of the restricted SCC but allows users to run with any UID and any GID."
 
 	// SecurityContextConstraintsHostNetwork is used as the name for the system default scc that
 	// grants access to run with host networking and host ports but still allocates uid/gids/selinux from the
@@ -64,6 +64,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				},
 			},
 			AllowPrivilegedContainer: true,
+			AllowedCapabilities:      []kapi.Capability{kapi.CapabilityAll},
 			Volumes:                  []kapi.FSType{kapi.FSTypeAll},
 			AllowHostNetwork:         true,
 			AllowHostPorts:           true,

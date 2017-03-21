@@ -36,7 +36,10 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3-aws"
 	_ "github.com/docker/distribution/registry/storage/driver/swift"
 
+	"strings"
+
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 )
@@ -55,10 +58,25 @@ func Execute(configFile io.Reader) {
 	if err != nil {
 		log.Fatalf("error configuring logger: %v", err)
 	}
+
+	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+	ctx = server.WithRegistryClient(ctx, registryClient)
+
 	log.Infof("version=%s", version.Version)
 	// inject a logger into the uuid library. warns us if there is a problem
 	// with uuid generation under low entropy.
 	uuid.Loggerf = context.GetLogger(ctx).Warnf
+
+	// add parameters for the auth middleware
+	if config.Auth.Type() == server.OpenShiftAuth {
+		if config.Auth[server.OpenShiftAuth] == nil {
+			config.Auth[server.OpenShiftAuth] = make(configuration.Parameters)
+		}
+		config.Auth[server.OpenShiftAuth][server.AccessControllerOptionParams] = server.AccessControllerParams{
+			Logger:           context.GetLogger(ctx),
+			SafeClientConfig: registryClient.SafeClientConfig(),
+		}
+	}
 
 	app := handlers.NewApp(ctx, config)
 
@@ -68,7 +86,7 @@ func Execute(configFile io.Reader) {
 		if err != nil {
 			log.Fatalf("error setting up token auth: %s", err)
 		}
-		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, server.DefaultRegistryClient)).GetError()
+		err = app.NewRoute().Methods("GET").PathPrefix(tokenRealm.Path).Handler(server.NewTokenHandler(ctx, registryClient)).GetError()
 		if err != nil {
 			log.Fatalf("error setting up token endpoint at %q: %v", tokenRealm.Path, err)
 		}
@@ -123,7 +141,31 @@ func Execute(configFile io.Reader) {
 			context.GetLogger(app).Fatalln(err)
 		}
 	} else {
-		tlsConf := crypto.SecureTLSConfig(&tls.Config{ClientAuth: tls.NoClientCert})
+		var (
+			minVersion   uint16
+			cipherSuites []uint16
+		)
+		if s := os.Getenv("REGISTRY_HTTP_TLS_MINVERSION"); len(s) > 0 {
+			minVersion, err = crypto.TLSVersion(s)
+			if err != nil {
+				context.GetLogger(app).Fatalln(fmt.Errorf("invalid TLS version %q specified in REGISTRY_HTTP_TLS_MINVERSION: %v (valid values are %q)", s, err, crypto.ValidTLSVersions()))
+			}
+		}
+		if s := os.Getenv("REGISTRY_HTTP_TLS_CIPHERSUITES"); len(s) > 0 {
+			for _, cipher := range strings.Split(s, ",") {
+				cipherSuite, err := crypto.CipherSuite(cipher)
+				if err != nil {
+					context.GetLogger(app).Fatalln(fmt.Errorf("invalid cipher suite %q specified in REGISTRY_HTTP_TLS_CIPHERSUITES: %v (valid suites are %q)", s, err, crypto.ValidCipherSuites()))
+				}
+				cipherSuites = append(cipherSuites, cipherSuite)
+			}
+		}
+
+		tlsConf := crypto.SecureTLSConfig(&tls.Config{
+			ClientAuth:   tls.NoClientCert,
+			MinVersion:   minVersion,
+			CipherSuites: cipherSuites,
+		})
 
 		if len(config.HTTP.TLS.ClientCAs) != 0 {
 			pool := x509.NewCertPool()

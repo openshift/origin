@@ -95,7 +95,10 @@ type ResolvedComponents struct {
 
 // Resolve transforms unstructured inputs (component names, templates, images) into
 // a set of resolved components, or returns an error.
-func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedComponents, error) {
+func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
+	r := &appConfig.Resolvers
+	c := &appConfig.ComponentInputs
+	g := &appConfig.GenerationInputs
 	b := &app.ReferenceBuilder{}
 
 	if err := AddComponentInputsToRefBuilder(b, r, c, g); err != nil {
@@ -116,7 +119,7 @@ func Resolve(r *Resolvers, c *ComponentInputs, g *GenerationInputs) (*ResolvedCo
 	}
 
 	if g.Strategy != generate.StrategyUnspecified && len(repositories) == 0 && !g.BinaryBuild {
-		return nil, errors.New("when --strategy is specified you must provide at least one source code location")
+		return nil, errors.New("--strategy is specified and none of the arguments provided could be classified as a source code location")
 	}
 
 	if g.BinaryBuild && (len(repositories) > 0 || components.HasSource()) {

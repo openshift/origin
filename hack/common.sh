@@ -46,6 +46,18 @@ function os::build::host_platform_friendly() {
 }
 readonly -f os::build::host_platform_friendly
 
+# This converts from platform/arch to PLATFORM_ARCH, host platform will be
+# considered if no parameter passed
+function os::build::platform_arch() {
+  local platform=${1:-}
+  if [[ -z "${platform}" ]]; then
+    platform=$(os::build::host_platform)
+  fi
+
+  echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+}
+readonly -f os::build::platform_arch
+
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
 # good enough for the Kubernetes build.
@@ -216,8 +228,8 @@ os::build::internal::build_binaries() {
         unset GOBIN
       fi
 
-      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
-      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(os::build::platform_arch ${platform})
+      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(os::build::platform_arch ${platform})
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
@@ -237,7 +249,7 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         # disabling cgo allows use of delve
-        CGO_ENABLED=0 GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+        CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${version_ldflags}" \
@@ -555,10 +567,10 @@ function os::build::get_version_vars() {
       return
     fi
     if [[ ! -d "${OS_ROOT}/.git" ]]; then
-      os::log::warn "No version file at ${OS_VERSION_FILE}"
+      os::log::warning "No version file at ${OS_VERSION_FILE}"
       exit 1
     fi
-    os::log::warn "No version file at ${OS_VERSION_FILE}, falling back to git versions"
+    os::log::warning "No version file at ${OS_VERSION_FILE}, falling back to git versions"
   fi
   os::build::os_version_vars
   os::build::kube_version_vars
@@ -726,29 +738,39 @@ function os::build::image() {
   local directory=$1
   local tag=$2
   local dockerfile="${3-}"
+  local extra_tag="${4-}"
   local options="${OS_BUILD_IMAGE_ARGS-}"
   local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
 
   if [[ "${mode}" == "imagebuilder" ]]; then
     if os::util::find::system_binary 'imagebuilder'; then
+      if [[ -n "${extra_tag}" ]]; then
+        extra_tag="-t '${extra_tag}'"
+      fi
       if [[ -n "${dockerfile}" ]]; then
-        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
         return $?
       fi
-      eval "imagebuilder -t '${tag}' ${options} '${directory}'"
+      eval "imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
       return $?
     fi
 
-    os::log::warn "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+    os::log::warning "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
     # clear options since we were unable to select imagebuilder
     options=""
   fi
 
   if [[ -n "${dockerfile}" ]]; then
     eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    if [[ -n "${extra_tag}" ]]; then
+      docker tag "${tag}" "${extra_tag}"
+    fi
     return $?
   fi
   eval "docker build -t '${tag}' ${options} '${directory}'"
+  if [[ -n "${extra_tag}" ]]; then
+    docker tag "${tag}" "${extra_tag}"
+  fi
   return $?
 }
 readonly -f os::build::image

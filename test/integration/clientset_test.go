@@ -1,5 +1,9 @@
 package integration
 
+// FIXME: This test is disabled until the generated client sets are fixed to work
+//        properly with API groups.
+
+/*
 import (
 	"fmt"
 	"testing"
@@ -74,3 +78,4 @@ func TestClientSet_v1_3(t *testing.T) {
 	// try to create the namespace resource
 	testBuilds()
 }
+*/

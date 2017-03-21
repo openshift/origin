@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -28,8 +29,7 @@ type authorizeTest struct {
 	bindings              []authorizationapi.PolicyBinding
 	bindingRetrievalError error
 
-	context    kapi.Context
-	attributes *DefaultAuthorizationAttributes
+	attributes kauthorizer.AttributesRecord
 
 	expectedAllowed bool
 	expectedReason  string
@@ -38,11 +38,13 @@ type authorizeTest struct {
 
 func TestAPIGroupDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "list",
-			APIGroup: "group",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "list",
+			APIGroup:        "group",
+			Resource:        "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "Anna" cannot list group.pods in project "adze"`,
@@ -56,10 +58,12 @@ func TestAPIGroupDeny(t *testing.T) {
 
 func TestAPIGroupDefaultAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "list",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "list",
+			Resource:        "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -73,11 +77,13 @@ func TestAPIGroupDefaultAllow(t *testing.T) {
 
 func TestAPIGroupAllAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "list",
-			APIGroup: "group",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "list",
+			APIGroup:        "group",
+			Resource:        "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -112,11 +118,13 @@ func TestAPIGroupAllAllow(t *testing.T) {
 
 func TestAPIAllAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "list",
-			APIGroup: "group",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "list",
+			APIGroup:        "group",
+			Resource:        "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -151,11 +159,13 @@ func TestAPIAllAllow(t *testing.T) {
 
 func TestResourceNameDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "users",
-			ResourceName: "just-a-user",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "just-a-user"},
+			Namespace:       kapi.NamespaceNone,
+			Verb:            "get",
+			Resource:        "users",
+			Name:            "just-a-user",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "just-a-user" cannot get users`,
@@ -167,11 +177,13 @@ func TestResourceNameDeny(t *testing.T) {
 
 func TestResourceNameAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "just-a-user"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "users",
-			ResourceName: "~",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "just-a-user"},
+			Namespace:       kapi.NamespaceNone,
+			Verb:            "get",
+			Resource:        "users",
+			Name:            "~",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by cluster rule",
@@ -183,11 +195,13 @@ func TestResourceNameAllow(t *testing.T) {
 
 func TestClusterBindingServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: serviceaccount.MakeUsername("foo", "default")}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:         "get",
-			Resource:     "users",
-			ResourceName: "any",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: serviceaccount.MakeUsername("foo", "default")},
+			Namespace:       kapi.NamespaceNone,
+			Verb:            "get",
+			Resource:        "users",
+			Name:            "any",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by cluster rule",
@@ -199,10 +213,12 @@ func TestClusterBindingServiceAccountSubject(t *testing.T) {
 
 func TestLocalBindingServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("adze", "second")}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: serviceaccount.MakeUsername("adze", "second")},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -217,10 +233,12 @@ func TestLocalBindingServiceAccountSubject(t *testing.T) {
 
 func TestLocalBindingOtherServiceAccountSubject(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: serviceaccount.MakeUsername("other", "first")}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: serviceaccount.MakeUsername("other", "first")},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "pods",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -235,10 +253,12 @@ func TestLocalBindingOtherServiceAccountSubject(t *testing.T) {
 
 func TestDeniedWithError(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "update",
-			Resource: "roles",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "update",
+			Resource:        "roles",
 		},
 		expectedAllowed: false,
 		expectedError:   "my special error",
@@ -263,10 +283,12 @@ func TestDeniedWithError(t *testing.T) {
 
 func TestAllowedWithMissingBinding(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "update",
-			Resource: "roles",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "update",
+			Resource:        "roles",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -290,11 +312,11 @@ func TestAllowedWithMissingBinding(t *testing.T) {
 
 func TestHealthAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one", Groups: []string{"system:unauthenticated"}}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:           "get",
-			NonResourceURL: true,
-			URL:            "/healthz",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "no-one", Groups: []string{"system:unauthenticated"}},
+			Verb:            "get",
+			Path:            "/healthz",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by cluster rule",
@@ -307,11 +329,11 @@ func TestHealthAllow(t *testing.T) {
 
 func TestNonResourceAllow(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "ClusterAdmin"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:           "get",
-			NonResourceURL: true,
-			URL:            "not-specified",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "ClusterAdmin"},
+			Verb:            "get",
+			Path:            "not-specified",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by cluster rule",
@@ -324,11 +346,11 @@ func TestNonResourceAllow(t *testing.T) {
 
 func TestNonResourceDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:           "get",
-			NonResourceURL: true,
-			URL:            "not-allowed",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "no-one"},
+			Verb:            "get",
+			Path:            "not-allowed",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "no-one" cannot "get" on "not-allowed"`,
@@ -341,11 +363,11 @@ func TestNonResourceDeny(t *testing.T) {
 
 func TestHealthDeny(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "no-one"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:           "get",
-			NonResourceURL: true,
-			URL:            "/healthz",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: false,
+			User:            &user.DefaultInfo{Name: "no-one"},
+			Verb:            "get",
+			Path:            "/healthz",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "no-one" cannot "get" on "/healthz"`,
@@ -358,10 +380,12 @@ func TestHealthDeny(t *testing.T) {
 
 func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "ClusterAdmin"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "update",
-			Resource: "deploymentConfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "ClusterAdmin"},
+			Namespace:       kapi.NamespaceNone,
+			Verb:            "update",
+			Resource:        "deploymentConfigs",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by cluster rule",
@@ -374,10 +398,12 @@ func TestAdminEditingGlobalDeploymentConfig(t *testing.T) {
 
 func TestDisallowedViewingGlobalPods(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceNone), &user.DefaultInfo{Name: "SomeYahoo"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "SomeYahoo"},
+			Namespace:       kapi.NamespaceNone,
+			Verb:            "get",
+			Resource:        "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "SomeYahoo" cannot get pods`,
@@ -390,10 +416,12 @@ func TestDisallowedViewingGlobalPods(t *testing.T) {
 
 func TestProjectAdminEditPolicy(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Anna"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "update",
-			Resource: "roles",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Anna"},
+			Namespace:       "adze",
+			Verb:            "update",
+			Resource:        "roles",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -408,10 +436,12 @@ func TestProjectAdminEditPolicy(t *testing.T) {
 
 func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "ClusterAdmin"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "update",
-			Resource: "roles",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "ClusterAdmin"},
+			Namespace:       "adze",
+			Verb:            "update",
+			Resource:        "roles",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -426,10 +456,12 @@ func TestGlobalPolicyOutranksLocalPolicy(t *testing.T) {
 
 func TestResourceRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "buildConfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Rachel"},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "buildConfigs",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -441,10 +473,12 @@ func TestResourceRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "pods",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Rachel"},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "pods",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "Rachel" cannot get pods in project "adze"`,
@@ -458,10 +492,12 @@ func TestResourceRestrictionsWork(t *testing.T) {
 
 func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "BUILDCONFIGS",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Rachel"},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "BUILDCONFIGS",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -473,10 +509,12 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Rachel"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "buildconfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			Verb:            "get",
+			User:            &user.DefaultInfo{Name: "Rachel"},
+			Namespace:       "adze",
+			Resource:        "buildconfigs",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -490,10 +528,12 @@ func TestResourceRestrictionsWithWeirdWork(t *testing.T) {
 
 func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 	test := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "backsaw"), &user.DefaultInfo{Name: "Rachel"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "buildConfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Rachel"},
+			Namespace:       "backsaw",
+			Verb:            "get",
+			Resource:        "buildConfigs",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "Rachel" cannot get buildConfigs in project "backsaw"`,
@@ -508,10 +548,12 @@ func TestLocalRightsDoNotGrantGlobalRights(t *testing.T) {
 
 func TestVerbRestrictionsWork(t *testing.T) {
 	test1 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "get",
-			Resource: "buildConfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Valerie"},
+			Namespace:       "adze",
+			Verb:            "get",
+			Resource:        "buildConfigs",
 		},
 		expectedAllowed: true,
 		expectedReason:  "allowed by rule in adze",
@@ -523,10 +565,12 @@ func TestVerbRestrictionsWork(t *testing.T) {
 	test1.test(t)
 
 	test2 := &authorizeTest{
-		context: kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), "adze"), &user.DefaultInfo{Name: "Valerie"}),
-		attributes: &DefaultAuthorizationAttributes{
-			Verb:     "create",
-			Resource: "buildConfigs",
+		attributes: kauthorizer.AttributesRecord{
+			ResourceRequest: true,
+			User:            &user.DefaultInfo{Name: "Valerie"},
+			Namespace:       "adze",
+			Verb:            "create",
+			Resource:        "buildConfigs",
 		},
 		expectedAllowed: false,
 		expectedReason:  `User "Valerie" cannot create buildConfigs in project "adze"`,
@@ -543,9 +587,9 @@ func (test *authorizeTest) test(t *testing.T) {
 	policyBindingRegistry := testpolicyregistry.NewPolicyBindingRegistry(test.bindings, test.bindingRetrievalError)
 	clusterPolicyRegistry := testpolicyregistry.NewClusterPolicyRegistry(test.clusterPolicies, test.policyRetrievalError)
 	clusterPolicyBindingRegistry := testpolicyregistry.NewClusterPolicyBindingRegistry(test.clusterBindings, test.bindingRetrievalError)
-	authorizer := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry), NewForbiddenMessageResolver(""))
+	authorizer, _ := NewAuthorizer(rulevalidation.NewDefaultRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry), NewForbiddenMessageResolver(""))
 
-	actualAllowed, actualReason, actualError := authorizer.Authorize(test.context, *test.attributes)
+	actualAllowed, actualReason, actualError := authorizer.Authorize(test.attributes)
 
 	matchBool(test.expectedAllowed, actualAllowed, "allowed", t)
 	if actualAllowed {

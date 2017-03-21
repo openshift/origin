@@ -234,7 +234,7 @@ func TestTagVerifier(t *testing.T) {
 			expectSar: true,
 			sarError:  errors.New("foo"),
 			expected: field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), "otherns/otherstream"),
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""- foo`),
 			},
 		},
 		"sar denied": {
@@ -250,7 +250,7 @@ func TestTagVerifier(t *testing.T) {
 			expectSar:  true,
 			sarAllowed: false,
 			expected: field.ErrorList{
-				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), "otherns/otherstream"),
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""`),
 			},
 		},
 		"ref changed": {
@@ -312,6 +312,7 @@ func TestTagVerifier(t *testing.T) {
 			}
 			expectedSar := &authorizationapi.SubjectAccessReview{
 				Action: authorizationapi.Action{
+					//				Group:        "image.openshift.io",
 					Verb:         "get",
 					Resource:     "imagestreams/layers",
 					ResourceName: "otherstream",

@@ -54,7 +54,7 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     and access the host for the Jenkins route.
 
-    If you do not have a router, or your host system does not support xip.io name resolution you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
+    If you do not have a router, or your host system does not support nip.io name resolution you can access jenkins directly via the service ip.  Determine the jenkins service ip ("oc get svc") and go to it in your browser on port 80.  Do not confuse it with the jenkins-jnlp service.
     If you take this approach, run the following command before attempting to log into Jenkins:
 
         $ oc annotate sa/jenkins serviceaccounts.openshift.io/oauth-redirecturi.1=http://<jenkins_service_ip:jenkins_service_port>/securityRealm/finishLogin --overwrite

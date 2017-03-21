@@ -31,7 +31,7 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     nil,
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
+				{Name: "GetIdentity", Object: "idp:bob"},
 			},
 			ExpectedError: true,
 		},
@@ -44,7 +44,7 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     nil,
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
+				{Name: "GetIdentity", Object: "idp:bob"},
 			},
 			ExpectedError: true,
 		},
@@ -56,8 +56,8 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     nil,
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
-				{"GetUser", "bob"},
+				{Name: "GetIdentity", Object: "idp:bob"},
+				{Name: "GetUser", Object: "bob"},
 			},
 			ExpectedError: true,
 		},
@@ -69,8 +69,8 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     makeUser("bobUserUID", "bob", "idp:bob"),
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
-				{"GetUser", "bob"},
+				{Name: "GetIdentity", Object: "idp:bob"},
+				{Name: "GetUser", Object: "bob"},
 			},
 			ExpectedError: true,
 		},
@@ -82,8 +82,8 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     makeUser("bobUserUID", "bob" /*, "idp:bob"*/),
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
-				{"GetUser", "bob"},
+				{Name: "GetIdentity", Object: "idp:bob"},
+				{Name: "GetUser", Object: "bob"},
 			},
 			ExpectedError: true,
 		},
@@ -95,9 +95,9 @@ func TestLookup(t *testing.T) {
 			ExistingUser:     makeUser("bobUserUID", "bob", "idp:bob"),
 
 			ExpectedActions: []test.Action{
-				{"GetIdentity", "idp:bob"},
-				{"GetUser", "bob"},
-				{"GetUser", "bob"}, // extra request is for group lookup
+				{Name: "GetIdentity", Object: "idp:bob"},
+				{Name: "GetUser", Object: "bob"},
+				{Name: "GetUser", Object: "bob"}, // extra request is for group lookup
 			},
 			ExpectedUserName: "bob",
 		},

@@ -211,7 +211,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 		image.ObjectName = k
 		image.Tag = "from"
 
-		pipeline, err := app.NewPipelineBuilder(k, nil, false).To(k).NewBuildPipeline(k, image, repo)
+		pipeline, err := app.NewPipelineBuilder(k, nil, nil, false).To(k).NewBuildPipeline(k, image, repo)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -364,7 +364,7 @@ func Generate(paths ...string) (*templateapi.Template, error) {
 				}
 			}
 
-			pipeline, err := app.NewPipelineBuilder(k, nil, true).To(k).NewImagePipeline(k, inputImage)
+			pipeline, err := app.NewPipelineBuilder(k, nil, nil, true).To(k).NewImagePipeline(k, inputImage)
 			if err != nil {
 				errs = append(errs, err)
 				break

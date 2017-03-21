@@ -93,6 +93,12 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	g.Describe("binary builds", func() {
 		var commit string
 
+		// do a best effort to initialize the repo in case it is a raw checkout or temp dir
+		tryRepoInit := func(exampleBuild string) {
+			out, err := exec.Command("bash", "-c", fmt.Sprintf("cd %q; if ! git rev-parse --git-dir; then git init .; git add .; git commit -m 'first'; touch foo; git add .; git commit -m 'second'; fi; true", exampleBuild)).CombinedOutput()
+			fmt.Fprintf(g.GinkgoWriter, "Tried to init git repo: %v\n%s\n", err, string(out))
+		}
+
 		g.It("should accept --from-file as input", func() {
 			g.By("starting the build with a Dockerfile")
 			br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
@@ -120,6 +126,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 		g.It("should accept --from-repo as input", func() {
 			g.By("starting the build with a Git repository")
+			tryRepoInit(exampleBuild)
 			br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-repo=%s", exampleBuild))
 			br.AssertSuccess()
 			buildLog, err := br.Logs()
@@ -133,6 +140,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 		g.It("should accept --from-repo with --commit as input", func() {
 			g.By("starting the build with a Git repository")
+			tryRepoInit(exampleBuild)
 			gitCmd := exec.Command("git", "rev-parse", "HEAD~1")
 			gitCmd.Dir = exampleBuild
 			commitByteArray, err := gitCmd.CombinedOutput()
@@ -248,4 +256,33 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 
 	})
 
+	g.Describe("Setting build-args on Docker builds", func() {
+		g.It("Should copy build args from BuildConfig to Build", func() {
+			g.By("starting the build without --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build output contains the build args from the BuildConfig.")
+			o.Expect(buildLog).To(o.ContainSubstring("default"))
+		})
+		g.It("Should accept build args that are specified in the Dockerfile", func() {
+			g.By("starting the build with --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=foo=bar")
+			br.AssertSuccess()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build output contains the changes.")
+			o.Expect(buildLog).To(o.ContainSubstring("bar"))
+		})
+		g.It("Should fail on non-existent build-arg", func() {
+			g.By("starting the build with --build-arg flag")
+			br, _ := exutil.StartBuildAndWait(oc, "sample-build-docker-args", "--build-arg=bar=foo")
+			br.AssertFailure()
+			buildLog, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("verifying the build failed due to Docker.")
+			o.Expect(buildLog).To(o.ContainSubstring("One or more build-args [bar] were not consumed, failing build"))
+		})
+	})
 })

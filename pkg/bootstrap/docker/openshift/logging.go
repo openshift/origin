@@ -133,5 +133,5 @@ func LoggingHost(routingSuffix, serverIP string) string {
 	if len(routingSuffix) > 0 {
 		return fmt.Sprintf("kibana-logging.%s", routingSuffix)
 	}
-	return fmt.Sprintf("kibana-logging.%s.xip.io", serverIP)
+	return fmt.Sprintf("kibana-logging.%s.nip.io", serverIP)
 }

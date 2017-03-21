@@ -1,7 +1,11 @@
 {
     "version": "1.0",
     "defaultValues": {
-	"COMMAND": ""
+        "COMMAND": "",
+        "ORIGIN_CONFIG_DIR": "/etc/origin",
+        "ORIGIN_DATA_DIR": "/var/lib/origin",
+        "ETCD_SERVICE": "etcd.service",
+        "NODE_SERVICE": "atomic-openshift-node.service"
     }
 }
 

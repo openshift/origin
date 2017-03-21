@@ -1,0 +1,10 @@
+{
+    "version": "1.0",
+    "defaultValues": {
+        "ORIGIN_CONFIG_DIR": "/etc/origin",
+        "ORIGIN_DATA_DIR": "/var/lib/origin",
+        "MASTER_SERVICE": "atomic-openshift-master.service",
+        "DOCKER_SERVICE": "docker.service",
+        "OPENVSWITCH_SERVICE": "openvswitch.service"
+    }
+}

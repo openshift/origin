@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 const (
@@ -158,6 +159,7 @@ func init() {
 				{
 					Verbs:     sets.NewString("create"),
 					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline"),
+					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
 				},
 				// BuildController.ImageStreamClient (ControllerClient)
 				{
@@ -745,7 +747,11 @@ func init() {
 					Verbs:     sets.NewString("list", "watch"),
 					Resources: sets.NewString("replicationcontrollers"),
 				},
-				// DisruptionBudgetController.dStore.ListWatch
+				{
+					APIGroups: []string{apps.GroupName},
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("statefulsets"),
+				},
 				{
 					APIGroups: []string{policy.GroupName},
 					Verbs:     sets.NewString("get", "list", "watch"),

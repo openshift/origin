@@ -29,9 +29,11 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/fields"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/third_party/forked/golang/netutil"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -97,6 +99,7 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, 
 	}
 	cmd.Flags().StringVar(&o.LogLevel, "build-loglevel", o.LogLevel, "Specify the log level for the build log output")
 	cmd.Flags().StringArrayVarP(&o.Env, "env", "e", o.Env, "Specify a key-value pair for an environment variable to set for the build container.")
+	cmd.Flags().StringArrayVar(&o.Args, "build-arg", o.Args, "Specify a key-value pair to pass to Docker during the build.")
 	cmd.Flags().StringVar(&o.FromBuild, "from-build", o.FromBuild, "Specify the name of a build which should be re-run")
 
 	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
@@ -133,7 +136,8 @@ type StartBuildOptions struct {
 	FromRepo    string
 	FromArchive string
 
-	Env []string
+	Env  []string
+	Args []string
 
 	Follow          bool
 	WaitForComplete bool
@@ -149,6 +153,7 @@ type StartBuildOptions struct {
 	AsBinary    bool
 	ShortOutput bool
 	EnvVar      []kapi.EnvVar
+	BuildArgs   []kapi.EnvVar
 	Name        string
 	Namespace   string
 }
@@ -234,10 +239,10 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		if err != nil {
 			return err
 		}
-		switch resource {
-		case buildapi.Resource("buildconfigs"):
+		switch {
+		case buildapi.IsResourceOrLegacy("buildconfigs", resource):
 			// no special handling required
-		case buildapi.Resource("builds"):
+		case buildapi.IsResourceOrLegacy("builds", resource):
 			if len(o.ListWebhooks) == 0 {
 				return fmt.Errorf("use --from-build to rerun your builds")
 			}
@@ -245,8 +250,9 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 			return fmt.Errorf("invalid resource provided: %v", resource)
 		}
 	}
+
 	// when listing webhooks, allow --from-build to lookup a build config
-	if resource == buildapi.Resource("builds") && len(o.ListWebhooks) > 0 {
+	if buildapi.IsResourceOrLegacy("builds", resource) && len(o.ListWebhooks) > 0 {
 		build, err := client.Builds(namespace).Get(name)
 		if err != nil {
 			return err
@@ -268,6 +274,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Namespace = namespace
 	o.Name = name
 
+	// Handle environment variables
 	cmdutil.WarnAboutCommaSeparation(o.ErrOut, o.Env, "--env")
 	env, _, err := cmdutil.ParseEnv(o.Env, in)
 	if err != nil {
@@ -277,6 +284,14 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		env = append(env, kapi.EnvVar{Name: "BUILD_LOGLEVEL", Value: buildLogLevel})
 	}
 	o.EnvVar = env
+
+	// Handle Docker build arguments. In order to leverage existing logic, we
+	// first create an EnvVar array, then convert it to []docker.BuildArg
+	buildArgs, err := cmdutil.ParseBuildArg(o.Args, in)
+	if err != nil {
+		return err
+	}
+	o.BuildArgs = buildArgs
 
 	return nil
 }
@@ -299,9 +314,17 @@ func (o *StartBuildOptions) Run() error {
 		),
 		ObjectMeta: kapi.ObjectMeta{Name: o.Name},
 	}
+
 	if len(o.EnvVar) > 0 {
 		request.Env = o.EnvVar
 	}
+
+	if len(o.BuildArgs) > 0 {
+		request.DockerStrategyOptions = &buildapi.DockerStrategyOptions{
+			BuildArgs: o.BuildArgs,
+		}
+	}
+
 	if len(o.Commit) > 0 {
 		request.Revision = &buildapi.SourceRevision{
 			Git: &buildapi.GitSourceRevision{
@@ -323,6 +346,9 @@ func (o *StartBuildOptions) Run() error {
 		}
 		if len(o.EnvVar) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying environment variables with binary builds is not supported.\n")
+		}
+		if len(o.BuildArgs) > 0 {
+			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
 		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.Client.BuildConfigs(o.Namespace), o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {
@@ -687,6 +713,20 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 		body, _ := ioutil.ReadAll(resp.Body)
 		return fmt.Errorf("server rejected our request %d\nremote: %s", resp.StatusCode, string(body))
 	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	if len(body) > 0 {
+		// In later server versions we return the created Build in the body.
+		var newBuild buildapi.Build
+		if err = json.Unmarshal(body, &buildapiv1.Build{}); err == nil {
+			if err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), body, &newBuild); err != nil {
+				return err
+			}
+
+			kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, "build", newBuild.Name, false, "started")
+		}
+	}
+
 	return nil
 }
 

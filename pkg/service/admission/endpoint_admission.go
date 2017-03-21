@@ -6,13 +6,12 @@ import (
 	"net"
 	"reflect"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 
 	kadmission "k8s.io/kubernetes/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/authorizer"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -83,14 +82,17 @@ func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) stri
 }
 
 func (r *restrictedEndpointsAdmission) checkAccess(attr kadmission.Attributes) (bool, error) {
-	ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), attr.GetNamespace()), attr.GetUserInfo())
-	authzAttr := authorizer.DefaultAuthorizationAttributes{
-		Verb:         "create",
-		Resource:     authorizationapi.RestrictedEndpointsResource,
-		APIGroup:     kapi.GroupName,
-		ResourceName: attr.GetName(),
+	authzAttr := authorizer.AttributesRecord{
+		User:            attr.GetUserInfo(),
+		Verb:            "create",
+		Namespace:       attr.GetNamespace(),
+		Resource:        "endpoints",
+		Subresource:     "restricted",
+		APIGroup:        kapi.GroupName,
+		Name:            attr.GetName(),
+		ResourceRequest: true,
 	}
-	allow, _, err := r.authorizer.Authorize(ctx, authzAttr)
+	allow, _, err := r.authorizer.Authorize(authzAttr)
 	return allow, err
 }
 

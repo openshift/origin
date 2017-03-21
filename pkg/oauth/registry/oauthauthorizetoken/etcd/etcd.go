@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -22,26 +20,25 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
 	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
 	store := &registry.Store{
-		NewFunc:     func() runtime.Object { return &api.OAuthAuthorizeToken{} },
-		NewListFunc: func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.OAuthAuthorizeToken).Name, nil
-		},
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return oauthauthorizetoken.Matcher(label, field)
-		},
+		NewFunc:           func() runtime.Object { return &api.OAuthAuthorizeToken{} },
+		NewListFunc:       func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
+		PredicateFunc:     oauthauthorizetoken.Matcher,
+		QualifiedResource: api.Resource("oauthauthorizetokens"),
+
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
 			token := obj.(*api.OAuthAuthorizeToken)
 			expires := uint64(token.ExpiresIn)
 			return expires, nil
 		},
-		QualifiedResource: api.Resource("oauthauthorizetokens"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, false, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthauthorizetoken.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
 		return nil, err
 	}
 	return &REST{store}, nil

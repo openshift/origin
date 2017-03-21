@@ -51,11 +51,9 @@ os::test::junit::declare_suite_start "end-to-end/core"
 os::log::info "openshift version: `openshift version`"
 os::log::info "oc version:        `oc version`"
 
-# service dns entry is visible via master service
-# find the IP of the master service by asking the API_HOST to verify DNS is running there
-# might need to wait a bit to ensure the dns cache is primed
-os::cmd::try_until_text "dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1" "([0-9]{1,3}\.){3}[0-9]{1,3}"
-MASTER_SERVICE_IP="$(dig "@${API_HOST}" "kubernetes.default.svc.cluster.local." +short A | head -n 1)"
+# Ensure that the master service responds to DNS requests. At this point 'oc cluster up' has verified
+# that the service is up
+MASTER_SERVICE_IP="172.30.0.1"
 # find the IP of the master service again by asking the IP of the master service, to verify port 53 tcp/udp is routed by the service
 os::cmd::expect_success_and_text "dig +tcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
 os::cmd::expect_success_and_text "dig +notcp @${MASTER_SERVICE_IP} kubernetes.default.svc.cluster.local. +short A | head -n 1" "${MASTER_SERVICE_IP}"
@@ -99,14 +97,38 @@ os::cmd::expect_success_and_text "oc rsh rc/docker-registry-1 cat config.yml" "5
 # services can end up on any IP.  Make sure we get the IP we need for the docker registry
 DOCKER_REGISTRY=$(oc get --output-version=v1 --template="{{ .spec.clusterIP }}:{{ (index .spec.ports 0).port }}" service docker-registry)
 
-os::cmd::expect_success_and_text "dig @${API_HOST} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
+os::cmd::expect_success_and_text "dig @${MASTER_SERVICE_IP} docker-registry.default.svc.cluster.local. +short A | head -n 1" "${DOCKER_REGISTRY/:5000}"
 
 os::log::info "Verifying the docker-registry is up at ${DOCKER_REGISTRY}"
 os::cmd::try_until_success "curl --max-time 2 --fail --silent 'http://${DOCKER_REGISTRY}/'" "$((2*TIME_MIN))"
 # ensure original healthz route works as well
 os::cmd::expect_success "curl -f http://${DOCKER_REGISTRY}/healthz"
 
-os::cmd::expect_success "dig @${API_HOST} docker-registry.default.local. A"
+os::cmd::expect_success "dig @${MASTER_SERVICE_IP} docker-registry.default.local. A"
+
+os::log::info "Configure registry to disable mirroring"
+os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=false'
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::log::info "Registry configured to disable mirroring"
+
+os::log::info "Verify that an image based on a remote image can be pushed to the same image stream while pull-through enabled."
+os::cmd::expect_success "oc login -u user0 -p pass"
+os::cmd::expect_success "oc new-project project0"
+# An image stream will be created that will track the source image and the resulting image
+# will be pushed to image stream "busybox:latest"
+os::cmd::expect_success "oc new-build -D \$'FROM busybox:glibc\nRUN echo abc >/tmp/foo'"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.metadata.name}'" "busybox-1" "$(( 10*TIME_MIN ))"
+os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" '^(Complete|Failed|Error)$' "$(( 10*TIME_MIN ))"
+os::cmd::expect_success_and_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" 'Complete'
+os::cmd::expect_success "oc get istag/busybox:latest"
+
+os::log::info "Restore registry mirroring"
+os::cmd::expect_success "oc project '${CLUSTER_ADMIN_CONTEXT}'"
+os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_MIRRORPULLTHROUGH=true'
+os::cmd::expect_success 'oc rollout status dc/docker-registry'
+os::log::info "Restore configured to enable mirroring"
+
 registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
@@ -154,7 +176,7 @@ mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if
 # directly hit the image to trigger mirroring in case the layer already exists on disk
 os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http://${DOCKER_REGISTRY}/v2/cache/mysql/blobs/${mysqlblob}' 1>/dev/null"
 # verify the blob exists on disk in the registry due to mirroring under .../blobs/sha256/<2 char prefix>/<sha value>
-os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default -p '${registry_pod}' du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
+os::cmd::try_until_success "oc exec --context='${CLUSTER_ADMIN_CONTEXT}' -n default '${registry_pod}' -- du /registry | tee '${LOG_DIR}/registry-images.txt' | grep '${mysqlblob:7:100}' | grep blobs"
 
 os::log::info "Docker registry refuses manifest with missing dependencies"
 os::cmd::expect_success 'oc new-project verify-manifest'
@@ -354,28 +376,30 @@ os::cmd::expect_success 'oc login -u e2e-user'
 os::cmd::expect_success 'oc project test'
 os::cmd::expect_success 'oc whoami'
 
-os::log::info "Running a CLI command in a container using the service account"
-os::cmd::expect_success 'oc policy add-role-to-user view -z default'
-os::cmd::try_until_success "oc sa get-token default"
-oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
-# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
-set +o errexit
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
-set -o errexit
-os::cmd::expect_success 'oc delete pod cli-with-token'
-oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
-# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
-set +o errexit
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
-set -o errexit
-os::cmd::expect_success 'oc delete pod cli-with-token-2'
-oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
-# TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
-set +o errexit
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
-os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
-set -o errexit
+if [[ -n "${SOLTYSH_DEBUG:-}" ]]; then
+    os::log::info "Running a CLI command in a container using the service account"
+    os::cmd::expect_success 'oc policy add-role-to-user view -z default'
+    os::cmd::try_until_success "oc sa get-token default"
+    oc run cli-with-token --attach --image="openshift/origin:${TAG}" --restart=Never -- cli status --loglevel=4 > "${LOG_DIR}/cli-with-token.log" 2>&1
+    # TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+    set +o errexit
+    os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'Using in-cluster configuration'
+    os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token.log'" 'In project test'
+    set -o errexit
+    os::cmd::expect_success 'oc delete pod cli-with-token'
+    oc run cli-with-token-2 --attach --image="openshift/origin:${TAG}" --restart=Never -- cli whoami --loglevel=4 > "${LOG_DIR}/cli-with-token2.log" 2>&1
+    # TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+    set +o errexit
+    os::cmd::expect_success_and_text "cat '${LOG_DIR}/cli-with-token2.log'" 'system:serviceaccount:test:default'
+    set -o errexit
+    os::cmd::expect_success 'oc delete pod cli-with-token-2'
+    oc run kubectl-with-token --attach --image="openshift/origin:${TAG}" --restart=Never --command -- kubectl get pods --loglevel=4 > "${LOG_DIR}/kubectl-with-token.log" 2>&1
+    # TODO remove set +o errexit, once https://github.com/openshift/origin/issues/12558 gets proper fix
+    set +o errexit
+    os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'Using in-cluster configuration'
+    os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kubectl-with-token'
+    set -o errexit
+fi
 
 os::log::info "Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
@@ -420,8 +444,8 @@ os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].
 BUILD_ID="$( oc get builds --namespace test -o jsonpath='{.items[0].metadata.name}' )"
 # Ensure that the build pod doesn't allow exec
 os::cmd::expect_failure_and_text "oc rsh ${BUILD_ID}-build" 'forbidden'
-os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
-os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test  > '${LOG_DIR}/test-build.log'"
+os::cmd::expect_success "oc logs build/${BUILD_ID} --namespace test -f > '${LOG_DIR}/test-build.log'"
+os::cmd::try_until_text "oc get builds --namespace test -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 1*TIME_MIN ))"
 wait_for_app "test"
 
 # logs can't be tested without a node, so has to be in e2e

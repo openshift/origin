@@ -12,7 +12,7 @@ INPUT_DIRS=$(
   xargs -n1 dirname | \
   sed "s,^,${PREFIX}," | \
   sort -u | \
-  paste -sd,
+  paste -sd, -
 )
 
 EXTRA_PEER_DIRS=$(
@@ -20,7 +20,7 @@ EXTRA_PEER_DIRS=$(
   xargs -n1 dirname | \
   sort -u | \
   sed 's,^vendor/,,' | \
-  paste -sd,
+  paste -sd, -
 )
 
 gendefaults \

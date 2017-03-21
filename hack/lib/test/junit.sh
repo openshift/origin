@@ -143,3 +143,39 @@ function os::test::junit::reconcile_output() {
     done
 }
 readonly -f os::test::junit::reconcile_output
+
+# os::test::junit::generate_oscmd_report generats an XML jUnit report
+# for the `os::cmd` suite from the raw test output. This function should
+# be trapped on EXIT.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - ARTIFACT_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::test::junit::generate_oscmd_report() {
+    if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
+          -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+          # we can't generate a report
+          return
+    fi
+
+    # get the jUnit output file into a workable state in case we
+    # crashed in the middle of testing something
+    os::test::junit::reconcile_output
+
+    # check that we didn't mangle jUnit output
+    os::test::junit::check_test_counters
+
+    # use the junitreport tool to generate us a report
+    os::util::ensure::built_binary_exists 'junitreport'
+
+    junitreport --type oscmd                          \
+                --suites nested                       \
+                --roots github.com/openshift/origin   \
+                --output "${ARTIFACT_DIR}/report.xml" \
+                <"${JUNIT_REPORT_OUTPUT}"
+    junitreport summarize <"${ARTIFACT_DIR}/report.xml"
+}

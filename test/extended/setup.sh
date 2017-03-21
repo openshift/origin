@@ -24,52 +24,44 @@ function os::test::extended::setup () {
 	# build binaries
 	os::util::ensure::built_binary_exists 'ginkgo' 'vendor/github.com/onsi/ginkgo/ginkgo'
 	os::util::ensure::built_binary_exists 'extended.test' 'test/extended/extended.test'
-	os::util::ensure::built_binary_exists 'openshift'
 	os::util::ensure::built_binary_exists 'oadm'
 	os::util::ensure::built_binary_exists 'oc'
 	os::util::ensure::built_binary_exists 'junitmerge'
 
 	# ensure proper relative directories are set
-	export EXTENDED_TEST_PATH="${OS_ROOT}/test/extended"
 	export KUBE_REPO_ROOT="${OS_ROOT}/vendor/k8s.io/kubernetes"
 
-	# allow setup to be skipped
-	if [[ -n "${TEST_ONLY+x}" ]]; then
-		# be sure to set VOLUME_DIR if you are running with TEST_ONLY
-		os::log::info "Not starting server, VOLUME_DIR=${VOLUME_DIR:-}"
-		return 0
+	os::util::environment::setup_time_vars
+
+	# Allow setting $JUNIT_REPORT to toggle output behavior
+	if [[ -n "${JUNIT_REPORT:-}" ]]; then
+		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
+		# the Ginkgo tests also generate jUnit but expect different envars
+		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
 	fi
 
-	os::util::environment::setup_time_vars
-	os::util::environment::use_sudo
-	os::util::environment::setup_all_server_vars "test-extended/core"
+	# TODO: we shouldn't have to do this much work just to get tests to run against a real
+	#   cluster, until then
+	if [[ -n "${TEST_ONLY-}" ]]; then
+		function cleanup() {
+			out=$?
+			os::cleanup::dump_container_logs
+			os::test::junit::generate_oscmd_report
+			os::log::info "Exiting"
+			return $out
+		}
+		trap "exit" INT TERM
+		trap "cleanup" EXIT
 
-	os::util::ensure::iptables_privileges_exist
+		os::log::info "Not starting server"
+		return 0
+	fi
 
 	function cleanup() {
 		out=$?
 		cleanup_openshift
 
-		# TODO(skuznets): un-hack this nonsense once traps are in a better
-		# state
-		if [[ -n "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-			# get the jUnit output file into a workable state in case we
-			# crashed in the middle of testing something
-			os::test::junit::reconcile_output
-
-			# check that we didn't mangle jUnit output
-			os::test::junit::check_test_counters
-
-			# use the junitreport tool to generate us a report
-			os::util::ensure::built_binary_exists 'junitreport'
-
-			cat "${JUNIT_REPORT_OUTPUT}" \
-				| junitreport --type oscmd \
-				--suites nested \
-				--roots github.com/openshift/origin \
-				--output "${ARTIFACT_DIR}/report.xml"
-			cat "${ARTIFACT_DIR}/report.xml" | junitreport summarize
-		fi
+		os::test::junit::generate_oscmd_report
 
 		os::log::info "Exiting"
 		return $out
@@ -77,6 +69,14 @@ function os::test::extended::setup () {
 
 	trap "exit" INT TERM
 	trap "cleanup" EXIT
+
+	os::util::ensure::built_binary_exists 'openshift'
+
+	os::util::environment::use_sudo
+	os::cleanup::tmpdir
+	os::util::environment::setup_all_server_vars
+	os::util::ensure::iptables_privileges_exist
+
 	os::log::info "Starting server"
 
 	os::util::environment::setup_images_vars
@@ -91,14 +91,7 @@ function os::test::extended::setup () {
 		LOCAL_STORAGE_QUOTA="1"
 		export VOLUME_DIR="/mnt/openshift-xfs-vol-dir"
 	else
-		os::log::warn "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
-	fi
-
-	# Allow setting $JUNIT_REPORT to toggle output behavior
-	if [[ -n "${JUNIT_REPORT:-}" ]]; then
-		export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
-		# the Ginkgo tests also generate jUnit but expect different envars
-		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+		os::log::warning "/mnt/openshift-xfs-vol-dir does not exist, local storage quota tests may fail."
 	fi
 
 	os::log::system::start
@@ -201,11 +194,11 @@ function os::test::extended::run () {
 	os::test::extended::test_list "${listArgs[@]}"
 
 	if [[ "${TEST_COUNT}" -eq 0 ]]; then
-		os::log::warn "No tests were selected"
+		os::log::warning "No tests were selected"
 		return
 	fi
 
-	ginkgo -v "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
+	ginkgo -v -noColor "${runArgs[@]}" "$( os::util::find::built_binary extended.test )" "$@"
 }
 
 # Create a list of extended tests to be run with the given arguments
@@ -237,7 +230,7 @@ function os::test::extended::test_list () {
 	done
 	if [[ -n "${PRINT_TESTS:-}" ]]; then
 		if [[ ${#selected_tests[@]} -eq 0 ]]; then
-			os::log::warn "No tests were selected"
+			os::log::warning "No tests were selected"
 		else
 			printf '%s\n' "${selected_tests[@]}" | sort
 		fi
@@ -250,6 +243,9 @@ readonly -f os::test::extended::test_list
 # This works around a gap in Jenkins JUnit reporter output that double counts skipped
 # files until https://github.com/jenkinsci/junit-plugin/pull/54 is merged.
 function os::test::extended::merge_junit () {
+	if [[ -z "${JUNIT_REPORT:-}" ]]; then
+		return
+	fi
 	local output
 	output="$( mktemp )"
 	"$( os::util::find::built_binary junitmerge )" "${TEST_REPORT_DIR}"/*.xml > "${output}"
@@ -352,12 +348,8 @@ readonly SERIAL_TESTS=(
 
 readonly CONFORMANCE_TESTS=(
 	"\[Conformance\]"
-
 	"Services.*NodePort"
 	"ResourceQuota should"
-	"\[networking\] basic openshift networking"
-	"\[networking\]\[router\]"
-	"Ensure supplemental groups propagate to docker"
 	"EmptyDir"
 	"StatefulSet"
 	"Downward API"
@@ -368,18 +360,12 @@ readonly CONFORMANCE_TESTS=(
 	"Pods should support retrieving logs from the container"
 	"Kubectl client Simple pod should support"
 	"Job should run a job to completion when tasks succeed"
-	"\[images\]\[mongodb\] openshift mongodb replication"
-	"\[job\] openshift can execute jobs controller"
-	"\[volumes\] Test local storage quota FSGroup"
-	"test deployment should run a deployment to completion"
 	"Variable Expansion"
 	"init containers"
 	"Clean up pods on node kubelet"
 	"\[Feature\:SecurityContext\]"
 	"should create a LimitRange with defaults"
 	"Generated release_1_2 clientset"
-	"\[Feature\:PodDisruptionbudget\]"
 	"should create a pod that reads a secret"
 	"should create a pod that prints his name and namespace"
-	"manifest migration from etcd to registry storage"
 )

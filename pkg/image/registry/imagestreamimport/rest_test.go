@@ -184,11 +184,12 @@ func TestImportSuccessful(t *testing.T) {
 		}
 
 		importPolicy := api.TagImportPolicy{}
+		referencePolicy := api.TagReferencePolicy{Type: api.SourceTagReferencePolicy}
 		importedImages := make(map[string]error)
 		updatedImages := make(map[string]*api.Image)
 		storage := REST{images: fakeImageCreater{}}
 		_, ok := storage.importSuccessful(kapi.NewDefaultContext(), test.image, test.stream,
-			ref.Tag, ref.Exact(), two, now, importPolicy, importedImages, updatedImages)
+			ref.Tag, ref.Exact(), two, now, importPolicy, referencePolicy, importedImages, updatedImages)
 		if !ok {
 			t.Errorf("%s: expected success, didn't get one", name)
 		}

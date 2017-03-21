@@ -3,8 +3,6 @@ package etcd
 import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/storage"
@@ -25,21 +23,10 @@ type REST struct {
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
-		NewFunc: func() runtime.Object { return &api.ImageStream{} },
-
-		// NewListFunc returns an object capable of storing results of an etcd list.
-		NewListFunc: func() runtime.Object { return &api.ImageStreamList{} },
-		// Retrieve the name field of an image
-		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return obj.(*api.ImageStream).Name, nil
-		},
-		// Used to match objects based on labels/fields for list and watch
-		PredicateFunc: func(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-			return imagestream.Matcher(label, field)
-		},
+		NewFunc:           func() runtime.Object { return &api.ImageStream{} },
+		NewListFunc:       func() runtime.Object { return &api.ImageStreamList{} },
+		PredicateFunc:     imagestream.Matcher,
 		QualifiedResource: api.Resource("imagestreams"),
-
-		ReturnDeletedObject: false,
 	}
 
 	rest := &REST{
@@ -53,7 +40,10 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 	store.UpdateStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	if err := restoptions.ApplyOptions(optsGetter, &store, true, storage.NoTriggerPublisher); err != nil {
+	// TODO this will be uncommented after 1.6 rebase:
+	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: imagestream.GetAttrs}
+	// if err := store.CompleteWithOptions(options); err != nil {
+	if err := restoptions.ApplyOptions(optsGetter, &store, storage.NoTriggerPublisher); err != nil {
 		return nil, nil, nil, err
 	}
 
@@ -79,8 +69,16 @@ type StatusREST struct {
 	store *registry.Store
 }
 
+// StatusREST implements Patcher
+var _ = rest.Patcher(&StatusREST{})
+
 func (r *StatusREST) New() runtime.Object {
 	return &api.ImageStream{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch.
+func (r *StatusREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+	return r.store.Get(ctx, name)
 }
 
 // Update alters the status subset of an object.
