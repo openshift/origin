@@ -204,6 +204,11 @@ func (r *TestRouter) HasRoute(route *routeapi.Route) bool {
 	return false
 }
 
+func (r *TestRouter) SyncedAtLeastOnce() bool {
+	// Not used
+	return false
+}
+
 func (r *TestRouter) FilterNamespaces(namespaces sets.String) {
 	if len(namespaces) == 0 {
 		r.State = make(map[string]ServiceAliasConfig)
