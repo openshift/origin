@@ -15,6 +15,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -87,6 +88,25 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	}
 
 	return nil
+}
+
+func (ni *NetworkInfo) checkHostNetworks(hostIPNets []*net.IPNet) error {
+	errList := []error{}
+	for _, ipNet := range hostIPNets {
+		if ipNet.Contains(ni.ClusterNetwork.IP) {
+			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
+		}
+		if ni.ClusterNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
+		}
+		if ipNet.Contains(ni.ServiceNetwork.IP) {
+			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
+		}
+		if ni.ServiceNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
+		}
+	}
+	return kerrors.NewAggregate(errList)
 }
 
 func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {

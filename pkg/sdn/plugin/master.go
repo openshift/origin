@@ -68,7 +68,10 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		createConfig = true
 	}
 	if createConfig || updateConfig {
-		if err = master.validateNetworkConfig(); err != nil {
+		if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
+			return err
+		}
+		if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
 			return err
 		}
 		cn.Network = master.networkInfo.ClusterNetwork.String()
@@ -111,30 +114,17 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	return nil
 }
 
-func (master *OsdnMaster) validateNetworkConfig() error {
+func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
 	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
 	if err != nil {
 		return err
 	}
+	return master.networkInfo.checkHostNetworks(hostIPNets)
+}
 
+func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 	ni := master.networkInfo
 	errList := []error{}
-
-	// Ensure cluster and service network don't overlap with host networks
-	for _, ipNet := range hostIPNets {
-		if ipNet.Contains(ni.ClusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
-		}
-		if ni.ClusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
-		}
-		if ipNet.Contains(ni.ServiceNetwork.IP) {
-			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
-		}
-		if ni.ServiceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
-		}
-	}
 
 	// Ensure each host subnet is within the cluster network
 	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})

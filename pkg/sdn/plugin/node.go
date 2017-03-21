@@ -218,6 +218,15 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
+	if err != nil {
+		return fmt.Errorf("failed to get host network information: %v", err)
+	}
+	if err := node.networkInfo.checkHostNetworks(hostIPNets); err != nil {
+		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
+		log.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err)
+	}
+
 	node.localSubnetCIDR, err = node.getLocalSubnet()
 	if err != nil {
 		return err
