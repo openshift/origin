@@ -78,16 +78,16 @@ func newMasterLeases(storage storage.Interface) election.Leases {
 }
 
 // RunNamespaceController starts the Kubernetes Namespace Manager
-func (c *MasterConfig) RunNamespaceController(kubeClient kclientset.Interface, clientPool dynamic.ClientPool) {
+func (c *MasterConfig) RunNamespaceController(kubeClient kclientset.Interface, clientPool dynamic.ClientPool, namespaceInformer coreinformers.NamespaceInformer) {
 	// Find the list of namespaced resources via discovery that the namespace controller must manage
 	groupVersionResources, err := kubeClient.Discovery().ServerPreferredNamespacedResources()
 	if err != nil {
 		glog.Fatalf("Failed to get resources: %v", err)
 	}
-	gvrFn := func() ([]schema.GroupVersionResource, error) {
+	gvrFn := func() ([]*metav1.APIResourceList, error) {
 		return groupVersionResources, nil
 	}
-	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, clientPool, gvrFn, c.ControllerManager.NamespaceSyncPeriod.Duration, kapi.FinalizerKubernetes)
+	namespaceController := namespacecontroller.NewNamespaceController(kubeClient, clientPool, gvrFn, namespaceInformer, c.ControllerManager.NamespaceSyncPeriod.Duration, kapiv1.FinalizerKubernetes)
 	go namespaceController.Run(int(c.ControllerManager.ConcurrentNamespaceSyncs), utilwait.NeverStop)
 }
 
@@ -99,6 +99,10 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 		glog.Fatalf("A backward-compatible provisioner could not be created: %v, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.", err)
 	}
 
+	eventcast := record.NewBroadcaster()
+	recorder := eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "persistent-volume-controller"})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
+
 	volumeController := persistentvolumecontroller.NewController(
 		persistentvolumecontroller.ControllerParameters{
 			KubeClient:                client,
@@ -107,6 +111,10 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 			VolumePlugins:             probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
 			Cloud:                     c.CloudProvider,
 			ClusterName:               s.ClusterName,
+			VolumeInformer:            c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
+			ClaimInformer:             c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
+			ClassInformer:             c.Informers.KubernetesInformers().Storage().V1beta1().StorageClasses(),
+			EventRecorder:             recorder,
 			EnableDynamicProvisioning: s.VolumeConfiguration.EnableDynamicProvisioning,
 		})
 	volumeController.Run(utilwait.NeverStop)
@@ -114,9 +122,6 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client kclientset.Interface) {
 	s := c.ControllerManager
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "controller-manager"})
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
 			client,
@@ -126,7 +131,6 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client kclients
 			c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
 			c.CloudProvider,
 			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
-			recorder,
 			s.DisableAttachDetachReconcilerSync,
 			s.ReconcilerSyncLoopPeriod.Duration,
 		)
@@ -199,8 +203,6 @@ func (c *MasterConfig) RunReplicaSetController(client kclientset.Interface) {
 		c.Informers.KubernetesInformers().Core().V1().Pods(),
 		client,
 		replicasetcontroller.BurstReplicas,
-		int(c.ControllerManager.LookupCacheSizeForRC),
-		c.ControllerManager.EnableGarbageCollector,
 	)
 	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
@@ -209,11 +211,9 @@ func (c *MasterConfig) RunReplicaSetController(client kclientset.Interface) {
 func (c *MasterConfig) RunReplicationController(client kclientset.Interface) {
 	controllerManager := replicationcontroller.NewReplicationManager(
 		c.Informers.KubernetesInformers().Core().V1().Pods(),
+		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),
 		client,
-		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicationcontroller.BurstReplicas,
-		int(c.ControllerManager.LookupCacheSizeForRC),
-		c.ControllerManager.EnableGarbageCollector,
 	)
 	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
 }
@@ -230,7 +230,11 @@ func (c *MasterConfig) RunDeploymentController(client kclientset.Interface) {
 
 // RunJobController starts the Kubernetes job controller sync loop
 func (c *MasterConfig) RunJobController(client kclientset.Interface) {
-	controller := jobcontroller.NewJobController(c.Informers.KubernetesInformers().Pods().Informer(), c.Informers.KubernetesInformers().Jobs(), client)
+	controller := jobcontroller.NewJobController(
+		c.Informers.KubernetesInformers().Core().V1().Pods(),
+		c.Informers.KubernetesInformers().Batch().V1().Jobs(),
+		client,
+	)
 	go controller.Run(int(c.ControllerManager.ConcurrentJobSyncs), utilwait.NeverStop)
 }
 
@@ -241,7 +245,15 @@ func (c *MasterConfig) RunCronJobController(client kclientset.Interface) {
 
 // RunDisruptionBudgetController starts the Kubernetes disruption budget controller
 func (c *MasterConfig) RunDisruptionBudgetController(client kclientset.Interface) {
-	go disruption.NewDisruptionController(c.Informers.KubernetesInformers().Pods().Informer(), client).Run(utilwait.NeverStop)
+	go disruption.NewDisruptionController(
+		c.Informers.KubernetesInformers().Core().V1().Pods(),
+		c.Informers.KubernetesInformers().Policy().V1beta1().PodDisruptionBudgets(),
+		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),
+		c.Informers.KubernetesInformers().Extensions().V1beta1().ReplicaSets(),
+		c.Informers.KubernetesInformers().Extensions().V1beta1().Deployments(),
+		c.Informers.KubernetesInformers().Apps().V1beta1().StatefulSets(),
+		client,
+	).Run(utilwait.NeverStop)
 }
 
 // RunHPAController starts the Kubernetes hpa controller sync loop
@@ -254,6 +266,7 @@ func (c *MasterConfig) RunHPAController(oc *osclient.Client, kc kclientset.Inter
 		delegatingScaleNamespacer,
 		kc.AutoscalingV1(),
 		replicaCalc,
+		c.Informers.KubernetesInformers().Autoscaling().V1().HorizontalPodAutoscalers(),
 		c.ControllerManager.HorizontalPodAutoscalerSyncPeriod.Duration,
 	)
 	go podautoscaler.Run(utilwait.NeverStop)
@@ -265,14 +278,17 @@ func (c *MasterConfig) RunDaemonSetsController(client kclientset.Interface) {
 		c.Informers.KubernetesInformers().Core().V1().Pods(),
 		c.Informers.KubernetesInformers().Core().V1().Nodes(),
 		client,
-		int(c.ControllerManager.LookupCacheSizeForDaemonSet),
 	)
 	go controller.Run(int(c.ControllerManager.ConcurrentDaemonSetSyncs), utilwait.NeverStop)
 }
 
 // RunEndpointController starts the Kubernetes replication controller sync loop
 func (c *MasterConfig) RunEndpointController(client kclientset.Interface) {
-	endpoints := endpointcontroller.NewEndpointController(c.Informers.KubernetesInformers().Pods().Informer(), client)
+	endpoints := endpointcontroller.NewEndpointController(
+		c.Informers.KubernetesInformers().Core().V1().Pods(),
+		c.Informers.KubernetesInformers().Core().V1().Services(),
+		client,
+	)
 	go endpoints.Run(int(c.ControllerManager.ConcurrentEndpointSyncs), utilwait.NeverStop)
 }
 
@@ -283,8 +299,8 @@ func (c *MasterConfig) RunScheduler() {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
 	eventcast := record.NewBroadcaster()
-	config.Recorder = eventcast.NewRecorder(kapi.EventSource{Component: kapi.DefaultSchedulerName})
-	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
+	config.Recorder = eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: kapi.DefaultSchedulerName})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
 
 	s := scheduler.New(config)
 	s.Run()
@@ -293,7 +309,11 @@ func (c *MasterConfig) RunScheduler() {
 // RunGCController handles deletion of terminated pods.
 func (c *MasterConfig) RunGCController(client kclientset.Interface) {
 	if c.ControllerManager.TerminatedPodGCThreshold > 0 {
-		gcController := gccontroller.NewPodGC(client, c.Informers.KubernetesInformers().Pods().Informer(), int(c.ControllerManager.TerminatedPodGCThreshold))
+		gcController := gccontroller.NewPodGC(
+			client,
+			c.Informers.KubernetesInformers().Core().V1().Pods(),
+			int(c.ControllerManager.TerminatedPodGCThreshold),
+		)
 		go gcController.Run(utilwait.NeverStop)
 	}
 }
@@ -304,9 +324,15 @@ func (c *MasterConfig) RunGarbageCollectorController(client *osclient.Client, co
 		return
 	}
 
-	groupVersionResources, err := client.Discovery().ServerPreferredResources()
+	preferredResources, err := client.Discovery().ServerPreferredResources()
 	if err != nil {
-		glog.Fatalf("Failed to get supported resources from server: %v", err)
+		glog.Fatalf("failed to get supported resources from server: %v", err)
+	}
+
+	deletableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"delete"}}, preferredResources)
+	deletableGroupVersionResources, err := discovery.GroupVersionResources(deletableResources)
+	if err != nil {
+		glog.Fatalf("Failed to parse resources from server: %v", err)
 	}
 
 	config = restclient.AddUserAgent(config, "generic-garbage-collector")
@@ -318,7 +344,7 @@ func (c *MasterConfig) RunGarbageCollectorController(client *osclient.Client, co
 	config.ContentConfig.NegotiatedSerializer = nil
 	// TODO: needs to take GVR
 	clientPool := dynamic.NewClientPool(config, restMapper, dynamic.LegacyAPIPathResolverFunc)
-	garbageCollector, err := garbagecollector.NewGarbageCollector(metaOnlyClientPool, clientPool, restMapper, groupVersionResources)
+	garbageCollector, err := garbagecollector.NewGarbageCollector(metaOnlyClientPool, clientPool, restMapper, deletableGroupVersionResources)
 	if err != nil {
 		glog.Fatalf("Failed to start the garbage collector: %v", err)
 	}
@@ -358,6 +384,8 @@ func (c *MasterConfig) RunNodeController() {
 
 		int(s.NodeCIDRMaskSize),
 		s.AllocateNodeCIDRs,
+		s.EnableTaintManager,
+		utilfeature.DefaultFeatureGate.Enabled(features.TaintBasedEvictions),
 	)
 	if err != nil {
 		glog.Fatalf("Unable to start node controller: %v", err)
@@ -372,17 +400,28 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client kclientset.Interf
 		glog.V(2).Infof("Service controller will not start - no cloud provider configured")
 		return
 	}
-	serviceController, err := servicecontroller.New(c.CloudProvider, client, c.ControllerManager.ClusterName)
+	serviceController, err := servicecontroller.New(
+		c.CloudProvider,
+		client,
+		c.Informers.KubernetesInformers().Core().V1().Services(),
+		c.Informers.KubernetesInformers().Core().V1().Nodes(),
+		c.ControllerManager.ClusterName,
+	)
 	if err != nil {
 		glog.Errorf("Unable to start service controller: %v", err)
 	} else {
-		serviceController.Run(int(c.ControllerManager.ConcurrentServiceSyncs))
+		serviceController.Run(utilwait.NeverStop, int(c.ControllerManager.ConcurrentServiceSyncs))
 	}
 }
 
 // RunStatefulSetController starts the StatefulSet controller
 func (c *MasterConfig) RunStatefulSetController(client kclientset.Interface) {
-	ps := petsetcontroller.NewStatefulSetController(c.Informers.KubernetesInformers().Pods().Informer(), client, kctrlmgr.ResyncPeriod(c.ControllerManager)())
+	ps := statefulsetcontroller.NewStatefulSetController(
+		c.Informers.KubernetesInformers().Core().V1().Pods(),
+		c.Informers.KubernetesInformers().Apps().V1beta1().StatefulSets(),
+		c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
+		client,
+	)
 	go ps.Run(1, utilwait.NeverStop)
 }
 
@@ -391,7 +430,18 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	var configData []byte
 
 	// TODO make the rate limiter configurable
-	configFactory := factory.NewConfigFactory(c.KubeClient, c.SchedulerServer.SchedulerName, int(c.SchedulerServer.HardPodAffinitySymmetricWeight), c.SchedulerServer.FailureDomains)
+	configFactory := factory.NewConfigFactory(
+		c.SchedulerServer.SchedulerName,
+		c.KubeClient,
+		c.Informers.KubernetesInformers().Core().V1().Nodes(),
+		c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
+		c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
+		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),
+		c.Informers.KubernetesInformers().Extensions().V1beta1().ReplicaSets(),
+		c.Informers.KubernetesInformers().Apps().V1beta1().StatefulSets(),
+		c.Informers.KubernetesInformers().Core().V1().Services(),
+		int(c.SchedulerServer.HardPodAffinitySymmetricWeight),
+	)
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {
 		configData, err = ioutil.ReadFile(c.SchedulerServer.PolicyConfigFile)
 		if err != nil {
@@ -420,13 +470,17 @@ func (c *MasterConfig) RunCertificateSigningController(clientset kclientset.Inte
 		glog.V(2).Infof("Certificate signer controller will not start - no signing key or cert set")
 		return
 	}
-	resyncPeriod := kctrlmgr.ResyncPeriod(c.ControllerManager)()
+
+	signer, err := certcontroller.NewCFSSLSigner(c.ControllerManager.ClusterSigningCertFile, c.ControllerManager.ClusterSigningKeyFile)
+	if err != nil {
+		glog.Fatalf("Failed to start certificate controller: %v", err)
+	}
+
 	certController, err := certcontroller.NewCertificateController(
 		clientset,
-		resyncPeriod,
-		c.ControllerManager.ClusterSigningCertFile,
-		c.ControllerManager.ClusterSigningKeyFile,
-		c.ControllerManager.ApproveAllKubeletCSRsForGroup,
+		c.Informers.KubernetesInformers().Certificates().V1beta1().CertificateSigningRequests(),
+		signer,
+		certcontroller.NewGroupApprover(c.ControllerManager.ApproveAllKubeletCSRsForGroup),
 	)
 	if err != nil {
 		glog.Fatalf("Failed to start certificate controller: %v", err)
