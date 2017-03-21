@@ -185,7 +185,9 @@ func TestCMServerDefaults(t *testing.T) {
 			ClusterSigningKeyFile:             "/etc/kubernetes/ca/ca.key",
 			EnableGarbageCollector:            true,
 			DisableAttachDetachReconcilerSync: false,
-			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 5 * time.Second},
+			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 60 * time.Second},
+			Controllers:                       []string{"*"},
+			EnableTaintManager:                true,
 		},
 	}
 
