@@ -20,12 +20,7 @@ type RequestInfoFactory interface {
 	NewRequestInfo(req *http.Request) (*request.RequestInfo, error)
 }
 
-// ForbiddenMessageMaker creates a forbidden message from a MessageContext
+// ForbiddenMessageMaker creates a forbidden message from Attributes
 type ForbiddenMessageMaker interface {
-	MakeMessage(ctx MessageContext) (string, error)
-}
-
-// MessageContext contains sufficient information to create a forbidden message.  It is bundled in this one object to make it easy and obvious how to build a golang template
-type MessageContext struct {
-	Attributes authorizer.Attributes
+	MakeMessage(attrs authorizer.Attributes) (string, error)
 }

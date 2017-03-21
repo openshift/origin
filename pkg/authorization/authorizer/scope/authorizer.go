@@ -54,7 +54,7 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (bool, str
 		}
 	}
 
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(defaultauthorizer.MessageContext{Attributes: attributes})
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(attributes)
 	if err != nil {
 		denyReason = err.Error()
 	}

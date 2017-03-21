@@ -903,7 +903,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot get foo.horizontalpodautoscalers in project "hammer-project"`,
+			Reason:    `User "harold" cannot get horizontalpodautoscalers.foo in project "hammer-project"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -917,7 +917,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
-			Reason:    `User "harold" cannot get *.horizontalpodautoscalers in project "hammer-project"`,
+			Reason:    `User "harold" cannot get horizontalpodautoscalers.* in project "hammer-project"`,
 			Namespace: "hammer-project",
 		},
 	}.run(t)
