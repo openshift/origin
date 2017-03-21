@@ -9,58 +9,59 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
-	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
+	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
+	utilconfig "k8s.io/apiserver/pkg/util/flag"
+	kubeapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	genericapiserveroptions "k8s.io/kubernetes/pkg/genericapiserver/options"
+	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	"k8s.io/kubernetes/pkg/storage/storagebackend"
-	utilconfig "k8s.io/kubernetes/pkg/util/config"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
 func TestAPIServerDefaults(t *testing.T) {
-	defaults := apiserveroptions.NewServerRunOptions()
+	defaults := kubeapiserveroptions.NewServerRunOptions()
 
 	// This is a snapshot of the default config
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
-	expectedDefaults := &apiserveroptions.ServerRunOptions{
-		GenericServerRunOptions: &genericapiserveroptions.ServerRunOptions{
-			AnonymousAuth:           false,
-			BindAddress:             net.ParseIP("0.0.0.0"),
-			CertDirectory:           "/var/run/kubernetes",
-			InsecureBindAddress:     net.ParseIP("127.0.0.1"),
-			InsecurePort:            8080,
-			LongRunningRequestRE:    "(/|^)((watch|proxy)(/|$)|(logs?|portforward|exec|attach)/?$)",
-			MaxRequestsInFlight:     400,
-			SecurePort:              6443,
-			EnableProfiling:         true,
-			EnableGarbageCollection: true,
-			EnableWatchCache:        true,
-			MinRequestTimeout:       1800,
-			ServiceNodePortRange:    genericapiserveroptions.DefaultServiceNodePortRange,
-			RuntimeConfig:           utilconfig.ConfigurationMap{},
-			StorageVersions:         kapi.Registry.AllPreferredGroupVersions(),
-			MasterCount:             1,
-			DefaultStorageVersions:  kapi.Registry.AllPreferredGroupVersions(),
+	expectedDefaults := &kubeapiserveroptions.ServerRunOptions{
+		ServiceNodePortRange: kubeapiserveroptions.DefaultServiceNodePortRange,
+		MasterCount:          1,
+		GenericServerRunOptions: &apiserveroptions.ServerRunOptions{
+			MaxRequestsInFlight: 400,
+			MinRequestTimeout:   1800,
+			AdmissionControl:    "AlwaysAdmit",
+		},
+		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
 			},
-			DefaultStorageMediaType:                  "application/json",
-			AdmissionControl:                         "AlwaysAdmit",
-			AuthorizationMode:                        "AlwaysAllow",
-			DeleteCollectionWorkers:                  1,
-			MasterServiceNamespace:                   "default",
-			AuthorizationWebhookCacheAuthorizedTTL:   5 * time.Minute,
-			AuthorizationWebhookCacheUnauthorizedTTL: 30 * time.Second,
+			DefaultStorageMediaType: "application/json",
+			DeleteCollectionWorkers: 1,
+			EnableGarbageCollection: true,
+			EnableWatchCache:        true,
+		},
+		SecureServing: &apiserveroptions.SecureServingOptions{
+			ServingOptions: apiserveroptions.ServingOptions{
+				BindAddress: net.ParseIP("0.0.0.0"),
+				BindPort:    6443,
+			},
+			ServerCert: apiserveroptions.GeneratableKeyCert{
+				CertDirectory: "/var/run/kubernetes",
+			},
+		},
+		InsecureServing: &apiserveroptions.ServingOptions{
+			BindAddress: net.ParseIP("127.0.0.1"),
+			BindPort:    8080,
 		},
 		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
@@ -74,7 +75,26 @@ func TestAPIServerDefaults(t *testing.T) {
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
-		WebhookTokenAuthnCacheTTL: 2 * time.Minute,
+		Audit: &apiserveroptions.AuditLogOptions{},
+		Features: &apiserveroptions.FeatureOptions{
+			EnableProfiling: true,
+		},
+		Authentication: &kubeoptions.BuiltInAuthenticationOptions{
+		//WebhookTokenAuthnCacheTTL: 2 * time.Minute,
+		},
+		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
+		// AuthorizationMode:       "AlwaysAllow",
+		// AuthorizationWebhookCacheAuthorizedTTL:   5 * time.Minute,
+		// AuthorizationWebhookCacheUnauthorizedTTL: 30 * time.Second,
+		},
+		CloudProvider: &kubeoptions.CloudProviderOptions{},
+		StorageSerialization: &kubeoptions.StorageSerializationOptions{
+			StorageVersions:        kapi.Registry.AllPreferredGroupVersions(),
+			DefaultStorageVersions: kapi.Registry.AllPreferredGroupVersions(),
+		},
+		APIEnablement: &kubeoptions.APIEnablementOptions{
+			RuntimeConfig: utilconfig.ConfigurationMap{},
+		},
 	}
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
