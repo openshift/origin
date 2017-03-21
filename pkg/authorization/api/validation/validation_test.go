@@ -58,6 +58,21 @@ func TestValidatePolicy(t *testing.T) {
 			T: field.ErrorTypeInvalid,
 			F: "roles[any1].metadata.name",
 		},
+		"invalid role": {
+			A: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "roles[any1].rules[0].attributeRestrictions",
+		},
 	}
 	for k, v := range errorCases {
 		errs := ValidatePolicy(&v.A, true)
@@ -369,6 +384,16 @@ func TestValidateRole(t *testing.T) {
 			},
 			T: field.ErrorTypeRequired,
 			F: "metadata.name",
+		},
+		"invalid rule": {
+			A: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Name: authorizationapi.PolicyName, Namespace: kapi.NamespaceDefault},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[0].attributeRestrictions",
 		},
 	}
 	for k, v := range errorCases {

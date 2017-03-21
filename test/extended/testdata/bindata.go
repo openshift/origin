@@ -5290,13 +5290,11 @@ items:
     - projects
     verbs:
     - list
-  - apiGroups: null
-    attributeRestrictions:
-      apiVersion: v1
-      kind: IsPersonalSubjectAccessReview
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
     resources:
-    - localsubjectaccessreviews
-    - subjectaccessreviews
+    - selfsubjectaccessreviews
     verbs:
     - create
 - apiVersion: v1
@@ -5375,13 +5373,11 @@ objects:
       - projects
       verbs:
       - list
-    - apiGroups: null
-      attributeRestrictions:
-        apiVersion: v1
-        kind: IsPersonalSubjectAccessReview
+    - apiGroups:
+      - authorization.k8s.io
+      attributeRestrictions: null
       resources:
-      - localsubjectaccessreviews
-      - subjectaccessreviews
+      - selfsubjectaccessreviews
       verbs:
       - create
   - apiVersion: v1
@@ -5405,7 +5401,8 @@ objects:
     subjects:
     - kind: SystemGroup
       name: system:authenticated
-    userNames: null`)
+    userNames: null
+`)
 
 func testExtendedTestdataRolesPolicyRolesYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataRolesPolicyRolesYaml, nil

@@ -34,13 +34,11 @@ rules:
   verbs:
   - list
   - watch
-- apiGroups: null
-  attributeRestrictions:
-    apiVersion: v1
-    kind: IsPersonalSubjectAccessReview
+- apiGroups:
+  - authorization.k8s.io
+  attributeRestrictions: null
   resources:
-  - localsubjectaccessreviews
-  - subjectaccessreviews
+  - selfsubjectaccessreviews
   verbs:
   - create
 - apiGroups: null
