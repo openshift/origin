@@ -6,7 +6,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/retry"
 
@@ -29,8 +28,8 @@ type DeploymentConfigInterface interface {
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
-	GetScale(name string) (*extensions.Scale, error)
-	UpdateScale(scale *extensions.Scale) (*extensions.Scale, error)
+	GetScale(name string) (*extensionsv1beta1.Scale, error)
+	UpdateScale(scale *extensionsv1beta1.Scale) (*extensionsv1beta1.Scale, error)
 	UpdateStatus(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Instantiate(request *deployapi.DeploymentRequest) (*deployapi.DeploymentConfig, error)
 }
@@ -131,15 +130,15 @@ func (c *deploymentConfigs) RollbackDeprecated(config *deployapi.DeploymentConfi
 }
 
 // GetScale returns information about a particular deploymentConfig via its scale subresource
-func (c *deploymentConfigs) GetScale(name string) (result *extensions.Scale, err error) {
-	result = &extensions.Scale{}
+func (c *deploymentConfigs) GetScale(name string) (result *extensionsv1beta1.Scale, err error) {
+	result = &extensionsv1beta1.Scale{}
 	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("scale").Do().Into(result)
 	return
 }
 
 // UpdateScale scales an existing deploymentConfig via its scale subresource
-func (c *deploymentConfigs) UpdateScale(scale *extensions.Scale) (result *extensions.Scale, err error) {
-	result = &extensions.Scale{}
+func (c *deploymentConfigs) UpdateScale(scale *extensionsv1beta1.Scale) (result *extensionsv1beta1.Scale, err error) {
+	result = &extensionsv1beta1.Scale{}
 
 	// TODO fix by making the client understand how to encode using different codecs for different resources
 	encodedBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(extensionsv1beta1.SchemeGroupVersion), scale)
