@@ -21,9 +21,11 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
@@ -36,6 +38,7 @@ import (
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
+	utilexec "k8s.io/kubernetes/pkg/util/exec"
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnode "k8s.io/kubernetes/pkg/util/node"
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
@@ -116,7 +119,7 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
-	dockerClient, dockerAddr, err := docker.GetKubeClient()
+	dockerClient, dockerAddr, err := docker.GetKubeClient(c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration)
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to create a Docker client for %s - Docker must be installed and running to start containers.\n%v", dockerAddr, err))
 		return
@@ -230,9 +233,9 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 	// Create a volume spec with emptyDir we can use to search for the
 	// emptyDir plugin with CanSupport:
 	emptyDirSpec := &volume.Spec{
-		Volume: &kapi.Volume{
-			VolumeSource: kapi.VolumeSource{
-				EmptyDir: &kapi.EmptyDirVolumeSource{},
+		Volume: &kapiv1.Volume{
+			VolumeSource: kapiv1.VolumeSource{
+				EmptyDir: &kapiv1.EmptyDirVolumeSource{},
 			},
 		},
 	}
@@ -286,7 +289,7 @@ func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
-	if c.KubeletServer.ClusterDNS == "" {
+	if len(c.KubeletServer.ClusterDNS) == 0 {
 		if service, err := c.Client.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{}); err == nil {
 			if includesServicePort(service.Spec.Ports, 53, "dns") {
 				// Use master service if service includes "dns" port 53.
@@ -308,7 +311,7 @@ func (c *NodeConfig) RunKubelet() {
 		}
 	}
 	if clusterDNS != nil && !clusterDNS.IsUnspecified() {
-		c.KubeletServer.ClusterDNS = clusterDNS.String()
+		c.KubeletServer.ClusterDNS = []string{clusterDNS.String()}
 	}
 
 	c.KubeletDeps.DockerClient = c.DockerClient
@@ -376,8 +379,8 @@ func (c *NodeConfig) RunProxy() {
 	hostname := utilnode.GetHostname(c.KubeletServer.HostnameOverride)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: v1core.New(kubeClient.Core().RESTClient()).Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "kube-proxy", Host: hostname})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.Client.Core().RESTClient()).Events("")})
+	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "kube-proxy", Host: hostname})
 
 	execer := kexec.New()
 	dbus := utildbus.New()
@@ -404,6 +407,7 @@ func (c *NodeConfig) RunProxy() {
 			c.ProxyConfig.ClusterCIDR,
 			hostname,
 			getNodeIP(c.Client, hostname),
+			recorder,
 		)
 		if err != nil {
 			if c.Containerized {
@@ -425,10 +429,12 @@ func (c *NodeConfig) RunProxy() {
 		// set EndpointsConfigHandler to our loadBalancer
 		endpointsHandler = loadBalancer
 
+		execer := utilexec.New()
 		proxierUserspace, err := userspace.NewProxier(
 			loadBalancer,
 			bindAddr,
 			iptInterface,
+			execer,
 			*portRange,
 			c.ProxyConfig.IPTablesSyncPeriod.Duration,
 			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
