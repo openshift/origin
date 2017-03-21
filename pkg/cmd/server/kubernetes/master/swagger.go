@@ -4,7 +4,7 @@ import (
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	apiserver "k8s.io/apiserver/pkg/server"
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
@@ -15,7 +15,7 @@ var apiInfo = map[string]swagger.Info{
 		Title:       "OpenShift v1 REST API",
 		Description: `The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
 	},
-	genericapiserver.DefaultLegacyAPIPrefix + "/v1": {
+	apiserver.DefaultLegacyAPIPrefix + "/v1": {
 		Title:       "Kubernetes v1 REST API",
 		Description: `The Kubernetes API allows you to run containerized applications, bind persistent storage, link those applications through service discovery, and manage the cluster infrastructure.`,
 	},
