@@ -26,7 +26,39 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 )
+
+func NewSourceAPIOpenShift(
+	serviceInformer kcoreinformers.ServiceInformer,
+	endpointsInformer kcoreinformers.EndpointsInformer,
+	servicesChan chan<- ServiceUpdate,
+	endpointsChan chan<- EndpointsUpdate,
+) {
+	serviceInformer.Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    sendAddService(servicesChan),
+			UpdateFunc: sendUpdateService(servicesChan),
+			DeleteFunc: sendDeleteService(servicesChan),
+		},
+	)
+
+	endpointsInformer.Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    sendAddEndpoints(endpointsChan),
+			UpdateFunc: sendUpdateEndpoints(endpointsChan),
+			DeleteFunc: sendDeleteEndpoints(endpointsChan),
+		},
+	)
+
+	if !cache.WaitForCacheSync(wait.NeverStop, serviceInformer.Informer().HasSynced, endpointsInformer.Informer().HasSynced) {
+		utilruntime.HandleError(fmt.Errorf("source controllers not synced"))
+		return
+	}
+
+	servicesChan <- ServiceUpdate{Op: SYNCED}
+	endpointsChan <- EndpointsUpdate{Op: SYNCED}
+}
 
 // NewSourceAPI creates config source that watches for changes to the services and endpoints.
 func NewSourceAPI(c cache.Getter, period time.Duration, servicesChan chan<- ServiceUpdate, endpointsChan chan<- EndpointsUpdate) {
