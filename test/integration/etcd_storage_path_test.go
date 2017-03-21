@@ -306,6 +306,14 @@ var etcdStorageData = map[unversioned.GroupVersionResource]struct {
 		expectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1g",
 		expectedGVK:      gvkP("", "v1", "Template"), // expect the legacy group to be persisted
 	},
+	gvr("template.openshift.io", "v1", "templateinstances"): {
+		stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "etcdstoragepathtestnamespace"}}, "requestor": {"username": "test"}}}`,
+		expectedEtcdPath: "openshift.io/templateinstances/etcdstoragepathtestnamespace/templateinstance1",
+	},
+	gvr("template.openshift.io", "v1", "brokertemplateinstances"): {
+		stub:             `{"metadata": {"name": "brokertemplateinstance1"}, "spec": {"templateInstance": {"kind": "TemplateInstance", "name": "templateinstance1", "namespace": "etcdstoragepathtestnamespace"}, "secret": {"kind": "Secret", "name": "secret1", "namespace": "etcdstoragepathtestnamespace"}}}`,
+		expectedEtcdPath: "openshift.io/brokertemplateinstances/brokertemplateinstance1",
+	},
 	// --
 
 	// github.com/openshift/origin/pkg/user/api/v1
@@ -740,6 +748,7 @@ func TestEtcdStoragePath(t *testing.T) {
 		t.Fatalf("error getting master config: %#v", err)
 	}
 	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
+	masterConfig.EnableTemplateServiceBroker = true
 
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {

@@ -266,6 +266,9 @@ type MasterConfig struct {
 
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig `json:"auditConfig"`
+
+	// EnableTemplateServiceBroker is a temporary switch which enables TemplateServiceBroker.
+	EnableTemplateServiceBroker bool `json:"enableTemplateServiceBroker"`
 }
 
 // MasterAuthConfig configures authentication options in addition to the standard

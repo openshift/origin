@@ -7,10 +7,12 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 const (
-	ImageStreamReferenceIndex string = "imagestreamref"
+	ImageStreamReferenceIndex = "imagestreamref"
+	TemplateUIDIndex          = "templateuid"
 )
 
 // ImageStreamReferenceIndexFunc is a default index function that indexes based on image stream references.
@@ -72,4 +74,8 @@ func ImageStreamReferenceIndexFunc(obj interface{}) ([]string, error) {
 		return keys, nil
 	}
 	return nil, fmt.Errorf("image stream reference index not implemented for %#v", obj)
+}
+
+func TemplateUIDIndexFunc(obj interface{}) ([]string, error) {
+	return []string{string(obj.(*templateapi.Template).UID)}, nil
 }

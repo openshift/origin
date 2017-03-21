@@ -19,6 +19,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/registry"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"
+	_ "github.com/openshift/origin/test/extended/templates"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )

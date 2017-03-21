@@ -88,6 +88,7 @@ import (
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
+	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
 	projectapiv1 "github.com/openshift/origin/pkg/project/api/v1"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
@@ -100,9 +101,13 @@ import (
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
+	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
 	templateregistry "github.com/openshift/origin/pkg/template/registry/template"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/template/etcd"
+	templateinstanceetcd "github.com/openshift/origin/pkg/template/registry/templateinstance/etcd"
+	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
@@ -535,6 +540,10 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 	// TODO(sttts): use upstream version route
 	initVersionRoute(apiContainer.Container, "/version/openshift")
 
+	if c.Options.EnableTemplateServiceBroker {
+		openservicebrokerserver.Route(apiContainer.Container, templateapi.ServiceBrokerRoot, templateservicebroker.NewBroker(&c.PrivilegedLoopbackClientConfig, c.PrivilegedLoopbackKubernetesClientset, c.Informers, c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace))
+	}
+
 	// Set up OAuth metadata only if we are configured to use OAuth
 	if c.Options.OAuthConfig != nil {
 		initOAuthAuthorizationServerMetadataRoute(apiContainer, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
@@ -901,6 +910,16 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	storage[routeapiv1.SchemeGroupVersion] = map[string]rest.Storage{
 		"routes":        routeStorage,
 		"routes/status": routeStatusStorage,
+	}
+
+	if c.Options.EnableTemplateServiceBroker {
+		templateInstanceStorage, err := templateinstanceetcd.NewREST(c.RESTOptionsGetter, c.PrivilegedLoopbackOpenShiftClient)
+		checkStorageErr(err)
+		brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.RESTOptionsGetter)
+		checkStorageErr(err)
+
+		storage[templateapiv1.SchemeGroupVersion]["templateinstances"] = templateInstanceStorage
+		storage[templateapiv1.SchemeGroupVersion]["brokertemplateinstances"] = brokerTemplateInstanceStorage
 	}
 
 	if configapi.IsBuildEnabled(&c.Options) {
