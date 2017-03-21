@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/union"
@@ -611,7 +612,11 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 
 	// TODO: could be hoisted if other Origin code needs direct access to etcd, otherwise discourage this access pattern
 	// as we move to be more on top of Kube.
-	_, kubeStorageFactory, err := kubernetes.BuildDefaultAPIServer(options)
+	apiserverOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
+	if err != nil {
+		return nil, err
+	}
+	kubeStorageFactory, err := kubernetes.BuildStorageFactory(options, apiserverOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +681,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
-	resultingAuthenticator := union.NewFailOnError(authenticators...)
+	resultingAuthenticator := union.New(authenticators...)
 
 	topLevelAuthenticators := []authenticator.Request{}
 	// if we have a front proxy providing authentication configuration, wire it up and it should come first
@@ -697,10 +702,9 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		topLevelAuthenticators = append(topLevelAuthenticators, resultingAuthenticator)
 
 	}
-
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
+	return group.NewAuthenticatedGroupAdder(union.New(topLevelAuthenticators...)), nil
 }
 
 func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient *kclientset.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
