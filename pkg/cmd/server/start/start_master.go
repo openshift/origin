@@ -702,7 +702,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		}
 
 		kc.RunEndpointController(endpointControllerClient)
-		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool)
+		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool, oc.Informers.KubernetesInformers().Core().V1().NamespaceInformer())
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)
