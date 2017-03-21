@@ -37,6 +37,16 @@ func TestValidateClusterNetwork(t *testing.T) {
 			expectedErrors: 1,
 		},
 		{
+			name: "Bad network CIDR",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				Network:          "10.20.0.1/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "172.30.0.0/16",
+			},
+			expectedErrors: 1,
+		},
+		{
 			name: "Invalid subnet length",
 			cn: &api.ClusterNetwork{
 				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
@@ -53,6 +63,16 @@ func TestValidateClusterNetwork(t *testing.T) {
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "1172.30.0.0/16",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Bad service network CIDR",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "172.30.1.0/16",
 			},
 			expectedErrors: 1,
 		},
@@ -126,6 +146,18 @@ func TestValidateHostSubnet(t *testing.T) {
 				Host:   "abc.def.com",
 				HostIP: "10.20.30.40",
 				Subnet: "8.8.0/24",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Malformed subnet CIDR",
+			hs: &api.HostSubnet{
+				ObjectMeta: kapi.ObjectMeta{
+					Name: "abc.def.com",
+				},
+				Host:   "abc.def.com",
+				HostIP: "10.20.30.40",
+				Subnet: "8.8.0.1/24",
 			},
 			expectedErrors: 1,
 		},
