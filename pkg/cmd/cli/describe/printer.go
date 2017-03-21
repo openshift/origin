@@ -1106,6 +1106,11 @@ func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w
 		}
 	}
 
+	if options.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", rbr.Namespace); err != nil {
+			return err
+		}
+	}
 	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
 		return err
 	}
