@@ -43,7 +43,7 @@ func NewControllersCommand(name, fullName string, out io.Writer) *cobra.Command 
 
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
-	cm.OriginControllerManagerAddFlags(flags)
+	cm.OriginControllerManagerAddFlags(controllerOptions)(flags)
 
 	return cmd
 }

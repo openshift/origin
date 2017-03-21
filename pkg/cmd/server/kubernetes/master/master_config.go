@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -34,11 +33,12 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	apiserver "k8s.io/apiserver/pkg/server"
 	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
+	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -75,8 +75,9 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, ap
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	Options    configapi.KubernetesMasterConfig
-	KubeClient kclientset.Interface
+	Options            configapi.KubernetesMasterConfig
+	InternalKubeClient kinternalclientset.Interface
+	KubeClient         kclientset.Interface
 
 	Master            *master.Config
 	ControllerManager *cmapp.CMServer
@@ -86,65 +87,88 @@ type MasterConfig struct {
 	Informers shared.InformerFactory
 }
 
-// BuildDefaultAPIServer constructs the appropriate APIServer and StorageFactory for the kubernetes server.
+// BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
-func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.ServerRunOptions, genericapiserver.StorageFactory, error) {
-	if options.KubernetesMasterConfig == nil {
-		return nil, nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
+func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserveroptions.ServerRunOptions, error) {
+	if masterConfig.KubernetesMasterConfig == nil {
+		return nil, fmt.Errorf("no kubernetesMasterConfig defined, unable to load settings")
 	}
-	_, portString, err := net.SplitHostPort(options.ServingInfo.BindAddress)
+	_, portString, err := net.SplitHostPort(masterConfig.ServingInfo.BindAddress)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	port, err := strconv.Atoi(portString)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	portRange, err := knet.ParsePortRange(options.KubernetesMasterConfig.ServicesNodePortRange)
+	portRange, err := knet.ParsePortRange(masterConfig.KubernetesMasterConfig.ServicesNodePortRange)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Defaults are tested in TestAPIServerDefaults
-	server := apiserveroptions.NewServerRunOptions()
+	server := kapiserveroptions.NewServerRunOptions()
 
 	// Adjust defaults
 	server.EventTTL = 2 * time.Hour
-	server.GenericServerRunOptions.AnonymousAuth = true
-	server.GenericServerRunOptions.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(options.KubernetesMasterConfig.ServicesSubnet))
-	server.GenericServerRunOptions.ServiceNodePortRange = *portRange
-	server.GenericServerRunOptions.EnableProfiling = true
-	server.GenericServerRunOptions.MasterCount = options.KubernetesMasterConfig.MasterCount
+	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(masterConfig.KubernetesMasterConfig.ServicesSubnet))
+	server.ServiceNodePortRange = *portRange
+	server.Features.EnableProfiling = true
+	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
-	server.GenericServerRunOptions.SecurePort = port
-	server.GenericServerRunOptions.InsecurePort = 0
-	server.GenericServerRunOptions.TLSCertFile = options.ServingInfo.ServerCert.CertFile
-	server.GenericServerRunOptions.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
-	server.GenericServerRunOptions.ClientCAFile = options.ServingInfo.ClientCA
+	server.SecureServing.ServingOptions.BindPort = port
+	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
+	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
+	server.InsecureServing.BindPort = 0
 
-	server.GenericServerRunOptions.MaxRequestsInFlight = options.ServingInfo.MaxRequestsInFlight
-	server.GenericServerRunOptions.MinRequestTimeout = options.ServingInfo.RequestTimeoutSeconds
-	for _, nc := range options.ServingInfo.NamedCertificates {
-		sniCert := config.NamedCertKey{
+	// disable anonymous authentication
+	// NOTE: this is only to get rid of the "AnonymousAuth is not allowed with the AllowAll authorizer"
+	// warning. We do not use the authenticator or authorizer created by this.
+	server.Authentication.Anonymous.Allow = false
+	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
+	if masterConfig.AuthConfig.RequestHeader == nil {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{}
+	} else {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{
+			ClientCAFile:        masterConfig.AuthConfig.RequestHeader.ClientCA,
+			UsernameHeaders:     masterConfig.AuthConfig.RequestHeader.UsernameHeaders,
+			GroupHeaders:        masterConfig.AuthConfig.RequestHeader.GroupHeaders,
+			ExtraHeaderPrefixes: masterConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+			AllowedNames:        masterConfig.AuthConfig.RequestHeader.ClientCommonNames,
+		}
+	}
+
+	server.Etcd.EnableGarbageCollection = false // disabled until we add the controller. MUST be in synced with the value in CMServer
+
+	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
+	server.GenericServerRunOptions.MinRequestTimeout = masterConfig.ServingInfo.RequestTimeoutSeconds
+	for _, nc := range masterConfig.ServingInfo.NamedCertificates {
+		sniCert := utilflag.NamedCertKey{
 			CertFile: nc.CertFile,
 			KeyFile:  nc.KeyFile,
 			Names:    nc.Names,
 		}
-		server.GenericServerRunOptions.SNICertKeys = append(server.GenericServerRunOptions.SNICertKeys, sniCert)
+		server.SecureServing.SNICertKeys = append(server.SecureServing.SNICertKeys, sniCert)
 	}
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
-		return nil, nil, kerrors.NewAggregate(err)
+	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
 	}
 
-	resourceEncodingConfig := genericapiserver.NewDefaultResourceEncodingConfig()
+	return server, nil
+}
+
+// BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
+// This storage factory is ONLY USED FOR kubernetes registries right now. Compare pkg/util/restoptions/configgetter.go.
+func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserveroptions.ServerRunOptions) (apiserverstorage.StorageFactory, error) {
+	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
 	resourceEncodingConfig.SetVersionEncoding(
 		kapi.GroupName,
-		schema.GroupVersion{Group: kapi.GroupName, Version: options.EtcdStorageConfig.KubernetesStorageVersion},
+		schema.GroupVersion{Group: kapi.GroupName, Version: masterConfig.EtcdStorageConfig.KubernetesStorageVersion},
 		kapi.SchemeGroupVersion,
 	)
 
@@ -166,67 +190,132 @@ func BuildDefaultAPIServer(options configapi.MasterConfig) (*apiserveroptions.Se
 		autoscaling.SchemeGroupVersion,
 	)
 
-	storageGroupsToEncodingVersion, err := server.GenericServerRunOptions.StorageGroupsToEncodingVersion()
+	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// use the stock storage config based on args, but override bits from our config where appropriate
-	etcdConfig := server.GenericServerRunOptions.StorageConfig
-	etcdConfig.Prefix = options.EtcdStorageConfig.KubernetesStoragePrefix
-	etcdConfig.ServerList = options.EtcdClientInfo.URLs
-	etcdConfig.KeyFile = options.EtcdClientInfo.ClientCert.KeyFile
-	etcdConfig.CertFile = options.EtcdClientInfo.ClientCert.CertFile
-	etcdConfig.CAFile = options.EtcdClientInfo.CA
+	etcdConfig := server.Etcd.StorageConfig
+	etcdConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
+	etcdConfig.ServerList = masterConfig.EtcdClientInfo.URLs
+	etcdConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
+	etcdConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
+	etcdConfig.CAFile = masterConfig.EtcdClientInfo.CA
 
-	storageFactory, err := genericapiserver.BuildDefaultStorageFactory(
+	storageFactory, err := kubeapiserver.NewStorageFactory(
 		etcdConfig,
-		server.GenericServerRunOptions.DefaultStorageMediaType,
+		server.Etcd.DefaultStorageMediaType,
 		kapi.Codecs,
-		genericapiserver.NewDefaultResourceEncodingConfig(),
+		// FIXME: is this supposed to be resourceEncodingConfig???
+		apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry),
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
 		[]schema.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
-		master.DefaultAPIResourceConfigSource(), server.GenericServerRunOptions.RuntimeConfig,
+		master.DefaultAPIResourceConfigSource(),
+		server.APIEnablement.RuntimeConfig,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	/*storageFactory := genericapiserver.NewDefaultStorageFactory(
-		etcdConfig,
-		server.DefaultStorageMediaType,
-		kapi.Codecs,
-		resourceEncodingConfig,
-		master.DefaultAPIResourceConfigSource(),
-	)*/
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(batch.Resource("jobs"), extensions.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
 
-	return server, storageFactory, nil
+	return storageFactory, nil
 }
 
-// TODO this function's parameters need to be refactored
-func BuildKubernetesMasterConfig(
-	options configapi.MasterConfig,
-	requestContextMapper apirequest.RequestContextMapper,
-	kubeClient kclientset.Interface,
-	informers shared.InformerFactory,
-	admissionControl admission.Interface,
-	originAuthenticator authenticator.Request,
-	kubeAuthorizer authorizer.Authorizer,
-) (*MasterConfig, error) {
-	if options.KubernetesMasterConfig == nil {
-		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
+// buildUpstreamGenericConfig copies the apiserver.Config setup code from k8s.io/kubernetes/cmd/kube-apiserver/app/server.go.
+// ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
+func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
+	// set defaults
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
+		return nil, err
+	}
+	// In origin: certs should be available:
+	//_, apiServerServiceIP, err := master.DefaultServiceIPRange(s.ServiceClusterIPRange)
+	//if err != nil {
+	//	return nil, fmt.Errorf("error determining service IP ranges: %v", err)
+	//}
+	//if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), apiServerServiceIP); err != nil {
+	//	return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
+	//}
+	if err := s.CloudProvider.DefaultExternalHost(s.GenericServerRunOptions); err != nil {
+		return nil, fmt.Errorf("error setting the external host value: %v", err)
 	}
 
-	// in-order list of plug-ins that should intercept admission decisions
-	// TODO: Push node environment support to upstream in future
+	s.Authentication.ApplyAuthorization(s.Authorization)
 
-	podEvictionTimeout, err := time.ParseDuration(options.KubernetesMasterConfig.PodEvictionTimeout)
+	// validate options
+	if errs := s.Validate(); len(errs) != 0 {
+		return nil, kerrors.NewAggregate(errs)
+	}
+
+	// create config from options
+	genericConfig := apiserver.NewConfig().
+		WithSerializer(kapi.Codecs)
+
+	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.Etcd.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.Audit.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.Features.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	if err := s.Authentication.ApplyTo(genericConfig); err != nil {
+		return nil, err
+	}
+	// Do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
+	// if err := utilwait.PollImmediate(etcdRetryInterval, etcdRetryLimit*etcdRetryInterval, preflight.EtcdConnection{ServerList: s.Etcd.StorageConfig.ServerList}.CheckEtcdServers); err != nil {
+	// 	return nil, fmt.Errorf("error waiting for etcd connection: %v", err)
+	// }
+
+	// Use protobufs for self-communication.
+	// Since not every generic apiserver has to support protobufs, we
+	// cannot default to it in generic apiserver and need to explicitly
+	// set it in kube-apiserver.
+	genericConfig.LoopbackClientConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	return genericConfig, nil
+}
+
+// buildUpstreamClientCARegistrationHook copies the ClientCARegistrationHook code from k8s.io/kubernetes/cmd/kube-apiserver/app/server.go.
+// ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
+func buildUpstreamClientCARegistrationHook(s *kapiserveroptions.ServerRunOptions) (master.ClientCARegistrationHook, error) {
+	clientCA, err := readCAorNil(s.Authentication.ClientCert.ClientCA)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
+		return master.ClientCARegistrationHook{}, err
+	}
+	requestHeaderProxyCA, err := readCAorNil(s.Authentication.RequestHeader.ClientCAFile)
+	if err != nil {
+		return master.ClientCARegistrationHook{}, err
+	}
+	return master.ClientCARegistrationHook{
+		ClientCA:                         clientCA,
+		RequestHeaderUsernameHeaders:     s.Authentication.RequestHeader.UsernameHeaders,
+		RequestHeaderGroupHeaders:        s.Authentication.RequestHeader.GroupHeaders,
+		RequestHeaderExtraHeaderPrefixes: s.Authentication.RequestHeader.ExtraHeaderPrefixes,
+		RequestHeaderCA:                  requestHeaderProxyCA,
+		RequestHeaderAllowedNames:        s.Authentication.RequestHeader.AllowedNames,
+	}, nil
+}
+
+func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
+	podEvictionTimeout, err := time.ParseDuration(masterConfig.KubernetesMasterConfig.PodEvictionTimeout)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
 	}
 
 	// Defaults are tested in TestCMServerDefaults
@@ -238,37 +327,44 @@ func BuildKubernetesMasterConfig(
 	cmserver.Port = 0                       // no healthz endpoint
 	cmserver.EnableGarbageCollector = false // disabled until we add the controller
 	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
-	cmserver.VolumeConfiguration.EnableDynamicProvisioning = options.VolumeConfig.DynamicProvisioningEnabled
+	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
+	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags(cmserver)); len(err) > 0 {
+		return nil, nil, kerrors.NewAggregate(err)
 	}
-
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	schedulerserver := scheduleroptions.NewSchedulerServer()
-	schedulerserver.PolicyConfigFile = options.KubernetesMasterConfig.SchedulerConfigFile
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
 	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if cloud != nil {
 		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", cmserver.CloudProvider, cmserver.CloudConfigFile)
 	}
 
+	return cmserver, cloud, nil
+}
+
+func buildSchedulerServer(masterConfig configapi.MasterConfig) (*scheduleroptions.SchedulerServer, error) {
+	// resolve extended arguments
+	// TODO: this should be done in config validation (along with the above) so we can provide
+	// proper errors
+	schedulerserver := scheduleroptions.NewSchedulerServer()
+	schedulerserver.PolicyConfigFile = masterConfig.KubernetesMasterConfig.SchedulerConfigFile
+	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
+		return nil, kerrors.NewAggregate(err)
+	}
+
+	return schedulerserver, nil
+}
+
+func buildProxyClientCerts(masterConfig configapi.MasterConfig) ([]tls.Certificate, error) {
 	var proxyClientCerts []tls.Certificate
-	if len(options.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
+	if len(masterConfig.KubernetesMasterConfig.ProxyClientInfo.CertFile) > 0 {
 		clientCert, err := tls.LoadX509KeyPair(
-			options.KubernetesMasterConfig.ProxyClientInfo.CertFile,
-			options.KubernetesMasterConfig.ProxyClientInfo.KeyFile,
+			masterConfig.KubernetesMasterConfig.ProxyClientInfo.CertFile,
+			masterConfig.KubernetesMasterConfig.ProxyClientInfo.KeyFile,
 		)
 		if err != nil {
 			return nil, err
@@ -276,86 +372,116 @@ func BuildKubernetesMasterConfig(
 		proxyClientCerts = append(proxyClientCerts, clientCert)
 	}
 
-	server, storageFactory, err := BuildDefaultAPIServer(options)
-	if err != nil {
-		return nil, err
-	}
+	return proxyClientCerts, nil
+}
 
+func buildPublicAddress(masterConfig configapi.MasterConfig) (net.IP, error) {
 	// Preserve previous behavior of using the first non-loopback address
 	// TODO: Deprecate this behavior and just require a valid value to be passed in
-	publicAddress := net.ParseIP(options.KubernetesMasterConfig.MasterIP)
+	publicAddress := net.ParseIP(masterConfig.KubernetesMasterConfig.MasterIP)
 	if publicAddress == nil || publicAddress.IsUnspecified() || publicAddress.IsLoopback() {
 		hostIP, err := knet.ChooseHostInterface()
 		if err != nil {
-			glog.Fatalf("Unable to find suitable network address.error='%v'. Set the masterIP directly to avoid this error.", err)
+			return net.IP{}, fmt.Errorf("unable to find suitable network address.error='%v'. Set the masterIP directly to avoid this error.", err)
 		}
 		publicAddress = hostIP
 		glog.Infof("Will report %v as public IP address.", publicAddress)
 	}
 
-	genericConfig := genericapiserver.NewConfig().ApplyOptions(server.GenericServerRunOptions)
+	return publicAddress, nil
+}
 
+func buildKubeApiserverConfig(
+	masterConfig configapi.MasterConfig,
+	requestContextMapper apirequest.RequestContextMapper,
+	kubeClient kclientset.Interface,
+	internalKubeClient kinternalclientset.Interface,
+	informers shared.InformerFactory,
+	admissionControl admission.Interface,
+	originAuthenticator authenticator.Request,
+	kubeAuthorizer authorizer.Authorizer,
+) (*master.Config, error) {
+	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	genericConfig, err := buildUpstreamGenericConfig(apiserverOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	proxyClientCerts, err := buildProxyClientCerts(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	storageFactory, err := BuildStorageFactory(masterConfig, apiserverOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	publicAddress, err := buildPublicAddress(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	clientCARegistrationHook, err := buildUpstreamClientCARegistrationHook(apiserverOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	// override config values
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
-
-	// MUST be in synced with the value in CMServer
-	genericConfig.EnableGarbageCollection = false // disabled until we add the controller
-
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
 	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
-	genericConfig.APIResourceConfigSource = getAPIResourceConfig(options)
 	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig()
-	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
-	_, loopbackClientConfig, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	_, loopbackClientConfig, err := configapi.GetKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
 	genericConfig.LoopbackClientConfig = loopbackClientConfig
 	genericConfig.LegacyAPIGroupPrefixes = LegacyAPIGroupPrefixes
-	genericConfig.SecureServingInfo.BindAddress = options.ServingInfo.BindAddress
-	genericConfig.SecureServingInfo.BindNetwork = options.ServingInfo.BindNetwork
-	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion)
-	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites)
-	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(options)
+	genericConfig.SecureServingInfo.BindAddress = masterConfig.ServingInfo.BindAddress
+	genericConfig.SecureServingInfo.BindNetwork = masterConfig.ServingInfo.BindNetwork
+	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(masterConfig.ServingInfo.MinTLSVersion)
+	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(masterConfig.ServingInfo.CipherSuites)
+	oAuthClientCertCAs, err := configapi.GetOAuthClientCertCAs(masterConfig)
 	if err != nil {
 		glog.Fatalf("Error setting up OAuth2 client certificates: %v", err)
 	}
 	for _, cert := range oAuthClientCertCAs {
 		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
 	}
-	requestHeaderCACerts, err := configapi.GetRequestHeaderClientCertCAs(options)
-	if err != nil {
-		glog.Fatalf("Error setting up request header client certificates: %v", err)
-	}
-	for _, cert := range requestHeaderCACerts {
-		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
-	}
 
-	url, err := url.Parse(options.MasterPublicURL)
+	url, err := url.Parse(masterConfig.MasterPublicURL)
 	if err != nil {
-		glog.Fatalf("Error parsing master public url %q: %v", options.MasterPublicURL, err)
+		glog.Fatalf("Error parsing master public url %q: %v", masterConfig.MasterPublicURL, err)
 	}
 	genericConfig.ExternalAddress = url.Host
 
 	originLongRunningRequestRE := regexp.MustCompile(originLongRunningEndpointsRE)
-	originLongRunningFunc := kgenericfilters.BasicLongRunningRequestCheck(originLongRunningRequestRE, nil)
-	kubeLongRunningFunc := genericConfig.LongRunningFunc
-	genericConfig.LongRunningFunc = func(r *http.Request) bool {
-		return originLongRunningFunc(r) || kubeLongRunningFunc(r)
+	kubeLongRunningFunc := kgenericfilters.BasicLongRunningRequestCheck(
+		sets.NewString("watch", "proxy"),
+		sets.NewString("attach", "exec", "proxy", "log", "portforward"),
+	)
+	genericConfig.LongRunningFunc = func(r *http.Request, requestInfo *apirequest.RequestInfo) bool {
+		return originLongRunningRequestRE.MatchString(r.URL.Path) || kubeLongRunningFunc(r, requestInfo)
 	}
 
-	serviceIPRange, apiServerServiceIP, err := genericapiserver.DefaultServiceIPRange(server.GenericServerRunOptions.ServiceClusterIPRange)
-	if err != nil {
-		glog.Fatalf("Error determining service IP ranges: %v", err)
+	if err := apiserverOptions.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); err != nil {
+		return nil, err
 	}
 
-	m := &master.Config{
+	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
-		MasterCount:   server.GenericServerRunOptions.MasterCount,
+		MasterCount:   apiserverOptions.MasterCount,
 
 		// Set the TLS options for proxying to pods and services
 		// Proxying to nodes uses the kubeletClient TLS config (so can provide a different cert, and verify the node hostname)
@@ -367,32 +493,33 @@ func BuildKubernetesMasterConfig(
 			},
 		}),
 
-		EnableWatchCache:          server.GenericServerRunOptions.EnableWatchCache,
-		ServiceIPRange:            serviceIPRange,
-		APIServerServiceIP:        apiServerServiceIP,
+		ClientCARegistrationHook: clientCARegistrationHook,
+
 		APIServerServicePort:      443,
-		ServiceNodePortRange:      server.GenericServerRunOptions.ServiceNodePortRange,
-		KubernetesServiceNodePort: server.GenericServerRunOptions.KubernetesServiceNodePort,
+		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
+		KubernetesServiceNodePort: apiserverOptions.KubernetesServiceNodePort,
+		ServiceIPRange:            apiserverOptions.ServiceClusterIPRange,
 
-		StorageFactory: storageFactory,
+		StorageFactory:          storageFactory,
+		APIResourceConfigSource: getAPIResourceConfig(masterConfig),
 
-		EventTTL: server.EventTTL,
+		EventTTL: apiserverOptions.EventTTL,
 
-		KubeletClientConfig: *configapi.GetKubeletClientConfig(options),
+		KubeletClientConfig: *configapi.GetKubeletClientConfig(masterConfig),
 
 		EnableLogsSupport:     false, // don't expose server logs
 		EnableCoreControllers: true,
-
-		DeleteCollectionWorkers: server.GenericServerRunOptions.DeleteCollectionWorkers,
 	}
 
-	if m.EnableWatchCache {
-		cachesize.SetWatchCacheSizes(server.GenericServerRunOptions.WatchCacheSizes)
+	if apiserverOptions.Etcd.EnableWatchCache {
+		// TODO(rebase): upstream also does the following:
+		// cachesize.InitializeWatchCacheSizes(s.GenericServerRunOptions.TargetRAMMB)
+		cachesize.SetWatchCacheSizes(apiserverOptions.GenericServerRunOptions.WatchCacheSizes)
 	}
 
-	if m.EnableCoreControllers {
+	if kubeApiserverConfig.EnableCoreControllers {
 		glog.V(2).Info("Using the lease endpoint reconciler")
-		config, err := m.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
+		config, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
 		if err != nil {
 			return nil, err
 		}
@@ -402,52 +529,94 @@ func BuildKubernetesMasterConfig(
 		}
 		masterLeases := newMasterLeases(leaseStorage)
 
-		endpointConfig, err := m.StorageFactory.NewConfig(kapi.Resource("endpoints"))
+		endpointConfig, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
 		if err != nil {
 			return nil, err
 		}
-		endpointsStorage := endpointsetcd.NewREST(generic.RESTOptions{
+		endpointsStorage := endpointsstorage.NewREST(generic.RESTOptions{
 			StorageConfig:           endpointConfig,
 			Decorator:               generic.UndecoratedStorage,
 			DeleteCollectionWorkers: 0,
-			ResourcePrefix:          m.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
+			ResourcePrefix:          kubeApiserverConfig.StorageFactory.ResourcePrefix(kapi.Resource("endpoints")),
 		})
 
 		endpointRegistry := endpoint.NewRegistry(endpointsStorage)
 
-		m.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
+		kubeApiserverConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
 			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
 			Interval:   master.DefaultEndpointReconcilerInterval,
 		}
 	}
 
-	if options.DNSConfig != nil {
-		_, dnsPortStr, err := net.SplitHostPort(options.DNSConfig.BindAddress)
+	if masterConfig.DNSConfig != nil {
+		_, dnsPortStr, err := net.SplitHostPort(masterConfig.DNSConfig.BindAddress)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse DNS bind address %s: %v", options.DNSConfig.BindAddress, err)
+			return nil, fmt.Errorf("unable to parse DNS bind address %s: %v", masterConfig.DNSConfig.BindAddress, err)
 		}
 		dnsPort, err := strconv.Atoi(dnsPortStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid DNS port: %v", err)
 		}
-		m.ExtraServicePorts = append(m.ExtraServicePorts,
+		kubeApiserverConfig.ExtraServicePorts = append(kubeApiserverConfig.ExtraServicePorts,
 			kapi.ServicePort{Name: "dns", Port: 53, Protocol: kapi.ProtocolUDP, TargetPort: intstr.FromInt(dnsPort)},
 			kapi.ServicePort{Name: "dns-tcp", Port: 53, Protocol: kapi.ProtocolTCP, TargetPort: intstr.FromInt(dnsPort)},
 		)
-		m.ExtraEndpointPorts = append(m.ExtraEndpointPorts,
+		kubeApiserverConfig.ExtraEndpointPorts = append(kubeApiserverConfig.ExtraEndpointPorts,
 			kapi.EndpointPort{Name: "dns", Port: int32(dnsPort), Protocol: kapi.ProtocolUDP},
 			kapi.EndpointPort{Name: "dns-tcp", Port: int32(dnsPort), Protocol: kapi.ProtocolTCP},
 		)
 	}
 
-	kmaster := &MasterConfig{
-		Options:    *options.KubernetesMasterConfig,
-		KubeClient: kubeClient,
+	return kubeApiserverConfig, nil
+}
 
-		Master:            m,
-		ControllerManager: cmserver,
+// TODO this function's parameters need to be refactored
+func BuildKubernetesMasterConfig(
+	masterConfig configapi.MasterConfig,
+	requestContextMapper apirequest.RequestContextMapper,
+	kubeClient kclientset.Interface,
+	internalKubeClient kinternalclientset.Interface,
+	informers shared.InformerFactory,
+	admissionControl admission.Interface,
+	originAuthenticator authenticator.Request,
+	kubeAuthorizer authorizer.Authorizer,
+) (*MasterConfig, error) {
+	if masterConfig.KubernetesMasterConfig == nil {
+		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
+	}
+
+	controllerServer, cloud, err := buildControllerManagerServer(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	schedulerServer, err := buildSchedulerServer(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	apiserverConfig, err := buildKubeApiserverConfig(
+		masterConfig,
+		requestContextMapper,
+		kubeClient,
+		internalKubeClient,
+		informers,
+		admissionControl,
+		originAuthenticator,
+		kubeAuthorizer)
+	if err != nil {
+		return nil, err
+	}
+
+	kmaster := &MasterConfig{
+		Options:            *masterConfig.KubernetesMasterConfig,
+		InternalKubeClient: internalKubeClient,
+		KubeClient:         kubeClient,
+
+		Master:            apiserverConfig,
+		ControllerManager: controllerServer,
 		CloudProvider:     cloud,
-		SchedulerServer:   schedulerserver,
+		SchedulerServer:   schedulerServer,
 		Informers:         informers,
 	}
 
@@ -580,26 +749,9 @@ func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIRe
 	return resourceConfig
 }
 
-// TODO remove this func in 1.6 when we get rid of the hack above
-func concatenateFiles(prefix, separator string, files ...string) (string, error) {
-	data := []byte{}
-	for _, file := range files {
-		fileBytes, err := ioutil.ReadFile(file)
-		if err != nil {
-			return "", err
-		}
-		data = append(data, fileBytes...)
-		data = append(data, []byte(separator)...)
+func readCAorNil(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return nil, nil
 	}
-	tmpFile, err := ioutil.TempFile("", prefix)
-	if err != nil {
-		return "", err
-	}
-	if _, err := tmpFile.Write(data); err != nil {
-		return "", err
-	}
-	if err := tmpFile.Close(); err != nil {
-		return "", err
-	}
-	return tmpFile.Name(), nil
+	return ioutil.ReadFile(file)
 }
