@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fieldpath"
@@ -145,7 +146,7 @@ func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelecto
 		if err != nil {
 			return "", err
 		}
-		secret, err = kubeClient.Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
+		secret, err = kubeClient.Core().Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -168,7 +169,7 @@ func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapS
 		if err != nil {
 			return "", err
 		}
-		configMap, err = kubeClient.ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
+		configMap, err = kubeClient.Core().ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -194,7 +195,7 @@ func getEnvVarRefValue(f *clientcmd.Factory, store *resourceStore, from *kapi.En
 	}
 
 	if from.ResourceFieldRef != nil {
-		return fieldpath.ExtractContainerResourceValue(from.ResourceFieldRef, c)
+		return fieldpath.InternalExtractContainerResourceValue(from.ResourceFieldRef, c)
 	}
 
 	return "", fmt.Errorf("invalid valueFrom")
@@ -505,7 +506,7 @@ updates:
 		if err != nil {
 			return err
 		}
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patchBytes)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patchBytes)
 		if err != nil {
 			handlePodUpdateError(errout, err, "environment variables")
 			failed = true

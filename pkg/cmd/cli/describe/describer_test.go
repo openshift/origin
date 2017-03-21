@@ -11,7 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/kubectl"
 
 	api "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -30,6 +29,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 )
 
 type describeClient struct {
@@ -123,7 +123,7 @@ func TestDescribers(t *testing.T) {
 	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
 
 	testCases := []struct {
-		d    kubectl.Describer
+		d    kprinters.Describer
 		name string
 	}{
 		{&BuildDescriber{c, fakeKube}, "bar"},
@@ -140,7 +140,7 @@ func TestDescribers(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		out, err := test.d.Describe("foo", test.name, kubectl.DescriberSettings{})
+		out, err := test.d.Describe("foo", test.name, kprinters.DescriberSettings{})
 		if err != nil {
 			t.Errorf("unexpected error for %v: %v", test.d, err)
 		}

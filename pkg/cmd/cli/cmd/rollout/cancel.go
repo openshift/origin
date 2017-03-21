@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	units "github.com/docker/go-units"
@@ -17,7 +19,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -127,10 +128,10 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) (bool, error) {
+			patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
 				rc.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 				rc.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledByUser
-				return true, nil
+				return runtime.Encode(o.Encoder, rc)
 			})
 
 			if len(patches) == 0 {
@@ -138,7 +139,7 @@ func (o CancelOptions) Run() error {
 				return false
 			}
 
-			_, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch)
+			_, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch)
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("cancelling", info.Source, err))
 				return false
@@ -172,7 +173,7 @@ func (o CancelOptions) Run() error {
 }
 
 func (o CancelOptions) forEachControllerInConfig(namespace, name string, mutateFunc func(*kapi.ReplicationController) bool) ([]*kapi.ReplicationController, bool, error) {
-	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metainternal.ListOptions{LabelSelector: deployutil.ConfigSelector(name)})
+	deploymentList, err := o.Clientset.Core().ReplicationControllers(namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(name).String()})
 	if err != nil {
 		return nil, false, err
 	}

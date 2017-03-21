@@ -23,14 +23,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/jsonpath"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/healthz"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -771,12 +772,20 @@ type restListWatcher struct {
 	namespace string
 }
 
-func (lw restListWatcher) List(opt api.ListOptions) (runtime.Object, error) {
-	return lw.Helper.List(lw.namespace, "", opt.LabelSelector, false)
+func (lw restListWatcher) List(opt metav1.ListOptions) (runtime.Object, error) {
+	labelSelector, err := labels.Parse(opt.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	return lw.Helper.List(lw.namespace, "", labelSelector, false)
 }
 
-func (lw restListWatcher) Watch(opt api.ListOptions) (watch.Interface, error) {
-	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, "", opt.LabelSelector)
+func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error) {
+	labelSelector, err := labels.Parse(opt.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, "", labelSelector)
 }
 
 type JSONPathColumnPrinter struct {

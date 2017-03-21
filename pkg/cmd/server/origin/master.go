@@ -26,6 +26,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/server/healthz"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -38,7 +39,6 @@ import (
 	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
 	genericmux "k8s.io/kubernetes/pkg/genericapiserver/mux"
 	genericroutes "k8s.io/kubernetes/pkg/genericapiserver/routes"
-	"k8s.io/kubernetes/pkg/healthz"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 

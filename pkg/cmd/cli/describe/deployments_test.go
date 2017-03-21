@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/kubectl"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -52,7 +52,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	}
 
 	describe := func() string {
-		output, err := d.Describe("test", "deployment", kubectl.DescriberSettings{})
+		output, err := d.Describe("test", "deployment", kprinters.DescriberSettings{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 			return ""
