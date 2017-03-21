@@ -1,4 +1,4 @@
-package kubernetes
+package master
 
 import (
 	"github.com/emicklei/go-restful/swagger"

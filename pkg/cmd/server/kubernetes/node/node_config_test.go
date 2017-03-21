@@ -1,4 +1,4 @@
-package kubernetes
+package node
 
 import (
 	"io"
