@@ -35,17 +35,19 @@ func TestAPIServerDefaults(t *testing.T) {
 		ServiceNodePortRange: kubeapiserveroptions.DefaultServiceNodePortRange,
 		MasterCount:          1,
 		GenericServerRunOptions: &apiserveroptions.ServerRunOptions{
-			MaxRequestsInFlight: 400,
-			MinRequestTimeout:   1800,
-			AdmissionControl:    "AlwaysAdmit",
+			MaxRequestsInFlight:         400,
+			MaxMutatingRequestsInFlight: 200,
+			MinRequestTimeout:           1800,
+			AdmissionControl:            "AlwaysAdmit",
 		},
 		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
 				ServerList: nil,
 				Prefix:     "/registry",
 				DeserializationCacheSize: 0,
+				Copier: kapi.Scheme,
 			},
-			DefaultStorageMediaType: "application/json",
+			DefaultStorageMediaType: "application/vnd.kubernetes.protobuf",
 			DeleteCollectionWorkers: 1,
 			EnableGarbageCollection: true,
 			EnableWatchCache:        true,
@@ -57,6 +59,7 @@ func TestAPIServerDefaults(t *testing.T) {
 			},
 			ServerCert: apiserveroptions.GeneratableKeyCert{
 				CertDirectory: "/var/run/kubernetes",
+				PairName:      "apiserver",
 			},
 		},
 		InsecureServing: &apiserveroptions.ServingOptions{
@@ -65,10 +68,13 @@ func TestAPIServerDefaults(t *testing.T) {
 		},
 		EventTTL: 1 * time.Hour,
 		KubeletConfig: kubeletclient.KubeletClientConfig{
-			Port: 10250,
+			Port:         10250,
+			ReadOnlyPort: 10255,
 			PreferredAddressTypes: []string{
 				string(apiv1.NodeHostName),
+				string(apiv1.NodeInternalDNS),
 				string(apiv1.NodeInternalIP),
+				string(apiv1.NodeExternalDNS),
 				string(apiv1.NodeExternalIP),
 				string(apiv1.NodeLegacyHostIP),
 			},
@@ -80,12 +86,22 @@ func TestAPIServerDefaults(t *testing.T) {
 			EnableProfiling: true,
 		},
 		Authentication: &kubeoptions.BuiltInAuthenticationOptions{
-		//WebhookTokenAuthnCacheTTL: 2 * time.Minute,
+			Anonymous:       &kubeoptions.AnonymousAuthenticationOptions{Allow: true},
+			AnyToken:        &kubeoptions.AnyTokenAuthenticationOptions{},
+			BootstrapToken:  &kubeoptions.BootstrapTokenAuthenticationOptions{},
+			ClientCert:      &apiserveroptions.ClientCertAuthenticationOptions{},
+			Keystone:        &kubeoptions.KeystoneAuthenticationOptions{},
+			OIDC:            &kubeoptions.OIDCAuthenticationOptions{},
+			PasswordFile:    &kubeoptions.PasswordFileAuthenticationOptions{},
+			RequestHeader:   &apiserveroptions.RequestHeaderAuthenticationOptions{},
+			ServiceAccounts: &kubeoptions.ServiceAccountAuthenticationOptions{},
+			TokenFile:       &kubeoptions.TokenFileAuthenticationOptions{},
+			WebHook:         &kubeoptions.WebHookAuthenticationOptions{CacheTTL: 2 * time.Minute},
 		},
 		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
-		// AuthorizationMode:       "AlwaysAllow",
-		// AuthorizationWebhookCacheAuthorizedTTL:   5 * time.Minute,
-		// AuthorizationWebhookCacheUnauthorizedTTL: 30 * time.Second,
+			Mode: "AlwaysAllow",
+			WebhookCacheAuthorizedTTL:   5 * time.Minute,
+			WebhookCacheUnauthorizedTTL: 30 * time.Second,
 		},
 		CloudProvider: &kubeoptions.CloudProviderOptions{},
 		StorageSerialization: &kubeoptions.StorageSerializationOptions{
