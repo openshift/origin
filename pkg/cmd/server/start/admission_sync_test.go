@@ -37,11 +37,8 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"NamespaceExists",  // superseded by NamespaceLifecycle
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
 
-	// "PersistentVolumeLabel", // do we want this? disable by default
-
-	// "ImagePolicyWebhook", // disable by default
-
-	"",
+	"PodPreset",                // alpha in kube 1.6, not on by default
+	"DefaultTolerationSeconds", // alpha, not on by default
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
