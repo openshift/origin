@@ -19,10 +19,11 @@ import (
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -36,7 +37,6 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	cmdadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -102,14 +102,14 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	options.ServiceAccounts = []kapiv1.ServiceAccount{}
 
 	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
-		sa := kapi.ServiceAccount{}
+		sa := kapiv1.ServiceAccount{}
 		sa.Name = saName
 
 		options.ServiceAccounts = append(options.ServiceAccounts, sa)
 	}
 
 	//REBASE: add new args to NewServiceAccountsController
-	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientset(), options).Run(1, utilwait.NeverStop)
+	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientsetExternal(), options).Run(1, utilwait.NeverStop)
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -159,16 +159,16 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 		ServiceServingCA: servingServingCABundle,
 	}
 
-	go sacontroller.NewTokensController(c.KubeClientset(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
+	go sacontroller.NewTokensController(c.KubeClientsetExternal(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
 	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientset(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
@@ -177,7 +177,7 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
@@ -216,8 +216,13 @@ func (c *MasterConfig) RunDNSServer() {
 	}
 
 	go func() {
-		s := dns.NewServer(config, c.DNSServerClient())
-		s.MetricsName = "apiserver"
+		services := dns.NewCachedServiceAccessor(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services())
+		s := dns.NewServer(
+			config,
+			services,
+			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Endpoints().Lister(),
+			"apiserver",
+		)
 		err := s.ListenAndServe()
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
@@ -243,12 +248,15 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", c.KubeClientset(), "")
+	pluginInitializer := kubeadmission.NewPluginInitializer(
+		c.KubeClientsetInternal(),
+		c.Informers.InternalKubernetesInformers(),
+		nil, // api authorizer, only used by PSP
+		nil, // cloud config
+	)
+	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
 	if err != nil {
 		return err
-	}
-	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
-		wantsInformers.SetInformers(informers)
 	}
 
 	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
@@ -328,8 +336,9 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
+	// TODO these should be external
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
+	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
@@ -359,8 +368,8 @@ func (c *MasterConfig) RunDeploymentController() {
 // RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
+	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
 	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.ExternalVersionCodec)
@@ -370,7 +379,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 // RunDeploymentTriggerController starts the deployment trigger controller process.
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
 	osclient := c.DeploymentTriggerControllerClient()
 
@@ -386,7 +395,7 @@ func (c *MasterConfig) RunSDNController() {
 	}
 }
 
-func (c *MasterConfig) RunServiceServingCertController(client *kclientset.Clientset) {
+func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal.Interface) {
 	if c.Options.ControllerConfig.ServiceServingCert.Signer == nil {
 		return
 	}
@@ -504,14 +513,14 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 		replenishmentSyncPeriodFunc = kctrlmgr.ResyncPeriod(cm)
 	}
 
-	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClient)
+	osClient, kClientInternal, kClientExternal := c.ResourceQuotaManagerClients()
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClientExternal)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:                kClient,
+		KubeClient:                kClientExternal,
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,
 		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClientInternal),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
@@ -526,8 +535,8 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 }
 
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
-	osClient, kClient := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClient)
+	osClient, kClientInternal, kClientExternal := c.ResourceQuotaManagerClients()
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClientExternal)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
@@ -537,7 +546,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient, kClientInternal),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}
@@ -547,7 +556,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 }
 
 // RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
-func (c *MasterConfig) RunIngressIPController(client *kclientset.Clientset) {
+func (c *MasterConfig) RunIngressIPController(client kclientsetinternal.Interface) {
 	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		return
 	}
@@ -566,9 +575,9 @@ func (c *MasterConfig) RunIngressIPController(client *kclientset.Clientset) {
 
 // RunUnidlingController starts the unidling controller
 func (c *MasterConfig) RunUnidlingController() {
-	oc, kc := c.UnidlingControllerClients()
+	oc, kc, extensionsClient := c.UnidlingControllerClients()
 	resyncPeriod := 2 * time.Hour
-	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc.Extensions())
+	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, extensionsClient)
 	dcCoreClient := deployclient.New(oc.RESTClient)
 	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, kc.Core(), kc.Core(), dcCoreClient, kc.Core(), resyncPeriod)
 
