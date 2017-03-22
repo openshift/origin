@@ -16,7 +16,7 @@ func TestCreateClone(t *testing.T) {
 		CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 			return nil
 		},
-		GetBuildFunc: func(ctx apirequest.Context, name string) (*buildapi.Build, error) {
+		GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 			return &buildapi.Build{}, nil
 		},
 	}}}

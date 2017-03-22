@@ -392,7 +392,7 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 		Secrets:         fake.NewSimpleClientset().Core(),
 		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc: func(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
 			},
 			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
@@ -402,16 +402,16 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 				instantiator.newBuild = build
 				return instantiator.err
 			},
-			GetBuildFunc: func(ctx apirequest.Context, name string) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 				return instantiator.newBuild, nil
 			},
-			GetImageStreamFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{Image: *image}, nil
 			},
-			GetImageStreamImageFunc: func(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{Image: *image}, nil
 			},
 		}}
