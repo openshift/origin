@@ -21,7 +21,7 @@ func init() {
 func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), id)
 			},
 		},
@@ -41,10 +41,10 @@ func TestGenerate_fromMissingDeploymentConfig(t *testing.T) {
 func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
 					imageapi.DefaultImageTag,
@@ -75,10 +75,10 @@ func TestGenerate_fromConfigWithoutTagChange(t *testing.T) {
 func TestGenerate_fromZeroConfigWithoutTagChange(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(0), nil
 			},
-			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					"test-image-stream",
 					imageapi.DefaultImageTag,
@@ -113,10 +113,10 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, id string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				stream := makeStream(
 					streamName,
 					imageapi.DefaultImageTag,
@@ -163,10 +163,10 @@ func TestGenerate_fromConfigWithUpdatedImageRef(t *testing.T) {
 func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return deploytest.OkDeploymentConfig(1), nil
 			},
-			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},
@@ -183,10 +183,10 @@ func TestGenerate_reportsInvalidErrorWhenMissingRepo(t *testing.T) {
 func TestGenerate_reportsNotFoundErrorWhenMissingDeploymentConfig(t *testing.T) {
 	generator := &DeploymentConfigGenerator{
 		Client: Client{
-			DCFn: func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
+			DCFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewNotFound(deployapi.Resource("DeploymentConfig"), name)
 			},
-			ISFn: func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
+			ISFn: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return nil, kerrors.NewNotFound(imageapi.Resource("ImageStream"), name)
 			},
 		},
