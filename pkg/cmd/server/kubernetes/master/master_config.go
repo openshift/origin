@@ -176,7 +176,6 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 		server.Etcd.StorageConfig,
 		server.Etcd.DefaultStorageMediaType,
 		kapi.Codecs,
-		// FIXME: is this supposed to be resourceEncodingConfig???
 		resourceEncodingConfig,
 		storageGroupsToEncodingVersion,
 		// FIXME: this GroupVersionResource override should be configurable
