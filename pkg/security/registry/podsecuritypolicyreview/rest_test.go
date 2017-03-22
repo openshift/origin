@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
@@ -132,12 +131,10 @@ func TestNoErrors(t *testing.T) {
 	}
 
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
@@ -228,12 +225,10 @@ func TestErrors(t *testing.T) {
 		},
 	}
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
@@ -390,12 +385,10 @@ func TestSpecificSAs(t *testing.T) {
 	}
 
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
