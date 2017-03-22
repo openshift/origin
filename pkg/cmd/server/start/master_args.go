@@ -242,6 +242,17 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 			Latest: args.ImageFormatArgs.ImageTemplate.Latest,
 		},
 
+		// List public registries that we are allowing to import images from by default.
+		// By default all registries have set to be "secure", iow. the port for them is
+		// defaulted to "443".
+		// If the registry you are adding here is insecure, you can add 'Insecure: true' which
+		// in that case it will default to port '80'.
+		// If the registry you are adding use custom port, you have to specify the port as
+		// part of the domain name.
+		ImagePolicyConfig: configapi.ImagePolicyConfig{
+			AllowedRegistriesForImport: configapi.DefaultAllowedRegistriesForImport,
+		},
+
 		ProjectConfig: configapi.ProjectConfig{
 			DefaultNodeSelector:    "",
 			ProjectRequestMessage:  "",

@@ -17,7 +17,9 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
+	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
 	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
@@ -43,6 +45,8 @@ type REST struct {
 	transport         http.RoundTripper
 	insecureTransport http.RoundTripper
 	clientFn          ImporterDockerRegistryFunc
+	strategy          *strategy
+	sarClient         client.SubjectAccessReviewInterface
 }
 
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
@@ -52,6 +56,9 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 	images rest.Creater, secrets client.ImageStreamSecretsNamespacer,
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
+	allowedImportRegistries *serverapi.AllowedRegistries,
+	registryFn api.DefaultRegistryFunc,
+	sarClient client.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{
 		importFn:          importFn,
@@ -62,6 +69,8 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 		transport:         transport,
 		insecureTransport: insecureTransport,
 		clientFn:          clientFn,
+		strategy:          NewStrategy(allowedImportRegistries, registryFn),
+		sarClient:         sarClient,
 	}
 }
 
@@ -78,8 +87,50 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 	inputMeta := isi.ObjectMeta
 
-	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
+	if err := rest.BeforeCreate(r.strategy, ctx, obj); err != nil {
 		return nil, err
+	}
+
+	// Check if the user is allowed to create Images or ImageStreamMappings.
+	// In case the user is allowed to create them, do not validate the ImageStreamImport
+	// registry location against the registry whitelist, but instead allow to create any
+	// image from any registry.
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return nil, kapierrors.NewBadRequest("unable to get user from context")
+	}
+	isCreateImage, err := r.sarClient.Create(
+		&authorizationapi.SubjectAccessReview{
+			User: user.GetName(),
+			Action: authorizationapi.Action{
+				Verb:     "create",
+				Group:    api.GroupName,
+				Resource: "images",
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	isCreateImageStreamMapping, err := r.sarClient.Create(
+		&authorizationapi.SubjectAccessReview{
+			User: user.GetName(),
+			Action: authorizationapi.Action{
+				Verb:     "create",
+				Group:    api.GroupName,
+				Resource: "imagestreammapping",
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isCreateImage.Allowed && !isCreateImageStreamMapping.Allowed {
+		if errs := r.strategy.ValidateAllowedRegistries(isi); len(errs) != 0 {
+			return nil, kapierrors.NewInvalid(api.Kind("ImageStreamImport"), isi.Name, errs)
+		}
 	}
 
 	namespace, ok := kapi.NamespaceFrom(ctx)
@@ -374,7 +425,7 @@ func (r *REST) importSuccessful(
 	importPolicy api.TagImportPolicy, referencePolicy api.TagReferencePolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {
-	Strategy.PrepareImageForCreate(image)
+	r.strategy.PrepareImageForCreate(image)
 
 	pullSpec, _ := api.MostAccuratePullSpec(image.DockerImageReference, image.Name, "")
 	tagEvent := api.TagEvent{
