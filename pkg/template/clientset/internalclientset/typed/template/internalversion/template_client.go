@@ -8,7 +8,9 @@ import (
 
 type TemplateInterface interface {
 	RESTClient() restclient.Interface
+	BrokerTemplateInstancesGetter
 	TemplatesGetter
+	TemplateInstancesGetter
 }
 
 // TemplateClient is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
@@ -16,8 +18,16 @@ type TemplateClient struct {
 	restClient restclient.Interface
 }
 
+func (c *TemplateClient) BrokerTemplateInstances() BrokerTemplateInstanceInterface {
+	return newBrokerTemplateInstances(c)
+}
+
 func (c *TemplateClient) Templates(namespace string) TemplateResourceInterface {
 	return newTemplates(c, namespace)
+}
+
+func (c *TemplateClient) TemplateInstances(namespace string) TemplateInstanceInterface {
+	return newTemplateInstances(c, namespace)
 }
 
 // NewForConfig creates a new TemplateClient for the given config.

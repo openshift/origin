@@ -9,8 +9,17 @@
 		github.com/openshift/origin/pkg/template/api/v1/generated.proto
 
 	It has these top-level messages:
+		BrokerTemplateInstance
+		BrokerTemplateInstanceList
+		BrokerTemplateInstanceSpec
 		Parameter
 		Template
+		TemplateInstance
+		TemplateInstanceCondition
+		TemplateInstanceList
+		TemplateInstanceRequestor
+		TemplateInstanceSpec
+		TemplateInstanceStatus
 		TemplateList
 */
 package v1
@@ -19,6 +28,7 @@ import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
 import math "math"
 
+import k8s_io_kubernetes_pkg_api_v1 "k8s.io/kubernetes/pkg/api/v1"
 import k8s_io_kubernetes_pkg_runtime "k8s.io/kubernetes/pkg/runtime"
 
 import strings "strings"
@@ -36,23 +46,197 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 const _ = proto.GoGoProtoPackageIsVersion1
 
+func (m *BrokerTemplateInstance) Reset()                    { *m = BrokerTemplateInstance{} }
+func (*BrokerTemplateInstance) ProtoMessage()               {}
+func (*BrokerTemplateInstance) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{0} }
+
+func (m *BrokerTemplateInstanceList) Reset()      { *m = BrokerTemplateInstanceList{} }
+func (*BrokerTemplateInstanceList) ProtoMessage() {}
+func (*BrokerTemplateInstanceList) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{1}
+}
+
+func (m *BrokerTemplateInstanceSpec) Reset()      { *m = BrokerTemplateInstanceSpec{} }
+func (*BrokerTemplateInstanceSpec) ProtoMessage() {}
+func (*BrokerTemplateInstanceSpec) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{2}
+}
+
 func (m *Parameter) Reset()                    { *m = Parameter{} }
 func (*Parameter) ProtoMessage()               {}
-func (*Parameter) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{0} }
+func (*Parameter) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{3} }
 
 func (m *Template) Reset()                    { *m = Template{} }
 func (*Template) ProtoMessage()               {}
-func (*Template) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{1} }
+func (*Template) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{4} }
+
+func (m *TemplateInstance) Reset()                    { *m = TemplateInstance{} }
+func (*TemplateInstance) ProtoMessage()               {}
+func (*TemplateInstance) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{5} }
+
+func (m *TemplateInstanceCondition) Reset()      { *m = TemplateInstanceCondition{} }
+func (*TemplateInstanceCondition) ProtoMessage() {}
+func (*TemplateInstanceCondition) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{6}
+}
+
+func (m *TemplateInstanceList) Reset()                    { *m = TemplateInstanceList{} }
+func (*TemplateInstanceList) ProtoMessage()               {}
+func (*TemplateInstanceList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{7} }
+
+func (m *TemplateInstanceRequestor) Reset()      { *m = TemplateInstanceRequestor{} }
+func (*TemplateInstanceRequestor) ProtoMessage() {}
+func (*TemplateInstanceRequestor) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{8}
+}
+
+func (m *TemplateInstanceSpec) Reset()                    { *m = TemplateInstanceSpec{} }
+func (*TemplateInstanceSpec) ProtoMessage()               {}
+func (*TemplateInstanceSpec) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{9} }
+
+func (m *TemplateInstanceStatus) Reset()                    { *m = TemplateInstanceStatus{} }
+func (*TemplateInstanceStatus) ProtoMessage()               {}
+func (*TemplateInstanceStatus) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{10} }
 
 func (m *TemplateList) Reset()                    { *m = TemplateList{} }
 func (*TemplateList) ProtoMessage()               {}
-func (*TemplateList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{2} }
+func (*TemplateList) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{11} }
 
 func init() {
+	proto.RegisterType((*BrokerTemplateInstance)(nil), "github.com.openshift.origin.pkg.template.api.v1.BrokerTemplateInstance")
+	proto.RegisterType((*BrokerTemplateInstanceList)(nil), "github.com.openshift.origin.pkg.template.api.v1.BrokerTemplateInstanceList")
+	proto.RegisterType((*BrokerTemplateInstanceSpec)(nil), "github.com.openshift.origin.pkg.template.api.v1.BrokerTemplateInstanceSpec")
 	proto.RegisterType((*Parameter)(nil), "github.com.openshift.origin.pkg.template.api.v1.Parameter")
 	proto.RegisterType((*Template)(nil), "github.com.openshift.origin.pkg.template.api.v1.Template")
+	proto.RegisterType((*TemplateInstance)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstance")
+	proto.RegisterType((*TemplateInstanceCondition)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstanceCondition")
+	proto.RegisterType((*TemplateInstanceList)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstanceList")
+	proto.RegisterType((*TemplateInstanceRequestor)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstanceRequestor")
+	proto.RegisterType((*TemplateInstanceSpec)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstanceSpec")
+	proto.RegisterType((*TemplateInstanceStatus)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateInstanceStatus")
 	proto.RegisterType((*TemplateList)(nil), "github.com.openshift.origin.pkg.template.api.v1.TemplateList")
 }
+func (m *BrokerTemplateInstance) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *BrokerTemplateInstance) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+	n1, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n1
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n2, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n2
+	return i, nil
+}
+
+func (m *BrokerTemplateInstanceList) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *BrokerTemplateInstanceList) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+	n3, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n3
+	if len(m.Items) > 0 {
+		for _, msg := range m.Items {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *BrokerTemplateInstanceSpec) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *BrokerTemplateInstanceSpec) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.TemplateInstance.Size()))
+	n4, err := m.TemplateInstance.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n4
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Secret.Size()))
+	n5, err := m.Secret.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n5
+	if len(m.BindingIDs) > 0 {
+		for _, s := range m.BindingIDs {
+			data[i] = 0x1a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			data[i] = uint8(l)
+			i++
+			i += copy(data[i:], s)
+		}
+	}
+	return i, nil
+}
+
 func (m *Parameter) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -121,11 +305,11 @@ func (m *Template) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n1, err := m.ObjectMeta.MarshalTo(data[i:])
+	n6, err := m.ObjectMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n1
+	i += n6
 	data[i] = 0x12
 	i++
 	i = encodeVarintGenerated(data, i, uint64(len(m.Message)))
@@ -174,6 +358,224 @@ func (m *Template) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
+func (m *TemplateInstance) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstance) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
+	n7, err := m.ObjectMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n7
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
+	n8, err := m.Spec.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n8
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
+	n9, err := m.Status.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n9
+	return i, nil
+}
+
+func (m *TemplateInstanceCondition) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstanceCondition) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
+	i += copy(data[i:], m.Type)
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Status)))
+	i += copy(data[i:], m.Status)
+	data[i] = 0x1a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
+	n10, err := m.LastTransitionTime.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n10
+	data[i] = 0x22
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
+	i += copy(data[i:], m.Reason)
+	data[i] = 0x2a
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Message)))
+	i += copy(data[i:], m.Message)
+	return i, nil
+}
+
+func (m *TemplateInstanceList) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstanceList) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
+	n11, err := m.ListMeta.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n11
+	if len(m.Items) > 0 {
+		for _, msg := range m.Items {
+			data[i] = 0x12
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
+func (m *TemplateInstanceRequestor) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstanceRequestor) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(len(m.Username)))
+	i += copy(data[i:], m.Username)
+	return i, nil
+}
+
+func (m *TemplateInstanceSpec) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstanceSpec) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	data[i] = 0xa
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Template.Size()))
+	n12, err := m.Template.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n12
+	data[i] = 0x12
+	i++
+	i = encodeVarintGenerated(data, i, uint64(m.Secret.Size()))
+	n13, err := m.Secret.MarshalTo(data[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n13
+	if m.Requestor != nil {
+		data[i] = 0x1a
+		i++
+		i = encodeVarintGenerated(data, i, uint64(m.Requestor.Size()))
+		n14, err := m.Requestor.MarshalTo(data[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+	}
+	return i, nil
+}
+
+func (m *TemplateInstanceStatus) Marshal() (data []byte, err error) {
+	size := m.Size()
+	data = make([]byte, size)
+	n, err := m.MarshalTo(data)
+	if err != nil {
+		return nil, err
+	}
+	return data[:n], nil
+}
+
+func (m *TemplateInstanceStatus) MarshalTo(data []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Conditions) > 0 {
+		for _, msg := range m.Conditions {
+			data[i] = 0xa
+			i++
+			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(data[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
+	}
+	return i, nil
+}
+
 func (m *TemplateList) Marshal() (data []byte, err error) {
 	size := m.Size()
 	data = make([]byte, size)
@@ -192,11 +594,11 @@ func (m *TemplateList) MarshalTo(data []byte) (int, error) {
 	data[i] = 0xa
 	i++
 	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n2, err := m.ListMeta.MarshalTo(data[i:])
+	n15, err := m.ListMeta.MarshalTo(data[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n2
+	i += n15
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
 			data[i] = 0x12
@@ -239,6 +641,46 @@ func encodeVarintGenerated(data []byte, offset int, v uint64) int {
 	data[offset] = uint8(v)
 	return offset + 1
 }
+func (m *BrokerTemplateInstance) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ObjectMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Spec.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *BrokerTemplateInstanceList) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ListMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	if len(m.Items) > 0 {
+		for _, e := range m.Items {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *BrokerTemplateInstanceSpec) Size() (n int) {
+	var l int
+	_ = l
+	l = m.TemplateInstance.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Secret.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	if len(m.BindingIDs) > 0 {
+		for _, s := range m.BindingIDs {
+			l = len(s)
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *Parameter) Size() (n int) {
 	var l int
 	_ = l
@@ -288,6 +730,82 @@ func (m *Template) Size() (n int) {
 	return n
 }
 
+func (m *TemplateInstance) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ObjectMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Spec.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Status.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *TemplateInstanceCondition) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Type)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Status)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.LastTransitionTime.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Reason)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.Message)
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *TemplateInstanceList) Size() (n int) {
+	var l int
+	_ = l
+	l = m.ListMeta.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	if len(m.Items) > 0 {
+		for _, e := range m.Items {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *TemplateInstanceRequestor) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Username)
+	n += 1 + l + sovGenerated(uint64(l))
+	return n
+}
+
+func (m *TemplateInstanceSpec) Size() (n int) {
+	var l int
+	_ = l
+	l = m.Template.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	l = m.Secret.Size()
+	n += 1 + l + sovGenerated(uint64(l))
+	if m.Requestor != nil {
+		l = m.Requestor.Size()
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	return n
+}
+
+func (m *TemplateInstanceStatus) Size() (n int) {
+	var l int
+	_ = l
+	if len(m.Conditions) > 0 {
+		for _, e := range m.Conditions {
+			l = e.Size()
+			n += 1 + l + sovGenerated(uint64(l))
+		}
+	}
+	return n
+}
+
 func (m *TemplateList) Size() (n int) {
 	var l int
 	_ = l
@@ -314,6 +832,40 @@ func sovGenerated(x uint64) (n int) {
 }
 func sozGenerated(x uint64) (n int) {
 	return sovGenerated(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (this *BrokerTemplateInstance) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BrokerTemplateInstance{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "BrokerTemplateInstanceSpec", "BrokerTemplateInstanceSpec", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BrokerTemplateInstanceList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BrokerTemplateInstanceList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "BrokerTemplateInstance", "BrokerTemplateInstance", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BrokerTemplateInstanceSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BrokerTemplateInstanceSpec{`,
+		`TemplateInstance:` + strings.Replace(strings.Replace(this.TemplateInstance.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`Secret:` + strings.Replace(strings.Replace(this.Secret.String(), "ObjectReference", "k8s_io_kubernetes_pkg_api_v1.ObjectReference", 1), `&`, ``, 1) + `,`,
+		`BindingIDs:` + fmt.Sprintf("%v", this.BindingIDs) + `,`,
+		`}`,
+	}, "")
+	return s
 }
 func (this *Parameter) String() string {
 	if this == nil {
@@ -355,6 +907,75 @@ func (this *Template) String() string {
 	}, "")
 	return s
 }
+func (this *TemplateInstance) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstance{`,
+		`ObjectMeta:` + strings.Replace(strings.Replace(this.ObjectMeta.String(), "ObjectMeta", "k8s_io_kubernetes_pkg_api_v1.ObjectMeta", 1), `&`, ``, 1) + `,`,
+		`Spec:` + strings.Replace(strings.Replace(this.Spec.String(), "TemplateInstanceSpec", "TemplateInstanceSpec", 1), `&`, ``, 1) + `,`,
+		`Status:` + strings.Replace(strings.Replace(this.Status.String(), "TemplateInstanceStatus", "TemplateInstanceStatus", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *TemplateInstanceCondition) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstanceCondition{`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`Status:` + fmt.Sprintf("%v", this.Status) + `,`,
+		`LastTransitionTime:` + strings.Replace(strings.Replace(this.LastTransitionTime.String(), "Time", "k8s_io_kubernetes_pkg_api_unversioned.Time", 1), `&`, ``, 1) + `,`,
+		`Reason:` + fmt.Sprintf("%v", this.Reason) + `,`,
+		`Message:` + fmt.Sprintf("%v", this.Message) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *TemplateInstanceList) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstanceList{`,
+		`ListMeta:` + strings.Replace(strings.Replace(this.ListMeta.String(), "ListMeta", "k8s_io_kubernetes_pkg_api_unversioned.ListMeta", 1), `&`, ``, 1) + `,`,
+		`Items:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Items), "TemplateInstance", "TemplateInstance", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *TemplateInstanceRequestor) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstanceRequestor{`,
+		`Username:` + fmt.Sprintf("%v", this.Username) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *TemplateInstanceSpec) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstanceSpec{`,
+		`Template:` + strings.Replace(strings.Replace(this.Template.String(), "Template", "Template", 1), `&`, ``, 1) + `,`,
+		`Secret:` + strings.Replace(strings.Replace(this.Secret.String(), "LocalObjectReference", "k8s_io_kubernetes_pkg_api_v1.LocalObjectReference", 1), `&`, ``, 1) + `,`,
+		`Requestor:` + strings.Replace(fmt.Sprintf("%v", this.Requestor), "TemplateInstanceRequestor", "TemplateInstanceRequestor", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *TemplateInstanceStatus) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&TemplateInstanceStatus{`,
+		`Conditions:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Conditions), "TemplateInstanceCondition", "TemplateInstanceCondition", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *TemplateList) String() string {
 	if this == nil {
 		return "nil"
@@ -373,6 +994,366 @@ func valueToStringGenerated(v interface{}) string {
 	}
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
+}
+func (m *BrokerTemplateInstance) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BrokerTemplateInstance: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BrokerTemplateInstance: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BrokerTemplateInstanceList) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BrokerTemplateInstanceList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BrokerTemplateInstanceList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, BrokerTemplateInstance{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *BrokerTemplateInstanceSpec) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BrokerTemplateInstanceSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BrokerTemplateInstanceSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TemplateInstance", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.TemplateInstance.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Secret.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BindingIDs", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BindingIDs = append(m.BindingIDs, string(data[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *Parameter) Unmarshal(data []byte) error {
 	l := len(data)
@@ -900,6 +1881,756 @@ func (m *Template) Unmarshal(data []byte) error {
 	}
 	return nil
 }
+func (m *TemplateInstance) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstance: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstance: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Spec", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TemplateInstanceCondition) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstanceCondition: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstanceCondition: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = TemplateInstanceConditionType(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Status", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Status = k8s_io_kubernetes_pkg_api_v1.ConditionStatus(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LastTransitionTime", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.LastTransitionTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Reason", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Reason = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TemplateInstanceList) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstanceList: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstanceList: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ListMeta", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Items", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Items = append(m.Items, TemplateInstance{})
+			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TemplateInstanceRequestor) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstanceRequestor: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstanceRequestor: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Username = string(data[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TemplateInstanceSpec) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstanceSpec: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstanceSpec: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Template", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Template.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Secret", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Secret.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Requestor", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Requestor == nil {
+				m.Requestor = &TemplateInstanceRequestor{}
+			}
+			if err := m.Requestor.Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TemplateInstanceStatus) Unmarshal(data []byte) error {
+	l := len(data)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := data[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TemplateInstanceStatus: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TemplateInstanceStatus: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Conditions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := data[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Conditions = append(m.Conditions, TemplateInstanceCondition{})
+			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(data[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *TemplateList) Unmarshal(data []byte) error {
 	l := len(data)
 	iNdEx := 0
@@ -1117,46 +2848,74 @@ var (
 )
 
 var fileDescriptorGenerated = []byte{
-	// 653 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0x9c, 0x54, 0xcf, 0x6b, 0x13, 0x41,
-	0x14, 0xce, 0xe6, 0x47, 0x93, 0x4e, 0x2a, 0x96, 0xb1, 0x87, 0x25, 0x87, 0x6d, 0xa8, 0x1e, 0x22,
-	0xb6, 0xb3, 0xa4, 0x50, 0x68, 0x7b, 0x11, 0x82, 0x55, 0x84, 0x56, 0x65, 0x90, 0x22, 0x82, 0xc2,
-	0xa4, 0x79, 0xdd, 0x8e, 0xc9, 0xee, 0xac, 0x33, 0xb3, 0xd1, 0xde, 0xbc, 0x79, 0xf5, 0x2f, 0xf2,
-	0xdc, 0x8b, 0xd0, 0xa3, 0xa7, 0x62, 0xe3, 0x3f, 0x22, 0x3b, 0xfb, 0xd3, 0xa6, 0x15, 0xea, 0x6d,
-	0xe7, 0xbd, 0xef, 0x7d, 0xdf, 0x7b, 0xf3, 0xbe, 0x59, 0xf4, 0xd8, 0xe3, 0xfa, 0x24, 0x1a, 0x92,
-	0x23, 0xe1, 0xbb, 0x22, 0x84, 0x40, 0x9d, 0xf0, 0x63, 0xed, 0x0a, 0xc9, 0x3d, 0x1e, 0xb8, 0xe1,
-	0xd8, 0x73, 0x35, 0xf8, 0xe1, 0x84, 0x69, 0x70, 0x59, 0xc8, 0xdd, 0x69, 0xdf, 0xf5, 0x20, 0x00,
-	0xc9, 0x34, 0x8c, 0x48, 0x28, 0x85, 0x16, 0xd8, 0x2d, 0x08, 0x48, 0x4e, 0x40, 0x12, 0x02, 0x12,
-	0x8e, 0x3d, 0x92, 0x11, 0x10, 0x16, 0x72, 0x32, 0xed, 0x77, 0x36, 0x4a, 0x8a, 0x9e, 0xf0, 0x84,
-	0x6b, 0x78, 0x86, 0xd1, 0xb1, 0x39, 0x99, 0x83, 0xf9, 0x4a, 0xf8, 0x3b, 0x5b, 0xe3, 0x6d, 0x45,
-	0xb8, 0x70, 0xc7, 0xd1, 0x10, 0x64, 0x00, 0x1a, 0x94, 0x69, 0x2b, 0xee, 0x26, 0x0a, 0xa6, 0x20,
-	0x15, 0x17, 0x01, 0x8c, 0xae, 0xb6, 0xd5, 0x59, 0xbf, 0xb9, 0x6c, 0x7e, 0x88, 0xce, 0xc6, 0xf5,
-	0x68, 0x19, 0x05, 0x9a, 0xfb, 0x30, 0x07, 0xef, 0x5f, 0x0f, 0x8f, 0x34, 0x9f, 0xb8, 0x3c, 0xd0,
-	0x4a, 0xcb, 0xab, 0x25, 0x6b, 0xdf, 0xab, 0x68, 0xf1, 0x15, 0x93, 0xcc, 0x07, 0x0d, 0x12, 0x77,
-	0x51, 0x3d, 0x60, 0x3e, 0xd8, 0x56, 0xd7, 0xea, 0x2d, 0x0e, 0x96, 0xce, 0x2e, 0x56, 0x2b, 0xb3,
-	0x8b, 0xd5, 0xfa, 0x0b, 0xe6, 0x03, 0x35, 0x19, 0xbc, 0x85, 0xda, 0x23, 0xae, 0xc2, 0x09, 0x3b,
-	0x8d, 0x83, 0x76, 0xd5, 0x00, 0xef, 0xa5, 0xc0, 0xf6, 0x93, 0x22, 0x45, 0xcb, 0x38, 0x53, 0x06,
-	0xea, 0x48, 0xf2, 0x50, 0x73, 0x11, 0xd8, 0xb5, 0x2b, 0x65, 0x45, 0x8a, 0x96, 0x71, 0xf8, 0x3e,
-	0x6a, 0x4c, 0xd9, 0x24, 0x02, 0xbb, 0x6e, 0x0a, 0xee, 0xa4, 0x05, 0x8d, 0xc3, 0x38, 0x48, 0x93,
-	0x1c, 0x5e, 0x47, 0xad, 0x6c, 0x2a, 0xbb, 0x61, 0x70, 0xcb, 0x29, 0xae, 0xf5, 0x2c, 0x8d, 0xd3,
-	0x1c, 0x11, 0x8f, 0x78, 0x2c, 0x85, 0x6f, 0x2f, 0xfc, 0x3d, 0xe2, 0x53, 0x29, 0x7c, 0x6a, 0x32,
-	0x31, 0x9f, 0x84, 0x8f, 0x11, 0x97, 0x30, 0xb2, 0x9b, 0x5d, 0xab, 0xd7, 0x2a, 0xf8, 0x68, 0x1a,
-	0xa7, 0x39, 0x62, 0xed, 0x6b, 0x1d, 0xb5, 0x5e, 0xa7, 0x56, 0xc2, 0x6f, 0x50, 0xcb, 0x07, 0xcd,
-	0x46, 0x4c, 0x33, 0x73, 0x87, 0xed, 0xcd, 0x1e, 0x49, 0x76, 0x42, 0x8a, 0x9d, 0x18, 0xf7, 0x25,
-	0xa6, 0x23, 0x2f, 0x87, 0x1f, 0xe0, 0x48, 0x1f, 0x80, 0x66, 0x03, 0x9c, 0x8a, 0xa0, 0x22, 0x46,
-	0x73, 0x36, 0xfc, 0x10, 0x35, 0x7d, 0x50, 0x8a, 0x79, 0xd9, 0x9d, 0xdf, 0x4d, 0xe1, 0xcd, 0x83,
-	0x24, 0x4c, 0xb3, 0x3c, 0x3e, 0x44, 0x4d, 0x61, 0x28, 0x94, 0x5d, 0xeb, 0xd6, 0x7a, 0xed, 0xcd,
-	0x47, 0x37, 0xf4, 0x90, 0xda, 0x88, 0x50, 0xf6, 0x69, 0xef, 0xb3, 0x86, 0x20, 0xb6, 0x6c, 0xc1,
-	0x9b, 0xb4, 0xa1, 0x68, 0x46, 0x86, 0x03, 0x84, 0xc2, 0xcc, 0x29, 0xca, 0xae, 0x1b, 0xea, 0x5d,
-	0x72, 0xcb, 0x67, 0x46, 0x72, 0xb3, 0x15, 0x03, 0xe7, 0x21, 0x45, 0x4b, 0x0a, 0x58, 0xa1, 0x85,
-	0x09, 0x1b, 0xc2, 0x44, 0xd9, 0x0d, 0xa3, 0xb5, 0x77, 0x6b, 0xad, 0x6c, 0x2f, 0x64, 0xdf, 0xf0,
-	0xec, 0x05, 0x5a, 0x9e, 0x0e, 0x56, 0x52, 0xd9, 0xa5, 0x64, 0xc0, 0x24, 0x45, 0x53, 0xa9, 0xce,
-	0x0e, 0x6a, 0x97, 0xc0, 0x78, 0x19, 0xd5, 0xc6, 0x70, 0x9a, 0xbc, 0x07, 0x1a, 0x7f, 0xe2, 0x95,
-	0xcc, 0x92, 0x66, 0x0d, 0xa9, 0x07, 0x77, 0xab, 0xdb, 0xd6, 0xda, 0x0f, 0x0b, 0x2d, 0x65, 0x8a,
-	0xfb, 0x5c, 0x69, 0xfc, 0x6e, 0xce, 0x0d, 0xee, 0x3f, 0xdc, 0x50, 0xfa, 0x6b, 0x90, 0xb8, 0xdc,
-	0x98, 0x22, 0x77, 0x5e, 0x16, 0x29, 0x59, 0xe2, 0x3d, 0x6a, 0x70, 0x0d, 0xbe, 0xb2, 0xab, 0xe6,
-	0x7a, 0x76, 0xfe, 0xfb, 0x7a, 0x8a, 0x77, 0xf5, 0x3c, 0xe6, 0xa3, 0x09, 0xed, 0xe0, 0xc1, 0xd9,
-	0xa5, 0x53, 0x39, 0xbf, 0x74, 0x2a, 0x3f, 0x2f, 0x9d, 0xca, 0x97, 0x99, 0x63, 0x9d, 0xcd, 0x1c,
-	0xeb, 0x7c, 0xe6, 0x58, 0xbf, 0x66, 0x8e, 0xf5, 0xed, 0xb7, 0x53, 0x79, 0x5b, 0x9d, 0xf6, 0xff,
-	0x04, 0x00, 0x00, 0xff, 0xff, 0x13, 0x2f, 0x8b, 0xdd, 0xa9, 0x05, 0x00, 0x00,
+	// 1100 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xc4, 0x56, 0x49, 0x6f, 0x1c, 0x45,
+	0x14, 0x76, 0xcf, 0xe6, 0x99, 0x1a, 0x27, 0x58, 0x85, 0x15, 0x35, 0x23, 0x31, 0xb6, 0x1a, 0x84,
+	0x8c, 0x12, 0x77, 0xcb, 0x96, 0x22, 0x25, 0x39, 0x80, 0xd2, 0xc4, 0x44, 0x06, 0x07, 0x50, 0xc5,
+	0xb1, 0x50, 0x24, 0x90, 0x6a, 0x66, 0x9e, 0x3b, 0xc5, 0x4c, 0x2f, 0x54, 0xd5, 0xd8, 0xf8, 0x82,
+	0x10, 0x17, 0xae, 0x1c, 0xf3, 0x6b, 0x38, 0x22, 0x5f, 0x90, 0x72, 0xe0, 0xc0, 0x05, 0x0b, 0x0f,
+	0x27, 0xfe, 0x42, 0x4e, 0xa8, 0xab, 0xab, 0x97, 0x59, 0x6c, 0xbc, 0x40, 0xb8, 0x75, 0xbf, 0x7a,
+	0xef, 0xfb, 0xde, 0x5e, 0x85, 0xde, 0xf7, 0x98, 0x7c, 0x36, 0xec, 0xd8, 0xdd, 0xd0, 0x77, 0xc2,
+	0x08, 0x02, 0xf1, 0x8c, 0xed, 0x49, 0x27, 0xe4, 0xcc, 0x63, 0x81, 0x13, 0xf5, 0x3d, 0x47, 0x82,
+	0x1f, 0x0d, 0xa8, 0x04, 0x87, 0x46, 0xcc, 0xd9, 0x5f, 0x77, 0x3c, 0x08, 0x80, 0x53, 0x09, 0x3d,
+	0x3b, 0xe2, 0xa1, 0x0c, 0xb1, 0x93, 0x03, 0xd8, 0x19, 0x80, 0x9d, 0x00, 0xd8, 0x51, 0xdf, 0xb3,
+	0x53, 0x00, 0x9b, 0x46, 0xcc, 0xde, 0x5f, 0x6f, 0xad, 0x15, 0x18, 0xbd, 0xd0, 0x0b, 0x1d, 0x85,
+	0xd3, 0x19, 0xee, 0xa9, 0x3f, 0xf5, 0xa3, 0xbe, 0x12, 0xfc, 0xd6, 0xed, 0xfe, 0x1d, 0x61, 0xb3,
+	0xd0, 0xe9, 0x0f, 0x3b, 0xc0, 0x03, 0x90, 0x20, 0x94, 0x5b, 0xb1, 0x37, 0xc3, 0x60, 0x1f, 0xb8,
+	0x60, 0x61, 0x00, 0xbd, 0x49, 0xb7, 0x5a, 0xb7, 0x4e, 0x37, 0x9b, 0x0e, 0xa2, 0xb5, 0x36, 0x5b,
+	0x9b, 0x0f, 0x03, 0xc9, 0x7c, 0x98, 0x52, 0x5f, 0x9f, 0xad, 0x3e, 0x94, 0x6c, 0xe0, 0xb0, 0x40,
+	0x0a, 0xc9, 0x27, 0x4d, 0xac, 0x13, 0x03, 0xdd, 0x70, 0x79, 0xd8, 0x07, 0xbe, 0xa3, 0xf3, 0xb1,
+	0x15, 0x08, 0x49, 0x83, 0x2e, 0xe0, 0xcf, 0x51, 0xdd, 0x07, 0x49, 0x7b, 0x54, 0x52, 0xd3, 0x58,
+	0x31, 0x56, 0x9b, 0x1b, 0xab, 0x76, 0x42, 0x60, 0xe7, 0x04, 0x2a, 0x95, 0x49, 0x06, 0xed, 0x4f,
+	0x3b, 0x5f, 0x41, 0x57, 0x3e, 0x02, 0x49, 0x5d, 0x7c, 0x74, 0xbc, 0x3c, 0x37, 0x3a, 0x5e, 0x46,
+	0xb9, 0x8c, 0x64, 0x68, 0xd8, 0x47, 0x15, 0x11, 0x41, 0xd7, 0x2c, 0x29, 0xd4, 0x8f, 0xed, 0x0b,
+	0x96, 0xca, 0x9e, 0xed, 0xf0, 0xe3, 0x08, 0xba, 0xee, 0x82, 0x26, 0xae, 0xc4, 0x7f, 0x44, 0xd1,
+	0x58, 0x7f, 0x19, 0xa8, 0x35, 0xdb, 0x64, 0x9b, 0x09, 0x89, 0xbf, 0x98, 0x8a, 0xd3, 0x39, 0x23,
+	0xce, 0x42, 0x71, 0xed, 0xd8, 0x5c, 0x85, 0xbb, 0xa8, 0x59, 0xeb, 0xa9, 0xa4, 0x10, 0xec, 0x00,
+	0x55, 0x99, 0x04, 0x5f, 0x98, 0xa5, 0x95, 0xf2, 0x6a, 0x73, 0xe3, 0xe1, 0xbf, 0x14, 0xad, 0x7b,
+	0x4d, 0x73, 0x56, 0xb7, 0x62, 0x74, 0x92, 0x90, 0x58, 0xcf, 0x4b, 0xa7, 0xc5, 0x1a, 0x27, 0x04,
+	0x0b, 0xb4, 0x28, 0x27, 0xe4, 0x3a, 0xe6, 0xb5, 0xf3, 0xd4, 0x96, 0xc0, 0x1e, 0x70, 0x88, 0xd9,
+	0x4d, 0xcd, 0xbe, 0x38, 0x49, 0x43, 0xa6, 0x08, 0xf0, 0x13, 0x54, 0x13, 0xd0, 0xe5, 0x20, 0x75,
+	0xc1, 0x2f, 0x48, 0x75, 0x5d, 0x53, 0xd5, 0x1e, 0x2b, 0x10, 0xa2, 0xc1, 0xb0, 0x8d, 0x50, 0x87,
+	0x05, 0x3d, 0x16, 0x78, 0x5b, 0x0f, 0x84, 0x59, 0x5e, 0x29, 0xaf, 0x36, 0xdc, 0xeb, 0x71, 0xcf,
+	0xb9, 0x99, 0x94, 0x14, 0x34, 0xac, 0x9f, 0x4a, 0xa8, 0xf1, 0x19, 0xe5, 0xd4, 0x07, 0x09, 0x1c,
+	0xaf, 0xa0, 0x4a, 0x40, 0xfd, 0x24, 0xfa, 0x46, 0xde, 0x36, 0x9f, 0x50, 0x1f, 0x88, 0x3a, 0xc1,
+	0xb7, 0x51, 0xb3, 0xc7, 0x44, 0x34, 0xa0, 0x87, 0xb1, 0x50, 0xf9, 0xde, 0x70, 0x5f, 0xd7, 0x8a,
+	0xcd, 0x07, 0xf9, 0x11, 0x29, 0xea, 0x29, 0x33, 0x10, 0x5d, 0xce, 0x22, 0xc9, 0xc2, 0xc0, 0x2c,
+	0x4f, 0x98, 0xe5, 0x47, 0xa4, 0xa8, 0x87, 0xdf, 0x42, 0xd5, 0x7d, 0x3a, 0x18, 0x82, 0x59, 0x51,
+	0x06, 0x59, 0x75, 0x77, 0x63, 0x21, 0x49, 0xce, 0xf0, 0x2d, 0x54, 0x4f, 0x07, 0xd8, 0xac, 0x2a,
+	0xbd, 0xac, 0xf3, 0x1e, 0x6a, 0x39, 0xc9, 0x34, 0xe2, 0x10, 0xf7, 0x78, 0xe8, 0x9b, 0xb5, 0xf1,
+	0x10, 0x3f, 0xe4, 0xa1, 0x4f, 0xd4, 0x49, 0x8c, 0xc7, 0xe1, 0xeb, 0x21, 0xe3, 0xd0, 0x33, 0xe7,
+	0x57, 0x8c, 0xd5, 0x7a, 0x8e, 0x47, 0xb4, 0x9c, 0x64, 0x1a, 0xd6, 0x0f, 0x15, 0x54, 0x4f, 0xcb,
+	0xfd, 0x1f, 0x6e, 0x87, 0x77, 0xd1, 0xbc, 0x0f, 0x42, 0x50, 0x2f, 0xcd, 0xf9, 0x6b, 0x5a, 0x7d,
+	0xfe, 0x51, 0x22, 0x26, 0xe9, 0x39, 0xde, 0x45, 0xf3, 0xa1, 0x82, 0x48, 0xea, 0xdf, 0xdc, 0xb8,
+	0x79, 0x8a, 0x0f, 0x7a, 0x63, 0xda, 0x84, 0x1e, 0x6c, 0x7e, 0x23, 0x21, 0x88, 0x07, 0x38, 0xc7,
+	0x4d, 0xdc, 0x10, 0x24, 0x05, 0xc3, 0x01, 0x42, 0x51, 0xda, 0x29, 0xc2, 0xac, 0x28, 0xe8, 0x7b,
+	0x17, 0x1e, 0xdc, 0xac, 0xd9, 0xf2, 0x80, 0x33, 0x91, 0x20, 0x05, 0x06, 0x2c, 0x50, 0x6d, 0x40,
+	0x3b, 0x30, 0x10, 0x66, 0x55, 0x71, 0x6d, 0x5e, 0x98, 0x2b, 0xad, 0x8b, 0xbd, 0xad, 0x70, 0x36,
+	0x03, 0xc9, 0x0f, 0xdd, 0x25, 0x4d, 0xbb, 0x90, 0x04, 0x98, 0x1c, 0x11, 0x4d, 0xd5, 0xba, 0x8b,
+	0x9a, 0x05, 0x65, 0xbc, 0x88, 0xca, 0x7d, 0x38, 0x4c, 0xe6, 0x81, 0xc4, 0x9f, 0x78, 0x29, 0x6d,
+	0x49, 0x55, 0x06, 0xdd, 0x83, 0xf7, 0x4a, 0x77, 0x0c, 0xeb, 0xe7, 0x12, 0x5a, 0x7c, 0x85, 0xf7,
+	0x85, 0x37, 0x76, 0x5f, 0x5c, 0x3e, 0x39, 0xff, 0x74, 0x53, 0xe0, 0x10, 0xd5, 0x84, 0xa4, 0x72,
+	0x28, 0xd4, 0xd8, 0x5e, 0x66, 0x59, 0x4f, 0x51, 0x29, 0xb8, 0xc2, 0x0e, 0x53, 0xff, 0x44, 0xd3,
+	0x58, 0xdf, 0x97, 0xd1, 0x1b, 0x93, 0x26, 0x1f, 0x84, 0x41, 0x8f, 0xa9, 0x9d, 0x70, 0x1f, 0x55,
+	0xe4, 0x61, 0x94, 0xee, 0xa8, 0xb5, 0xd4, 0xe1, 0x9d, 0xc3, 0x08, 0x5e, 0x1e, 0x2f, 0xbf, 0x79,
+	0xaa, 0x61, 0xac, 0x40, 0x94, 0x29, 0xde, 0xcd, 0x22, 0x4a, 0x66, 0xe9, 0xbd, 0x71, 0x47, 0x5e,
+	0x1e, 0x2f, 0x9f, 0xf9, 0x22, 0xb1, 0x33, 0xcc, 0x71, 0xc7, 0xf1, 0x01, 0xc2, 0x03, 0x2a, 0xe4,
+	0x0e, 0xa7, 0x81, 0x48, 0x38, 0x99, 0x0f, 0x3a, 0x6b, 0x37, 0xcf, 0x79, 0x7d, 0xc6, 0x26, 0x6e,
+	0x4b, 0x3b, 0x84, 0xb7, 0xa7, 0xe0, 0xc8, 0x0c, 0x0a, 0xfc, 0x0e, 0xaa, 0x71, 0xa0, 0x22, 0x0c,
+	0xf4, 0xa2, 0xcc, 0x32, 0x4b, 0x94, 0x94, 0xe8, 0xd3, 0xe2, 0x16, 0xa9, 0x9e, 0xbd, 0x45, 0xac,
+	0xdf, 0x0d, 0xb4, 0xf4, 0x7f, 0xbc, 0x0c, 0xf6, 0xc6, 0x5f, 0x06, 0xf7, 0xaf, 0xdc, 0x6c, 0xa7,
+	0xbc, 0x09, 0xb6, 0xa6, 0x7b, 0x2c, 0xde, 0xee, 0x20, 0x64, 0xc8, 0xe3, 0x2b, 0x60, 0x28, 0x80,
+	0x17, 0xee, 0xc2, 0xcc, 0xe5, 0x27, 0x5a, 0x4e, 0x32, 0x0d, 0xeb, 0xd7, 0xd2, 0x74, 0xaa, 0xd4,
+	0xc3, 0xc2, 0x43, 0xf5, 0xd4, 0x3b, 0x9d, 0xaa, 0xbb, 0x97, 0x0e, 0x27, 0xf7, 0x20, 0x95, 0x90,
+	0x0c, 0x1c, 0x3f, 0x9d, 0x78, 0x4c, 0x6c, 0x9c, 0xbd, 0x63, 0xb6, 0xc3, 0x2e, 0x1d, 0x9c, 0xf7,
+	0x45, 0x71, 0x80, 0x1a, 0x3c, 0x4d, 0x8c, 0xee, 0xe5, 0x8f, 0xae, 0x5c, 0x94, 0x2c, 0xd5, 0xee,
+	0xb5, 0xd1, 0xf1, 0x72, 0x23, 0xfb, 0x25, 0x39, 0x97, 0xf5, 0xdc, 0x40, 0x37, 0x66, 0x6f, 0x0e,
+	0xfc, 0x2d, 0x42, 0xdd, 0x74, 0x06, 0x85, 0x69, 0xa8, 0x4e, 0xb9, 0xba, 0x53, 0xd9, 0x58, 0xe7,
+	0x9b, 0x37, 0x13, 0x09, 0x52, 0x60, 0xb4, 0x7e, 0x31, 0xd0, 0x42, 0x6a, 0xfd, 0x2a, 0x86, 0xe2,
+	0xcb, 0xf1, 0xa1, 0xb8, 0x42, 0x17, 0xcd, 0x1c, 0x06, 0xf7, 0xed, 0xa3, 0x93, 0xf6, 0xdc, 0x8b,
+	0x93, 0xf6, 0xdc, 0x6f, 0x27, 0xed, 0xb9, 0xef, 0x46, 0x6d, 0xe3, 0x68, 0xd4, 0x36, 0x5e, 0x8c,
+	0xda, 0xc6, 0x1f, 0xa3, 0xb6, 0xf1, 0xe3, 0x9f, 0xed, 0xb9, 0xa7, 0xa5, 0xfd, 0xf5, 0xbf, 0x03,
+	0x00, 0x00, 0xff, 0xff, 0x55, 0xfb, 0xb8, 0x80, 0x7f, 0x0e, 0x00, 0x00,
 }

@@ -3,49 +3,49 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/project/api"
+	api "github.com/openshift/origin/pkg/quota/api"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 )
 
-// ProjectLister helps list Projects.
-type ProjectLister interface {
-	// List lists all Projects in the indexer.
-	List(selector labels.Selector) (ret []*api.Project, err error)
-	// Get retrieves the Project from the index for a given name.
-	Get(name string) (*api.Project, error)
-	ProjectListerExpansion
+// ClusterResourceQuotaLister helps list ClusterResourceQuotas.
+type ClusterResourceQuotaLister interface {
+	// List lists all ClusterResourceQuotas in the indexer.
+	List(selector labels.Selector) (ret []*api.ClusterResourceQuota, err error)
+	// Get retrieves the ClusterResourceQuota from the index for a given name.
+	Get(name string) (*api.ClusterResourceQuota, error)
+	ClusterResourceQuotaListerExpansion
 }
 
-// projectLister implements the ProjectLister interface.
-type projectLister struct {
+// clusterResourceQuotaLister implements the ClusterResourceQuotaLister interface.
+type clusterResourceQuotaLister struct {
 	indexer cache.Indexer
 }
 
-// NewProjectLister returns a new ProjectLister.
-func NewProjectLister(indexer cache.Indexer) ProjectLister {
-	return &projectLister{indexer: indexer}
+// NewClusterResourceQuotaLister returns a new ClusterResourceQuotaLister.
+func NewClusterResourceQuotaLister(indexer cache.Indexer) ClusterResourceQuotaLister {
+	return &clusterResourceQuotaLister{indexer: indexer}
 }
 
-// List lists all Projects in the indexer.
-func (s *projectLister) List(selector labels.Selector) (ret []*api.Project, err error) {
+// List lists all ClusterResourceQuotas in the indexer.
+func (s *clusterResourceQuotaLister) List(selector labels.Selector) (ret []*api.ClusterResourceQuota, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Project))
+		ret = append(ret, m.(*api.ClusterResourceQuota))
 	})
 	return ret, err
 }
 
-// Get retrieves the Project from the index for a given name.
-func (s *projectLister) Get(name string) (*api.Project, error) {
-	key := &api.Project{ObjectMeta: pkg_api.ObjectMeta{Name: name}}
+// Get retrieves the ClusterResourceQuota from the index for a given name.
+func (s *clusterResourceQuotaLister) Get(name string) (*api.ClusterResourceQuota, error) {
+	key := &api.ClusterResourceQuota{ObjectMeta: pkg_api.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("project"), name)
+		return nil, errors.NewNotFound(api.Resource("clusterresourcequota"), name)
 	}
-	return obj.(*api.Project), nil
+	return obj.(*api.ClusterResourceQuota), nil
 }

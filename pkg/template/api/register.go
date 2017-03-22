@@ -60,6 +60,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	types := []runtime.Object{
 		&Template{},
 		&TemplateList{},
+		&TemplateInstance{},
+		&TemplateInstanceList{},
+		&BrokerTemplateInstance{},
+		&BrokerTemplateInstanceList{},
 	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,

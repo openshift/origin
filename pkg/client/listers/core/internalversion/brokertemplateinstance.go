@@ -3,49 +3,49 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/project/api"
+	api "github.com/openshift/origin/pkg/template/api"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 )
 
-// ProjectLister helps list Projects.
-type ProjectLister interface {
-	// List lists all Projects in the indexer.
-	List(selector labels.Selector) (ret []*api.Project, err error)
-	// Get retrieves the Project from the index for a given name.
-	Get(name string) (*api.Project, error)
-	ProjectListerExpansion
+// BrokerTemplateInstanceLister helps list BrokerTemplateInstances.
+type BrokerTemplateInstanceLister interface {
+	// List lists all BrokerTemplateInstances in the indexer.
+	List(selector labels.Selector) (ret []*api.BrokerTemplateInstance, err error)
+	// Get retrieves the BrokerTemplateInstance from the index for a given name.
+	Get(name string) (*api.BrokerTemplateInstance, error)
+	BrokerTemplateInstanceListerExpansion
 }
 
-// projectLister implements the ProjectLister interface.
-type projectLister struct {
+// brokerTemplateInstanceLister implements the BrokerTemplateInstanceLister interface.
+type brokerTemplateInstanceLister struct {
 	indexer cache.Indexer
 }
 
-// NewProjectLister returns a new ProjectLister.
-func NewProjectLister(indexer cache.Indexer) ProjectLister {
-	return &projectLister{indexer: indexer}
+// NewBrokerTemplateInstanceLister returns a new BrokerTemplateInstanceLister.
+func NewBrokerTemplateInstanceLister(indexer cache.Indexer) BrokerTemplateInstanceLister {
+	return &brokerTemplateInstanceLister{indexer: indexer}
 }
 
-// List lists all Projects in the indexer.
-func (s *projectLister) List(selector labels.Selector) (ret []*api.Project, err error) {
+// List lists all BrokerTemplateInstances in the indexer.
+func (s *brokerTemplateInstanceLister) List(selector labels.Selector) (ret []*api.BrokerTemplateInstance, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Project))
+		ret = append(ret, m.(*api.BrokerTemplateInstance))
 	})
 	return ret, err
 }
 
-// Get retrieves the Project from the index for a given name.
-func (s *projectLister) Get(name string) (*api.Project, error) {
-	key := &api.Project{ObjectMeta: pkg_api.ObjectMeta{Name: name}}
+// Get retrieves the BrokerTemplateInstance from the index for a given name.
+func (s *brokerTemplateInstanceLister) Get(name string) (*api.BrokerTemplateInstance, error) {
+	key := &api.BrokerTemplateInstance{ObjectMeta: pkg_api.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("project"), name)
+		return nil, errors.NewNotFound(api.Resource("brokertemplateinstance"), name)
 	}
-	return obj.(*api.Project), nil
+	return obj.(*api.BrokerTemplateInstance), nil
 }

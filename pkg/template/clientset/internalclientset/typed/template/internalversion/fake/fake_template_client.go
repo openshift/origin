@@ -10,8 +10,16 @@ type FakeTemplate struct {
 	*core.Fake
 }
 
+func (c *FakeTemplate) BrokerTemplateInstances() internalversion.BrokerTemplateInstanceInterface {
+	return &FakeBrokerTemplateInstances{c}
+}
+
 func (c *FakeTemplate) Templates(namespace string) internalversion.TemplateResourceInterface {
 	return &FakeTemplates{c, namespace}
+}
+
+func (c *FakeTemplate) TemplateInstances(namespace string) internalversion.TemplateInstanceInterface {
+	return &FakeTemplateInstances{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

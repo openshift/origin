@@ -9,9 +9,26 @@ import (
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	return scheme.AddFieldLabelConversionFunc("v1", "Template",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
 		oapi.GetFieldLabelConversionFunc(api.TemplateToSelectableFields(&api.Template{}), nil),
-	)
+	); err != nil {
+		return err
+	}
+
+	if err := scheme.AddFieldLabelConversionFunc("v1", "TemplateInstance",
+		oapi.GetFieldLabelConversionFunc(api.TemplateInstanceToSelectableFields(&api.TemplateInstance{}), nil),
+	); err != nil {
+		return err
+	}
+
+	if err := scheme.AddFieldLabelConversionFunc("v1", "BrokerTemplateInstance",
+		oapi.GetFieldLabelConversionFunc(api.BrokerTemplateInstanceToSelectableFields(&api.BrokerTemplateInstance{}), nil),
+	); err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 var _ runtime.NestedObjectDecoder = &Template{}
