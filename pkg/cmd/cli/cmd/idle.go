@@ -17,7 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -536,7 +537,8 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		return err
 	}
 
-	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, kclient.Extensions())
+	externalKubeExtensionClient := kextensionsclient.New(kclient.Core().RESTClient())
+	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, externalKubeExtensionClient)
 	dcGetter := deployclient.New(oclient.RESTClient)
 
 	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
