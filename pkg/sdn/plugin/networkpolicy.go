@@ -99,7 +99,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	namespaces, err := np.node.kClient.Namespaces().List(metav1.ListOptions{})
+	namespaces, err := np.node.kClient.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func (np *networkPolicyPlugin) UnrefVNID(vnid uint32) {
 // because it's possible another thread will already have cancelled the watch
 // (and changed the npns fields) before this function runs.
 func (np *networkPolicyPlugin) watchPods(npns *npNamespace, pods map[ktypes.UID]kapi.Pod, stopPodWatch chan struct{}) {
-	RunNamespacedPodEventQueue(np.node.kClient.CoreClient.RESTClient(), npns.name, stopPodWatch, func(delta cache.Delta) error {
+	RunNamespacedPodEventQueue(np.node.kClient.Core().RESTClient(), npns.name, stopPodWatch, func(delta cache.Delta) error {
 		pod := delta.Object.(*kapi.Pod)
 		glog.V(5).Infof("Watch %s event for Pod %s/%s", delta.Type, pod.Namespace, pod.Name)
 
@@ -464,7 +464,7 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ex
 }
 
 func (np *networkPolicyPlugin) watchNetworkPolicies() {
-	RunEventQueue(np.node.kClient.ExtensionsClient.RESTClient(), NetworkPolicies, func(delta cache.Delta) error {
+	RunEventQueue(np.node.kClient.Extensions().RESTClient(), NetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*extensions.NetworkPolicy)
 
 		glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", delta.Type, policy.Namespace, policy.Name)
@@ -531,7 +531,7 @@ func namespaceIsIsolated(ns *kapi.Namespace) bool {
 }
 
 func (np *networkPolicyPlugin) watchNamespaces() {
-	RunEventQueue(np.node.kClient.CoreClient.RESTClient(), Namespaces, func(delta cache.Delta) error {
+	RunEventQueue(np.node.kClient.Core().RESTClient(), Namespaces, func(delta cache.Delta) error {
 		ns := delta.Object.(*kapi.Namespace)
 
 		glog.V(5).Infof("Watch %s event for Namespace %q", delta.Type, ns.Name)

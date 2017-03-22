@@ -98,7 +98,7 @@ func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.
 		return nil, nil, err
 	}
 
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read pod %s/%s: %v", req.PodNamespace, req.PodName, err)
 	}
