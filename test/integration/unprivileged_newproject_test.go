@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectclient "github.com/openshift/origin/pkg/project/clientset/internalclientset"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -39,7 +40,7 @@ import (
 	_ "github.com/openshift/origin/pkg/route/clientset/release_v3_6"
 	_ "github.com/openshift/origin/pkg/sdn/clientset/internalclientset"
 	_ "github.com/openshift/origin/pkg/sdn/clientset/release_v3_6"
-	_ "github.com/openshift/origin/pkg/template/clientset/internalclientset"
+	templateclient "github.com/openshift/origin/pkg/template/clientset/internalclientset"
 	_ "github.com/openshift/origin/pkg/template/clientset/release_v3_6"
 	_ "github.com/openshift/origin/pkg/user/clientset/internalclientset"
 	_ "github.com/openshift/origin/pkg/user/clientset/release_v3_6"
@@ -115,8 +116,21 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		t.Fatalf("expected an already exists error, but got %v", err)
 	}
 
+	templateClient := templateclient.NewForConfigOrDie(&valerieClientConfig)
+	_, err = templateClient.Templates("new-project").Create(&templateapi.Template{
+		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b := true
+	if err := templateClient.Templates("new-project").Delete("foo", &kapi.DeleteOptions{OrphanDependents: &b}); err != nil {
+		t.Error(err)
+	}
+	t.Error("fail")
 }
-func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
+func ETestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
 	namespace := "foo"
@@ -212,7 +226,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 
 }
 
-func TestUnprivilegedNewProjectDenied(t *testing.T) {
+func ETestUnprivilegedNewProjectDenied(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()

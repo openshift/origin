@@ -781,6 +781,8 @@ func DeleteResource(r rest.GracefulDeleter, allowsOptions bool, scope RequestSco
 				}
 				defaultGVK := scope.Kind.GroupVersion().WithKind("DeleteOptions")
 				obj, _, err := scope.Serializer.DecoderToVersion(s.Serializer, defaultGVK.GroupVersion()).Decode(body, &defaultGVK, options)
+				fmt.Printf("#### GOT TO %v %v\n", req.Request.URL, body)
+				fmt.Printf("#### DECODED TO %v %#v\n", req.Request.URL, obj)
 				if err != nil {
 					scope.err(err, res.ResponseWriter, req.Request)
 					return
@@ -789,6 +791,7 @@ func DeleteResource(r rest.GracefulDeleter, allowsOptions bool, scope RequestSco
 					scope.err(fmt.Errorf("decoded object cannot be converted to DeleteOptions"), res.ResponseWriter, req.Request)
 					return
 				}
+				fmt.Printf("#### ORPHAN %v %v\n", req.Request.URL, *options.OrphanDependents)
 			} else {
 				if values := req.Request.URL.Query(); len(values) > 0 {
 					if err := scope.ParameterCodec.DecodeParameters(values, scope.Kind.GroupVersion(), options); err != nil {
