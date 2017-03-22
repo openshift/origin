@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"github.com/skynetservices/skydns/msg"
 	"github.com/skynetservices/skydns/server"
@@ -25,7 +25,7 @@ import (
 type ServiceResolver struct {
 	config    *server.Config
 	accessor  ServiceAccessor
-	endpoints kcoreclient.EndpointsGetter
+	endpoints kcorelisters.EndpointsLister
 	base      string
 	fallback  FallbackFunc
 }
@@ -40,7 +40,7 @@ type FallbackFunc func(name string, exact bool) (string, bool)
 
 // NewServiceResolver creates an object that will return DNS record entries for
 // SkyDNS based on service names.
-func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoints kcoreclient.EndpointsGetter, fn FallbackFunc) *ServiceResolver {
+func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoints kcorelisters.EndpointsLister, fn FallbackFunc) *ServiceResolver {
 	domain := config.Domain
 	if !strings.HasSuffix(domain, ".") {
 		domain = domain + "."
