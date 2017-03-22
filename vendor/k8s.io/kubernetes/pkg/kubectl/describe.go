@@ -465,6 +465,7 @@ func describeSecurityContextConstraints(scc *api.SecurityContextConstraints) (st
 		fmt.Fprintf(out, "  Default Add Capabilities:\t%s\n", capsToString(scc.DefaultAddCapabilities))
 		fmt.Fprintf(out, "  Required Drop Capabilities:\t%s\n", capsToString(scc.RequiredDropCapabilities))
 		fmt.Fprintf(out, "  Allowed Capabilities:\t%s\n", capsToString(scc.AllowedCapabilities))
+		fmt.Fprintf(out, "  Allowed Seccomp Profiles:\t%s\n", stringOrNone(strings.Join(scc.SeccompProfiles, ",")))
 		fmt.Fprintf(out, "  Allowed Volume Types:\t%s\n", fsTypeToString(scc.Volumes))
 		fmt.Fprintf(out, "  Allow Host Network:\t%t\n", scc.AllowHostNetwork)
 		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
