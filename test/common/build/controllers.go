@@ -363,8 +363,8 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminClient *client.Client) {
 	newBuild := event.Object.(*buildapi.Build)
 	strategy := newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:"+tag {
-		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
-		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", "registry:8080/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 	}
 	// Wait for an update on the specific build that was added
@@ -442,8 +442,8 @@ WaitLoop2:
 	newBuild = event.Object.(*buildapi.Build)
 	strategy = newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != "registry:8080/openshift/test-image-trigger:ref-2-random" {
-		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name)
-		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name)
+		i, _ := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
+		bc, _ := clusterAdminClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", "registry:8080/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 	}
 
@@ -493,7 +493,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAd
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metainternal.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -558,7 +558,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metainternal.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -605,7 +605,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 	// so it doesn't get a miss when looking up the build while processing the pod delete event.
 	time.Sleep(10 * time.Second)
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -629,7 +629,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metainternal.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -669,9 +669,9 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), kapi.NewDeleteOptions(0))
+	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
-	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name)
+	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
