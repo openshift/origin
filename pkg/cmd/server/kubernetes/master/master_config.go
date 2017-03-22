@@ -442,7 +442,7 @@ func buildKubeApiserverConfig(
 	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig()
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
-	_, loopbackClientConfig, err := configapi.GetKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
