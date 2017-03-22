@@ -671,15 +671,25 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientsetInternal)
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
-	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts().Lister(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.PrivilegedLoopbackOpenShiftClient.Images())
-	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
+	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient().Core())
 	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, c.LimitVerifier)
 	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
@@ -709,8 +719,8 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
-		ServiceAccounts: c.KubeClientsetInternal(),
-		Secrets:         c.KubeClientsetInternal(),
+		ServiceAccounts: c.KubeClientsetInternal().Core(),
+		Secrets:         c.KubeClientsetInternal().Core(),
 	}
 
 	// TODO: with sharding, this needs to be changed
@@ -788,7 +798,10 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 		"clusterResourceQuotas":        clusterResourceQuotaStorage,
 		"clusterResourceQuotas/status": clusterResourceQuotaStatusStorage,
 		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
-			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
+			c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
+			c.Informers.ClusterResourceQuotas().Lister(),
+			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Lister(),
+		),
 	}
 
 	storage[networkapiv1.SchemeGroupVersion] = map[string]rest.Storage{
@@ -849,7 +862,7 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 		"deploymentConfigs/scale":       deployConfigScaleStorage,
 		"deploymentConfigs/status":      deployConfigStatusStorage,
 		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient, c.DeploymentLogClient(), nodeConnectionInfoGetter),
+		"deploymentConfigs/log":         deploylogregistry.NewREST(configClient, kclient.Core(), c.DeploymentLogClient().Core(), nodeConnectionInfoGetter),
 		"deploymentConfigs/instantiate": dcInstantiateStorage,
 	}
 
@@ -885,7 +898,7 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 			"buildConfigs":                   buildConfigStorage,
 			"buildConfigs/webhooks":          buildConfigWebHooks,
 			"buildConfigs/instantiate":       buildconfiginstantiate.NewStorage(buildGenerator),
-			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient(), nodeConnectionInfoGetter),
+			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.BuildLogClient().Core(), nodeConnectionInfoGetter),
 		}
 	}
 
@@ -1047,8 +1060,12 @@ type clientDeploymentInterface struct {
 }
 
 // GetDeployment returns the deployment with the provided context and name
-func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string) (*kapi.ReplicationController, error) {
-	return c.KubeClient.Core().ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name, metav1.GetOptions{})
+func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
+	opts := metav1.GetOptions{}
+	if options != nil {
+		opts = *options
+	}
+	return c.KubeClient.Core().ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name, opts)
 }
 
 func WithPatternsHandler(handler http.Handler, patternHandler http.Handler, patterns ...string) http.Handler {
