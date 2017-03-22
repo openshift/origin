@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ac08fdf66e9721cf11949b096b937add1181881d
+%global commit ece88f04f5df16582343685edbc0cc1b01fbc382
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=5+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.5.0.32 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=ac08fdf
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=ece88f0
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.0
+Version:        3.6.1
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,33 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed Mar 22 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.1-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console ce66b15
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ce66b159b7c61a7ac05854401fda697d0210bc58 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8131638c4fa7d689002628b074dcbf1dfff0f740 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ed420f1f69211fd919b0da9ad6f01ecd9c7cbfff (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  697e8e8a216349296dbf8f2ad469e79345eb829c (dmcphers+openshiftbot@redhat.com)
+- Lock down the legacy Origin v1 API (mfojtik@redhat.com)
+- Set Git configuration for all users in release containers
+  (skuznets@redhat.com)
+- migrate.sh can flake if a namespace is still being deleted
+  (ccoleman@redhat.com)
+- Fix oc get rolebindingrestrictions formatting (miciah.masters@gmail.com)
+- bump(gihtub.com/fatih/structs):v1.0 (ccoleman@redhat.com)
+- Allow platforms to be sub-selected (ccoleman@redhat.com)
+- UPSTREAM: docker/docker: <carry>: WORD/DWORD changed (ccoleman@redhat.com)
+- Make image prefix configurable in e2e tests (mkargaki@redhat.com)
+- Disallow AttributeRestrictions in PolicyRules (mkhan@redhat.com)
+- fix mount propagation on rootfs for containerized node (sjenning@redhat.com)
+- In the edge cases where an eventqueue method panics, don't leave the router
+  running with a thread that will never update. Kill the router instead and let
+  it get restarted by the kubelet. (smitram@gmail.com)
+
 * Wed Mar 22 2017 Troy Dawson <tdawson@redhat.com> 3.6.0-1
 - enable release repo (jhadvig@redhat.com)
 - Dump container logs on `$TEST_ONLY` extended runs (skuznets@redhat.com)
