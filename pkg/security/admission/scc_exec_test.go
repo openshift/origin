@@ -11,8 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
-	oscache "github.com/openshift/origin/pkg/client/cache"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 // scc exec is a pass through to *constraint, so we only need to test that
@@ -93,10 +92,9 @@ func TestExecAdmit(t *testing.T) {
 
 		// create the admission plugin
 		p := NewSCCExecRestrictions()
-		p.constraintAdmission.sccLister = &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
+		p.constraintAdmission.sccLister = cache
 		p.SetInternalKubeClientSet(tc)
 
 		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})

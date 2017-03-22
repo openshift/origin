@@ -10,7 +10,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
@@ -122,23 +121,19 @@ func TestNoErrors(t *testing.T) {
 	}
 
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		serviceAccount.Namespace = namespace.Name
-		saCache.Indexer.Add(serviceAccount)
+		saIndexer.Add(serviceAccount)
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
@@ -184,7 +179,7 @@ func TestErrors(t *testing.T) {
 				},
 			},
 			serviceAccount: admissionttesting.CreateSAForTest(),
-			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D.E": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`,
+			errorMessage:   `PodSecurityPolicyReview "" is invalid: spec.template.spec.serviceAccountName: Invalid value: "A.B.C.D.E": a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')`,
 		},
 		"no SA": {
 			request: &securityapi.PodSecurityPolicyReview{
@@ -204,24 +199,20 @@ func TestErrors(t *testing.T) {
 		},
 	}
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		if testcase.serviceAccount != nil {
 			serviceAccount.Namespace = namespace.Name
-			saCache.Indexer.Add(serviceAccount)
+			saIndexer.Add(serviceAccount)
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 
@@ -364,22 +355,18 @@ func TestSpecificSAs(t *testing.T) {
 	}
 
 	for testName, testcase := range testcases {
-		sccCache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
-			if err := sccCache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
-		saCache := &cache.StoreToServiceAccountLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		saCache := internalversion.NewServiceAccountLister(saIndexer)
 		for i := range testcase.serviceAccounts {
-			saCache.Indexer.Add(testcase.serviceAccounts[i])
+			saIndexer.Add(testcase.serviceAccounts[i])
 		}
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}

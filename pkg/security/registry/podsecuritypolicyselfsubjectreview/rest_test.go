@@ -10,8 +10,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
@@ -78,19 +78,17 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 			},
 		}
 
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
 
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
 		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
 		obj, err := storage.Create(ctx, reviewRequest)
 		if err != nil {
