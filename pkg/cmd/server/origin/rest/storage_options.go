@@ -10,10 +10,11 @@ import (
 
 // StorageOptions returns the appropriate storage configuration for the origin rest APIs, including
 // overiddes.
-func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
+func StorageOptions(options configapi.MasterConfig) (restoptions.Getter, error) {
 	return restoptions.NewConfigGetter(
 		options,
 		&serverstorage.ResourceConfig{},
+		// prefixes:
 		map[schema.GroupResource]string{
 			{Resource: "clusterpolicies"}:                                            "authorization/cluster/policies",
 			{Resource: "clusterpolicies", Group: "authorization.openshift.io"}:       "authorization/cluster/policies",
@@ -45,6 +46,35 @@ func StorageOptions(options configapi.MasterConfig) restoptions.Getter {
 			{Resource: "netnamespaces"}:                                        "registry/sdnnetnamespaces",
 			{Resource: "netnamespaces", Group: "network.openshift.io"}:         "registry/sdnnetnamespaces",
 		},
+		// storage versions:
+		[]schema.GroupVersionResource{
+			{"authorization.openshift.io", "v1", "clusterpolicybindings"},
+			{"authorization.openshift.io", "v1", "clusterpolicies"},
+			{"authorization.openshift.io", "v1", "policybindings"},
+			{"authorization.openshift.io", "v1", "rolebindingrestrictions"},
+			{"authorization.openshift.io", "v1", "policies"},
+			{"build.openshift.io", "v1", "builds"},
+			{"build.openshift.io", "v1", "buildconfigs"},
+			{"apps.openshift.io", "v1", "deploymentconfigs"},
+			{"image.openshift.io", "v1", "imagestreams"},
+			{"image.openshift.io", "v1", "images"},
+			{"oauth.openshift.io", "v1", "oauthclientauthorizations"},
+			{"oauth.openshift.io", "v1", "oauthaccesstokens"},
+			{"oauth.openshift.io", "v1", "oauthauthorizetokens"},
+			{"oauth.openshift.io", "v1", "oauthclients"},
+			{"project.openshift.io", "v1", "projects"},
+			{"quota.openshift.io", "v1", "clusterresourcequotas"},
+			{"route.openshift.io", "v1", "routes"},
+			{"network.openshift.io", "v1", "netnamespaces"},
+			{"network.openshift.io", "v1", "hostsubnets"},
+			{"network.openshift.io", "v1", "clusternetworks"},
+			{"network.openshift.io", "v1", "egressnetworkpolicies"},
+			{"template.openshift.io", "v1", "templates"},
+			{"user.openshift.io", "v1", "groups"},
+			{"user.openshift.io", "v1", "users"},
+			{"user.openshift.io", "v1", "identities"},
+		},
+		// quorum resources:
 		map[schema.GroupResource]struct{}{
 			{Resource: "oauthauthorizetokens"}:                              {},
 			{Resource: "oauthauthorizetokens", Group: "oauth.openshift.io"}: {},

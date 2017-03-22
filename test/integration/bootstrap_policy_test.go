@@ -110,7 +110,10 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("timeout: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterConfig)
+	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	if err := admin.OverwriteBootstrapPolicy(optsGetter, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
