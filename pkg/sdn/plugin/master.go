@@ -1,9 +1,6 @@
 package plugin
 
 import (
-	"fmt"
-	"net"
-
 	log "github.com/golang/glog"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -14,7 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -123,36 +120,18 @@ func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
-	ni := master.networkInfo
-	errList := []error{}
-
-	// Ensure each host subnet is within the cluster network
-	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
+	var subnets []osapi.HostSubnet
+	var pods []kapi.Pod
+	var services []kapi.Service
+	if subnetList, err := master.osClient.HostSubnets().List(metav1.ListOptions{}); err == nil {
+		subnets = subnetList.Items
 	}
-	for _, sub := range subnets.Items {
-		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
-		if subnetIP == nil {
-			errList = append(errList, fmt.Errorf("failed to parse network address: %s", sub.Subnet))
-			continue
-		}
-		if !ni.ClusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
-		}
+	if podList, err := master.kClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+		pods = podList.Items
+	}
+	if serviceList, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+		services = serviceList.Items
 	}
 
-	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, svc := range services.Items {
-		svcIP := net.ParseIP(svc.Spec.ClusterIP)
-		if svcIP != nil && !ni.ServiceNetwork.Contains(svcIP) {
-			errList = append(errList, fmt.Errorf("existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
-		}
-	}
-
-	return kerrors.NewAggregate(errList)
+	return master.networkInfo.checkClusterObjects(subnets, pods, services)
 }
