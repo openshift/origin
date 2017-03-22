@@ -318,7 +318,7 @@ func (c *MasterConfig) RunHealth() error {
 	genericroutes.MetricsWithReset{}.Install(apiContainer)
 
 	// TODO: replace me with a service account for controller manager
-	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientset.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
+	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
 	if err != nil {
 		return err
 	}
@@ -684,15 +684,25 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientsetInternal)
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
-	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts().Lister(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
+		oscc.NewDefaultSCCMatcher(c.Informers.InternalKubernetesInformers().Core().InternalVersion().SecurityContextConstraints().Lister()),
+		c.PrivilegedLoopbackKubernetesClientsetInternal,
+	)
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.PrivilegedLoopbackOpenShiftClient.Images())
-	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient())
+	imageStreamSecretsStorage := imagesecret.NewREST(c.ImageStreamSecretClient().Core())
 	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, c.LimitVerifier)
 	checkStorageErr(err)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
@@ -722,8 +732,8 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
-		ServiceAccounts: c.KubeClientset(),
-		Secrets:         c.KubeClientset(),
+		ServiceAccounts: c.KubeClientsetInternal().Core(),
+		Secrets:         c.KubeClientsetInternal().Core(),
 	}
 
 	// TODO: with sharding, this needs to be changed
@@ -742,7 +752,7 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
 
-	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientsetInternal.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
@@ -807,7 +817,10 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 		"clusterResourceQuotas":        clusterResourceQuotaStorage,
 		"clusterResourceQuotas/status": clusterResourceQuotaStatusStorage,
 		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
-			c.ClusterQuotaMappingController.GetClusterQuotaMapper(), c.Informers.ClusterResourceQuotas().Lister(), c.Informers.KubernetesInformers().Namespaces().Lister()),
+			c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
+			c.Informers.ClusterResourceQuotas().Lister(),
+			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Lister(),
+		),
 	}
 
 	storage[networkapiv1.SchemeGroupVersion] = map[string]rest.Storage{

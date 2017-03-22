@@ -20,7 +20,7 @@ type NamespaceControllerFactory struct {
 	// Client is an OpenShift client.
 	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
-	KubeClient *kclientset.Clientset
+	KubeClient kclientset.Interface
 }
 
 // Create creates a NamespaceController.
