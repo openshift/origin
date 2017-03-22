@@ -186,7 +186,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	restOptsGetter := originrest.StorageOptions(options)
+	restOptsGetter, err := originrest.StorageOptions(options)
+	if err != nil {
+		return nil, err
+	}
 
 	clientCAs, err := configapi.GetClientCertCAPool(options)
 	if err != nil {
@@ -650,7 +653,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 	if err != nil {
 		return nil, err
 	}
-	kubeStorageFactory, err := kubernetes.BuildStorageFactory(options, apiserverOptions)
+	kubeStorageFactory, err := kubernetes.BuildStorageFactory(options, apiserverOptions, nil)
 	if err != nil {
 		return nil, err
 	}
