@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -35,7 +36,6 @@ import (
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	cmdadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -214,8 +214,13 @@ func (c *MasterConfig) RunDNSServer() {
 	}
 
 	go func() {
-		s := dns.NewServer(config, c.DNSServerClient())
-		s.MetricsName = "apiserver"
+		services := dns.NewCachedServiceAccessor(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services())
+		s := dns.NewServer(
+			config,
+			services,
+			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Endpoints().Lister(),
+			"apiserver",
+		)
 		err := s.ListenAndServe()
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
@@ -241,12 +246,15 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", c.KubeClientsetExternal(), "")
+	pluginInitializer := kubeadmission.NewPluginInitializer(
+		c.KubeClientsetInternal(),
+		c.Informers.InternalKubernetesInformers(),
+		nil, // api authorizer, only used by PSP
+		nil, // cloud config
+	)
+	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
 	if err != nil {
 		return err
-	}
-	if wantsInformers, ok := admissionControl.(cmdadmission.WantsInformers); ok {
-		wantsInformers.SetInformers(informers)
 	}
 
 	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
@@ -331,8 +339,9 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 
 // RunDeploymentController starts the deployment controller process.
 func (c *MasterConfig) RunDeploymentController() {
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
+	// TODO these should be external
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
+	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
 	_, kclient := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
@@ -362,8 +371,8 @@ func (c *MasterConfig) RunDeploymentController() {
 // RunDeploymentConfigController starts the deployment config controller process.
 func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
-	podInformer := c.Informers.KubernetesInformers().Core().V1().Pods().Informer()
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
+	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
 	osclient, kclient := c.DeploymentConfigControllerClients()
 
 	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.ExternalVersionCodec)
@@ -373,7 +382,7 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 // RunDeploymentTriggerController starts the deployment trigger controller process.
 func (c *MasterConfig) RunDeploymentTriggerController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.KubernetesInformers().Core().V1().ReplicationControllers().Informer()
+	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer()
 	streamInformer := c.Informers.ImageStreams().Informer()
 	osclient := c.DeploymentTriggerControllerClient()
 
@@ -561,9 +570,9 @@ func (c *MasterConfig) RunIngressIPController(client *kClientsetInternal.Clients
 
 // RunUnidlingController starts the unidling controller
 func (c *MasterConfig) RunUnidlingController() {
-	oc, kc := c.UnidlingControllerClients()
+	oc, kc, extensionsClient := c.UnidlingControllerClients()
 	resyncPeriod := 2 * time.Hour
-	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, kc.Extensions())
+	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, extensionsClient)
 	dcCoreClient := deployclient.New(oc.RESTClient)
 	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, kc.Core(), kc.Core(), dcCoreClient, kc.Core(), resyncPeriod)
 
