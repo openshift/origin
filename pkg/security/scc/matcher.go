@@ -7,15 +7,16 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
 )
@@ -27,11 +28,11 @@ type SCCMatcher interface {
 
 // DefaultSCCMatcher implements default implementation for SCCMatcher interface
 type DefaultSCCMatcher struct {
-	cache *oscache.IndexerToSecurityContextConstraintsLister
+	cache kcorelisters.SecurityContextConstraintsLister
 }
 
 // NewDefaultSCCMatcher builds and initializes a DefaultSCCMatcher
-func NewDefaultSCCMatcher(c *oscache.IndexerToSecurityContextConstraintsLister) SCCMatcher {
+func NewDefaultSCCMatcher(c kcorelisters.SecurityContextConstraintsLister) SCCMatcher {
 	return DefaultSCCMatcher{cache: c}
 }
 
