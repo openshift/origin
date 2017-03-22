@@ -575,6 +575,27 @@ type CustomBuildStrategy struct {
 	BuildAPIVersion string
 }
 
+// ImageOptimizationPolicy describes what optimizations the builder can perform when building images.
+type ImageOptimizationPolicy string
+
+const (
+	// ImageOptimizationNone will generate a canonical Docker image as produced by the
+	// `docker build` command.
+	ImageOptimizationNone ImageOptimizationPolicy = "None"
+
+	// ImageOptimizationSkipLayers is an experimental policy and will avoid creating
+	// unique layers for each dockerfile line, resulting in smaller images and saving time
+	// during creation. Some Dockerfile syntax is not fully supported - content added to
+	// a VOLUME by an earlier layer may have incorrect uid, gid, and filesystem permissions.
+	// If an unsupported setting is detected, the build will fail.
+	ImageOptimizationSkipLayers ImageOptimizationPolicy = "SkipLayers"
+
+	// ImageOptimizationSkipLayersAndWarn is the same as SkipLayers, but will only
+	// warn to the build output instead of failing when unsupported syntax is detected. This
+	// policy is experimental.
+	ImageOptimizationSkipLayersAndWarn ImageOptimizationPolicy = "SkipLayersAndWarn"
+)
+
 // DockerBuildStrategy defines input parameters specific to Docker build.
 type DockerBuildStrategy struct {
 	// From is reference to an DockerImage, ImageStream, ImageStreamTag, or ImageStreamImage from which
@@ -605,6 +626,15 @@ type DockerBuildStrategy struct {
 	// DockerfilePath is the path of the Dockerfile that will be used to build the Docker image,
 	// relative to the root of the context (contextDir).
 	DockerfilePath string
+
+	// ImageOptimizationPolicy describes what optimizations the system can use when building images
+	// to reduce the final size or time spent building the image. The default policy is 'None' which
+	// means the final build image will be equivalent to an image created by the Docker build API.
+	// The experimental policy 'SkipLayerCache' will avoid commiting new layers in between each
+	// image step, and will fail if the Dockerfile cannot provide compatibility with the 'None'
+	// policy. An additional experimental policy 'SkipLayerCacheAndWarn' is the same as
+	// 'SkipLayerCache' but simply warns if compatibility cannot be preserved.
+	ImageOptimizationPolicy *ImageOptimizationPolicy
 }
 
 // SourceBuildStrategy defines input parameters specific to an Source build.

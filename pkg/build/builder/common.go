@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/client/retry"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
@@ -207,6 +206,6 @@ func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sour
 
 func handleBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) {
 	if updateErr := retryBuildStatusUpdate(build, client, sourceRev); updateErr != nil {
-		utilruntime.HandleError(fmt.Errorf("error occurred while updating the build status: %v", updateErr))
+		glog.Infof("error: Unable to update build status: %v", updateErr)
 	}
 }

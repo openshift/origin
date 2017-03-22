@@ -1254,6 +1254,7 @@ func autoConvert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy(in *DockerBui
 	} else {
 		out.BuildArgs = nil
 	}
+	out.ImageOptimizationPolicy = (*api.ImageOptimizationPolicy)(unsafe.Pointer(in.ImageOptimizationPolicy))
 	return nil
 }
 
@@ -1301,6 +1302,7 @@ func autoConvert_api_DockerBuildStrategy_To_v1_DockerBuildStrategy(in *api.Docke
 	}
 	out.ForcePull = in.ForcePull
 	out.DockerfilePath = in.DockerfilePath
+	out.ImageOptimizationPolicy = (*ImageOptimizationPolicy)(unsafe.Pointer(in.ImageOptimizationPolicy))
 	return nil
 }
 

@@ -40,10 +40,11 @@ To download and install the library and the binary, set up a Golang build enviro
 $ go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
 ```
 
-The included command line takes two arguments, a path to a directory containing a dockerfile, and the name to tag the output image with.
+The included command line takes one argument, a path to a directory containing a Dockerfile. The `-t` option
+can be used to specify an image to tag as:
 
 ```
-$ imagebuilder path_to_directory output_image_name
+$ imagebuilder [-t TAG] DIRECTORY
 ```
 
 To mount a file into the image for build that will not be present in the final output image, run:
@@ -54,7 +55,18 @@ $ imagebuilder --mount ~/secrets/private.key:/etc/keys/private.key path/to/my/co
 
 Any processes in the Dockerfile will have access to `/etc/keys/private.key`, but that file will not be part of the committed image.
 
-Note that running `--mount` requires Docker 1.10 or newer, as it uses a Docker volume to hold the mounted files and the volume API was not available in earlier versions.
+Running `--mount` requires Docker 1.10 or newer, as it uses a Docker volume to hold the mounted files and the volume API was not
+available in earlier versions. In addition, there is currently a bug that blocks Docker 1.12 from using `--mount`.
+
+You can also customize which Dockerfile is run, or run multiple Dockerfiles in sequenc (the FROM is ignored on
+later files):
+
+```
+$ imagebuilder -f Dockerfile:Dockerfile.extra .
+```
+
+will build the current directory and combine the first Dockerfile with the second. The FROM in the second image
+is ignored.
 
 
 ## Code Example

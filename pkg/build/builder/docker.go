@@ -22,10 +22,10 @@ import (
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -202,15 +202,50 @@ func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir st
 		if err := os.MkdirAll(dstDir, 0777); err != nil {
 			return err
 		}
+		glog.V(3).Infof("Copying files from the build secret %q to %q", s.Secret.Name, dstDir)
+
+		// Secrets contain nested directories and fairly baroque links. To prevent extra data being
+		// copied, perform the following steps:
+		//
+		// 1. Only top level files and directories within the secret directory are candidates
+		// 2. Any item starting with '..' is ignored
+		// 3. Destination directories are created first with 0777
+		// 4. Use the '-L' option to cp to copy only contents.
+		//
 		srcDir := filepath.Join(strategy.SecretBuildSourceBaseMountPath, s.Secret.Name)
-		glog.V(3).Infof("Copying files from the build secret %q to %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
-		out, err := exec.Command("cp", "-vrf", srcDir+"/.", dstDir+"/").Output()
-		if err != nil {
-			glog.V(4).Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
+		if err := filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if srcDir == path {
+				return nil
+			}
+
+			// skip any contents that begin with ".."
+			if strings.HasPrefix(filepath.Base(path), "..") {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+
+			// ensure all directories are traversable
+			if info.IsDir() {
+				if err := os.MkdirAll(dstDir, 0777); err != nil {
+					return err
+				}
+			}
+			out, err := exec.Command("cp", "-vLRf", path, dstDir+"/").Output()
+			if err != nil {
+				glog.V(4).Infof("Secret %q failed to copy: %q", s.Secret.Name, string(out))
+				return err
+			}
+			// See what is copied when debugging.
+			glog.V(5).Infof("Result of secret copy %s\n%s", s.Secret.Name, string(out))
+			return nil
+		}); err != nil {
 			return err
 		}
-		// See what is copied where when debugging.
-		glog.V(5).Infof(string(out))
 	}
 	return nil
 }
@@ -368,6 +403,17 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		opts.AuthConfigs = *auth
 	}
 
+	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
+		if policy := s.ImageOptimizationPolicy; policy != nil {
+			switch *policy {
+			case api.ImageOptimizationSkipLayers:
+				return buildDirectImage(dir, false, &opts)
+			case api.ImageOptimizationSkipLayersAndWarn:
+				return buildDirectImage(dir, true, &opts)
+			}
+		}
+	}
+
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
@@ -395,7 +441,7 @@ func parseDockerfile(dockerfilePath string) (*parser.Node, error) {
 	}
 
 	// Parse the Dockerfile.
-	node, err := parser.Parse(f)
+	node, err := dockerfile.Parse(f)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +461,7 @@ func replaceLastFrom(node *parser.Node, image string) error {
 			if err != nil {
 				return err
 			}
-			fromTree, err := parser.Parse(strings.NewReader(from))
+			fromTree, err := dockerfile.Parse(strings.NewReader(from))
 			if err != nil {
 				return err
 			}

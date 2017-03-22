@@ -3,6 +3,7 @@ package api
 // Synthetic authorization endpoints
 const (
 	DockerBuildResource          = "builds/docker"
+	OptimizedDockerBuildResource = "builds/optimizeddocker"
 	SourceBuildResource          = "builds/source"
 	CustomBuildResource          = "builds/custom"
 	JenkinsPipelineBuildResource = "builds/jenkinspipeline"

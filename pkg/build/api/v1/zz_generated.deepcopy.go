@@ -783,6 +783,13 @@ func DeepCopy_v1_DockerBuildStrategy(in interface{}, out interface{}, c *convers
 		} else {
 			out.BuildArgs = nil
 		}
+		if in.ImageOptimizationPolicy != nil {
+			in, out := &in.ImageOptimizationPolicy, &out.ImageOptimizationPolicy
+			*out = new(ImageOptimizationPolicy)
+			**out = **in
+		} else {
+			out.ImageOptimizationPolicy = nil
+		}
 		return nil
 	}
 }

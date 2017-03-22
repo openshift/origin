@@ -642,6 +642,11 @@
 			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
 		},
 		{
+			"ImportPath": "github.com/coreos/etcd/pkg/monotime",
+			"Comment": "v3.1.0",
+			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/pkg/netutil",
 			"Comment": "v3.1.0",
 			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
@@ -1923,6 +1928,7 @@
 		},
 		{
 			"ImportPath": "github.com/grpc-ecosystem/go-grpc-prometheus",
+			"Comment": "v1.1",
 			"Rev": "6b7015e65d366bf3f19b2b2a000a831940f0f7e0"
 		},
 		{
@@ -2409,24 +2415,8 @@
 			"Rev": "45c30e75abfd52107b53048004a83165403ad0d1"
 		},
 		{
-			"ImportPath": "github.com/openshift/imagebuilder",
-			"Rev": "74238f0cbdc0d7296d2a826d4d2f6a9f79084f82"
-		},
-		{
-			"ImportPath": "github.com/openshift/imagebuilder/dockerclient",
-			"Rev": "74238f0cbdc0d7296d2a826d4d2f6a9f79084f82"
-		},
-		{
 			"ImportPath": "github.com/openshift/imagebuilder/imageprogress",
-			"Rev": "74238f0cbdc0d7296d2a826d4d2f6a9f79084f82"
-		},
-		{
-			"ImportPath": "github.com/openshift/imagebuilder/signal",
-			"Rev": "74238f0cbdc0d7296d2a826d4d2f6a9f79084f82"
-		},
-		{
-			"ImportPath": "github.com/openshift/imagebuilder/strslice",
-			"Rev": "74238f0cbdc0d7296d2a826d4d2f6a9f79084f82"
+			"Rev": "5a1e420f8a7d6b611dbaad7c2115eea7d894ca4b"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
@@ -7579,16 +7569,6 @@
 			"ImportPath": "k8s.io/kubernetes/third_party/forked/golang/template",
 			"Comment": "v1.5.2-47-g43a9be4",
 			"Rev": "43a9be421799afb8a9c02d3541212a6e623c9053"
-		},
-		{
-			"ImportPath": "github.com/coreos/etcd/pkg/monotime",
-			"Comment": "v3.1.0",
-			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
-		},
-		{
-			"ImportPath": "github.com/grpc-ecosystem/go-grpc-prometheus",
-			"Comment": "v1.1",
-			"Rev": "6b7015e65d366bf3f19b2b2a000a831940f0f7e0"
 		}
 	]
 }

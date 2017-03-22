@@ -1,11 +1,13 @@
 package imagebuilder
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // hasEnvName returns true if the provided environment contains the named ENV var.
@@ -58,4 +60,24 @@ func makeAbsolute(dest, workingDir string) string {
 		}
 	}
 	return dest
+}
+
+// parseOptInterval(flag) is the duration of flag.Value, or 0 if
+// empty. An error is reported if the value is given and is not positive.
+func parseOptInterval(f *flag.Flag) (time.Duration, error) {
+	if f == nil {
+		return 0, fmt.Errorf("No flag defined")
+	}
+	s := f.Value.String()
+	if s == "" {
+		return 0, nil
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return 0, err
+	}
+	if d <= 0 {
+		return 0, fmt.Errorf("Interval %#v must be positive", f.Name)
+	}
+	return d, nil
 }
