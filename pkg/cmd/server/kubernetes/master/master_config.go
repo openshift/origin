@@ -202,6 +202,8 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 	// the order here is important, it defines which version will be used for storage
 	storageFactory.AddCohabitatingResources(batch.Resource("jobs"), extensions.Resource("jobs"))
 	storageFactory.AddCohabitatingResources(extensions.Resource("horizontalpodautoscalers"), autoscaling.Resource("horizontalpodautoscalers"))
+	// keep Deployments in extensions for backwards compatibility, we'll have to migrate at some point, eventually
+	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
 
 	return storageFactory, nil
 }
