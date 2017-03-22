@@ -61,7 +61,10 @@ func TestOAuthStorage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterOptions)
+	optsGetter, err := originrest.StorageOptions(*masterOptions)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	clientStorage, err := clientetcd.NewREST(optsGetter)
 	if err != nil {

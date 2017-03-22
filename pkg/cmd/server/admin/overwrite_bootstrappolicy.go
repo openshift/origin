@@ -106,7 +106,10 @@ func (o OverwriteBootstrapPolicyOptions) OverwriteBootstrapPolicy() error {
 	}
 
 	// this brings in etcd server client libraries
-	optsGetter := originrest.StorageOptions(*masterConfig)
+	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	if err != nil {
+		return err
+	}
 
 	return OverwriteBootstrapPolicy(optsGetter, o.File, o.CreateBootstrapPolicyCommand, o.Force, o.Out)
 }
