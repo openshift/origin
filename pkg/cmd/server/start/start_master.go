@@ -18,14 +18,15 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -364,6 +365,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	return kubernetes.BuildKubernetesMasterConfig(
 		openshiftConfig.Options,
 		openshiftConfig.RequestContextMapper,
+		openshiftConfig.KubeClientsetExternal(),
 		openshiftConfig.KubeClientsetInternal(),
 		openshiftConfig.Informers,
 		openshiftConfig.KubeAdmissionControl,
@@ -706,7 +708,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		}
 
 		kc.RunEndpointController(endpointControllerClient)
-		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool, oc.Informers.KubernetesInformers().Core().V1().NamespaceInformer())
+		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool, oc.Informers.KubernetesInformers().Core().V1().Namespaces())
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)
