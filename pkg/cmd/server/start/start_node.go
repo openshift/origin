@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -372,7 +373,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.RunDNS()
 	}
 
-	config.RunServiceStores(components.Enabled(ComponentProxy), components.Enabled(ComponentDNS))
+	config.InternalKubeInformers.Start(wait.NeverStop)
 
 	return nil
 }
