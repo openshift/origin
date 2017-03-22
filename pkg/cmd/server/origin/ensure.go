@@ -219,7 +219,7 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
 	ctx := apirequest.WithNamespace(apirequest.NewContext(), "")
 
-	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{}); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
 		if err := admin.OverwriteBootstrapPolicy(c.RESTOptionsGetter, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {

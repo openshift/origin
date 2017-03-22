@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/user"
+	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
-	"k8s.io/kubernetes/pkg/genericapiserver"
+	apiserver "k8s.io/apiserver/pkg/server"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -79,7 +79,7 @@ type groupCache struct {
 func (*groupCache) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	return &userapi.GroupList{}, nil
 }
-func (*groupCache) GetGroup(ctx apirequest.Context, name string) (*userapi.Group, error) {
+func (*groupCache) GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.Group, error) {
 	return nil, nil
 }
 func (*groupCache) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
@@ -250,7 +250,7 @@ func TestImpersonationFilter(t *testing.T) {
 	}
 
 	config := MasterConfig{}
-	config.RequestContextMapper = kapi.NewRequestContextMapper()
+	config.RequestContextMapper = apirequest.NewRequestContextMapper()
 	config.Authorizer = impersonateAuthorizer{}
 	config.GroupCache = usercache.NewGroupCache(&groupCache{})
 	var ctx apirequest.Context
@@ -290,7 +290,7 @@ func TestImpersonationFilter(t *testing.T) {
 			delegate.ServeHTTP(w, req)
 		})
 	}(serverhandlers.ImpersonationFilter(doNothingHandler, config.Authorizer, config.GroupCache, config.RequestContextMapper))
-	handler = kapi.WithRequestContext(handler, config.RequestContextMapper)
+	handler = apirequest.WithRequestContext(handler, config.RequestContextMapper)
 
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -435,7 +435,7 @@ func TestVersionSkewFilterDenyOld(t *testing.T) {
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v1\.1\.10 \(.+/.+\) kubernetes/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 		{UserAgentMatchRule: configapi.UserAgentMatchRule{Regex: `\w+/v(?:(?:1\.1\.1)|(?:1\.0\.1)) \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs}, RejectionMessage: "rejected for reasons!"},
 	}
-	requestContextMapper := kapi.NewRequestContextMapper()
+	requestContextMapper := apirequest.NewRequestContextMapper()
 	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
 	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
@@ -484,7 +484,7 @@ func TestVersionSkewFilterDenySkewed(t *testing.T) {
 		{Regex: `\w+/` + openshiftServerVersion + ` \(.+/.+\) openshift/\w{7}`, HTTPVerbs: verbs},
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
-	requestContextMapper := kapi.NewRequestContextMapper()
+	requestContextMapper := apirequest.NewRequestContextMapper()
 	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
 	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
@@ -537,7 +537,7 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 	}
 	config.Options.PolicyConfig.UserAgentMatchingConfig.DefaultRejectionMessage = "rejected for reasons!"
 
-	requestContextMapper := kapi.NewRequestContextMapper()
+	requestContextMapper := apirequest.NewRequestContextMapper()
 	handler := config.versionSkewFilter(doNothingHandler, requestContextMapper)
 	server := httptest.NewServer(testHandlerChain(handler, requestContextMapper))
 	defer server.Close()
@@ -576,10 +576,10 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 }
 
 func testHandlerChain(handler http.Handler, contextMapper apirequest.RequestContextMapper) http.Handler {
-	kgenericconfig := genericapiserver.NewConfig()
+	kgenericconfig := apiserver.NewConfig()
 	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
 
-	handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)
-	handler = kapi.WithRequestContext(handler, contextMapper)
+	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig), contextMapper)
+	handler = apirequest.WithRequestContext(handler, contextMapper)
 	return handler
 }

@@ -160,7 +160,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
 		glog.Fatal(err)
 	}
-	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID)
+	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID, &metav1.GetOptions{})
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -249,7 +249,7 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 	}
 
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing, err := clientRegistry.GetClient(ctx, client.Name)
+		existing, err := clientRegistry.GetClient(ctx, client.Name, &metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

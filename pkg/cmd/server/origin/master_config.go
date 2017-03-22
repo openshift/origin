@@ -23,12 +23,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
@@ -36,7 +39,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
-	"k8s.io/kubernetes/plugin/pkg/auth/authenticator/request/headerrequest"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
@@ -106,7 +108,7 @@ type MasterConfig struct {
 	Authenticator authenticator.Request
 	Authorizer    authorizer.Authorizer
 
-	// TODO(sttts): replace AuthorizationAttributeBuilder with kapiserverfilters.NewRequestAttributeGetter
+	// TODO(sttts): replace AuthorizationAttributeBuilder with apiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
 	GroupCache                    *usercache.GroupCache
@@ -190,7 +192,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	privilegedLoopbackKubeClientset, _, err := configapi.GetKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackKubeClientsetInternal, _, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	privilegedLoopbackKubeClientsetExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -204,15 +210,16 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 	const defaultInformerResyncPeriod = 10 * time.Minute
-	kubeInformerFactory := informers.NewSharedInformerFactory(privilegedLoopbackKubeClientset, defaultInformerResyncPeriod)
-	informerFactory := shared.NewInformerFactory(kubeInformerFactory, privilegedLoopbackKubeClientset, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
+	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetInternal, defaultInformerResyncPeriod)
+	externalkubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
+	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = options.ImageConfig.Format
 	imageTemplate.Latest = options.ImageConfig.Latest
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
-	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientset.Services(metav1.NamespaceDefault).Get)
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientsetInternal.Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
@@ -225,12 +232,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
-	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClientset.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
-	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(kubeInformerFactory.Namespaces(), informerFactory.ClusterResourceQuotas())
+	projectCache := projectcache.NewProjectCache(privilegedLoopbackKubeClientsetInternal.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewAllResourceQuotaRegistry(informerFactory, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientset)
+	quotaRegistry := quota.NewAllResourceQuotaRegistry(informerFactory, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -254,8 +261,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
 	// Authorizer as the 2nd arg. It's currently only used by PSP.
-	kubePluginInitializer := kadmission.NewPluginInitializer(kubeInformerFactory, nil, nil, nil)
-	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientset, pluginInitializer, kubePluginInitializer)
+	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, internalkubeInformerFactory, nil, nil)
+	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientsetInternal, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +290,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		GroupCache:                    groupCache,
-		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClientset, informerFactory),
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(authorizer, privilegedLoopbackKubeClientsetInternal, informerFactory),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -310,14 +317,14 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 		PrivilegedLoopbackClientConfig:        *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:     privilegedLoopbackOpenShiftClient,
-		PrivilegedLoopbackKubernetesClientset: privilegedLoopbackKubeClientset,
+		PrivilegedLoopbackKubernetesClientset: privilegedLoopbackKubeClientsetInternal,
 		Informers: informerFactory,
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.Informers.KubernetesInformers().LimitRanges().Informer()
-	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
-		list, err := config.Informers.KubernetesInformers().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
+	informer := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Informer()
+	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapiv1.LimitRange, error) {
+		list, err := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
 			return nil, err
 		}
@@ -504,7 +511,13 @@ var newAdmissionChainFunc = newAdmissionChain
 
 func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet *kclientset.Clientset, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface, error) {
 	plugins := []admission.Interface{}
+	allPluginInitializers := admission.PluginInitializers([]admission.PluginInitializer{kubePluginInitializer, pluginInitializer})
 	for _, pluginName := range pluginNames {
+		var (
+			plugin             admission.Interface
+			skipInitialization bool
+		)
+
 		switch pluginName {
 		case lifecycle.PluginName:
 			// We need to include our infrastructure and shared resource namespaces in the immortal namespaces list
@@ -520,7 +533,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				return nil, err
 			}
 			lc.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kubeClientSet)
-			plugins = append(plugins, lc)
+			plugin = lc
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
@@ -533,7 +546,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if _, ipNet, err := net.ParseCIDR(options.NetworkConfig.IngressIPNetworkCIDR); err == nil && !ipNet.IP.IsUnspecified() {
 				allowIngressIP = true
 			}
-			plugins = append(plugins, serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP))
+			plugin = serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP)
 
 		case serviceadmit.RestrictedEndpointsPluginName:
 			// we need to set some customer parameters, so create by hand
@@ -542,31 +555,47 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				// should have been caught with validation
 				return nil, err
 			}
-			plugins = append(plugins, serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks))
+			plugin = serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks)
 
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
-			saAdmitter := saadmit.NewServiceAccount(kubeClientSet)
+			saAdmitter := saadmit.NewServiceAccount()
+			saAdmitter.SetInternalKubeClientSet(kubeClientSet)
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
-			saAdmitter.Run()
-			plugins = append(plugins, saAdmitter)
+			// TODO(rebase): the following is not needed anymore?
+			// saAdmitter.Run()
+			plugin = saAdmitter
 
 		default:
 			configFile, err := pluginconfig.GetPluginConfigFile(pluginConfig, pluginName, admissionConfigFilename)
 			if err != nil {
 				return nil, err
 			}
-			plugin := admission.InitPlugin(pluginName, kubeClientSet, configFile)
-			if plugin != nil {
-				plugins = append(plugins, plugin)
+			configReader, err := admission.ReadAdmissionConfiguration([]string{pluginName}, configFile)
+			if err != nil {
+				return nil, err
 			}
+			pluginConfig, err := configReader.ConfigFor(pluginName)
+			if err != nil {
+				return nil, err
+			}
+			plugin, err = admission.InitPlugin(pluginName, pluginConfig, allPluginInitializers)
+			if err != nil {
+				// should have been caught with validation
+				return nil, err
+			}
+
+			// skip initialization below because admission.InitPlugin does all the work
+			skipInitialization = true
+		}
+
+		plugins = append(plugins, plugin)
+
+		if !skipInitialization {
+			allPluginInitializers.Initialize(plugin)
 		}
 	}
 
-	for _, plugin := range plugins {
-		kubePluginInitializer.Initialize(plugin)
-	}
-	pluginInitializer.Initialize(plugins)
 	// ensure that plugins have been properly initialized
 	if err := oadmission.Validate(plugins); err != nil {
 		return nil, err
@@ -600,7 +629,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 	if options.KubernetesMasterConfig == nil {
 		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
 		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
-		kubeClientset, _, err := configapi.GetKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
+		kubeClientset, _, err := configapi.GetExternalKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
 		if err != nil {
 			return nil, err
 		}
