@@ -17,7 +17,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
-	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kexternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	// install the APIs we need for the codecs to run correctly in order to build patches
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -28,8 +29,8 @@ type fakeResults struct {
 	resEndpoints *kapi.Endpoints
 }
 
-func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*kfake.Clientset, *deployfake.Clientset, *fakeResults) {
-	fakeClient := &kfake.Clientset{}
+func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*kinternalfake.Clientset, *deployfake.Clientset, *fakeResults) {
+	fakeClient := &kinternalfake.Clientset{}
 	fakeDeployClient := &deployfake.Clientset{}
 
 	nowTimeStr := nowTime.Format(time.RFC3339)
@@ -185,8 +186,9 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...kextapi.Scale) (*
 func TestControllerHandlesStaleEvents(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
 		dcNamespacer:        fakeDeployClient.Core(),
@@ -240,9 +242,10 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 
 	idledTime := nowTime.Add(-10 * time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, idledTime, baseScales...)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
 		dcNamespacer:        fakeDeployClient.Core(),
@@ -352,9 +355,10 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	}
 
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
+	fakeExternalClient := kexternalfake.NewSimpleClientset()
 
 	controller := &UnidlingController{
-		scaleNamespacer:     fakeClient.Extensions(),
+		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
 		dcNamespacer:        fakeDeployClient.Core(),
@@ -417,8 +421,8 @@ type failureTestInfo struct {
 	annotationsExpected map[string]string
 }
 
-func prepareFakeClientForFailureTest(test failureTestInfo) (*kfake.Clientset, *deployfake.Clientset) {
-	fakeClient := &kfake.Clientset{}
+func prepareFakeClientForFailureTest(test failureTestInfo) (*kinternalfake.Clientset, *deployfake.Clientset) {
+	fakeClient := &kinternalfake.Clientset{}
 	fakeDeployClient := &deployfake.Clientset{}
 
 	fakeClient.PrependReactor("get", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -693,8 +697,9 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 
 	for _, test := range tests {
 		fakeClient, fakeDeployClient := prepareFakeClientForFailureTest(test)
+		fakeExternalClient := kexternalfake.NewSimpleClientset()
 		controller := &UnidlingController{
-			scaleNamespacer:     fakeClient.Extensions(),
+			scaleNamespacer:     fakeExternalClient.Extensions(),
 			endpointsNamespacer: fakeClient.Core(),
 			rcNamespacer:        fakeClient.Core(),
 			dcNamespacer:        fakeDeployClient.Core(),
