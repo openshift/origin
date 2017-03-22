@@ -49,7 +49,7 @@ type osdnPolicy interface {
 
 type OsdnNode struct {
 	policy             osdnPolicy
-	kClient            *kclientset.Clientset
+	kClient            kclientset.Interface
 	osClient           *osclient.Client
 	ovs                *ovs.Interface
 	networkInfo        *NetworkInfo
@@ -70,7 +70,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var minOvsVersion string
 	switch strings.ToLower(pluginName) {
@@ -338,7 +338,7 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	services := make(map[string]*kapi.Service)
-	RunEventQueue(node.kClient.CoreClient.RESTClient(), Services, func(delta cache.Delta) error {
+	RunEventQueue(node.kClient.Core().RESTClient(), Services, func(delta cache.Delta) error {
 		serv := delta.Object.(*kapi.Service)
 
 		// Ignore headless services
