@@ -3,7 +3,6 @@ package importer
 import (
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -83,13 +82,7 @@ func NewCmdDockerCompose(fullName string, f *clientcmd.Factory, in io.Reader, ou
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
-			if err := options.Run(); err != nil {
-				// TODO: move me to kcmdutil
-				if err == cmdutil.ErrExit {
-					os.Exit(1)
-				}
-				kcmdutil.CheckErr(err)
-			}
+			kcmdutil.CheckErr(options.Run())
 		},
 	}
 	usage := "Filename, directory, or URL to docker-compose.yml file to use"

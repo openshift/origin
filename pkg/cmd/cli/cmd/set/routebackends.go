@@ -3,7 +3,6 @@ package set
 import (
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -107,12 +106,7 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
 			kcmdutil.CheckErr(options.Validate())
-			err := options.Run()
-			// TODO: move me to kcmdutil
-			if err == cmdutil.ErrExit {
-				os.Exit(1)
-			}
-			kcmdutil.CheckErr(err)
+			kcmdutil.CheckErr(options.Run())
 		},
 	}
 
