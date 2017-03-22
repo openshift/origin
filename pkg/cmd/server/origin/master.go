@@ -504,13 +504,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 		}
 	}
 
-	// Install Origin legacy/core APIs
-	legacyStorage := map[string]rest.Storage{}
-	for _, gvStorage := range storage {
-		for resource, s := range gvStorage {
-			legacyStorage[resource] = s
-		}
-	}
+	legacyStorage := LegacyStorage(storage)
 	legacyAPIVersions := []string{}
 	currentAPIVersions := []string{}
 	if configapi.HasOpenShiftAPILevel(c.Options, v1.SchemeGroupVersion.Version) {
