@@ -36,14 +36,14 @@ type REST struct {
 	templateName      string
 
 	openshiftClient *client.Client
-	kubeClient      *kclientset.Clientset
+	kubeClient      kclientset.Interface
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
 	policyBindings client.PolicyBindingsListerNamespacer
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient *kclientset.Clientset, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient kclientset.Interface, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -157,7 +157,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 				if latest.OriginKind(mapping.GroupVersionKind) {
 					return r.openshiftClient, nil
 				}
-				return r.kubeClient.CoreClient.RESTClient(), nil
+				return r.kubeClient.Core().RESTClient(), nil
 			}),
 		},
 		After: stopOnErr,

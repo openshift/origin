@@ -138,7 +138,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 		var err error
 
 		if knode != node {
-			knode, err = master.kClient.Nodes().Get(node.ObjectMeta.Name, metav1.GetOptions{})
+			knode, err = master.kClient.Core().Nodes().Get(node.ObjectMeta.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -151,7 +151,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 			condition.Reason = "RouteCreated"
 			condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
 			condition.LastTransitionTime = metav1.Now()
-			knode, err = master.kClient.Nodes().UpdateStatus(knode)
+			knode, err = master.kClient.Core().Nodes().UpdateStatus(knode)
 			if err == nil {
 				cleared = true
 			}
@@ -167,7 +167,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 
 func (master *OsdnMaster) watchNodes() {
 	nodeAddressMap := map[types.UID]string{}
-	RunEventQueue(master.kClient.CoreClient.RESTClient(), Nodes, func(delta cache.Delta) error {
+	RunEventQueue(master.kClient.Core().RESTClient(), Nodes, func(delta cache.Delta) error {
 		node := delta.Object.(*kapi.Node)
 		name := node.ObjectMeta.Name
 		uid := node.ObjectMeta.UID
