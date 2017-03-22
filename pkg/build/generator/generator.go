@@ -56,31 +56,31 @@ type BuildGenerator struct {
 
 // GeneratorClient is the API client used by the generator
 type GeneratorClient interface {
-	GetBuildConfig(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error)
+	GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error)
 	UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuild(ctx apirequest.Context, name string) (*buildapi.Build, error)
+	GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error)
 	CreateBuild(ctx apirequest.Context, build *buildapi.Build) error
 	UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error
-	GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImage(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTag(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error)
+	GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
+	GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error)
+	GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error)
 }
 
 // Client is an implementation of the GeneratorClient interface
 type Client struct {
-	GetBuildConfigFunc      func(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error)
+	GetBuildConfigFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error)
 	UpdateBuildConfigFunc   func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc            func(ctx apirequest.Context, name string) (*buildapi.Build, error)
+	GetBuildFunc            func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error)
 	CreateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
 	UpdateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
-	GetImageStreamFunc      func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTagFunc   func(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error)
+	GetImageStreamFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
+	GetImageStreamImageFunc func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error)
+	GetImageStreamTagFunc   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error)
 }
 
 // GetBuildConfig retrieves a named build config
-func (c Client) GetBuildConfig(ctx apirequest.Context, name string) (*buildapi.BuildConfig, error) {
-	return c.GetBuildConfigFunc(ctx, name)
+func (c Client) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	return c.GetBuildConfigFunc(ctx, name, options)
 }
 
 // UpdateBuildConfig updates a named build config
@@ -89,8 +89,8 @@ func (c Client) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.
 }
 
 // GetBuild retrieves a build
-func (c Client) GetBuild(ctx apirequest.Context, name string) (*buildapi.Build, error) {
-	return c.GetBuildFunc(ctx, name)
+func (c Client) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+	return c.GetBuildFunc(ctx, name, options)
 }
 
 // CreateBuild creates a new build
@@ -104,18 +104,18 @@ func (c Client) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error
 }
 
 // GetImageStream retrieves a named image stream
-func (c Client) GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
-	return c.GetImageStreamFunc(ctx, name)
+func (c Client) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+	return c.GetImageStreamFunc(ctx, name, options)
 }
 
 // GetImageStreamImage retrieves an image stream image
-func (c Client) GetImageStreamImage(ctx apirequest.Context, name string) (*imageapi.ImageStreamImage, error) {
-	return c.GetImageStreamImageFunc(ctx, name)
+func (c Client) GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
+	return c.GetImageStreamImageFunc(ctx, name, options)
 }
 
 // GetImageStreamTag retrieves and image stream tag
-func (c Client) GetImageStreamTag(ctx apirequest.Context, name string) (*imageapi.ImageStreamTag, error) {
-	return c.GetImageStreamTagFunc(ctx, name)
+func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+	return c.GetImageStreamTagFunc(ctx, name, options)
 }
 
 type streamRef struct {
@@ -249,7 +249,7 @@ func updateBuildArgs(oldArgs *[]kapi.EnvVar, newArgs []kapi.EnvVar) []kapi.EnvVa
 // Instantiate returns a new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
-	bc, err := g.Client.GetBuildConfig(ctx, request.Name)
+	bc, err := g.Client.GetBuildConfig(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -375,14 +375,14 @@ func (g *BuildGenerator) updateImageTriggers(ctx apirequest.Context, bc *buildap
 // Clone returns clone of a Build
 func (g *BuildGenerator) Clone(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
-	build, err := g.Client.GetBuild(ctx, request.Name)
+	build, err := g.Client.GetBuild(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var buildConfig *buildapi.BuildConfig
 	if build.Status.Config != nil {
-		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Status.Config.Name)
+		buildConfig, err = g.Client.GetBuildConfig(ctx, build.Status.Config.Name, &metav1.GetOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
@@ -433,7 +433,7 @@ func (g *BuildGenerator) createBuild(ctx apirequest.Context, build *buildapi.Bui
 	if err != nil {
 		return nil, err
 	}
-	return g.Client.GetBuild(ctx, build.Name)
+	return g.Client.GetBuild(ctx, build.Name, &metav1.GetOptions{})
 }
 
 // generateBuildFromConfig generates a build definition based on the current imageid
@@ -645,7 +645,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx apirequest.Context, fro
 			glog.V(2).Info(err)
 			return "", err
 		}
-		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
+		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -667,7 +667,7 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx apirequest.Context, fro
 			glog.V(2).Info(err)
 			return "", err
 		}
-		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
+		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -699,7 +699,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Conte
 	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
-		imageStreamImage, err := g.Client.GetImageStreamImage(apirequest.WithNamespace(ctx, namespace), from.Name)
+		imageStreamImage, err := g.Client.GetImageStreamImage(apirequest.WithNamespace(ctx, namespace), from.Name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
 			glog.V(2).Info(err)
@@ -710,7 +710,7 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Conte
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
 		name := strings.Split(from.Name, ":")[0]
-		is, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name)
+		is, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError("ImageStream", namespace, from.Name, err)
 			glog.V(2).Info(err)

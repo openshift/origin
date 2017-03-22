@@ -262,7 +262,7 @@ func (h *binaryInstantiateHandler) cancelBuild(build *buildapi.Build) {
 		err := h.r.Generator.Client.UpdateBuild(h.ctx, build)
 		switch {
 		case err != nil && errors.IsConflict(err):
-			build, err = h.r.Generator.Client.GetBuild(h.ctx, build.Name)
+			build, err = h.r.Generator.Client.GetBuild(h.ctx, build.Name, &metav1.GetOptions{})
 			return false, err
 		default:
 			return true, err

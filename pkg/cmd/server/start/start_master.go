@@ -38,7 +38,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -364,7 +364,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	return kubernetes.BuildKubernetesMasterConfig(
 		openshiftConfig.Options,
 		openshiftConfig.RequestContextMapper,
-		openshiftConfig.KubeClientset(),
+		openshiftConfig.KubeClientsetInternal(),
 		openshiftConfig.Informers,
 		openshiftConfig.KubeAdmissionControl,
 		openshiftConfig.Authenticator,
@@ -706,7 +706,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		}
 
 		kc.RunEndpointController(endpointControllerClient)
-		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool)
+		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool, oc.Informers.KubernetesInformers().Core().V1().NamespaceInformer())
 		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 		kc.RunGCController(gcClient)

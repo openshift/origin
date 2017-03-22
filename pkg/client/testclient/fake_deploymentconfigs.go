@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -102,22 +102,22 @@ func (c *FakeDeploymentConfigs) RollbackDeprecated(inObj *deployapi.DeploymentCo
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) GetScale(name string) (*extensions.Scale, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, name), &extensions.Scale{})
+func (c *FakeDeploymentConfigs) GetScale(name string) (*extensionsv1beta1.Scale, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, name), &extensionsv1beta1.Scale{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*extensions.Scale), err
+	return obj.(*extensionsv1beta1.Scale), err
 }
 
-func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensions.Scale) (*extensions.Scale, error) {
+func (c *FakeDeploymentConfigs) UpdateScale(inObj *extensionsv1beta1.Scale) (*extensionsv1beta1.Scale, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/scale"), c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*extensions.Scale), err
+	return obj.(*extensionsv1beta1.Scale), err
 }
 
 func (c *FakeDeploymentConfigs) UpdateStatus(inObj *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {

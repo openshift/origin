@@ -24,21 +24,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	apiendpoints "k8s.io/apiserver/pkg/endpoints"
+	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	apiserver "k8s.io/apiserver/pkg/server"
+	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/server/healthz"
+	genericmux "k8s.io/apiserver/pkg/server/mux"
+	genericroutes "k8s.io/apiserver/pkg/server/routes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/apiserver"
-	kapiserverfilters "k8s.io/kubernetes/pkg/apiserver/filters"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	kgenericfilters "k8s.io/kubernetes/pkg/genericapiserver/filters"
-	genericmux "k8s.io/kubernetes/pkg/genericapiserver/mux"
-	genericroutes "k8s.io/kubernetes/pkg/genericapiserver/routes"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/master"
 
@@ -143,7 +143,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
@@ -239,7 +239,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 
 	// v1 has to be printed separately since it's served from different endpoint than groups
 	if configapi.HasKubernetesAPIVersion(*c.Options.KubernetesMasterConfig, kubeapiv1.SchemeGroupVersion) {
-		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", genericapiserver.DefaultLegacyAPIPrefix))
+		messages = append(messages, fmt.Sprintf("Started Kubernetes API at %%s%s", apiserver.DefaultLegacyAPIPrefix))
 	}
 	versions := kapi.Registry.EnabledVersions()
 	sort.Sort(sortedGroupVersions(versions))
@@ -249,7 +249,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 			continue
 		}
 		if configapi.HasKubernetesAPIVersion(*c.Options.KubernetesMasterConfig, ver) {
-			messages = append(messages, fmt.Sprintf("Started Kubernetes API %s at %%s%s", ver.String(), genericapiserver.APIGroupPrefix))
+			messages = append(messages, fmt.Sprintf("Started Kubernetes API %s at %%s%s", ver.String(), apiserver.APIGroupPrefix))
 		}
 	}
 
@@ -259,7 +259,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 	return messages
 }
 
-func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *genericapiserver.Config) (secure, insecure http.Handler), []string, error) {
+func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure, insecure http.Handler), []string, error) {
 	var messages []string
 	if c.Options.OAuthConfig != nil {
 		messages = append(messages, fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix))
@@ -274,9 +274,8 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 	}
 
 	// TODO(sttts): resync with upstream handler chain and re-use upstream filters as much as possible
-	return func(apiHandler http.Handler, kc *genericapiserver.Config) (secure, insecure http.Handler) {
+	return func(apiHandler http.Handler, kc *apiserver.Config) (secure, insecure http.Handler) {
 		contextMapper := c.getRequestContextMapper()
-		attributeGetter := kapiserverfilters.NewRequestAttributeGetter(contextMapper)
 
 		handler := c.versionSkewFilter(apiHandler, contextMapper)
 		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, contextMapper)
@@ -296,7 +295,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 				// backwards compatible writer to regular log
 				writer = cmdutil.NewGLogWriterV(0)
 			}
-			handler = kapiserverfilters.WithAudit(handler, attributeGetter, writer)
+			handler = apifilters.WithAudit(handler, contextMapper, writer)
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 		handler = namespacingFilter(handler, contextMapper)
@@ -325,15 +324,15 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 			handler = WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 		}
 
-		handler = kgenericfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
-		handler = kgenericfilters.WithTimeoutForNonLongRunningRequests(handler, kc.LongRunningFunc)
+		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
+		handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, contextMapper, kc.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 		// NOTE: read vs. write is implemented in Kube 1.6+
-		handler = kgenericfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.LongRunningFunc)
-		handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(kc), contextMapper)
-		handler = kapi.WithRequestContext(handler, contextMapper)
+		handler = apiserverfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.MaxMutatingRequestsInFlight, contextMapper, kc.LongRunningFunc)
+		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kc), contextMapper)
+		handler = apirequest.WithRequestContext(handler, contextMapper)
 
 		return handler, nil
 	}, messages, nil
@@ -348,7 +347,7 @@ func (c *MasterConfig) RunHealth() error {
 	genericroutes.MetricsWithReset{}.Install(apiContainer)
 
 	// TODO: replace me with a service account for controller manager
-	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientset.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
+	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
 	if err != nil {
 		return err
 	}
@@ -365,9 +364,9 @@ func (c *MasterConfig) RunHealth() error {
 	contextMapper := c.getRequestContextMapper()
 	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
 	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
-	handler = kgenericfilters.WithPanicRecovery(handler, contextMapper)
-	handler = kapiserverfilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(&genericapiserver.Config{}), contextMapper)
-	handler = kapi.WithRequestContext(handler, contextMapper)
+	handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
+	handler = apirequest.WithRequestContext(handler, contextMapper)
 
 	c.serve(handler, []string{"Started health checks at %s"})
 	return nil
@@ -429,8 +428,8 @@ func (c *MasterConfig) InitializeObjects() {
 	c.ensureOpenShiftSharedResourcesNamespace()
 }
 
-func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAPIServer) ([]string, error) {
-	apiContainer := apiserver.HandlerContainer
+func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) ([]string, error) {
+	apiContainer := server.HandlerContainer
 	messages := []string{}
 	storage := c.GetRestStorage()
 
@@ -444,7 +443,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 			continue
 		}
 
-		apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(gv.Group)
+		apiGroupInfo := apiserver.NewDefaultAPIGroupInfo(gv.Group, kapi.Registry, kapi.Scheme, kapi.ParameterCodec, kapi.Codecs)
 		versions := []string{
 			securityapiv1.SchemeGroupVersion.Version,
 			projectapiv1.SchemeGroupVersion.Version,
@@ -465,7 +464,7 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 		}
 
 		apiGroupInfo.GroupMeta.GroupVersion = gv
-		if err := apiserver.InstallAPIGroup(&apiGroupInfo); err != nil {
+		if err := server.InstallAPIGroup(&apiGroupInfo); err != nil {
 			glog.Fatalf("Unable to initialize %s API group: %v", gv, err)
 		}
 		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s/%s", api.GroupPrefix, gv.Group, gv.Version))
@@ -559,7 +558,7 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 
 	// Create temporary container because we only have a mux for secret routes
 	secretContainer := restful.NewContainer()
-	secretContainer.ServeMux = apiContainer.SecretRoutes.(*http.ServeMux) // we know it's a *http.ServeMux. In kube 1.6, the type will actually be correct.
+	secretContainer.ServeMux = apiContainer.UnlistedRoutes
 
 	// Set up a service to return the OAuth metadata.
 	ws := new(restful.WebService)
@@ -577,8 +576,8 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 }
 
 func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.Storage {
-	//TODO/REBASE use something other than c.KubeClientset
-	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientset().Core().Nodes(), *c.KubeletClientConfig)
+	//TODO/REBASE use something other than c.KubeClientsetInternal
+	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientsetExternal().CoreV1().Nodes(), *c.KubeletClientConfig)
 	if err != nil {
 		glog.Fatalf("Unable to configure the node connection info getter: %v", err)
 	}
@@ -588,7 +587,11 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
-	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{Insecure: true})
+	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{
+		TLSClientConfig: restclient.TLSClientConfig{
+			Insecure: true,
+		},
+	})
 	if err != nil {
 		glog.Fatalf("Unable to configure a default transport for importing: %v", err)
 	}
@@ -668,9 +671,9 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
-	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientset)
-	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
-	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientset)
+	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.Informers.KubernetesInformers().ServiceAccounts().Lister(), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
+	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(oscc.NewDefaultSCCMatcher(c.Informers.SecurityContextConstraints().Lister()), c.PrivilegedLoopbackKubernetesClientsetInternal)
 
 	imageStorage, err := imageetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -706,8 +709,8 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
 			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
 		},
-		ServiceAccounts: c.KubeClientset(),
-		Secrets:         c.KubeClientset(),
+		ServiceAccounts: c.KubeClientsetInternal(),
+		Secrets:         c.KubeClientsetInternal(),
 	}
 
 	// TODO: with sharding, this needs to be changed
@@ -726,14 +729,14 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
 
-	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientsetInternal.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
 		glog.Errorf("Error parsing project request template value: %v", err)
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset, c.Informers.PolicyBindings().Lister())
+	projectRequestStorage := projectrequeststorage.NewREST(c.Options.ProjectConfig.ProjectRequestMessage, namespace, templateName, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.Informers.PolicyBindings().Lister())
 
 	bcClient := c.BuildConfigWebHookClient()
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
@@ -897,7 +900,7 @@ func checkStorageErr(err error) {
 
 // initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
 func initAPIVersionRoute(apiContainer *genericmux.APIContainer, prefix string, versions ...string) {
-	versionHandler := apiserver.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *metav1.APIVersions {
+	versionHandler := apiendpoints.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *metav1.APIVersions {
 		apiVersionsForDiscovery := metav1.APIVersions{
 			// TODO: ServerAddressByClientCIDRs: s.getServerAddressByClientCIDRs(req.Request),
 			Versions: versions,
@@ -951,7 +954,7 @@ func initMetricsRoute(apiContainer *genericmux.APIContainer, path string) {
 	apiContainer.Add(ws)
 }
 
-func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
+func (c *MasterConfig) defaultAPIGroupVersion() *apiendpoints.APIGroupVersion {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
 	for _, gv := range kapi.Registry.EnabledVersions() {
@@ -971,7 +974,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 	statusMapper.Add(kubeapiv1.SchemeGroupVersion.WithKind("Status"), meta.RESTScopeRoot)
 	restMapper = meta.MultiRESTMapper(append(restMapper, statusMapper))
 
-	return &apiserver.APIGroupVersion{
+	return &apiendpoints.APIGroupVersion{
 		Root: api.Prefix,
 
 		Mapper: restMapper,
@@ -989,7 +992,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiserver.APIGroupVersion {
 }
 
 // apiLegacyV1 returns the resources and codec for API version v1.
-func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGroupVersion {
+func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiendpoints.APIGroupVersion {
 	storage := make(map[string]rest.Storage)
 	for k, v := range all {
 		if excludedV1Types.Has(k) {
@@ -1009,7 +1012,7 @@ func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGr
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
 func (c *MasterConfig) getRequestContextMapper() apirequest.RequestContextMapper {
 	if c.RequestContextMapper == nil {
-		c.RequestContextMapper = kapi.NewRequestContextMapper()
+		c.RequestContextMapper = apirequest.NewRequestContextMapper()
 	}
 	return c.RequestContextMapper
 }
