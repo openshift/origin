@@ -14,14 +14,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	allocator "github.com/openshift/origin/pkg/security"
 	admissiontesting "github.com/openshift/origin/pkg/security/admission/testing"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
-func NewTestAdmission(lister *oscache.IndexerToSecurityContextConstraintsLister, kclient clientset.Interface) kadmission.Interface {
+func NewTestAdmission(lister kcorelisters.SecurityContextConstraintsLister, kclient clientset.Interface) kadmission.Interface {
 	return &constraint{
 		Handler:   kadmission.NewHandler(kadmission.Create),
 		client:    kclient,
@@ -144,12 +144,10 @@ func testSCCAdmit(testCaseName string, sccs []*kapi.SecurityContextConstraints, 
 	namespace := admissiontesting.CreateNamespaceForTest()
 	serviceAccount := admissiontesting.CreateSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-	cache := &oscache.IndexerToSecurityContextConstraintsLister{
-		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-	}
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
-		cache.Add(scc)
+		indexer.Add(scc)
 	}
 
 	plugin := NewTestAdmission(cache, tc)
@@ -227,12 +225,12 @@ func TestAdmit(t *testing.T) {
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
-	cache := &oscache.IndexerToSecurityContextConstraintsLister{
-		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-	}
-	cache.Add(saExactSCC)
-	cache.Add(saSCC)
+
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
+
+	indexer.Add(saExactSCC)
+	indexer.Add(saSCC)
 
 	// create the admission plugin
 	p := NewTestAdmission(cache, tc)
@@ -476,7 +474,7 @@ func TestAdmit(t *testing.T) {
 		Groups: []string{"system:serviceaccounts"},
 	}
 
-	cache.Add(adminSCC)
+	indexer.Add(adminSCC)
 
 	for i := 0; i < 2; i++ {
 		for k, v := range testCases {
@@ -774,12 +772,10 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		},
 	}
 
-	cache := &oscache.IndexerToSecurityContextConstraintsLister{
-		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-	}
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
 	for _, scc := range sccs {
-		cache.Add(scc)
+		indexer.Add(scc)
 	}
 
 	// single match cases
@@ -915,12 +911,11 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 	serviceAccount.Namespace = namespace.Name
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 
-	cache := &oscache.IndexerToSecurityContextConstraintsLister{
-		Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-	}
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
+
 	for _, scc := range sccsToSort {
-		err := cache.Add(scc)
+		err := indexer.Add(scc)
 		if err != nil {
 			t.Fatalf("error adding sccs to store: %v", err)
 		}
