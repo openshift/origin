@@ -90,12 +90,12 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
-	kubeClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	kubeClient, _, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	eventClient, _, err := configapi.GetKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	eventClient, _, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
