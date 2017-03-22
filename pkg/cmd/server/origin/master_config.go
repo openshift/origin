@@ -1044,8 +1044,8 @@ func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
-func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *kclientsetinternal.Clientset) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
+func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *kclientsetinternal.Clientset, *kclientsetexternal.Clientset) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
