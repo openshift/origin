@@ -332,7 +332,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Informer()
+	informer := config.Informers.InternalKubernetesInformers().Core().InternalVersion().LimitRanges().Informer()
 	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
 		list, err := config.Informers.InternalKubernetesInformers().Core().InternalVersion().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
@@ -744,7 +744,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Clientset, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		projectauth.NewAuthorizerReviewer(subjectLocator),
 		kubeClient.Core().Namespaces(),
@@ -959,11 +959,11 @@ func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	_, osClient, internalKubeClientset, _, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
-	return osClient, kClient
+	return osClient, internalKubeClientset
 }
 
 // BuildPodControllerClients returns the build pod controller client objects
@@ -998,7 +998,7 @@ func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, k
 
 // DeploymentControllerClients returns the deployment controller client objects
 func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
+	_, osClient, kClient, _, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -1075,7 +1075,7 @@ func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, kcl
 
 // UnidlingControllerClients returns the unidling controller clients
 func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, kclientsetinternal.Interface, kextensionsclient.ScalesGetter) {
-	_, osClient, kClient, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
+	_, osClient, kClient, _, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -1085,19 +1085,19 @@ func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, kclientset
 
 // GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
 // named service account in the infra namespace
-func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, error) {
+func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
 	return c.GetServiceAccountClientsWithConfig(name, c.PrivilegedLoopbackClientConfig)
 }
 
-func (c *MasterConfig) GetServiceAccountClientsWithConfig(name string, config restclient.Config) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, error) {
+func (c *MasterConfig) GetServiceAccountClientsWithConfig(name string, config restclient.Config) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
 	if len(name) == 0 {
-		return nil, nil, nil, errors.New("No service account name specified")
+		return nil, nil, nil, nil, errors.New("No service account name specified")
 	}
-	configToReturn, oc, kcset, err := serviceaccounts.Clients(
+	configToReturn, oc, internalKubeClientset, externalKubeClientset, err := serviceaccounts.Clients(
 		config,
 		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClientsetInternal},
 		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
 		name,
 	)
-	return configToReturn, oc, kcset, err
+	return configToReturn, oc, internalKubeClientset, externalKubeClientset, err
 }
