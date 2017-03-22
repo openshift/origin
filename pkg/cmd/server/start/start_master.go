@@ -592,15 +592,15 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {
-		_, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
+		_, _, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
-		_, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
+		_, _, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
 		}
-		_, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
+		_, _, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for deployment controller: %v", err)
 		}
@@ -609,57 +609,57 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// Make a copy of the client config because we need to modify it
 		jobClientConfig := oc.PrivilegedLoopbackClientConfig
 		jobClientConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "batch", Version: "v2alpha1"}
-		_, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
+		_, _, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
 		if err != nil {
 			glog.Fatalf("Could not get client for job controller: %v", err)
 		}
 
-		_, hpaOClient, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
+		_, hpaOClient, _, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for HPA controller: %v", err)
 		}
 
-		_, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
+		_, _, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
 		}
 
-		_, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
+		_, _, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for attach detach controller: %v", err)
 		}
 
-		_, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
+		_, _, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for daemonset controller: %v", err)
 		}
 
-		_, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
+		_, _, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
 
-		_, _, gcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGCControllerServiceAccountName)
+		_, _, _, gcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGCControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
+		_, _, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pod gc controller: %v", err)
 		}
 
-		_, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraStatefulSetControllerServiceAccountName)
+		_, _, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraStatefulSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for pet set controller: %v", err)
 		}
 
-		_, _, certificateSigningClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraCertificateSigningControllerServiceAccountName)
+		_, _, _, certificateSigningClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraCertificateSigningControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
 		}
 
-		namespaceControllerClientConfig, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
+		namespaceControllerClientConfig, _, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for namespace controller: %v", err)
 		}
@@ -667,7 +667,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		restMapper := kapi.Registry.RESTMapper()
 		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
 
-		_, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
+		_, _, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for endpoint controller: %v", err)
 		}
@@ -743,14 +743,14 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunClusterQuotaReconciliationController()
 	oc.RunClusterQuotaMappingController()
 
-	_, _, serviceServingCertClient, err := oc.GetServiceAccountClients(bootstrappolicy.ServiceServingCertServiceAccountName)
+	_, _, serviceServingCertClient, _, err := oc.GetServiceAccountClients(bootstrappolicy.ServiceServingCertServiceAccountName)
 	if err != nil {
 		glog.Fatalf("Could not get client: %v", err)
 	}
 	oc.RunServiceServingCertController(serviceServingCertClient)
 	oc.RunUnidlingController()
 
-	_, _, ingressIPClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName)
+	_, _, ingressIPClient, _, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName)
 	if err != nil {
 		glog.Fatalf("Could not get client: %v", err)
 	}
