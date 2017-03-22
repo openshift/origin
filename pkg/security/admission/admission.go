@@ -6,13 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/controller/shared"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -33,11 +32,11 @@ func init() {
 type constraint struct {
 	*admission.Handler
 	client    kclientset.Interface
-	sccLister *oscache.IndexerToSecurityContextConstraintsLister
+	sccLister kcorelisters.SecurityContextConstraintsLister
 }
 
 var _ admission.Interface = &constraint{}
-var _ = oadmission.WantsInformers(&constraint{})
+var _ = kadmission.WantsInternalKubeInformerFactory(&constraint{})
 var _ = kadmission.WantsInternalKubeClientSet(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
@@ -128,8 +127,8 @@ func (c *constraint) Admit(a admission.Attributes) error {
 }
 
 // SetInformers implements WantsInformers interface for constraint.
-func (c *constraint) SetInformers(informers shared.InformerFactory) {
-	c.sccLister = informers.SecurityContextConstraints().Lister()
+func (c *constraint) SetInternalKubeInformerFactory(informers kinternalinformers.SharedInformerFactory) {
+	c.sccLister = informers.Core().InternalVersion().SecurityContextConstraints().Lister()
 }
 
 func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {

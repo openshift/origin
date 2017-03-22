@@ -15,7 +15,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/client"
@@ -308,7 +309,7 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
-func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*kclientset.Clientset, *restclient.Config, error) {
+func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetinternal.Interface, *restclient.Config, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{}
 	loadingRules.ExplicitPath = kubeConfigFile
 	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
@@ -321,7 +322,29 @@ func GetKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) 
 	applyClientConnectionOverrides(overrides, kubeConfig)
 
 	kubeConfig.WrapTransport = DefaultClientTransport
-	clientset, err := kclientset.NewForConfig(kubeConfig)
+	clientset, err := kclientsetinternal.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+	return clientset, kubeConfig, nil
+}
+
+// TODO: clients should be copied and instantiated from a common client config, tweaked, then
+// given to individual controllers and other infrastructure components.
+func GetExternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetexternal.Interface, *restclient.Config, error) {
+	loadingRules := &clientcmd.ClientConfigLoadingRules{}
+	loadingRules.ExplicitPath = kubeConfigFile
+	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+
+	kubeConfig, err := loader.ClientConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	applyClientConnectionOverrides(overrides, kubeConfig)
+
+	kubeConfig.WrapTransport = DefaultClientTransport
+	clientset, err := kclientsetexternal.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, nil, err
 	}
