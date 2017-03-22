@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -25,7 +26,7 @@ type DeploymentConfigGenerator struct {
 // Generate returns a potential future DeploymentConfig based on the DeploymentConfig specified
 // by namespace and name. Returns a RESTful error.
 func (g *DeploymentConfigGenerator) Generate(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
-	config, err := g.Client.GetDeploymentConfig(ctx, name)
+	config, err := g.Client.GetDeploymentConfig(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -125,31 +126,31 @@ func (g *DeploymentConfigGenerator) findImageStream(config *deployapi.Deployment
 		if !ok {
 			return nil, fmt.Errorf("invalid ImageStreamTag: %s", params.From.Name)
 		}
-		return g.Client.GetImageStream(apirequest.WithNamespace(apirequest.NewContext(), namespace), name)
+		return g.Client.GetImageStream(apirequest.WithNamespace(apirequest.NewContext(), namespace), name, &metav1.GetOptions{})
 	}
 	return nil, fmt.Errorf("couldn't find image stream for config %s trigger params", deployutil.LabelForDeploymentConfig(config))
 }
 
 type GeneratorClient interface {
-	GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
-	GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
+	GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
+	GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	// LEGACY: used, to scan all repositories for a DockerImageReference.  Will be removed
 	// when we drop support for reference by DockerImageReference.
 	ListImageStreams(ctx apirequest.Context) (*imageapi.ImageStreamList, error)
 }
 
 type Client struct {
-	DCFn   func(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error)
-	ISFn   func(ctx apirequest.Context, name string) (*imageapi.ImageStream, error)
+	DCFn   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
+	ISFn   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	LISFn  func(ctx apirequest.Context) (*imageapi.ImageStreamList, error)
 	LISFn2 func(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error)
 }
 
-func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string) (*deployapi.DeploymentConfig, error) {
-	return c.DCFn(ctx, name)
+func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+	return c.DCFn(ctx, name, options)
 }
-func (c Client) GetImageStream(ctx apirequest.Context, name string) (*imageapi.ImageStream, error) {
-	return c.ISFn(ctx, name)
+func (c Client) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+	return c.ISFn(ctx, name, options)
 }
 func (c Client) ListImageStreams(ctx apirequest.Context) (*imageapi.ImageStreamList, error) {
 	if c.LISFn2 != nil {
