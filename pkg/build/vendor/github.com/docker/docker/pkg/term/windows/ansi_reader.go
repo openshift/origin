@@ -142,14 +142,14 @@ func readInputEvents(fd uintptr, maxBytes int) ([]winterm.INPUT_RECORD, error) {
 
 // KeyEvent Translation Helpers
 
-var arrowKeyMapPrefix = map[uint16]string{
+var arrowKeyMapPrefix = map[winterm.WORD]string{
 	winterm.VK_UP:    "%s%sA",
 	winterm.VK_DOWN:  "%s%sB",
 	winterm.VK_RIGHT: "%s%sC",
 	winterm.VK_LEFT:  "%s%sD",
 }
 
-var keyMapPrefix = map[uint16]string{
+var keyMapPrefix = map[winterm.WORD]string{
 	winterm.VK_UP:     "\x1B[%sA",
 	winterm.VK_DOWN:   "\x1B[%sB",
 	winterm.VK_RIGHT:  "\x1B[%sC",
@@ -213,7 +213,7 @@ func keyToString(keyEvent *winterm.KEY_EVENT_RECORD, escapeSequence []byte) stri
 }
 
 // formatVirtualKey converts a virtual key (e.g., up arrow) into the appropriate ANSI string.
-func formatVirtualKey(key uint16, controlState uint32, escapeSequence []byte) string {
+func formatVirtualKey(key winterm.WORD, controlState winterm.DWORD, escapeSequence []byte) string {
 	shift, alt, control := getControlKeys(controlState)
 	modifier := getControlKeysModifier(shift, alt, control)
 
@@ -229,7 +229,7 @@ func formatVirtualKey(key uint16, controlState uint32, escapeSequence []byte) st
 }
 
 // getControlKeys extracts the shift, alt, and ctrl key states.
-func getControlKeys(controlState uint32) (shift, alt, control bool) {
+func getControlKeys(controlState winterm.DWORD) (shift, alt, control bool) {
 	shift = 0 != (controlState & winterm.SHIFT_PRESSED)
 	alt = 0 != (controlState & (winterm.LEFT_ALT_PRESSED | winterm.RIGHT_ALT_PRESSED))
 	control = 0 != (controlState & (winterm.LEFT_CTRL_PRESSED | winterm.RIGHT_CTRL_PRESSED))

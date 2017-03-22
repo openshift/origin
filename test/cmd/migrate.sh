@@ -13,6 +13,8 @@ os::test::junit::declare_suite_start "cmd/migrate"
 # This test validates storage migration
 
 os::cmd::expect_success 'oc login -u system:admin'
+# ensure all namespaces have been deleted before attempting to perform global action
+os::cmd::try_until_not_text 'oc get ns --template "{{ range .items }}{{ if not (eq .status.phase \"Active\") }}1{{ end }}{{ end }}"' '1'
 
 os::test::junit::declare_suite_start "cmd/migrate/storage"
 os::cmd::expect_success_and_text     'oadm migrate storage' 'summary \(dry run\)'

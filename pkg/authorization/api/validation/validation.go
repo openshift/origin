@@ -252,7 +252,13 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorLis
 }
 
 func validateRole(role *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
-	return validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))
+	allErrs := validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))
+	for i, rule := range role.Rules {
+		if rule.AttributeRestrictions != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("rules").Index(i).Child("attributeRestrictions"), rule.AttributeRestrictions, "must be null"))
+		}
+	}
+	return allErrs
 }
 
 func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) field.ErrorList {
