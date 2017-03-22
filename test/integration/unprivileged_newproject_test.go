@@ -15,8 +15,34 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectclient "github.com/openshift/origin/pkg/project/clientset/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+
+	// make sure all generated clients compile
+	// these are only here because it's the spot I chose to use a generated clientset for a test
+	_ "github.com/openshift/origin/pkg/authorization/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/authorization/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/build/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/build/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/deploy/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/deploy/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/image/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/image/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/oauth/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/oauth/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/project/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/project/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/quota/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/quota/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/route/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/route/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/sdn/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/sdn/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/template/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/template/clientset/release_v3_6"
+	_ "github.com/openshift/origin/pkg/user/clientset/internalclientset"
+	_ "github.com/openshift/origin/pkg/user/clientset/release_v3_6"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
@@ -47,6 +73,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
+	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -76,7 +103,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
 
-	actualProject, err := valerieOpenshiftClient.Projects().Get("new-project")
+	actualProject, err := valerieProjectClient.Projects().Get("new-project")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
