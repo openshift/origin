@@ -68,7 +68,7 @@ make clean
 mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
 mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
-mv "${tito_tmp_dir}"/x86_64/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
 
 if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
