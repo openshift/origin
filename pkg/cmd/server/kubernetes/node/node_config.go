@@ -22,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
@@ -55,7 +56,9 @@ type NodeConfig struct {
 	Containerized bool
 
 	// Client to connect to the master.
-	Client *kclientset.Clientset
+	Client kclientset.Interface
+	// Internal kubernetes shared informer factory.
+	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// DockerClient is a client to connect to Docker
 	DockerClient dockertools.DockerInterface
 	// KubeletServer contains the KubeletServer configuration
@@ -68,13 +71,6 @@ type NodeConfig struct {
 	IPTablesSyncPeriod string
 	// EnableUnidling indicates whether or not the unidling hybrid proxy should be used
 	EnableUnidling bool
-
-	// ServiceStore is reused between proxy and DNS
-	ServiceStore cache.Store
-	// EndpointsStore is reused between proxy and DNS
-	EndpointsStore cache.Store
-	// ServicesReady is closed when the service and endpoint stores are ready to be used
-	ServicesReady chan struct{}
 
 	// DNSConfig controls the DNS configuration.
 	DNSServer *dns.Server
@@ -94,8 +90,16 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
+	externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	eventClient, _, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	_, eventClientConfig, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	eventClient, err := kclientgoclientset.NewForConfig(eventClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +153,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.CAdvisorPort = 0        // no unsecured cadvisor access
 	server.HealthzPort = 0         // no unsecured healthz access
 	server.HealthzBindAddress = "" // no unsecured healthz access
-	server.ClusterDNS = options.DNSIP
+	server.ClusterDNS = []string{options.DNSIP}
 	server.ClusterDomain = options.DNSDomain
 	server.NetworkPluginName = options.NetworkConfig.NetworkPluginName
 	server.HostNetworkSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
@@ -229,7 +233,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 
 	// provide any config overrides
 	//deps.NodeName = options.NodeName
-	deps.KubeClient = kubeClient
+	deps.KubeClient = externalKubeClient
 	deps.EventClient = eventClient
 
 	// Setup auth
@@ -289,20 +293,21 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
 
+	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod)
+
 	config := &NodeConfig{
 		BindAddress: options.ServingInfo.BindAddress,
 
 		AllowDisabledDocker: options.AllowDisabledDocker,
 		Containerized:       containerized,
 
-		Client: kubeClient,
+		Client:                kubeClient,
+		InternalKubeInformers: internalKubeInformers,
 
 		VolumeDir: options.VolumeDirectory,
 
 		KubeletServer: server,
 		KubeletDeps:   deps,
-
-		ServicesReady: make(chan struct{}),
 
 		ProxyConfig:    proxyconfig,
 		EnableUnidling: options.EnableUnidling,
@@ -325,24 +330,17 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 			dnsConfig.Nameservers = options.DNSNameservers
 		}
 
-		services, serviceStore := dns.NewCachedServiceAccessorAndStore()
-		endpoints, endpointsStore := dns.NewCachedEndpointsAccessorAndStore()
-		if !enableProxy {
-			endpoints = deps.KubeClient
-			endpointsStore = nil
-		}
+		services := dns.NewCachedServiceAccessor(internalKubeInformers.Core().InternalVersion().Services())
 
 		// TODO: use kubeletConfig.ResolverConfig as an argument to etcd in the event the
 		//   user sets it, instead of passing it to the kubelet.
 		glog.Infof("DNS Bind to %s", options.DNSBindAddress)
-		config.ServiceStore = serviceStore
-		config.EndpointsStore = endpointsStore
-		config.DNSServer = &dns.Server{
-			Config:      dnsConfig,
-			Services:    services,
-			Endpoints:   endpoints,
-			MetricsName: "node",
-		}
+		config.DNSServer = dns.NewServer(
+			dnsConfig,
+			services,
+			internalKubeInformers.Core().InternalVersion().Endpoints().Lister(),
+			"node",
+		)
 	}
 
 	return config, nil

@@ -48,8 +48,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/volume/emptydir"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/client-go/tools/cache"
 )
 
 type commandExecutor interface {
@@ -259,33 +257,6 @@ func (c *NodeConfig) EnsureLocalQuota(nodeConfig configapi.NodeConfig) {
 	}
 }
 
-// RunServiceStores retrieves service info from the master, and closes the
-// ServicesReady channel when done.
-func (c *NodeConfig) RunServiceStores(enableProxy, enableDNS bool) {
-	if !enableProxy && !enableDNS {
-		close(c.ServicesReady)
-		return
-	}
-
-	serviceList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "services", metav1.NamespaceAll, fields.Everything())
-	serviceReflector := cache.NewReflector(serviceList, &kapi.Service{}, c.ServiceStore, c.ProxyConfig.ConfigSyncPeriod)
-	serviceReflector.Run()
-
-	if enableProxy {
-		endpointList := cache.NewListWatchFromClient(c.Client.CoreClient.RESTClient(), "endpoints", metav1.NamespaceAll, fields.Everything())
-		endpointReflector := cache.NewReflector(endpointList, &kapi.Endpoints{}, c.EndpointsStore, c.ProxyConfig.ConfigSyncPeriod)
-		endpointReflector.Run()
-
-		for len(endpointReflector.LastSyncResourceVersion()) == 0 {
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-	for len(serviceReflector.LastSyncResourceVersion()) == 0 {
-		time.Sleep(100 * time.Millisecond)
-	}
-	close(c.ServicesReady)
-}
-
 // RunKubelet starts the Kubelet.
 func (c *NodeConfig) RunKubelet() {
 	var clusterDNS net.IP
@@ -359,7 +330,6 @@ func (c *NodeConfig) RunPlugin() {
 // RunDNS starts the DNS server as soon as services are loaded.
 func (c *NodeConfig) RunDNS() {
 	go func() {
-		<-c.ServicesReady
 		glog.Infof("Starting DNS on %s", c.DNSServer.Config.DnsAddr)
 		err := c.DNSServer.ListenAndServe()
 		glog.Fatalf("DNS server failed to start: %v", err)
@@ -497,9 +467,14 @@ func (c *NodeConfig) RunProxy() {
 	}
 	endpointsConfig.RegisterHandler(endpointsHandler)
 
-	c.ServiceStore = pconfig.NewServiceStore(c.ServiceStore, serviceConfig.Channel("api"))
-	c.EndpointsStore = pconfig.NewEndpointsStore(c.EndpointsStore, endpointsConfig.Channel("api"))
-	// will be started by RunServiceStores
+	// This adds event handlers for services and endpoints and waits for the caches to be synced before
+	// returning.
+	pconfig.NewSourceAPIOpenShift(
+		c.InternalKubeInformers.Core().InternalVersion().Services(),
+		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
+		serviceConfig.Channel("api"),
+		endpointsConfig.Channel("api"),
+	)
 
 	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
 
@@ -516,7 +491,7 @@ func getNodeIP(client kclientset.Interface, hostname string) net.IP {
 		glog.Warningf("Failed to retrieve node info: %v", err)
 		return nil
 	}
-	nodeIP, err = utilnode.GetNodeHostIP(node)
+	nodeIP, err = utilnode.InternalGetNodeHostIP(node)
 	if err != nil {
 		glog.Warningf("Failed to retrieve node IP: %v", err)
 		return nil
