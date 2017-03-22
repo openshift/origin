@@ -286,14 +286,14 @@ func (c *MasterConfig) RunEndpointController(client kclientset.Interface) {
 }
 
 // RunScheduler starts the Kubernetes scheduler
-func (c *MasterConfig) RunScheduler(client kclientset.Interface) {
+func (c *MasterConfig) RunScheduler() {
 	config, err := c.createSchedulerConfig()
 	if err != nil {
 		glog.Fatalf("Unable to start scheduler: %v", err)
 	}
 	eventcast := record.NewBroadcaster()
 	config.Recorder = eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: kapi.DefaultSchedulerName})
-	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
 
 	s := scheduler.New(config)
 	s.Run()
