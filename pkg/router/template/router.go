@@ -496,7 +496,6 @@ func (r *templateRouter) writeConfig() error {
 // for details
 func (r *templateRouter) writeCertificates(cfg *ServiceAliasConfig) error {
 	if r.shouldWriteCerts(cfg) {
-		//TODO: better way so this doesn't need to create lots of files every time state is written, probably too expensive
 		return r.certManager.WriteCertificatesForConfig(cfg)
 	}
 	return nil
@@ -822,6 +821,12 @@ func cmpStrSlices(first []string, second []string) bool {
 // it will log a warning.  The route will still be written but users may receive browser errors
 // for a host/cert mismatch
 func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
+
+	// The cert is already written
+	if cfg.Status == ServiceAliasConfigStatusSaved {
+		return false
+	}
+
 	if cfg.Certificates == nil {
 		return false
 	}
