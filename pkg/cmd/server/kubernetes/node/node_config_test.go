@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
 	"k8s.io/kubernetes/pkg/kubelet/rkt"
 	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-	utilconfig "k8s.io/kubernetes/pkg/util/config"
 )
 
 func TestKubeletDefaults(t *testing.T) {
@@ -26,7 +25,6 @@ func TestKubeletDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesNodeConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeletoptions.KubeletServer{
-		AuthPath:   flag.NewStringFlag(""),
 		KubeConfig: flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
 
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
@@ -52,8 +50,8 @@ func TestKubeletDefaults(t *testing.T) {
 			CertDirectory:               "/var/run/kubernetes",
 			CgroupRoot:                  "",
 			CgroupDriver:                "cgroupfs",
-			ClusterDNS:                  "", // overridden
-			ClusterDomain:               "", // overridden
+			ClusterDNS:                  nil, // overridden
+			ClusterDomain:               "",  // overridden
 			ContainerRuntime:            "docker",
 			Containerized:               false, // overridden based on OPENSHIFT_CONTAINERIZED
 			CPUCFSQuota:                 true,  // forced to true
@@ -102,6 +100,7 @@ func TestKubeletDefaults(t *testing.T) {
 			RegistryPullQPS:                5.0,
 			ResolverConfig:                 kubetypes.ResolvConfDefault,
 			KubeletCgroups:                 "",
+			CgroupsPerQOS:                  true,
 			RktAPIEndpoint:                 rkt.DefaultRktAPIServiceEndpoint,
 			RktPath:                        "",
 			RktStage1Image:                 "",
@@ -113,7 +112,6 @@ func TestKubeletDefaults(t *testing.T) {
 			SystemCgroups:                  "",
 			TLSCertFile:                    "", // overridden to prevent cert generation
 			TLSPrivateKeyFile:              "", // overridden to prevent cert generation
-			ReconcileCIDR:                  true,
 			KubeAPIQPS:                     5.0,
 			KubeAPIBurst:                   10,
 			OutOfDiskTransitionFrequency:   metav1.Duration{Duration: 5 * time.Minute},
@@ -122,14 +120,19 @@ func TestKubeletDefaults(t *testing.T) {
 			SeccompProfileRoot:             "/var/lib/kubelet/seccomp",
 			CloudProvider:                  "auto-detect",
 			RuntimeRequestTimeout:          metav1.Duration{Duration: 2 * time.Minute},
+			ImagePullProgressDeadline:      metav1.Duration{Duration: 1 * time.Minute},
 			ContentType:                    "application/vnd.kubernetes.protobuf",
 			EnableControllerAttachDetach:   true,
+			ExperimentalQOSReserved:        componentconfig.ConfigurationMap{},
+			EnableCRI:                      true,
 
 			EvictionPressureTransitionPeriod:    metav1.Duration{Duration: 5 * time.Minute},
 			ExperimentalKernelMemcgNotification: false,
 
-			SystemReserved: utilconfig.ConfigurationMap{},
-			KubeReserved:   utilconfig.ConfigurationMap{},
+			SystemReserved: componentconfig.ConfigurationMap{},
+			KubeReserved:   componentconfig.ConfigurationMap{},
+
+			EnforceNodeAllocatable: []string{"pods"},
 		},
 	}
 
