@@ -63,20 +63,22 @@ func (s strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList
 
 // ValidateUpdate is the default update validation for an end user.
 func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateRoleUpdate(obj.(*authorizationapi.Role), old.(*authorizationapi.Role), s.namespaced)
+	return validation.ValidateRoleUpdate(obj.(*authorizationapi.Role), old.(*authorizationapi.Role), s.namespaced, nil)
+}
+
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	role, ok := obj.(*authorizationapi.Role)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a role")
+	}
+	return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			role, ok := obj.(*authorizationapi.Role)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a role")
-			}
-			return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }

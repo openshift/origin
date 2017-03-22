@@ -134,6 +134,10 @@ func ValidateClusterPolicyUpdate(policy *authorizationapi.ClusterPolicy, oldPoli
 }
 
 func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) field.ErrorList {
+	return validatePolicy(policy, isNamespaced, false)
+}
+
+func validatePolicy(policy *authorizationapi.Policy, isNamespaced, skipRoleValidation bool) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&policy.ObjectMeta, isNamespaced, ValidatePolicyName, field.NewPath("metadata"))
 
 	rolePath := field.NewPath("roles")
@@ -147,16 +151,32 @@ func ValidatePolicy(policy *authorizationapi.Policy, isNamespaced bool) field.Er
 			allErrs = append(allErrs, field.Invalid(keyPath.Child("metadata", "name"), role.Name, "must be "+roleKey))
 		}
 
-		allErrs = append(allErrs, validateRole(role, isNamespaced, keyPath)...)
+		if !skipRoleValidation {
+			allErrs = append(allErrs, validateRole(role, isNamespaced, keyPath)...) // policy creation validation is more strict
+		}
 	}
 
 	return allErrs
 }
 
 func ValidatePolicyUpdate(policy *authorizationapi.Policy, oldPolicy *authorizationapi.Policy, isNamespaced bool) field.ErrorList {
-	allErrs := ValidatePolicy(policy, isNamespaced)
+	// We skip role validation here because we handle it below
+	// It needs to based on if the role is an existing one vs. a new one
+	allErrs := validatePolicy(policy, isNamespaced, true)
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&policy.ObjectMeta, &oldPolicy.ObjectMeta, field.NewPath("metadata"))...)
-
+	rolePath := field.NewPath("roles")
+	for roleKey, role := range policy.Roles {
+		if role == nil {
+			continue // these cause errors in validatePolicy so we do not worry about them
+		}
+		keyPath := rolePath.Key(roleKey)
+		oldRole, isExistingRole := oldPolicy.Roles[roleKey]
+		if isExistingRole {
+			allErrs = append(allErrs, validateRoleUpdate(role, oldRole, isNamespaced, keyPath)...)
+		} else {
+			allErrs = append(allErrs, validateRole(role, isNamespaced, keyPath)...) // new roles have stricter validation
+		}
+	}
 	return allErrs
 }
 
@@ -236,7 +256,7 @@ func ValidateLocalRole(policy *authorizationapi.Role) field.ErrorList {
 }
 
 func ValidateLocalRoleUpdate(policy *authorizationapi.Role, oldRole *authorizationapi.Role) field.ErrorList {
-	return ValidateRoleUpdate(policy, oldRole, true)
+	return ValidateRoleUpdate(policy, oldRole, true, nil)
 }
 
 func ValidateClusterRole(policy *authorizationapi.ClusterRole) field.ErrorList {
@@ -244,7 +264,7 @@ func ValidateClusterRole(policy *authorizationapi.ClusterRole) field.ErrorList {
 }
 
 func ValidateClusterRoleUpdate(policy *authorizationapi.ClusterRole, oldRole *authorizationapi.ClusterRole) field.ErrorList {
-	return ValidateRoleUpdate(authorizationapi.ToRole(policy), authorizationapi.ToRole(oldRole), false)
+	return ValidateRoleUpdate(authorizationapi.ToRole(policy), authorizationapi.ToRole(oldRole), false, nil)
 }
 
 func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorList {
@@ -253,19 +273,42 @@ func ValidateRole(role *authorizationapi.Role, isNamespaced bool) field.ErrorLis
 
 func validateRole(role *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))
+	rulesPath := fldPath.Child("rules")
 	for i, rule := range role.Rules {
 		if rule.AttributeRestrictions != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("rules").Index(i).Child("attributeRestrictions"), rule.AttributeRestrictions, "must be null"))
+			allErrs = append(allErrs, field.Invalid(rulesPath.Index(i).Child("attributeRestrictions"), rule.AttributeRestrictions, "must be null"))
 		}
 	}
 	return allErrs
 }
 
-func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool) field.ErrorList {
-	allErrs := ValidateRole(role, isNamespaced)
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&role.ObjectMeta, &oldRole.ObjectMeta, field.NewPath("metadata"))...)
-
+func ValidateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
+	allErrs := validateRoleUpdate(role, oldRole, isNamespaced, fldPath)
+	// We can use ValidateObjectMetaUpdate here because we know that we are validating a single role, and not a role embedded inside a policy object
+	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&role.ObjectMeta, &oldRole.ObjectMeta, fldPath.Child("metadata"))...)
 	return allErrs
+}
+
+func validateRoleUpdate(role *authorizationapi.Role, oldRole *authorizationapi.Role, isNamespaced bool, fldPath *field.Path) field.ErrorList {
+	// We use ValidateObjectMeta here because roles embedded inside of policy objects are not guaranteed to
+	// have a resource version and thus will fail the policy's validation if ValidateObjectMetaUpdate was used
+	allErrs := validation.ValidateObjectMeta(&role.ObjectMeta, isNamespaced, path.ValidatePathSegmentName, fldPath.Child("metadata"))
+	rulesPath := fldPath.Child("rules")
+	for i, rule := range role.Rules {
+		if rule.AttributeRestrictions != nil && isNewRule(rule, oldRole) {
+			allErrs = append(allErrs, field.Invalid(rulesPath.Index(i).Child("attributeRestrictions"), rule.AttributeRestrictions, "must be null"))
+		}
+	}
+	return allErrs
+}
+
+func isNewRule(rule authorizationapi.PolicyRule, oldRole *authorizationapi.Role) bool {
+	for _, r := range oldRole.Rules {
+		if r.AttributeRestrictions != nil && kapi.Semantic.DeepEqual(rule, r) { // only do expensive comparision against rules that have attribute restrictions
+			return false
+		}
+	}
+	return true
 }
 
 func ValidateLocalRoleBinding(policy *authorizationapi.RoleBinding) field.ErrorList {
