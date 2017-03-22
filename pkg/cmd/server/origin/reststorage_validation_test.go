@@ -8,8 +8,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	fakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	fakeinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -81,10 +82,11 @@ func fakeMasterConfig() *MasterConfig {
 	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	return &MasterConfig{
-		KubeletClientConfig:                   &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:                     restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
-		Informers:                             informerFactory,
-		ClusterQuotaMappingController:         clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas()),
-		PrivilegedLoopbackKubernetesClientset: &kclientset.Clientset{},
+		KubeletClientConfig:                           &kubeletclient.KubeletClientConfig{},
+		RESTOptionsGetter:                             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
+		Informers:                                     informerFactory,
+		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas()),
+		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
+		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
 	}
 }

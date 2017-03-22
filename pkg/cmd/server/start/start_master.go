@@ -364,7 +364,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	return kubernetes.BuildKubernetesMasterConfig(
 		openshiftConfig.Options,
 		openshiftConfig.RequestContextMapper,
-		openshiftConfig.KubeClientset(),
+		openshiftConfig.KubeClientsetInternal(),
 		openshiftConfig.Informers,
 		openshiftConfig.KubeAdmissionControl,
 		openshiftConfig.Authenticator,

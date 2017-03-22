@@ -107,7 +107,7 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	}
 
 	//REBASE: add new args to NewServiceAccountsController
-	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientset(), options).Run(1, utilwait.NeverStop)
+	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientsetInternal(), options).Run(1, utilwait.NeverStop)
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -157,16 +157,16 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 		ServiceServingCA: servingServingCABundle,
 	}
 
-	go sacontroller.NewTokensController(c.KubeClientset(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
+	go sacontroller.NewTokensController(c.KubeClientsetInternal(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
 	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientset(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
@@ -175,7 +175,7 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientset(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
@@ -241,7 +241,7 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
 	codec := kapi.Codecs.LegacyCodec(groupVersion)
 
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", c.KubeClientset(), "")
+	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", c.KubeClientsetInternal(), "")
 	if err != nil {
 		return err
 	}
