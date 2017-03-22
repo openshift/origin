@@ -80,7 +80,10 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterConfig)
+	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	userStorage, err := useretcd.NewREST(optsGetter)
 	if err != nil {
