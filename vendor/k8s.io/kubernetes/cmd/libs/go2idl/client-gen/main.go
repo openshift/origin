@@ -56,6 +56,11 @@ var (
 	fakeClient             = flag.Bool("fake-clientset", true, "when set, client-gen will generate the fake clientset that can be used in tests")
 )
 
+var (
+	groupFlag   = flag.String("group", "", "specifies the group you want")
+	versionFlag = flag.String("version", "", "specifies the version you want")
+)
+
 func versionToPath(gvPath string, group string, version string) (path string) {
 	// special case for the core group
 	if group == "api" {
@@ -126,6 +131,26 @@ func parseInputVersions() (paths []string, groups []types.GroupVersions, gvToPat
 	return paths, groups, gvToPath, nil
 }
 
+// specifiedInputVersions is a temporary measure to generate working clients for openshift with our non-standard package layout
+func specifiedInputVersions() (paths []string, groups []types.GroupVersions, gvToPath map[types.GroupVersion]string, err error) {
+	gv, err := types.ToGroupVersion(*groupFlag + "/" + *versionFlag)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	path := filepath.Join(*basePath, (*inputVersions)[0])
+	paths = append(paths, path)
+
+	group := types.GroupVersions{
+		Group:    gv.Group,
+		Versions: []types.Version{gv.Version},
+	}
+	groups = append(groups, group)
+
+	gvToPath = map[types.GroupVersion]string{}
+	gvToPath[gv] = path
+
+	return paths, groups, gvToPath, nil
+}
 func parseIncludedTypesOverrides() (map[types.GroupVersion][]string, error) {
 	overrides := make(map[types.GroupVersion][]string)
 	for _, input := range *includedTypesOverrides {
@@ -182,7 +207,16 @@ func main() {
 			CmdArgs:             cmdArgs,
 		}
 	} else {
-		inputPath, groups, gvToPath, err := parseInputVersions()
+		var inputPath []string
+		var groups []types.GroupVersions
+		var gvToPath map[types.GroupVersion]string
+		var err error
+
+		if len(*inputVersions) == 1 && len(*groupFlag) > 0 {
+			inputPath, groups, gvToPath, err = specifiedInputVersions()
+		} else {
+			inputPath, groups, gvToPath, err = parseInputVersions()
+		}
 		if err != nil {
 			glog.Fatalf("Error: %v", err)
 		}
