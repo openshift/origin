@@ -28,7 +28,7 @@ tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
-output_directories=( $( find "${tito_tmp_dir}" -type d -name 'rpmbuild-origin*' ) )
+output_directories=( $( find "${tito_tmp_dir}" -type d -name "rpmbuild-${OS_RPM_NAME}*" ) )
 if [[ "${#output_directories[@]}" -eq 0 ]]; then
 	os::log::error 'After the tito build, no rpmbuild directory was found!'
 	exit 1
@@ -46,9 +46,9 @@ else
 	output_directory="${output_directories[0]}"
 fi
 
-tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/origin-${OS_RPM_VERSION}/_output/local" )"
+tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/${OS_RPM_NAME}-${OS_RPM_VERSION}/_output/local" )"
 if [[ -z "${tito_output_directory}" ]]; then
-        os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
+	os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
 # clean up our local state so we can unpack the tito artifacts cleanly
@@ -64,15 +64,15 @@ if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
 	createrepo "${repo_path}"
 
-	echo "[origin-local-release]
+	echo "[${OS_RPM_NAME}-local-release]
 baseurl = file://${repo_path}
 gpgcheck = 0
-name = OpenShift Origin Release from Local Source
+name = OpenShift Release from Local Source
 enabled = 1
-" > "${repo_path}/origin-local-release.repo"
+" > "${repo_path}/${OS_RPM_NAME}-local-release.repo"
 
-	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
-	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
+	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/${OS_RPM_NAME}-local-release.repo"
+	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/${OS_RPM_NAME}-local-release.repo' '/etc/yum.repos.d"
 else
 	os::log::warning "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
 fi
