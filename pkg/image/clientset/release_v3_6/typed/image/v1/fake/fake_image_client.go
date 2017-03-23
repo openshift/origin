@@ -10,8 +10,8 @@ type FakeImageV1 struct {
 	*core.Fake
 }
 
-func (c *FakeImageV1) Images(namespace string) v1.ImageResourceInterface {
-	return &FakeImages{c, namespace}
+func (c *FakeImageV1) Images() v1.ImageResourceInterface {
+	return &FakeImages{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
