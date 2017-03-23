@@ -19,7 +19,7 @@ import (
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kClientsetInternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -398,7 +398,7 @@ func (c *MasterConfig) RunSDNController() {
 	}
 }
 
-func (c *MasterConfig) RunServiceServingCertController(client *kClientsetInternal.Clientset) {
+func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal.Interface) {
 	if c.Options.ControllerConfig.ServiceServingCert.Signer == nil {
 		return
 	}
@@ -551,7 +551,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 }
 
 // RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
-func (c *MasterConfig) RunIngressIPController(client *kClientsetInternal.Clientset) {
+func (c *MasterConfig) RunIngressIPController(client kclientsetinternal.Interface) {
 	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		return
 	}

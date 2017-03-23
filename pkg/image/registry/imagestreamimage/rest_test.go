@@ -226,7 +226,7 @@ func TestGet(t *testing.T) {
 				}
 			}
 
-			obj, err := storage.Get(ctx, test.input)
+			obj, err := storage.Get(ctx, test.input, &metav1.GetOptions{})
 			gotError := err != nil
 			if e, a := test.expectError, gotError; e != a {
 				t.Errorf("%s: expected error=%t, got=%t: %s", name, e, a, err)
