@@ -139,7 +139,7 @@ func (a *APIInstaller) getResourceKind(path string, storage rest.Storage) (schem
 	}
 
 	object := storage.New()
-	fqKinds, _, err := a.group.Typer.ObjectKinds(object)
+	fqKinds, unversioned, err := a.group.Typer.ObjectKinds(object)
 	if err != nil {
 		return schema.GroupVersionKind{}, err
 	}
@@ -147,7 +147,11 @@ func (a *APIInstaller) getResourceKind(path string, storage rest.Storage) (schem
 	// a given go type can have multiple potential fully qualified kinds.  Find the one that corresponds with the group
 	// we're trying to register here
 	fqKindToRegister := schema.GroupVersionKind{}
+	unversionedCandidate := schema.GroupVersionKind{}
 	for _, fqKind := range fqKinds {
+		if unversioned && fqKind.Group == "" {
+			unversionedCandidate = fqKind
+		}
 		if fqKind.Group == a.group.GroupVersion.Group {
 			fqKindToRegister = a.group.GroupVersion.WithKind(fqKind.Kind)
 			break
@@ -158,6 +162,11 @@ func (a *APIInstaller) getResourceKind(path string, storage rest.Storage) (schem
 		if fqKind.Group == "extensions" && fqKind.Kind == "ThirdPartyResourceData" {
 			fqKindToRegister = a.group.GroupVersion.WithKind(fqKind.Kind)
 		}
+	}
+
+	// if we find an unversioned kind in the core group (like Status), accept that.
+	if fqKindToRegister.Empty() && !unversionedCandidate.Empty() {
+		return unversionedCandidate, nil
 	}
 	if fqKindToRegister.Empty() {
 		return schema.GroupVersionKind{}, fmt.Errorf("unable to locate fully qualified kind for %v: found %v when registering for %v", reflect.TypeOf(object), fqKinds, a.group.GroupVersion)
