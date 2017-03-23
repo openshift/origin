@@ -11866,6 +11866,16 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-password" : "${REDIS_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -11962,7 +11972,12 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -12079,6 +12094,16 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-password" : "${REDIS_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -12192,7 +12217,12 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
                 "env": [
                   {
                     "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   }
                 ],
                 "resources": {
