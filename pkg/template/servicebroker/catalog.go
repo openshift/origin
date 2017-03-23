@@ -11,7 +11,7 @@ import (
 
 var annotationMap = map[string]string{
 	oapi.OpenShiftDisplayName:                 api.ServiceMetadataDisplayName,
-	templateapi.IconClassAnnotation:           "imageIconClass",
+	templateapi.IconClassAnnotation:           templateapi.ServiceMetadataIconClass,
 	templateapi.LongDescriptionAnnotation:     api.ServiceMetadataLongDescription,
 	templateapi.ProviderDisplayNameAnnotation: api.ServiceMetadataProviderDisplayName,
 	templateapi.DocumentationURLAnnotation:    api.ServiceMetadataDocumentationURL,
