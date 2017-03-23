@@ -59,5 +59,5 @@ func (c *FakeGroups) Delete(name string) error {
 }
 
 func (c *FakeGroups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(groupsResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(groupsResource, opts))
 }

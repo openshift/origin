@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -142,7 +143,7 @@ type Client struct {
 	DCFn   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
 	ISFn   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	LISFn  func(ctx apirequest.Context) (*imageapi.ImageStreamList, error)
-	LISFn2 func(ctx apirequest.Context, options *metav1.ListOptions) (*imageapi.ImageStreamList, error)
+	LISFn2 func(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error)
 }
 
 func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
@@ -153,7 +154,7 @@ func (c Client) GetImageStream(ctx apirequest.Context, name string, options *met
 }
 func (c Client) ListImageStreams(ctx apirequest.Context) (*imageapi.ImageStreamList, error) {
 	if c.LISFn2 != nil {
-		return c.LISFn2(ctx, &metav1.ListOptions{})
+		return c.LISFn2(ctx, &metainternal.ListOptions{})
 	}
 	return c.LISFn(ctx)
 }

@@ -59,5 +59,5 @@ func (c *FakeHostSubnet) Delete(name string) error {
 }
 
 func (c *FakeHostSubnet) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(hostSubnetsResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(hostSubnetsResource, opts))
 }

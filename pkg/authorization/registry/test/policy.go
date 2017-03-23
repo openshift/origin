@@ -39,8 +39,12 @@ type policyLister struct {
 	namespace string
 }
 
-func (s policyLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
-	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
+func (s policyLister) List(options metav1.ListOptions) (*authorizationapi.PolicyList, error) {
+	optint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+		return nil, err
+	}
+	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
 }
 
 func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {

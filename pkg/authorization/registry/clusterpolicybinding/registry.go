@@ -123,8 +123,12 @@ type ReadOnlyClusterPolicyBinding struct {
 	Registry
 }
 
-func (s ReadOnlyClusterPolicyBinding) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return s.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &options)
+func (s ReadOnlyClusterPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	optint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+		return nil, err
+	}
+	return s.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &optint)
 }
 
 func (s ReadOnlyClusterPolicyBinding) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
@@ -135,7 +139,7 @@ type ReadOnlyClusterPolicyBindingClientShim struct {
 	ReadOnlyClusterPolicyBinding
 }
 
-func (r *ReadOnlyClusterPolicyBindingClientShim) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (r *ReadOnlyClusterPolicyBindingClientShim) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return r.ReadOnlyClusterPolicyBinding.List(options)
 }
 

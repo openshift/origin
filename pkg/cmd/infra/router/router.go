@@ -245,7 +245,7 @@ type projectNames struct {
 }
 
 func (n projectNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector})
+	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
 	if err != nil {
 		return nil, err
 	}

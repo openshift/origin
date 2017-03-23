@@ -50,5 +50,5 @@ func (c *FakeClusterPolicyBindings) Delete(name string) error {
 }
 
 func (c *FakeClusterPolicyBindings) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPolicyBindingsResource))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPolicyBindingsResource, opts))
 }

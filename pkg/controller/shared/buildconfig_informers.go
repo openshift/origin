@@ -10,7 +10,6 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller"
 )
 
 type BuildConfigInformer interface {

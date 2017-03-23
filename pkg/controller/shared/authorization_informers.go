@@ -11,7 +11,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller"
 )
 
 type ClusterPolicyInformer interface {

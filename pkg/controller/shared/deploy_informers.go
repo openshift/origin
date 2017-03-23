@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 

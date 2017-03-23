@@ -27,7 +27,7 @@ func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*auth
 }
 
 func (c *FakeClusterPolicies) List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource), &authorizationapi.ClusterPolicyList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource, opts), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}

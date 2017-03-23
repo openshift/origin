@@ -27,7 +27,7 @@ func (c *FakeClusterResourceQuotas) Get(name string, options metav1.GetOptions) 
 }
 
 func (c *FakeClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusteResourceQuotasResource), &quotaapi.ClusterResourceQuotaList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusteResourceQuotasResource, opts), &quotaapi.ClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -57,7 +57,7 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 //checkKibanaRoutesInOauthClient verifies the client contains the correct redirect uris
 func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.Client, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
-	routeList, err := osClient.Routes(project).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(project).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
 	if err != nil {
 		r.Error("AGL0143", err, fmt.Sprintf("Error retrieving the logging routes: %s", err))
 		return
