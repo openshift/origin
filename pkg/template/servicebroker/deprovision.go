@@ -27,7 +27,8 @@ func (b *Broker) Deprovision(instanceID string) *api.Response {
 		return api.InternalServerError(err)
 	}
 
-	opts := kapi.NewPreconditionDeleteOptions(string(brokerTemplateInstance.UID))
+	opts := kapi.NewDeleteOptions(1)
+	opts.Preconditions = &kapi.Preconditions{UID: &brokerTemplateInstance.UID}
 	err = b.templateclient.BrokerTemplateInstances().Delete(instanceID, opts)
 	if err != nil {
 		if kerrors.IsNotFound(err) {

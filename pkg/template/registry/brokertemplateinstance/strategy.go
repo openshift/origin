@@ -59,6 +59,17 @@ func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx kapi.Context, obj, old 
 	return validation.ValidateBrokerTemplateInstanceUpdate(obj.(*api.BrokerTemplateInstance), old.(*api.BrokerTemplateInstance))
 }
 
+func (brokerTemplateInstanceStrategy) CheckGracefulDelete(ctx kapi.Context, obj runtime.Object, options *kapi.DeleteOptions) bool {
+	if options == nil {
+		return false
+	}
+	if options.GracePeriodSeconds == nil {
+		grace := int64(0)
+		options.GracePeriodSeconds = &grace
+	}
+	return true
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{

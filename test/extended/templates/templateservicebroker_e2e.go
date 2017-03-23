@@ -192,9 +192,9 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		err := brokercli.Deprovision(context.Background(), instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID)
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
+		brokerTemplateInstance, err := cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID)
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(brokerTemplateInstance.DeletionTimestamp).NotTo(o.BeNil())
 
 		_, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(instanceID)
 		o.Expect(err).To(o.HaveOccurred())
