@@ -32,7 +32,7 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClient.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	})
 	return err

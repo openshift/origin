@@ -36,7 +36,7 @@ func KubeConfigPath() string {
 	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
 }
 
-func GetClusterAdminKubeClient(adminKubeConfigFile string) (*kclientset.Clientset, error) {
+func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface, error) {
 	c, _, err := configapi.GetInternalKubeClient(adminKubeConfigFile, nil)
 	if err != nil {
 		return nil, err
