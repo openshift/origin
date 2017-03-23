@@ -166,7 +166,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		kubeNamespace:     "openshift",
 		err:               `User "valerie" cannot create localsubjectaccessreviews in project "openshift"`,
-		kubeErr:           `User "valerie" cannot create authorization.k8s.io.localsubjectaccessreviews in project "openshift"`,
+		kubeErr:           `User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in project "openshift"`,
 	}.run(t)
 
 }
