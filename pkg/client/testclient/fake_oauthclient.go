@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -26,12 +25,7 @@ func (c *FakeOAuthClient) Get(name string, options metav1.GetOptions) (*oauthapi
 }
 
 func (c *FakeOAuthClient) List(opts metav1.ListOptions) (*oauthapi.OAuthClientList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthClientsResource, optsv1), &oauthapi.OAuthClientList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthClientsResource, opts), &oauthapi.OAuthClientList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -54,12 +48,7 @@ func (c *FakeOAuthClient) Delete(name string) error {
 }
 
 func (c *FakeOAuthClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(oAuthClientsResource, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(oAuthClientsResource, opts))
 }
 
 func (c *FakeOAuthClient) Update(client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {

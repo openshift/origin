@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -28,12 +27,7 @@ func (c *FakeGroups) Get(name string, options metav1.GetOptions) (*userapi.Group
 }
 
 func (c *FakeGroups) List(opts metav1.ListOptions) (*userapi.GroupList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(groupsResource, optsv1), &userapi.GroupList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(groupsResource, opts), &userapi.GroupList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -65,10 +59,5 @@ func (c *FakeGroups) Delete(name string) error {
 }
 
 func (c *FakeGroups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(groupsResource, optsv1))
 }

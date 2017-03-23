@@ -34,12 +34,7 @@ func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildap
 }
 
 func (c *FakeBuildConfigs) List(opts metav1.ListOptions) (*buildapi.BuildConfigList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, optsv1), &buildapi.BuildConfigList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, opts), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}

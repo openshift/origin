@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -26,12 +25,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOp
 }
 
 func (c *FakeAppliedClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, optsv1), &quotaapi.AppliedClusterResourceQuotaList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

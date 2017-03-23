@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -34,12 +33,7 @@ func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageap
 }
 
 func (c *FakeImageStreams) List(opts metav1.ListOptions) (*imageapi.ImageStreamList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, c.Namespace, optsv1), &imageapi.ImageStreamList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, c.Namespace, opts), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -71,12 +65,7 @@ func (c *FakeImageStreams) Delete(name string) error {
 }
 
 func (c *FakeImageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(imageStreamsResource, c.Namespace, optsv1))
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(imageStreamsResource, c.Namespace, opts))
 }
 
 func (c *FakeImageStreams) UpdateStatus(inObj *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {

@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -31,12 +30,7 @@ func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Imag
 }
 
 func (c *FakeImages) List(opts metav1.ListOptions) (*imageapi.ImageList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(imagesResource, optsv1), &imageapi.ImageList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err
 	}
