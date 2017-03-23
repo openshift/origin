@@ -6,7 +6,7 @@ items:
   metadata:
     name: overlapping 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
@@ -19,7 +19,7 @@ items:
   metadata:
     name: overlapping2 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
@@ -32,7 +32,7 @@ items:
   metadata:
     name: overlapping3 
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: frontend 
       apiVersion: apps.openshift.io/v1
@@ -45,7 +45,7 @@ items:
   metadata:
     name: dc-autoscaler
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: DeploymentConfig 
       name: someotherdc 
       apiVersion: apps.openshift.io/v1
@@ -58,7 +58,7 @@ items:
   metadata:
     name: rc-autoscaler
   spec:
-    scaleRef:
+    scaleTargetRef:
       kind: ReplicationController 
       name: someotherdc-1 
       apiVersion: v1 
