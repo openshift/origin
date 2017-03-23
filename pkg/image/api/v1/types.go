@@ -17,6 +17,7 @@ type ImageList struct {
 }
 
 // +genclient=true
+// +nonNamespaced=true
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
