@@ -1,8 +1,8 @@
 package v1
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch/versioned"
 )
@@ -37,10 +37,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		append(types,
 			&unversioned.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&kapi.ListOptions{},
-			&kapi.DeleteOptions{},
-			&kapi.ExportOptions{},
-			&kapi.List{},
+			&kapiv1.ListOptions{},
+			&kapiv1.DeleteOptions{},
+			&kapiv1.ExportOptions{},
+			&kapiv1.List{},
 		)...,
 	)
 	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
