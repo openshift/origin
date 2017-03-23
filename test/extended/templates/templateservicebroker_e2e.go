@@ -2,13 +2,11 @@ package templates
 
 import (
 	"crypto/tls"
-	"golang.org/x/net/context"
 	"net/http"
 	"strconv"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -18,6 +16,8 @@ import (
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
+	"github.com/pborman/uuid"
+	"golang.org/x/net/context"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )

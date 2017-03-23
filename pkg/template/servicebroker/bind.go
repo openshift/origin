@@ -23,15 +23,19 @@ func makeEnvVariableName(str string) string {
 	return strings.ToUpper(strings.Replace(str, "-", "_", -1))
 }
 
-func (b *Broker) getServices(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]interface{}, *api.Response) {
+func (b *Broker) getServices(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	serviceList, err := impersonatedKC.Services(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
 	if err != nil {
+		if kerrors.IsForbidden(err) {
+			return nil, api.Forbidden(err)
+		}
+
 		return nil, api.InternalServerError(err)
 	}
 
-	services := map[string]interface{}{}
+	services := map[string]string{}
 	for _, service := range serviceList.Items {
 		if !kapi.IsServiceIPSet(&service) || len(service.Spec.Ports) == 0 {
 			continue
@@ -53,15 +57,19 @@ func (b *Broker) getServices(impersonatedKC *kclientset.Clientset, namespace, in
 	return services, nil
 }
 
-func (b *Broker) getSecrets(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]interface{}, *api.Response) {
+func (b *Broker) getSecrets(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	secretList, err := impersonatedKC.Secrets(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
 	if err != nil {
+		if kerrors.IsForbidden(err) {
+			return nil, api.Forbidden(err)
+		}
+
 		return nil, api.InternalServerError(err)
 	}
 
-	secrets := map[string]interface{}{}
+	secrets := map[string]string{}
 	for _, secret := range secretList.Items {
 		if secret.Type != kapi.SecretTypeBasicAuth {
 			continue

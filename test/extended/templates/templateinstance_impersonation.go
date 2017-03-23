@@ -10,6 +10,7 @@ import (
 	userapi "github.com/openshift/origin/pkg/user/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
 )
 
@@ -173,6 +174,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -196,6 +198,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			newtemplateinstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
 				templateinstance = newtemplateinstance
@@ -227,6 +230,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
 				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(kerrors.IsForbidden(err)).To(o.BeTrue())
 
 				err = cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())

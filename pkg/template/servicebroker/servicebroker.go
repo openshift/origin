@@ -15,15 +15,17 @@ import (
 
 type Broker struct {
 	kc                *kclientset.Clientset
+	oc                *client.Client
 	templateclient    *templateclientset.Clientset
 	restconfig        *restclient.Config
 	lister            cache.StoreToTemplateLister
 	templateNamespace string
 }
 
-func NewBroker(restconfig *restclient.Config, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
+func NewBroker(restconfig *restclient.Config, oc *client.Client, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
 	return &Broker{
 		kc:                kc,
+		oc:                oc,
 		templateclient:    templateclientset.NewForConfigOrDie(restconfig),
 		restconfig:        restconfig,
 		lister:            informers.Templates().Lister(),

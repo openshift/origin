@@ -2,16 +2,14 @@ package client
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util/validation/field"
-
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 type Client interface {
@@ -31,6 +29,19 @@ func NewClient(cli *http.Client, root string) Client {
 	return &client{cli: cli, root: root}
 }
 
+type ServerError struct {
+	StatusCode  int
+	Description string
+}
+
+func (e *ServerError) Error() string {
+	return fmt.Sprintf("%s: %s", http.StatusText(e.StatusCode), e.Description)
+}
+
+func newServerError(statusCode int, description string) error {
+	return &ServerError{StatusCode: statusCode, Description: description}
+}
+
 func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, c.root+"/v2/catalog", nil)
 	if err != nil {
@@ -45,14 +56,8 @@ func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK:
-	default:
-		return nil, errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return nil, errors.New("invalid response")
+		return nil, newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -70,7 +75,7 @@ func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New(r.Description)
+	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
 func (c *client) Provision(ctx context.Context, instanceID string, preq *api.ProvisionRequest) (*api.ProvisionResponse, error) {
@@ -100,14 +105,8 @@ func (c *client) Provision(ctx context.Context, instanceID string, preq *api.Pro
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
-	default:
-		return nil, errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return nil, errors.New("invalid response")
+		return nil, newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -139,7 +138,7 @@ func (c *client) Provision(ctx context.Context, instanceID string, preq *api.Pro
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New(r.Description)
+	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
 func (c *client) Deprovision(ctx context.Context, instanceID string) error {
@@ -160,14 +159,8 @@ func (c *client) Deprovision(ctx context.Context, instanceID string) error {
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusAccepted, http.StatusGone:
-	default:
-		return errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return errors.New("invalid response")
+		return newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -199,7 +192,7 @@ func (c *client) Deprovision(ctx context.Context, instanceID string) error {
 	if err != nil {
 		return err
 	}
-	return errors.New(r.Description)
+	return newServerError(resp.StatusCode, r.Description)
 }
 
 func (c *client) LastOperation(ctx context.Context, instanceID string, operation api.Operation) (*api.LastOperationResponse, error) {
@@ -220,14 +213,8 @@ func (c *client) LastOperation(ctx context.Context, instanceID string, operation
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusGone:
-	default:
-		return nil, errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return nil, errors.New("invalid response")
+		return nil, newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -245,7 +232,7 @@ func (c *client) LastOperation(ctx context.Context, instanceID string, operation
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New(r.Description)
+	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
 func (c *client) WaitForOperation(ctx context.Context, instanceID string, operation api.Operation) (api.LastOperationState, error) {
@@ -299,14 +286,8 @@ func (c *client) Bind(ctx context.Context, instanceID, bindingID string, breq *a
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated:
-	default:
-		return nil, errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return nil, errors.New("invalid response")
+		return nil, newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -324,7 +305,7 @@ func (c *client) Bind(ctx context.Context, instanceID, bindingID string, breq *a
 	if err != nil {
 		return nil, err
 	}
-	return nil, errors.New(r.Description)
+	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
 func (c *client) Unbind(ctx context.Context, instanceID, bindingID string) error {
@@ -349,14 +330,8 @@ func (c *client) Unbind(ctx context.Context, instanceID, bindingID string) error
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusGone:
-	default:
-		return errors.New(http.StatusText(resp.StatusCode))
-	}
-
 	if resp.Header.Get("Content-Type") != "application/json" {
-		return errors.New("invalid response")
+		return newServerError(resp.StatusCode, "invalid content type")
 	}
 
 	d := json.NewDecoder(resp.Body)
@@ -374,5 +349,5 @@ func (c *client) Unbind(ctx context.Context, instanceID, bindingID string) error
 	if err != nil {
 		return err
 	}
-	return errors.New(r.Description)
+	return newServerError(resp.StatusCode, r.Description)
 }
