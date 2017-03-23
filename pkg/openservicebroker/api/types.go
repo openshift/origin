@@ -1,6 +1,11 @@
 package api
 
 // from https://github.com/openservicebrokerapi/servicebroker/blob/1d301105c66187b5aa2e061a1264ecf3cbc3d2a0/_spec.md
+// and https://github.com/avade/servicebroker/blob/9ef94ce96ca65bfc9ce482d5ea5be0ad62643a84/_spec.md
+
+import (
+	jsschema "github.com/lestrrat/go-jsschema"
+)
 
 const (
 	XBrokerAPIVersion = "X-Broker-Api-Version"
@@ -33,6 +38,21 @@ type Plan struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 	Free        bool                   `json:"free,omitempty"`
 	Bindable    bool                   `json:"bindable,omitempty"`
+	Schemas     Schema                 `json:"schemas,omitempty"`
+}
+
+type Schema struct {
+	ServiceInstances ServiceInstances `json:"service-instances,omitempty"`
+	ServiceBindings  ServiceBindings  `json:"service-bindings,omitempty"`
+}
+
+type ServiceInstances struct {
+	Create map[string]*jsschema.Schema `json:"create,omitempty"`
+	Update map[string]*jsschema.Schema `json:"update,omitempty"`
+}
+
+type ServiceBindings struct {
+	Create map[string]*jsschema.Schema `json:"create,omitempty"`
 }
 
 type CatalogResponse struct {
