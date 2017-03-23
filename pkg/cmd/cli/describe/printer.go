@@ -65,6 +65,9 @@ var (
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 
 	roleBindingRestrictionColumns = []string{"NAME", "SUBJECT TYPE", "SUBJECTS"}
+
+	templateInstanceColumns       = []string{"NAME", "TEMPLATE"}
+	brokerTemplateInstanceColumns = []string{"NAME", "TEMPLATEINSTANCE"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -144,6 +147,11 @@ func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadable
 
 	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestriction)
 	p.Handler(roleBindingRestrictionColumns, printRoleBindingRestrictionList)
+
+	p.Handler(templateInstanceColumns, printTemplateInstance)
+	p.Handler(templateInstanceColumns, printTemplateInstanceList)
+	p.Handler(brokerTemplateInstanceColumns, printBrokerTemplateInstance)
+	p.Handler(brokerTemplateInstanceColumns, printBrokerTemplateInstanceList)
 
 	return p
 }
@@ -1132,6 +1140,53 @@ func printRoleBindingRestriction(rbr *authorizationapi.RoleBindingRestriction, w
 func printRoleBindingRestrictionList(list *authorizationapi.RoleBindingRestrictionList, w io.Writer, options kctl.PrintOptions) error {
 	for i := range list.Items {
 		if err := printRoleBindingRestriction(&list.Items[i], w, options); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printTemplateInstance(templateInstance *templateapi.TemplateInstance, w io.Writer, opts kctl.PrintOptions) error {
+	name := formatResourceName(opts.Kind, templateInstance.Name, opts.WithKind)
+
+	if opts.WithNamespace {
+		if _, err := fmt.Fprintf(w, "%s\t", templateInstance.Namespace); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintf(w, "%s\t%s", name, templateInstance.Spec.Template.Name); err != nil {
+		return err
+	}
+	if err := appendItemLabels(templateInstance.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
+}
+
+func printTemplateInstanceList(list *templateapi.TemplateInstanceList, w io.Writer, opts kctl.PrintOptions) error {
+	for i := range list.Items {
+		if err := printTemplateInstance(&list.Items[i], w, opts); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func printBrokerTemplateInstance(brokerTemplateInstance *templateapi.BrokerTemplateInstance, w io.Writer, opts kctl.PrintOptions) error {
+	name := formatResourceName(opts.Kind, brokerTemplateInstance.Name, opts.WithKind)
+
+	if _, err := fmt.Fprintf(w, "%s\t%s/%s", name, brokerTemplateInstance.Spec.TemplateInstance.Namespace, brokerTemplateInstance.Spec.TemplateInstance.Name); err != nil {
+		return err
+	}
+	if err := appendItemLabels(brokerTemplateInstance.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
+}
+
+func printBrokerTemplateInstanceList(list *templateapi.BrokerTemplateInstanceList, w io.Writer, opts kctl.PrintOptions) error {
+	for i := range list.Items {
+		if err := printBrokerTemplateInstance(&list.Items[i], w, opts); err != nil {
 			return err
 		}
 	}

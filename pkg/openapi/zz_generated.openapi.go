@@ -7666,6 +7666,127 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		Dependencies: []string{
 			"v1.ObjectMeta", "v1.ObjectReference"},
 	},
+	"v1.BrokerTemplateInstance": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BrokerTemplateInstance holds the service broker-related state associated with a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec describes the state of this BrokerTemplateInstance.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.BrokerTemplateInstanceSpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"v1.BrokerTemplateInstanceSpec", "v1.ObjectMeta"},
+	},
+	"v1.BrokerTemplateInstanceList": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "items is a list of BrokerTemplateInstances",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.BrokerTemplateInstance"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.ListMeta", "v1.BrokerTemplateInstance"},
+	},
+	"v1.BrokerTemplateInstanceSpec": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.",
+				Properties: map[string]spec.Schema{
+					"templateInstance": {
+						SchemaProps: spec.SchemaProps{
+							Description: "templateinstance is a reference to a TemplateInstance object residing in a namespace.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectReference"),
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "secret is a reference to a Secret object residing in a namespace, containing the necessary template parameters.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectReference"),
+						},
+					},
+					"bindingIDs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "bindingids is a list of 'binding_id's provided during successive bind calls to the template service broker.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"templateInstance", "secret", "bindingIDs"},
+			},
+		},
+		Dependencies: []string{
+			"v1.ObjectReference"},
+	},
 	"v1.Build": {
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -23822,6 +23943,214 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		},
 		Dependencies: []string{
 			"runtime.RawExtension", "v1.ObjectMeta", "v1.Parameter"},
+	},
+	"v1.TemplateInstance": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstance requests and records the instantiation of a Template. TemplateInstance is part of an experimental API.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec describes the desired state of this TemplateInstance.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TemplateInstanceSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status describes the current state of this TemplateInstance.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TemplateInstanceStatus"),
+						},
+					},
+				},
+				Required: []string{"spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"v1.ObjectMeta", "v1.TemplateInstanceSpec", "v1.TemplateInstanceStatus"},
+	},
+	"v1.TemplateInstanceCondition": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstanceCondition contains condition information for a TemplateInstance.",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type of the condition, currently Ready or InstantiateFailure.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status of the condition, one of True, False or Unknown.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastTransitionTime is the last time a condition status transitioned from one state to another.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is a brief machine readable explanation for the condition's last transition.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Message is a human readable description of the details of the last transition, complementing reason.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"type", "status", "lastTransitionTime", "reason", "message"},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.Time"},
+	},
+	"v1.TemplateInstanceList": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstanceList is a list of TemplateInstance objects.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object metadata.",
+							Ref:         spec.MustCreateRef("#/definitions/unversioned.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "items is a list of Templateinstances",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.TemplateInstance"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"unversioned.ListMeta", "v1.TemplateInstance"},
+	},
+	"v1.TemplateInstanceRequestor": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstanceRequestor holds the identity of an agent requesting a template instantiation.",
+				Properties: map[string]spec.Schema{
+					"username": {
+						SchemaProps: spec.SchemaProps{
+							Description: "username is the username of the agent requesting a template instantiation.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"username"},
+			},
+		},
+		Dependencies: []string{},
+	},
+	"v1.TemplateInstanceSpec": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstanceSpec describes the desired state of a TemplateInstance.",
+				Properties: map[string]spec.Schema{
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "template is a full copy of the template for instantiation.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.Template"),
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "secret is a reference to a Secret object containing the necessary template parameters.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.LocalObjectReference"),
+						},
+					},
+					"requestor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "requestor holds the identity of the agent requesting the template instantiation.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TemplateInstanceRequestor"),
+						},
+					},
+				},
+				Required: []string{"template", "secret", "requestor"},
+			},
+		},
+		Dependencies: []string{
+			"v1.LocalObjectReference", "v1.Template", "v1.TemplateInstanceRequestor"},
+	},
+	"v1.TemplateInstanceStatus": {
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateInstanceStatus describes the current state of a TemplateInstance.",
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions represent the latest available observations of a TemplateInstance's current state.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: spec.MustCreateRef("#/definitions/v1.TemplateInstanceCondition"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"conditions"},
+			},
+		},
+		Dependencies: []string{
+			"v1.TemplateInstanceCondition"},
 	},
 	"v1.TemplateList": {
 		Schema: spec.Schema{

@@ -125,6 +125,7 @@ dnsConfig:
   allowRecursiveQueries: false
   bindAddress: ""
   bindNetwork: ""
+enableTemplateServiceBroker: false
 etcdClientInfo:
   ca: ""
   certFile: ""

@@ -23,6 +23,7 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -57,6 +58,8 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&oauthapi.OAuthAuthorizeToken{}),                   // normal users don't ever look at these
 	reflect.TypeOf(&oauthapi.OAuthClientAuthorization{}),              // normal users don't ever look at these
 	reflect.TypeOf(&projectapi.ProjectRequest{}),                      // normal users don't ever look at these
+	reflect.TypeOf(&templateapi.TemplateInstance{}),                   // normal users don't ever look at these
+	reflect.TypeOf(&templateapi.BrokerTemplateInstance{}),             // normal users don't ever look at these
 	reflect.TypeOf(&authorizationapi.IsPersonalSubjectAccessReview{}), // not a top level resource
 	// ATM image signature doesn't provide any human readable information
 	reflect.TypeOf(&imageapi.ImageSignature{}),

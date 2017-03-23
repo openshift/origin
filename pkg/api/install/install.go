@@ -251,6 +251,50 @@ func init() {
 				return true, templatev1.Convert_api_TemplateList_To_v1_TemplateList(a, b, s)
 			}
 
+		case *templatev1.TemplateInstance:
+			switch b := objB.(type) {
+			case *templateapi.TemplateInstance:
+				return true, templatev1.Convert_v1_TemplateInstance_To_api_TemplateInstance(a, b, s)
+			}
+		case *templateapi.TemplateInstance:
+			switch b := objB.(type) {
+			case *templatev1.TemplateInstance:
+				return true, templatev1.Convert_api_TemplateInstance_To_v1_TemplateInstance(a, b, s)
+			}
+
+		case *templatev1.TemplateInstanceList:
+			switch b := objB.(type) {
+			case *templateapi.TemplateInstanceList:
+				return true, templatev1.Convert_v1_TemplateInstanceList_To_api_TemplateInstanceList(a, b, s)
+			}
+		case *templateapi.TemplateInstanceList:
+			switch b := objB.(type) {
+			case *templatev1.TemplateInstanceList:
+				return true, templatev1.Convert_api_TemplateInstanceList_To_v1_TemplateInstanceList(a, b, s)
+			}
+
+		case *templatev1.BrokerTemplateInstance:
+			switch b := objB.(type) {
+			case *templateapi.BrokerTemplateInstance:
+				return true, templatev1.Convert_v1_BrokerTemplateInstance_To_api_BrokerTemplateInstance(a, b, s)
+			}
+		case *templateapi.BrokerTemplateInstance:
+			switch b := objB.(type) {
+			case *templatev1.BrokerTemplateInstance:
+				return true, templatev1.Convert_api_BrokerTemplateInstance_To_v1_BrokerTemplateInstance(a, b, s)
+			}
+
+		case *templatev1.BrokerTemplateInstanceList:
+			switch b := objB.(type) {
+			case *templateapi.BrokerTemplateInstanceList:
+				return true, templatev1.Convert_v1_BrokerTemplateInstanceList_To_api_BrokerTemplateInstanceList(a, b, s)
+			}
+		case *templateapi.BrokerTemplateInstanceList:
+			switch b := objB.(type) {
+			case *templatev1.BrokerTemplateInstanceList:
+				return true, templatev1.Convert_api_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanceList(a, b, s)
+			}
+
 		case *deployv1.DeploymentConfig:
 			switch b := objB.(type) {
 			case *deployapi.DeploymentConfig:

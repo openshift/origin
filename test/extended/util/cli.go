@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -198,6 +199,27 @@ func (c *CLI) AdminClient() *client.Client {
 		FatalErr(err)
 	}
 	return osClient
+}
+
+// Client provides an OpenShift client for the current user. If the user is not
+// set, then it provides client for the cluster admin user
+func (c *CLI) TemplateClient() *templateclientset.Clientset {
+	_, clientConfig, err := configapi.GetKubeClient(c.configPath, nil)
+	client, err := templateclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+// AdminClient provides an OpenShift client for the cluster admin user.
+func (c *CLI) AdminTemplateClient() *templateclientset.Clientset {
+	_, clientConfig, err := configapi.GetKubeClient(c.adminConfigPath, nil)
+	client, err := templateclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
 }
 
 // KubeClient provides a Kubernetes client for the current namespace
