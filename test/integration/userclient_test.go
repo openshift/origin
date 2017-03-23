@@ -442,7 +442,7 @@ func TestUserInitialization(t *testing.T) {
 		}
 		if testcase.UpdateUser != nil {
 			if testcase.UpdateUser.ResourceVersion == "" {
-				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name)
+				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name, metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Could not get user to update: %v", k, err)
 					continue
@@ -482,7 +482,7 @@ func TestUserInitialization(t *testing.T) {
 					return
 				}
 
-				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
+				user, err := clusterAdminClient.Users().Get(userInfo.GetName(), metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Error getting user: %v", k, err)
 				}

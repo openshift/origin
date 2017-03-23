@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktransport "k8s.io/kubernetes/pkg/client/transport"
+	ktransport "k8s.io/client-go/transport"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"

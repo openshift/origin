@@ -87,7 +87,7 @@ func mockBuild() *buildapi.Build {
 	}
 }
 
-func RunBuildControllerTest(t testingT, osClient *client.Client, kClientset *kclientset.Clientset) {
+func RunBuildControllerTest(t testingT, osClient *client.Client, kClientset kclientset.Interface) {
 	// Setup an error channel
 	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
 
@@ -163,7 +163,7 @@ type buildControllerPodTest struct {
 	States []buildControllerPodState
 }
 
-func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kclientset.Clientset) {
+func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kclientset.Interface) {
 	ns := testutil.Namespace()
 
 	tests := []buildControllerPodTest{
@@ -216,7 +216,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		}
 
 		// Watch build pod for transition to pending
-		podWatch, err := kClient.Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b)).String()})
+		podWatch, err := kClient.Core().Pods(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", buildapi.GetBuildPodName(b)).String()})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -252,7 +252,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 		for _, state := range test.States {
 			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				// Update pod state and verify that corresponding build state happens accordingly
-				pod, err := kClient.Pods(ns).Get(pod.Name, metav1.GetOptions{})
+				pod, err := kClient.Core().Pods(ns).Get(pod.Name, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
@@ -260,7 +260,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 					return fmt.Errorf("another client altered the pod phase to %s: %#v", state.PodPhase, pod)
 				}
 				pod.Status.Phase = state.PodPhase
-				_, err = kClient.Pods(ns).UpdateStatus(pod)
+				_, err = kClient.Core().Pods(ns).UpdateStatus(pod)
 				return err
 			}); err != nil {
 				t.Fatal(err)
@@ -480,7 +480,7 @@ WaitLoop3:
 	}
 }
 
-func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
+func RunBuildDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset kclientset.Interface) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
@@ -545,7 +545,7 @@ func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watc
 	return nil
 }
 
-func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
+func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset kclientset.Interface) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
@@ -616,7 +616,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 	}
 }
 
-func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
+func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset kclientset.Interface) {
 
 	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metainternal.ListOptions{})
 	if err != nil {
@@ -680,7 +680,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client
 	}
 }
 
-func RunBuildConfigChangeControllerTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
+func RunBuildConfigChangeControllerTest(t testingT, clusterAdminClient client.Interface, clusterAdminKubeClientset kclientset.Interface) {
 	config := configChangeBuildConfig()
 	created, err := clusterAdminClient.BuildConfigs(testutil.Namespace()).Create(config)
 	if err != nil {

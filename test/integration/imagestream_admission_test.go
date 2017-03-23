@@ -307,7 +307,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	}
 
 	t.Logf("adding new tag to image stream spec exceeding limit %v", limit)
-	is, err := client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err := client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +332,7 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err = client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,7 +384,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	}
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err := client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err := client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -410,7 +410,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	limit = bumpLimit(t, lrClient, limitRangeName, imageapi.ResourceImageStreamImages, "1")
 
 	t.Logf("adding new tag to image stream status below limit %v", limit)
-	is, err = client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err = client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,7 +428,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	}
 
 	t.Logf("adding new tag to image stream status exceeding limit %v", limit)
-	is, err = client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err = client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -452,7 +452,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	}
 
 	t.Logf("re-tagging the image under different tag")
-	is, err = client.ImageStreams(testutil.Namespace()).Get("is")
+	is, err = client.ImageStreams(testutil.Namespace()).Get("is", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -470,7 +470,7 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	}
 }
 
-func setupImageStreamAdmissionTest(t *testing.T) (*kclientset.Clientset, *client.Client) {
+func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, *client.Client) {
 	testutil.RequireEtcd(t)
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
@@ -545,7 +545,7 @@ func createResourceQuota(t *testing.T, rqClient kcoreclient.ResourceQuotaInterfa
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(t *testing.T, rqs kcoreclient.ResourceQuotaInterface, quotaName string, resourceName kapi.ResourceName, value int64) kapi.ResourceList {
 	t.Logf("bump the quota %s to %s=%d", quotaName, resourceName, value)
-	rq, err := rqs.Get(quotaName)
+	rq, err := rqs.Get(quotaName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -592,7 +592,7 @@ func createLimitRangeOfType(t *testing.T, lrClient kcoreclient.LimitRangeInterfa
 
 func bumpLimit(t *testing.T, lrClient kcoreclient.LimitRangeInterface, limitRangeName string, resourceName kapi.ResourceName, limit string) kapi.ResourceList {
 	t.Logf("bump a limit on resource %q to %s", resourceName, limit)
-	lr, err := lrClient.Get(limitRangeName)
+	lr, err := lrClient.Get(limitRangeName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/client"
@@ -382,7 +383,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 			t.Fatalf("%s: Unexpected error: %v", k, err)
 		}
 
-		user, err := userClient.Users().Get("~")
+		user, err := userClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("%s: Unexpected error: %v", k, err)
 		}

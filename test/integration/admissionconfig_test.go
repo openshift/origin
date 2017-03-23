@@ -32,7 +32,7 @@ type TestPluginConfig struct {
 
 func (obj *TestPluginConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
-func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclientset.Clientset, *client.Client) {
+func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (kclientset.Interface, *client.Client) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {

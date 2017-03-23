@@ -241,7 +241,7 @@ middleware:
 	}
 
 	// test auto provisioning
-	otherStream, err := adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	otherStream, err := adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo", metav1.GetOptions{})
 	t.Logf("otherStream=%#v, err=%v", otherStream, err)
 	if err == nil {
 		t.Fatalf("expected error getting otherrepo")
@@ -257,7 +257,7 @@ middleware:
 		t.Fatal(err)
 	}
 
-	otherStream, err = adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	otherStream, err = adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error getting otherrepo: %s", err)
 	}

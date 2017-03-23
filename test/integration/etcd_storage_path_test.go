@@ -901,7 +901,7 @@ type metaObject struct {
 }
 
 func (obj *metaObject) getGVK() schema.GroupVersionKind {
-	return metav1.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
+	return schema.FromAPIVersionAndKind(obj.APIVersion, obj.Kind)
 }
 
 func (obj *metaObject) isEmpty() bool {

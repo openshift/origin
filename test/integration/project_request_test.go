@@ -132,7 +132,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Verify project is deleted
-	if nsObj, err := kubeClientset.Core().Namespaces().Get(ns); !kapierrors.IsNotFound(err) {
+	if nsObj, err := kubeClientset.Core().Namespaces().Get(ns, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
 		t.Errorf("Expected namespace to be gone, got %#v, %#v", nsObj, err)
 	}
 }

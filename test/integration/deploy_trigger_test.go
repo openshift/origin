@@ -57,7 +57,7 @@ func TestTriggers_manual(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metainternal.ListOptions{ResourceVersion: dc.ResourceVersion})
+	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metav1.ListOptions{ResourceVersion: dc.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -371,7 +371,7 @@ loop:
 	if retryErr != nil {
 		t.Fatalf("Couldn't instantiate deployment config %q: %v", request.Name, err)
 	}
-	config, err = oc.DeploymentConfigs(config.Namespace).Get(config.Name)
+	config, err = oc.DeploymentConfigs(config.Namespace).Get(config.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -582,7 +582,7 @@ func TestTriggers_configChange(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkConfigChangeTrigger()}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metainternal.ListOptions{})
+	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -610,7 +610,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
 	// get this live or conflicts will never end up resolved
 	retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		liveDeployment, err := kc.Core().ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+		liveDeployment, err := kc.Core().ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -635,7 +635,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// Update the config with a new environment variable and observe a new deployment
 	// coming up.
 	retryErr = retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		latest, err := oc.DeploymentConfigs(namespace).Get(config.Name)
+		latest, err := oc.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -657,7 +657,7 @@ func TestTriggers_configChange(t *testing.T) {
 
 	if retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 		// submit a new config with an updated environment variable
-		newConfig, err := oc.DeploymentConfigs(namespace).Get(config.Name)
+		newConfig, err := oc.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

@@ -51,7 +51,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now try to get the project with the same name and ensure it is our namespace
-	project, err := originClient.Projects().Get(namespaceResult.Name)
+	project, err := originClient.Projects().Get(namespaceResult.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now get the namespace for that project
-	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name)
+	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

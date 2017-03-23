@@ -261,7 +261,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		}
 	}
 
-	istream, err := adminClient.ImageStreams(stream.Namespace).Get(stream.Name)
+	istream, err := adminClient.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +298,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		}
 	}
 
-	istream, err = adminClient.ImageStreams(stream.Namespace).Get(stream.Name)
+	istream, err = adminClient.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -316,7 +316,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		}
 	}
 
-	istream, err = adminClient.ImageStreams(stream.Namespace).Get(stream.Name)
+	istream, err = adminClient.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

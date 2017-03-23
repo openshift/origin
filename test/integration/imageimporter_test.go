@@ -65,7 +65,7 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %#v %#v %#v", err, isi, isi.Status.Import)
 	}
 	// does not create stream
-	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist"); err == nil || !errors.IsNotFound(err) {
+	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
 		t.Fatal(err)
 	}
 
@@ -84,7 +84,7 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
 	}
 	// does not create stream
-	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist"); err == nil || !errors.IsNotFound(err) {
+	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
 		t.Fatal(err)
 	}
 
@@ -127,7 +127,7 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	// stream should not have changed
-	stream2, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist")
+	stream2, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +484,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 			t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
 		}
 
-		is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+		is, err := c.ImageStreams(testutil.Namespace()).Get("test", metav1.GetOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -607,7 +607,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 		}
 	}
 
-	is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+	is, err := c.ImageStreams(testutil.Namespace()).Get("test", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

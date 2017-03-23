@@ -94,7 +94,7 @@ func TestClusterQuota(t *testing.T) {
 			t.Errorf("quota is %#v", list)
 		}
 
-		list2, err := clusterAdminKubeClient.Core().ConfigMaps("").List(metainternal.ListOptions{})
+		list2, err := clusterAdminKubeClient.Core().ConfigMaps("").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("ConfigMaps is %#v", list2)
 		}
@@ -137,7 +137,7 @@ func waitForQuotaLabeling(clusterAdminClient client.AppliedClusterResourceQuotas
 }
 
 func labelNamespace(clusterAdminKubeClient kcoreclient.NamespacesGetter, namespaceName string) error {
-	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName)
+	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

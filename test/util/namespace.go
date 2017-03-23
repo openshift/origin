@@ -38,7 +38,7 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 	return err
 }
 
-func DeleteAndWaitForNamespaceTermination(c *kclientset.Clientset, name string) error {
+func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) error {
 	w, err := c.Core().Namespaces().Watch(metav1.ListOptions{})
 	if err != nil {
 		return err

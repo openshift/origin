@@ -28,7 +28,7 @@ func TestDiagNodeConditions(t *testing.T) {
 	}
 	nodeDiag := clusterdiags.NodeDefinitions{KubeClient: client}
 	err = wait.Poll(200*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := client.Core().Nodes().Get(nodeConfig.NodeName); kapierror.IsNotFound(err) {
+		if _, err := client.Core().Nodes().Get(nodeConfig.NodeName, metav1.GetOptions{}); kapierror.IsNotFound(err) {
 			return false, nil
 		}
 		return true, err
@@ -47,7 +47,7 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Make the node unschedulable and verify diagnostics notices
 	err = wait.Poll(200*time.Millisecond, time.Second, func() (bool, error) {
-		node, err := client.Core().Nodes().Get(nodeConfig.NodeName)
+		node, err := client.Core().Nodes().Get(nodeConfig.NodeName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

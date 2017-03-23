@@ -75,7 +75,7 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	// create a scoped token for bob that is only good for getting user info
-	bobUser, err := bobClient.Users().Get("~")
+	bobUser, err := bobClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -28,7 +28,7 @@ func TestExtensionAPIServerConfigMap(t *testing.T) {
 
 	var configmap *kapi.ConfigMap
 	err = utilwait.PollImmediate(50*time.Millisecond, 10*time.Second, func() (bool, error) {
-		configmap, err = clusterAdminKubeClient.Core().ConfigMaps(metav1.NamespaceSystem).Get("extension-apiserver-authentication")
+		configmap, err = clusterAdminKubeClient.Core().ConfigMaps(metav1.NamespaceSystem).Get("extension-apiserver-authentication", metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		}
