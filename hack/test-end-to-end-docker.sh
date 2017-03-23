@@ -54,6 +54,10 @@ function cleanup()
 	os::test::junit::generate_oscmd_report
 	set -e
 
+	# restore journald to previous form
+	${USE_SUDO:+sudo} mv /etc/systemd/{journald.conf.bak,journald.conf}
+	${USE_SUDO:+sudo} systemctl restart systemd-journald.service
+
 	os::log::info "Exiting"
 	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
 	exit $out
@@ -62,6 +66,13 @@ function cleanup()
 trap "cleanup" EXIT INT TERM
 
 os::log::system::start
+
+# This increases rate limits in journald to bypass the problem from
+# https://github.com/openshift/origin/issues/12558.
+${USE_SUDO:+sudo} cp /etc/systemd/{journald.conf,journald.conf.bak}
+os::util::sed "s/^.*RateLimitInterval.*$/RateLimitInterval=1s/g" /etc/systemd/journald.conf
+os::util::sed "s/^.*RateLimitBurst.*$/RateLimitBurst=10000/g" /etc/systemd/journald.conf
+${USE_SUDO:+sudo} systemctl restart systemd-journald.service
 
 out=$(
 	set +e
