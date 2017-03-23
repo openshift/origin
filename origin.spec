@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ece88f04f5df16582343685edbc0cc1b01fbc382
+%global commit 3150f30637e559574769842007ad48bf35930815
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=ece88f0
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=3150f30
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.1
+Version:        3.6.2
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,38 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Mar 23 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.2-1
+- Break out RPM version logic from RPM build script (skuznets@redhat.com)
+- Template service broker (jminter@redhat.com)
+- Template service broker API (jminter@redhat.com)
+- generated clients (deads@redhat.com)
+- UPSTREAM: <carry>: update clientset generator for openshift groups
+  (deads@redhat.com)
+- enable generation of normal clientsets (deads@redhat.com)
+- node: system container mounts /rootfs rslave (gscrivan@redhat.com)
+- Add tests for optimized builds that check permissions and behavior
+  (ccoleman@redhat.com)
+- Create a new synthetic ACL for docker optimization (ccoleman@redhat.com)
+- Allow skipping image builds when the binaries are already created
+  (ccoleman@redhat.com)
+- Be more restrictive when copying secrets into Docker builds
+  (ccoleman@redhat.com)
+- Use 0755 in image source nested directory permissions (ccoleman@redhat.com)
+- UPSTREAM: openshift/source-to-image: 711: Incorrect image user order
+  (ccoleman@redhat.com)
+- Addition of a pointer to string breaks tags_test (ccoleman@redhat.com)
+- Suppress excessive logging from environment (ccoleman@redhat.com)
+- Use imagebuilder to satisfy the imageOptimizationPolicy field
+  (ccoleman@redhat.com)
+- Add image optimization policy API to builds (ccoleman@redhat.com)
+- Copy pkg/util/dockerfile into build tree (ccoleman@redhat.com)
+- bump(github.com/openshift/imagebuilder):1c70938feddeb3ef9368091726e3c8a662dd7
+  ac5 (ccoleman@redhat.com)
+- Drop `oc ex dockerbuild` (ccoleman@redhat.com)
+- SDN egress policy should not firewall endpoints from global namespaces
+  (rpenta@redhat.com)
+- Egress Network policy fixes (rpenta@redhat.com)
+
 * Wed Mar 22 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.1-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console ce66b15
   (tdawson@redhat.com)
