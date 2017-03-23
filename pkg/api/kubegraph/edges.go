@@ -234,10 +234,11 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 		}
 
 		var syntheticNode graph.Node
-		switch groupVersionResource.GroupResource() {
-		case kapi.Resource("replicationcontrollers"):
+		r := groupVersionResource.GroupResource()
+		switch {
+		case r == kapi.Resource("replicationcontrollers"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
-		case deployapi.Resource("deploymentconfigs"):
+		case deployapi.IsResourceOrLegacy("deploymentconfigs", r):
 			syntheticNode = deploygraph.FindOrCreateSyntheticDeploymentConfigNode(g, &deployapi.DeploymentConfig{ObjectMeta: syntheticMeta})
 		default:
 			continue
