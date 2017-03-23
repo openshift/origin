@@ -364,7 +364,7 @@ func command(name, dir string, env []string, args ...string) (stdout, stderr str
 func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 
-	glog.V(4).Infof("Executing %s %s %s", strings.Join(env, " "), name, strings.Join(args, " "))
+	glog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
 
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir

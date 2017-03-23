@@ -13,6 +13,40 @@ import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
+// BrokerTemplateInstance holds the service broker-related state associated with
+// a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
+message BrokerTemplateInstance {
+  // Standard object metadata.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // spec describes the state of this BrokerTemplateInstance.
+  optional BrokerTemplateInstanceSpec spec = 2;
+}
+
+// BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.
+message BrokerTemplateInstanceList {
+  // Standard object metadata.
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  // items is a list of BrokerTemplateInstances
+  repeated BrokerTemplateInstance items = 2;
+}
+
+// BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.
+message BrokerTemplateInstanceSpec {
+  // templateinstance is a reference to a TemplateInstance object residing
+  // in a namespace.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference templateInstance = 1;
+
+  // secret is a reference to a Secret object residing in a namespace,
+  // containing the necessary template parameters.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference secret = 2;
+
+  // bindingids is a list of 'binding_id's provided during successive bind
+  // calls to the template service broker.
+  repeated string bindingIDs = 3;
+}
+
 // Parameter defines a name/value variable that is to be processed during
 // the Template to Config transformation.
 message Parameter {
@@ -85,6 +119,78 @@ message Template {
   // labels is a optional set of labels that are applied to every
   // object during the Template to Config transformation.
   map<string, string> labels = 5;
+}
+
+// TemplateInstance requests and records the instantiation of a Template.
+// TemplateInstance is part of an experimental API.
+message TemplateInstance {
+  // Standard object metadata.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+
+  // spec describes the desired state of this TemplateInstance.
+  optional TemplateInstanceSpec spec = 2;
+
+  // status describes the current state of this TemplateInstance.
+  optional TemplateInstanceStatus status = 3;
+}
+
+// TemplateInstanceCondition contains condition information for a
+// TemplateInstance.
+message TemplateInstanceCondition {
+  // Type of the condition, currently Ready or InstantiateFailure.
+  optional string type = 1;
+
+  // Status of the condition, one of True, False or Unknown.
+  optional string status = 2;
+
+  // LastTransitionTime is the last time a condition status transitioned from
+  // one state to another.
+  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
+
+  // Reason is a brief machine readable explanation for the condition's last
+  // transition.
+  optional string reason = 4;
+
+  // Message is a human readable description of the details of the last
+  // transition, complementing reason.
+  optional string message = 5;
+}
+
+// TemplateInstanceList is a list of TemplateInstance objects.
+message TemplateInstanceList {
+  // Standard object metadata.
+  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+
+  // items is a list of Templateinstances
+  repeated TemplateInstance items = 2;
+}
+
+// TemplateInstanceRequestor holds the identity of an agent requesting a
+// template instantiation.
+message TemplateInstanceRequestor {
+  // username is the username of the agent requesting a template instantiation.
+  optional string username = 1;
+}
+
+// TemplateInstanceSpec describes the desired state of a TemplateInstance.
+message TemplateInstanceSpec {
+  // template is a full copy of the template for instantiation.
+  optional Template template = 1;
+
+  // secret is a reference to a Secret object containing the necessary
+  // template parameters.
+  optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference secret = 2;
+
+  // requestor holds the identity of the agent requesting the template
+  // instantiation.
+  optional TemplateInstanceRequestor requestor = 3;
+}
+
+// TemplateInstanceStatus describes the current state of a TemplateInstance.
+message TemplateInstanceStatus {
+  // conditions represent the latest available observations of a
+  // TemplateInstance's current state.
+  repeated TemplateInstanceCondition conditions = 1;
 }
 
 // TemplateList is a list of Template objects.

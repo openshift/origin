@@ -19,10 +19,72 @@ func init() {
 // to allow building arbitrary schemes.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BrokerTemplateInstance, InType: reflect.TypeOf(&BrokerTemplateInstance{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BrokerTemplateInstanceList, InType: reflect.TypeOf(&BrokerTemplateInstanceList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_BrokerTemplateInstanceSpec, InType: reflect.TypeOf(&BrokerTemplateInstanceSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Parameter, InType: reflect.TypeOf(&Parameter{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_Template, InType: reflect.TypeOf(&Template{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstance, InType: reflect.TypeOf(&TemplateInstance{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstanceCondition, InType: reflect.TypeOf(&TemplateInstanceCondition{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstanceList, InType: reflect.TypeOf(&TemplateInstanceList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstanceRequestor, InType: reflect.TypeOf(&TemplateInstanceRequestor{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstanceSpec, InType: reflect.TypeOf(&TemplateInstanceSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateInstanceStatus, InType: reflect.TypeOf(&TemplateInstanceStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1_TemplateList, InType: reflect.TypeOf(&TemplateList{})},
 	)
+}
+
+func DeepCopy_v1_BrokerTemplateInstance(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BrokerTemplateInstance)
+		out := out.(*BrokerTemplateInstance)
+		out.TypeMeta = in.TypeMeta
+		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_BrokerTemplateInstanceSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_BrokerTemplateInstanceList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BrokerTemplateInstanceList)
+		out := out.(*BrokerTemplateInstanceList)
+		out.TypeMeta = in.TypeMeta
+		out.ListMeta = in.ListMeta
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]BrokerTemplateInstance, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_BrokerTemplateInstance(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_BrokerTemplateInstanceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BrokerTemplateInstanceSpec)
+		out := out.(*BrokerTemplateInstanceSpec)
+		out.TemplateInstance = in.TemplateInstance
+		out.Secret = in.Secret
+		if in.BindingIDs != nil {
+			in, out := &in.BindingIDs, &out.BindingIDs
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.BindingIDs = nil
+		}
+		return nil
+	}
 }
 
 func DeepCopy_v1_Parameter(in interface{}, out interface{}, c *conversion.Cloner) error {
@@ -77,6 +139,105 @@ func DeepCopy_v1_Template(in interface{}, out interface{}, c *conversion.Cloner)
 			}
 		} else {
 			out.ObjectLabels = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstance(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstance)
+		out := out.(*TemplateInstance)
+		out.TypeMeta = in.TypeMeta
+		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_TemplateInstanceSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1_TemplateInstanceStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstanceCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstanceCondition)
+		out := out.(*TemplateInstanceCondition)
+		out.Type = in.Type
+		out.Status = in.Status
+		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
+		out.Reason = in.Reason
+		out.Message = in.Message
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstanceList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstanceList)
+		out := out.(*TemplateInstanceList)
+		out.TypeMeta = in.TypeMeta
+		out.ListMeta = in.ListMeta
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]TemplateInstance, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_TemplateInstance(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Items = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstanceRequestor(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstanceRequestor)
+		out := out.(*TemplateInstanceRequestor)
+		out.Username = in.Username
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstanceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstanceSpec)
+		out := out.(*TemplateInstanceSpec)
+		if err := DeepCopy_v1_Template(&in.Template, &out.Template, c); err != nil {
+			return err
+		}
+		out.Secret = in.Secret
+		if in.Requestor != nil {
+			in, out := &in.Requestor, &out.Requestor
+			*out = new(TemplateInstanceRequestor)
+			**out = **in
+		} else {
+			out.Requestor = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1_TemplateInstanceStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*TemplateInstanceStatus)
+		out := out.(*TemplateInstanceStatus)
+		if in.Conditions != nil {
+			in, out := &in.Conditions, &out.Conditions
+			*out = make([]TemplateInstanceCondition, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1_TemplateInstanceCondition(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Conditions = nil
 		}
 		return nil
 	}

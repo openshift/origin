@@ -449,7 +449,7 @@ func BuildKubernetesMasterConfig(
 func DefaultOpenAPIConfig() *openapicommon.Config {
 	return &openapicommon.Config{
 		Definitions:    openapigenerated.OpenAPIDefinitions,
-		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift"},
+		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
 		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
 			op := r.Operation
 			path := r.Path

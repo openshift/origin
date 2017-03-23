@@ -584,9 +584,18 @@ message DockerBuildStrategy {
   // relative to the root of the context (contextDir).
   optional string dockerfilePath = 6;
 
-  // Args contains any build arguments that are to be passed to Docker.  See
-  // https://docs.docker.com/engine/reference/builder/#/arg for more details
+  // buildArgs contains build arguments that will be resolved in the Dockerfile.  See
+  // https://docs.docker.com/engine/reference/builder/#/arg for more details.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 7;
+
+  // imageOptimizationPolicy describes what optimizations the system can use when building images
+  // to reduce the final size or time spent building the image. The default policy is 'None' which
+  // means the final build image will be equivalent to an image created by the Docker build API.
+  // The experimental policy 'SkipLayers' will avoid commiting new layers in between each
+  // image step, and will fail if the Dockerfile cannot provide compatibility with the 'None'
+  // policy. An additional experimental policy 'SkipLayersAndWarn' is the same as
+  // 'SkipLayers' but simply warns if compatibility cannot be preserved.
+  optional string imageOptimizationPolicy = 8;
 }
 
 // DockerStrategyOptions contains extra strategy options for Docker builds

@@ -92,7 +92,7 @@ func newRESTMapper(externalVersions []unversioned.GroupVersion) meta.RESTMapper 
 	for i := len(externalVersions) - 1; i >= 0; i-- {
 		worstToBestGroupVersions = append(worstToBestGroupVersions, externalVersions[i])
 	}
-	rootScoped := sets.NewString()
+	rootScoped := sets.NewString("BrokerTemplateInstance")
 	ignoredKinds := sets.NewString()
 	return kapi.NewDefaultRESTMapper(worstToBestGroupVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped)
 }

@@ -1163,6 +1163,8 @@ func TestValidateSource(t *testing.T) {
 }
 
 func TestValidateStrategy(t *testing.T) {
+	badPolicy := buildapi.ImageOptimizationPolicy("Unknown")
+	goodPolicy := buildapi.ImageOptimizationNone
 	errorCases := []struct {
 		t        field.ErrorType
 		path     string
@@ -1179,6 +1181,21 @@ func TestValidateStrategy(t *testing.T) {
 				DockerStrategy:          &buildapi.DockerBuildStrategy{},
 				CustomStrategy:          &buildapi.CustomBuildStrategy{},
 				JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{},
+			},
+		},
+		// 1
+		{
+			t:    field.ErrorTypeInvalid,
+			path: "dockerStrategy.imageOptimizationPolicy",
+			strategy: &buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{ImageOptimizationPolicy: &badPolicy},
+			},
+		},
+		// 1
+		{
+			ok: true,
+			strategy: &buildapi.BuildStrategy{
+				DockerStrategy: &buildapi.DockerBuildStrategy{ImageOptimizationPolicy: &goodPolicy},
 			},
 		},
 	}

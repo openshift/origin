@@ -280,7 +280,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 			return err
 		}
 		glog.V(4).Infof("Creating image destination directory: %s", destDir)
-		err := os.MkdirAll(destDir, 0644)
+		err := os.MkdirAll(destDir, 0755)
 		if err != nil {
 			return err
 		}

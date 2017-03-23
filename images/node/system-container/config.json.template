@@ -270,7 +270,7 @@
 	    "destination": "/rootfs",
 	    "options": [
 		"rbind",
-                "rprivate",
+                "rslave",
 		"ro"
 	    ]
         },

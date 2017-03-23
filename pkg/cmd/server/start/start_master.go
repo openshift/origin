@@ -755,6 +755,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	}
 	oc.RunIngressIPController(ingressIPClient)
 
+	if oc.Options.EnableTemplateServiceBroker {
+		oc.RunTemplateController()
+	}
+
 	glog.Infof("Started Origin Controllers")
 
 	return nil

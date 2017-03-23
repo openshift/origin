@@ -287,14 +287,15 @@ func (CustomBuildStrategy) SwaggerDoc() map[string]string {
 }
 
 var map_DockerBuildStrategy = map[string]string{
-	"":               "DockerBuildStrategy defines input parameters specific to Docker build.",
-	"from":           "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build.",
-	"pullSecret":     "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
-	"noCache":        "noCache if set to true indicates that the docker build must be executed with the --no-cache=true flag",
-	"env":            "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
-	"forcePull":      "forcePull describes if the builder should pull the images from registry prior to building.",
-	"dockerfilePath": "dockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir).",
-	"buildArgs":      "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+	"":                        "DockerBuildStrategy defines input parameters specific to Docker build.",
+	"from":                    "from is reference to an DockerImage, ImageStreamTag, or ImageStreamImage from which the docker image should be pulled the resulting image will be used in the FROM line of the Dockerfile for this build.",
+	"pullSecret":              "pullSecret is the name of a Secret that would be used for setting up the authentication for pulling the Docker images from the private Docker registries",
+	"noCache":                 "noCache if set to true indicates that the docker build must be executed with the --no-cache=true flag",
+	"env":                     "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+	"forcePull":               "forcePull describes if the builder should pull the images from registry prior to building.",
+	"dockerfilePath":          "dockerfilePath is the path of the Dockerfile that will be used to build the Docker image, relative to the root of the context (contextDir).",
+	"buildArgs":               "buildArgs contains build arguments that will be resolved in the Dockerfile.  See https://docs.docker.com/engine/reference/builder/#/arg for more details.",
+	"imageOptimizationPolicy": "imageOptimizationPolicy describes what optimizations the system can use when building images to reduce the final size or time spent building the image. The default policy is 'None' which means the final build image will be equivalent to an image created by the Docker build API. The experimental policy 'SkipLayers' will avoid commiting new layers in between each image step, and will fail if the Dockerfile cannot provide compatibility with the 'None' policy. An additional experimental policy 'SkipLayersAndWarn' is the same as 'SkipLayers' but simply warns if compatibility cannot be preserved.",
 }
 
 func (DockerBuildStrategy) SwaggerDoc() map[string]string {

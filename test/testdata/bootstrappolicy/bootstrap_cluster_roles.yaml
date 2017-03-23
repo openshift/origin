@@ -312,6 +312,7 @@ items:
     resources:
     - processedtemplates
     - templateconfigs
+    - templateinstances
     - templates
     verbs:
     - get
@@ -930,6 +931,7 @@ items:
     resources:
     - processedtemplates
     - templateconfigs
+    - templateinstances
     - templates
     verbs:
     - create
@@ -1300,6 +1302,7 @@ items:
     resources:
     - processedtemplates
     - templateconfigs
+    - templateinstances
     - templates
     verbs:
     - create
@@ -1547,6 +1550,7 @@ items:
     resources:
     - processedtemplates
     - templateconfigs
+    - templateinstances
     - templates
     verbs:
     - get
@@ -2724,6 +2728,24 @@ items:
     - projects
     verbs:
     - get
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: templateservicebroker-client
+  rules:
+  - apiGroups: null
+    attributeRestrictions: null
+    nonResourceURLs:
+    - /brokers/template.openshift.io/*
+    resources: []
+    verbs:
+    - delete
+    - get
+    - put
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:

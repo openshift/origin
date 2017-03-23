@@ -150,7 +150,6 @@ oc-deploy.1
 oc-describe.1
 oc-edit.1
 oc-env.1
-oc-ex-dockerbuild.1
 oc-ex.1
 oc-exec.1
 oc-explain.1

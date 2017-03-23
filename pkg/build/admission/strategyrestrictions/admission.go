@@ -71,6 +71,8 @@ func (a *buildByStrategy) Validate() error {
 
 func resourceForStrategyType(strategy buildapi.BuildStrategy) (unversioned.GroupResource, error) {
 	switch {
+	case strategy.DockerStrategy != nil && strategy.DockerStrategy.ImageOptimizationPolicy != nil && *strategy.DockerStrategy.ImageOptimizationPolicy != buildapi.ImageOptimizationNone:
+		return buildapi.Resource(authorizationapi.OptimizedDockerBuildResource), nil
 	case strategy.DockerStrategy != nil:
 		return buildapi.Resource(authorizationapi.DockerBuildResource), nil
 	case strategy.CustomStrategy != nil:
