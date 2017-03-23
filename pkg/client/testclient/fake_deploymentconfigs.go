@@ -29,7 +29,7 @@ func (c *FakeDeploymentConfigs) Get(name string, options metav1.GetOptions) (*de
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (c *FakeDeploymentConfigs) List(opts metav1.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeDeploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeDeploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
@@ -355,7 +354,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	for {
 		// confirm that we can actually query from the api server
 		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.ClusterPolicies().List(metainternal.ListOptions{}); err == nil {
+			if _, err := client.ClusterPolicies().List(metav1.ListOptions{}); err == nil {
 				break
 			}
 		}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -42,7 +41,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	var bcPotentialBuilds []buildapi.Build
 
 	// Collect builds related to the config.
-	builds, err := reaper.oc.Builds(namespace).List(metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelector(name)})
+	builds, err := reaper.oc.Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(name).String()})
 	if err != nil {
 		return err
 	}
@@ -51,7 +50,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 
 	// Collect deprecated builds related to the config.
 	// TODO: Delete this block after BuildConfigLabelDeprecated is removed.
-	builds, err = reaper.oc.Builds(namespace).List(metainternal.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(name)})
+	builds, err = reaper.oc.Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(name).String()})
 	if err != nil {
 		return err
 	}

@@ -26,7 +26,7 @@ func (c *FakeIdentities) Get(name string, options metav1.GetOptions) (*userapi.I
 	return obj.(*userapi.Identity), err
 }
 
-func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityList, error) {
+func (c *FakeIdentities) List(opts metav1.ListOptions) (*userapi.IdentityList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

@@ -27,7 +27,7 @@ func (c *FakeProjects) Get(name string, options metav1.GetOptions) (*projectapi.
 	return obj.(*projectapi.Project), err
 }
 
-func (c *FakeProjects) List(opts metainternal.ListOptions) (*projectapi.ProjectList, error) {
+func (c *FakeProjects) List(opts metav1.ListOptions) (*projectapi.ProjectList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *FakeProjects) Delete(name string) error {
 	return err
 }
 
-func (c *FakeProjects) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeProjects) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

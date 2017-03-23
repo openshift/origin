@@ -5,7 +5,6 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -73,7 +72,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	policywatch, err := openshiftClient.PolicyBindings(ns).Watch(metainternal.ListOptions{})
+	policywatch, err := openshiftClient.PolicyBindings(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

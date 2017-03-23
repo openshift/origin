@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/client-go/rest"
@@ -47,7 +46,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metainternal.ListOptions{}); err != nil {
+	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -75,7 +74,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := whoamiClient.Builds(projectName).List(metainternal.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := whoamiClient.Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -169,7 +168,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metainternal.ListOptions{}); err != nil {
+	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

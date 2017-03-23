@@ -28,7 +28,7 @@ func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateap
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) List(opts metainternal.ListOptions) (*templateapi.TemplateList, error) {
+func (c *FakeTemplates) List(opts metav1.ListOptions) (*templateapi.TemplateList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -65,7 +65,7 @@ func (c *FakeTemplates) Delete(name string) error {
 	return err
 }
 
-func (c *FakeTemplates) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeTemplates) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

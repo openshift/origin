@@ -17,7 +17,7 @@ type FakeProjectRequests struct {
 
 var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
 
-func (c *FakeProjectRequests) List(opts metainternal.ListOptions) (*metav1.Status, error) {
+func (c *FakeProjectRequests) List(opts metav1.ListOptions) (*metav1.Status, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

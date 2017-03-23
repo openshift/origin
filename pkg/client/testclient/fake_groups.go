@@ -27,7 +27,7 @@ func (c *FakeGroups) Get(name string, options metav1.GetOptions) (*userapi.Group
 	return obj.(*userapi.Group), err
 }
 
-func (c *FakeGroups) List(opts metainternal.ListOptions) (*userapi.GroupList, error) {
+func (c *FakeGroups) List(opts metav1.ListOptions) (*userapi.GroupList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *FakeGroups) Delete(name string) error {
 	return err
 }
 
-func (c *FakeGroups) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeGroups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

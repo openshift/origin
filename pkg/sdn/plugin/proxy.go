@@ -10,7 +10,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -58,7 +57,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metainternal.ListOptions{})
+	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}

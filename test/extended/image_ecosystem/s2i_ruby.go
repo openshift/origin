@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -67,7 +67,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 			g.By("testing application content source modification")
 			assertPageContent("Welcome to your Rails application on OpenShift", dcLabelOne)
 
-			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metainternal.ListOptions{LabelSelector: dcLabelOne})
+			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabelOne.String()})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods.Items)).To(o.Equal(1))
 

@@ -27,7 +27,7 @@ func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationa
 	return obj.(*authorizationapi.Role), err
 }
 
-func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleList, error) {
+func (c *FakeRoles) List(opts metav1.ListOptions) (*authorizationapi.RoleList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

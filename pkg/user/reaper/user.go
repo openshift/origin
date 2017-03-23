@@ -76,7 +76,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	// Remove the user from groups
-	groups, err := r.groupClient.Groups().List(metainternal.ListOptions{})
+	groups, err := r.groupClient.Groups().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

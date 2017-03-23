@@ -14,7 +14,6 @@ import (
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -195,7 +194,7 @@ func getImportContext(
 	osClient osclient.ImageStreamSecretsNamespacer,
 	namespace, name string,
 ) importer.RepositoryRetriever {
-	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, metainternal.ListOptions{})
+	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, metav1.ListOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("error getting secrets for repository %s/%s: %v", namespace, name, err)
 		secrets = &kapi.SecretList{}

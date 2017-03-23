@@ -25,7 +25,7 @@ func (c *FakeOAuthClientAuthorization) Get(name string, options metav1.GetOption
 	return obj.(*oauthapi.OAuthClientAuthorization), err
 }
 
-func (c *FakeOAuthClientAuthorization) List(opts metainternal.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error) {
+func (c *FakeOAuthClientAuthorization) List(opts metav1.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -62,7 +62,7 @@ func (c *FakeOAuthClientAuthorization) Delete(name string) error {
 	return err
 }
 
-func (c *FakeOAuthClientAuthorization) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeOAuthClientAuthorization) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

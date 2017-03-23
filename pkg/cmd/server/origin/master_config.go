@@ -14,7 +14,6 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -783,11 +782,11 @@ func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}
 	registry := clusterpolicyregistry.NewRegistry(storage)
 
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicies(ctx, &options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return registry.WatchClusterPolicies(ctx, &options)
 		},
 	}, nil
@@ -802,11 +801,11 @@ func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatch
 	}
 	registry := clusterpolicybindingregistry.NewRegistry(storage)
 
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return registry.ListClusterPolicyBindings(ctx, &options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return registry.WatchClusterPolicyBindings(ctx, &options)
 		},
 	}, nil
@@ -821,11 +820,11 @@ func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
 	}
 	registry := policyregistry.NewRegistry(storage)
 
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicies(ctx, &options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return registry.WatchPolicies(ctx, &options)
 		},
 	}, nil
@@ -840,11 +839,11 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}
 	registry := policybindingregistry.NewRegistry(storage)
 
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return registry.ListPolicyBindings(ctx, &options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return registry.WatchPolicyBindings(ctx, &options)
 		},
 	}, nil

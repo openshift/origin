@@ -30,7 +30,7 @@ func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Imag
 	return obj.(*imageapi.Image), err
 }
 
-func (c *FakeImages) List(opts metainternal.ListOptions) (*imageapi.ImageList, error) {
+func (c *FakeImages) List(opts metav1.ListOptions) (*imageapi.ImageList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

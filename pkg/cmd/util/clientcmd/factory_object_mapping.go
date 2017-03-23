@@ -11,7 +11,7 @@ import (
 	"github.com/emicklei/go-restful/swagger"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -157,7 +157,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object) (*restclien
 		if err != nil {
 			return nil, err
 		}
-		builds, err := oc.Builds(t.Namespace).List(metainternal.ListOptions{})
+		builds, err := oc.Builds(t.Namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

@@ -15,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -163,7 +162,7 @@ func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[s
 		return nil, err
 	}
 	if err := wait.ExponentialBackoff(retry.DefaultBackoff, func() (bool, error) {
-		if _, err := c.KubeClient().Core().Pods(c.Namespace()).List(metainternal.ListOptions{}); err != nil {
+		if _, err := c.KubeClient().Core().Pods(c.Namespace()).List(metav1.ListOptions{}); err != nil {
 			if apierrs.IsForbidden(err) {
 				e2e.Logf("Waiting for user to have access to the namespace")
 				return false, nil

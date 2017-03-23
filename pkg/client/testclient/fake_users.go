@@ -27,7 +27,7 @@ func (c *FakeUsers) Get(name string, options metav1.GetOptions) (*userapi.User, 
 	return obj.(*userapi.User), err
 }
 
-func (c *FakeUsers) List(opts metainternal.ListOptions) (*userapi.UserList, error) {
+func (c *FakeUsers) List(opts metav1.ListOptions) (*userapi.UserList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *FakeUsers) Delete(name string) error {
 	return err
 }
 
-func (c *FakeUsers) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeUsers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

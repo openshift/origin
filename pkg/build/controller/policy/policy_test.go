@@ -8,7 +8,6 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
@@ -22,7 +21,7 @@ func newTestClient(builds []buildapi.Build) *fakeBuildClient {
 	return &fakeBuildClient{builds: &buildapi.BuildList{Items: builds}}
 }
 
-func (f *fakeBuildClient) List(namespace string, opts metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (f *fakeBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	return f.builds, nil
 }
 
@@ -109,7 +108,7 @@ func TestHandleCompleteSerial(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", metainternal.ListOptions{})
+	resultBuilds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -136,7 +135,7 @@ func TestHandleCompleteParallel(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", metainternal.ListOptions{})
+	resultBuilds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

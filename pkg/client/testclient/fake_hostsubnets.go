@@ -27,7 +27,7 @@ func (c *FakeHostSubnet) Get(name string, options metav1.GetOptions) (*sdnapi.Ho
 	return obj.(*sdnapi.HostSubnet), err
 }
 
-func (c *FakeHostSubnet) List(opts metainternal.ListOptions) (*sdnapi.HostSubnetList, error) {
+func (c *FakeHostSubnet) List(opts metav1.ListOptions) (*sdnapi.HostSubnetList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *FakeHostSubnet) Delete(name string) error {
 	return err
 }
 
-func (c *FakeHostSubnet) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeHostSubnet) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

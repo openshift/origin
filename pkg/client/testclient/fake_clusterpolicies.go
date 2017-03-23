@@ -27,7 +27,7 @@ func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*auth
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (c *FakeClusterPolicies) List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -46,7 +46,7 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterPolicies) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

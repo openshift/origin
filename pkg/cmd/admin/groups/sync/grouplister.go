@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -42,7 +41,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 		return nil, err
 	}
 	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
-	allGroups, err := l.client.List(metainternal.ListOptions{LabelSelector: hostSelector})
+	allGroups, err := l.client.List(metav1.ListOptions{LabelSelector: hostSelector.String()})
 	if err != nil {
 		return nil, err
 	}

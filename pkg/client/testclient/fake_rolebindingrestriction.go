@@ -29,7 +29,7 @@ func (c *FakeRoleBindingRestrictions) Get(name string, options metav1.GetOptions
 	return obj.(*authorizationapi.RoleBindingRestriction), err
 }
 
-func (c *FakeRoleBindingRestrictions) List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
+func (c *FakeRoleBindingRestrictions) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -65,7 +65,7 @@ func (c *FakeRoleBindingRestrictions) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoleBindingRestrictions) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeRoleBindingRestrictions) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

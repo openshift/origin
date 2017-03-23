@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -123,7 +122,7 @@ func (o PruneBuildsOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune builds command.
 func (o PruneBuildsOptions) Run() error {
-	buildConfigList, err := o.OSClient.BuildConfigs(o.Namespace).List(metainternal.ListOptions{})
+	buildConfigList, err := o.OSClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func (o PruneBuildsOptions) Run() error {
 		buildConfigs = append(buildConfigs, &buildConfigList.Items[i])
 	}
 
-	buildList, err := o.OSClient.Builds(o.Namespace).List(metainternal.ListOptions{})
+	buildList, err := o.OSClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

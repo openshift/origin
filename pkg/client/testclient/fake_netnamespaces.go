@@ -27,7 +27,7 @@ func (c *FakeNetNamespace) Get(name string, options metav1.GetOptions) (*sdnapi.
 	return obj.(*sdnapi.NetNamespace), err
 }
 
-func (c *FakeNetNamespace) List(opts metainternal.ListOptions) (*sdnapi.NetNamespaceList, error) {
+func (c *FakeNetNamespace) List(opts metav1.ListOptions) (*sdnapi.NetNamespaceList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *FakeNetNamespace) Delete(name string) error {
 	return err
 }
 
-func (c *FakeNetNamespace) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeNetNamespace) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -287,7 +286,7 @@ type fakePolicyGetter struct {
 	err          error
 }
 
-func (f *fakePolicyGetter) List(metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (f *fakePolicyGetter) List(metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	policy, err := f.Get("", metav1.GetOptions{})
 	if err != nil {
 		return nil, err

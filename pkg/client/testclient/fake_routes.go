@@ -28,7 +28,7 @@ func (c *FakeRoutes) Get(name string, options metav1.GetOptions) (*routeapi.Rout
 	return obj.(*routeapi.Route), err
 }
 
-func (c *FakeRoutes) List(opts metainternal.ListOptions) (*routeapi.RouteList, error) {
+func (c *FakeRoutes) List(opts metav1.ListOptions) (*routeapi.RouteList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -76,7 +76,7 @@ func (c *FakeRoutes) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoutes) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

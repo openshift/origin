@@ -27,7 +27,7 @@ func (c *FakeRoleBindings) Get(name string, options metav1.GetOptions) (*authori
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (c *FakeRoleBindings) List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingList, error) {
+func (c *FakeRoleBindings) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

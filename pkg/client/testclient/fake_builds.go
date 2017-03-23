@@ -28,7 +28,7 @@ func (c *FakeBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Buil
 	return obj.(*buildapi.Build), err
 }
 
-func (c *FakeBuilds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (c *FakeBuilds) List(opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -65,7 +65,7 @@ func (c *FakeBuilds) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuilds) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeBuilds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

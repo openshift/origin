@@ -41,7 +41,7 @@ func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oa
 	return obj.(*oauthapi.OAuthAccessToken), err
 }
 
-func (c *FakeOAuthAccessTokens) List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
+func (c *FakeOAuthAccessTokens) List(opts metav1.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -232,7 +231,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
-		if projects, projerr := osClient.Projects().List(metainternal.ListOptions{}); projerr != nil {
+		if projects, projerr := osClient.Projects().List(metav1.ListOptions{}); projerr != nil {
 			err = projerr
 		} else { // success!
 			list := []string{}

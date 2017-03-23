@@ -28,7 +28,7 @@ func (c *FakePolicyBindings) Get(name string, options metav1.GetOptions) (*autho
 	return obj.(*authorizationapi.PolicyBinding), err
 }
 
-func (c *FakePolicyBindings) List(opts metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (c *FakePolicyBindings) List(opts metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -56,7 +56,7 @@ func (c *FakePolicyBindings) Delete(name string) error {
 	return err
 }
 
-func (c *FakePolicyBindings) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakePolicyBindings) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

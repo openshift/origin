@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,18 +15,18 @@ type ClusterPolicyBindingsInterface interface {
 
 // ClusterPolicyBindingInterface exposes methods on ClusterPolicyBindings resources
 type ClusterPolicyBindingInterface interface {
-	List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 	Create(policyBinding *authorizationapi.ClusterPolicyBinding) (*authorizationapi.ClusterPolicyBinding, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type ClusterPolicyBindingsListerInterface interface {
 	ClusterPolicyBindings() ClusterPolicyBindingLister
 }
 type ClusterPolicyBindingLister interface {
-	List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 }
 type SyncedClusterPolicyBindingsListerInterface interface {
@@ -47,7 +46,7 @@ func newClusterPolicyBindings(c *Client) *clusterPolicyBindings {
 }
 
 // List returns a list of clusterPolicyBindings that match the label and field selectors.
-func (c *clusterPolicyBindings) List(opts metainternal.ListOptions) (result *authorizationapi.ClusterPolicyBindingList, err error) {
+func (c *clusterPolicyBindings) List(opts metav1.ListOptions) (result *authorizationapi.ClusterPolicyBindingList, err error) {
 	result = &authorizationapi.ClusterPolicyBindingList{}
 	err = c.r.Get().Resource("clusterPolicyBindings").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -74,6 +73,6 @@ func (c *clusterPolicyBindings) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested clusterPolicyBindings
-func (c *clusterPolicyBindings) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *clusterPolicyBindings) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterPolicyBindings").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

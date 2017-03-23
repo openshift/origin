@@ -10,7 +10,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -817,11 +816,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
 
 			g.By("verifying that all pods are ready")
-			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
+			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			selector := labels.Set(config.Spec.Selector).AsSelector()
-			opts := metainternal.ListOptions{LabelSelector: selector}
+			opts := metav1.ListOptions{LabelSelector: selector.String()}
 			ready := 0
 			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
 				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(opts)

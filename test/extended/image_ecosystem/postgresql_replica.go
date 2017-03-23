@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 )
 
@@ -167,7 +167,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		assertReplicationIsWorking("postgresql-master-2", "postgresql-slave-1", 1)
 
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metainternal.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=postgresql-slave-1")})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: exutil.ParseLabelsOrDie("deployment=postgresql-slave-1").String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).To(o.Equal(1))
 

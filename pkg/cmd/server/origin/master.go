@@ -151,7 +151,7 @@ import (
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 
-        // register api groups
+	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 

@@ -27,7 +27,7 @@ func (c *FakeClusterResourceQuotas) Get(name string, options metav1.GetOptions) 
 	return obj.(*quotaapi.ClusterResourceQuota), err
 }
 
-func (c *FakeClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
+func (c *FakeClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *FakeClusterResourceQuotas) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterResourceQuotas) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

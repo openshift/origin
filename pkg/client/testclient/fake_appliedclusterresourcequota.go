@@ -25,7 +25,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOp
 	return obj.(*quotaapi.AppliedClusterResourceQuota), err
 }
 
-func (c *FakeAppliedClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
+func (c *FakeAppliedClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

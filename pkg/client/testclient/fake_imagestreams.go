@@ -33,7 +33,7 @@ func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageap
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageStreamList, error) {
+func (c *FakeImageStreams) List(opts metav1.ListOptions) (*imageapi.ImageStreamList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -70,7 +70,7 @@ func (c *FakeImageStreams) Delete(name string) error {
 	return err
 }
 
-func (c *FakeImageStreams) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeImageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {

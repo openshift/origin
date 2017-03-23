@@ -65,7 +65,7 @@ func (r *AppliedClusterResourceQuotaREST) List(ctx apirequest.Context, options *
 
 	// TODO max resource version?  watch?
 	list := &quotaapi.AppliedClusterResourceQuotaList{}
-	matcher := clusterresourcequotaregistry.Matcher(oapi.ListOptionsToSelectors(options))
+	matcher := clusterresourcequotaregistry.Matcher(oapi.InternalListOptionsToSelectors(options))
 	quotaNames, _ := r.quotaMapper.GetClusterQuotasFor(namespace)
 
 	for _, name := range quotaNames {

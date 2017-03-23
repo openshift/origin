@@ -28,7 +28,7 @@ func (c *FakePolicies) Get(name string, options metav1.GetOptions) (*authorizati
 	return obj.(*authorizationapi.Policy), err
 }
 
-func (c *FakePolicies) List(opts metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
+func (c *FakePolicies) List(opts metav1.ListOptions) (*authorizationapi.PolicyList, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *FakePolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakePolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakePolicies) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	optsv1 := metav1.ListOptions{}
 	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
 	if err != nil {
