@@ -19,7 +19,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
 	g.Describe("creating from a template", func() {
-		g.It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
+		g.It(fmt.Sprintf("should instantiate the template"), func() {
 
 			exutil.CheckOpenShiftNamespaceImageStreams(oc)
 			g.By("creating a new app")

@@ -16,7 +16,7 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func(
 		oc           = exutil.NewCLI("mysql-create", exutil.KubeConfigPath())
 	)
 	g.Describe("Creating from a template", func() {
-		g.It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
+		g.It(fmt.Sprintf("should instantiate the template"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By(fmt.Sprintf("calling oc process -f %q", templatePath))
