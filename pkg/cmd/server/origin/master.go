@@ -150,6 +150,9 @@ import (
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+
+        // register api groups
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 const (
