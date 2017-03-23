@@ -7,7 +7,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -89,12 +88,12 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if _, err := clusterAdminKubeClient.Core().ConfigMaps("second").Create(configmap); !kapierrors.IsForbidden(err) {
-		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(metainternal.ListOptions{})
+		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("quota is %#v", list)
 		}
 
-		list2, err := clusterAdminKubeClient.Core().ConfigMaps("").List(metainternal.ListOptions{})
+		list2, err := clusterAdminKubeClient.Core().ConfigMaps("").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("ConfigMaps is %#v", list2)
 		}
@@ -108,12 +107,12 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if _, err := clusterAdminClient.ImageStreams("second").Create(imagestream); !kapierrors.IsForbidden(err) {
-		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(metainternal.ListOptions{})
+		list, err := clusterAdminClient.AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("quota is %#v", list)
 		}
 
-		list2, err := clusterAdminClient.ImageStreams("").List(metainternal.ListOptions{})
+		list2, err := clusterAdminClient.ImageStreams("").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("ImageStreams is %#v", list2)
 		}
@@ -125,7 +124,7 @@ func TestClusterQuota(t *testing.T) {
 
 func waitForQuotaLabeling(clusterAdminClient client.AppliedClusterResourceQuotasNamespacer, namespaceName string) error {
 	return utilwait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		list, err := clusterAdminClient.AppliedClusterResourceQuotas(namespaceName).List(metainternal.ListOptions{})
+		list, err := clusterAdminClient.AppliedClusterResourceQuotas(namespaceName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -137,7 +136,7 @@ func waitForQuotaLabeling(clusterAdminClient client.AppliedClusterResourceQuotas
 }
 
 func labelNamespace(clusterAdminKubeClient kcoreclient.NamespacesGetter, namespaceName string) error {
-	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName)
+	ns1, err := clusterAdminKubeClient.Namespaces().Get(namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

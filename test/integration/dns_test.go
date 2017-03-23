@@ -81,7 +81,7 @@ func TestDNS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	kubernetesService, err := client.Core().Services(metav1.NamespaceDefault).Get("kubernetes")
+	kubernetesService, err := client.Core().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,12 +15,12 @@ type HostSubnetsInterface interface {
 
 // HostSubnetInterface exposes methods on HostSubnet resources.
 type HostSubnetInterface interface {
-	List(opts metainternal.ListOptions) (*sdnapi.HostSubnetList, error)
+	List(opts metav1.ListOptions) (*sdnapi.HostSubnetList, error)
 	Get(name string, options metav1.GetOptions) (*sdnapi.HostSubnet, error)
 	Create(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
 	Update(sub *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // hostSubnet implements HostSubnetInterface interface
@@ -37,7 +36,7 @@ func newHostSubnet(c *Client) *hostSubnet {
 }
 
 // List returns a list of hostsubnets that match the label and field selectors.
-func (c *hostSubnet) List(opts metainternal.ListOptions) (result *sdnapi.HostSubnetList, err error) {
+func (c *hostSubnet) List(opts metav1.ListOptions) (result *sdnapi.HostSubnetList, err error) {
 	result = &sdnapi.HostSubnetList{}
 	err = c.r.Get().
 		Resource("hostSubnets").
@@ -74,7 +73,7 @@ func (c *hostSubnet) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested subnets
-func (c *hostSubnet) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *hostSubnet) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("hostSubnets").

@@ -77,7 +77,7 @@ func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(oapi.ListOptionsToSelectors(options))
+	m := nsregistry.MatchNamespace(oapi.InternalListOptionsToSelectors(options))
 	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err

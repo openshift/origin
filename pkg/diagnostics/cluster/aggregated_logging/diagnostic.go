@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -59,7 +58,7 @@ func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.Cluster
 	return d.OsClient.ClusterRoleBindings().Get(name, metav1.GetOptions{})
 }
 
-func (d *AggregatedLogging) routes(project string, options metainternal.ListOptions) (*routesapi.RouteList, error) {
+func (d *AggregatedLogging) routes(project string, options metav1.ListOptions) (*routesapi.RouteList, error) {
 	return d.OsClient.Routes(project).List(options)
 }
 
@@ -86,7 +85,7 @@ func (d *AggregatedLogging) nodes(options metav1.ListOptions) (*kapi.NodeList, e
 func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*kapi.PodList, error) {
 	return d.KubeClient.Core().Pods(project).List(options)
 }
-func (d *AggregatedLogging) deploymentconfigs(project string, options metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	return d.OsClient.DeploymentConfigs(project).List(options)
 }
 
@@ -177,7 +176,7 @@ func retrieveLoggingProject(r types.DiagnosticResult, masterCfg *configapi.Maste
 		return projectName
 	}
 
-	routeList, err := osClient.Routes(metav1.NamespaceAll).List(metainternal.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
 	if err != nil {
 		r.Error("AGL0012", err, fmt.Sprintf("There was an error while trying to find the route associated with '%s' which is probably transient: %s", loggingUrl, err))
 		return projectName

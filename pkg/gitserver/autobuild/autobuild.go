@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
 	restclient "k8s.io/client-go/rest"
@@ -101,7 +100,7 @@ func (a *AutoLinkBuilds) Link() (map[string]gitserver.Clone, error) {
 	errs := []error{}
 	builders := []*buildapi.BuildConfig{}
 	for _, namespace := range a.Namespaces {
-		list, err := a.Client.BuildConfigs(namespace).List(metainternal.ListOptions{})
+		list, err := a.Client.BuildConfigs(namespace).List(metav1.ListOptions{})
 		if err != nil {
 			errs = append(errs, err)
 			continue

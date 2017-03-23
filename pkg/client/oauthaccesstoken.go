@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -17,7 +16,7 @@ type OAuthAccessTokensInterface interface {
 type OAuthAccessTokenInterface interface {
 	Create(token *oauthapi.OAuthAccessToken) (*oauthapi.OAuthAccessToken, error)
 	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthAccessToken, error)
-	List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error)
+	List(opts metav1.ListOptions) (*oauthapi.OAuthAccessTokenList, error)
 	Delete(name string) error
 }
 
@@ -39,7 +38,7 @@ func (c *oauthAccessTokenInterface) Get(name string, options metav1.GetOptions) 
 }
 
 // List returns a list of tokens that match the label and field selectors.
-func (c *oauthAccessTokenInterface) List(opts metainternal.ListOptions) (result *oauthapi.OAuthAccessTokenList, err error) {
+func (c *oauthAccessTokenInterface) List(opts metav1.ListOptions) (result *oauthapi.OAuthAccessTokenList, err error) {
 	result = &oauthapi.OAuthAccessTokenList{}
 	err = c.r.Get().Resource("oauthaccesstokens").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

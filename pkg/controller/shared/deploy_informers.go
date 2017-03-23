@@ -3,14 +3,12 @@ package shared
 import (
 	"reflect"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
@@ -36,11 +34,11 @@ func (f *deploymentConfigInformer) Informer() cache.SharedIndexInformer {
 	}
 
 	informer = cache.NewSharedIndexInformer(
-		&controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return f.originClient.DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return f.originClient.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},

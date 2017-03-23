@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -114,7 +114,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	// Setup namespace
 	if o.allNamespaces {
 		// TODO: Handle different uses of build-chain; user and admin
-		projectList, err := oc.Projects().List(metainternal.ListOptions{})
+		projectList, err := oc.Projects().List(metav1.ListOptions{})
 		if err != nil {
 			return err
 		}

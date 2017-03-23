@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -330,7 +329,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 }
 
 func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Project, error) {
-	projects, err := oClient.Projects().List(metainternal.ListOptions{})
+	projects, err := oClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
 	}

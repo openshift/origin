@@ -15,7 +15,6 @@ import (
 	gocontext "golang.org/x/net/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
@@ -65,7 +64,7 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %#v %#v %#v", err, isi, isi.Status.Import)
 	}
 	// does not create stream
-	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist"); err == nil || !errors.IsNotFound(err) {
+	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
 		t.Fatal(err)
 	}
 
@@ -84,7 +83,7 @@ func TestImageStreamImport(t *testing.T) {
 		t.Fatalf("unexpected responses: %v %#v %#v", err, isi, isi.Status.Import)
 	}
 	// does not create stream
-	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist"); err == nil || !errors.IsNotFound(err) {
+	if _, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{}); err == nil || !errors.IsNotFound(err) {
 		t.Fatal(err)
 	}
 
@@ -127,7 +126,7 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	// stream should not have changed
-	stream2, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist")
+	stream2, err := c.ImageStreams(testutil.Namespace()).Get("doesnotexist", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -484,7 +483,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 			t.Fatalf("unexpected image output: %#v", isi.Status.Images[0].Image)
 		}
 
-		is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+		is, err := c.ImageStreams(testutil.Namespace()).Get("test", metav1.GetOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -607,7 +606,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 		}
 	}
 
-	is, err := c.ImageStreams(testutil.Namespace()).Get("test")
+	is, err := c.ImageStreams(testutil.Namespace()).Get("test", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -718,7 +717,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	<-written
 
 	is := isi.Status.Import
-	w, err := c.ImageStreams(is.Namespace).Watch(metainternal.ListOptions{ResourceVersion: is.ResourceVersion})
+	w, err := c.ImageStreams(is.Namespace).Watch(metav1.ListOptions{ResourceVersion: is.ResourceVersion})
 	if err != nil {
 		t.Fatal(err)
 	}

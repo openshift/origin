@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -15,7 +14,7 @@ type RoleBindingsNamespacer interface {
 
 // RoleBindingInterface exposes methods on RoleBinding resources.
 type RoleBindingInterface interface {
-	List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingList, error)
+	List(opts metav1.ListOptions) (*authorizationapi.RoleBindingList, error)
 	Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBinding, error)
 	Create(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	Update(roleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
@@ -37,7 +36,7 @@ func newRoleBindings(c *Client, namespace string) *roleBindings {
 }
 
 // List returns a list of roleBindings that match the label and field selectors.
-func (c *roleBindings) List(opts metainternal.ListOptions) (result *authorizationapi.RoleBindingList, err error) {
+func (c *roleBindings) List(opts metav1.ListOptions) (result *authorizationapi.RoleBindingList, err error) {
 	result = &authorizationapi.RoleBindingList{}
 	err = c.r.Get().Namespace(c.ns).Resource("roleBindings").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return

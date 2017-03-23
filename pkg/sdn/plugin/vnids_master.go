@@ -6,7 +6,6 @@ import (
 
 	log "github.com/golang/glog"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -75,7 +74,7 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 }
 
 func (vmap *masterVNIDMap) populateVNIDs(osClient *osclient.Client) error {
-	netnsList, err := osClient.NetNamespaces().List(metainternal.ListOptions{})
+	netnsList, err := osClient.NetNamespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

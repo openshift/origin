@@ -189,17 +189,17 @@ type InternalListWatch struct {
 }
 
 func (lw *InternalListWatch) List(options metav1.ListOptions) (runtime.Object, error) {
-	internaloptions := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internaloptions, nil); err != nil {
+	optionsint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optionsint, nil); err != nil {
 		return nil, err
 	}
-	return lw.ListFunc(internaloptions)
+	return lw.ListFunc(optionsint)
 }
 
 func (lw *InternalListWatch) Watch(options metav1.ListOptions) (watch.Interface, error) {
-	internaloptions := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internaloptions, nil); err != nil {
+	optionsint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optionsint, nil); err != nil {
 		return nil, err
 	}
-	return lw.WatchFunc(internaloptions)
+	return lw.WatchFunc(optionsint)
 }

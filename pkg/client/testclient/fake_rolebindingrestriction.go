@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -29,13 +28,8 @@ func (c *FakeRoleBindingRestrictions) Get(name string, options metav1.GetOptions
 	return obj.(*authorizationapi.RoleBindingRestriction), err
 }
 
-func (c *FakeRoleBindingRestrictions) List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingRestritionsResource, c.Namespace, optsv1), &authorizationapi.RoleBindingRestrictionList{})
+func (c *FakeRoleBindingRestrictions) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingRestritionsResource, c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -65,11 +59,6 @@ func (c *FakeRoleBindingRestrictions) Delete(name string) error {
 	return err
 }
 
-func (c *FakeRoleBindingRestrictions) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(roleBindingRestritionsResource, c.Namespace, optsv1))
+func (c *FakeRoleBindingRestrictions) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(roleBindingRestritionsResource, c.Namespace, opts))
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	watchapi "k8s.io/apimachinery/pkg/watch"
@@ -196,7 +195,7 @@ func buildPodAdmissionTestDockerBuild() *buildapi.Build {
 	return build
 }
 
-func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset *kclientset.Clientset, build *buildapi.Build) (*buildapi.Build, *kapi.Pod) {
+func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *kapi.Pod) {
 
 	ns := testutil.Namespace()
 	_, err := client.Builds(ns).Create(build)
@@ -242,7 +241,7 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset *k
 	return nil, nil
 }
 
-func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (*client.Client, *kclientset.Clientset) {
+func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (*client.Client, kclientset.Interface) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildDefaults": {
 			Configuration: defaultsConfig,
@@ -250,7 +249,7 @@ func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.B
 	})
 }
 
-func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (*client.Client, *kclientset.Clientset) {
+func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (*client.Client, kclientset.Interface) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildOverrides": {
 			Configuration: overridesConfig,
@@ -258,7 +257,7 @@ func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesap
 	})
 }
 
-func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, *kclientset.Clientset) {
+func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -279,7 +278,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 		t.Fatalf("%v", err)
 	}
 
-	_, err = clusterAdminKubeClientset.Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {

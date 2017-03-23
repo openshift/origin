@@ -54,7 +54,7 @@ func TestImageAddSignature(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	image, err = adminClient.Images().Get(image.Name)
+	image, err = adminClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		}
 	}
 
-	image, err := userClient.Images().Get(image.Name)
+	image, err := userClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -168,7 +168,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name); err != nil {
+	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 2 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))
@@ -186,7 +186,7 @@ func TestImageRemoveSignature(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name); err != nil {
+	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 0 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))

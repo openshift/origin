@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -41,13 +40,8 @@ func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oa
 	return obj.(*oauthapi.OAuthAccessToken), err
 }
 
-func (c *FakeOAuthAccessTokens) List(opts metainternal.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthAccessTokensResource, optsv1), &oauthapi.OAuthAccessTokenList{})
+func (c *FakeOAuthAccessTokens) List(opts metav1.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthAccessTokensResource, opts), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err
 	}

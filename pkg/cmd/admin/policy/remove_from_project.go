@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -96,7 +96,7 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string,
 }
 
 func (o *RemoveFromProjectOptions) Run() error {
-	bindingList, err := o.Client.PolicyBindings(o.BindingNamespace).List(metainternal.ListOptions{})
+	bindingList, err := o.Client.PolicyBindings(o.BindingNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

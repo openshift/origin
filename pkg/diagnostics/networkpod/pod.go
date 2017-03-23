@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -71,7 +71,7 @@ func (d CheckPodNetwork) Check() types.DiagnosticResult {
 	}
 
 	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
-		netnsList, err := d.OSClient.NetNamespaces().List(metainternal.ListOptions{})
+		netnsList, err := d.OSClient.NetNamespaces().List(metav1.ListOptions{})
 		if err != nil {
 			d.res.Error("DPodNet1004", err, fmt.Sprintf("Getting all network namespaces failed. Error: %s", err))
 			return d.res

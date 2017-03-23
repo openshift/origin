@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -62,7 +61,7 @@ func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapte
 	req, _ := labels.NewRequirement(loggingInfraKey, selection.Exists, nil)
 	selector := labels.NewSelector().Add(*req)
 	r.Debug("AGL0040", fmt.Sprintf("Checking for DeploymentConfigs in project '%s' with selector '%s'", project, selector))
-	dcList, err := adapter.deploymentconfigs(project, metainternal.ListOptions{LabelSelector: selector})
+	dcList, err := adapter.deploymentconfigs(project, metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		r.Error("AGL0045", err, fmt.Sprintf("There was an error while trying to retrieve the DeploymentConfigs in project '%s': %s", project, err))
 		return

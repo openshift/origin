@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -16,7 +15,7 @@ type ProjectRequestsInterface interface {
 // ProjectRequestInterface exposes methods on projectRequest resources.
 type ProjectRequestInterface interface {
 	Create(p *projectapi.ProjectRequest) (*projectapi.Project, error)
-	List(opts metainternal.ListOptions) (*metav1.Status, error)
+	List(opts metav1.ListOptions) (*metav1.Status, error)
 }
 
 type projectRequests struct {
@@ -38,7 +37,7 @@ func (c *projectRequests) Create(p *projectapi.ProjectRequest) (result *projecta
 }
 
 // List returns a status object indicating that a user can call the Create or an error indicating why not
-func (c *projectRequests) List(opts metainternal.ListOptions) (result *metav1.Status, err error) {
+func (c *projectRequests) List(opts metav1.ListOptions) (result *metav1.Status, err error) {
 	result = &metav1.Status{}
 	err = c.r.Get().Resource("projectRequests").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return result, err

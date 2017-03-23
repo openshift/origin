@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -365,11 +364,11 @@ func TestHandleScenarios(t *testing.T) {
 		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
 		dcInformer := cache.NewSharedIndexInformer(
-			&controller.InternalListWatch{
-				ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			&cache.ListWatch{
+				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 					return oc.DeploymentConfigs(metav1.NamespaceAll).List(options)
 				},
-				WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 					return oc.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 				},
 			},

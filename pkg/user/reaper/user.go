@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -76,7 +75,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	// Remove the user from groups
-	groups, err := r.groupClient.Groups().List(metainternal.ListOptions{})
+	groups, err := r.groupClient.Groups().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -99,7 +98,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	// Remove the user's OAuthClientAuthorizations
 	// Once https://github.com/kubernetes/kubernetes/pull/28112 is fixed, use a field selector
 	// to filter on the userName, rather than fetching all authorizations and filtering client-side
-	authorizations, err := r.authorizationsClient.OAuthClientAuthorizations().List(metainternal.ListOptions{})
+	authorizations, err := r.authorizationsClient.OAuthClientAuthorizations().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

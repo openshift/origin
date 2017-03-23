@@ -2,7 +2,6 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -30,9 +29,13 @@ type indexerToPolicyBindingLister struct {
 	namespace string
 }
 
-func (i *indexerToPolicyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (i *indexerToPolicyBindingLister) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	policyBindingList := &authorizationapi.PolicyBindingList{}
-	matcher := policybindingregistry.Matcher(oapi.ListOptionsToSelectors(&options))
+	labelSel, fieldSel, err := oapi.ListOptionsToSelectors(&options)
+	if err != nil {
+		return nil, err
+	}
+	matcher := policybindingregistry.Matcher(labelSel, fieldSel)
 
 	if i.namespace == metav1.NamespaceAll {
 		returnedList := i.Indexer.List()

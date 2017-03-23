@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -246,7 +245,7 @@ type projectNames struct {
 }
 
 func (n projectNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(metainternal.ListOptions{LabelSelector: n.selector})
+	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
 	if err != nil {
 		return nil, err
 	}

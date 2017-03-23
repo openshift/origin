@@ -14,7 +14,6 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -448,7 +447,7 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(metainternal.ListOptions{})
+	buildList, err := d.Builds(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}

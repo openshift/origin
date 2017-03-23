@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -51,7 +50,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now try to get the project with the same name and ensure it is our namespace
-	project, err := originClient.Projects().Get(namespaceResult.Name)
+	project, err := originClient.Projects().Get(namespaceResult.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -75,7 +74,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now get the namespace for that project
-	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name)
+	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -182,7 +181,7 @@ func TestProjectWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	w, err := bobClient.Projects().Watch(metainternal.ListOptions{})
+	w, err := bobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -226,13 +225,13 @@ func TestProjectWatch(t *testing.T) {
 	waitForDelete("ns-03", w, t)
 
 	// test the "start from beginning watch"
-	beginningWatch, err := bobClient.Projects().Watch(metainternal.ListOptions{ResourceVersion: "0"})
+	beginningWatch, err := bobClient.Projects().Watch(metav1.ListOptions{ResourceVersion: "0"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForAdd("ns-01", beginningWatch, t)
 
-	fromNowWatch, err := bobClient.Projects().Watch(metainternal.ListOptions{})
+	fromNowWatch, err := bobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -348,15 +347,15 @@ func TestScopedProjectAccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	oneTwoWatch, err := oneTwoBobClient.Projects().Watch(metainternal.ListOptions{})
+	oneTwoWatch, err := oneTwoBobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	twoThreeWatch, err := twoThreeBobClient.Projects().Watch(metainternal.ListOptions{})
+	twoThreeWatch, err := twoThreeBobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	allWatch, err := allBobClient.Projects().Watch(metainternal.ListOptions{})
+	allWatch, err := allBobClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -385,21 +384,21 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 	waitForOnlyAdd("four", allWatch, t)
 
-	oneTwoProjects, err := oneTwoBobClient.Projects().List(metainternal.ListOptions{})
+	oneTwoProjects, err := oneTwoBobClient.Projects().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := hasExactlyTheseProjects(oneTwoProjects, sets.NewString("one", "two")); err != nil {
 		t.Error(err)
 	}
-	twoThreeProjects, err := twoThreeBobClient.Projects().List(metainternal.ListOptions{})
+	twoThreeProjects, err := twoThreeBobClient.Projects().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := hasExactlyTheseProjects(twoThreeProjects, sets.NewString("two", "three")); err != nil {
 		t.Error(err)
 	}
-	allProjects, err := allBobClient.Projects().List(metainternal.ListOptions{})
+	allProjects, err := allBobClient.Projects().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -511,19 +510,19 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	// Make sure bob still sees his project (and only his project)
-	if projects, err := bobClient.Projects().List(metainternal.ListOptions{}); err != nil {
+	if projects, err := bobClient.Projects().List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("foo")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure alice still sees her project (and only her project)
-	if projects, err := aliceClient.Projects().List(metainternal.ListOptions{}); err != nil {
+	if projects, err := aliceClient.Projects().List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("bar")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure cluster admin still sees all projects
-	if projects, err := clusterAdminClient.Projects().List(metainternal.ListOptions{}); err != nil {
+	if projects, err := clusterAdminClient.Projects().List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else {
 		projectNames := sets.NewString()

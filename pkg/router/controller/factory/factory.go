@@ -5,7 +5,6 @@ import (
 	"sort"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -21,7 +20,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	controller "github.com/openshift/origin/pkg/controller"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
@@ -69,7 +67,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		field:     factory.Fields,
 		label:     factory.Labels,
 	}
-	cache.NewReflector(&controller.InternalListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&endpointsLW{
@@ -207,7 +205,7 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 		field:     factory.Fields,
 		label:     factory.Labels,
 	}
-	cache.NewReflector(&controller.InternalListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointStore := cache.NewStore(keyFn)
 	endpointsEventQueue := oscache.NewEventQueueForStore(keyFn, endpointStore)
@@ -311,10 +309,10 @@ type routeLW struct {
 	namespace string
 }
 
-func (lw *routeLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	opts := metainternal.ListOptions{
-		LabelSelector: lw.label,
-		FieldSelector: lw.field,
+func (lw *routeLW) List(options metav1.ListOptions) (runtime.Object, error) {
+	opts := metav1.ListOptions{
+		LabelSelector: lw.label.String(),
+		FieldSelector: lw.field.String(),
 	}
 	routes, err := lw.client.Routes(lw.namespace).List(opts)
 	if err != nil {
@@ -325,10 +323,10 @@ func (lw *routeLW) List(options metainternal.ListOptions) (runtime.Object, error
 	return routes, nil
 }
 
-func (lw *routeLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	opts := metainternal.ListOptions{
-		LabelSelector:   lw.label,
-		FieldSelector:   lw.field,
+func (lw *routeLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	opts := metav1.ListOptions{
+		LabelSelector:   lw.label.String(),
+		FieldSelector:   lw.field.String(),
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Routes(lw.namespace).Watch(opts)

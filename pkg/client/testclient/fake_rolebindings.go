@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -27,13 +26,8 @@ func (c *FakeRoleBindings) Get(name string, options metav1.GetOptions) (*authori
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (c *FakeRoleBindings) List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingsResource, c.Namespace, optsv1), &authorizationapi.RoleBindingList{})
+func (c *FakeRoleBindings) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingsResource, c.Namespace, opts), &authorizationapi.RoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}

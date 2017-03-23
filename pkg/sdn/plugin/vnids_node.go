@@ -7,7 +7,7 @@ import (
 
 	log "github.com/golang/glog"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -152,7 +152,7 @@ func netnsIsMulticastEnabled(netns *osapi.NetNamespace) bool {
 }
 
 func (vmap *nodeVNIDMap) populateVNIDs() error {
-	nets, err := vmap.osClient.NetNamespaces().List(metainternal.ListOptions{})
+	nets, err := vmap.osClient.NetNamespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

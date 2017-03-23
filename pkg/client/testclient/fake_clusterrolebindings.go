@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -26,13 +25,8 @@ func (c *FakeClusterRoleBindings) Get(name string, options metav1.GetOptions) (*
 	return obj.(*authorizationapi.ClusterRoleBinding), err
 }
 
-func (c *FakeClusterRoleBindings) List(opts metainternal.ListOptions) (*authorizationapi.ClusterRoleBindingList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRoleBindingsResource, optsv1), &authorizationapi.ClusterRoleBindingList{})
+func (c *FakeClusterRoleBindings) List(opts metav1.ListOptions) (*authorizationapi.ClusterRoleBindingList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRoleBindingsResource, opts), &authorizationapi.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}

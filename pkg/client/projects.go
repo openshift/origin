@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -20,8 +19,8 @@ type ProjectInterface interface {
 	Update(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
 	Get(name string, options metav1.GetOptions) (*projectapi.Project, error)
-	List(opts metainternal.ListOptions) (*projectapi.ProjectList, error)
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	List(opts metav1.ListOptions) (*projectapi.ProjectList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type projects struct {
@@ -43,7 +42,7 @@ func (c *projects) Get(name string, options metav1.GetOptions) (result *projecta
 }
 
 // List returns all projects matching the label selector
-func (c *projects) List(opts metainternal.ListOptions) (result *projectapi.ProjectList, err error) {
+func (c *projects) List(opts metav1.ListOptions) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
@@ -74,7 +73,7 @@ func (c *projects) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested namespaces.
-func (c *projects) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *projects) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("projects").

@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -27,13 +26,8 @@ func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationa
 	return obj.(*authorizationapi.Role), err
 }
 
-func (c *FakeRoles) List(opts metainternal.ListOptions) (*authorizationapi.RoleList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, c.Namespace, optsv1), &authorizationapi.RoleList{})
+func (c *FakeRoles) List(opts metav1.ListOptions) (*authorizationapi.RoleList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -9,13 +9,11 @@ import (
 	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kunvapi "k8s.io/kubernetes/pkg/api/unversioned"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -44,7 +42,7 @@ func prettyPrintAction(act *authorizationapi.Action, defaultNamespaceStr string)
 	if act.Group == "" && act.Version == "" {
 		resourceStr = act.Resource
 	} else {
-		groupVer := kunvapi.GroupVersion{Group: act.Group, Version: act.Version}
+		groupVer := schema.GroupVersion{Group: act.Group, Version: act.Version}
 		resourceStr = fmt.Sprintf("%s/%s", act.Resource, groupVer.String())
 	}
 
@@ -142,7 +140,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		kapi.Resource("services/proxy"):                 true,
 	}
 
-	readerRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName)
+	readerRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -226,23 +224,23 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.DeploymentConfigs("hammer-project").List(metainternal.ListOptions{})
+	_, err = haroldClient.DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = markClient.DeploymentConfigs("hammer-project").List(metainternal.ListOptions{})
+	_, err = markClient.DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// projects are a special case where a get of a project actually sets a namespace.  Make sure that
 	// the namespace is properly special cased and set for authorization rules
-	_, err = haroldClient.Projects().Get("hammer-project")
+	_, err = haroldClient.Projects().Get("hammer-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err = markClient.Projects().Get("hammer-project")
+	_, err = markClient.Projects().Get("hammer-project", metav1.GetOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -256,7 +254,7 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 // if not found, it will retry up to numRetries at the specified delayInterval
 func waitForProject(t *testing.T, client client.Interface, projectName string, delayInterval time.Duration, numRetries int) {
 	for i := 0; i <= numRetries; i++ {
-		projects, err := client.Projects().List(metainternal.ListOptions{})
+		projects, err := client.Projects().List(metav1.ListOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -352,7 +350,7 @@ func TestAuthorizationResolution(t *testing.T) {
 
 	// the authorization cache may not be up to date, retry
 	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metainternal.ListOptions{})
+		_, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
 		if kapierror.IsForbidden(err) {
 			return false, nil
 		}
@@ -361,11 +359,11 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metainternal.ListOptions{}); err != nil {
+	if _, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.DeploymentConfigs(metav1.NamespaceDefault).List(metainternal.ListOptions{}); !kapierror.IsForbidden(err) {
+	if _, err := buildListerClient.DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 
@@ -812,7 +810,7 @@ func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview
 // TODO handle Extra/Scopes, Subresource and NonResourceAttributes
 func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationapi.LocalSubjectAccessReview {
 	return &kubeauthorizationapi.LocalSubjectAccessReview{
-		ObjectMeta: kapi.ObjectMeta{Namespace: testNS},
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNS},
 		Spec: kubeauthorizationapi.SubjectAccessReviewSpec{
 			User:   sar.User,
 			Groups: sar.Groups.List(),
@@ -1522,7 +1520,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		}
 
 		// remove the new permission for localSAR
-		basicUserRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.BasicUserRoleName)
+		basicUserRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.BasicUserRoleName, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

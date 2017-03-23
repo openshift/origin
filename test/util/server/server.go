@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
@@ -355,7 +354,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	for {
 		// confirm that we can actually query from the api server
 		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.ClusterPolicies().List(metainternal.ListOptions{}); err == nil {
+			if _, err := client.ClusterPolicies().List(metav1.ListOptions{}); err == nil {
 				break
 			}
 		}
@@ -388,7 +387,7 @@ func StartTestMasterAPI() (*configapi.MasterConfig, string, error) {
 
 // serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg
 // secret associated with it.
-func serviceAccountSecretsExist(clientset *kclientset.Clientset, namespace string, sa *kapi.ServiceAccount) bool {
+func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string, sa *kapi.ServiceAccount) bool {
 	foundTokenSecret := false
 	foundDockercfgSecret := false
 	for _, secret := range sa.Secrets {
@@ -412,7 +411,7 @@ func serviceAccountSecretsExist(clientset *kclientset.Clientset, namespace strin
 // WaitForPodCreationServiceAccounts ensures that the service account needed for pod creation exists
 // and that the cache for the admission control that checks for pod tokens has caught up to allow
 // pod creation.
-func WaitForPodCreationServiceAccounts(clientset *kclientset.Clientset, namespace string) error {
+func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace string) error {
 	if err := WaitForServiceAccounts(clientset, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		return err
 	}
@@ -442,7 +441,7 @@ func WaitForPodCreationServiceAccounts(clientset *kclientset.Clientset, namespac
 
 // WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
 // The extra controllers tend to starve the service account controller
-func WaitForServiceAccounts(clientset *kclientset.Clientset, namespace string, accounts []string) error {
+func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, accounts []string) error {
 	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {

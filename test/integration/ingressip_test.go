@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -155,7 +154,7 @@ func generateServiceEvents(t *testing.T, kc kclientset.Interface) {
 		case updateOp:
 			targetIndex := rand.Intn(len(services))
 			name := services[targetIndex].Name
-			s, err := kc.Core().Services(metav1.NamespaceDefault).Get(name)
+			s, err := kc.Core().Services(metav1.NamespaceDefault).Get(name, metav1.GetOptions{})
 			if err != nil {
 				continue
 			}

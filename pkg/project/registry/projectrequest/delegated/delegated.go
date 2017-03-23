@@ -187,7 +187,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(metainternal.ListOptions{})
+		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(metav1.ListOptions{})
 		for _, policyBinding := range policyBindingList.Items {
 			for roleBindingName := range policyBinding.RoleBindings {
 				if roleBindingName == name {

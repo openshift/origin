@@ -70,7 +70,7 @@ func TestConcurrentBuildConfigControllers(t *testing.T) {
 	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, *kclientset.Clientset) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {

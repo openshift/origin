@@ -3,7 +3,6 @@ package shared
 import (
 	"reflect"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -12,7 +11,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
 	ocache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller"
 )
 
 type ClusterPolicyInformer interface {
@@ -39,11 +37,11 @@ func (f *clusterPolicyInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicies"))
 	if lw == nil {
-		lw = &controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		lw = &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicies().List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return f.originClient.ClusterPolicies().Watch(options)
 			},
 		}
@@ -93,11 +91,11 @@ func (f *clusterPolicyBindingInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("clusterpolicybindings"))
 	if lw == nil {
-		lw = &controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		lw = &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return f.originClient.ClusterPolicyBindings().List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return f.originClient.ClusterPolicyBindings().Watch(options)
 			},
 		}
@@ -147,11 +145,11 @@ func (f *policyInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policies"))
 	if lw == nil {
-		lw = &controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		lw = &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return f.originClient.Policies(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return f.originClient.Policies(metav1.NamespaceAll).Watch(options)
 			},
 		}
@@ -201,11 +199,11 @@ func (f *policyBindingInformer) Informer() cache.SharedIndexInformer {
 
 	lw := f.customListerWatchers.GetListerWatcher(authorizationapi.Resource("policybindings"))
 	if lw == nil {
-		lw = &controller.InternalListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		lw = &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return f.originClient.PolicyBindings(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return f.originClient.PolicyBindings(metav1.NamespaceAll).Watch(options)
 			},
 		}

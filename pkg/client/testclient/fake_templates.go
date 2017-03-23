@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -28,13 +27,8 @@ func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateap
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) List(opts metainternal.ListOptions) (*templateapi.TemplateList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, c.Namespace, optsv1), &templateapi.TemplateList{})
+func (c *FakeTemplates) List(opts metav1.ListOptions) (*templateapi.TemplateList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -65,11 +59,6 @@ func (c *FakeTemplates) Delete(name string) error {
 	return err
 }
 
-func (c *FakeTemplates) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(templatesResource, c.Namespace, optsv1))
+func (c *FakeTemplates) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(templatesResource, c.Namespace, opts))
 }

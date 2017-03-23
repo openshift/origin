@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -462,11 +461,11 @@ func (lw *podLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
 }
 
 func newBuildLW(client osclient.Interface) cache.ListerWatcher {
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return client.Builds(metav1.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return client.Builds(metav1.NamespaceAll).Watch(options)
 		},
 	}
@@ -523,31 +522,26 @@ func (lw *buildDeleteLW) List(options metav1.ListOptions) (runtime.Object, error
 
 // Watch watches all Builds.
 func (lw *buildDeleteLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
-	internaloptions := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internaloptions, nil); err != nil {
-		return nil, err
-	}
-
-	return lw.Client.Builds(metav1.NamespaceAll).Watch(internaloptions)
+	return lw.Client.Builds(metav1.NamespaceAll).Watch(options)
 }
 
 func newBuildConfigLW(client osclient.Interface) cache.ListerWatcher {
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return client.BuildConfigs(metav1.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return client.BuildConfigs(metav1.NamespaceAll).Watch(options)
 		},
 	}
 }
 
 func newImageStreamLW(client osclient.Interface) cache.ListerWatcher {
-	return &controller.InternalListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return client.ImageStreams(metav1.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return client.ImageStreams(metav1.NamespaceAll).Watch(options)
 		},
 	}
@@ -562,11 +556,7 @@ type buildPodDeleteLW struct {
 // List lists all Pods associated with a Build.
 func (lw *buildPodDeleteLW) List(options metav1.ListOptions) (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted build pods")
-	internaloptions := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internaloptions, nil); err != nil {
-		return nil, err
-	}
-	buildList, err := lw.Client.Builds(metav1.NamespaceAll).List(internaloptions)
+	buildList, err := lw.Client.Builds(metav1.NamespaceAll).List(options)
 	if err != nil {
 		glog.V(4).Infof("Failed to find any builds due to error %v", err)
 		return nil, err

@@ -3,7 +3,6 @@ package client
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	osclient "github.com/openshift/origin/pkg/client"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,7 +44,7 @@ type BuildUpdater interface {
 
 // BuildLister provides methods for listing the Builds.
 type BuildLister interface {
-	List(namespace string, opts metainternal.ListOptions) (*buildapi.BuildList, error)
+	List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error)
 }
 
 // OSClientBuildClient deletes build create and update operations to the OpenShift client interface
@@ -65,7 +64,7 @@ func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) err
 }
 
 // List lists the builds using the OpenShift client.
-func (c OSClientBuildClient) List(namespace string, opts metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (c OSClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	return c.Client.Builds(namespace).List(opts)
 }
 

@@ -56,7 +56,7 @@ func (m *VirtualStorage) List(ctx apirequest.Context, options *metainternal.List
 		return nil, err
 	}
 
-	labelSelector, fieldSelector := oapi.ListOptionsToSelectors(options)
+	labelSelector, fieldSelector := oapi.InternalListOptionsToSelectors(options)
 
 	roleList := &authorizationapi.RoleList{}
 	for _, policy := range policyList.Items {

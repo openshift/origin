@@ -591,6 +591,9 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				// should have been caught with validation
 				return nil, err
 			}
+			if plugin == nil {
+				continue
+			}
 
 			// skip initialization below because admission.InitPlugin does all the work
 			skipInitialization = true

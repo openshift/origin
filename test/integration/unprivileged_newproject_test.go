@@ -6,7 +6,6 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -53,7 +52,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	allowed, err := valerieOpenshiftClient.ProjectRequests().List(metainternal.ListOptions{})
+	allowed, err := valerieOpenshiftClient.ProjectRequests().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -76,7 +75,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
 
-	actualProject, err := valerieOpenshiftClient.Projects().Get("new-project")
+	actualProject, err := valerieOpenshiftClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -165,7 +164,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	}
 
 	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
-	project, err := valerieOpenshiftClient.Projects().Get("new-project")
+	project, err := valerieOpenshiftClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -197,7 +196,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	role, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName)
+	role, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -236,7 +235,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	_, err = valerieOpenshiftClient.ProjectRequests().List(metainternal.ListOptions{})
+	_, err = valerieOpenshiftClient.ProjectRequests().List(metav1.ListOptions{})
 	if err == nil {
 		t.Fatalf("expected error: %v", err)
 	}

@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -27,13 +26,8 @@ func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*auth
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource, optsv1), &authorizationapi.ClusterPolicyList{})
+func (c *FakeClusterPolicies) List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource, opts), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -46,11 +40,6 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPoliciesResource, optsv1))
+func (c *FakeClusterPolicies) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPoliciesResource, opts))
 }

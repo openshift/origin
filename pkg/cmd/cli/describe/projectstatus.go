@@ -9,7 +9,6 @@ import (
 	"text/tabwriter"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -1444,7 +1443,7 @@ type isLoader struct {
 }
 
 func (l *isLoader) Load() error {
-	list, err := l.lister.ImageStreams(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.ImageStreams(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1469,7 +1468,7 @@ type dcLoader struct {
 }
 
 func (l *dcLoader) Load() error {
-	list, err := l.lister.DeploymentConfigs(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.DeploymentConfigs(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1493,7 +1492,7 @@ type bcLoader struct {
 }
 
 func (l *bcLoader) Load() error {
-	list, err := l.lister.BuildConfigs(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.BuildConfigs(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1517,7 +1516,7 @@ type buildLoader struct {
 }
 
 func (l *buildLoader) Load() error {
-	list, err := l.lister.Builds(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.Builds(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return errors.TolerateNotFoundError(err)
 	}
@@ -1541,7 +1540,7 @@ type routeLoader struct {
 }
 
 func (l *routeLoader) Load() error {
-	list, err := l.lister.Routes(l.namespace).List(metainternal.ListOptions{})
+	list, err := l.lister.Routes(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

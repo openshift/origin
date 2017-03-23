@@ -9,7 +9,6 @@ import (
 
 	log "github.com/golang/glog"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -24,7 +23,7 @@ import (
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	subrange := make([]string, 0)
-	subnets, err := master.osClient.HostSubnets().List(metainternal.ListOptions{})
+	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err

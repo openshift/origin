@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -46,11 +46,11 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metainternal.ListOptions{}); err != nil {
+	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := haroldClient.Users().Get("~")
+	haroldUser, err := haroldClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,11 +74,11 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := whoamiClient.Builds(projectName).List(metainternal.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := whoamiClient.Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	user, err := whoamiClient.Users().Get("~")
+	user, err := whoamiClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,12 +87,12 @@ func TestScopedTokens(t *testing.T) {
 	}
 
 	// try to impersonate a service account using this token
-	whoamiConfig.Impersonate = serviceaccount.MakeUsername(projectName, "default")
+	whoamiConfig.Impersonate = rest.ImpersonationConfig{UserName: apiserverserviceaccount.MakeUsername(projectName, "default")}
 	impersonatingClient, err := client.New(&whoamiConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	impersonatedUser, err := impersonatingClient.Users().Get("~")
+	impersonatedUser, err := impersonatingClient.Users().Get("~", metav1.GetOptions{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("missing error: %v got user %#v", err, impersonatedUser)
 	}
@@ -168,11 +168,11 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metainternal.ListOptions{}); err != nil {
+	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := haroldClient.Users().Get("~")
+	haroldUser, err := haroldClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -7,7 +7,6 @@ import (
 	gonum "github.com/gonum/graph"
 	"github.com/spf13/cobra"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -76,13 +75,13 @@ func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comma
 	}
 	o.out = out
 
-	allImages, err := osClient.Images().List(metainternal.ListOptions{})
+	allImages, err := osClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := osClient.ImageStreams(namespace).List(metainternal.ListOptions{})
+	allStreams, err := osClient.ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

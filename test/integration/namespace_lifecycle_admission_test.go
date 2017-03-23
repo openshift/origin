@@ -66,7 +66,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 
 	// Ensure the origin finalizer is added
-	ns, err = clusterAdminKubeClientset.Core().Namespaces().Get(ns.Name)
+	ns, err = clusterAdminKubeClientset.Core().Namespaces().Get(ns.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

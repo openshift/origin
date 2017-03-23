@@ -17,7 +17,6 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
@@ -531,7 +530,7 @@ func runOAuthFlow(
 			return
 		}
 
-		_, err = whoamiClient.Builds(projectName).List(metainternal.ListOptions{})
+		_, err = whoamiClient.Builds(projectName).List(metav1.ListOptions{})
 		if expectBuildSuccess && err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return

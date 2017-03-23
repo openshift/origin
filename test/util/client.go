@@ -36,7 +36,7 @@ func KubeConfigPath() string {
 	return filepath.Join(GetBaseDir(), "openshift.local.config", "master", "admin.kubeconfig")
 }
 
-func GetClusterAdminKubeClient(adminKubeConfigFile string) (*kclientset.Clientset, error) {
+func GetClusterAdminKubeClient(adminKubeConfigFile string) (kclientset.Interface, error) {
 	c, _, err := configapi.GetInternalKubeClient(adminKubeConfigFile, nil)
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func GetScopedClientForUser(adminClient *client.Client, clientConfig restclient.
 	return osClient, kubeClient, &scopedConfig, nil
 }
 
-func GetClientForServiceAccount(adminClient *kclientset.Clientset, clientConfig restclient.Config, namespace, name string) (*client.Client, *kclientset.Clientset, *restclient.Config, error) {
+func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig restclient.Config, namespace, name string) (*client.Client, *kclientset.Clientset, *restclient.Config, error) {
 	_, err := adminClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	if err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, nil, err

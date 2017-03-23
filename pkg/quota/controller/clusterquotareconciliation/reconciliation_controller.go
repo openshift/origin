@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -173,7 +173,7 @@ func (c *ClusterQuotaReconcilationController) forceCalculation(quotaName string,
 }
 
 func (c *ClusterQuotaReconcilationController) calculateAll() {
-	quotas, err := c.clusterQuotaLister.List(metainternal.ListOptions{})
+	quotas, err := c.clusterQuotaLister.List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(err)
 		return

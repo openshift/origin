@@ -7,7 +7,6 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,12 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batch_v1 "k8s.io/kubernetes/pkg/apis/batch/v1"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
-	kclientset15 "k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -35,7 +32,7 @@ type legacyExtensionsAutoscaling struct {
 }
 
 // List takes label and field selectors, and returns the list of horizontalPodAutoscalers that match those selectors.
-func (c legacyExtensionsAutoscaling) List(opts metainternal.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
+func (c legacyExtensionsAutoscaling) List(opts metav1.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
 	result = &autoscaling.HorizontalPodAutoscalerList{}
 	err = c.client.Get().Namespace(c.namespace).Resource("horizontalPodAutoscalers").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
@@ -46,7 +43,7 @@ func (c legacyExtensionsAutoscaling) Create(hpa *autoscaling.HorizontalPodAutosc
 	return &result, c.client.Post().Resource("horizontalpodautoscalers").Namespace(c.namespace).Body(hpa).Do().Into(&result)
 }
 
-func (c legacyExtensionsAutoscaling) Get(name string) (*autoscaling.HorizontalPodAutoscaler, error) {
+func (c legacyExtensionsAutoscaling) Get(name string, options metav1.GetOptions) (*autoscaling.HorizontalPodAutoscaler, error) {
 	var result autoscaling.HorizontalPodAutoscaler
 	return &result, c.client.Get().Resource("horizontalpodautoscalers").Namespace(c.namespace).Name(name).Do().Into(&result)
 }
@@ -62,7 +59,7 @@ func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig
 	return gvk, err
 }
 
-func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclientset.Interface, kclientset15.Interface) {
+func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclientset.Interface) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -85,16 +82,12 @@ func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclien
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, ns, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	projectAdminClient, projectAdminKubeClient, projectAdminKubeConfig, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	_, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
-	projectAdminKubeClient15 := kclientset15.NewForConfigOrDie(projectAdminKubeConfig)
-	if err := testutil.WaitForPolicyUpdate(projectAdminClient, ns, "get", extensions.Resource("horizontalpodautoscalers"), true); err != nil {
-		t.Fatalf("unexpected error waiting for policy update: %v", err)
-	}
 
-	return masterConfig, projectAdminKubeClient, projectAdminKubeClient15
+	return masterConfig, projectAdminKubeClient
 }
 
 func TestStorageVersions(t *testing.T) {
@@ -104,7 +97,7 @@ func TestStorageVersions(t *testing.T) {
 
 	defer testutil.DumpEtcdOnFailure(t)
 	etcdServer := testutil.RequireEtcd(t)
-	masterConfig, kubeClient, kubeClient15 := setupStorageTests(t, ns)
+	masterConfig, kubeClient := setupStorageTests(t, ns)
 
 	jobTestcases := map[string]struct {
 		creator kbatchclient.JobInterface
@@ -137,11 +130,8 @@ func TestStorageVersions(t *testing.T) {
 		}
 
 		// Ensure it is accessible from both APIs
-		if _, err := kubeClient.Batch().Jobs(ns).Get(job.Name); err != nil {
+		if _, err := kubeClient.Batch().Jobs(ns).Get(job.Name, metav1.GetOptions{}); err != nil {
 			t.Errorf("%s: Error reading Job from the batch client: %#v", name, err)
-		}
-		if _, err := kubeClient15.Extensions().Jobs(ns).Get(job.Name); err != nil {
-			t.Errorf("%s: Error reading Job from the extensions client: %#v", name, err)
 		}
 	}
 
@@ -180,10 +170,10 @@ func TestStorageVersions(t *testing.T) {
 		}
 
 		// Make sure it is available from the api
-		if _, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpa.Name); err != nil {
+		if _, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpa.Name, metav1.GetOptions{}); err != nil {
 			t.Errorf("%s: Error reading HPA.autoscaling from the autoscaling/v1 API: %#v", name, err)
 		}
-		if _, err := legacyClient.Get(hpa.Name); err != nil {
+		if _, err := legacyClient.Get(hpa.Name, metav1.GetOptions{}); err != nil {
 			t.Errorf("%s: Error reading HPA.autoscaling from the extensions/v1beta1 API: %#v", name, err)
 		}
 	}
@@ -199,7 +189,7 @@ func TestStorageMigration(t *testing.T) {
 
 	defer testutil.DumpEtcdOnFailure(t)
 	etcdServer := testutil.RequireEtcd(t)
-	masterConfig, kubeClient, kubeClient15 := setupStorageTests(t, ns)
+	masterConfig, kubeClient := setupStorageTests(t, ns)
 
 	// Save an extensions/v1beta1.Job directly in etcd
 	keys := etcd.NewKeysAPI(etcdServer.Client)
@@ -209,12 +199,9 @@ func TestStorageMigration(t *testing.T) {
 	}
 
 	// Ensure it is accessible from both APIs
-	job, err := kubeClient.Batch().Jobs(ns).Get(jobName)
+	job, err := kubeClient.Batch().Jobs(ns).Get(jobName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Error reading Job from the batch client: %#v", err)
-	}
-	if _, err := kubeClient15.Extensions().Jobs(ns).Get(job.Name); err != nil {
-		t.Errorf("Error reading Job from the extensions client: %#v", err)
 	}
 
 	// Update the job

@@ -28,7 +28,7 @@ func (r *REST) New() runtime.Object {
 }
 
 func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
-	return &metainternal.ListOptions{}, false, ""
+	return &metav1.ListOptions{}, false, ""
 }
 
 // Get retrieves all pull type secrets in the current namespace. Name is currently ignored and

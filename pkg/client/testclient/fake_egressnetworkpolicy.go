@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -28,13 +27,8 @@ func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*
 	return obj.(*sdnapi.EgressNetworkPolicy), err
 }
 
-func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, c.Namespace, optsv1), &sdnapi.EgressNetworkPolicyList{})
+func (c *FakeEgressNetworkPolicy) List(opts metav1.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -65,11 +59,6 @@ func (c *FakeEgressNetworkPolicy) Delete(name string) error {
 	return err
 }
 
-func (c *FakeEgressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, optsv1))
+func (c *FakeEgressNetworkPolicy) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, opts))
 }

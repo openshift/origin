@@ -1,7 +1,6 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -16,12 +15,12 @@ type BuildsNamespacer interface {
 
 // BuildInterface exposes methods on Build resources.
 type BuildInterface interface {
-	List(opts metainternal.ListOptions) (*buildapi.BuildList, error)
+	List(opts metav1.ListOptions) (*buildapi.BuildList, error)
 	Get(name string, options metav1.GetOptions) (*buildapi.Build, error)
 	Create(build *buildapi.Build) (*buildapi.Build, error)
 	Update(build *buildapi.Build) (*buildapi.Build, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
 	UpdateDetails(build *buildapi.Build) (*buildapi.Build, error)
 }
@@ -41,7 +40,7 @@ func newBuilds(c *Client, namespace string) *builds {
 }
 
 // List returns a list of builds that match the label and field selectors.
-func (c *builds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (c *builds) List(opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	result := &buildapi.BuildList{}
 	err := c.r.Get().
 		Namespace(c.ns).
@@ -79,7 +78,7 @@ func (c *builds) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested builds
-func (c *builds) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *builds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -27,13 +26,8 @@ func (c *FakeClusterResourceQuotas) Get(name string, options metav1.GetOptions) 
 	return obj.(*quotaapi.ClusterResourceQuota), err
 }
 
-func (c *FakeClusterResourceQuotas) List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusteResourceQuotasResource, optsv1), &quotaapi.ClusterResourceQuotaList{})
+func (c *FakeClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.ClusterResourceQuotaList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusteResourceQuotasResource, opts), &quotaapi.ClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -63,13 +57,8 @@ func (c *FakeClusterResourceQuotas) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusteResourceQuotasResource, optsv1))
+func (c *FakeClusterResourceQuotas) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusteResourceQuotasResource, opts))
 }
 
 func (c *FakeClusterResourceQuotas) UpdateStatus(inObj *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error) {

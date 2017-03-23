@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -63,7 +62,7 @@ func (t *testReadOnlyPolicyBinding) PolicyBindings(namespace string) client.Poli
 }
 
 // ReadOnlyPolicyBindingInterface exposes methods on PolicyBindings resources
-func (t *testReadOnlyPolicyBinding) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (t *testReadOnlyPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 

@@ -5,7 +5,6 @@ import (
 	"io"
 	"net/url"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -33,13 +32,8 @@ func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildap
 	return obj.(*buildapi.BuildConfig), err
 }
 
-func (c *FakeBuildConfigs) List(opts metainternal.ListOptions) (*buildapi.BuildConfigList, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, optsv1), &buildapi.BuildConfigList{})
+func (c *FakeBuildConfigs) List(opts metav1.ListOptions) (*buildapi.BuildConfigList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, opts), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -70,13 +64,8 @@ func (c *FakeBuildConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuildConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(buildConfigsResource, c.Namespace, optsv1))
+func (c *FakeBuildConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(buildConfigsResource, c.Namespace, opts))
 }
 
 func (c *FakeBuildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {

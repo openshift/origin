@@ -40,8 +40,12 @@ type policyBindingLister struct {
 	namespace string
 }
 
-func (s policyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &options)
+func (s policyBindingLister) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+	optint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+		return nil, err
+	}
+	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
 }
 
 func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
