@@ -6,6 +6,7 @@ import (
 	api "github.com/openshift/origin/pkg/image/api"
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
 	"k8s.io/kubernetes/pkg/api/errors"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/labels"
 )
@@ -14,8 +15,8 @@ import (
 type ImageLister interface {
 	// List lists all Images in the indexer.
 	List(selector labels.Selector) (ret []*v1.Image, err error)
-	// Images returns an object that can list and get Images.
-	Images(namespace string) ImageNamespaceLister
+	// Get retrieves the Image from the index for a given name.
+	Get(name string) (*v1.Image, error)
 	ImageListerExpansion
 }
 
@@ -37,38 +38,10 @@ func (s *imageLister) List(selector labels.Selector) (ret []*v1.Image, err error
 	return ret, err
 }
 
-// Images returns an object that can list and get Images.
-func (s *imageLister) Images(namespace string) ImageNamespaceLister {
-	return imageNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// ImageNamespaceLister helps list and get Images.
-type ImageNamespaceLister interface {
-	// List lists all Images in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1.Image, err error)
-	// Get retrieves the Image from the indexer for a given namespace and name.
-	Get(name string) (*v1.Image, error)
-	ImageNamespaceListerExpansion
-}
-
-// imageNamespaceLister implements the ImageNamespaceLister
-// interface.
-type imageNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Images in the indexer for a given namespace.
-func (s imageNamespaceLister) List(selector labels.Selector) (ret []*v1.Image, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.Image))
-	})
-	return ret, err
-}
-
-// Get retrieves the Image from the indexer for a given namespace and name.
-func (s imageNamespaceLister) Get(name string) (*v1.Image, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the Image from the index for a given name.
+func (s *imageLister) Get(name string) (*v1.Image, error) {
+	key := &v1.Image{ObjectMeta: api_v1.ObjectMeta{Name: name}}
+	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
