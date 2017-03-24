@@ -6,6 +6,7 @@ set -o pipefail
 
 # Should set OPENSHIFT_NETWORK_PLUGIN
 source /data/network-plugin
+source /data/additional-args
 
 function ensure-master-config() {
   local config_path="/data/openshift.local.config"
@@ -30,7 +31,8 @@ function ensure-master-config() {
 
   /usr/local/bin/openshift start master --write-config="${master_path}" \
     --master="https://${ip_addr}:8443" \
-    --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}"
+    --network-plugin="${OPENSHIFT_NETWORK_PLUGIN}" \
+    ${OPENSHIFT_ADDITIONAL_ARGS}
 
   # ensure the configuration can be used outside of the container
   chmod -R ga+rX "${master_path}"
