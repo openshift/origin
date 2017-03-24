@@ -54,7 +54,7 @@ func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient *templateclie
 		Spec: templateapi.TemplateInstanceSpec{
 			Template: *template,
 			Secret:   kapi.LocalObjectReference{Name: secret.Name},
-			Requestor: &templateapi.TemplateInstanceRequestor{
+			Requester: &templateapi.TemplateInstanceRequester{
 				Username: impersonate,
 			},
 		},

@@ -244,7 +244,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 							Namespace: "test",
 						},
 					},
-					Requestor: &api.TemplateInstanceRequestor{
+					Requester: &api.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -269,7 +269,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 							},
 						},
 					},
-					Requestor: &api.TemplateInstanceRequestor{
+					Requester: &api.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -291,7 +291,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Secret: kapi.LocalObjectReference{
 						Name: "b@d",
 					},
-					Requestor: &api.TemplateInstanceRequestor{
+					Requester: &api.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -313,7 +313,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Secret: kapi.LocalObjectReference{
 						Name: "test",
 					},
-					Requestor: &api.TemplateInstanceRequestor{
+					Requester: &api.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -355,7 +355,7 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 			Secret: kapi.LocalObjectReference{
 				Name: "test",
 			},
-			Requestor: &api.TemplateInstanceRequestor{
+			Requester: &api.TemplateInstanceRequester{
 				Username: "test",
 			},
 		},
@@ -432,12 +432,12 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
-				new.Spec.Requestor.Username = "new"
+				new.Spec.Requester.Username = "new"
 			},
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
-				new.Spec.Requestor.Username = ""
+				new.Spec.Requester.Username = ""
 			},
 		},
 	}

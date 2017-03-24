@@ -15,9 +15,9 @@ import (
 )
 
 // 1. Check that users can't create or update templateinstances unless they are,
-// or can impersonate, the requestor.
+// or can impersonate, the requester.
 // 2. Check that templateinstancespecs, particularly including
-// requestor.username, are immutable.
+// requester.username, are immutable.
 var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 	defer g.GinkgoRecover()
 
@@ -64,7 +64,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 				},
 				// all the tests work with a templateinstance which is set up to
 				// impersonate edituser1
-				Requestor: &templateapi.TemplateInstanceRequestor{
+				Requester: &templateapi.TemplateInstanceRequester{
 					Username: edituser1.Name,
 				},
 			},
@@ -164,7 +164,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 	g.It("should pass impersonation creation tests", func() {
 		// check who can create TemplateInstances (anyone with project write access
-		// AND is/can impersonate spec.requestor.username)
+		// AND is/can impersonate spec.requester.username)
 		for _, test := range tests {
 			setUser(cli, test.user)
 
@@ -186,7 +186,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 	g.It("should pass impersonation update tests", func() {
 		// check who can update TemplateInstances (anyone with project write access
-		// AND is/can impersonate spec.requestor.username)
+		// AND is/can impersonate spec.requester.username)
 		for _, test := range tests {
 			setUser(cli, test.user)
 
@@ -204,9 +204,9 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 				templateinstance = newtemplateinstance
 			}
 
-			// ensure spec (particularly including spec.requestor.username) is
+			// ensure spec (particularly including spec.requester.username) is
 			// immutable
-			templateinstance.Spec.Requestor.Username = edituser2.Name
+			templateinstance.Spec.Requester.Username = edituser2.Name
 			_, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			o.Expect(err).To(o.HaveOccurred())
 

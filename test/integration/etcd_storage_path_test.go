@@ -307,7 +307,7 @@ var etcdStorageData = map[unversioned.GroupVersionResource]struct {
 		expectedGVK:      gvkP("", "v1", "Template"), // expect the legacy group to be persisted
 	},
 	gvr("template.openshift.io", "v1", "templateinstances"): {
-		stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "etcdstoragepathtestnamespace"}}, "requestor": {"username": "test"}}}`,
+		stub:             `{"metadata": {"name": "templateinstance1"}, "spec": {"template": {"metadata": {"name": "template1", "namespace": "etcdstoragepathtestnamespace"}}, "requester": {"username": "test"}}}`,
 		expectedEtcdPath: "openshift.io/templateinstances/etcdstoragepathtestnamespace/templateinstance1",
 	},
 	gvr("template.openshift.io", "v1", "brokertemplateinstances"): {

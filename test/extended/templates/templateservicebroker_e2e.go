@@ -126,7 +126,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			Secret: kapi.LocalObjectReference{
 				Name: secret.Name,
 			},
-			Requestor: &templateapi.TemplateInstanceRequestor{
+			Requester: &templateapi.TemplateInstanceRequester{
 				Username: cli.Username(),
 			},
 		}))

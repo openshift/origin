@@ -103,13 +103,13 @@ func (c *TemplateInstanceController) handle(templateInstance *templateapi.Templa
 }
 
 func (c *TemplateInstanceController) provision(templateInstance *templateapi.TemplateInstance) error {
-	if templateInstance.Spec.Requestor == nil || templateInstance.Spec.Requestor.Username == "" {
-		return fmt.Errorf("spec.requestor.username not set")
+	if templateInstance.Spec.Requester == nil || templateInstance.Spec.Requester.Username == "" {
+		return fmt.Errorf("spec.requester.username not set")
 	}
 
 	restconfigCopy := *c.restconfig
 	restconfigCopy.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return authclient.NewImpersonatingRoundTripper(&user.DefaultInfo{Name: templateInstance.Spec.Requestor.Username}, c.restconfig.WrapTransport(rt))
+		return authclient.NewImpersonatingRoundTripper(&user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}, c.restconfig.WrapTransport(rt))
 	}
 
 	impersonatedOC, err := client.New(&restconfigCopy)

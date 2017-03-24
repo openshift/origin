@@ -24079,10 +24079,10 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 		Dependencies: []string{
 			"unversioned.ListMeta", "v1.TemplateInstance"},
 	},
-	"v1.TemplateInstanceRequestor": {
+	"v1.TemplateInstanceRequester": {
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "TemplateInstanceRequestor holds the identity of an agent requesting a template instantiation.",
+				Description: "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
 				Properties: map[string]spec.Schema{
 					"username": {
 						SchemaProps: spec.SchemaProps{
@@ -24114,18 +24114,18 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 							Ref:         spec.MustCreateRef("#/definitions/v1.LocalObjectReference"),
 						},
 					},
-					"requestor": {
+					"requester": {
 						SchemaProps: spec.SchemaProps{
-							Description: "requestor holds the identity of the agent requesting the template instantiation.",
-							Ref:         spec.MustCreateRef("#/definitions/v1.TemplateInstanceRequestor"),
+							Description: "requester holds the identity of the agent requesting the template instantiation.",
+							Ref:         spec.MustCreateRef("#/definitions/v1.TemplateInstanceRequester"),
 						},
 					},
 				},
-				Required: []string{"template", "secret", "requestor"},
+				Required: []string{"template", "secret", "requester"},
 			},
 		},
 		Dependencies: []string{
-			"v1.LocalObjectReference", "v1.Template", "v1.TemplateInstanceRequestor"},
+			"v1.LocalObjectReference", "v1.Template", "v1.TemplateInstanceRequester"},
 	},
 	"v1.TemplateInstanceStatus": {
 		Schema: spec.Schema{
