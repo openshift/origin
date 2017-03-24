@@ -10,7 +10,7 @@ import (
 // ImagesGetter has a method to return a ImageResourceInterface.
 // A group's client should implement this interface.
 type ImagesGetter interface {
-	Images(namespace string) ImageResourceInterface
+	Images() ImageResourceInterface
 }
 
 // ImageResourceInterface has methods to work with ImageResource resources.
@@ -29,14 +29,12 @@ type ImageResourceInterface interface {
 // images implements ImageResourceInterface
 type images struct {
 	client restclient.Interface
-	ns     string
 }
 
 // newImages returns a Images
-func newImages(c *ImageClient, namespace string) *images {
+func newImages(c *ImageClient) *images {
 	return &images{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -44,7 +42,6 @@ func newImages(c *ImageClient, namespace string) *images {
 func (c *images) Create(image *api.Image) (result *api.Image, err error) {
 	result = &api.Image{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("images").
 		Body(image).
 		Do().
@@ -56,7 +53,6 @@ func (c *images) Create(image *api.Image) (result *api.Image, err error) {
 func (c *images) Update(image *api.Image) (result *api.Image, err error) {
 	result = &api.Image{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("images").
 		Name(image.Name).
 		Body(image).
@@ -68,7 +64,6 @@ func (c *images) Update(image *api.Image) (result *api.Image, err error) {
 // Delete takes name of the image and deletes it. Returns an error if one occurs.
 func (c *images) Delete(name string, options *pkg_api.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("images").
 		Name(name).
 		Body(options).
@@ -79,7 +74,6 @@ func (c *images) Delete(name string, options *pkg_api.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *images) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&listOptions, pkg_api.ParameterCodec).
 		Body(options).
@@ -91,7 +85,6 @@ func (c *images) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pk
 func (c *images) Get(name string) (result *api.Image, err error) {
 	result = &api.Image{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("images").
 		Name(name).
 		Do().
@@ -103,7 +96,6 @@ func (c *images) Get(name string) (result *api.Image, err error) {
 func (c *images) List(opts pkg_api.ListOptions) (result *api.ImageList, err error) {
 	result = &api.ImageList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Do().
@@ -115,7 +107,6 @@ func (c *images) List(opts pkg_api.ListOptions) (result *api.ImageList, err erro
 func (c *images) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&opts, pkg_api.ParameterCodec).
 		Watch()
@@ -125,7 +116,6 @@ func (c *images) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
 func (c *images) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Image, err error) {
 	result = &api.Image{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("images").
 		SubResource(subresources...).
 		Name(name).

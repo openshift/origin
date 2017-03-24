@@ -20,7 +20,7 @@ var _ = g.Describe("[builds][Conformance] build without output image", func() {
 	g.Describe("building from templates", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-		g.It(fmt.Sprintf("should create an image from %q docker template without an output image reference defined", dockerImageFixture), func() {
+		g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined"), func() {
 			err := oc.Run("create").Args("-f", dockerImageFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -35,7 +35,7 @@ var _ = g.Describe("[builds][Conformance] build without output image", func() {
 			o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
 		})
 
-		g.It(fmt.Sprintf("should create an image from %q S2i template without an output image reference defined", s2iImageFixture), func() {
+		g.It(fmt.Sprintf("should create an image from a S2i template without an output image reference defined"), func() {
 			err := oc.Run("create").Args("-f", s2iImageFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 

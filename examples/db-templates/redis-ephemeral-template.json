@@ -21,6 +21,16 @@
   },
   "objects": [
     {
+      "kind": "Secret",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${DATABASE_SERVICE_NAME}"
+      },
+      "stringData" : {
+        "database-password" : "${REDIS_PASSWORD}"
+      }
+    },
+    {
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
@@ -117,7 +127,12 @@
                 "env": [
                   {
                     "name": "REDIS_PASSWORD",
-                    "value": "${REDIS_PASSWORD}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-password"
+                      }
+                    }
                   }
                 ],
                 "resources": {

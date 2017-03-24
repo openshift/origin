@@ -11,7 +11,7 @@ import (
 // ImagesGetter has a method to return a ImageResourceInterface.
 // A group's client should implement this interface.
 type ImagesGetter interface {
-	Images(namespace string) ImageResourceInterface
+	Images() ImageResourceInterface
 }
 
 // ImageResourceInterface has methods to work with ImageResource resources.
@@ -30,14 +30,12 @@ type ImageResourceInterface interface {
 // images implements ImageResourceInterface
 type images struct {
 	client restclient.Interface
-	ns     string
 }
 
 // newImages returns a Images
-func newImages(c *ImageV1Client, namespace string) *images {
+func newImages(c *ImageV1Client) *images {
 	return &images{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -45,7 +43,6 @@ func newImages(c *ImageV1Client, namespace string) *images {
 func (c *images) Create(image *v1.Image) (result *v1.Image, err error) {
 	result = &v1.Image{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("images").
 		Body(image).
 		Do().
@@ -57,7 +54,6 @@ func (c *images) Create(image *v1.Image) (result *v1.Image, err error) {
 func (c *images) Update(image *v1.Image) (result *v1.Image, err error) {
 	result = &v1.Image{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("images").
 		Name(image.Name).
 		Body(image).
@@ -69,7 +65,6 @@ func (c *images) Update(image *v1.Image) (result *v1.Image, err error) {
 // Delete takes name of the image and deletes it. Returns an error if one occurs.
 func (c *images) Delete(name string, options *api_v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("images").
 		Name(name).
 		Body(options).
@@ -80,7 +75,6 @@ func (c *images) Delete(name string, options *api_v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *images) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&listOptions, api.ParameterCodec).
 		Body(options).
@@ -92,7 +86,6 @@ func (c *images) DeleteCollection(options *api_v1.DeleteOptions, listOptions api
 func (c *images) Get(name string) (result *v1.Image, err error) {
 	result = &v1.Image{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("images").
 		Name(name).
 		Do().
@@ -104,7 +97,6 @@ func (c *images) Get(name string) (result *v1.Image, err error) {
 func (c *images) List(opts api_v1.ListOptions) (result *v1.ImageList, err error) {
 	result = &v1.ImageList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&opts, api.ParameterCodec).
 		Do().
@@ -116,7 +108,6 @@ func (c *images) List(opts api_v1.ListOptions) (result *v1.ImageList, err error)
 func (c *images) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.client.Get().
 		Prefix("watch").
-		Namespace(c.ns).
 		Resource("images").
 		VersionedParams(&opts, api.ParameterCodec).
 		Watch()
@@ -126,7 +117,6 @@ func (c *images) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 func (c *images) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Image, err error) {
 	result = &v1.Image{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("images").
 		SubResource(subresources...).
 		Name(name).

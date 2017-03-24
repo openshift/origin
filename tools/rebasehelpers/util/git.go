@@ -115,7 +115,9 @@ type File string
 // HasVendoredCodeChanges verifies if the modified file is from Godeps/_workspace/
 // or vendor/ directories.
 func (f File) HasVendoredCodeChanges() bool {
-	return strings.HasPrefix(string(f), "Godeps/_workspace") || strings.HasPrefix(string(f), "vendor")
+	return strings.HasPrefix(string(f), "Godeps/_workspace") ||
+		strings.HasPrefix(string(f), "vendor") ||
+		strings.HasPrefix(string(f), "pkg/build/vendor")
 }
 
 // HasGodepsChanges verifies if the modified file is Godeps/Godeps.json.

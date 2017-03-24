@@ -13,15 +13,13 @@ import (
 // FakeImages implements ImageResourceInterface
 type FakeImages struct {
 	Fake *FakeImageV1
-	ns   string
 }
 
 var imagesResource = unversioned.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "images"}
 
 func (c *FakeImages) Create(image *v1.Image) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(imagesResource, c.ns, image), &v1.Image{})
-
+		Invokes(core.NewRootCreateAction(imagesResource, image), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
@@ -30,8 +28,7 @@ func (c *FakeImages) Create(image *v1.Image) (result *v1.Image, err error) {
 
 func (c *FakeImages) Update(image *v1.Image) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(imagesResource, c.ns, image), &v1.Image{})
-
+		Invokes(core.NewRootUpdateAction(imagesResource, image), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
@@ -40,13 +37,12 @@ func (c *FakeImages) Update(image *v1.Image) (result *v1.Image, err error) {
 
 func (c *FakeImages) Delete(name string, options *api_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(imagesResource, c.ns, name), &v1.Image{})
-
+		Invokes(core.NewRootDeleteAction(imagesResource, name), &v1.Image{})
 	return err
 }
 
 func (c *FakeImages) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(imagesResource, c.ns, listOptions)
+	action := core.NewRootDeleteCollectionAction(imagesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ImageList{})
 	return err
@@ -54,8 +50,7 @@ func (c *FakeImages) DeleteCollection(options *api_v1.DeleteOptions, listOptions
 
 func (c *FakeImages) Get(name string) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(imagesResource, c.ns, name), &v1.Image{})
-
+		Invokes(core.NewRootGetAction(imagesResource, name), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
@@ -64,8 +59,7 @@ func (c *FakeImages) Get(name string) (result *v1.Image, err error) {
 
 func (c *FakeImages) List(opts api_v1.ListOptions) (result *v1.ImageList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(imagesResource, c.ns, opts), &v1.ImageList{})
-
+		Invokes(core.NewRootListAction(imagesResource, opts), &v1.ImageList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -86,15 +80,13 @@ func (c *FakeImages) List(opts api_v1.ListOptions) (result *v1.ImageList, err er
 // Watch returns a watch.Interface that watches the requested images.
 func (c *FakeImages) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(imagesResource, c.ns, opts))
-
+		InvokesWatch(core.NewRootWatchAction(imagesResource, opts))
 }
 
 // Patch applies the patch and returns the patched image.
 func (c *FakeImages) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(imagesResource, c.ns, name, data, subresources...), &v1.Image{})
-
+		Invokes(core.NewRootPatchSubresourceAction(imagesResource, name, data, subresources...), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}

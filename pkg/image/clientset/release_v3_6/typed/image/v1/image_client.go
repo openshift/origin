@@ -19,8 +19,8 @@ type ImageV1Client struct {
 	restClient restclient.Interface
 }
 
-func (c *ImageV1Client) Images(namespace string) ImageResourceInterface {
-	return newImages(c, namespace)
+func (c *ImageV1Client) Images() ImageResourceInterface {
+	return newImages(c)
 }
 
 // NewForConfig creates a new ImageV1Client for the given config.

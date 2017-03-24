@@ -33,7 +33,7 @@ func (a *openshiftAuthorizer) Authorize(attributes authorizer.Attributes) (bool,
 		return false, "", err
 	}
 
-	denyReason, err := a.forbiddenMessageMaker.MakeMessage(MessageContext{attributes})
+	denyReason, err := a.forbiddenMessageMaker.MakeMessage(attributes)
 	if err != nil {
 		denyReason = err.Error()
 	}

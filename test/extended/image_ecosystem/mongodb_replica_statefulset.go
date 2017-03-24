@@ -31,7 +31,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				ginkgolog("pod logs for %s:\n%s", podLogs, err)
 			}
 		})
-		g.It(fmt.Sprintf("should process and create the %q template", templatePath), func() {
+		g.It(fmt.Sprintf("should instantiate the template"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By("creating persistent volumes")
