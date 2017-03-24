@@ -92,6 +92,9 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
     - statefulsets
     - statefulsets/status
     verbs:
@@ -156,6 +159,27 @@ items:
     resources:
     - poddisruptionbudgets
     - poddisruptionbudgets/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - clusterrolebindings
+    - clusterroles
+    - rolebindings
+    - roles
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - settings.k8s.io
+    attributeRestrictions: null
+    resources:
+    - podpresets
     verbs:
     - get
     - list
@@ -677,6 +701,9 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
     - statefulsets
     verbs:
     - create
@@ -1115,6 +1142,9 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
     - statefulsets
     verbs:
     - create
@@ -1428,6 +1458,8 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
     - statefulsets
     verbs:
     - get
@@ -2238,6 +2270,7 @@ items:
     resources:
     - nodes/status
     verbs:
+    - patch
     - update
   - apiGroups:
     - ""
@@ -2881,6 +2914,7 @@ items:
     verbs:
     - create
     - delete
+    - patch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -2932,6 +2966,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -3885,6 +3920,7 @@ items:
     - create
     - delete
     - get
+    - patch
     - update
   - apiGroups:
     - ""

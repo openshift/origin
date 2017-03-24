@@ -239,7 +239,7 @@ func init() {
 				},
 				{
 					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("list", "watch", "get", "create", "update", "delete"),
+					Verbs:     sets.NewString("list", "watch", "get", "create", "patch", "update", "delete"),
 					Resources: sets.NewString("replicasets"),
 				},
 				{
@@ -703,7 +703,7 @@ func init() {
 				},
 				// DaemonSetsController.podControl (RealPodControl)
 				{
-					Verbs:     sets.NewString("create", "delete"),
+					Verbs:     sets.NewString("create", "delete", "patch"),
 					Resources: sets.NewString("pods"),
 				},
 				{
@@ -909,10 +909,10 @@ func init() {
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("statefulsets/status"),
 				},
-				// StatefulSetController.podClient
+				// StatefulSetController.podControl
 				{
 					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("get", "create", "delete", "update"),
+					Verbs:     sets.NewString("get", "create", "delete", "update", "patch"),
 					Resources: sets.NewString("pods"),
 				},
 				// StatefulSetController.petClient (PVC)
