@@ -56,6 +56,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		//orchestrationPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "mapsapp-pipeline.yaml")
 		blueGreenPipelinePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
+		envVarsPipelinePath      = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -175,6 +176,55 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if succeeded")
 			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-openshift-client-plugin/lastBuild/consoleText", oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Context("Pipeline with env vars", func() {
+		g.AfterEach(func() {
+			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
+				g.By("stopping jenkins gc tracking")
+				ticker.Stop()
+			}
+		})
+
+		g.It("should build and complete successfully", func() {
+			// instantiate the bc
+			g.By(fmt.Sprintf("calling oc new-app -f %q", envVarsPipelinePath))
+			err := oc.Run("new-app").Args("-f", envVarsPipelinePath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// start the build
+			g.By("starting the pipeline build, including env var, and waiting for it to complete")
+			br, _ := exutil.StartBuildAndWait(oc, "-e", "FOO2=BAR2", "sample-pipeline-withenvs")
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+			br.AssertSuccess()
+
+			g.By("get build console logs and see if succeeded")
+			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build console logs and see if env is set")
+			_, err = j.WaitForContent("FOO2 is BAR2", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// start the nextbuild
+			g.By("starting the pipeline build and waiting for it to complete")
+			br, _ = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
+			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
+			br.AssertSuccess()
+
+			g.By("get build console logs and see if succeeded")
+			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build console logs and see if env is set")
+			_, err = j.WaitForContent("FOO1 is BAR1", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build console logs and see if env is still not set")
+			_, err = j.WaitForContent("FOO2 is null", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 		})
 	})
 
