@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
+	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -181,6 +182,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		imageapi.Resource("imagestreammappings"),
 		imageapi.LegacyResource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
+		appsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"),
 		kapi.Resource("namespaces/finalize"),
 	}

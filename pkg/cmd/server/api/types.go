@@ -81,7 +81,7 @@ var (
 		APIGroupApps:              {"v1beta1"},
 		APIGroupAuthentication:    {"v1", "v1beta1"},
 		APIGroupAuthorization:     {"v1", "v1beta1"},
-		APIGroupAuthorizationRbac: {"v1alpha1", "v1beta1"},
+		APIGroupAuthorizationRbac: {"v1beta1"},
 		APIGroupAutoscaling:       {"v1", "v2alpha1"},
 		APIGroupBatch:             {"v1", "v2alpha1"},
 		APIGroupCertificates:      {"v1beta1"},
@@ -109,12 +109,13 @@ var (
 
 	// Map of group names to known, but disallowed REST API versions
 	KubeAPIGroupsToDeadVersions = map[string][]string{
-		APIGroupKube:        {"v1beta3"},
-		APIGroupExtensions:  {},
-		APIGroupAutoscaling: {},
-		APIGroupBatch:       {},
-		APIGroupPolicy:      {},
-		APIGroupApps:        {},
+		APIGroupKube:              {"v1beta3"},
+		APIGroupExtensions:        {},
+		APIGroupAutoscaling:       {},
+		APIGroupBatch:             {},
+		APIGroupPolicy:            {},
+		APIGroupApps:              {},
+		APIGroupAuthorizationRbac: {"v1alpha1"},
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
