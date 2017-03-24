@@ -445,11 +445,13 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
+			openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 		}()
 	} else {
+		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
 	}
@@ -503,6 +505,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	oc.Run(kc, embeddedAssetConfig)
 
 	// start up the informers that we're trying to use in the API server
+	oc.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
