@@ -746,7 +746,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// TODO: restrict to creating a node with the same name they announce
 				authorizationapi.NewRule("create", "get", "list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// TODO: restrict to the bound node once supported
-				authorizationapi.NewRule("update").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
+				authorizationapi.NewRule("update", "patch").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
 
 				// TODO: restrict to the bound node as creator once supported
 				authorizationapi.NewRule("create", "update", "patch").Groups(kapiGroup).Resources("events").RuleOrDie(),
