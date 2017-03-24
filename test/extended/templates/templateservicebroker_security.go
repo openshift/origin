@@ -41,7 +41,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 	g.BeforeEach(func() {
 		var err error
 
-		template, err = cli.Client().Templates("openshift").Get("ruby-helloworld-sample")
+		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-example")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{

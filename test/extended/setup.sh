@@ -151,8 +151,8 @@ function os::test::extended::setup () {
 	os::log::info "Creating image streams"
 	oc create -n openshift -f "${OS_ROOT}/examples/image-streams/image-streams-centos7.json" --config="${ADMIN_KUBECONFIG}"
 
-	os::log::info "Creating sample app"
-	oc create -n openshift -f "${OS_ROOT}/examples/sample-app/application-template-stibuild.json" --config="${ADMIN_KUBECONFIG}"
+	os::log::info "Creating quickstart templates"
+	oc create -n openshift -f "${OS_ROOT}/examples/quickstarts" --config="${ADMIN_KUBECONFIG}"
 }
 
 # Run extended tests or print out a list of tests that need to be run

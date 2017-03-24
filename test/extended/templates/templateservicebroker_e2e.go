@@ -39,7 +39,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	g.BeforeEach(func() {
 		var err error
 
-		template, err = cli.Client().Templates("openshift").Get("ruby-helloworld-sample")
+		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-example")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
@@ -94,7 +94,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			Parameters: map[string]string{
 				templateapi.NamespaceParameterKey:         cli.Namespace(),
 				templateapi.RequesterUsernameParameterKey: cli.Username(),
-				"MYSQL_USER":                              "test",
+				"DATABASE_USER":                           "test",
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -137,21 +137,21 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 		o.Expect(secret.Type).To(o.Equal(kapi.SecretTypeOpaque))
 		o.Expect(secret.Data).To(o.Equal(map[string][]byte{
-			"MYSQL_USER": []byte("test"),
+			"DATABASE_USER": []byte("test"),
 		}))
 
-		dbsecret, err := cli.KubeClient().Secrets(cli.Namespace()).Get("dbsecret")
+		examplesecret, err := cli.KubeClient().Secrets(cli.Namespace()).Get("cakephp-mysql-example")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		o.Expect(dbsecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))
-		o.Expect(dbsecret.OwnerReferences).To(o.ContainElement(kapi.OwnerReference{
+		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))
+		o.Expect(examplesecret.OwnerReferences).To(o.ContainElement(kapi.OwnerReference{
 			APIVersion: templateapiv1.SchemeGroupVersion.String(),
 			Kind:       "TemplateInstance",
 			Name:       templateInstance.Name,
 			UID:        templateInstance.UID,
 		}))
-		o.Expect(dbsecret.Data["mysql-user"]).To(o.BeEquivalentTo("test"))
-		o.Expect(dbsecret.Data["mysql-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{8}$"))
+		o.Expect(examplesecret.Data["database-user"]).To(o.BeEquivalentTo("test"))
+		o.Expect(examplesecret.Data["database-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{16}$"))
 	}
 
 	bind := func() {
@@ -171,10 +171,10 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 		services := bind.Credentials["services"].(map[string]interface{})
 
-		service, err := cli.KubeClient().Services(cli.Namespace()).Get("database")
+		service, err := cli.KubeClient().Services(cli.Namespace()).Get("mysql")
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(services["DATABASE_SERVICE_HOST"]).To(o.Equal(service.Spec.ClusterIP))
-		o.Expect(services["DATABASE_SERVICE_PORT"]).To(o.Equal(strconv.Itoa(int(service.Spec.Ports[0].Port))))
+		o.Expect(services["MYSQL_SERVICE_HOST"]).To(o.Equal(service.Spec.ClusterIP))
+		o.Expect(services["MYSQL_SERVICE_PORT"]).To(o.Equal(strconv.Itoa(int(service.Spec.Ports[0].Port))))
 	}
 
 	unbind := func() {
@@ -204,7 +204,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.KubeClient().Secrets(cli.Namespace()).Get("dbsecret")
+		_, err = cli.KubeClient().Secrets(cli.Namespace()).Get("examplesecret")
 		// TODO: uncomment  when GC is enabled
 		// o.Expect(err).To(o.HaveOccurred())
 		// o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
