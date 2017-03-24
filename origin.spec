@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3150f30637e559574769842007ad48bf35930815
+%global commit 6121244ca009b8fea5d8a9b0ac9d0cc034febe8f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=3150f30
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.2 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=6121244
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.2
+Version:        3.6.3
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,26 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri Mar 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.3-1
+- bump(github.com/openshift/origin-web-console):
+  3e1266172305c090cab971dd17868c2d5a6ec8d1 (dmcphers+openshiftbot@redhat.com)
+- hack/verify-upstream-commits.sh: take into account pkg/build/vendor
+  directory. (vsemushi@redhat.com)
+- use secret refs for redis password value so it is not exposed on the console
+  (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4d46b4723de1668d533e037ded8f24660448b6dd (dmcphers+openshiftbot@redhat.com)
+- Let the name of the RPM package being built vary (skuznets@redhat.com)
+- mark Image type +nonNamespaced=true (jminter@redhat.com)
+- UPSTREAM: <carry>: add SeccompProfiles to
+  SecurityContextConstraintsDescriber. (vsemushi@redhat.com)
+- fix wrong comment for check target (li.guangxu@zte.com.cn)
+- make test names static (bparees@redhat.com)
+- Revert "Handle the edge cases where an eventqueue method panics "
+  (knobunc@users.noreply.github.com)
+- Remove MessageContext in favor of authorizer.Attributes (mfojtik@redhat.com)
+- auth: move apiGroup to be a suffix in error messages (mfojtik@redhat.com)
+
 * Thu Mar 23 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.2-1
 - Break out RPM version logic from RPM build script (skuznets@redhat.com)
 - Template service broker (jminter@redhat.com)
