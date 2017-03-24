@@ -2236,6 +2236,7 @@ items:
     resources:
     - nodes/status
     verbs:
+    - patch
     - update
   - apiGroups:
     - ""
