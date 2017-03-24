@@ -112,7 +112,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 		expectedMethodInvocations map[string]int
 	}
 
-	doTest := func(tc testCase) {
+	doTest := func(t *testing.T, tc testCase) {
 		m.clearStats()
 		m.changeUnsetRepository(tc.unsetRepository)
 
@@ -314,7 +314,9 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			expectedMethodInvocations: map[string]int{"Stat": 1},
 		},
 	} {
-		doTest(tc)
+		t.Run(tc.name, func(t *testing.T) {
+			doTest(t, tc)
+		})
 	}
 }
 

@@ -113,18 +113,20 @@ func TestGetBoolOption(t *testing.T) {
 			expectedError: true,
 		},
 	} {
-		for key, value := range tc.exportEnv {
-			os.Setenv(key, value)
-		}
-		d, err := getBoolOption(tc.envName, tc.option, tc.defaultValue, tc.options)
-		if err == nil && tc.expectedError {
-			t.Errorf("[%s] unexpected non-error", tc.name)
-		} else if err != nil && !tc.expectedError {
-			t.Errorf("[%s] unexpected error: %v", tc.name, err)
-		}
-		if d != tc.expected {
-			t.Errorf("[%s] got unexpected duration: %t != %t", tc.name, d, tc.expected)
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			for key, value := range tc.exportEnv {
+				os.Setenv(key, value)
+			}
+			d, err := getBoolOption(tc.envName, tc.option, tc.defaultValue, tc.options)
+			if err == nil && tc.expectedError {
+				t.Errorf("[%s] unexpected non-error", tc.name)
+			} else if err != nil && !tc.expectedError {
+				t.Errorf("[%s] unexpected error: %v", tc.name, err)
+			}
+			if d != tc.expected {
+				t.Errorf("[%s] got unexpected duration: %t != %t", tc.name, d, tc.expected)
+			}
+		})
 	}
 }
 
@@ -217,17 +219,19 @@ func TestGetDurationOption(t *testing.T) {
 			expectedError:    true,
 		},
 	} {
-		for key, value := range tc.exportEnv {
-			os.Setenv(key, value)
-		}
-		d, err := getDurationOption(tc.envName, tc.option, tc.defaultValue, tc.options)
-		if err == nil && tc.expectedError {
-			t.Errorf("[%s] unexpected non-error", tc.name)
-		} else if err != nil && !tc.expectedError {
-			t.Errorf("[%s] unexpected error: %v", tc.name, err)
-		}
-		if d != tc.expectedDuration {
-			t.Errorf("[%s] got unexpected duration: %s != %s", tc.name, d.String(), tc.expectedDuration.String())
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			for key, value := range tc.exportEnv {
+				os.Setenv(key, value)
+			}
+			d, err := getDurationOption(tc.envName, tc.option, tc.defaultValue, tc.options)
+			if err == nil && tc.expectedError {
+				t.Errorf("[%s] unexpected non-error", tc.name)
+			} else if err != nil && !tc.expectedError {
+				t.Errorf("[%s] unexpected error: %v", tc.name, err)
+			}
+			if d != tc.expectedDuration {
+				t.Errorf("[%s] got unexpected duration: %s != %s", tc.name, d.String(), tc.expectedDuration.String())
+			}
+		})
 	}
 }

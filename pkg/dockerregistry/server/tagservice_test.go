@@ -65,43 +65,45 @@ func TestTagGet(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		if tc.imageManaged {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-		} else {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
-		}
+		t.Run(tc.title, func(t *testing.T) {
+			if tc.imageManaged {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+			} else {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
+			}
 
-		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: tc.pullthrough,
-		})
+			r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: tc.pullthrough,
+			})
 
-		ts := &tagService{
-			TagService: newTestTagService(nil),
-			repo:       r,
-		}
+			ts := &tagService{
+				TagService: newTestTagService(nil),
+				repo:       r,
+			}
 
-		resultDesc, err := ts.Get(context.Background(), tc.tagName)
+			resultDesc, err := ts.Get(context.Background(), tc.tagName)
 
-		switch err.(type) {
-		case distribution.ErrTagUnknown:
-			if !tc.expectedNotFoundError {
+			switch err.(type) {
+			case distribution.ErrTagUnknown:
+				if !tc.expectedNotFoundError {
+					t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
+				}
+			case nil:
+				if tc.expectedError || tc.expectedNotFoundError {
+					t.Fatalf("[%s] unexpected successful response", tc.title)
+				}
+			default:
+				if tc.expectedError {
+					break
+				}
 				t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
 			}
-		case nil:
-			if tc.expectedError || tc.expectedNotFoundError {
-				t.Fatalf("[%s] unexpected successful response", tc.title)
-			}
-		default:
-			if tc.expectedError {
-				break
-			}
-			t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
-		}
 
-		if resultDesc.Digest != tc.tagValue.Digest {
-			t.Fatalf("[%s] unexpected result returned", tc.title)
-		}
+			if resultDesc.Digest != tc.tagValue.Digest {
+				t.Fatalf("[%s] unexpected result returned", tc.title)
+			}
+		})
 	}
 }
 
@@ -174,34 +176,36 @@ func TestTagCreation(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		if tc.imageManaged {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-		} else {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
-		}
+		t.Run(tc.title, func(t *testing.T) {
+			if tc.imageManaged {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+			} else {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
+			}
 
-		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: tc.pullthrough,
-		})
+			r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: tc.pullthrough,
+			})
 
-		ts := &tagService{
-			TagService: newTestTagService(nil),
-			repo:       r,
-		}
+			ts := &tagService{
+				TagService: newTestTagService(nil),
+				repo:       r,
+			}
 
-		err := ts.Tag(context.Background(), tc.tagName, tc.tagValue)
-		if tc.expectedError {
+			err := ts.Tag(context.Background(), tc.tagName, tc.tagValue)
+			if tc.expectedError {
+				if err == nil {
+					t.Fatalf("[%s] error expected", tc.title)
+				}
+				return
+			}
+
+			_, err = ts.Get(context.Background(), tc.tagName)
 			if err == nil {
 				t.Fatalf("[%s] error expected", tc.title)
 			}
-			continue
-		}
-
-		_, err = ts.Get(context.Background(), tc.tagName)
-		if err == nil {
-			t.Fatalf("[%s] error expected", tc.title)
-		}
+		})
 	}
 }
 
@@ -289,39 +293,41 @@ func TestTagDeletion(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		if tc.imageManaged {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-		} else {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
-		}
+		t.Run(tc.title, func(t *testing.T) {
+			if tc.imageManaged {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+			} else {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
+			}
 
-		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: tc.pullthrough,
-		})
+			r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: tc.pullthrough,
+			})
 
-		ts := &tagService{
-			TagService: newTestTagService(nil),
-			repo:       r,
-		}
+			ts := &tagService{
+				TagService: newTestTagService(nil),
+				repo:       r,
+			}
 
-		err := ts.Untag(context.Background(), tc.tagName)
+			err := ts.Untag(context.Background(), tc.tagName)
 
-		switch err.(type) {
-		case distribution.ErrTagUnknown:
-			if !tc.expectedNotFoundError {
+			switch err.(type) {
+			case distribution.ErrTagUnknown:
+				if !tc.expectedNotFoundError {
+					t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
+				}
+			case nil:
+				if tc.expectedError || tc.expectedNotFoundError {
+					t.Fatalf("[%s] unexpected successful response", tc.title)
+				}
+			default:
+				if tc.expectedError {
+					break
+				}
 				t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
 			}
-		case nil:
-			if tc.expectedError || tc.expectedNotFoundError {
-				t.Fatalf("[%s] unexpected successful response", tc.title)
-			}
-		default:
-			if tc.expectedError {
-				break
-			}
-			t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
-		}
+		})
 	}
 }
 
@@ -389,31 +395,33 @@ func TestTagGetAll(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		if tc.imageManaged {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-		} else {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
-		}
+		t.Run(tc.title, func(t *testing.T) {
+			if tc.imageManaged {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+			} else {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
+			}
 
-		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: tc.pullthrough,
+			r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: tc.pullthrough,
+			})
+
+			ts := &tagService{
+				TagService: newTestTagService(nil),
+				repo:       r,
+			}
+
+			result, err := ts.All(context.Background())
+
+			if err != nil && !tc.expectedError {
+				t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
+			}
+
+			if !reflect.DeepEqual(result, tc.expectResult) {
+				t.Fatalf("[%s] unexpected result: %#+v", tc.title, result)
+			}
 		})
-
-		ts := &tagService{
-			TagService: newTestTagService(nil),
-			repo:       r,
-		}
-
-		result, err := ts.All(context.Background())
-
-		if err != nil && !tc.expectedError {
-			t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
-		}
-
-		if !reflect.DeepEqual(result, tc.expectResult) {
-			t.Fatalf("[%s] unexpected result: %#+v", tc.title, result)
-		}
 	}
 }
 
@@ -491,38 +499,40 @@ func TestTagLookup(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		if tc.imageManaged {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
-		} else {
-			testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
-		}
+		t.Run(tc.title, func(t *testing.T) {
+			if tc.imageManaged {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
+			} else {
+				testImage.Annotations[imageapi.ManagedByOpenShiftAnnotation] = "false"
+			}
 
-		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: tc.pullthrough,
+			r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: tc.pullthrough,
+			})
+
+			ts := &tagService{
+				TagService: newTestTagService(nil),
+				repo:       r,
+			}
+
+			result, err := ts.Lookup(context.Background(), tc.tagValue)
+
+			if err != nil {
+				if !tc.expectedError {
+					t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
+				}
+				return
+			} else {
+				if tc.expectedError {
+					t.Fatalf("[%s] error expected", tc.title)
+				}
+			}
+
+			if !reflect.DeepEqual(result, tc.expectResult) {
+				t.Fatalf("[%s] unexpected result: %#+v", tc.title, result)
+			}
 		})
-
-		ts := &tagService{
-			TagService: newTestTagService(nil),
-			repo:       r,
-		}
-
-		result, err := ts.Lookup(context.Background(), tc.tagValue)
-
-		if err != nil {
-			if !tc.expectedError {
-				t.Fatalf("[%s] unexpected error: %#+v", tc.title, err)
-			}
-			continue
-		} else {
-			if tc.expectedError {
-				t.Fatalf("[%s] error expected", tc.title)
-			}
-		}
-
-		if !reflect.DeepEqual(result, tc.expectResult) {
-			t.Fatalf("[%s] unexpected result: %#+v", tc.title, result)
-		}
 	}
 }
 

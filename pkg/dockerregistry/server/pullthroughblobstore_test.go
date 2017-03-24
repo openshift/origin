@@ -138,71 +138,72 @@ func TestPullthroughServeBlob(t *testing.T) {
 			expectedLocalCalls: map[string]int{"Stat": 1},
 		},
 	} {
-		localBlobStore := newTestBlobStore(tc.localBlobs)
+		t.Run(tc.name, func(t *testing.T) {
+			localBlobStore := newTestBlobStore(tc.localBlobs)
 
-		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-		repo := newTestRepository(t, namespace, name, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: true,
+			ctx := WithTestPassthroughToUpstream(context.Background(), false)
+			repo := newTestRepository(t, namespace, name, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: true,
+			})
+			ptbs := &pullthroughBlobStore{
+				BlobStore: localBlobStore,
+				repo:      repo,
+			}
+
+			req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
+			if err != nil {
+				t.Fatalf("failed to create http request: %v", err)
+			}
+			w := httptest.NewRecorder()
+
+			dgst := digest.Digest(tc.blobDigest)
+
+			_, err = ptbs.Stat(ctx, dgst)
+			if err != tc.expectedStatError {
+				t.Errorf("Stat returned unexpected error: %#+v != %#+v", err, tc.expectedStatError)
+			}
+			if err != nil || tc.expectedStatError != nil {
+				return
+			}
+			err = ptbs.ServeBlob(ctx, w, req, dgst)
+			if err != nil {
+				t.Fatalf("unexpected ServeBlob error: %v", err)
+			}
+
+			clstr := w.Header().Get("Content-Length")
+			if cl, err := strconv.ParseInt(clstr, 10, 64); err != nil {
+				t.Errorf(`unexpected Content-Length: %q != "%d"`, clstr, tc.expectedContentLength)
+			} else {
+				if cl != tc.expectedContentLength {
+					t.Errorf("Content-Length does not match expected size: %d != %d", cl, tc.expectedContentLength)
+				}
+			}
+			if w.Header().Get("Content-Type") != "application/octet-stream" {
+				t.Errorf("Content-Type does not match expected: %q != %q", w.Header().Get("Content-Type"), "application/octet-stream")
+			}
+
+			body := w.Body.Bytes()
+			if int64(len(body)) != tc.expectedBytesServed {
+				t.Errorf("unexpected size of body: %d != %d", len(body), tc.expectedBytesServed)
+			}
+
+			for name, expCount := range tc.expectedLocalCalls {
+				count := localBlobStore.calls[name]
+				if count != expCount {
+					t.Errorf("expected %d calls to method %s of local blob store, not %d", expCount, name, count)
+				}
+			}
+			for name, count := range localBlobStore.calls {
+				if _, exists := tc.expectedLocalCalls[name]; !exists {
+					t.Errorf("expected no calls to method %s of local blob store, got %d", name, count)
+				}
+			}
+
+			if localBlobStore.bytesServed != tc.expectedBytesServedLocally {
+				t.Errorf("unexpected number of bytes served locally: %d != %d", localBlobStore.bytesServed, tc.expectedBytesServed)
+			}
 		})
-		ptbs := &pullthroughBlobStore{
-			BlobStore: localBlobStore,
-			repo:      repo,
-		}
-
-		req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
-		if err != nil {
-			t.Fatalf("[%s] failed to create http request: %v", tc.name, err)
-		}
-		w := httptest.NewRecorder()
-
-		dgst := digest.Digest(tc.blobDigest)
-
-		_, err = ptbs.Stat(ctx, dgst)
-		if err != tc.expectedStatError {
-			t.Errorf("[%s] Stat returned unexpected error: %#+v != %#+v", tc.name, err, tc.expectedStatError)
-		}
-		if err != nil || tc.expectedStatError != nil {
-			continue
-		}
-		err = ptbs.ServeBlob(ctx, w, req, dgst)
-		if err != nil {
-			t.Errorf("[%s] unexpected ServeBlob error: %v", tc.name, err)
-			continue
-		}
-
-		clstr := w.Header().Get("Content-Length")
-		if cl, err := strconv.ParseInt(clstr, 10, 64); err != nil {
-			t.Errorf(`[%s] unexpected Content-Length: %q != "%d"`, tc.name, clstr, tc.expectedContentLength)
-		} else {
-			if cl != tc.expectedContentLength {
-				t.Errorf("[%s] Content-Length does not match expected size: %d != %d", tc.name, cl, tc.expectedContentLength)
-			}
-		}
-		if w.Header().Get("Content-Type") != "application/octet-stream" {
-			t.Errorf("[%s] Content-Type does not match expected: %q != %q", tc.name, w.Header().Get("Content-Type"), "application/octet-stream")
-		}
-
-		body := w.Body.Bytes()
-		if int64(len(body)) != tc.expectedBytesServed {
-			t.Errorf("[%s] unexpected size of body: %d != %d", tc.name, len(body), tc.expectedBytesServed)
-		}
-
-		for name, expCount := range tc.expectedLocalCalls {
-			count := localBlobStore.calls[name]
-			if count != expCount {
-				t.Errorf("[%s] expected %d calls to method %s of local blob store, not %d", tc.name, expCount, name, count)
-			}
-		}
-		for name, count := range localBlobStore.calls {
-			if _, exists := tc.expectedLocalCalls[name]; !exists {
-				t.Errorf("[%s] expected no calls to method %s of local blob store, got %d", tc.name, name, count)
-			}
-		}
-
-		if localBlobStore.bytesServed != tc.expectedBytesServedLocally {
-			t.Errorf("[%s] unexpected number of bytes served locally: %d != %d", tc.name, localBlobStore.bytesServed, tc.expectedBytesServed)
-		}
 	}
 }
 
@@ -669,77 +670,78 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 			expectedBytesServed:   int64(m1img.DockerImageLayers[0].LayerSize),
 		},
 	} {
-		client := &testclient.Fake{}
+		t.Run(tc.name, func(t *testing.T) {
+			client := &testclient.Fake{}
 
-		tc.imageStreamInit(client)
+			tc.imageStreamInit(client)
 
-		localBlobStore := newTestBlobStore(tc.localBlobs)
+			localBlobStore := newTestBlobStore(tc.localBlobs)
 
-		ctx := WithTestPassthroughToUpstream(context.Background(), false)
+			ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
-		repo := newTestRepository(t, namespace, repo1, testRepositoryOptions{
-			client:            client,
-			enablePullThrough: true,
+			repo := newTestRepository(t, namespace, repo1, testRepositoryOptions{
+				client:            client,
+				enablePullThrough: true,
+			})
+
+			ptbs := &pullthroughBlobStore{
+				BlobStore: localBlobStore,
+				repo:      repo,
+			}
+
+			req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
+			if err != nil {
+				t.Fatalf("failed to create http request: %v", err)
+			}
+			w := httptest.NewRecorder()
+
+			dgst := digest.Digest(tc.blobDigest)
+
+			_, err = ptbs.Stat(ctx, dgst)
+			if err != tc.expectedStatError {
+				t.Fatalf("Stat returned unexpected error: %#+v != %#+v", err, tc.expectedStatError)
+			}
+			if err != nil || tc.expectedStatError != nil {
+				return
+			}
+			err = ptbs.ServeBlob(ctx, w, req, dgst)
+			if err != nil {
+				t.Fatalf("unexpected ServeBlob error: %v", err)
+			}
+
+			clstr := w.Header().Get("Content-Length")
+			if cl, err := strconv.ParseInt(clstr, 10, 64); err != nil {
+				t.Errorf(`unexpected Content-Length: %q != "%d"`, clstr, tc.expectedContentLength)
+			} else {
+				if cl != tc.expectedContentLength {
+					t.Errorf("Content-Length does not match expected size: %d != %d", cl, tc.expectedContentLength)
+				}
+			}
+			if w.Header().Get("Content-Type") != "application/octet-stream" {
+				t.Errorf("Content-Type does not match expected: %q != %q", w.Header().Get("Content-Type"), "application/octet-stream")
+			}
+
+			body := w.Body.Bytes()
+			if int64(len(body)) != tc.expectedBytesServed {
+				t.Errorf("unexpected size of body: %d != %d", len(body), tc.expectedBytesServed)
+			}
+
+			for name, expCount := range tc.expectedLocalCalls {
+				count := localBlobStore.calls[name]
+				if count != expCount {
+					t.Errorf("expected %d calls to method %s of local blob store, not %d", expCount, name, count)
+				}
+			}
+			for name, count := range localBlobStore.calls {
+				if _, exists := tc.expectedLocalCalls[name]; !exists {
+					t.Errorf("expected no calls to method %s of local blob store, got %d", name, count)
+				}
+			}
+
+			if localBlobStore.bytesServed != tc.expectedBytesServedLocally {
+				t.Errorf("unexpected number of bytes served locally: %d != %d", localBlobStore.bytesServed, tc.expectedBytesServed)
+			}
 		})
-
-		ptbs := &pullthroughBlobStore{
-			BlobStore: localBlobStore,
-			repo:      repo,
-		}
-
-		req, err := http.NewRequest(tc.method, fmt.Sprintf("http://example.org/v2/user/app/blobs/%s", tc.blobDigest), nil)
-		if err != nil {
-			t.Fatalf("[%s] failed to create http request: %v", tc.name, err)
-		}
-		w := httptest.NewRecorder()
-
-		dgst := digest.Digest(tc.blobDigest)
-
-		_, err = ptbs.Stat(ctx, dgst)
-		if err != tc.expectedStatError {
-			t.Fatalf("[%s] Stat returned unexpected error: %#+v != %#+v", tc.name, err, tc.expectedStatError)
-		}
-		if err != nil || tc.expectedStatError != nil {
-			continue
-		}
-		err = ptbs.ServeBlob(ctx, w, req, dgst)
-		if err != nil {
-			t.Errorf("[%s] unexpected ServeBlob error: %v", tc.name, err)
-			continue
-		}
-
-		clstr := w.Header().Get("Content-Length")
-		if cl, err := strconv.ParseInt(clstr, 10, 64); err != nil {
-			t.Errorf(`[%s] unexpected Content-Length: %q != "%d"`, tc.name, clstr, tc.expectedContentLength)
-		} else {
-			if cl != tc.expectedContentLength {
-				t.Errorf("[%s] Content-Length does not match expected size: %d != %d", tc.name, cl, tc.expectedContentLength)
-			}
-		}
-		if w.Header().Get("Content-Type") != "application/octet-stream" {
-			t.Errorf("[%s] Content-Type does not match expected: %q != %q", tc.name, w.Header().Get("Content-Type"), "application/octet-stream")
-		}
-
-		body := w.Body.Bytes()
-		if int64(len(body)) != tc.expectedBytesServed {
-			t.Errorf("[%s] unexpected size of body: %d != %d", tc.name, len(body), tc.expectedBytesServed)
-		}
-
-		for name, expCount := range tc.expectedLocalCalls {
-			count := localBlobStore.calls[name]
-			if count != expCount {
-				t.Errorf("[%s] expected %d calls to method %s of local blob store, not %d", tc.name, expCount, name, count)
-			}
-		}
-		for name, count := range localBlobStore.calls {
-			if _, exists := tc.expectedLocalCalls[name]; !exists {
-				t.Errorf("[%s] expected no calls to method %s of local blob store, got %d", tc.name, name, count)
-			}
-		}
-
-		if localBlobStore.bytesServed != tc.expectedBytesServedLocally {
-			t.Errorf("[%s] unexpected number of bytes served locally: %d != %d", tc.name, localBlobStore.bytesServed, tc.expectedBytesServed)
-		}
 	}
 }
 
