@@ -269,6 +269,14 @@ func (s *GenericAPIServer) InstallLegacyAPIGroup(apiPrefix string, apiGroupInfo 
 	// setup discovery
 	apiVersions := []string{}
 	for _, groupVersion := range apiGroupInfo.GroupMeta.GroupVersions {
+		// TODO(rebase) this is a hack to keep the docker image 1.0 and pre012 APIs from showing up in
+		// discovery
+		switch {
+		case (groupVersion.Group == "" || groupVersion.Group == "image.openshift.io") && groupVersion.Version == "1.0":
+			continue
+		case (groupVersion.Group == "" || groupVersion.Group == "image.openshift.io") && groupVersion.Version == "pre012":
+			continue
+		}
 		apiVersions = append(apiVersions, groupVersion.Version)
 	}
 	// Install the version handler.
