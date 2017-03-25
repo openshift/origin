@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: application-template-sample-pipeline
+metadata:
+  annotations:
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: jenkins-pipeline-example
+parameters:
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      name: sample-pipeline-withenvs
+    name: sample-pipeline-withenvs
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        env:
+          - name: FOO1
+            value: BAR1
+        jenkinsfile: |-
+          node() {
+            echo "FOO1 is ${env.FOO1}"
+            echo "FOO2 is ${env.FOO2}"
+          }
+      type: JenkinsPipeline

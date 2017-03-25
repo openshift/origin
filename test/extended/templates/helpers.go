@@ -22,21 +22,23 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
-		ObjectMeta: kapi.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s-binding", name, role),
-		},
-		RoleRef: kapi.ObjectReference{
-			Name: role,
-		},
-		Subjects: []kapi.ObjectReference{
-			{
-				Kind: authorizationapi.UserKind,
-				Name: name,
+	if role != "" {
+		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+			ObjectMeta: kapi.ObjectMeta{
+				Name: fmt.Sprintf("%s-%s-binding", name, role),
 			},
-		},
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
+			RoleRef: kapi.ObjectReference{
+				Name: role,
+			},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind: authorizationapi.UserKind,
+					Name: name,
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
 
 	return user
 }

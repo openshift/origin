@@ -62,8 +62,6 @@ func TestPullthroughManifests(t *testing.T) {
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 	tag := "latest"
 
-	client := &testclient.Fake{}
-
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
@@ -92,9 +90,13 @@ func TestPullthroughManifests(t *testing.T) {
 	}
 	image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, image.Name)
 	image.DockerImageManifest = ""
-	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *image))
 
-	createTestImageStreamReactor(t, client, image, namespace, repo, tag)
+	os, client := registrytest.NewFakeOpenShiftWithClient()
+
+	err = registrytest.RegisterImage(os, image, namespace, repo, tag)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for _, tc := range []struct {
 		name                  string
@@ -132,15 +134,17 @@ func TestPullthroughManifests(t *testing.T) {
 	} {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
-		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
+		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,
 			repo:            repo,
 		}
 
+		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		manifestResult, err := ptms.Get(ctx, tc.manifestDigest)
 		switch err.(type) {
 		case distribution.ErrManifestUnknownRevision:
@@ -377,7 +381,10 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-		repo := newTestRepositoryForPullthrough(t, ctx, nil, namespace, repo, client, true)
+		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+			client:            client,
+			enablePullThrough: true,
+		})
 		ctx = withRepository(ctx, repo)
 
 		ptms := &pullthroughManifestService{
@@ -463,7 +470,13 @@ func (t *testManifestService) Get(ctx context.Context, dgst digest.Digest, optio
 
 func (t *testManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
 	t.calls["Put"]++
-	return "", fmt.Errorf("method not implemented")
+	_, payload, err := manifest.Payload()
+	if err != nil {
+		return "", err
+	}
+	dgst := digest.FromBytes(payload)
+	t.data[dgst] = manifest
+	return dgst, nil
 }
 
 func (t *testManifestService) Delete(ctx context.Context, dgst digest.Digest) error {

@@ -102,6 +102,7 @@
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble
 // test/extended/testdata/sample-image-stream.json
+// test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/scoped-router.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/statusfail-assemble/.s2i/bin/assemble
@@ -5725,6 +5726,52 @@ func testExtendedTestdataSampleImageStreamJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/sample-image-stream.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataSamplepipelineWithenvsYaml = []byte(`apiVersion: v1
+kind: Template
+labels:
+  template: application-template-sample-pipeline
+metadata:
+  annotations:
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: jenkins-pipeline-example
+parameters:
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      name: sample-pipeline-withenvs
+    name: sample-pipeline-withenvs
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        env:
+          - name: FOO1
+            value: BAR1
+        jenkinsfile: |-
+          node() {
+            echo "FOO1 is ${env.FOO1}"
+            echo "FOO2 is ${env.FOO2}"
+          }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataSamplepipelineWithenvsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataSamplepipelineWithenvsYaml, nil
+}
+
+func testExtendedTestdataSamplepipelineWithenvsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataSamplepipelineWithenvsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/samplepipeline-withenvs.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18586,6 +18633,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser": testExtendedTestdataS2iDropcapsRootableRubyAdduser,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/assemble": testExtendedTestdataS2iDropcapsRootableRubyAssemble,
 	"test/extended/testdata/sample-image-stream.json": testExtendedTestdataSampleImageStreamJson,
+	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataStatusfailAssembleS2iBinAssemble,
@@ -18928,6 +18976,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 				}},
 				"sample-image-stream.json": &bintree{testExtendedTestdataSampleImageStreamJson, map[string]*bintree{}},
+				"samplepipeline-withenvs.yaml": &bintree{testExtendedTestdataSamplepipelineWithenvsYaml, map[string]*bintree{}},
 				"scoped-router.yaml": &bintree{testExtendedTestdataScopedRouterYaml, map[string]*bintree{}},
 				"service-serving-cert": &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},

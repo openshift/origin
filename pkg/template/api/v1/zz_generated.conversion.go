@@ -37,8 +37,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_TemplateInstanceCondition_To_v1_TemplateInstanceCondition,
 		Convert_v1_TemplateInstanceList_To_api_TemplateInstanceList,
 		Convert_api_TemplateInstanceList_To_v1_TemplateInstanceList,
-		Convert_v1_TemplateInstanceRequestor_To_api_TemplateInstanceRequestor,
-		Convert_api_TemplateInstanceRequestor_To_v1_TemplateInstanceRequestor,
+		Convert_v1_TemplateInstanceRequester_To_api_TemplateInstanceRequester,
+		Convert_api_TemplateInstanceRequester_To_v1_TemplateInstanceRequester,
 		Convert_v1_TemplateInstanceSpec_To_api_TemplateInstanceSpec,
 		Convert_api_TemplateInstanceSpec_To_v1_TemplateInstanceSpec,
 		Convert_v1_TemplateInstanceStatus_To_api_TemplateInstanceStatus,
@@ -326,22 +326,22 @@ func Convert_api_TemplateInstanceList_To_v1_TemplateInstanceList(in *api.Templat
 	return autoConvert_api_TemplateInstanceList_To_v1_TemplateInstanceList(in, out, s)
 }
 
-func autoConvert_v1_TemplateInstanceRequestor_To_api_TemplateInstanceRequestor(in *TemplateInstanceRequestor, out *api.TemplateInstanceRequestor, s conversion.Scope) error {
+func autoConvert_v1_TemplateInstanceRequester_To_api_TemplateInstanceRequester(in *TemplateInstanceRequester, out *api.TemplateInstanceRequester, s conversion.Scope) error {
 	out.Username = in.Username
 	return nil
 }
 
-func Convert_v1_TemplateInstanceRequestor_To_api_TemplateInstanceRequestor(in *TemplateInstanceRequestor, out *api.TemplateInstanceRequestor, s conversion.Scope) error {
-	return autoConvert_v1_TemplateInstanceRequestor_To_api_TemplateInstanceRequestor(in, out, s)
+func Convert_v1_TemplateInstanceRequester_To_api_TemplateInstanceRequester(in *TemplateInstanceRequester, out *api.TemplateInstanceRequester, s conversion.Scope) error {
+	return autoConvert_v1_TemplateInstanceRequester_To_api_TemplateInstanceRequester(in, out, s)
 }
 
-func autoConvert_api_TemplateInstanceRequestor_To_v1_TemplateInstanceRequestor(in *api.TemplateInstanceRequestor, out *TemplateInstanceRequestor, s conversion.Scope) error {
+func autoConvert_api_TemplateInstanceRequester_To_v1_TemplateInstanceRequester(in *api.TemplateInstanceRequester, out *TemplateInstanceRequester, s conversion.Scope) error {
 	out.Username = in.Username
 	return nil
 }
 
-func Convert_api_TemplateInstanceRequestor_To_v1_TemplateInstanceRequestor(in *api.TemplateInstanceRequestor, out *TemplateInstanceRequestor, s conversion.Scope) error {
-	return autoConvert_api_TemplateInstanceRequestor_To_v1_TemplateInstanceRequestor(in, out, s)
+func Convert_api_TemplateInstanceRequester_To_v1_TemplateInstanceRequester(in *api.TemplateInstanceRequester, out *TemplateInstanceRequester, s conversion.Scope) error {
+	return autoConvert_api_TemplateInstanceRequester_To_v1_TemplateInstanceRequester(in, out, s)
 }
 
 func autoConvert_v1_TemplateInstanceSpec_To_api_TemplateInstanceSpec(in *TemplateInstanceSpec, out *api.TemplateInstanceSpec, s conversion.Scope) error {
@@ -351,7 +351,7 @@ func autoConvert_v1_TemplateInstanceSpec_To_api_TemplateInstanceSpec(in *Templat
 	if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
-	out.Requestor = (*api.TemplateInstanceRequestor)(unsafe.Pointer(in.Requestor))
+	out.Requester = (*api.TemplateInstanceRequester)(unsafe.Pointer(in.Requester))
 	return nil
 }
 
@@ -366,7 +366,7 @@ func autoConvert_api_TemplateInstanceSpec_To_v1_TemplateInstanceSpec(in *api.Tem
 	if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
-	out.Requestor = (*TemplateInstanceRequestor)(unsafe.Pointer(in.Requestor))
+	out.Requester = (*TemplateInstanceRequester)(unsafe.Pointer(in.Requester))
 	return nil
 }
 

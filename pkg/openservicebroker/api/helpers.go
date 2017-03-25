@@ -10,6 +10,10 @@ func BadRequest(err error) *Response {
 	return NewResponse(http.StatusBadRequest, nil, err)
 }
 
+func Forbidden(err error) *Response {
+	return NewResponse(http.StatusForbidden, nil, err)
+}
+
 func InternalServerError(err error) *Response {
 	return NewResponse(http.StatusInternalServerError, nil, err)
 }

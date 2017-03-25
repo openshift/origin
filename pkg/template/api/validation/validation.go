@@ -65,13 +65,13 @@ func ValidateTemplateInstance(templateInstance *api.TemplateInstance) (allErrs f
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.secret.name"), templateInstance.Spec.Secret.Name, msg))
 		}
 	}
-	if templateInstance.Spec.Requestor == nil {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec.requestor"), ""))
-	} else if templateInstance.Spec.Requestor.Username == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec.requestor.username"), ""))
+	if templateInstance.Spec.Requester == nil {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.requester"), ""))
+	} else if templateInstance.Spec.Requester.Username == "" {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec.requester.username"), ""))
 	} else {
-		for _, msg := range oapi.GetNameValidationFunc(uservalidation.ValidateUserName)(templateInstance.Spec.Requestor.Username, false) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.requestor.username"), templateInstance.Spec.Requestor.Username, msg))
+		for _, msg := range oapi.GetNameValidationFunc(uservalidation.ValidateUserName)(templateInstance.Spec.Requester.Username, false) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.requester.username"), templateInstance.Spec.Requester.Username, msg))
 		}
 	}
 	return

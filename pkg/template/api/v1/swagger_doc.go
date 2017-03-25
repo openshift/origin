@@ -98,20 +98,20 @@ func (TemplateInstanceList) SwaggerDoc() map[string]string {
 	return map_TemplateInstanceList
 }
 
-var map_TemplateInstanceRequestor = map[string]string{
-	"":         "TemplateInstanceRequestor holds the identity of an agent requesting a template instantiation.",
+var map_TemplateInstanceRequester = map[string]string{
+	"":         "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
 	"username": "username is the username of the agent requesting a template instantiation.",
 }
 
-func (TemplateInstanceRequestor) SwaggerDoc() map[string]string {
-	return map_TemplateInstanceRequestor
+func (TemplateInstanceRequester) SwaggerDoc() map[string]string {
+	return map_TemplateInstanceRequester
 }
 
 var map_TemplateInstanceSpec = map[string]string{
 	"":          "TemplateInstanceSpec describes the desired state of a TemplateInstance.",
 	"template":  "template is a full copy of the template for instantiation.",
 	"secret":    "secret is a reference to a Secret object containing the necessary template parameters.",
-	"requestor": "requestor holds the identity of the agent requesting the template instantiation.",
+	"requester": "requester holds the identity of the agent requesting the template instantiation.",
 }
 
 func (TemplateInstanceSpec) SwaggerDoc() map[string]string {

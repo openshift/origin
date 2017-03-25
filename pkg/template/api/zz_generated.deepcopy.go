@@ -27,7 +27,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstance, InType: reflect.TypeOf(&TemplateInstance{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceCondition, InType: reflect.TypeOf(&TemplateInstanceCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceList, InType: reflect.TypeOf(&TemplateInstanceList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceRequestor, InType: reflect.TypeOf(&TemplateInstanceRequestor{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceRequester, InType: reflect.TypeOf(&TemplateInstanceRequester{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceSpec, InType: reflect.TypeOf(&TemplateInstanceSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateInstanceStatus, InType: reflect.TypeOf(&TemplateInstanceStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_TemplateList, InType: reflect.TypeOf(&TemplateList{})},
@@ -198,10 +198,10 @@ func DeepCopy_api_TemplateInstanceList(in interface{}, out interface{}, c *conve
 	}
 }
 
-func DeepCopy_api_TemplateInstanceRequestor(in interface{}, out interface{}, c *conversion.Cloner) error {
+func DeepCopy_api_TemplateInstanceRequester(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*TemplateInstanceRequestor)
-		out := out.(*TemplateInstanceRequestor)
+		in := in.(*TemplateInstanceRequester)
+		out := out.(*TemplateInstanceRequester)
 		out.Username = in.Username
 		return nil
 	}
@@ -215,12 +215,12 @@ func DeepCopy_api_TemplateInstanceSpec(in interface{}, out interface{}, c *conve
 			return err
 		}
 		out.Secret = in.Secret
-		if in.Requestor != nil {
-			in, out := &in.Requestor, &out.Requestor
-			*out = new(TemplateInstanceRequestor)
+		if in.Requester != nil {
+			in, out := &in.Requester, &out.Requester
+			*out = new(TemplateInstanceRequester)
 			**out = **in
 		} else {
-			out.Requestor = nil
+			out.Requester = nil
 		}
 		return nil
 	}

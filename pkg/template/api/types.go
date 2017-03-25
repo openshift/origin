@@ -100,14 +100,14 @@ type TemplateInstanceSpec struct {
 	// template parameters.
 	Secret kapi.LocalObjectReference
 
-	// Requestor holds the identity of the agent requesting the template
+	// Requester holds the identity of the agent requesting the template
 	// instantiation.
-	Requestor *TemplateInstanceRequestor
+	Requester *TemplateInstanceRequester
 }
 
-// TemplateInstanceRequestor holds the identity of an agent requesting a
+// TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
-type TemplateInstanceRequestor struct {
+type TemplateInstanceRequester struct {
 	// Username is the username of the agent requesting a template instantiation.
 	Username string
 }
