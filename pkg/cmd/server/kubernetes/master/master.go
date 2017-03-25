@@ -117,7 +117,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 			EventRecorder:             recorder,
 			EnableDynamicProvisioning: s.VolumeConfiguration.EnableDynamicProvisioning,
 		})
-	volumeController.Run(utilwait.NeverStop)
+	go volumeController.Run(utilwait.NeverStop)
 }
 
 func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client kclientset.Interface) {
@@ -304,7 +304,7 @@ func (c *MasterConfig) RunScheduler() {
 	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
 
 	s := scheduler.New(config)
-	s.Run()
+	go s.Run()
 }
 
 // RunGCController handles deletion of terminated pods.
@@ -392,7 +392,7 @@ func (c *MasterConfig) RunNodeController() {
 		glog.Fatalf("Unable to start node controller: %v", err)
 	}
 
-	controller.Run()
+	go controller.Run()
 }
 
 // RunServiceLoadBalancerController starts the service loadbalancer controller if the cloud provider is configured.
@@ -411,7 +411,7 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client kclientset.Interf
 	if err != nil {
 		glog.Errorf("Unable to start service controller: %v", err)
 	} else {
-		serviceController.Run(utilwait.NeverStop, int(c.ControllerManager.ConcurrentServiceSyncs))
+		go serviceController.Run(utilwait.NeverStop, int(c.ControllerManager.ConcurrentServiceSyncs))
 	}
 }
 
