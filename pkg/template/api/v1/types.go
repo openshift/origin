@@ -119,14 +119,14 @@ type TemplateInstanceSpec struct {
 	// template parameters.
 	Secret kapi.LocalObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
 
-	// requestor holds the identity of the agent requesting the template
+	// requester holds the identity of the agent requesting the template
 	// instantiation.
-	Requestor *TemplateInstanceRequestor `json:"requestor" protobuf:"bytes,3,opt,name=requestor"`
+	Requester *TemplateInstanceRequester `json:"requester" protobuf:"bytes,3,opt,name=requester"`
 }
 
-// TemplateInstanceRequestor holds the identity of an agent requesting a
+// TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
-type TemplateInstanceRequestor struct {
+type TemplateInstanceRequester struct {
 	// username is the username of the agent requesting a template instantiation.
 	Username string `json:"username" protobuf:"bytes,1,opt,name=username"`
 }

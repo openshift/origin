@@ -7,7 +7,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
 	"k8s.io/kubernetes/pkg/auth/user"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -16,15 +15,17 @@ import (
 
 type Broker struct {
 	kc                *kclientset.Clientset
+	oc                *client.Client
 	templateclient    *templateclientset.Clientset
 	restconfig        *restclient.Config
 	lister            cache.StoreToTemplateLister
 	templateNamespace string
 }
 
-func NewBroker(restconfig *restclient.Config, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
+func NewBroker(restconfig *restclient.Config, oc *client.Client, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
 	return &Broker{
 		kc:                kc,
+		oc:                oc,
 		templateclient:    templateclientset.NewForConfigOrDie(restconfig),
 		restconfig:        restconfig,
 		lister:            informers.Templates().Lister(),
@@ -54,14 +55,4 @@ func (b *Broker) getClientsForUsername(username string) (*kclientset.Clientset, 
 	}
 
 	return kc, oc, templateclient, nil
-}
-
-// TODO: UUID should be unique per cluster
-var plans = []api.Plan{
-	{
-		ID:          "7ae2bd88-9b8f-4a17-8014-41a5465c9e71",
-		Name:        "default",
-		Description: "Default plan",
-		Free:        true,
-	},
 }

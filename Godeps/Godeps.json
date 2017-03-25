@@ -2071,6 +2071,30 @@
 			"Rev": "f7ee69f31298ecbe5d2b349c711e2547a617d398"
 		},
 		{
+			"ImportPath": "github.com/lestrrat/go-jspointer",
+			"Rev": "f4881e611bdbe9fb413a7780721ef8400a1f2341"
+		},
+		{
+			"ImportPath": "github.com/lestrrat/go-jsref",
+			"Rev": "50df7b2d07d799426a9ac43fa24bdb4785f72a54"
+		},
+		{
+			"ImportPath": "github.com/lestrrat/go-jsref/provider",
+			"Rev": "50df7b2d07d799426a9ac43fa24bdb4785f72a54"
+		},
+		{
+			"ImportPath": "github.com/lestrrat/go-jsschema",
+			"Rev": "a6a42341b50d8d7e2a733db922eefaa756321021"
+		},
+		{
+			"ImportPath": "github.com/lestrrat/go-pdebug",
+			"Rev": "2e6eaaa5717f81bda41d27070d3c966f40a1e75f"
+		},
+		{
+			"ImportPath": "github.com/lestrrat/go-structinfo",
+			"Rev": "f74c056fe41f860aa6264478c664a6fff8a64298"
+		},
+		{
 			"ImportPath": "github.com/lpabon/godbc",
 			"Comment": "v1.0-1-g9577782",
 			"Rev": "9577782540c1398b710ddae1b86268ba03a19b0c"

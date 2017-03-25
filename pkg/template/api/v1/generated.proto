@@ -165,9 +165,9 @@ message TemplateInstanceList {
   repeated TemplateInstance items = 2;
 }
 
-// TemplateInstanceRequestor holds the identity of an agent requesting a
+// TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
-message TemplateInstanceRequestor {
+message TemplateInstanceRequester {
   // username is the username of the agent requesting a template instantiation.
   optional string username = 1;
 }
@@ -181,9 +181,9 @@ message TemplateInstanceSpec {
   // template parameters.
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference secret = 2;
 
-  // requestor holds the identity of the agent requesting the template
+  // requester holds the identity of the agent requesting the template
   // instantiation.
-  optional TemplateInstanceRequestor requestor = 3;
+  optional TemplateInstanceRequester requester = 3;
 }
 
 // TemplateInstanceStatus describes the current state of a TemplateInstance.

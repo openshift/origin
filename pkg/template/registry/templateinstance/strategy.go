@@ -46,9 +46,9 @@ func (templateInstanceStrategy) Canonicalize(obj runtime.Object) {
 func (templateInstanceStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	templateInstance := obj.(*templateapi.TemplateInstance)
 
-	if templateInstance.Spec.Requestor == nil {
+	if templateInstance.Spec.Requester == nil {
 		user, _ := kapi.UserFrom(ctx)
-		templateInstance.Spec.Requestor = &templateapi.TemplateInstanceRequestor{
+		templateInstance.Spec.Requester = &templateapi.TemplateInstanceRequester{
 			Username: user.GetName(),
 		}
 	}
@@ -113,18 +113,18 @@ func SelectableFields(obj *templateapi.TemplateInstance) fields.Set {
 }
 
 func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templateapi.TemplateInstance, userinfo user.Info) field.ErrorList {
-	if templateInstance.Spec.Requestor == nil || templateInstance.Spec.Requestor.Username == "" {
-		return field.ErrorList{field.Required(field.NewPath("spec.requestor.username"), "")}
+	if templateInstance.Spec.Requester == nil || templateInstance.Spec.Requester.Username == "" {
+		return field.ErrorList{field.Required(field.NewPath("spec.requester.username"), "")}
 	}
 
-	if templateInstance.Spec.Requestor.Username != userinfo.GetName() {
+	if templateInstance.Spec.Requester.Username != userinfo.GetName() {
 		sar := authorizationapi.AddUserToSAR(userinfo,
 			&authorizationapi.SubjectAccessReview{
 				Action: authorizationapi.Action{
 					Verb:         "impersonate",
 					Group:        userapi.GroupName,
 					Resource:     authorizationapi.UserResource,
-					ResourceName: templateInstance.Spec.Requestor.Username,
+					ResourceName: templateInstance.Spec.Requester.Username,
 				},
 			})
 		resp, err := s.oc.SubjectAccessReviews().Create(sar)

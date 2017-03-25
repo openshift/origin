@@ -2,7 +2,7 @@
 
 . shared.sh
 
-serviceUUID=${serviceUUID-$(oc get template ruby-helloworld-sample -n openshift -o template --template '{{.metadata.uid}}')}
+serviceUUID=${serviceUUID-$(oc get template cakephp-mysql-example -n openshift -o template --template '{{.metadata.uid}}')}
 
 req="{
   \"plan_id\": \"$planUUID\",
