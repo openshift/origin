@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6121244ca009b8fea5d8a9b0ac9d0cc034febe8f
+%global commit 8578aa47e3029e72b8aeb7339365c3f34dad7001
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.2 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=6121244
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.3 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=8578aa4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.3
+Version:        3.6.4
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,34 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sat Mar 25 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.4-1
+- bump(github.com/openshift/origin-web-console):
+  dce22ee6252dea8426fd4eedee06c71600971818 (dmcphers+openshiftbot@redhat.com)
+- template service broker: use cakephp-mysql-example, not ruby-helloworld-
+  sample, for tests (jminter@redhat.com)
+- rename requestor to requester (jminter@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8f4cda159d1382b7e5e2d4c3223b4ac248be6e1f (dmcphers+openshiftbot@redhat.com)
+- Improvements to templateservicebroker security: return forbidden clearly and
+  try to avoid creating objects if a forbidden error is likely
+  (jminter@redhat.com)
+- change the router eventqueue key function (jtanenba@redhat.com)
+- add extended test for jenkins bc with env vars (gmontero@redhat.com)
+- add json schema parameters to service catalog (jminter@redhat.com)
+- bump(github.com/lestrrat/go-jsschema):
+  a6a42341b50d8d7e2a733db922eefaa756321021 (jminter@redhat.com)
+- use console.openshift.io/iconClass (jminter@redhat.com)
+- use kapiv1 in pkg/template/api/v1/register.go, enables correct serialisation
+  of (for example) DeleteOptions (jminter@redhat.com)
+- remove accidentally committed file (jminter@redhat.com)
+- Add tests for ManifestService (obulatov@redhat.com)
+- Add stateful reactors for fake client (obulatov@redhat.com)
+- Add function newTestRepository (obulatov@redhat.com)
+- Simplify code (obulatov@redhat.com)
+- React to ginkgo changes (ccoleman@redhat.com)
+- bump(github.com/onsi/ginkgo):v1.2.0-95-g67b9df7 (ccoleman@redhat.com)
+- Extract function getLimitRangeList (obulatov@redhat.com)
+
 * Fri Mar 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.3-1
 - bump(github.com/openshift/origin-web-console):
   3e1266172305c090cab971dd17868c2d5a6ec8d1 (dmcphers+openshiftbot@redhat.com)
