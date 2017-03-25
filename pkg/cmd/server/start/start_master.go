@@ -506,7 +506,6 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	// start up the informers that we're trying to use in the API server
 	oc.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
-	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
