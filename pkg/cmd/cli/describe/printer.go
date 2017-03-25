@@ -73,6 +73,7 @@ var (
 func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
 	// TODO: support cross namespace listing
 	p := kprinters.NewHumanReadablePrinter(encoder, decoder, printOptions)
+	kinternalprinters.AddHandlers(p)
 	p.Handler(buildColumns, nil, printBuild)
 	p.Handler(buildColumns, nil, printBuildList)
 	p.Handler(buildConfigColumns, nil, printBuildConfig)
