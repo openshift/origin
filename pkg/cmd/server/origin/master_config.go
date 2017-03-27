@@ -329,7 +329,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 
 	// ensure that the limit range informer will be started
-	informer := config.Informers.KubernetesInformers().Core().V1().LimitRanges().Informer()
+	informer := config.Informers.InternalKubernetesInformers().Core().InternalVersion().LimitRanges().Informer()
 	config.LimitVerifier = imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
 		list, err := config.Informers.InternalKubernetesInformers().Core().InternalVersion().LimitRanges().Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
