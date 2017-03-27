@@ -24,7 +24,7 @@ var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
 var availableVersions = []schema.GroupVersion{
-	v1.LegacySchemeGroupVersion, docker10.LegacySchemeGroupVersion, dockerpre012.LegacySchemeGroupVersion,
+	v1.LegacySchemeGroupVersion,
 }
 
 func init() {
@@ -82,9 +82,7 @@ func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 		switch v {
 		case v1.LegacySchemeGroupVersion:
 			v1.AddToSchemeInCoreGroup(kapi.Scheme)
-		case docker10.LegacySchemeGroupVersion:
 			docker10.AddToSchemeInCoreGroup(kapi.Scheme)
-		case dockerpre012.LegacySchemeGroupVersion:
 			dockerpre012.AddToSchemeInCoreGroup(kapi.Scheme)
 
 		default:
@@ -103,18 +101,6 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
 	case v1.LegacySchemeGroupVersion:
-		return &meta.VersionInterfaces{
-			ObjectConvertor:  kapi.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-
-	case docker10.SchemeGroupVersion:
-		return &meta.VersionInterfaces{
-			ObjectConvertor:  kapi.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-
-	case dockerpre012.SchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,
