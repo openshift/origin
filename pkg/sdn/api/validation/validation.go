@@ -21,9 +21,11 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
 	} else {
-		ones, bitSize := clusterIPNet.Mask.Size()
-		if uint32(bitSize-ones) <= clusterNet.HostSubnetLength {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length is greater than cluster Mask"))
+		maskLen, addrLen := clusterIPNet.Mask.Size()
+		if clusterNet.HostSubnetLength > uint32(addrLen-maskLen) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length is too large for clusterNetwork"))
+		} else if clusterNet.HostSubnetLength < 2 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
 		}
 	}
 

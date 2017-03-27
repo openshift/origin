@@ -47,11 +47,21 @@ func TestValidateClusterNetwork(t *testing.T) {
 			expectedErrors: 1,
 		},
 		{
-			name: "Invalid subnet length",
+			name: "Subnet length too large for network",
 			cn: &api.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.30.0/24",
 				HostSubnetLength: 16,
+				ServiceNetwork:   "172.30.0.0/16",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Subnet length too small",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
+				Network:          "10.20.30.0/24",
+				HostSubnetLength: 1,
 				ServiceNetwork:   "172.30.0.0/16",
 			},
 			expectedErrors: 1,

@@ -71,10 +71,6 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		if err = master.validateNetworkConfig(); err != nil {
 			return err
 		}
-		size, len := master.networkInfo.ClusterNetwork.Mask.Size()
-		if networkConfig.HostSubnetLength < 1 || networkConfig.HostSubnetLength >= uint32(len-size) {
-			return fmt.Errorf("invalid HostSubnetLength %d for network %s (must be from 1 to %d)", networkConfig.HostSubnetLength, networkConfig.ClusterNetworkCIDR, len-size)
-		}
 		cn.Network = master.networkInfo.ClusterNetwork.String()
 		cn.HostSubnetLength = networkConfig.HostSubnetLength
 		cn.ServiceNetwork = master.networkInfo.ServiceNetwork.String()
