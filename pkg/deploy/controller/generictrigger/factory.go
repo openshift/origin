@@ -49,8 +49,10 @@ func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache
 		UpdateFunc: c.updateImageStream,
 	})
 
-	c.rcLister = kcorelistersinternal.NewReplicationControllerLister(rcInformer.GetIndexer())
+	c.dcLister.Indexer = dcInformer.GetIndexer()
 	c.dcListerSynced = dcInformer.HasSynced
+
+	c.rcLister = kcorelistersinternal.NewReplicationControllerLister(rcInformer.GetIndexer())
 	c.rcListerSynced = rcInformer.HasSynced
 	return c
 }
