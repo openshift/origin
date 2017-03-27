@@ -122,7 +122,7 @@ func TestHandle_createPodOk(t *testing.T) {
 
 	controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -211,7 +211,7 @@ func TestHandle_createPodFail(t *testing.T) {
 
 	controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
 
-	err := controller.Handle(deployment)
+	err := controller.handle(deployment, false)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -278,7 +278,7 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 
-		if err := controller.Handle(deployment); err != nil {
+		if err := controller.handle(deployment, false); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
@@ -317,7 +317,7 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, false, kapi.PodRunning)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -358,7 +358,7 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, false, kapi.PodRunning)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -416,7 +416,7 @@ func TestHandle_noop(t *testing.T) {
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 
-		if err := controller.Handle(deployment); err != nil {
+		if err := controller.handle(deployment, false); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
@@ -451,7 +451,7 @@ func TestHandle_failedTest(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodFailed)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -492,7 +492,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 	controller := okDeploymentController(client, deployment, hookPods, true, kapi.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -537,7 +537,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	controller := okDeploymentController(client, deployment, hookPods, true, kapi.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -581,7 +581,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 	pod.Labels[deployapi.DeployerPodForDeploymentLabel] = "unrelated"
 	controller.podStore.Indexer.Update(pod)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -609,7 +609,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
 
-	err := controller.Handle(deployment)
+	err := controller.handle(deployment, false)
 	if err == nil {
 		t.Fatal("expected an actionable error")
 	}
@@ -640,7 +640,7 @@ func TestHandle_cancelNew(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodRunning)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -676,7 +676,7 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 
 	controller := okDeploymentController(client, deployment, nil, true, kapi.PodRunning)
 
-	if err := controller.Handle(deployment); err != nil {
+	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -755,7 +755,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 
 		controller := okDeploymentController(client, deployment, hookPods, true, test.podPhase)
 
-		if err := controller.Handle(deployment); err != nil {
+		if err := controller.handle(deployment, false); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
@@ -767,15 +767,27 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 }
 
 // TestHandle_deployerPodDisappeared ensures that a pending/running deployment
-// is failed when its deployer pod vanishes.
+// is failed when its deployer pod vanishes. Ensure that pending deployments
+// wont fail instantly on a missing deployer pod because it may take some time
+// for it to appear in the pod cache.
 func TestHandle_deployerPodDisappeared(t *testing.T) {
 	tests := []struct {
-		name  string
-		phase deployapi.DeploymentStatus
+		name          string
+		phase         deployapi.DeploymentStatus
+		willBeDropped bool
+		shouldRetry   bool
 	}{
 		{
-			name:  "pending",
-			phase: deployapi.DeploymentStatusPending,
+			name:          "pending - retry",
+			phase:         deployapi.DeploymentStatusPending,
+			willBeDropped: false,
+			shouldRetry:   true,
+		},
+		{
+			name:          "pending - fail",
+			phase:         deployapi.DeploymentStatusPending,
+			willBeDropped: true,
+			shouldRetry:   false,
 		},
 		{
 			name:  "running",
@@ -801,21 +813,39 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 			continue
 		}
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.phase)
+		updatedDeployment = deployment
 
 		controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
 
-		if err := controller.Handle(deployment); err != nil {
+		err = controller.handle(deployment, test.willBeDropped)
+		if !test.shouldRetry && err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
+		if test.shouldRetry && err == nil {
+			t.Errorf("%s: expected an error so that the deployment can be retried, got none", test.name)
+			continue
+		}
 
-		if !updateCalled {
+		if !test.shouldRetry && !updateCalled {
 			t.Errorf("%s: expected update", test.name)
 			continue
 		}
 
-		if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
-			t.Errorf("%s: expected deployment status %q, got %q", test.name, e, a)
+		if test.shouldRetry && updateCalled {
+			t.Errorf("%s: unexpected update", test.name)
+			continue
+		}
+
+		gotStatus := deployutil.DeploymentStatusFor(updatedDeployment)
+		if !test.shouldRetry && deployapi.DeploymentStatusFailed != gotStatus {
+			t.Errorf("%s: expected deployment status %q, got %q", test.name, deployapi.DeploymentStatusFailed, gotStatus)
+			continue
+		}
+
+		if test.shouldRetry && deployapi.DeploymentStatusPending != gotStatus {
+			t.Errorf("%s: expected deployment status %q, got %q", test.name, deployapi.DeploymentStatusPending, gotStatus)
+			continue
 		}
 	}
 }
@@ -921,7 +951,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 
-		if err := controller.Handle(deployment); err != nil {
+		if err := controller.handle(deployment, false); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
