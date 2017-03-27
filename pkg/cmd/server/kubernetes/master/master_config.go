@@ -35,6 +35,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	apiserver "k8s.io/apiserver/pkg/server"
 	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
+	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
@@ -125,8 +126,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.SecureServing.ServingOptions.BindPort = port
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
-	server.SecureServing.ServerCert.CACertFile = masterConfig.ServingInfo.ClientCA
 	server.InsecureServing.BindPort = 0
+
+	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
 
 	server.Etcd.EnableGarbageCollection = false // disabled until we add the controller. MUST be in synced with the value in CMServer
 	server.Etcd.StorageConfig.Type = "etcd2"    // TODO(rebase): enable etcd3 as upstream
