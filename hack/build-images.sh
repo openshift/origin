@@ -15,7 +15,7 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 	imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
 	# identical to build-cross.sh
 	os::build::os_version_vars
-	if [[ -z "${OS_RELEASE_LOCAL}" ]]; then
+	if [[ -z "${OS_RELEASE_LOCAL:-}" ]]; then
 		OS_RELEASE_COMMIT="${OS_GIT_VERSION//+/-}"
 		platform="$(os::build::host_platform)"
 		OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]:-${platform}}")
