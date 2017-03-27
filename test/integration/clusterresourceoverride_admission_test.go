@@ -34,8 +34,11 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if memory := podCreated.Spec.Containers[0].Resources.Limits.Memory(); memory.Cmp(resource.MustParse("2Gi")) != 0 {
+		t.Errorf("limitlesspod: Memory limit did not match expected 2Gi: %#v", memory)
+	}
 	if memory := podCreated.Spec.Containers[0].Resources.Requests.Memory(); memory.Cmp(resource.MustParse("1Gi")) != 0 {
-		t.Errorf("limitlesspod: Memory did not match expected 1Gi: %#v", memory)
+		t.Errorf("limitlesspod: Memory req did not match expected 1Gi: %#v", memory)
 	}
 	if cpu := podCreated.Spec.Containers[0].Resources.Limits.Cpu(); cpu.Cmp(resource.MustParse("2")) != 0 {
 		t.Errorf("limitlesspod: CPU limit did not match expected 2 core: %#v", cpu)
