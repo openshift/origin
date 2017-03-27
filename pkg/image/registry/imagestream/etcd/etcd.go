@@ -7,6 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -24,6 +25,7 @@ type REST struct {
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.ImageStream{} },
 		NewListFunc:       func() runtime.Object { return &api.ImageStreamList{} },
 		PredicateFunc:     imagestream.Matcher,
