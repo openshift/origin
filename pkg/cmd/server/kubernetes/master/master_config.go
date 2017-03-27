@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -40,7 +39,6 @@ import (
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
@@ -69,9 +67,6 @@ import (
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	"github.com/openshift/origin/pkg/version"
 )
-
-const etcdRetryLimit = 60
-const etcdRetryInterval = 1 * time.Second
 
 // request paths that match this regular expression will be treated as long running
 // and not subjected to the default server timeout.
@@ -257,9 +252,10 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.Authentication.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if err := utilwait.PollImmediate(etcdRetryInterval, etcdRetryLimit*etcdRetryInterval, preflight.EtcdConnection{ServerList: s.Etcd.StorageConfig.ServerList}.CheckEtcdServers); err != nil {
-		return nil, fmt.Errorf("error waiting for etcd connection: %v", err)
-	}
+	// REBASE: do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
+	// if err := utilwait.PollImmediate(etcdRetryInterval, etcdRetryLimit*etcdRetryInterval, preflight.EtcdConnection{ServerList: s.Etcd.StorageConfig.ServerList}.CheckEtcdServers); err != nil {
+	// 	return nil, fmt.Errorf("error waiting for etcd connection: %v", err)
+	// }
 
 	// Use protobufs for self-communication.
 	// Since not every generic apiserver has to support protobufs, we
