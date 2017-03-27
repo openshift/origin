@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/settings"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -53,6 +54,7 @@ var (
 	securityGroup       = securityapi.GroupName
 	legacySecurityGroup = securityapi.LegacyGroupName
 	storageGroup        = storage.GroupName
+	settingsGroup       = settings.GroupName
 
 	authzGroup          = authorizationapi.GroupName
 	kAuthzGroup         = kauthorizationapi.GroupName
@@ -155,7 +157,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/status", "resourcequotas", "resourcequotas/status", "securitycontextconstraints", "serviceaccounts", "services",
 					"services/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers", "horizontalpodautoscalers/status").RuleOrDie(),
 
@@ -168,6 +170,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/scale", "storageclasses", "thirdpartyresources").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(policyGroup).Resources("poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(storageGroup).Resources("storageclasses").RuleOrDie(),
 
