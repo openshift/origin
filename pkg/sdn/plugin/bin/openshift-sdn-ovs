@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# NOTE: This is no longer used; it is now installed solely to avoid breakage during
+# upgrades, and will go away in 3.7.
+
 lock_file=/var/lock/openshift-sdn.lock
 
 action=$1
