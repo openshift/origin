@@ -253,7 +253,7 @@ func TestFlatParse(t *testing.T) {
 			},
 		},
 		{
-			name:     "nested ",
+			name:     "nested",
 			testFile: "9.txt",
 			expectedSuites: &api.TestSuites{
 				Suites: []*api.TestSuite{
@@ -367,6 +367,64 @@ PASS`,
 							{
 								Name:     "TestTwo",
 								Duration: 0.1,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "test case with subtests",
+			testFile: "12.txt",
+			expectedSuites: &api.TestSuites{
+				Suites: []*api.TestSuite{
+					{
+						Name:      "package/name",
+						NumTests:  2,
+						NumFailed: 1,
+						Duration:  0.352,
+						Properties: []*api.TestSuiteProperty{
+							{
+								Name:  "coverage.statements.pct",
+								Value: "50.0",
+							},
+						},
+						TestCases: []*api.TestCase{
+							{
+								Name:     "TestOne",
+								Duration: 0.34,
+								FailureOutput: &api.FailureOutput{
+									Output: `=== RUN   TestOne
+2017/03/27 14:33:13 top level log message
+=== RUN   TestOne/sub1
+2017/03/27 14:33:13 sub1 log message
+=== RUN   TestOne/sub1/subsub1
+2017/03/27 14:33:13 sub1 subsub1 failed
+=== RUN   TestOne/sub1/subsub2
+2017/03/27 14:33:14 sub1 subsub2 succeeded
+=== RUN   TestOne/sub2
+2017/03/27 14:33:14 sub2 succeeded
+2017/03/27 14:33:14 another
+multiline top level
+log message
+--- FAIL: TestOne (0.34s)
+	foo_test.go:11: top level log message
+    --- FAIL: TestOne/sub1 (0.31s)
+    	foo_test.go:14: sub1 log message
+        --- FAIL: TestOne/sub1/subsub1 (0.12s)
+        	foo_test.go:18: sub1 subsub1 failed
+        --- PASS: TestOne/sub1/subsub2 (0.15s)
+        	foo_test.go:23: sub1 subsub2 succeeded
+    --- PASS: TestOne/sub2 (0.01s)
+    	foo_test.go:30: sub2 succeeded
+	foo_test.go:34: another
+		multiline top level
+		log message`,
+								},
+							},
+							{
+								Name:     "TestTwo",
+								Duration: 0,
 							},
 						},
 					},

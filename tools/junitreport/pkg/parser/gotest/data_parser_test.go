@@ -21,12 +21,8 @@ func TestMarksTestBeginning(t *testing.T) {
 			testLine: "=== RUN 1234",
 		},
 		{
-			name:     "url",
-			testLine: "=== RUN github.com/maintainer/repository/package/file",
-		},
-		{
 			name:     "failed print",
-			testLine: "some other text=== RUN github.com/maintainer/repository/package/file",
+			testLine: "some other text=== RUN TestName",
 		},
 	}
 
@@ -53,11 +49,6 @@ func TestExtractTestName(t *testing.T) {
 			name:         "numeric",
 			testLine:     "=== RUN 1234",
 			expectedName: "1234",
-		},
-		{
-			name:         "url",
-			testLine:     "=== RUN github.com/maintainer/repository/package/file",
-			expectedName: "github.com/maintainer/repository/package/file",
 		},
 		{
 			name:         "basic end",
@@ -150,12 +141,12 @@ func TestExtractDuration(t *testing.T) {
 		expectedDuration string
 	}{
 		{
-			name:             "basic",
+			name:             "go1.3 timing",
 			testLine:         "--- PASS: Test (0.10 seconds)",
 			expectedDuration: "0.10s", // we make the conversion to time.Duration-parseable units internally
 		},
 		{
-			name:             "go1.5.1 timing",
+			name:             "go1.4+ timing",
 			testLine:         "--- PASS: TestTwo (0.03s)",
 			expectedDuration: "0.03s",
 		},
