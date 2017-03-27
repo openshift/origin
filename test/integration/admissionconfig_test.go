@@ -57,6 +57,8 @@ func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig))
 // testAdmissionPlugin sets a label with its name on the object getting admitted
 // on create
 type testAdmissionPlugin struct {
+	metav1.TypeMeta
+
 	name       string
 	labelValue string
 }
