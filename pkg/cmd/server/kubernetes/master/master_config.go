@@ -286,7 +286,7 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
-	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags); len(err) > 0 {
+	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags(cmserver)); len(err) > 0 {
 		return nil, nil, kerrors.NewAggregate(err)
 	}
 	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
