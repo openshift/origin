@@ -575,7 +575,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			plugin = saAdmitter
 
 		default:
-			configFile, err := pluginconfig.GetPluginConfigFile(pluginConfig, pluginName, admissionConfigFilename)
+			configFile, err := pluginconfig.GetAdmissionConfigurationFile(pluginConfig, pluginName, admissionConfigFilename)
 			if err != nil {
 				return nil, err
 			}
@@ -583,11 +583,11 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if err != nil {
 				return nil, err
 			}
-			pluginConfig, err := configReader.ConfigFor(pluginName)
+			pluginConfigReader, err := configReader.ConfigFor(pluginName)
 			if err != nil {
 				return nil, err
 			}
-			plugin, err = admission.InitPlugin(pluginName, pluginConfig, allPluginInitializers)
+			plugin, err = admission.InitPlugin(pluginName, pluginConfigReader, allPluginInitializers)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err
