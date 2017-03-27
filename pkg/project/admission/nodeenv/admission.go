@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("OriginPodNodeEnvironment", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("OriginPodNodeEnvironment", func(config io.Reader) (admission.Interface, error) {
 		return NewPodNodeEnvironment()
 	})
 }

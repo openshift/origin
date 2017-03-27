@@ -14,6 +14,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -29,7 +30,7 @@ var kindsToIgnore = []schema.GroupKind{
 }
 
 func init() {
-	admission.RegisterPlugin("PodNodeConstraints", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("PodNodeConstraints", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

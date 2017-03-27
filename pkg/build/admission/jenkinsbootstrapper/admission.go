@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("openshift.io/JenkinsBootstrapper", func(config io.Reader) (admission.Interface, error) {
 		return NewJenkinsBootstrapper(), nil
 	})
 }

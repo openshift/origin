@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	admission.RegisterPlugin(api.PluginName, func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register(api.PluginName, func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := ReadConfig(config)
 		if err != nil {
 			return nil, err

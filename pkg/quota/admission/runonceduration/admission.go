@@ -11,6 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/util/integer"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -20,7 +21,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("RunOnceDuration", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("RunOnceDuration", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("SecurityContextConstraint",
+	kadmission.Plugins.Register("SecurityContextConstraint",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewConstraint(), nil
 		})

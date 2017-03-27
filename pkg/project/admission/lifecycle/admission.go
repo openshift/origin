@@ -26,7 +26,7 @@ import (
 // TODO: modify the upstream plug-in so this can be collapsed
 // need ability to specify a RESTMapper on upstream version
 func init() {
-	admission.RegisterPlugin("OriginNamespaceLifecycle", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("OriginNamespaceLifecycle", func(config io.Reader) (admission.Interface, error) {
 		return NewLifecycle(recommendedCreatableResources)
 	})
 }

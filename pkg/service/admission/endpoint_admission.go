@@ -14,12 +14,13 @@ import (
 	admission "k8s.io/apiserver/pkg/admission"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
 const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
 
 func init() {
-	admission.RegisterPlugin(RestrictedEndpointsPluginName, func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register(RestrictedEndpointsPluginName, func(config io.Reader) (admission.Interface, error) {
 		return NewRestrictedEndpointsAdmission(nil), nil
 	})
 }

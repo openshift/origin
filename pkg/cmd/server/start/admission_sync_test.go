@@ -8,7 +8,7 @@ import (
 	_ "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/admission"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -42,7 +42,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
-	registeredKubePlugins := sets.NewString(admission.GetPlugins()...)
+	registeredKubePlugins := sets.NewString(kadmission.Plugins.Registered()...)
 
 	usedAdmissionPlugins := sets.NewString(origin.KubeAdmissionPlugins...)
 

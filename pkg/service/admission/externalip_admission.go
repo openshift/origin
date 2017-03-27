@@ -9,12 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
 const ExternalIPPluginName = "ExternalIPRanger"
 
 func init() {
-	admission.RegisterPlugin("ExternalIPRanger", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("ExternalIPRanger", func(config io.Reader) (admission.Interface, error) {
 		return NewExternalIPRanger(nil, nil, false), nil
 	})
 }

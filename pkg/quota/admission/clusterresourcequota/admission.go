@@ -11,6 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
@@ -23,7 +24,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/ClusterResourceQuota",
+	kadmission.Plugins.Register("openshift.io/ClusterResourceQuota",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewClusterResourceQuota()
 		})

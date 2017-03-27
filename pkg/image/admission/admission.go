@@ -27,7 +27,7 @@ func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceN
 }
 
 func init() {
-	admission.RegisterPlugin(PluginName, func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register(PluginName, func(config io.Reader) (admission.Interface, error) {
 		plugin, err := NewImageLimitRangerPlugin(config)
 		if err != nil {
 			return nil, err

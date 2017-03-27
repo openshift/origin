@@ -13,6 +13,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -21,7 +22,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/BuildConfigSecretInjector", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("openshift.io/BuildConfigSecretInjector", func(config io.Reader) (admission.Interface, error) {
 		return &secretInjector{
 			Handler: admission.NewHandler(admission.Create),
 		}, nil

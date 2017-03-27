@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -16,7 +17,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("BuildByStrategy", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("BuildByStrategy", func(config io.Reader) (admission.Interface, error) {
 		return NewBuildByStrategy(), nil
 	})
 }

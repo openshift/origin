@@ -12,7 +12,6 @@ import (
 	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/flowcontrol"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
@@ -23,6 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
@@ -252,7 +252,7 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 		nil, // api authorizer, only used by PSP
 		nil, // cloud config
 	)
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
+	admissionControl, err := kadmission.Plugins.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("openshift.io/RestrictSubjectBindings",
+	kadmission.Plugins.Register("openshift.io/RestrictSubjectBindings",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewRestrictUsersAdmission()
 		})

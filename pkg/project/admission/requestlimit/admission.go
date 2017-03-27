@@ -12,6 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -28,7 +29,7 @@ import (
 const allowedTerminatingProjects = 2
 
 func init() {
-	admission.RegisterPlugin("ProjectRequestLimit", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("ProjectRequestLimit", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err

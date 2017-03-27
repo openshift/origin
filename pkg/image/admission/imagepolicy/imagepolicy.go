@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
@@ -28,7 +29,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin(api.PluginName, func(input io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register(api.PluginName, func(input io.Reader) (admission.Interface, error) {
 		obj, err := configlatest.ReadYAML(input)
 		if err != nil {
 			return nil, err

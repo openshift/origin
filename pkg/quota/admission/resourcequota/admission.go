@@ -24,7 +24,7 @@ import (
 const PluginName = "openshift.io/OriginResourceQuota"
 
 func init() {
-	admission.RegisterPlugin(PluginName,
+	kadmission.Plugins.Register(PluginName,
 		func(config io.Reader) (admission.Interface, error) {
 			return NewOriginResourceQuota(), nil
 		})

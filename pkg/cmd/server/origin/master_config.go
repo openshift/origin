@@ -586,7 +586,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if err != nil {
 				return nil, err
 			}
-			plugin, err = admission.InitPlugin(pluginName, pluginConfig, allPluginInitializers)
+			plugin, err = kadmission.Plugins.InitPlugin(pluginName, pluginConfig, allPluginInitializers)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err

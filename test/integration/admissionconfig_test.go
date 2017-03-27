@@ -84,10 +84,10 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 	return operation == admission.Create
 }
 
-func registerAdmissionPlugins(t *testing.T, names ...string) {
+func registerAdmissionPlugins(t *testing.T, admissionPlugins *admission.Plugins, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(config io.Reader) (admission.Interface, error) {
+		admissionPlugins.Register(pluginName, func(config io.Reader) (admission.Interface, error) {
 			plugin := &testAdmissionPlugin{
 				name: pluginName,
 			}
@@ -188,7 +188,8 @@ func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
 
 func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
-	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
+	registry := admission.Plugins{}
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2", "plugin3")
 	kubeClient, _ := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
@@ -205,8 +206,9 @@ func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
+	registry := admission.Plugins{}
 	configFile := setupAdmissionPluginTestConfig(t, "plugin1configvalue")
-	registerAdmissionPlugins(t, "plugin1", "plugin2")
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2")
 	kubeClient, _ := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
@@ -224,7 +226,8 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
-	registerAdmissionPlugins(t, "plugin1", "plugin2")
+	registry := admission.Plugins{}
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2")
 	kubeClient, _ := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
@@ -243,7 +246,8 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 
 func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
-	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
+	registry := admission.Plugins{}
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2", "plugin3")
 	_, openshiftClient := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
@@ -261,7 +265,8 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
 	configFile := setupAdmissionPluginTestConfig(t, "plugin2configvalue")
-	registerAdmissionPlugins(t, "plugin1", "plugin2")
+	registry := admission.Plugins{}
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2")
 	_, openshiftClient := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
@@ -279,7 +284,8 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	registerAdmissionPluginTestConfigType()
-	registerAdmissionPlugins(t, "plugin1", "plugin2")
+	registry := admission.Plugins{}
+	registerAdmissionPlugins(t, &registry, "plugin1", "plugin2")
 	_, openshiftClient := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{

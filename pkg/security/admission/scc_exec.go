@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("SCCExecRestrictions", func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register("SCCExecRestrictions", func(config io.Reader) (admission.Interface, error) {
 		execAdmitter := NewSCCExecRestrictions()
 		return execAdmitter, nil
 	})

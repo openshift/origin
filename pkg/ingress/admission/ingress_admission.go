@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/ingress/admission/api"
@@ -20,7 +21,7 @@ const (
 )
 
 func init() {
-	admission.RegisterPlugin(IngressAdmission, func(config io.Reader) (admission.Interface, error) {
+	kadmission.Plugins.Register(IngressAdmission, func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
