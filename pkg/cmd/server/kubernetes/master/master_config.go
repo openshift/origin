@@ -703,26 +703,3 @@ func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIRe
 	return resourceConfig
 }
 
-// TODO remove this func in 1.6 when we get rid of the hack above
-func concatenateFiles(prefix, separator string, files ...string) (string, error) {
-	data := []byte{}
-	for _, file := range files {
-		fileBytes, err := ioutil.ReadFile(file)
-		if err != nil {
-			return "", err
-		}
-		data = append(data, fileBytes...)
-		data = append(data, []byte(separator)...)
-	}
-	tmpFile, err := ioutil.TempFile("", prefix)
-	if err != nil {
-		return "", err
-	}
-	if _, err := tmpFile.Write(data); err != nil {
-		return "", err
-	}
-	if err := tmpFile.Close(); err != nil {
-		return "", err
-	}
-	return tmpFile.Name(), nil
-}
