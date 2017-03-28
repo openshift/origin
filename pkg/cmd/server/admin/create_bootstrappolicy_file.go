@@ -116,6 +116,24 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
 	}
 
+	controllerRoles := bootstrappolicy.GetBootstrapControllerRoles()
+	for i := range controllerRoles {
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&controllerRoles[i], latest.Version)
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+	}
+
+	controllerRoleBindings := bootstrappolicy.GetBootstrapControllerRoleBindings()
+	for i := range controllerRoleBindings {
+		versionedObject, err := kapi.Scheme.ConvertToVersion(&controllerRoleBindings[i], latest.Version)
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+	}
+
 	versionedPolicyTemplate, err := kapi.Scheme.ConvertToVersion(policyTemplate, latest.Version)
 	if err != nil {
 		return err
