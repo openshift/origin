@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -89,8 +90,8 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	if _, err := legacyAutoscalers.List(metav1.ListOptions{}); !errors.IsNotFound(err) {
 		t.Fatalf("expected NotFound error listing HPA, got %v", err)
 	}
-	if _, err := legacyAutoscalers.Create(validHPA); !errors.IsNotFound(err) {
-		t.Fatalf("expected NotFound error creating HPA, got %v", err)
+	if _, err := legacyAutoscalers.Create(validHPA); !strings.Contains(err.Error(), `not suitable for converting to "extensions/v1beta1"`) {
+		t.Fatalf("expected conversion error creating extensions/v1beta1 HPA, got %v", err)
 	}
 
 	// make sure autoscaling and batch API objects can be listed and created
