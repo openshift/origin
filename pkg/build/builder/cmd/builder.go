@@ -123,7 +123,6 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 			return sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
 		}
 		if overrideURL != nil {
-			c.build.Annotations[bld.OriginalSourceURLAnnotationKey] = gitSource.URI
 			gitSource.URI = overrideURL.String()
 		}
 		gitEnv = append(gitEnv, secretsEnv...)
