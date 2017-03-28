@@ -435,6 +435,11 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
+	clientCARegistrationHook, err := ClientCARegistrationHook(&masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
 		MasterCount:   apiserverOptions.MasterCount,
@@ -448,6 +453,8 @@ func buildKubeApiserverConfig(
 				Certificates:       proxyClientCerts,
 			},
 		}),
+
+		ClientCARegistrationHook: *clientCARegistrationHook,
 
 		APIServerServicePort:      443,
 		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
@@ -574,6 +581,29 @@ func BuildKubernetesMasterConfig(
 	}
 
 	return kmaster, nil
+}
+
+func ClientCARegistrationHook(options *configapi.MasterConfig) (*master.ClientCARegistrationHook, error) {
+	clientCA, err := readCAorNil(options.ServingInfo.ClientCA)
+	if err != nil {
+		return nil, err
+	}
+	ret := &master.ClientCARegistrationHook{ClientCA: clientCA}
+
+	var requestHeaderProxyCA []byte
+	if options.AuthConfig.RequestHeader != nil {
+		requestHeaderProxyCA, err = readCAorNil(options.AuthConfig.RequestHeader.ClientCA)
+		if err != nil {
+			return nil, err
+		}
+		ret.RequestHeaderUsernameHeaders = options.AuthConfig.RequestHeader.UsernameHeaders
+		ret.RequestHeaderGroupHeaders = options.AuthConfig.RequestHeader.GroupHeaders
+		ret.RequestHeaderExtraHeaderPrefixes = options.AuthConfig.RequestHeader.ExtraHeaderPrefixes
+		ret.RequestHeaderCA = requestHeaderProxyCA
+		ret.RequestHeaderAllowedNames = options.AuthConfig.RequestHeader.ClientCommonNames
+	}
+
+	return ret, nil
 }
 
 func DefaultOpenAPIConfig() *openapicommon.Config {
@@ -703,3 +733,9 @@ func getAPIResourceConfig(options configapi.MasterConfig) apiserverstorage.APIRe
 	return resourceConfig
 }
 
+func readCAorNil(file string) ([]byte, error) {
+	if len(file) == 0 {
+		return nil, nil
+	}
+	return ioutil.ReadFile(file)
+}
