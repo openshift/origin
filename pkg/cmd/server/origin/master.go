@@ -1020,6 +1020,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiendpoints.APIGroupVersion {
 		Admit:                       c.AdmissionControl,
 		Context:                     c.getRequestContextMapper(),
 		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
+		UnsafeConvertor:             runtime.UnsafeObjectConvertor(kapi.Scheme),
 	}
 }
 
