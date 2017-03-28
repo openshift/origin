@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c19f5790afd3d8031e9a497a504eb471f845fa5d
+%global commit 0fc13df0a8ea0db42b24bf328052ce4965f909d0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.5 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=c19f579
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.6 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=0fc13df
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.6
+Version:        3.6.7
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,13 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Mar 28 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.7-1
+- fix extra lines in new-app output (gmontero@redhat.com)
+- fix unbound variable error in build-images.sh (bparees@redhat.com)
+- address redundant line if new-app error output (gmontero@redhat.com)
+- Port openshift-sdn-ovs script to go (danw@redhat.com)
+- Add ovsdb-manipulating methods to pkg/ovs (danw@redhat.com)
+
 * Mon Mar 27 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.6-1
 - UPSTREAM: 37380: Improve error reporting in Ceph RBD provisioner
   (jsafrane@redhat.com)
