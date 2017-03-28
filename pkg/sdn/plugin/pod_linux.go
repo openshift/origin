@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -14,6 +13,8 @@ import (
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
+	"github.com/openshift/origin/pkg/util/ipcmd"
+	"github.com/openshift/origin/pkg/util/ovs"
 
 	"github.com/golang/glog"
 
@@ -23,6 +24,8 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
+	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kexec "k8s.io/kubernetes/pkg/util/exec"
 	ksets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/containernetworking/cni/pkg/invoke"
@@ -35,84 +38,8 @@ import (
 )
 
 const (
-	sdnScript   = "openshift-sdn-ovs"
-	setUpCmd    = "setup"
-	tearDownCmd = "teardown"
-	updateCmd   = "update"
-
 	podInterfaceName = knetwork.DefaultInterfaceName
 )
-
-type PodConfig struct {
-	vnid             uint32
-	ingressBandwidth string
-	egressBandwidth  string
-	wantMacvlan      bool
-}
-
-func getBandwidth(pod *kapi.Pod) (string, string, error) {
-	ingress, egress, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to parse pod bandwidth: %v", err)
-	}
-	var ingressStr, egressStr string
-	if ingress != nil {
-		ingressStr = fmt.Sprintf("%d", ingress.Value())
-	}
-	if egress != nil {
-		egressStr = fmt.Sprintf("%d", egress.Value())
-	}
-	return ingressStr, egressStr, nil
-}
-
-func wantsMacvlan(pod *kapi.Pod) (bool, error) {
-	privileged := false
-	for _, container := range pod.Spec.Containers {
-		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			privileged = true
-			break
-		}
-	}
-
-	val, ok := pod.Annotations[sdnapi.AssignMacvlanAnnotation]
-	if !ok || val != "true" {
-		return false, nil
-	}
-	if !privileged {
-		return false, fmt.Errorf("pod has %q annotation but is not privileged", sdnapi.AssignMacvlanAnnotation)
-	}
-
-	return true, nil
-}
-
-// Create and return a PodConfig describing which openshift-sdn specific pod attributes
-// to configure
-func (m *podManager) getPodConfig(req *cniserver.PodRequest) (*PodConfig, *kapi.Pod, error) {
-	var err error
-
-	config := &PodConfig{}
-	config.vnid, err = m.policy.GetVNID(req.PodNamespace)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read pod %s/%s: %v", req.PodNamespace, req.PodName, err)
-	}
-
-	config.wantMacvlan, err = wantsMacvlan(pod)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	config.ingressBandwidth, config.egressBandwidth, err = getBandwidth(pod)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return config, pod, nil
-}
 
 // For a given container, returns host veth name, container veth MAC, and pod IP
 func getVethInfo(netns, containerIfname string) (string, string, string, error) {
@@ -159,12 +86,26 @@ func getVethInfo(netns, containerIfname string) (string, string, string, error) 
 	return hostVeth.Attrs().Name, contVeth.Attrs().HardwareAddr.String(), podIP, nil
 }
 
-// Adds a macvlan interface to a container for use with the egress router feature
-func addMacvlan(netns string) error {
-	var defIface netlink.Link
-	var err error
+// Adds a macvlan interface to a container, if requested, for use with the egress router feature
+func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
+	val, ok := pod.Annotations[sdnapi.AssignMacvlanAnnotation]
+	if !ok || val != "true" {
+		return nil
+	}
+
+	privileged := false
+	for _, container := range pod.Spec.Containers {
+		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
+			privileged = true
+			break
+		}
+	}
+	if !privileged {
+		return fmt.Errorf("pod has %q annotation but is not privileged", sdnapi.AssignMacvlanAnnotation)
+	}
 
 	// Find interface with the default route
+	var defIface netlink.Link
 	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
 	if err != nil {
 		return fmt.Errorf("failed to read routes: %v", err)
@@ -252,20 +193,91 @@ func (m *podManager) ipamDel(id string) error {
 	return nil
 }
 
-func isScriptError(err error) bool {
-	_, ok := err.(*exec.ExitError)
-	return ok
+func ensureOvsPort(ovsif *ovs.Interface, hostVeth string) (int, error) {
+	return ovsif.AddPort(hostVeth, -1)
 }
 
-// Get the last command (which is prefixed with "+" because of "set -x") and its output
-func getScriptError(output []byte) string {
-	lines := strings.Split(string(output), "\n")
-	for n := len(lines) - 1; n >= 0; n-- {
-		if strings.HasPrefix(lines[n], "+") {
-			return strings.Join(lines[n:], "\n")
+func setupPodFlows(ovsif *ovs.Interface, ofport int, podIP, podMac string, vnid uint32) error {
+	otx := ovsif.NewTransaction()
+
+	// ARP/IP traffic from container
+	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, podMac, vnid)
+	otx.AddFlow("table=20, priority=100, in_port=%d, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, vnid)
+
+	// ARP request/response to container (not isolated)
+	otx.AddFlow("table=40, priority=100, arp, nw_dst=%s, actions=output:%d", podIP, ofport)
+
+	// IP traffic to container
+	otx.AddFlow("table=70, priority=100, ip, nw_dst=%s, actions=load:%d->NXM_NX_REG1[], load:%d->NXM_NX_REG2[], goto_table:80", podIP, vnid, ofport)
+
+	return otx.EndTransaction()
+}
+
+func setupPodBandwidth(ovsif *ovs.Interface, pod *kapi.Pod, hostVeth string) error {
+	podIngress, podEgress, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
+	if err != nil {
+		return fmt.Errorf("failed to parse pod bandwidth: %v", err)
+	}
+	if podIngress == nil && podEgress == nil {
+		return nil
+	}
+
+	var ovsIngress, ovsEgress int64
+	// note pod ingress == OVS egress and vice versa, and OVS ingress is in Kbps
+	if podIngress != nil {
+		ovsEgress = podIngress.Value()
+	}
+	if podEgress != nil {
+		ovsIngress = podEgress.Value() / 1024
+	}
+
+	if ovsEgress > 0 {
+		// FIXME: doesn't seem possible to do this with the netlink library?
+		itx := ipcmd.NewTransaction(kexec.New(), hostVeth)
+		itx.SetLink("qlen", "1000")
+		err = itx.EndTransaction()
+		if err != nil {
+			return err
+		}
+
+		qos, err := ovsif.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ovsEgress))
+		if err != nil {
+			return err
+		}
+		err = ovsif.Set("port", hostVeth, fmt.Sprintf("qos=%s", qos))
+		if err != nil {
+			return err
 		}
 	}
-	return string(output)
+	if ovsIngress > 0 {
+		err := ovsif.Set("interface", hostVeth, fmt.Sprintf("ingress_policing_rate=%d", ovsIngress))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func cleanupPodFlows(ovsif *ovs.Interface, podIP string) error {
+	otx := ovsif.NewTransaction()
+	otx.DeleteFlows("ip, nw_dst=%s", podIP)
+	otx.DeleteFlows("ip, nw_src=%s", podIP)
+	otx.DeleteFlows("arp, nw_dst=%s", podIP)
+	otx.DeleteFlows("arp, nw_src=%s", podIP)
+	return otx.EndTransaction()
+}
+
+func cleanupPodBandwidth(ovsif *ovs.Interface, hostVeth string) error {
+	qos, err := ovsif.Get("port", hostVeth, "qos")
+	if err != nil || qos == "[]" {
+		return err
+	}
+	err = ovsif.Clear("port", hostVeth, "qos")
+	if err != nil {
+		return err
+	}
+	return ovsif.Destroy("qos", qos)
 }
 
 func vnidToString(vnid uint32) string {
@@ -361,7 +373,7 @@ func (m *podManager) ipamGarbageCollection() {
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
-	podConfig, pod, err := m.getPodConfig(req)
+	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -398,9 +410,9 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	var hostVeth, contVeth netlink.Link
+	var hostVethName, contVethMac string
 	err = ns.WithNetNSPath(req.Netns, func(hostNS ns.NetNS) error {
-		hostVeth, contVeth, err = ip.SetupVeth(podInterfaceName, int(m.mtu), hostNS)
+		hostVeth, contVeth, err := ip.SetupVeth(podInterfaceName, int(m.mtu), hostNS)
 		if err != nil {
 			return fmt.Errorf("failed to create container veth: %v", err)
 		}
@@ -424,37 +436,38 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		if err != nil {
 			return fmt.Errorf("failed to configure container loopback: %v", err)
 		}
+
+		hostVethName = hostVeth.Attrs().Name
+		contVethMac = contVeth.Attrs().HardwareAddr.String()
 		return nil
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if podConfig.wantMacvlan {
-		if err := addMacvlan(req.Netns); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	contVethMac := contVeth.Attrs().HardwareAddr.String()
-	vnidStr := vnidToString(podConfig.vnid)
-	out, err := exec.Command(sdnScript, setUpCmd, hostVeth.Attrs().Name, contVethMac, podIP.String(), vnidStr, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
-	glog.V(5).Infof("SetUpPod network plugin output: %s, %v", string(out), err)
-
-	if isScriptError(err) {
-		return nil, nil, fmt.Errorf("error running network setup script:\nhostVethName %s, contVethMac %s, podIP %s, podConfig %#v\n %s", hostVeth.Attrs().Name, contVethMac, podIP.String(), podConfig, getScriptError(out))
-	} else if err != nil {
-		return nil, nil, err
-	}
-
-	ofport, err := m.ovs.GetOFPort(hostVeth.Attrs().Name)
+	vnid, err := m.policy.GetVNID(req.PodNamespace)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	m.policy.RefVNID(podConfig.vnid)
+	if err := maybeAddMacvlan(pod, req.Netns); err != nil {
+		return nil, nil, err
+	}
+
+	ofport, err := ensureOvsPort(m.ovs, hostVethName)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := setupPodFlows(m.ovs, ofport, podIP.String(), contVethMac, vnid); err != nil {
+		return nil, nil, err
+	}
+	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+		return nil, nil, err
+	}
+
+	m.policy.RefVNID(vnid)
 	success = true
-	return ipamResult, &runningPod{activePod: newPod, vnid: podConfig.vnid, ofport: ofport}, nil
+	return ipamResult, &runningPod{activePod: newPod, vnid: vnid, ofport: ofport}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -478,7 +491,7 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		req.Netns = netns
 	}
 
-	podConfig, _, err := m.getPodConfig(req)
+	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
 	if err != nil {
 		return 0, err
 	}
@@ -487,22 +500,35 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-
-	vnidStr := vnidToString(podConfig.vnid)
-	out, err := exec.Command(sdnScript, updateCmd, hostVethName, contVethMac, podIP, vnidStr, podConfig.ingressBandwidth, podConfig.egressBandwidth).CombinedOutput()
-	glog.V(5).Infof("UpdatePod network plugin output: %s, %v", string(out), err)
-
-	if isScriptError(err) {
-		return 0, fmt.Errorf("error running network update script: %s", getScriptError(out))
-	} else if err != nil {
+	vnid, err := m.policy.GetVNID(req.PodNamespace)
+	if err != nil {
 		return 0, err
 	}
 
-	return podConfig.vnid, nil
+	ofport, err := ensureOvsPort(m.ovs, hostVethName)
+	if err != nil {
+		return 0, err
+	}
+	if err := cleanupPodFlows(m.ovs, podIP); err != nil {
+		return 0, err
+	}
+	if err := setupPodFlows(m.ovs, ofport, podIP, contVethMac, vnid); err != nil {
+		return 0, err
+	}
+	if err := cleanupPodBandwidth(m.ovs, hostVethName); err != nil {
+		return 0, err
+	}
+	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+		return 0, err
+	}
+
+	return vnid, nil
 }
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
+	errList := []error{}
+
 	netnsValid := true
 	if err := ns.IsNSorErr(req.Netns); err != nil {
 		if _, ok := err.(ns.NSPathNotExistErr); ok {
@@ -512,19 +538,19 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 	}
 
 	if netnsValid {
-		hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
+		hostVethName, _, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 		if err != nil {
 			return err
 		}
 
-		// The script's teardown functionality doesn't need the VNID
-		out, err := exec.Command(sdnScript, tearDownCmd, hostVethName, contVethMac, podIP, "-1").CombinedOutput()
-		glog.V(5).Infof("TearDownPod network plugin output: %s, %v", string(out), err)
-
-		if isScriptError(err) {
-			return fmt.Errorf("error running network teardown script: %s", getScriptError(out))
-		} else if err != nil {
-			return err
+		if err := cleanupPodFlows(m.ovs, podIP); err != nil {
+			errList = append(errList, err)
+		}
+		if err := cleanupPodBandwidth(m.ovs, hostVethName); err != nil {
+			errList = append(errList, err)
+		}
+		if err := m.ovs.DeletePort(hostVethName); err != nil {
+			errList = append(errList, err)
 		}
 
 		if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
@@ -533,12 +559,12 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 	}
 
 	if err := m.ipamDel(req.ContainerId); err != nil {
-		return err
+		errList = append(errList, err)
 	}
 
 	if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
-		return err
+		errList = append(errList, err)
 	}
 
-	return nil
+	return kerrors.NewAggregate(errList)
 }

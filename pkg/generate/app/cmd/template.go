@@ -50,7 +50,7 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 }
 
 func formatString(out io.Writer, tab, s string) {
-	labelVals := strings.Split(s, "\n")
+	labelVals := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
 
 	for _, lval := range labelVals {
 		fmt.Fprintf(out, fmt.Sprintf("%s%s\n", tab, lval))
@@ -83,7 +83,6 @@ func DescribeGeneratedTemplate(out io.Writer, input string, result *templateapi.
 			formatString(out, "     ", message)
 			fmt.Fprintln(out)
 		}
-		fmt.Fprintln(out)
 	}
 
 	if warnings := result.Annotations[app.GenerationWarningAnnotation]; len(warnings) > 0 {
