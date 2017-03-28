@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -318,6 +319,66 @@ func TestEmptySource(t *testing.T) {
 		}
 	}
 }
+
+// We should not be able to try to pull from scratch
+func TestDockerfileFromScratch(t *testing.T) {
+	dockerFile := `FROM scratch
+USER 1001`
+
+	dockerClient := &FakeDocker{
+		buildImageFunc: func(opts docker.BuildImageOptions) error {
+			return nil
+		},
+		pullImageFunc: func(opts docker.PullImageOptions, auth docker.AuthConfiguration) error {
+			if opts.Repository == "scratch" && opts.Registry == "" {
+				return fmt.Errorf("cannot pull scratch")
+			}
+			return nil
+		},
+	}
+
+	build := &api.Build{
+		Spec: api.BuildSpec{
+			CommonSpec: api.CommonSpec{
+				Source: api.BuildSource{
+					ContextDir: "",
+					Dockerfile: &dockerFile,
+				},
+				Strategy: api.BuildStrategy{
+					DockerStrategy: &api.DockerBuildStrategy{
+						DockerfilePath: "",
+						From: &kapi.ObjectReference{
+							Kind: "DockerImage",
+							Name: "scratch",
+						},
+					},
+				},
+				Output: api.BuildOutput{
+					To: &kapi.ObjectReference{
+						Kind: "ImageStreamTag",
+						Name: "scratch",
+					},
+				},
+			},
+		},
+	}
+
+	dockerBuilder := &DockerBuilder{
+		build:        build,
+		dockerClient: dockerClient,
+		gitClient:    git.NewRepository(),
+		tar:          tar.New(s2iutil.NewFileSystem()),
+	}
+
+	if err := dockerBuilder.Build(); err != nil {
+		if strings.Contains(err.Error(), "cannot pull scratch") {
+			t.Errorf("Docker build should not have attempted to pull from scratch")
+		} else {
+			t.Errorf("Received unexpected error: %v", err)
+		}
+	}
+}
+
 func TestGetDockerfileFrom(t *testing.T) {
 	tests := map[string]struct {
 		dockerfileContent string

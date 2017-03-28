@@ -19,6 +19,10 @@ USER 1001
 FROM centos:7
 USER 1001
 `
+		testDockerfile3 = `
+FROM scratch
+USER 1001
+`
 	)
 
 	g.JustBeforeEach(func() {
@@ -38,7 +42,6 @@ USER 1001
 			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("busybox")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
-			o.Expect(bc.Spec.Source.Dockerfile).NotTo(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
 			buildName := "busybox-1"
@@ -65,7 +68,6 @@ USER 1001
 			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("centos")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
-			o.Expect(bc.Spec.Source.Dockerfile).NotTo(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
 			o.Expect(bc.Spec.Output.To).ToNot(o.BeNil())
 			o.Expect(bc.Spec.Output.To.Name).To(o.Equal("centos:latest"))
@@ -86,6 +88,26 @@ USER 1001
 
 			g.By("checking for the imported tag")
 			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("centos", "7")
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should be able to start a build from Dockerfile with FROM reference to scratch", func() {
+			g.By("calling oc new-build with Dockerfile that uses scratch")
+			err := oc.Run("new-build").Args("-D", "-").InputString(testDockerfile3).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting a test build")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("scratch")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
+
+			buildName := "scratch-1"
+			g.By("expecting the Dockerfile build is in Complete phase")
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
+			//debug for failures
+			if err != nil {
+				exutil.DumpBuildLogs("scratch", oc)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
