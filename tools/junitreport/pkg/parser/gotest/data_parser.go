@@ -76,8 +76,8 @@ func newTestSuiteDataParser() testSuiteDataParser {
 		// The first submatch of this regex matches the result of the test (ok or FAIL)
 		// The second submatch of this regex matches the name of the package
 		// The third submatch of this regex matches the time taken in seconds for tests in the package to finish
-		// The sixth (optional) submatch of this regex is the percent coverage
-		packageResultPattern: regexp.MustCompile(`(ok|FAIL)\s+(.+)[\s\t]+(\d+\.\d+(s| seconds))([\s\t]+coverage:\s+(\d+\.\d+)\% of statements)?`),
+		// The fourth (optional) submatch of this regex is the percent coverage
+		packageResultPattern: regexp.MustCompile(`(ok  |FAIL)\t(.+)\t(\d+\.\d+s)(?:\tcoverage: (\d+\.\d+)\% of statements)?`),
 	}
 }
 
@@ -118,7 +118,7 @@ func (p *testSuiteDataParser) ExtractProperties(line string) (map[string]string,
 
 	if resultMatches := p.packageResultPattern.FindStringSubmatch(line); len(resultMatches) > 6 && len(resultMatches[6]) > 0 {
 		return map[string]string{
-			coveragePropertyName: resultMatches[6],
+			coveragePropertyName: resultMatches[4],
 		}, true
 	}
 	return map[string]string{}, false
