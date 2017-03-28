@@ -194,7 +194,11 @@ func (c *DeploymentController) work() bool {
 		return false
 	}
 
-	err = c.Handle(rc)
+	// Resist missing deployer pods from the cache in case of a pending deployment.
+	// Give some room for a possible rc update failure in case we decided to mark it
+	// failed.
+	willBeDropped := c.queue.NumRequeues(key) >= maxRetryCount-2
+	err = c.handle(rc, willBeDropped)
 	c.handleErr(err, key, rc)
 
 	return false
