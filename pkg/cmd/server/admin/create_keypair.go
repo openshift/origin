@@ -131,7 +131,7 @@ func writePublicKeyFile(path string, key *rsa.PublicKey) error {
 	}
 
 	b := bytes.Buffer{}
-	if err := pem.Encode(&b, &pem.Block{Type: "RSA PUBLIC KEY", Bytes: derBytes}); err != nil {
+	if err := pem.Encode(&b, &pem.Block{Type: "PUBLIC KEY", Bytes: derBytes}); err != nil {
 		return err
 	}
 
