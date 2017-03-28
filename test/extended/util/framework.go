@@ -357,10 +357,46 @@ func (t *BuildResult) DumpLogs() {
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 
+	t.dumpRegistryLogs()
+
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
 	// also see if manipulations of the quota around /mnt/openshift-xfs-vol-dir exist in the extended test set up scripts
-	//ExamineDiskUsage()
-	//ExaminePodDiskUsage(t.oc)
+	/*
+		ExamineDiskUsage()
+		ExaminePodDiskUsage(t.oc)
+		fmt.Fprintf(g.GinkgoWriter, "\n\n")
+	*/
+}
+
+func (t *BuildResult) dumpRegistryLogs() {
+	var buildStarted *time.Time
+	oc := t.oc
+	fmt.Fprintf(g.GinkgoWriter, "\n** Registry Logs:\n")
+
+	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
+		buildStarted = &t.Build.CreationTimestamp.Time
+	} else {
+		proj, err := oc.Client().Projects().Get(oc.Namespace())
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Failed to get project %s: %v\n", oc.Namespace(), err)
+		} else {
+			buildStarted = &proj.CreationTimestamp.Time
+		}
+	}
+
+	if buildStarted == nil {
+		fmt.Fprintf(g.GinkgoWriter, "Could not determine test' start time\n\n\n")
+		return
+	}
+
+	since := time.Now().Sub(*buildStarted)
+	oadm := t.oc.AsAdmin().SetNamespace("default")
+	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Error during log retrieval: %+v\n", err)
+	} else {
+		fmt.Fprintf(g.GinkgoWriter, "%s\n", out)
+	}
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 }
