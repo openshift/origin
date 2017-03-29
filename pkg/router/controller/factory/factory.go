@@ -328,9 +328,16 @@ type routeLW struct {
 }
 
 func (lw *routeLW) List(options metav1.ListOptions) (runtime.Object, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector: lw.label.String(),
-		FieldSelector: lw.field.String(),
+		LabelSelector: label,
+		FieldSelector: field,
 	}
 	routes, err := lw.client.Routes(lw.namespace).List(opts)
 	if err != nil {
@@ -342,9 +349,16 @@ func (lw *routeLW) List(options metav1.ListOptions) (runtime.Object, error) {
 }
 
 func (lw *routeLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector:   lw.label.String(),
-		FieldSelector:   lw.field.String(),
+		LabelSelector:   label,
+		FieldSelector:   field,
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Routes(lw.namespace).Watch(opts)
@@ -363,9 +377,16 @@ func (lw *endpointsLW) List(options metav1.ListOptions) (runtime.Object, error) 
 }
 
 func (lw *endpointsLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector:   lw.label.String(),
-		FieldSelector:   lw.field.String(),
+		LabelSelector:   label,
+		FieldSelector:   field,
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Endpoints(lw.namespace).Watch(opts)
@@ -383,9 +404,16 @@ func (lw *nodeLW) List(options metav1.ListOptions) (runtime.Object, error) {
 }
 
 func (lw *nodeLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector:   lw.label.String(),
-		FieldSelector:   lw.field.String(),
+		LabelSelector:   label,
+		FieldSelector:   field,
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Nodes().Watch(opts)
@@ -418,9 +446,16 @@ type ingressLW struct {
 }
 
 func (lw *ingressLW) List(options metav1.ListOptions) (runtime.Object, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector: lw.label.String(),
-		FieldSelector: lw.field.String(),
+		LabelSelector: label,
+		FieldSelector: field,
 	}
 	ingresses, err := lw.client.Ingresses(lw.namespace).List(opts)
 	if err != nil {
@@ -432,9 +467,16 @@ func (lw *ingressLW) List(options metav1.ListOptions) (runtime.Object, error) {
 }
 
 func (lw *ingressLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector:   lw.label.String(),
-		FieldSelector:   lw.field.String(),
+		LabelSelector:   label,
+		FieldSelector:   field,
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Ingresses(lw.namespace).Watch(opts)
@@ -453,9 +495,16 @@ func (lw *secretLW) List(options metav1.ListOptions) (runtime.Object, error) {
 }
 
 func (lw *secretLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	var label, field string
+	if lw.label != nil {
+		label = lw.label.String()
+	}
+	if lw.field != nil {
+		field = lw.field.String()
+	}
 	opts := metav1.ListOptions{
-		LabelSelector:   lw.label.String(),
-		FieldSelector:   lw.field.String(),
+		LabelSelector:   label,
+		FieldSelector:   field,
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Secrets(lw.namespace).Watch(opts)
