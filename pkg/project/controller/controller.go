@@ -97,6 +97,24 @@ func deleteAllContent(client osclient.Interface, namespace string) (err error) {
 	if err != nil {
 		return err
 	}
+	err = deleteRoleBindingRestrictions(client, namespace)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func deleteRoleBindingRestrictions(client osclient.Interface, ns string) error {
+	items, err := client.RoleBindingRestrictions(ns).List(kapi.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range items.Items {
+		err := client.RoleBindingRestrictions(ns).Delete(items.Items[i].Name)
+		if err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+	}
 	return nil
 }
 
