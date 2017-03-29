@@ -53,6 +53,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		ktestclient.NewListAction("namespace", "", kapi.ListOptions{}),
 		ktestclient.NewListAction("deploymentconfig", "", kapi.ListOptions{}),
 		ktestclient.NewListAction("egressnetworkpolicy", "", kapi.ListOptions{}),
+		ktestclient.NewListAction("rolebindingrestrictions", "", kapi.ListOptions{}),
 	}
 	kubeActionSet := []core.Action{}
 	originActionSet := []ktestclient.Action{}
