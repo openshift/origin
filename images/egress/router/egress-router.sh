@@ -27,13 +27,14 @@ fi
 
 # The pod may die and get restarted; only try to add the
 # address/route/rules if they are not already there.
-if ! ip route get "${EGRESS_DESTINATION}" | grep -q macvlan0; then
+if ! ip route get "${EGRESS_GATEWAY}" | grep -q macvlan0; then
     ip addr add "${EGRESS_SOURCE}"/32 dev macvlan0
     ip link set up dev macvlan0
+
     ip route add "${EGRESS_GATEWAY}"/32 dev macvlan0
-    if [ "${EGRESS_DESTINATION}" != "${EGRESS_GATEWAY}" ]; then
-        ip route add "${EGRESS_DESTINATION}"/32 via "${EGRESS_GATEWAY}" dev macvlan0
-    fi
+    ip route del default
+    ip route add default via "${EGRESS_GATEWAY}" dev macvlan0
+
     iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination "${EGRESS_DESTINATION}"
     iptables -t nat -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
 fi
