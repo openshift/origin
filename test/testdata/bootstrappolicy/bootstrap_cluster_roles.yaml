@@ -164,6 +164,18 @@ items:
     - list
     - watch
   - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - clusterrolebindings
+    - clusterroles
+    - rolebindings
+    - roles
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - settings.k8s.io
     attributeRestrictions: null
     resources:

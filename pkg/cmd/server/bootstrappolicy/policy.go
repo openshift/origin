@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/apis/settings"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
@@ -51,6 +52,7 @@ var (
 	certificatesGroup   = certificates.GroupName
 	extensionsGroup     = extensions.GroupName
 	policyGroup         = policy.GroupName
+	rbacGroup           = rbac.GroupName
 	securityGroup       = securityapi.GroupName
 	legacySecurityGroup = securityapi.LegacyGroupName
 	storageGroup        = storage.GroupName
@@ -170,6 +172,8 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/scale", "storageclasses", "thirdpartyresources").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(policyGroup).Resources("poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(rbacGroup).Resources("roles", "rolebindings", "clusterroles", "clusterrolebindings").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
