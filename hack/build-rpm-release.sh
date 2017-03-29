@@ -17,7 +17,7 @@ else
 fi
 
 os::log::info 'Building Origin release RPMs with tito...'
-os::build::rpm::get_nvr_vars
+os::build::rpm::get_nvra_vars
 tito tag --use-version="${OS_RPM_VERSION}" \
          --use-release="${OS_RPM_RELEASE}" \
          --no-auto-changelog --offline
