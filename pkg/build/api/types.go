@@ -21,8 +21,12 @@ const (
 	BuildPodNameAnnotation = "openshift.io/build.pod-name"
 	// BuildJenkinsStatusJSONAnnotation is an annotation holding the Jenkins status information
 	BuildJenkinsStatusJSONAnnotation = "openshift.io/jenkins-status-json"
-	// BuildJenkinsLogURLAnnotation is an annotation holding a link to the Jenkins build console log
+	// BuildJenkinsLogURLAnnotation is an annotation holding a link to the raw Jenkins build console log
 	BuildJenkinsLogURLAnnotation = "openshift.io/jenkins-log-url"
+	// BuildJenkinsConsoleLogURLAnnotation is an annotation holding a link to the Jenkins build console log (including Jenkins chrome wrappering)
+	BuildJenkinsConsoleLogURLAnnotation = "openshift.io/jenkins-console-log-url"
+	// BuildJenkinsBlueOceanLogURLAnnotation is an annotation holding a link to the Jenkins build console log via the Jenkins BlueOcean UI Plugin
+	BuildJenkinsBlueOceanLogURLAnnotation = "openshift.io/jenkins-blueocean-log-url"
 	// BuildJenkinsBuildURIAnnotation is an annotation holding a link to the Jenkins build
 	BuildJenkinsBuildURIAnnotation = "openshift.io/jenkins-build-uri"
 	// BuildSourceSecretMatchURIAnnotationPrefix is a prefix for annotations on a Secret which indicate a source URI against which the Secret can be used

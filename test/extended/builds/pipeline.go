@@ -199,6 +199,10 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-withenvs", oc, true)
 			br.AssertSuccess()
 
+			g.By("confirm all the log annotations are there")
+			_, err = jenkins.ProcessLogURLAnnotations(oc, br)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			g.By("get build console logs and see if succeeded")
 			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			o.Expect(err).NotTo(o.HaveOccurred())
