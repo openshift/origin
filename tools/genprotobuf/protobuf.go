@@ -45,6 +45,7 @@ func init() {
 		`github.com/openshift/origin/pkg/build/api/v1`,
 		`github.com/openshift/origin/pkg/deploy/api/v1`,
 		`github.com/openshift/origin/pkg/image/api/v1`,
+		`github.com/openshift/origin/pkg/kubecompat/apis/extensions/v1beta1`,
 		`github.com/openshift/origin/pkg/oauth/api/v1`,
 		`github.com/openshift/origin/pkg/project/api/v1`,
 		`github.com/openshift/origin/pkg/quota/api/v1`,
