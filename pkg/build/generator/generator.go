@@ -835,6 +835,8 @@ func generateBuildFromBuild(build *buildapi.Build, buildConfig *buildapi.BuildCo
 	// if they exist, Jenkins reporting annotations must be removed when cloning.
 	delete(newBuild.Annotations, buildapi.BuildJenkinsStatusJSONAnnotation)
 	delete(newBuild.Annotations, buildapi.BuildJenkinsLogURLAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsConsoleLogURLAnnotation)
+	delete(newBuild.Annotations, buildapi.BuildJenkinsBlueOceanLogURLAnnotation)
 	delete(newBuild.Annotations, buildapi.BuildJenkinsBuildURIAnnotation)
 
 	// remove the BuildPodNameAnnotation for good measure.
