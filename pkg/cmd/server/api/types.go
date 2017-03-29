@@ -76,17 +76,18 @@ var (
 
 	// Map of group names to allowed REST API versions
 	KubeAPIGroupsToAllowedVersions = map[string][]string{
-		APIGroupKube:           {"v1"},
-		APIGroupExtensions:     {"v1beta1"},
-		APIGroupApps:           {"v1beta1"},
-		APIGroupAuthentication: {"v1", "v1beta1"},
-		APIGroupAuthorization:  {"v1", "v1beta1"},
-		APIGroupAutoscaling:    {"v1", "v2alpha1"},
-		APIGroupBatch:          {"v1", "v2alpha1"},
-		APIGroupCertificates:   {"v1beta1"},
-		APIGroupPolicy:         {"v1beta1"},
-		APIGroupStorage:        {"v1", "v1beta1"},
-		APIGroupSettings:       {"v1alpha1"},
+		APIGroupKube:              {"v1"},
+		APIGroupExtensions:        {"v1beta1"},
+		APIGroupApps:              {"v1beta1"},
+		APIGroupAuthentication:    {"v1", "v1beta1"},
+		APIGroupAuthorization:     {"v1", "v1beta1"},
+		APIGroupAuthorizationRbac: {"v1alpha1", "v1beta1"},
+		APIGroupAutoscaling:       {"v1", "v2alpha1"},
+		APIGroupBatch:             {"v1", "v2alpha1"},
+		APIGroupCertificates:      {"v1beta1"},
+		APIGroupPolicy:            {"v1beta1"},
+		APIGroupStorage:           {"v1", "v1beta1"},
+		APIGroupSettings:          {"v1alpha1"},
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
