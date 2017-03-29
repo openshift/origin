@@ -52,6 +52,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", kapi.ListOptions{}),
 		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", kapi.ListOptions{}),
 		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", kapi.ListOptions{}),
+		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindingrestrictions"}, "", kapi.ListOptions{}),
 	}
 	kubeActionSet := []core.Action{}
 	originActionSet := []core.Action{}
