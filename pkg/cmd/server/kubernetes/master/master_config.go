@@ -459,6 +459,7 @@ func buildKubeApiserverConfig(
 		APIServerServicePort:      443,
 		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
 		KubernetesServiceNodePort: apiserverOptions.KubernetesServiceNodePort,
+		ServiceIPRange:            apiserverOptions.ServiceClusterIPRange,
 
 		StorageFactory:          storageFactory,
 		APIResourceConfigSource: getAPIResourceConfig(masterConfig),
