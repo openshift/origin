@@ -31,8 +31,12 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 	return &ClusterPolicyRegistry{policyMap, err}
 }
 
-func (r *ClusterPolicyRegistry) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return r.ListClusterPolicies(apirequest.NewContext(), &options)
+func (r *ClusterPolicyRegistry) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	var internalOptions metainternal.ListOptions
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internalOptions, nil); err != nil {
+		return nil, err
+	}
+	return r.ListClusterPolicies(apirequest.NewContext(), &internalOptions)
 }
 func (r *ClusterPolicyRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	return r.GetClusterPolicy(apirequest.NewContext(), name, &options)
