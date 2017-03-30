@@ -717,6 +717,8 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
+	resultingAuthenticator := &unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}
+
 	topLevelAuthenticators := []authenticator.Request{}
 	//	if we have a front proxy providing authentication configuration, wire it up and it should come first
 	if config.AuthConfig.RequestHeader != nil {
@@ -730,15 +732,24 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		if err != nil {
 			return nil, fmt.Errorf("Error building front proxy auth config: %v", err)
 		}
-		topLevelAuthenticators = append(topLevelAuthenticators, requestHeaderAuthenticator)
+		topLevelAuthenticators = append(topLevelAuthenticators, &unionrequest.Authenticator{
+			Handlers: []authenticator.Request{
+				requestHeaderAuthenticator,
+				resultingAuthenticator,
+			},
+		})
+	} else {
+		topLevelAuthenticators = append(topLevelAuthenticators, resultingAuthenticator)
 	}
-	topLevelAuthenticators = append(topLevelAuthenticators, group.NewGroupAdder(&unionrequest.Authenticator{FailOnError: true, Handlers: authenticators}, []string{bootstrappolicy.AuthenticatedGroup}))
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return &unionrequest.Authenticator{
-		FailOnError: true,
-		Handlers:    topLevelAuthenticators,
-	}, nil
+	return group.NewGroupAdder(
+		&unionrequest.Authenticator{
+			FailOnError: true,
+			Handlers:    topLevelAuthenticators,
+		},
+		[]string{bootstrappolicy.AuthenticatedGroup},
+	), nil
 }
 
 func newProjectAuthorizationCache(authorizer authorizer.Authorizer, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
