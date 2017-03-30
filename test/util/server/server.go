@@ -450,10 +450,11 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
-			if sa, err := serviceAccounts.Get(account, metav1.GetOptions{}); err != nil {
-				if !serviceAccountSecretsExist(clientset, namespace, sa) {
-					continue
-				}
+			sa, err := serviceAccounts.Get(account, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
+			if !serviceAccountSecretsExist(clientset, namespace, sa) {
 				return false, nil
 			}
 		}
