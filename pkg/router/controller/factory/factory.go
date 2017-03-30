@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -57,10 +58,27 @@ func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclients
 	}
 }
 
+// routerKeyFn comes from MetaNamespaceKeyFunc in vendor/k8s.io/kubernetes/pkg/client/cache/store.go.
+// It was modified and added here because there is no way to know if an ExplicitKey was passed before
+// adding the UID to prevent an invalid state transistion if deletions and adds happen quickly.
+func routerKeyFn(obj interface{}) (string, error) {
+	if key, ok := obj.(cache.ExplicitKey); ok {
+		return string(key), nil
+	}
+	meta, err := meta.Accessor(obj)
+	if err != nil {
+		return "", fmt.Errorf("object has no meta: %v", err)
+	}
+	if len(meta.GetNamespace()) > 0 {
+		return meta.GetNamespace() + "/" + meta.GetName() + "/" + string(meta.GetUID()), nil
+	}
+	return meta.GetName() + "/" + string(meta.GetUID()), nil
+}
+
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
 func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
-	routeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	routeEventQueue := oscache.NewEventQueue(routerKeyFn)
 	rLW := &routeLW{
 		client:    factory.OSClient,
 		namespace: factory.Namespace,
@@ -69,14 +87,14 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 	}
 	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
-	endpointsEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	endpointsEventQueue := oscache.NewEventQueue(routerKeyFn)
 	cache.NewReflector(&endpointsLW{
 		client:    factory.KClient,
 		namespace: factory.Namespace,
 		// we do not scope endpoints by labels or fields because the route labels != endpoints labels
 	}, &kapi.Endpoints{}, endpointsEventQueue, factory.ResyncInterval).Run()
 
-	nodeEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	nodeEventQueue := oscache.NewEventQueue(routerKeyFn)
 	if watchNodes {
 		cache.NewReflector(&nodeLW{
 			client: factory.NodeClient,
@@ -85,8 +103,8 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		}, &kapi.Node{}, nodeEventQueue, factory.ResyncInterval).Run()
 	}
 
-	ingressEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
-	secretEventQueue := oscache.NewEventQueue(cache.MetaNamespaceKeyFunc)
+	ingressEventQueue := oscache.NewEventQueue(routerKeyFn)
+	secretEventQueue := oscache.NewEventQueue(routerKeyFn)
 	var ingressTranslator *routercontroller.IngressTranslator
 	if enableIngress {
 		ingressTranslator = routercontroller.NewIngressTranslator(factory.SecretClient)
@@ -196,7 +214,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 // resources. It spawns child goroutines that cannot be terminated. It is a more efficient store of a
 // route system.
 func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByHost {
-	keyFn := cache.MetaNamespaceKeyFunc
+	keyFn := routerKeyFn
 	routeStore := cache.NewIndexer(keyFn, cache.Indexers{"host": hostIndexFunc})
 	routeEventQueue := oscache.NewEventQueueForStore(keyFn, routeStore)
 	rLW := &routeLW{
