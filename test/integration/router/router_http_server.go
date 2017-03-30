@@ -165,6 +165,10 @@ func (s *TestHttpService) handleNamespaceList(w http.ResponseWriter, r *http.Req
 
 // handleSvcList handles calls to /api/v1beta1/services and always returns empty data
 func (s *TestHttpService) handleSvcList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleSvcWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
@@ -177,6 +181,10 @@ func (s *TestHttpService) handleSvcWatch(w http.ResponseWriter, r *http.Request)
 
 // handleNodeList handles calls to /api/v1beta1/nodes and always returns empty data
 func (s *TestHttpService) handleNodeList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleNodeWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
@@ -195,6 +203,10 @@ func (s *TestHttpService) handleRouteWatch(w http.ResponseWriter, r *http.Reques
 
 // handleRouteList handles calls to /osapi/v1beta1/routes and always returns empty data
 func (s *TestHttpService) handleRouteList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleRouteWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
@@ -213,6 +225,10 @@ func (s *TestHttpService) handleEndpointWatch(w http.ResponseWriter, r *http.Req
 
 // handleEndpointList handles calls to /api/v1beta1/endpoints and always returns empty data
 func (s *TestHttpService) handleEndpointList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleEndpointWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
@@ -225,6 +241,10 @@ func (s *TestHttpService) handleIngressWatch(w http.ResponseWriter, r *http.Requ
 
 // handleIngressList handles calls to /api/extensions/v1beta1/ingresses and always returns empty data
 func (s *TestHttpService) handleIngressList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleIngressWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
@@ -237,6 +257,10 @@ func (s *TestHttpService) handleSecretWatch(w http.ResponseWriter, r *http.Reque
 
 // handleSecretList handles calls to /api/v1/secrets and always returns empty data
 func (s *TestHttpService) handleSecretList(w http.ResponseWriter, r *http.Request) {
+	if len(r.FormValue("watch")) > 0 {
+		s.handleSecretWatch(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	fmt.Fprint(w, "{}")
 }
