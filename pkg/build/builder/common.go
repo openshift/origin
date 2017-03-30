@@ -23,8 +23,6 @@ import (
 var glog = utilglog.ToFile(os.Stderr, 2)
 
 const (
-	OriginalSourceURLAnnotationKey = "openshift.io/original-source-url"
-
 	// containerNamePrefix prefixes the name of containers launched by a build.
 	// We cannot reuse the prefix "k8s" because we don't want the containers to
 	// be managed by a kubelet.
@@ -54,11 +52,7 @@ func buildInfo(build *api.Build, sourceInfo *git.SourceInfo) []KeyValue {
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
 	}
 	if build.Spec.Source.Git != nil {
-		sourceURL := build.Spec.Source.Git.URI
-		if originalURL, ok := build.Annotations[OriginalSourceURLAnnotationKey]; ok {
-			sourceURL = originalURL
-		}
-		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", sourceURL})
+		kv = append(kv, KeyValue{"OPENSHIFT_BUILD_SOURCE", build.Spec.Source.Git.URI})
 		if build.Spec.Source.Git.Ref != "" {
 			kv = append(kv, KeyValue{"OPENSHIFT_BUILD_REFERENCE", build.Spec.Source.Git.Ref})
 		}
