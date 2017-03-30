@@ -321,19 +321,54 @@ func printAutoscalingInfo(res []schema.GroupResource, namespace, name string, kc
 	}
 
 	for _, hpa := range scaledBy {
-		cpuUtil := ""
-		// TODO(rebase-1.6): flesh this out for full hpa support, consider using upstream code
-		// For right now I'm just doing parity with 1.5
-		for _, metric := range hpa.Spec.Metrics {
-			if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource.Name == kapi.ResourceCPU && metric.Resource.TargetAverageUtilization != nil {
-				cpuUtil = fmt.Sprintf(", triggered at %d%% CPU usage", *metric.Resource.TargetAverageUtilization)
+		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas)
+
+		targetDescriptions := formatHPATargets(&hpa)
+		if len(targetDescriptions) == 1 {
+			fmt.Fprintf(w, " targeting %s\n", targetDescriptions[0])
+		} else {
+			fmt.Fprintf(w, "\n")
+			for _, description := range targetDescriptions {
+				// NB(directxman12): we should *not* use the wording "triggered at" here.
+				// The HPA is *not* threshold-based.  Rather, it "aims" for a particular load,
+				// quasi-constantly scaling the replica count by the ratio of current to target.
+				fmt.Fprintf(w, "\t  targeting %s\n", description)
 			}
 		}
-		fmt.Fprintf(w, "Autoscaling:\tbetween %d and %d replicas%s\n", *hpa.Spec.MinReplicas, hpa.Spec.MaxReplicas, cpuUtil)
 		// TODO: Print a warning in case of multiple hpas.
 		// Related oc status PR: https://github.com/openshift/origin/pull/7799
 		break
 	}
+}
+
+// formatHPATargets formats a list of HPA targets in human readable form.  It functions similarly to the
+// upstream describer and printer, except that it doesn't include status information, so it's more compact.
+func formatHPATargets(hpa *autoscaling.HorizontalPodAutoscaler) []string {
+	descriptions := make([]string, len(hpa.Spec.Metrics))
+	for i, metricSpec := range hpa.Spec.Metrics {
+		switch metricSpec.Type {
+		case autoscaling.PodsMetricSourceType:
+			descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Pods.TargetAverageValue.String(), metricSpec.Pods.MetricName)
+		case autoscaling.ObjectMetricSourceType:
+			// TODO: it'd probably be more accurate if we put the group in here too,
+			// but it might be a bit to verbose to read at a glance
+			// TODO: we might want to use the resource name here instead of the kind?
+			targetObjDesc := fmt.Sprintf("%s %s", metricSpec.Object.Target.Kind, metricSpec.Object.Target.Name)
+			descriptions[i] = fmt.Sprintf("%s %s on %s", metricSpec.Object.TargetValue.String(), metricSpec.Object.MetricName, targetObjDesc)
+		case autoscaling.ResourceMetricSourceType:
+			if metricSpec.Resource.TargetAverageValue != nil {
+				descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Resource.TargetAverageValue.String(), metricSpec.Resource.Name)
+			} else if metricSpec.Resource.TargetAverageUtilization != nil {
+				descriptions[i] = fmt.Sprintf("%d%% %s average per pod", *metricSpec.Resource.TargetAverageUtilization, metricSpec.Resource.Name)
+			} else {
+				descriptions[i] = "<unset resource metric>"
+			}
+		default:
+			descriptions[i] = "<unknown metric type>"
+		}
+	}
+
+	return descriptions
 }
 
 func printDeploymentRc(deployment *v1.ReplicationController, kubeClient kclientset.Interface, w io.Writer, header string, verbose bool) error {
