@@ -28,6 +28,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 		pushToRegistryFixture        = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
 		fetchRuntimeArtifactsFixture = exutil.FixturePath("testdata", "statusfail-runtimeartifacts.yaml")
 		failedAssembleFixture        = exutil.FixturePath("testdata", "statusfail-failedassemble.yaml")
+		failedGenericReason          = exutil.FixturePath("testdata", "statusfail-genericreason.yaml")
 		binaryBuildDir               = exutil.FixturePath("testdata", "statusfail-assemble")
 		oc                           = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
 	)
@@ -154,6 +155,23 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonFetchRuntimeArtifacts))
 			o.Expect(build.Status.Message).To(o.Equal(messageFetchRuntimeArtifacts))
+		})
+	})
+
+	g.Describe("Build status failed https proxy invalid url", func() {
+		g.It("should contain the generic failure reason and message", func() {
+			err := oc.Run("create").Args("-f", failedGenericReason).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-genericfailure", "--build-loglevel=5")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertFailure()
+			br.DumpLogs()
+
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
+			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))
 		})
 	})
 })

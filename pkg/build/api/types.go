@@ -331,6 +331,10 @@ const (
 	// StatusReasonBuildPodExists indicates that the build tried to create a
 	// build pod but one was already present.
 	StatusReasonBuildPodExists StatusReason = "BuildPodExists"
+
+	// StatusReasonGenericBuildFailed is the reason associated with a broad
+	// range of build failures.
+	StatusReasonGenericBuildFailed StatusReason = "GenericBuildFailed"
 )
 
 // NOTE: These messages might change.
@@ -350,6 +354,7 @@ const (
 	StatusMessageCancelledBuild            = "The build was cancelled by the user."
 	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
 	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
+	StatusMessageGenericBuildFailed        = "Generic Build failure - check logs for details."
 )
 
 // BuildStatusOutput contains the status of the built image.
