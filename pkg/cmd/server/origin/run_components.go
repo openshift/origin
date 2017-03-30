@@ -84,9 +84,8 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 
 // RunOriginNamespaceController starts the controller that takes part in namespace termination of openshift content
 func (c *MasterConfig) RunOriginNamespaceController() {
-	osclient, kclient := c.OriginNamespaceControllerClients()
+	kclient := c.OriginNamespaceControllerClient()
 	factory := projectcontroller.NamespaceControllerFactory{
-		Client:     osclient,
 		KubeClient: kclient,
 	}
 	controller := factory.Create()
