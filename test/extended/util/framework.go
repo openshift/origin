@@ -390,6 +390,11 @@ func (t *BuildResult) dumpRegistryLogs() {
 	}
 
 	since := time.Now().Sub(*buildStarted)
+
+	// Changing the namespace on the derived client still changes it on the original client
+	// because the kubeFramework field is only copied by reference. Saving the original namespace
+	// here so we can restore it when done with registry logs
+	savedNamespace := t.oc.Namespace()
 	oadm := t.oc.AsAdmin().SetNamespace("default")
 	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
 	if err != nil {
@@ -397,6 +402,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "%s\n", out)
 	}
+	t.oc.SetNamespace(savedNamespace)
 
 	fmt.Fprintf(g.GinkgoWriter, "\n\n")
 }

@@ -1220,10 +1220,12 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 		ObjectMeta: kapi.ObjectMeta{
 			Name: "test-build",
 			Annotations: map[string]string{
-				buildapi.BuildJenkinsStatusJSONAnnotation: "foo",
-				buildapi.BuildJenkinsLogURLAnnotation:     "bar",
-				buildapi.BuildJenkinsBuildURIAnnotation:   "baz",
-				buildapi.BuildPodNameAnnotation:           "ruby-sample-build-1-build",
+				buildapi.BuildJenkinsStatusJSONAnnotation:      "foo",
+				buildapi.BuildJenkinsLogURLAnnotation:          "bar",
+				buildapi.BuildJenkinsConsoleLogURLAnnotation:   "bar",
+				buildapi.BuildJenkinsBlueOceanLogURLAnnotation: "bar",
+				buildapi.BuildJenkinsBuildURIAnnotation:        "baz",
+				buildapi.BuildPodNameAnnotation:                "ruby-sample-build-1-build",
 			},
 			OwnerReferences: []kapi.OwnerReference{
 				{
@@ -1260,6 +1262,12 @@ func TestGenerateBuildFromBuild(t *testing.T) {
 	}
 	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsLogURLAnnotation]; ok {
 		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsLogURLAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsConsoleLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsConsoleLogURLAnnotation)
+	}
+	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]; ok {
+		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsBlueOceanLogURLAnnotation)
 	}
 	if _, ok := newBuild.ObjectMeta.Annotations[buildapi.BuildJenkinsBuildURIAnnotation]; ok {
 		t.Errorf("%s annotation exists, expected it not to", buildapi.BuildJenkinsBuildURIAnnotation)
