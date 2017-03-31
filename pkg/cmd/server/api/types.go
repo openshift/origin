@@ -1326,8 +1326,8 @@ type LDAPQuery struct {
 }
 
 type AdmissionPluginConfig struct {
-	// Location is the path to a configuration file that contains the plugin's
-	// configuration
+	// Location is the path to a legacy configuration file that contains the plugin's
+	// configuration. DEPRECATED.
 	Location string
 
 	// Configuration is an embedded configuration object to be used as the plugin's

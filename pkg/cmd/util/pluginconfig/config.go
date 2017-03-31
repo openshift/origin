@@ -65,12 +65,26 @@ func GetPluginConfigFile(pluginConfig map[string]configapi.AdmissionPluginConfig
 }
 
 func GetAdmissionConfigurationConfig(pluginName string, cfg configapi.AdmissionPluginConfig) (string, error) {
+	if cfg.Configuration == nil && cfg.Location == "" {
+		return "", nil
+	}
+
+	var cfgObj runtime.Object
 	if cfg.Configuration == nil {
-		return cfg.Location, nil
+		f, err := os.Open(cfg.Location)
+		if err != nil {
+			return "", err
+		}
+		cfgObj, err = latest.ReadYAML(f)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		cfgObj = cfg.Configuration
 	}
 
 	// convert into versioned admission plugin configuration
-	cfgJson, err := runtime.Encode(latest.Codec, cfg.Configuration)
+	cfgJson, err := runtime.Encode(latest.Codec, cfgObj)
 	obj := kapiserverv1alpha1.AdmissionConfiguration{
 		Plugins: []kapiserverv1alpha1.AdmissionPluginConfiguration{
 			{
