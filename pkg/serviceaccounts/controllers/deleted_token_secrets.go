@@ -23,6 +23,7 @@ type DockercfgTokenDeletedControllerOptions struct {
 }
 
 // NewDockercfgTokenDeletedController returns a new *DockercfgTokenDeletedController.
+// See pkg/cmd/server/bootstrappolicy/controller_policy.go to see what cluster roles apply to this controller.
 func NewDockercfgTokenDeletedController(cl kclientset.Interface, options DockercfgTokenDeletedControllerOptions) *DockercfgTokenDeletedController {
 	e := &DockercfgTokenDeletedController{
 		client: cl,
@@ -58,6 +59,7 @@ type DockercfgTokenDeletedController struct {
 	secretController *cache.Controller
 }
 
+// Run should always block forever.  The caller should execute it in a different go routine.
 func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
 	e.secretController.Run(stopCh)
 }

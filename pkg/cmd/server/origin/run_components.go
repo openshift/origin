@@ -16,7 +16,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -41,7 +40,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	origincontroller "github.com/openshift/origin/pkg/controller"
 	"github.com/openshift/origin/pkg/controller/shared"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
@@ -165,19 +163,6 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientset(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-
-	ctx := origincontroller.ControllerContext{
-		ClientBuilder: &controller.SAControllerClientBuilder{
-			ClientConfig: restclient.AnonymousClientConfig(&c.PrivilegedLoopbackClientConfig),
-			CoreClient:   c.PrivilegedLoopbackKubernetesClientset.Core(),
-			Namespace:    bootstrappolicy.DefaultOpenShiftInfraNamespace,
-		},
-		Stop: make(chan struct{}),
-	}
-
-	if _, err := origincontroller.GetControllerInitializers()[origincontroller.DockercfgTokenDeletedControllerName](ctx); err != nil {
-		panic(err)
-	}
 
 	dockerURLsIntialized := make(chan struct{})
 	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientset(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})

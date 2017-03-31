@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/controller"
 
 	"github.com/golang/glog"
@@ -14,18 +14,18 @@ import (
 const saRolePrefix = "system:controller:"
 
 var (
-	// controllerRoles is a slice of roles used for controllers
-	controllerRoles = []authorizationapi.ClusterRole{}
-	// controllerRoleBindings is a slice of roles used for controllers
-	controllerRoleBindings = []authorizationapi.ClusterRoleBinding{}
+	// controllerClusterRoles is a slice of cluster roles used for controllers
+	controllerClusterRoles = []rbac.ClusterRole{}
+	// controllerClusterRoleBindings is a slice of cluster role bindings used for controllers
+	controllerClusterRoleBindings = []rbac.ClusterRoleBinding{}
 )
 
-func addControllerRole(role authorizationapi.ClusterRole) {
+func addControllerRole(role rbac.ClusterRole) {
 	if !strings.HasPrefix(role.Name, saRolePrefix) {
 		glog.Fatalf(`role %q must start with %q`, role.Name, saRolePrefix)
 	}
 
-	for _, existingRole := range controllerRoles {
+	for _, existingRole := range controllerClusterRoles {
 		if role.Name == existingRole.Name {
 			glog.Fatalf("role %q was already registered", role.Name)
 		}
@@ -36,44 +36,30 @@ func addControllerRole(role authorizationapi.ClusterRole) {
 	}
 	role.Annotations[roleSystemOnly] = roleIsSystemOnly
 
-	controllerRoles = append(controllerRoles, role)
+	controllerClusterRoles = append(controllerClusterRoles, role)
 
-	controllerRoleBindings = append(controllerRoleBindings,
-		authorizationapi.ClusterRoleBinding{
-			ObjectMeta: kapi.ObjectMeta{
-				Name: role.Name,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: role.Name,
-			},
-			Subjects: []kapi.ObjectReference{
-				{
-					Kind:      authorizationapi.ServiceAccountKind,
-					Namespace: DefaultOpenShiftInfraNamespace,
-					Name:      role.Name[len(saRolePrefix):],
-				},
-			},
-		},
+	controllerClusterRoleBindings = append(controllerClusterRoleBindings,
+		rbac.NewClusterBinding(role.Name).SAs(DefaultOpenShiftInfraNamespace, role.Name[len(saRolePrefix):]).BindingOrDie(),
 	)
 }
 
 func init() {
-	addControllerRole(authorizationapi.ClusterRole{
+	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: kapi.ObjectMeta{
 			Name: saRolePrefix + controller.DockercfgTokenDeletedControllerName,
 		},
-		Rules: []authorizationapi.PolicyRule{
-			authorizationapi.NewRule("list", "watch", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("list", "watch", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 		},
 	})
 }
 
-// GetBootstrapControllerRoles returns the cluster roles used by controllers
-func GetBootstrapControllerRoles() []authorizationapi.ClusterRole {
-	return controllerRoles
+// GetBootstrapControllerClusterRoles returns the cluster roles used by controllers
+func GetBootstrapControllerClusterRoles() []rbac.ClusterRole {
+	return controllerClusterRoles
 }
 
-// GetBootstrapControllerRoleBindings returns the role bindings used by controllers
-func GetBootstrapControllerRoleBindings() []authorizationapi.ClusterRoleBinding {
-	return controllerRoleBindings
+// GetBootstrapControllerClusterRoleBindings returns the cluster role bindings used by controllers
+func GetBootstrapControllerClusterRoleBindings() []rbac.ClusterRoleBinding {
+	return controllerClusterRoleBindings
 }
