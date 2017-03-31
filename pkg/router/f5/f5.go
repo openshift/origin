@@ -576,7 +576,7 @@ func (f5 *f5LTM) ensureVxLANTunnel() error {
 		AddressSource:         "from-user",
 		Floating:              "disabled",
 		InheritedTrafficGroup: "false",
-		TrafficGroup:          path.Join(f5.partitionPath, "traffic-group-local-only"),
+		TrafficGroup:          path.Join("/Common", "traffic-group-local-only"), // Traffic group is global
 		Unit:                  0,
 		Vlan:                  path.Join(f5.partitionPath, F5VxLANTunnelName),
 		AllowService:          "all",
@@ -615,11 +615,13 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 
 	policiesUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/policy", f5.host)
 
+	policyPath := path.Join(f5.partitionPath, policyName)
+
 	if f5.setupOSDNVxLAN {
 		// if vxlan needs to be setup, it will only happen
 		// with ver12, for which we need to use a different payload
 		policyPayload := f5Ver12Policy{
-			Name:        policyName,
+			Name:        policyPath,
 			TmPartition: f5.partitionPath,
 			Controls:    []string{"forwarding"},
 			Requires:    []string{"http"},
@@ -629,7 +631,7 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 		err = f5.post(policiesUrl, policyPayload, nil)
 	} else {
 		policyPayload := f5Policy{
-			Name:      policyName,
+			Name:      policyPath,
 			Partition: f5.partitionPath,
 			Controls:  []string{"forwarding"},
 			Requires:  []string{"http"},
@@ -698,7 +700,7 @@ func (f5 *f5LTM) ensureVserverHasPolicy(vserverName, policyName string) error {
 	glog.V(4).Infof("Adding policy %s to vserver %s...", policyName, vserverName)
 
 	vserverPoliciesPayload := f5VserverPolicy{
-		Name:      policyName,
+		Name:      policyPath,
 		Partition: f5.partitionPath,
 	}
 
