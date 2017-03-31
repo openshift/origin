@@ -17,10 +17,12 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/watch"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -187,7 +189,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	}
 
 	// Get the matching dockercfg secret
-	saPullSecret, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
+	_, saPullSecret, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, saNamespace, saName, 20, time.Second)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -196,31 +198,119 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	}
 }
 
-func waitForServiceAccountPullSecret(client *kclientset.Clientset, ns, name string, attempts int, interval time.Duration) (string, error) {
-	for i := 0; i <= attempts; i++ {
-		time.Sleep(interval)
-		token, err := getServiceAccountPullSecret(client, ns, name)
-		if err != nil {
-			return "", err
-		}
-		if len(token) > 0 {
-			return token, nil
-		}
+func TestDockercfgTokenDeletedController(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+
+	_, clusterAdminConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	return "", nil
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	sa := &api.ServiceAccount{
+		ObjectMeta: api.ObjectMeta{Name: "sa1", Namespace: "ns1"},
+	}
+
+	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	secretsWatch, err := clusterAdminKubeClient.Core().Secrets(sa.Namespace).Watch(api.ListOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer secretsWatch.Stop()
+
+	if _, err := clusterAdminKubeClient.Core().ServiceAccounts(sa.Namespace).Create(sa); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClient, sa.Namespace, []string{sa.Name}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Get the service account dockercfg secret's name
+	dockercfgSecretName, _, err := waitForServiceAccountPullSecret(clusterAdminKubeClient, sa.Namespace, sa.Name, 20, time.Second)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(dockercfgSecretName) == 0 {
+		t.Fatal("pull secret was not created")
+	}
+
+	// Get the matching secret's name
+	dockercfgSecret, err := clusterAdminKubeClient.Core().Secrets(sa.Namespace).Get(dockercfgSecretName)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	secretName := dockercfgSecret.Annotations[controllers.ServiceAccountTokenSecretNameKey]
+	if len(secretName) == 0 {
+		t.Fatal("secret was not created")
+	}
+
+	// Delete the service account's secret
+	if err := clusterAdminKubeClient.Core().Secrets(sa.Namespace).Delete(secretName, nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Expect the matching dockercfg secret to also be deleted
+	waitForSecretDelete(dockercfgSecretName, secretsWatch, t)
 }
 
-func getServiceAccountPullSecret(client *kclientset.Clientset, ns, name string) (string, error) {
+func waitForSecretDelete(secretName string, w watch.Interface, t *testing.T) {
+	for {
+		select {
+		case event := <-w.ResultChan():
+			secret := event.Object.(*api.Secret)
+			secret.Data = nil // reduce noise in log
+			t.Logf("got %#v %#v", event, secret)
+			if event.Type == watch.Deleted && secret.Name == secretName {
+				return
+			}
+
+		case <-time.After(5 * time.Minute):
+			t.Fatalf("timeout: %v", secretName)
+		}
+	}
+}
+
+func waitForServiceAccountPullSecret(client *kclientset.Clientset, ns, name string, attempts int, interval time.Duration) (secretName_, token_ string, e error) {
+	for i := 0; i <= attempts; i++ {
+		time.Sleep(interval)
+		secretName, token, err := getServiceAccountPullSecret(client, ns, name)
+		if err != nil {
+			return "", "", err
+		}
+		if len(token) > 0 {
+			return secretName, token, nil
+		}
+	}
+	return "", "", nil
+}
+
+func getServiceAccountPullSecret(client *kclientset.Clientset, ns, name string) (secretName, token string, e error) {
 	secrets, err := client.Core().Secrets(ns).List(api.ListOptions{})
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	for _, secret := range secrets.Items {
 		if secret.Type == api.SecretTypeDockercfg && secret.Annotations[api.ServiceAccountNameKey] == name {
-			return string(secret.Data[api.DockerConfigKey]), nil
+			return secret.Name, string(secret.Data[api.DockerConfigKey]), nil
 		}
 	}
-	return "", nil
+	return "", "", nil
 }
 
 func TestEnforcingServiceAccount(t *testing.T) {
