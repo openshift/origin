@@ -1,11 +1,8 @@
 package builds
 
-// these tests are disabled because the xip.io dns hook was proving way too unreliable;
-// we will reenable once an agreeable alternative is derived to get name resolution for the routes
-
-/*import (
-	"net"
+import (
 	"fmt"
+	"net"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -15,7 +12,6 @@ package builds
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
-
 )
 
 // hostname returns the hostname from a hostport specification
@@ -69,28 +65,20 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the deployment of the gitserver to be in the Complete phase")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		sourceSecretName := secretFunc()
 
 		sourceURL := fmt.Sprintf(urlTemplate, routeSuffix)
-		g.By(fmt.Sprintf("creating a new BuildConfig by calling oc new-app -f %q -p SOURCE_SECRET=%s,SOURCE_URL=%s",
+		g.By(fmt.Sprintf("creating a new BuildConfig by calling oc new-app -f %q -p SOURCE_SECRET=%s -p SOURCE_URL=%s",
 			testBuildFixture, sourceSecretName, sourceURL))
-		err = oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s,SOURCE_URL=%s",
-			sourceSecretName, sourceURL)).Execute()
+		err = oc.Run("new-app").Args("-f", testBuildFixture, "-p", fmt.Sprintf("SOURCE_SECRET=%s", sourceSecretName), "-p", fmt.Sprintf("SOURCE_URL=%s", sourceURL)).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("starting a test build")
-		buildName, err := oc.Run("start-build").Args(buildConfigName).Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By(fmt.Sprintf("expecting build %s to complete successfully", buildName))
-		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
-		if err != nil {
-			exutil.DumpBuildLogs(buildConfigName, oc)
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
+		br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
+		br.AssertSuccess()
 	}
 
 	g.Describe("Build using a username, password, and CA certificate", func() {
@@ -129,4 +117,4 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 			})
 		})
 	})
-})*/
+})

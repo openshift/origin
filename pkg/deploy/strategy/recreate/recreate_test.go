@@ -293,6 +293,55 @@ func TestRecreate_acceptorSuccess(t *testing.T) {
 	}
 }
 
+func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
+	var deployment *kapi.ReplicationController
+	scaler := &cmdtest.FakeLaggedScaler{}
+
+	strategy := &RecreateDeploymentStrategy{
+		out:         &bytes.Buffer{},
+		errOut:      &bytes.Buffer{},
+		eventClient: fake.NewSimpleClientset().Core(),
+		decoder:     kapi.Codecs.UniversalDecoder(),
+		retryPeriod: 1 * time.Millisecond,
+		scaler:      scaler,
+	}
+
+	acceptorCalled := false
+	acceptor := &testAcceptor{
+		acceptFn: func(deployment *kapi.ReplicationController) error {
+			acceptorCalled = true
+			return nil
+		},
+	}
+
+	oldDeployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	deployment, _ = deployutil.MakeDeployment(deploytest.OkDeploymentConfig(2), kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]))
+	strategy.rcClient = &fakeControllerClient{deployment: deployment}
+	strategy.podClient = &fakePodClient{deployerName: deployutil.DeployerPodNameForDeployment(deployment.Name)}
+
+	err := strategy.DeployWithAcceptor(oldDeployment, deployment, 2, acceptor)
+	if err != nil {
+		t.Fatalf("unexpected deploy error: %#v", err)
+	}
+
+	if !acceptorCalled {
+		t.Fatalf("expected acceptor to be called")
+	}
+
+	if e, a := 2, len(scaler.Events); e != a {
+		t.Fatalf("expected %d scale calls, got %d", e, a)
+	}
+	if e, a := uint(1), scaler.Events[0].Size; e != a {
+		t.Errorf("expected scale down to %d, got %d", e, a)
+	}
+	if e, a := uint(2), scaler.Events[1].Size; e != a {
+		t.Errorf("expected scale up to %d, got %d", e, a)
+	}
+	if scaler.RetryCount != 2 {
+		t.Errorf("expected retry when the caches are not initialized")
+	}
+}
+
 func TestRecreate_acceptorFail(t *testing.T) {
 	var deployment *kapi.ReplicationController
 	scaler := &cmdtest.FakeScaler{}

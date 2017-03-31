@@ -5,8 +5,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
+	"k8s.io/client-go/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -231,11 +233,29 @@ func (s *RecreateDeploymentStrategy) DeployWithAcceptor(from *kapi.ReplicationCo
 	return nil
 }
 
-func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationController, replicas int, retry *kubectl.RetryParams, wait *kubectl.RetryParams) (*kapi.ReplicationController, error) {
+func (s *RecreateDeploymentStrategy) scaleAndWait(deployment *kapi.ReplicationController, replicas int, retry *kubectl.RetryParams, retryParams *kubectl.RetryParams) (*kapi.ReplicationController, error) {
 	if int32(replicas) == deployment.Spec.Replicas && int32(replicas) == deployment.Status.Replicas {
 		return deployment, nil
 	}
-	if err := s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, wait); err != nil {
+	var scaleErr error
+	err := wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		scaleErr = s.scaler.Scale(deployment.Namespace, deployment.Name, uint(replicas), &kubectl.ScalePrecondition{Size: -1, ResourceVersion: ""}, retry, retryParams)
+		if scaleErr == nil {
+			return true, nil
+		}
+		// This error is returned when the lifecycle admission plugin cache is not fully
+		// synchronized. In that case the scaling should be retried.
+		//
+		// FIXME: The error returned from admission should not be forbidden but come-back-later error.
+		if errors.IsForbidden(scaleErr) && strings.Contains(scaleErr.Error(), "not yet ready to handle request") {
+			return false, nil
+		}
+		return false, scaleErr
+	})
+	if err == wait.ErrWaitTimeout {
+		return nil, fmt.Errorf("%v: %v", err, scaleErr)
+	}
+	if err != nil {
 		return nil, err
 	}
 

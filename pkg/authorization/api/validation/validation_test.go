@@ -58,7 +58,7 @@ func TestValidatePolicy(t *testing.T) {
 			T: field.ErrorTypeInvalid,
 			F: "roles[any1].metadata.name",
 		},
-		"invalid role": {
+		"has role with attributeRestrictions": {
 			A: authorizationapi.Policy{
 				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
 				Roles: map[string]*authorizationapi.Role{
@@ -78,6 +78,244 @@ func TestValidatePolicy(t *testing.T) {
 		errs := ValidatePolicy(&v.A, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidatePolicyUpdate(t *testing.T) {
+	successCases := map[string]struct {
+		newO authorizationapi.Policy
+		old  authorizationapi.Policy
+	}{
+		"no new attribute restrictions": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+							{},
+						},
+					},
+					"any2": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+		},
+		"new attribute restrictions of the same type": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+		},
+		"less attribute restrictions": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+		},
+	}
+	for k, v := range successCases {
+		errs := ValidatePolicyUpdate(&v.newO, &v.old, true)
+		if len(errs) != 0 {
+			t.Errorf("%s: expected success: %v", k, errs)
+		}
+	}
+
+	errorCases := map[string]struct {
+		newO authorizationapi.Policy
+		old  authorizationapi.Policy
+		T    field.ErrorType
+		F    string
+	}{
+		"new attribute restrictions": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+						},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "roles[any1].rules[0].attributeRestrictions",
+		},
+		"attribute restrictions of a different type": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{},
+							{},
+							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{AttributeRestrictions: &authorizationapi.RoleBinding{}},
+						},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "roles[any1].rules[3].attributeRestrictions",
+		},
+		"similiar attribute restrictions": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{},
+							{APIGroups: []string{"v2"}, AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{},
+							{APIGroups: []string{"v1"}, AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "roles[any1].rules[2].attributeRestrictions",
+		},
+		"new role with attribute restriction rules like another role's": {
+			newO: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+					"any2": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any2"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+			old: authorizationapi.Policy{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Roles: map[string]*authorizationapi.Role{
+					"any1": {
+						ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: "any1"},
+						Rules: []authorizationapi.PolicyRule{
+							{},
+							{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+						},
+					},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "roles[any2].rules[1].attributeRestrictions",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidatePolicyUpdate(&v.newO, &v.old, true)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v %v", k, v.newO, v.old)
 			continue
 		}
 		for i := range errs {
@@ -400,6 +638,136 @@ func TestValidateRole(t *testing.T) {
 		errs := ValidateRole(&v.A, true)
 		if len(errs) == 0 {
 			t.Errorf("expected failure %s for %v", k, v.A)
+			continue
+		}
+		for i := range errs {
+			if errs[i].Type != v.T {
+				t.Errorf("%s: expected errors to have type %s: %v", k, v.T, errs[i])
+			}
+			if errs[i].Field != v.F {
+				t.Errorf("%s: expected errors to have field %s: %v", k, v.F, errs[i])
+			}
+		}
+	}
+}
+
+func TestValidateRoleUpdate(t *testing.T) {
+	successCases := map[string]struct {
+		newO authorizationapi.Role
+		old  authorizationapi.Role
+	}{
+		"no attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+			},
+		},
+		"same attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+		},
+	}
+	for k, v := range successCases {
+		errs := ValidateRoleUpdate(&v.newO, &v.old, true, nil)
+		if len(errs) != 0 {
+			t.Errorf("%s: expected success: %v", k, errs)
+		}
+	}
+
+	errorCases := map[string]struct {
+		newO authorizationapi.Role
+		old  authorizationapi.Role
+		T    field.ErrorType
+		F    string
+	}{
+		"more attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.Role{}},
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+					{AttributeRestrictions: &authorizationapi.ClusterPolicyBinding{}},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.Role{}},
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[2].attributeRestrictions",
+		},
+		"added attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.Role{}},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Rules: []authorizationapi.PolicyRule{
+					{},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[0].attributeRestrictions",
+		},
+		"same number of different attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.Role{}},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[0].attributeRestrictions",
+		},
+		"less but different attribute restrictions": {
+			newO: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName, ResourceVersion: "0"},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.ClusterPolicyBinding{}},
+				},
+			},
+			old: authorizationapi.Role{
+				ObjectMeta: kapi.ObjectMeta{Namespace: kapi.NamespaceDefault, Name: authorizationapi.PolicyName},
+				Rules: []authorizationapi.PolicyRule{
+					{AttributeRestrictions: &authorizationapi.Role{}},
+					{AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				},
+			},
+			T: field.ErrorTypeInvalid,
+			F: "rules[0].attributeRestrictions",
+		},
+	}
+	for k, v := range errorCases {
+		errs := ValidateRoleUpdate(&v.newO, &v.old, true, nil)
+		if len(errs) == 0 {
+			t.Errorf("expected failure %s for %v %v", k, v.newO, v.old)
 			continue
 		}
 		for i := range errs {
