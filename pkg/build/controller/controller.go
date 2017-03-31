@@ -343,6 +343,10 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 
 		case kapi.PodFailed:
 			nextStatus = buildapi.BuildPhaseFailed
+			if build.Status.Reason == "" {
+				build.Status.Reason = buildapi.StatusReasonGenericBuildFailed
+				build.Status.Message = buildapi.StatusMessageGenericBuildFailed
+			}
 
 		default:
 			build.Status.Reason = ""

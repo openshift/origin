@@ -110,6 +110,7 @@
 // test/extended/testdata/statusfail-fetchbuilderimage.yaml
 // test/extended/testdata/statusfail-fetchsourcedocker.yaml
 // test/extended/testdata/statusfail-fetchsources2i.yaml
+// test/extended/testdata/statusfail-genericreason.yaml
 // test/extended/testdata/statusfail-postcommithook.yaml
 // test/extended/testdata/statusfail-pushtoregistry.yaml
 // test/extended/testdata/statusfail-runtimeartifacts.yaml
@@ -6128,6 +6129,41 @@ func testExtendedTestdataStatusfailFetchsources2iYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/statusfail-fetchsources2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataStatusfailGenericreasonYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-genericfailure
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-ex"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+      scripts: "http://example.org/scripts"
+      env:
+        - name: http_proxy
+          value: ":http://example.org"
+`)
+
+func testExtendedTestdataStatusfailGenericreasonYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStatusfailGenericreasonYaml, nil
+}
+
+func testExtendedTestdataStatusfailGenericreasonYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStatusfailGenericreasonYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/statusfail-genericreason.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18641,6 +18677,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/statusfail-fetchbuilderimage.yaml": testExtendedTestdataStatusfailFetchbuilderimageYaml,
 	"test/extended/testdata/statusfail-fetchsourcedocker.yaml": testExtendedTestdataStatusfailFetchsourcedockerYaml,
 	"test/extended/testdata/statusfail-fetchsources2i.yaml": testExtendedTestdataStatusfailFetchsources2iYaml,
+	"test/extended/testdata/statusfail-genericreason.yaml": testExtendedTestdataStatusfailGenericreasonYaml,
 	"test/extended/testdata/statusfail-postcommithook.yaml": testExtendedTestdataStatusfailPostcommithookYaml,
 	"test/extended/testdata/statusfail-pushtoregistry.yaml": testExtendedTestdataStatusfailPushtoregistryYaml,
 	"test/extended/testdata/statusfail-runtimeartifacts.yaml": testExtendedTestdataStatusfailRuntimeartifactsYaml,
@@ -18992,6 +19029,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
 				"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
 				"statusfail-fetchsources2i.yaml": &bintree{testExtendedTestdataStatusfailFetchsources2iYaml, map[string]*bintree{}},
+				"statusfail-genericreason.yaml": &bintree{testExtendedTestdataStatusfailGenericreasonYaml, map[string]*bintree{}},
 				"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataStatusfailPostcommithookYaml, map[string]*bintree{}},
 				"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataStatusfailPushtoregistryYaml, map[string]*bintree{}},
 				"statusfail-runtimeartifacts.yaml": &bintree{testExtendedTestdataStatusfailRuntimeartifactsYaml, map[string]*bintree{}},
