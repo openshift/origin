@@ -270,6 +270,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	nodeOptions.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
 
 	return masterOptions, nodeOptions, startOptions.NodeArgs.Components, nil
 }
