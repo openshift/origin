@@ -71,6 +71,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageclient "github.com/openshift/origin/pkg/image/clientset/internalclientset"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -901,6 +902,11 @@ func (c *MasterConfig) BuildLogClient() *kclientset.Clientset {
 // BuildConfigWebHookClient returns the webhook client object
 func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+func (c *MasterConfig) UpdateTrackingTagsControllerClient() imageclient.Interface {
+	clientConfig := c.PrivilegedLoopbackClientConfig
+	return imageclient.NewForConfigOrDie(&clientConfig)
 }
 
 // BuildControllerClients returns the build controller client objects
