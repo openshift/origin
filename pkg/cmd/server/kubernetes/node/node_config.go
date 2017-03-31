@@ -171,6 +171,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		server.ResolverConfig = ""
 	}
 	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
+	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
+	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 
 	if sdnapi.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn

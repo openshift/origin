@@ -245,6 +245,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.ExecHandlerName) == 0 {
 				obj.ExecHandlerName = configapi.DockerExecHandlerNative
 			}
+			if len(obj.DockerShimSocket) == 0 {
+				obj.DockerShimSocket = "/var/run/sockershim.sock"
+			}
 		},
 		func(obj *configapi.ServingInfo, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)

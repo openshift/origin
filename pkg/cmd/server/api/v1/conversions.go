@@ -173,6 +173,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 			if len(obj.ExecHandlerName) == 0 {
 				obj.ExecHandlerName = DockerExecHandlerNative
 			}
+			if len(obj.DockerShimSocket) == 0 {
+				obj.DockerShimSocket = "/var/run/dockershim.sock"
+			}
 		},
 		func(obj *ServingInfo) {
 			if len(obj.BindNetwork) == 0 {
