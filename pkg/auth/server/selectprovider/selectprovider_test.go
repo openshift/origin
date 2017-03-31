@@ -114,7 +114,7 @@ func TestValidateSelectProviderTemplate(t *testing.T) {
 		TemplateValid bool
 	}{
 		"default provider selection template": {
-			Template:      defaultSelectProviderTemplateString,
+			Template:      defaultSelectProviderTemplateString(),
 			TemplateValid: true,
 		},
 		"provider selection template example": {

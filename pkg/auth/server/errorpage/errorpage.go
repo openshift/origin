@@ -83,7 +83,7 @@ func NewErrorPageTemplateRenderer(templateFile string) (ErrorPageRenderer, error
 		}
 		r.errorPageTemplate = customTemplate
 	} else {
-		r.errorPageTemplate = defaultErrorPageTemplate
+		r.errorPageTemplate = defaultErrorPageTemplate()
 	}
 
 	return r, nil

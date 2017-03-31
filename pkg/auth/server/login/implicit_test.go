@@ -92,7 +92,7 @@ func TestImplicit(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		server := httptest.NewServer(NewConfirm(testCase.CSRF, testCase.Implicit, DefaultConfirmFormRenderer))
+		server := httptest.NewServer(NewConfirm(testCase.CSRF, testCase.Implicit, NewDefaultConfirmFormRenderer()))
 
 		var resp *http.Response
 		if testCase.PostValues != nil {

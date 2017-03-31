@@ -2,7 +2,9 @@ package grant
 
 import "html/template"
 
-var defaultGrantTemplate = template.Must(template.New("defaultGrantForm").Parse(defaultGrantTemplateString))
+func defaultGrantTemplate() *template.Template {
+	return template.Must(template.New("defaultGrantForm").Parse(defaultGrantTemplateString))
+}
 
 const defaultGrantTemplateString = `<!DOCTYPE html>
 

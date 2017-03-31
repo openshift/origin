@@ -44,7 +44,7 @@ func NewSelectProviderRenderer(customSelectProviderTemplateFile string) (*select
 		}
 		r.selectProviderTemplate = customTemplate
 	} else {
-		r.selectProviderTemplate = defaultSelectProviderTemplate
+		r.selectProviderTemplate = defaultSelectProviderTemplate()
 	}
 
 	return r, nil

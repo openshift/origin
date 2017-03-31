@@ -190,7 +190,7 @@ func NewLoginFormRenderer(customLoginTemplateFile string) (*loginTemplateRendere
 		}
 		r.loginTemplate = customTemplate
 	} else {
-		r.loginTemplate = defaultLoginTemplate
+		r.loginTemplate = defaultLoginTemplate()
 	}
 
 	return r, nil

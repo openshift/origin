@@ -51,9 +51,12 @@ The ErrorCode field contains a programmatic error code, which may be (but is not
 </html>
 `
 
-var defaultErrorPageTemplate = template.Must(template.New("defaultErrorPageTemplate").Parse(defaultErrorPageTemplateString))
+func defaultErrorPageTemplate() *template.Template {
+	return template.Must(template.New("defaultErrorPageTemplate").Parse(defaultErrorPageTemplateString()))
+}
 
-const defaultErrorPageTemplateString = `<!DOCTYPE html>
+func defaultErrorPageTemplateString() string {
+	return `<!DOCTYPE html>
 <!--[if IE 8]><html class="ie8 login-pf"><![endif]-->
 <!--[if IE 9]><html class="ie9 login-pf"><![endif]-->
 <!--[if gt IE 9]><!-->
@@ -1995,3 +1998,4 @@ hr {
   </body>
 </html>
 `
+}

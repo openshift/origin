@@ -358,7 +358,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 
 	// Since any OAuth client could require prompting, we will unconditionally
 	// start the GrantServer here.
-	grantServer := grant.NewGrant(c.getCSRF(), auth, grant.DefaultFormRenderer, clientregistry, authregistry)
+	grantServer := grant.NewGrant(c.getCSRF(), auth, grant.NewDefaultFormRenderer(), clientregistry, authregistry)
 	grantServer.Install(mux, OpenShiftApprovePrefix)
 
 	// Set defaults for standard clients. These can be overridden.

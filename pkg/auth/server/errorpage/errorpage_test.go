@@ -75,7 +75,7 @@ func TestValidateErrorPageTemplate(t *testing.T) {
 			TemplateValid: false,
 		},
 		"default template": {
-			Template:      defaultErrorPageTemplateString,
+			Template:      defaultErrorPageTemplateString(),
 			TemplateValid: true,
 		},
 		"template example": {
