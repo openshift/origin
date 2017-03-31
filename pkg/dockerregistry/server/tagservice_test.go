@@ -190,9 +190,13 @@ func TestTagCreation(t *testing.T) {
 			continue
 		}
 
-		_, err = ts.Get(context.Background(), tc.tagName)
-		if err == nil {
-			t.Fatalf("[%s] error expected", tc.title)
+		tag, err := ts.Get(context.Background(), tc.tagName)
+		if err != nil {
+			t.Fatalf("[%s] unexpected error: %s", tc.title, err)
+		}
+
+		if tag.Digest != tc.tagValue.Digest {
+			t.Fatalf("[%s] got %v, want %v", tc.title, tag.Digest, tc.tagValue.Digest)
 		}
 	}
 }

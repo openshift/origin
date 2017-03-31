@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
@@ -42,6 +43,68 @@ func TestManifestServiceExists(t *testing.T) {
 	ok, err = ms.Exists(context.Background(), unknownBlobDigest)
 	if err == nil {
 		t.Errorf("ms.Exists(ctx, %q): got success, want error", unknownBlobDigest)
+	}
+}
+
+func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
+	namespace := "user"
+	repo := "app"
+	tag := "latest"
+
+	fos, client := testutil.NewFakeOpenShiftWithClient()
+
+	testImage, err := testutil.CreateRandomImage(namespace, repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	img1 := *testImage
+	img1.DockerImageReference = "1"
+	img1.DockerImageManifest = `{"_":"some json to start migration"}`
+	testutil.AddUntaggedImage(t, fos, &img1)
+
+	img2 := *testImage
+	img2.DockerImageReference = "2"
+	testutil.AddImageStream(t, fos, namespace, repo, nil)
+	testutil.AddImage(t, fos, &img2, namespace, repo, tag)
+
+	img, err := fos.GetImage(testImage.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.DockerImageReference != "1" {
+		t.Fatalf("img.DockerImageReference: want %q, got %q", "1", img.DockerImageReference)
+	}
+
+	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client: client,
+	})
+
+	ms := &manifestService{
+		ctx:  context.Background(),
+		repo: r,
+		manifests: newTestManifestService(repo, map[digest.Digest]distribution.Manifest{
+			digest.Digest(testImage.Name): &schema2.DeserializedManifest{},
+		}),
+		acceptschema2: r.acceptschema2,
+	}
+
+	_, err = ms.Get(context.Background(), digest.Digest(testImage.Name))
+	if err != nil {
+		t.Fatalf("ms.Get(ctx, %q): %s", testImage.Name, err)
+	}
+
+	time.Sleep(1 * time.Second) // give it time to make the migration
+
+	img, err = fos.GetImage(testImage.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.DockerImageManifest != "" {
+		t.Errorf("image doesn't migrated, img.DockerImageManifest: want %q, got %q", "", img.DockerImageManifest)
+	}
+	if img.DockerImageReference != "1" {
+		t.Errorf("img.DockerImageReference: want %q, got %q", "1", img.DockerImageReference)
 	}
 }
 
