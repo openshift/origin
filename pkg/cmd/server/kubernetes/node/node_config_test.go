@@ -57,6 +57,7 @@ func TestKubeletDefaults(t *testing.T) {
 			CPUCFSQuota:                 true,  // forced to true
 			DockerExecHandlerName:       "native",
 			DockerEndpoint:              "unix:///var/run/docker.sock",
+			DockerShimSocket:            "/var/run/dockershim.sock",
 			EventBurst:                  10,
 			EventRecordQPS:              5.0,
 			EnableCustomMetrics:         false,
