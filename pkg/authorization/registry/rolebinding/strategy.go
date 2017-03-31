@@ -6,10 +6,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
 	"k8s.io/kubernetes/pkg/util/validation/field"
-
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/api/validation"
@@ -67,17 +66,19 @@ func (s strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) fiel
 	return validation.ValidateRoleBindingUpdate(obj.(*authorizationapi.RoleBinding), old.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
+	if !ok {
+		return nil, nil, fmt.Errorf("not a rolebinding")
+	}
+	return labels.Set(roleBinding.ObjectMeta.Labels), authorizationapi.RoleBindingToSelectableFields(roleBinding), nil
+}
+
 // Matcher returns a generic matcher for a given label and field selector.
 func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
 	return kstorage.SelectionPredicate{
-		Label: label,
-		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
-			roleBinding, ok := obj.(*authorizationapi.RoleBinding)
-			if !ok {
-				return nil, nil, fmt.Errorf("not a rolebinding")
-			}
-			return labels.Set(roleBinding.ObjectMeta.Labels), authorizationapi.RoleBindingToSelectableFields(roleBinding), nil
-		},
+		Label:    label,
+		Field:    field,
+		GetAttrs: GetAttrs,
 	}
 }

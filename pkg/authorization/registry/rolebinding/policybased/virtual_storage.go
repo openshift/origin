@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/runtime"
 
@@ -60,13 +59,12 @@ func (m *VirtualStorage) List(ctx kapi.Context, options *kapi.ListOptions) (runt
 		return nil, err
 	}
 
-	labelSelector, fieldSelector := oapi.ListOptionsToSelectors(options)
+	matcher := rolebindingregistry.Matcher(oapi.ListOptionsToSelectors(options))
 
 	roleBindingList := &authorizationapi.RoleBindingList{}
 	for _, policyBinding := range policyBindingList.Items {
 		for _, roleBinding := range policyBinding.RoleBindings {
-			if labelSelector.Matches(labels.Set(roleBinding.Labels)) &&
-				fieldSelector.Matches(authorizationapi.RoleBindingToSelectableFields(roleBinding)) {
+			if matches, err := matcher.Matches(roleBinding); err == nil && matches {
 				roleBindingList.Items = append(roleBindingList.Items, *roleBinding)
 			}
 		}
