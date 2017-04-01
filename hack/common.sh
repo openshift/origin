@@ -231,11 +231,17 @@ os::build::internal::build_binaries() {
       local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(os::build::platform_arch ${platform})
       local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(os::build::platform_arch ${platform})
 
+      # work around https://github.com/golang/go/issues/11887
+      local local_ldflags="${version_ldflags}"
+      if [[ "${platform}" == "darwin/amd64" ]]; then
+        local_ldflags+=" -s"
+      fi
+
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
-          -ldflags "${version_ldflags}" \
+          -ldflags="${local_ldflags}" \
           "${goflags[@]:+${goflags[@]}}" \
           "${nonstatics[@]}"
 
@@ -252,7 +258,7 @@ os::build::internal::build_binaries() {
         CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
-          -ldflags "${version_ldflags}" \
+          -ldflags "${local_ldflags}" \
           -i -c -o "${outfile}" \
           "${goflags[@]:+${goflags[@]}}" \
           "$(dirname ${test})"
