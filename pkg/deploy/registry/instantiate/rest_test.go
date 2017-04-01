@@ -26,8 +26,9 @@ var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 // automatic flag being set to false or updates the config if forced.
 func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 	tests := []struct {
-		name  string
-		force bool
+		name     string
+		force    bool
+		excludes []deployapi.DeploymentTriggerType
 
 		expected    bool
 		expectedErr bool
@@ -35,6 +36,14 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		{
 			name:  "normal update",
 			force: false,
+
+			expected:    false,
+			expectedErr: false,
+		},
+		{
+			name:     "forced update but excluded",
+			force:    true,
+			excludes: []deployapi.DeploymentTriggerType{deployapi.DeploymentTriggerOnImageChange},
 
 			expected:    false,
 			expectedErr: false,
@@ -69,7 +78,7 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		image := config.Spec.Template.Spec.Containers[0].Image
 
 		// Force equals to false; we shouldn't update the config anyway
-		err := processTriggers(config, fake, test.force)
+		err := processTriggers(config, fake, test.force, test.excludes)
 		if err == nil && test.expectedErr {
 			t.Errorf("%s: expected an error", test.name)
 			continue
@@ -103,14 +112,14 @@ func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	image := config.Spec.Template.Spec.Containers[0].Image
 
 	// verify no-op; should be the same for force=true and force=false
-	if err := processTriggers(config, fake, false); err != nil {
+	if err := processTriggers(config, fake, false, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
 		t.Fatalf("unexpected image update: %#v", config.Spec.Template.Spec.Containers[0].Image)
 	}
 
-	if err := processTriggers(config, fake, true); err != nil {
+	if err := processTriggers(config, fake, true, nil); err != nil {
 		t.Fatalf("unexpected error when forced: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
@@ -230,7 +239,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 
 		image := config.Spec.Template.Spec.Containers[0].Image
 
-		err := processTriggers(config, fake, false)
+		err := processTriggers(config, fake, false, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			continue
