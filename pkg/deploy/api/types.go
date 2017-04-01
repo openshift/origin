@@ -531,6 +531,10 @@ type DeploymentRequest struct {
 	// Force will try to force a new deployment to run. If the deployment config is paused,
 	// then setting this to true will return an Invalid error.
 	Force bool
+	// ExcludeTriggers instructs the instantiator to avoid processing the specified triggers.
+	// This field overrides the triggers from latest and allows clients to control specific
+	// logic.
+	ExcludeTriggers []DeploymentTriggerType
 }
 
 // DeploymentLog represents the logs for a deployment

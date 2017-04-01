@@ -298,6 +298,11 @@ func DeepCopy_api_DeploymentRequest(in interface{}, out interface{}, c *conversi
 		in := in.(*DeploymentRequest)
 		out := out.(*DeploymentRequest)
 		*out = *in
+		if in.ExcludeTriggers != nil {
+			in, out := &in.ExcludeTriggers, &out.ExcludeTriggers
+			*out = make([]DeploymentTriggerType, len(*in))
+			copy(*out, *in)
+		}
 		return nil
 	}
 }

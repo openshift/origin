@@ -545,6 +545,7 @@ func autoConvert_v1_DeploymentRequest_To_api_DeploymentRequest(in *DeploymentReq
 	out.Name = in.Name
 	out.Latest = in.Latest
 	out.Force = in.Force
+	out.ExcludeTriggers = *(*[]api.DeploymentTriggerType)(unsafe.Pointer(&in.ExcludeTriggers))
 	return nil
 }
 
@@ -556,6 +557,7 @@ func autoConvert_api_DeploymentRequest_To_v1_DeploymentRequest(in *api.Deploymen
 	out.Name = in.Name
 	out.Latest = in.Latest
 	out.Force = in.Force
+	out.ExcludeTriggers = *(*[]DeploymentTriggerType)(unsafe.Pointer(&in.ExcludeTriggers))
 	return nil
 }
 

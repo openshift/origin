@@ -74696,6 +74696,13 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
       "type": "string"
      },
+     "excludeTriggers": {
+      "description": "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
      "force": {
       "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
       "type": "boolean"
@@ -74769,7 +74776,7 @@
       "type": "boolean"
      },
      "containerNames": {
-      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod.",
+      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error.",
       "type": "array",
       "items": {
        "type": "string"
