@@ -405,6 +405,10 @@ type DeploymentRequest struct {
 	// Force will try to force a new deployment to run. If the deployment config is paused,
 	// then setting this to true will return an Invalid error.
 	Force bool `json:"force" protobuf:"varint,3,opt,name=force"`
+	// ExcludeTriggers instructs the instantiator to avoid processing the specified triggers.
+	// This field overrides the triggers from latest and allows clients to control specific
+	// logic. This field is ignored if not specified.
+	ExcludeTriggers []DeploymentTriggerType `json:"excludeTriggers,omitempty" protobuf:"bytes,4,rep,name=excludeTriggers,casttype=DeploymentTriggerType"`
 }
 
 // DeploymentLog represents the logs for a deployment
