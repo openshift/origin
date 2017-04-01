@@ -135,9 +135,9 @@ update-api:
 	hack/update-generated-defaulters.sh
 	hack/update-generated-swagger-descriptions.sh
 	hack/update-generated-protobuf.sh
+	hack/update-generated-openapi.sh
 	$(MAKE) build
 	hack/update-generated-swagger-spec.sh
-	hack/update-generated-openapi.sh
 .PHONY: update-api
 
 # Build and run the complete test-suite.
