@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -70,6 +71,8 @@ var (
 		"openshift.default.svc",
 		"openshift.default.svc.cluster.local",
 	}
+	version15 = semver.MustParse("1.5.0")
+	version35 = semver.MustParse("3.5.0")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -611,6 +614,35 @@ func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, err
 	return config, nil
 }
 
+func (h *Helper) serverVersion() (semver.Version, error) {
+	versionText, _, _, err := h.runHelper.New().Image(h.image).
+		Command("version").
+		Output()
+	if err != nil {
+		return semver.Version{}, err
+	}
+	lines := strings.Split(versionText, "\n")
+	versionStr := ""
+	for _, line := range lines {
+		if strings.HasPrefix(line, "openshift") {
+			parts := strings.SplitN(line, " ", 2)
+			versionStr = strings.TrimLeft(parts[1], "v")
+			break
+		}
+	}
+	return semver.Parse(versionStr)
+}
+
+func useDNSIP(version semver.Version) bool {
+	// Ignore pre-release portion
+	version.Pre = []semver.PRVersion{}
+
+	if version.Major == 1 {
+		return version.GTE(version15)
+	}
+	return version.GTE(version35)
+}
+
 func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
@@ -686,8 +718,16 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	if err != nil {
 		return err
 	}
+	version, err := h.serverVersion()
+	if err != nil {
+		return err
+	}
+	if useDNSIP(version) {
+		nodeCfg.DNSIP = "172.30.0.1"
+	} else {
+		nodeCfg.DNSIP = ""
+	}
 	nodeCfg.DNSBindAddress = ""
-	nodeCfg.DNSIP = ""
 	cfgBytes, err = configapilatest.WriteYAML(nodeCfg)
 	if err != nil {
 		return err

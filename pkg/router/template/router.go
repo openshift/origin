@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"k8s.io/kubernetes/pkg/util/sets"
 
@@ -51,6 +52,7 @@ type templateRouter struct {
 	templates        map[string]*template.Template
 	reloadScriptPath string
 	reloadInterval   time.Duration
+	reloadCallbacks  []func()
 	state            map[string]ServiceAliasConfig
 	serviceUnits     map[string]ServiceUnit
 	certManager      certificateManager
@@ -91,6 +93,10 @@ type templateRouter struct {
 	synced bool
 	// whether a state change has occurred
 	stateChanged bool
+	// metricReload tracks reloads
+	metricReload prometheus.Summary
+	// metricWriteConfig tracks writing config
+	metricWriteConfig prometheus.Summary
 }
 
 // templateRouterCfg holds all configuration items required to initialize the template router
@@ -99,6 +105,7 @@ type templateRouterCfg struct {
 	templates              map[string]*template.Template
 	reloadScriptPath       string
 	reloadInterval         time.Duration
+	reloadCallbacks        []func()
 	defaultCertificate     string
 	defaultCertificatePath string
 	defaultCertificateDir  string
@@ -158,6 +165,7 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		templates:              cfg.templates,
 		reloadScriptPath:       cfg.reloadScriptPath,
 		reloadInterval:         cfg.reloadInterval,
+		reloadCallbacks:        cfg.reloadCallbacks,
 		state:                  make(map[string]ServiceAliasConfig),
 		serviceUnits:           make(map[string]ServiceUnit),
 		certManager:            certManager,
@@ -171,6 +179,17 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpointsKey:       cfg.peerEndpointsKey,
 		peerEndpoints:          []Endpoint{},
 		bindPortsAfterSync:     cfg.bindPortsAfterSync,
+
+		metricReload: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace: "template_router",
+			Name:      "reload_seconds",
+			Help:      "Measures the time spent reloading the router in seconds.",
+		})).(prometheus.Summary),
+		metricWriteConfig: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
+			Namespace: "template_router",
+			Name:      "write_config_seconds",
+			Help:      "Measures the time spent writing out the router configuration to disk in seconds.",
+		})).(prometheus.Summary),
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),
@@ -384,21 +403,35 @@ func (r *templateRouter) Commit() {
 
 // commitAndReload refreshes the backend and persists the router state.
 func (r *templateRouter) commitAndReload() error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	// only state changes must be done under the lock
+	if err := func() error {
+		r.lock.Lock()
+		defer r.lock.Unlock()
 
-	glog.V(4).Infof("Writing the router state")
-	if err := r.writeState(); err != nil {
+		glog.V(4).Infof("Writing the router state")
+		if err := r.writeState(); err != nil {
+			return err
+		}
+
+		glog.V(4).Infof("Writing the router config")
+		reloadStart := time.Now()
+		err := r.writeConfig()
+		r.metricWriteConfig.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+		return err
+	}(); err != nil {
 		return err
 	}
 
-	glog.V(4).Infof("Writing the router config")
-	if err := r.writeConfig(); err != nil {
-		return err
+	for i, fn := range r.reloadCallbacks {
+		glog.V(4).Infof("Calling reload function %d", i)
+		fn()
 	}
 
 	glog.V(4).Infof("Reloading the router")
-	if err := r.reloadRouter(); err != nil {
+	reloadStart := time.Now()
+	err := r.reloadRouter()
+	r.metricReload.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+	if err != nil {
 		return err
 	}
 
@@ -587,7 +620,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	// is just used for the key name and not for the record/route name.
 	// This also helps the use case for the key used as a router config
 	// file name.
-	return fmt.Sprintf("%s_%s", route.Namespace, name)
+	return fmt.Sprintf("%s:%s", route.Namespace, name)
 }
 
 // createServiceAliasConfig creates a ServiceAliasConfig from a route and the router state.

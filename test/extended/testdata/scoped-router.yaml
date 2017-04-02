@@ -12,6 +12,7 @@ objects:
     labels:
       test: scoped-router
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: router
       image: ${IMAGE}
@@ -39,6 +40,7 @@ objects:
     labels:
       test: router-override
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: router
       image: ${IMAGE}
@@ -120,6 +122,7 @@ objects:
       test: router
       endpoints: router
   spec:
+    terminationGracePeriodSeconds: 1
     containers:
     - name: test
       image: openshift/hello-openshift
