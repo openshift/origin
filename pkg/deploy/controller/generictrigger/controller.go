@@ -12,6 +12,12 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
+const (
+	// maxRetryCount is the number of times a deployment config will be retried before it is dropped
+	// out of the queue.
+	maxRetryCount = 15
+)
+
 // DeploymentTriggerController processes all triggers for a deployment config
 // and kicks new deployments whenever possible.
 type DeploymentTriggerController struct {
@@ -56,12 +62,13 @@ func (c *DeploymentTriggerController) handleErr(err error, key interface{}) {
 		return
 	}
 
-	if c.queue.NumRequeues(key) < MaxRetries {
+	if c.queue.NumRequeues(key) < maxRetryCount {
 		glog.V(2).Infof("Error instantiating deployment config %v: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
+	glog.V(2).Infof("Dropping deployment config %q out of the trigger queue: %v", key, err)
 	c.queue.Forget(key)
 }
