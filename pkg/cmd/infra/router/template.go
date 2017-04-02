@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -13,6 +14,7 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktypes "k8s.io/kubernetes/pkg/types"
+	"k8s.io/kubernetes/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/util/validation"
 
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -21,6 +23,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
+	"github.com/openshift/origin/pkg/router/metrics"
+	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
 )
@@ -66,6 +70,7 @@ type TemplateRouter struct {
 	RouterService           *ktypes.NamespacedName
 	BindPortsAfterSync      bool
 	MaxConnections          string
+	MetricsType             string
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -93,6 +98,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
+	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
 }
 
 type RouterStats struct {
@@ -177,7 +183,13 @@ func (o *TemplateRouterOptions) Complete() error {
 	return o.RouterSelection.Complete()
 }
 
+// supportedMetricsTypes is the set of supported metrics arguments
+var supportedMetricsTypes = sets.NewString("haproxy")
+
 func (o *TemplateRouterOptions) Validate() error {
+	if len(o.MetricsType) > 0 && !supportedMetricsTypes.Has(o.MetricsType) {
+		return fmt.Errorf("supported metrics types are: %s", strings.Join(supportedMetricsTypes.List(), ", "))
+	}
 	if len(o.RouterName) == 0 {
 		return errors.New("router must have a name to identify itself in route status")
 	}
@@ -193,11 +205,75 @@ func (o *TemplateRouterOptions) Validate() error {
 
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
+	var reloadCallbacks []func()
+	switch {
+	case o.MetricsType == "haproxy" && len(o.ListenAddr) > 0:
+		if len(o.StatsUsername) == 0 || len(o.StatsPassword) == 0 {
+			glog.Warningf("Metrics were requested but no username or password has been provided - the metrics endpoint will not be accessible to prevent accidental security breaches")
+		}
+		// Exposed to allow tuning in production if this becomes an issue
+		var timeout time.Duration
+		if t := util.Env("ROUTER_METRICS_HAPROXY_TIMEOUT", ""); len(t) > 0 {
+			d, err := time.ParseDuration(t)
+			if err != nil {
+				return fmt.Errorf("ROUTER_METRICS_HAPROXY_TIMEOUT is not a valid duration: %v", err)
+			}
+			timeout = d
+		}
+		// Exposed to allow tuning in production if this becomes an issue
+		var baseScrapeInterval time.Duration
+		if t := util.Env("ROUTER_METRICS_HAPROXY_BASE_SCRAPE_INTERVAL", ""); len(t) > 0 {
+			d, err := time.ParseDuration(t)
+			if err != nil {
+				return fmt.Errorf("ROUTER_METRICS_HAPROXY_BASE_SCRAPE_INTERVAL is not a valid duration: %v", err)
+			}
+			baseScrapeInterval = d
+		}
+		// Exposed to allow tuning in production if this becomes an issue
+		var serverThreshold int
+		if t := util.Env("ROUTER_METRICS_HAPROXY_SERVER_THRESHOLD", ""); len(t) > 0 {
+			i, err := strconv.Atoi(t)
+			if err != nil {
+				return fmt.Errorf("ROUTER_METRICS_HAPROXY_SERVER_THRESHOLD is not a valid integer: %v", err)
+			}
+			serverThreshold = i
+		}
+		// Exposed to allow tuning in production if this becomes an issue
+		var exported []int
+		if t := util.Env("ROUTER_METRICS_HAPROXY_EXPORTED", ""); len(t) > 0 {
+			for _, s := range strings.Split(t, ",") {
+				i, err := strconv.Atoi(s)
+				if err != nil {
+					return errors.New("ROUTER_METRICS_HAPROXY_EXPORTED must be a comma delimited list of column numbers to extract from the HAProxy configuration")
+				}
+				exported = append(exported, i)
+			}
+		}
+		_, err := haproxy.NewPrometheusCollector(haproxy.PrometheusOptions{
+			// Only template router customizers who alter the image should need this
+			ScrapeURI: util.Env("ROUTER_METRICS_HAPROXY_SCRAPE_URI", ""),
+			// Only template router customizers who alter the image should need this
+			PidFile:            util.Env("ROUTER_METRICS_HAPROXY_PID_FILE", ""),
+			Timeout:            timeout,
+			ServerThreshold:    serverThreshold,
+			BaseScrapeInterval: baseScrapeInterval,
+			ExportedMetrics:    exported,
+		})
+		if err != nil {
+			return err
+		}
+		//reloadCallbacks = append(reloadCallbacks, e.CollectNow)
+	}
+	if len(o.ListenAddr) > 0 {
+		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword)
+	}
+
 	pluginCfg := templateplugin.TemplatePluginConfig{
 		WorkingDir:             o.WorkingDir,
 		TemplatePath:           o.TemplateFile,
 		ReloadScriptPath:       o.ReloadScript,
 		ReloadInterval:         o.ReloadInterval,
+		ReloadCallbacks:        reloadCallbacks,
 		DefaultCertificate:     o.DefaultCertificate,
 		DefaultCertificatePath: o.DefaultCertificatePath,
 		DefaultCertificateDir:  o.DefaultCertificateDir,

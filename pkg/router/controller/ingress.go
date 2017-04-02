@@ -560,7 +560,7 @@ func GetSafeRouteName(name string) string {
 	if IsGeneratedRouteName(name) {
 		// The name of a route generated from an ingress path will contain '/', which
 		// isn't compatible with HAproxy or F5.
-		return strings.Replace(name, "/", "_", -1)
+		return strings.Replace(name, "/", ":", -1)
 	}
 	return name
 }

@@ -207,8 +207,8 @@ func TestRouteKey(t *testing.T) {
 
 	key := router.routeKey(route)
 
-	if key != "foo_bar" {
-		t.Errorf("Expected key 'foo_bar' but got: %s", key)
+	if key != "foo:bar" {
+		t.Errorf("Expected key 'foo:bar' but got: %s", key)
 	}
 
 	testCases := []struct {

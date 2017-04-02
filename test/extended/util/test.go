@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/version"
 )
 
 var (
@@ -83,6 +84,8 @@ func InitTest() {
 
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
+
+	glog.Infof("Extended test version %s", version.Get().String())
 }
 
 func ExecuteTest(t *testing.T, suite string) {

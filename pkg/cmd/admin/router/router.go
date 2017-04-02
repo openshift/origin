@@ -666,6 +666,16 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		}
 		env["ROUTER_CANONICAL_HOSTNAME"] = cfg.RouterCanonicalHostname
 	}
+	// automatically start the internal metrics agent if we are handling a known type
+	if cfg.Type == "haproxy-router" {
+		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", defaultStatsPort-1)
+		env["ROUTER_METRICS_TYPE"] = "haproxy"
+		ports = append(ports, kapi.ContainerPort{
+			Name:          "router-stats",
+			ContainerPort: int32(defaultStatsPort - 1),
+			Protocol:      kapi.ProtocolTCP,
+		})
+	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
 		if cfg.SecretsAsEnv {
