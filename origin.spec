@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c600ade32013c669a00d6d0400d884964863a845
+%global commit 32b2d270639a010c85bbc0452596077de67b0d34
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.10 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=c600ade
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.11 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=32b2d27
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.11
+Version:        3.6.12
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,20 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sun Apr 02 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.12-1
+- Don't eat the newline at the end of the config (ccoleman@redhat.com)
+- Print version of tests in extended (ccoleman@redhat.com)
+- generated: completions (ccoleman@redhat.com)
+- Add a test suite that verifies the router metrics (ccoleman@redhat.com)
+- UPSTREAM: 42959: Delete host exec pods faster (ccoleman@redhat.com)
+- Track reload and config write times in the router (ccoleman@redhat.com)
+- Add metric labels that map to the API for haproxy servers
+  (ccoleman@redhat.com)
+- Use ':' as a name separate in the router (ccoleman@redhat.com)
+- Expose prometheus metrics for the router by default (ccoleman@redhat.com)
+- cluster up: set DNS bind and IP address for newer server versions
+  (cewong@redhat.com)
+
 * Sat Apr 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.11-1
 - UPSTREAM: 43762: refactor getPidsForProcess and change error handling
   (sjenning@redhat.com)
