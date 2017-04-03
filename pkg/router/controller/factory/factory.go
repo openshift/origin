@@ -5,7 +5,7 @@ import (
 	"sort"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -24,7 +24,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
-	"k8s.io/kubernetes/pkg/api/meta"
+	routercontroller "github.com/openshift/origin/pkg/router/controller"
 )
 
 // RouterControllerFactory initializes and manages the watches that drive a router
@@ -36,7 +36,7 @@ type RouterControllerFactory struct {
 	IngressClient  kextensionsclient.IngressesGetter
 	SecretClient   kcoreclient.SecretsGetter
 	NodeClient     kcoreclient.NodesGetter
-	Namespaces     controller.NamespaceLister
+	Namespaces     routercontroller.NamespaceLister
 	ResyncInterval time.Duration
 	Namespace      string
 	Labels         labels.Selector
@@ -80,12 +80,13 @@ func routerKeyFn(obj interface{}) (string, error) {
 // resources. It spawns child goroutines that cannot be terminated.
 func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *controller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(routerKeyFn)
-	cache.NewReflector(&routeLW{
+	rLW := &routeLW{
 		client:    factory.OSClient,
 		namespace: factory.Namespace,
 		field:     factory.Fields,
 		label:     factory.Labels,
-	}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	}
+	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(routerKeyFn)
 	cache.NewReflector(&endpointsLW{
@@ -105,10 +106,9 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 
 	ingressEventQueue := oscache.NewEventQueue(routerKeyFn)
 	secretEventQueue := oscache.NewEventQueue(routerKeyFn)
-	var ingressTranslator *controller.IngressTranslator
+	var ingressTranslator *routercontroller.IngressTranslator
 	if enableIngress {
-		ingressTranslator = controller.NewIngressTranslator(factory.SecretClient)
-
+		ingressTranslator = routercontroller.NewIngressTranslator(factory.SecretClient)
 		cache.NewReflector(&ingressLW{
 			client:    factory.IngressClient,
 			namespace: factory.Namespace,
@@ -125,7 +125,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		}, &kapi.Secret{}, secretEventQueue, factory.ResyncInterval).Run()
 	}
 
-	return &controller.RouterController{
+	return &routercontroller.RouterController{
 		Plugin: plugin,
 		NextEndpoints: func() (watch.EventType, *kapi.Endpoints, error) {
 			eventType, obj, err := endpointsEventQueue.Pop()
@@ -218,12 +218,13 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 	keyFn := routerKeyFn
 	routeStore := cache.NewIndexer(keyFn, cache.Indexers{"host": hostIndexFunc})
 	routeEventQueue := oscache.NewEventQueueForStore(keyFn, routeStore)
-	cache.NewReflector(&routeLW{
+	rLW := &routeLW{
 		client:    factory.OSClient,
 		namespace: factory.Namespace,
 		field:     factory.Fields,
 		label:     factory.Labels,
-	}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	}
+	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointStore := cache.NewStore(keyFn)
 	endpointsEventQueue := oscache.NewEventQueueForStore(keyFn, endpointStore)
@@ -327,10 +328,10 @@ type routeLW struct {
 	namespace string
 }
 
-func (lw *routeLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	opts := metainternal.ListOptions{
-		LabelSelector: lw.label,
-		FieldSelector: lw.field,
+func (lw *routeLW) List(options metav1.ListOptions) (runtime.Object, error) {
+	opts := metav1.ListOptions{
+		LabelSelector: lw.label.String(),
+		FieldSelector: lw.field.String(),
 	}
 	routes, err := lw.client.Routes(lw.namespace).List(opts)
 	if err != nil {
@@ -341,10 +342,10 @@ func (lw *routeLW) List(options metainternal.ListOptions) (runtime.Object, error
 	return routes, nil
 }
 
-func (lw *routeLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	opts := metainternal.ListOptions{
-		LabelSelector:   lw.label,
-		FieldSelector:   lw.field,
+func (lw *routeLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	opts := metav1.ListOptions{
+		LabelSelector:   lw.label.String(),
+		FieldSelector:   lw.field.String(),
 		ResourceVersion: options.ResourceVersion,
 	}
 	return lw.client.Routes(lw.namespace).Watch(opts)
