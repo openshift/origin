@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
@@ -33,19 +34,20 @@ const (
 func NewDeploymentController(
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	podInformer kcoreinformers.PodInformer,
-	kc kclientset.Interface,
+	internalKubeClientset kclientset.Interface,
+	externalKubeClientset kclientsetexternal.Interface,
 	sa,
 	image string,
 	env []kapi.EnvVar,
 	codec runtime.Codec,
 ) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kc.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
-		rn: kc.Core(),
-		pn: kc.Core(),
+		rn: internalKubeClientset.Core(),
+		pn: internalKubeClientset.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 

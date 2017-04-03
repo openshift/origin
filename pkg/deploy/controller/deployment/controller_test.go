@@ -13,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -41,7 +42,7 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	rcInformer := informerFactory.Core().InternalVersion().ReplicationControllers()
 	podInformer := informerFactory.Core().InternalVersion().Pods()
 
-	c := NewDeploymentController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env, codec)
+	c := NewDeploymentController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
 	c.podListerSynced = alwaysReady
 	c.rcListerSynced = alwaysReady
 
