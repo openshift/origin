@@ -11,6 +11,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/origin/pkg/controller"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
 )
@@ -38,7 +39,7 @@ func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{byUserIndexName: ByUserIndexKeys})
 	reflector := cache.NewReflector(
-		&cache.ListWatch{
+		&controller.InternalListWatch{
 			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return groupRegistry.ListGroups(allNamespaceContext, &options)
 			},

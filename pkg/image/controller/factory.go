@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -30,10 +29,10 @@ type ImportControllerFactory struct {
 // Create creates an ImportController.
 func (f *ImportControllerFactory) Create() (controller.RunnableController, controller.StoppableController) {
 	lw := &cache.ListWatch{
-		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return f.Client.ImageStreams(metav1.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return f.Client.ImageStreams(metav1.NamespaceAll).Watch(options)
 		},
 	}
