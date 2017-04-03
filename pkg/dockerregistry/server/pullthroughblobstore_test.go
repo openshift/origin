@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -219,17 +218,15 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	client := &testclient.Fake{}
 	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
 
-	reader, dgst, err := registrytest.CreateRandomTarFile()
+	blob1Content, err := registrytest.CreateRandomTarFile()
 	if err != nil {
 		t.Fatalf("unexpected error generating test layer file: %v", err)
 	}
 
-	blob1Content, err := ioutil.ReadAll(reader)
-	if err != nil {
-		t.Fatalf("failed to read blob content: %v", err)
+	dgst := digest.FromBytes(blob1Content)
+	blob1Storage := map[digest.Digest][]byte{
+		dgst: blob1Content,
 	}
-
-	blob1Storage := map[digest.Digest][]byte{dgst: blob1Content}
 
 	// start regular HTTP server
 	remoteRegistryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

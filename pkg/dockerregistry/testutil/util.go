@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"net/http"
 	"net/url"
@@ -30,19 +29,20 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-// UploadTestBlobFromReader uploads a testing blob read from the given reader to the registry located at the
-// given URL.
-func UploadTestBlobFromReader(
-	dgst digest.Digest,
-	reader io.ReadSeeker,
+// UploadBlob uploads a blob with payload to the registry server located at
+// serverURL.
+func UploadBlob(
+	payload []byte,
 	serverURL *url.URL,
 	creds auth.CredentialStore,
 	repoName string,
-) (distribution.Descriptor, []byte, error) {
+) (distribution.Descriptor, error) {
+	// TODO(dmage): get the context from the caller
 	ctx := context.Background()
+
 	ref, err := reference.ParseNamed(repoName)
 	if err != nil {
-		return distribution.Descriptor{}, nil, err
+		return distribution.Descriptor{}, err
 	}
 
 	var rt http.RoundTripper
@@ -50,7 +50,7 @@ func UploadTestBlobFromReader(
 		challengeManager := auth.NewSimpleChallengeManager()
 		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
 		if err != nil {
-			return distribution.Descriptor{}, nil, err
+			return distribution.Descriptor{}, err
 		}
 		rt = transport.NewTransport(
 			nil,
@@ -59,68 +59,50 @@ func UploadTestBlobFromReader(
 				auth.NewTokenHandler(nil, creds, repoName, "pull", "push"),
 				auth.NewBasicHandler(creds)))
 	}
+
 	repo, err := distclient.NewRepository(ctx, ref, serverURL.String(), rt)
 	if err != nil {
-		return distribution.Descriptor{}, nil, fmt.Errorf("failed to get repository %q: %v", repoName, err)
+		return distribution.Descriptor{}, fmt.Errorf("failed to get repository %q: %v", repoName, err)
 	}
 
 	wr, err := repo.Blobs(ctx).Create(ctx)
 	if err != nil {
-		return distribution.Descriptor{}, nil, err
+		return distribution.Descriptor{}, err
 	}
-	if _, err := io.Copy(wr, reader); err != nil {
-		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error copying to upload: %v", err)
-	}
-	desc, err := wr.Commit(ctx, distribution.Descriptor{Digest: dgst})
+
+	_, err = io.Copy(wr, bytes.NewReader(payload))
 	if err != nil {
-		return distribution.Descriptor{}, nil, err
+		return distribution.Descriptor{}, fmt.Errorf("unexpected error copying to upload: %v", err)
 	}
 
-	if _, err := reader.Seek(0, 0); err != nil {
-		return distribution.Descriptor{}, nil, fmt.Errorf("failed to seak blob reader: %v", err)
-	}
-	content, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return distribution.Descriptor{}, nil, fmt.Errorf("failed to read blob content: %v", err)
-	}
-
-	return desc, content, nil
-}
-
-// UploadPayloadAsBlob uploads a given payload to the registry serving at the given URL.
-func UploadPayloadAsBlob(
-	payload []byte,
-	serverURL *url.URL,
-	creds auth.CredentialStore,
-	repoName string,
-) (distribution.Descriptor, error) {
-	reader := bytes.NewReader(payload)
-	dgst := digest.FromBytes(payload)
-	desc, _, err := UploadTestBlobFromReader(dgst, reader, serverURL, creds, repoName)
-	return desc, err
+	return wr.Commit(ctx, distribution.Descriptor{
+		Digest: digest.FromBytes(payload),
+	})
 }
 
 // UploadRandomTestBlob generates a random tar file and uploads it to the given repository.
-func UploadRandomTestBlob(
-	serverURL *url.URL,
-	creds auth.CredentialStore,
-	repoName string,
-) (distribution.Descriptor, []byte, error) {
-	rs, ds, err := CreateRandomTarFile()
+func UploadRandomTestBlob(serverURL *url.URL, creds auth.CredentialStore, repoName string) (distribution.Descriptor, []byte, error) {
+	payload, err := CreateRandomTarFile()
 	if err != nil {
 		return distribution.Descriptor{}, nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
 	}
-	dgst := digest.Digest(ds)
-	return UploadTestBlobFromReader(dgst, rs, serverURL, creds, repoName)
+
+	desc, err := UploadBlob(payload, serverURL, creds, repoName)
+	if err != nil {
+		return distribution.Descriptor{}, nil, fmt.Errorf("upload random test blob: %s", err)
+	}
+
+	return desc, payload, nil
 }
 
-// createRandomTarFile creates a random tarfile, returning it as an io.ReadSeeker along with its digest. An
-// error is returned if there is a problem generating valid content. Inspired by
-// github.com/vendor/docker/distribution/testutil/tarfile.go.
-func CreateRandomTarFile() (rs io.ReadSeeker, dgst digest.Digest, err error) {
+// CreateRandomTarFile creates a random tarfile and returns its content.
+// An error is returned if there is a problem generating valid content.
+// Inspired by github.com/vendor/docker/distribution/testutil/tarfile.go.
+func CreateRandomTarFile() ([]byte, error) {
 	nFiles := 2
-	target := &bytes.Buffer{}
-	wr := tar.NewWriter(target)
+
+	var target bytes.Buffer
+	wr := tar.NewWriter(&target)
 
 	// Perturb this on each iteration of the loop below.
 	header := &tar.Header{
@@ -134,49 +116,31 @@ func CreateRandomTarFile() (rs io.ReadSeeker, dgst digest.Digest, err error) {
 	}
 
 	for fileNumber := 0; fileNumber < nFiles; fileNumber++ {
-		fileSize := mrand.Int63n(1<<9) + 1<<9
-
 		header.Name = fmt.Sprint(fileNumber)
-		header.Size = fileSize
+		header.Size = mrand.Int63n(1<<9) + 1<<9
 
-		if err := wr.WriteHeader(header); err != nil {
-			return nil, "", err
-		}
-
-		randomData := make([]byte, fileSize)
-
-		// Fill up the buffer with some random data.
-		n, err := rand.Read(randomData)
-
-		if n != len(randomData) {
-			return nil, "", fmt.Errorf("short read creating random reader: %v bytes != %v bytes", n, len(randomData))
-		}
-
+		err := wr.WriteHeader(header)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 
-		nn, err := io.Copy(wr, bytes.NewReader(randomData))
-		if nn != fileSize {
-			return nil, "", fmt.Errorf("short copy writing random file to tar")
-		}
-
+		randomData := make([]byte, header.Size)
+		_, err = rand.Read(randomData)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 
-		if err := wr.Flush(); err != nil {
-			return nil, "", err
+		_, err = io.Copy(wr, bytes.NewReader(randomData))
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	if err := wr.Close(); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	dgst = digest.FromBytes(target.Bytes())
-
-	return bytes.NewReader(target.Bytes()), dgst, nil
+	return target.Bytes(), nil
 }
 
 const SampleImageManifestSchema1 = `{
@@ -366,5 +330,5 @@ func ping(manager auth.ChallengeManager, endpoint, versionHeader string) ([]auth
 		return nil, err
 	}
 
-	return auth.APIVersions(resp, versionHeader), err
+	return auth.APIVersions(resp, versionHeader), nil
 }

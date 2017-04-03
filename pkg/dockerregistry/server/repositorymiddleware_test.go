@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
@@ -533,11 +534,10 @@ func storeTestImage(
 	}
 
 	for i := 0; i < testImageLayerCount; i++ {
-		rs, ds, err := registrytest.CreateRandomTarFile()
+		payload, err := registrytest.CreateRandomTarFile()
 		if err != nil {
 			return nil, fmt.Errorf("unexpected error generating test layer file: %v", err)
 		}
-		dgst := digest.Digest(ds)
 
 		wr, err := repo.Blobs(ctx).Create(ctx)
 		if err != nil {
@@ -545,10 +545,12 @@ func storeTestImage(
 		}
 		defer wr.Close()
 
-		n, err := io.Copy(wr, rs)
+		n, err := io.Copy(wr, bytes.NewReader(payload))
 		if err != nil {
 			return nil, fmt.Errorf("unexpected error copying to upload: %v", err)
 		}
+
+		dgst := digest.FromBytes(payload)
 
 		if schemaVersion == 1 {
 			m1.FSLayers = append(m1.FSLayers, schema1.FSLayer{BlobSum: dgst})
