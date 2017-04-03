@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -15,7 +15,7 @@ type FakeOAuthClient struct {
 
 var oAuthClientsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclients"}
 
-func (c *FakeOAuthClient) Get(name string) (*oauthapi.OAuthClient, error) {
+func (c *FakeOAuthClient) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(oAuthClientsResource, name), &oauthapi.OAuthClient{})
 	if obj == nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (c *FakeOAuthClient) Get(name string) (*oauthapi.OAuthClient, error) {
 	return obj.(*oauthapi.OAuthClient), err
 }
 
-func (c *FakeOAuthClient) List(opts metainternal.ListOptions) (*oauthapi.OAuthClientList, error) {
+func (c *FakeOAuthClient) List(opts metav1.ListOptions) (*oauthapi.OAuthClientList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthClientsResource, opts), &oauthapi.OAuthClientList{})
 	if obj == nil {
 		return nil, err
@@ -47,7 +47,7 @@ func (c *FakeOAuthClient) Delete(name string) error {
 	return err
 }
 
-func (c *FakeOAuthClient) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeOAuthClient) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(oAuthClientsResource, opts))
 }
 
