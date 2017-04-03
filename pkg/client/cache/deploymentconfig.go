@@ -82,7 +82,7 @@ type storeDeploymentConfigsNamespacer struct {
 }
 
 // Get the deployment config matching the name from the cache.
-func (s storeDeploymentConfigsNamespacer) Get(name string) (*deployapi.DeploymentConfig, error) {
+func (s storeDeploymentConfigsNamespacer) Get(name string, options metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

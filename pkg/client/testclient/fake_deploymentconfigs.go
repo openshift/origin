@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
@@ -20,7 +19,7 @@ type FakeDeploymentConfigs struct {
 
 var deploymentConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "deploymentconfigs"}
 
-func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, error) {
+func (c *FakeDeploymentConfigs) Get(name string, options metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(deploymentConfigsResource, c.Namespace, name), &deployapi.DeploymentConfig{})
 	if obj == nil {
 		return nil, err
@@ -29,7 +28,7 @@ func (c *FakeDeploymentConfigs) Get(name string) (*deployapi.DeploymentConfig, e
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (c *FakeDeploymentConfigs) List(opts metav1.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(deploymentConfigsResource, c.Namespace, opts), &deployapi.DeploymentConfigList{})
 	if obj == nil {
 		return nil, err
@@ -65,7 +64,7 @@ func (c *FakeDeploymentConfigs) Delete(name string) error {
 	return err
 }
 
-func (c *FakeDeploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeDeploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(deploymentConfigsResource, c.Namespace, opts))
 }
 
