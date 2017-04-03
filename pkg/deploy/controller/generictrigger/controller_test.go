@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	testapi "github.com/openshift/origin/pkg/deploy/api/test"
@@ -25,10 +25,10 @@ var (
 	codec      = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},
@@ -51,10 +51,10 @@ var (
 	)
 	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).Watch(options)
 			},
 		},
