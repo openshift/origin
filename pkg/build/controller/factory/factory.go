@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -89,7 +88,7 @@ type BuildControllerFactory struct {
 // Create constructs a BuildController
 func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
+	cache.NewReflector(newBuildLW(factory.OSClient), &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
@@ -206,7 +205,7 @@ func retryFunc(kind string, isFatal func(err error) bool) controller.RetryFunc {
 // Create constructs a BuildPodController
 func (factory *BuildPodControllerFactory) Create() controller.RunnableController {
 	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).RunUntil(factory.Stop)
+	cache.NewReflector(newBuildLW(factory.OSClient), &buildapi.Build{}, factory.buildStore, 2*time.Minute).RunUntil(factory.Stop)
 
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
 	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).RunUntil(factory.Stop)
@@ -303,7 +302,7 @@ type ImageChangeControllerFactory struct {
 // image is available
 func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&imageStreamLW{factory.Client}, &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
+	cache.NewReflector(newImageStreamLW(factory.Client), &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	imageChangeController := &buildcontroller.ImageChangeController{
 		BuildConfigIndex:        factory.BuildConfigIndex,
@@ -351,7 +350,7 @@ type BuildConfigControllerFactory struct {
 // Create creates a new ConfigChangeController which is used to trigger builds on creation
 func (factory *BuildConfigControllerFactory) Create() controller.RunnableController {
 	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildConfigLW{client: factory.Client}, &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
+	cache.NewReflector(newBuildConfigLW(factory.Client), &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
@@ -461,19 +460,15 @@ func (lw *podLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return lw.client.Core().Pods(metav1.NamespaceAll).Watch(opts)
 }
 
-// buildLW is a ListWatcher implementation for Builds.
-type buildLW struct {
-	client osclient.Interface
-}
-
-// List lists all Builds.
-func (lw *buildLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.Builds(metav1.NamespaceAll).List(options)
-}
-
-// Watch watches all Builds.
-func (lw *buildLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.Builds(metav1.NamespaceAll).Watch(options)
+func newBuildLW(client osclient.Interface) cache.ListerWatcher {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return client.Builds(metav1.NamespaceAll).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return client.Builds(metav1.NamespaceAll).Watch(options)
+		},
+	}
 }
 
 // buildDeleteLW is a ListWatcher implementation that watches for builds being deleted
@@ -526,38 +521,30 @@ func (lw *buildDeleteLW) List(options metav1.ListOptions) (runtime.Object, error
 }
 
 // Watch watches all Builds.
-func (lw *buildDeleteLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
+func (lw *buildDeleteLW) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return lw.Client.Builds(metav1.NamespaceAll).Watch(options)
 }
 
-// buildConfigLW is a ListWatcher implementation for BuildConfigs.
-type buildConfigLW struct {
-	client osclient.Interface
+func newBuildConfigLW(client osclient.Interface) cache.ListerWatcher {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return client.BuildConfigs(metav1.NamespaceAll).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return client.BuildConfigs(metav1.NamespaceAll).Watch(options)
+		},
+	}
 }
 
-// List lists all BuildConfigs.
-func (lw *buildConfigLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.BuildConfigs(metav1.NamespaceAll).List(options)
-}
-
-// Watch watches all BuildConfigs.
-func (lw *buildConfigLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.BuildConfigs(metav1.NamespaceAll).Watch(options)
-}
-
-// imageStreamLW is a ListWatcher for ImageStreams.
-type imageStreamLW struct {
-	client osclient.Interface
-}
-
-// List lists all ImageStreams.
-func (lw *imageStreamLW) List(options metainternal.ListOptions) (runtime.Object, error) {
-	return lw.client.ImageStreams(metav1.NamespaceAll).List(options)
-}
-
-// Watch watches all ImageStreams.
-func (lw *imageStreamLW) Watch(options metainternal.ListOptions) (watch.Interface, error) {
-	return lw.client.ImageStreams(metav1.NamespaceAll).Watch(options)
+func newImageStreamLW(client osclient.Interface) cache.ListerWatcher {
+	return &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			return client.ImageStreams(metav1.NamespaceAll).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			return client.ImageStreams(metav1.NamespaceAll).Watch(options)
+		},
+	}
 }
 
 // buildPodDeleteLW is a ListWatcher implementation that watches for Pods(that are associated with a Build) being deleted
@@ -569,11 +556,7 @@ type buildPodDeleteLW struct {
 // List lists all Pods associated with a Build.
 func (lw *buildPodDeleteLW) List(options metav1.ListOptions) (runtime.Object, error) {
 	glog.V(5).Info("Checking for deleted build pods")
-	internaloptions := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internaloptions, nil); err != nil {
-		return nil, err
-	}
-	buildList, err := lw.Client.Builds(metav1.NamespaceAll).List(internaloptions)
+	buildList, err := lw.Client.Builds(metav1.NamespaceAll).List(options)
 	if err != nil {
 		glog.V(4).Infof("Failed to find any builds due to error %v", err)
 		return nil, err
