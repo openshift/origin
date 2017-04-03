@@ -24,6 +24,12 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
+const (
+	// maxRetryCount is the number of times a deployment config will be retried before it is dropped out
+	// of the queue.
+	maxRetryCount = 15
+)
+
 // fatalError is an error which can't be retried.
 type fatalError string
 
@@ -389,13 +395,14 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 		return
 	}
 
-	if c.queue.NumRequeues(key) < MaxRetries {
+	if c.queue.NumRequeues(key) < maxRetryCount {
 		glog.V(2).Infof("Error syncing deployment config %v: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
+	glog.V(2).Infof("Dropping deployment config %q out of the queue: %v", key, err)
 	c.queue.Forget(key)
 }
 
