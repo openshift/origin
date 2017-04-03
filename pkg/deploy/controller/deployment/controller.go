@@ -22,9 +22,10 @@ import (
 
 // maxRetryCount is the maximum number of times the controller will retry errors.
 // The first requeue is after 5ms and subsequent requeues grow exponentially.
-// This effectively can extend up to 5^10ms which caps to 1000s:
+// This effectively can extend up to 5*2^14ms which caps to 82s:
 //
-// 5ms, 25ms, 125ms, 625ms, 3s, 16s, 78s, 390s, 1000s, 1000s
+// 5ms, 10ms, 20ms, 40ms, 80ms, 160ms, 320ms, 640ms, 1.3s, 2.6s, 5.1s, 10.2s, 20.4s, 41s, 82s
+//
 //
 // The most common errors are:
 //
@@ -33,7 +34,7 @@ import (
 // * pod may be missing from the cache once the deployment transitions to Pending.
 //
 // In most cases, we shouldn't need to retry up to maxRetryCount...
-const maxRetryCount = 10
+const maxRetryCount = 15
 
 // fatalError is an error which can't be retried.
 type fatalError string
