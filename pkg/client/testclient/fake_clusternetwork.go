@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 
@@ -15,7 +16,7 @@ type FakeClusterNetwork struct {
 
 var clusterNetworksResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusternetworks"}
 
-func (c *FakeClusterNetwork) Get(name string) (*sdnapi.ClusterNetwork, error) {
+func (c *FakeClusterNetwork) Get(name string, options metav1.GetOptions) (*sdnapi.ClusterNetwork, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterNetworksResource, name), &sdnapi.ClusterNetwork{})
 	if obj == nil {
 		return nil, err

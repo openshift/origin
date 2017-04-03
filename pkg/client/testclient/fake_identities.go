@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 
@@ -16,7 +16,7 @@ type FakeIdentities struct {
 
 var identitiesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "identities"}
 
-func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
+func (c *FakeIdentities) Get(name string, options metav1.GetOptions) (*userapi.Identity, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(identitiesResource, name), &userapi.Identity{})
 	if obj == nil {
 		return nil, err
@@ -25,7 +25,7 @@ func (c *FakeIdentities) Get(name string) (*userapi.Identity, error) {
 	return obj.(*userapi.Identity), err
 }
 
-func (c *FakeIdentities) List(opts metainternal.ListOptions) (*userapi.IdentityList, error) {
+func (c *FakeIdentities) List(opts metav1.ListOptions) (*userapi.IdentityList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(identitiesResource, opts), &userapi.IdentityList{})
 	if obj == nil {
 		return nil, err
