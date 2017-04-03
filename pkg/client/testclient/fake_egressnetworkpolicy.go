@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -18,7 +18,7 @@ type FakeEgressNetworkPolicy struct {
 
 var egressNetworkPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
 
-func (c *FakeEgressNetworkPolicy) Get(name string) (*sdnapi.EgressNetworkPolicy, error) {
+func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
 	if obj == nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *FakeEgressNetworkPolicy) Get(name string) (*sdnapi.EgressNetworkPolicy,
 	return obj.(*sdnapi.EgressNetworkPolicy), err
 }
 
-func (c *FakeEgressNetworkPolicy) List(opts metainternal.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
+func (c *FakeEgressNetworkPolicy) List(opts metav1.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
@@ -59,6 +59,6 @@ func (c *FakeEgressNetworkPolicy) Delete(name string) error {
 	return err
 }
 
-func (c *FakeEgressNetworkPolicy) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeEgressNetworkPolicy) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(egressNetworkPoliciesResource, c.Namespace, opts))
 }

@@ -1,7 +1,6 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
@@ -17,13 +16,8 @@ type FakeProjectRequests struct {
 
 var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
 
-func (c *FakeProjectRequests) List(opts metainternal.ListOptions) (*metav1.Status, error) {
-	optsv1 := metav1.ListOptions{}
-	err := metainternal.Convert_internalversion_ListOptions_To_v1_ListOptions(&opts, &optsv1, nil)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, optsv1), &metav1.Status{})
+func (c *FakeProjectRequests) List(opts metav1.ListOptions) (*metav1.Status, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, opts), &metav1.Status{})
 	if obj == nil {
 		return nil, err
 	}

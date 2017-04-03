@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -17,7 +17,7 @@ type FakeClusterPolicies struct {
 
 var clusterPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterpolicies"}
 
-func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+func (c *FakeClusterPolicies) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterPoliciesResource, name), &authorizationapi.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (c *FakeClusterPolicies) Get(name string) (*authorizationapi.ClusterPolicy,
 	return obj.(*authorizationapi.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(opts metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (c *FakeClusterPolicies) List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPoliciesResource, opts), &authorizationapi.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
@@ -40,6 +40,6 @@ func (c *FakeClusterPolicies) Delete(name string) error {
 	return err
 }
 
-func (c *FakeClusterPolicies) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeClusterPolicies) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(clusterPoliciesResource, opts))
 }
