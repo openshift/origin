@@ -159,8 +159,12 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		policyListerNamespacer{registry: policyRegistry},
 		policyBindingListerNamespacer{registry: policyBindingRegistry},
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
+		},
 	)
 
 	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver, nil, authorizationapi.Resource("role"))
