@@ -25,8 +25,12 @@ func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry,
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		nil,
 		nil,
-		clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
+		},
 	)
 
 	return &ClusterRoleStorage{
