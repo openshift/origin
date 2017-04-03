@@ -13,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
@@ -379,7 +380,7 @@ func TestHandleScenarios(t *testing.T) {
 		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
 		rcInformer := kubeInformerFactory.Core().InternalVersion().ReplicationControllers()
 		podInformer := kubeInformerFactory.Core().InternalVersion().Pods()
-		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, codec)
+		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, kfakeexternal.NewSimpleClientset(), codec)
 		c.dcStoreSynced = alwaysReady
 		c.podListerSynced = alwaysReady
 		c.rcListerSynced = alwaysReady
