@@ -22,6 +22,7 @@ import (
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -119,9 +120,14 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			return false, err
 		}
 		for i := range allSecrets.Items {
-			secret := allSecrets.Items[i]
-			if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
-				oauthSecret = &secret
+			secret := &allSecrets.Items[i]
+			secretv1 := &kapiv1.Secret{}
+			err := kapiv1.Convert_api_Secret_To_v1_Secret(secret, secretv1, nil)
+			if err != nil {
+				return false, err
+			}
+			if serviceaccount.InternalIsServiceAccountToken(secret, defaultSA) {
+				oauthSecret = secret
 				return true, nil
 			}
 		}
