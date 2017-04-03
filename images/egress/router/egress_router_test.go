@@ -23,6 +23,92 @@ func TestEgressRouter(t *testing.T) {
 -A POSTROUTING -j SNAT --to-source 1.2.3.4
 `,
 		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "10.1.2.3",
+			output: `
+-A PREROUTING -i eth0 -j DNAT --to-destination 10.1.2.3
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "10.1.2.3\n",
+			output: `
+-A PREROUTING -i eth0 -j DNAT --to-destination 10.1.2.3
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6",
+			output: `
+-A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.4.5.6
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "8080 tcp 10.7.8.9 80",
+			output: `
+-A PREROUTING -i eth0 -p tcp --dport 8080 -j DNAT --to-destination 10.7.8.9:80
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6\n8080 tcp 10.7.8.9 80",
+			output: `
+-A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.4.5.6
+-A PREROUTING -i eth0 -p tcp --dport 8080 -j DNAT --to-destination 10.7.8.9:80
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6\n8080 tcp 10.7.8.9 80\n10.1.2.3",
+			output: `
+-A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.4.5.6
+-A PREROUTING -i eth0 -p tcp --dport 8080 -j DNAT --to-destination 10.7.8.9:80
+-A PREROUTING -i eth0 -j DNAT --to-destination 10.1.2.3
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest: `
+# My egress-router rules
+
+# Port 80 forwards to 10.4.5.6
+80 tcp 10.4.5.6
+
+# Port 8080 forwards to port 80 on 10.7.8.9
+8080 tcp 10.7.8.9 80
+
+# Skip this rule for now
+# 8443 tcp 10.7.8.9 443
+
+# Add new rules here
+
+# Fallback; don't add anything after this
+10.1.2.3
+
+# No, seriously, don't add anything here
+`,
+			output: `
+-A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 10.4.5.6
+-A PREROUTING -i eth0 -p tcp --dport 8080 -j DNAT --to-destination 10.7.8.9:80
+-A PREROUTING -i eth0 -j DNAT --to-destination 10.1.2.3
+-A POSTROUTING -j SNAT --to-source 1.2.3.4
+`,
+		},
 	}
 
 	for n, test := range tests {
@@ -72,8 +158,44 @@ func TestEgressRouterBad(t *testing.T) {
 		{
 			source:  "1.2.3.4",
 			gateway: "1.1.1.1",
+			dest:    "",
+			err:     "EGRESS_DESTINATION unspecified",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
 			dest:    "not an IP address",
-			err:     "EGRESS_DESTINATION unspecified or invalid",
+			err:     "EGRESS_DESTINATION value 'not an IP address' is invalid",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "10.1.2.3\n80 tcp 10.4.5.6",
+			err:     "EGRESS_DESTINATION fallback IP must be the last line",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "10.1.2.3\n10.4.5.6",
+			err:     "EGRESS_DESTINATION fallback IP must be the last line",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6\n10.1.2.3\n8080 tcp 10.7.8.9 80",
+			err:     "EGRESS_DESTINATION fallback IP must be the last line",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6\ninvalid\n8080 tcp 10.7.8.9 80",
+			err:     "EGRESS_DESTINATION value 'invalid' is invalid",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 sctp 10.4.5.6",
+			err:     "EGRESS_DESTINATION value '80 sctp 10.4.5.6' is invalid",
 		},
 	}
 

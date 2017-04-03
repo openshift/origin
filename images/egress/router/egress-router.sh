@@ -6,14 +6,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+BLANK_LINE_OR_COMMENT_REGEX="([[:space:]]*$|#.*)"
+PORT_REGEX="[[:digit:]]+"
+PROTO_REGEX="(tcp|udp)"
 IP_REGEX="[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"
 
 if [[ ! "${EGRESS_SOURCE:-}" =~ ^${IP_REGEX}$ ]]; then
     echo "EGRESS_SOURCE unspecified or invalid"
     exit 1
 fi
-if [[ ! "${EGRESS_DESTINATION:-}" =~ ^${IP_REGEX}$ ]]; then
-    echo "EGRESS_DESTINATION unspecified or invalid"
+if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
+    echo "EGRESS_DESTINATION unspecified"
     exit 1
 fi
 if [[ ! "${EGRESS_GATEWAY:-}" =~ ^${IP_REGEX}$ ]]; then
@@ -45,7 +48,37 @@ function setup_network() {
 }
 
 function gen_iptables_rules() {
-    echo -A PREROUTING -i eth0 -j DNAT --to-destination "${EGRESS_DESTINATION}"
+    did_fallback=
+    while read dest; do
+	if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
+            # comment or blank line
+            continue
+	fi
+	if [[ -n "${did_fallback}" ]]; then
+            echo "EGRESS_DESTINATION fallback IP must be the last line" 1>&2
+            exit 1
+	fi
+
+	if [[ "${dest}" =~ ^${IP_REGEX}$ ]]; then
+            # single IP address: do fallback "all ports to same IP"
+            echo -A PREROUTING -i eth0 -j DNAT --to-destination "${dest}"
+            did_fallback=1
+
+	elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}$ ]]; then
+            read localport proto destip <<< "${dest}"
+            echo -A PREROUTING -i eth0 -p "${proto}" --dport "${localport}" -j DNAT --to-destination "${destip}"
+
+	elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}\ +${PORT_REGEX}$ ]]; then
+            read localport proto destip destport <<< "${dest}"
+            echo -A PREROUTING -i eth0 -p "${proto}" --dport "${localport}" -j DNAT --to-destination "${destip}:${destport}"
+
+	else
+            echo "EGRESS_DESTINATION value '${dest}' is invalid" 1>&2
+            exit 1
+
+	fi
+
+    done <<< "${EGRESS_DESTINATION}"
     echo -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
 }
 
