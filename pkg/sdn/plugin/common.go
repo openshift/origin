@@ -10,6 +10,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -39,13 +40,21 @@ type NetworkInfo struct {
 }
 
 func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
-	_, cn, err := net.ParseCIDR(clusterNetwork)
+	cn, err := netutils.ParseCIDRMask(clusterNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
+		_, cn, err := net.ParseCIDR(clusterNetwork)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
+		}
+		glog.Errorf("Configured clusterNetworkCIDR value %q is invalid; treating it as %q", clusterNetwork, cn.String())
 	}
-	_, sn, err := net.ParseCIDR(serviceNetwork)
+	sn, err := netutils.ParseCIDRMask(serviceNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+		_, sn, err := net.ParseCIDR(serviceNetwork)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ServiceNetwork CIDR %s: %v", serviceNetwork, err)
+		}
+		glog.Errorf("Configured serviceNetworkCIDR value %q is invalid; treating it as %q", serviceNetwork, sn.String())
 	}
 
 	return &NetworkInfo{
