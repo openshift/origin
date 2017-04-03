@@ -389,15 +389,14 @@ func getScopeRestrictionsFor(namespace, name string) []oauthapi.ScopeRestriction
 
 // getServiceAccountTokens returns all ServiceAccountToken secrets for the given ServiceAccount
 func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) ([]string, error) {
-	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(metainternal.ListOptions{})
+	allSecrets, err := a.secretClient.Secrets(sa.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-
 	tokens := []string{}
 	for i := range allSecrets.Items {
-		secret := allSecrets.Items[i]
-		if serviceaccount.IsServiceAccountToken(&secret, sa) {
+		secret := &allSecrets.Items[i]
+		if serviceaccount.InternalIsServiceAccountToken(secret, sa) {
 			tokens = append(tokens, string(secret.Data[kapi.ServiceAccountTokenKey]))
 		}
 	}
