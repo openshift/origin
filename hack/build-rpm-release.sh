@@ -17,19 +17,9 @@ else
 fi
 
 os::log::info 'Building Origin release RPMs with tito...'
-os::build::get_version_vars
-if [[ "${OS_GIT_TREE_STATE}" == "dirty" ]]; then
-	os::log::fatal "Cannot build RPMs with a dirty git tree. Commit your changes and try again."
-fi
-if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
-	# we need to translate from the semantic version
-	# provided by the Origin build scripts to the
-	# version that RPM will expect.
-	rpm_version="${BASH_REMATCH[1]}"
-	rpm_release="999${BASH_REMATCH[3]//-/.}"
-fi
-tito tag --use-version="${rpm_version}" \
-         --use-release="${rpm_release}" \
+os::build::rpm::get_nvra_vars
+tito tag --use-version="${OS_RPM_VERSION}" \
+         --use-release="${OS_RPM_RELEASE}" \
          --no-auto-changelog --offline
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
@@ -38,7 +28,7 @@ tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
-output_directories=( $( find "${tito_tmp_dir}" -type d -name 'rpmbuild-origin*' ) )
+output_directories=( $( find "${tito_tmp_dir}" -type d -name "rpmbuild-${OS_RPM_NAME}*" ) )
 if [[ "${#output_directories[@]}" -eq 0 ]]; then
 	os::log::error 'After the tito build, no rpmbuild directory was found!'
 	exit 1
@@ -56,9 +46,9 @@ else
 	output_directory="${output_directories[0]}"
 fi
 
-tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/origin-${rpm_version}/_output/local" )"
+tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/${OS_RPM_NAME}-${OS_RPM_VERSION}/_output/local" )"
 if [[ -z "${tito_output_directory}" ]]; then
-        os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
+	os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
 # clean up our local state so we can unpack the tito artifacts cleanly
@@ -74,14 +64,15 @@ if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
 	createrepo "${repo_path}"
 
-	echo "[origin-local-release]
+	echo "[${OS_RPM_NAME}-local-release]
 baseurl = file://${repo_path}
 gpgcheck = 0
-name = OpenShift Origin Release from Local Source
-" > "${repo_path}/origin-local-release.repo"
+name = OpenShift Release from Local Source
+enabled = 1
+" > "${repo_path}/${OS_RPM_NAME}-local-release.repo"
 
-	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo"
-	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
+	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/${OS_RPM_NAME}-local-release.repo"
+	os::log::info "Install it with: "$'\n\t'"$ mv '${repo_path}/${OS_RPM_NAME}-local-release.repo' '/etc/yum.repos.d"
 else
 	os::log::warn "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
 fi
