@@ -117,8 +117,7 @@ func sameFileStat(requireMode bool, src, dst string) bool {
 // EnsureDocker attempts to connect to the Docker daemon defined by the helper,
 // and if it is unable to it will print a warning.
 func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
-	// TODO(rebase): what are sensible timeout values here?
-	dockerClient, dockerAddr, err := docker.GetKubeClient(0, 0)
+	dockerClient, dockerAddr, err := docker.GetKubeClient(c.KubeletServer.RuntimeRequestTimeout.Duration, c.KubeletServer.ImagePullProgressDeadline.Duration)
 	if err != nil {
 		c.HandleDockerError(fmt.Sprintf("Unable to create a Docker client for %s - Docker must be installed and running to start containers.\n%v", dockerAddr, err))
 		return
