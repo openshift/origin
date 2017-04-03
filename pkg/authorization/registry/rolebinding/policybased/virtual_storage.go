@@ -62,7 +62,7 @@ func (m *VirtualStorage) List(ctx apirequest.Context, options *metainternal.List
 		return nil, err
 	}
 
-	matcher := rolebindingregistry.Matcher(oapi.ListOptionsToSelectors(options))
+	matcher := rolebindingregistry.Matcher(oapi.InternalListOptionsToSelectors(options))
 
 	roleBindingList := &authorizationapi.RoleBindingList{}
 	for _, policyBinding := range policyBindingList.Items {

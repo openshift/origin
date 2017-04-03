@@ -60,7 +60,7 @@ func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 		return nil, err
 	}
 
-	matcher := MatchImageStreamTag(oapi.ListOptionsToSelectors(options))
+	matcher := MatchImageStreamTag(oapi.InternalListOptionsToSelectors(options))
 
 	list := &imageapi.ImageStreamTagList{}
 	for _, currIS := range imageStreams.Items {
