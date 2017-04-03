@@ -350,8 +350,7 @@ func postPolicyHandler(f5state mockF5State) http.HandlerFunc {
 		decoder := json.NewDecoder(request.Body)
 		decoder.Decode(&payload)
 
-		policyPath := path.Join(payload.Partition, payload.Name)
-		policy := newMockF5iControlResource("policy", policyPath)
+		policy := newMockF5iControlResource("policy", payload.Name)
 
 		f5state.policies[policy.id()] = map[string]policyRule{}
 
@@ -437,7 +436,7 @@ func associatePolicyWithVserverHandler(f5state mockF5State) http.HandlerFunc {
 		decoder := json.NewDecoder(request.Body)
 		decoder.Decode(&payload)
 
-		policy := newMockF5iControlResource("policy", path.Join(payload.Partition, payload.Name))
+		policy := newMockF5iControlResource("policy", payload.Name)
 
 		validVserver := recogniseVserver(vserver)
 		_, validPolicy := f5state.policies[policy.id()]
