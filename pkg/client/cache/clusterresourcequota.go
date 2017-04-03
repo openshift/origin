@@ -2,7 +2,6 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -15,10 +14,14 @@ type IndexerToClusterResourceQuotaLister struct {
 	cache.Indexer
 }
 
-func (i *IndexerToClusterResourceQuotaLister) List(options metainternal.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
+func (i *IndexerToClusterResourceQuotaLister) List(options metav1.ListOptions) ([]*quotaapi.ClusterResourceQuota, error) {
 	returnedList := i.Indexer.List()
 	ret := make([]*quotaapi.ClusterResourceQuota, 0, len(returnedList))
-	matcher := clusterresourcequotaregistry.Matcher(oapi.ListOptionsToSelectors(&options))
+	labelSel, fieldSel, err := oapi.ListOptionsToSelectors(&options)
+	if err != nil {
+		return nil, err
+	}
+	matcher := clusterresourcequotaregistry.Matcher(labelSel, fieldSel)
 
 	for i := range returnedList {
 		clusterResourceQuota := returnedList[i].(*quotaapi.ClusterResourceQuota)

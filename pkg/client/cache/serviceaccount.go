@@ -24,7 +24,7 @@ type storeServiceAccountsNamespacer struct {
 }
 
 // Get the  ServiceAccount matching the name from the cache.
-func (s storeServiceAccountsNamespacer) Get(name string) (*kapi.ServiceAccount, error) {
+func (s storeServiceAccountsNamespacer) Get(name string, options metav1.GetOptions) (*kapi.ServiceAccount, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

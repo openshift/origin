@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -17,7 +17,7 @@ type FakeHostSubnet struct {
 
 var hostSubnetsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
 
-func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
+func (c *FakeHostSubnet) Get(name string, options metav1.GetOptions) (*sdnapi.HostSubnet, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
 	if obj == nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
 	return obj.(*sdnapi.HostSubnet), err
 }
 
-func (c *FakeHostSubnet) List(opts metainternal.ListOptions) (*sdnapi.HostSubnetList, error) {
+func (c *FakeHostSubnet) List(opts metav1.ListOptions) (*sdnapi.HostSubnetList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(hostSubnetsResource, opts), &sdnapi.HostSubnetList{})
 	if obj == nil {
 		return nil, err
@@ -58,6 +58,6 @@ func (c *FakeHostSubnet) Delete(name string) error {
 	return err
 }
 
-func (c *FakeHostSubnet) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeHostSubnet) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(hostSubnetsResource, opts))
 }
