@@ -1,4 +1,4 @@
-package github
+package gitlab
 
 import (
 	"bytes"
@@ -18,20 +18,20 @@ var testBuildConfig = &api.BuildConfig{
 	Spec: api.BuildConfigSpec{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
+				Type: api.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &api.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
 			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
+				Type: api.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &api.WebHookTrigger{
 					Secret: "secret100",
 				},
 			},
 			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
+				Type: api.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &api.WebHookTrigger{
 					Secret: "secret102",
 				},
 			},
@@ -90,8 +90,8 @@ var buildConfig = &api.BuildConfig{
 	Spec: api.BuildConfigSpec{
 		Triggers: []api.BuildTriggerPolicy{
 			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
+				Type: api.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &api.WebHookTrigger{
 					Secret: "secret100",
 				},
 			},
@@ -147,8 +147,8 @@ func TestMissingEvent(t *testing.T) {
 	plugin := New()
 	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err == nil || !strings.Contains(err.Error(), "missing X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected missing X-GitHub-Event or X-Gogs-Event, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "missing X-Gitlab-Event") {
+		t.Errorf("Expected missing X-Gitlab-Event, got %v", err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")
@@ -158,39 +158,26 @@ func TestMissingEvent(t *testing.T) {
 	}
 }
 
-func TestWrongGitHubEvent(t *testing.T) {
+func TestWrongGitLabEvent(t *testing.T) {
 	req := GivenRequest("POST")
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("X-GitHub-Event", "wrong")
+	req.Header.Add("X-Gitlab-Event", "wrong")
 	plugin := New()
 	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
-	if err == nil || !strings.Contains(err.Error(), "Unknown X-GitHub-Event or X-Gogs-Event") {
-		t.Errorf("Expected missing Unknown X-GitHub-Event or X-Gogs-Event, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "Unknown X-Gitlab-Event") {
+		t.Errorf("Expected missing Unknown X-Gitlab-Event, got %v", err)
 	}
 	if proceed {
 		t.Error("Expected 'proceed' return value to be 'false'")
 	}
 	if revision != nil {
 		t.Error("Expected the 'revision' return value to be nil")
-	}
-}
-
-func TestJsonPingEvent(t *testing.T) {
-	req := postFile("X-GitHub-Event", "ping", "pingevent.json", "http://some.url", http.StatusOK, t)
-	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	if proceed {
-		t.Error("Expected 'proceed' return value to be 'false'")
 	}
 }
 
 func TestJsonPushEventError(t *testing.T) {
-	req := post("X-GitHub-Event", "push", []byte{}, "http://some.url", http.StatusBadRequest, t)
+	req := post("X-Gitlab-Event", "Push Hook", []byte{}, "http://some.url", http.StatusBadRequest, t)
 	plugin := New()
 	revision, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
@@ -205,8 +192,8 @@ func TestJsonPushEventError(t *testing.T) {
 	}
 }
 
-func TestJsonGitHubPushEvent(t *testing.T) {
-	req := postFile("X-GitHub-Event", "push", "pushevent.json", "http://some.url", http.StatusOK, t)
+func TestJsonGitLabPushEvent(t *testing.T) {
+	req := postFile("X-Gitlab-Event", "Push Hook", "pushevent.json", "http://some.url", http.StatusOK, t)
 	plugin := New()
 	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
@@ -218,21 +205,8 @@ func TestJsonGitHubPushEvent(t *testing.T) {
 	}
 }
 
-func TestJsonGitHubPushEventWithCharset(t *testing.T) {
-	req := postFileWithCharset("X-GitHub-Event", "push", "pushevent.json", "http://some.url", "application/json; charset=utf-8", http.StatusOK, t)
-	plugin := New()
-	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	if !proceed {
-		t.Error("Expected 'proceed' return value to be 'true'")
-	}
-}
-
-func TestJsonGogsPushEvent(t *testing.T) {
-	req := postFile("X-Gogs-Event", "push", "pushevent.json", "http://some.url", http.StatusOK, t)
+func TestJsonGitLabPushEventWithCharset(t *testing.T) {
+	req := postFileWithCharset("X-Gitlab-Event", "Push Hook", "pushevent.json", "http://some.url", "application/json; charset=utf-8", http.StatusOK, t)
 	plugin := New()
 	_, _, _, proceed, err := plugin.Extract(buildConfig, "secret100", "", req)
 
@@ -287,20 +261,20 @@ func setup(t *testing.T, filename, eventType, ref string) *testContext {
 			Spec: api.BuildConfigSpec{
 				Triggers: []api.BuildTriggerPolicy{
 					{
-						Type: api.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &api.WebHookTrigger{
+						Type: api.GitLabWebHookBuildTriggerType,
+						GitLabWebHook: &api.WebHookTrigger{
 							Secret: "secret101",
 						},
 					},
 					{
-						Type: api.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &api.WebHookTrigger{
+						Type: api.GitLabWebHookBuildTriggerType,
+						GitLabWebHook: &api.WebHookTrigger{
 							Secret: "secret100",
 						},
 					},
 					{
-						Type: api.GitHubWebHookBuildTriggerType,
-						GitHubWebHook: &api.WebHookTrigger{
+						Type: api.GitLabWebHookBuildTriggerType,
+						GitLabWebHook: &api.WebHookTrigger{
 							Secret: "secret102",
 						},
 					},
@@ -327,31 +301,15 @@ func setup(t *testing.T, filename, eventType, ref string) *testContext {
 		t.Errorf("Failed to create a new request (%s)", err)
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("X-Github-Event", eventType)
+	req.Header.Add("X-Gitlab-Event", eventType)
 
 	context.req = req
 	return &context
 }
 
-func TestExtractForAPingEvent(t *testing.T) {
-	//setup
-	context := setup(t, "pingevent.json", "ping", "")
-
-	//execute
-	_, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
-
-	//validation
-	if err != nil {
-		t.Errorf("Error while extracting build info: %s", err)
-	}
-	if proceed {
-		t.Errorf("The 'proceed' return value should equal 'false' %t", proceed)
-	}
-}
-
 func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent.json", "push", "")
+	context := setup(t, "pushevent.json", "Push Hook", "")
 
 	//execute
 	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
@@ -366,15 +324,15 @@ func TestExtractProvidesValidBuildForAPushEvent(t *testing.T) {
 	if revision == nil {
 		t.Fatal("Expecting the revision to not be nil")
 	}
-	if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
-		t.Error("Expecting the revision to contain the commit id from the push event")
+	if revision.Git.Commit != "da1560886d4f094c3e6c9ef40349f7d38b5d27d7" {
+		t.Errorf("Expecting the revision to contain the commit id from the push event, got %#v", revision.Git.Commit)
 	}
 
 }
 
 func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent-not-master-branch.json", "push", "my_other_branch")
+	context := setup(t, "pushevent-not-master-branch.json", "Push Hook", "my_other_branch")
 	//execute
 	revision, _, _, proceed, err := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)
 
@@ -388,14 +346,14 @@ func TestExtractProvidesValidBuildForAPushEventOtherThanMaster(t *testing.T) {
 	if revision == nil {
 		t.Fatal("Expecting the revision to not be nil")
 	}
-	if revision.Git.Commit != "9bdc3a26ff933b32f3e558636b58aea86a69f051" {
+	if revision.Git.Commit != "da1560886d4f094c3e6c9ef40349f7d38b5d27d7" {
 		t.Error("Expecting the revision to contain the commit id from the push event")
 	}
 }
 
 func TestExtractSkipsBuildForUnmatchedBranches(t *testing.T) {
 	//setup
-	context := setup(t, "pushevent.json", "push", "wrongref")
+	context := setup(t, "pushevent.json", "Push Hook", "wrongref")
 
 	//execute
 	_, _, _, proceed, _ := context.plugin.Extract(context.buildCfg, "secret101", context.path, context.req)

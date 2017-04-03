@@ -19,6 +19,117 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
+func TestWebhook(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	if err != nil {
+		t.Fatalf("unable to start master: %v", err)
+	}
+
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unable to get kubeClient: %v", err)
+	}
+	osClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unable to get osClient: %v", err)
+	}
+
+	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+	})
+
+	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	// create buildconfig
+	buildConfig := mockBuildConfigImageParms("originalimage", "imagestream", "validtag")
+	if _, err := osClient.BuildConfigs(testutil.Namespace()).Create(buildConfig); err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	tests := []struct {
+		Name       string
+		Payload    string
+		HeaderFunc func(*http.Header)
+		URLs       []string
+	}{
+		{
+			Name:       "generic",
+			Payload:    "generic/testdata/push-generic.json",
+			HeaderFunc: genericHeaderFunc,
+			URLs: []string{
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret201/generic",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret202/generic",
+			},
+		},
+		{
+			Name:       "github",
+			Payload:    "github/testdata/pushevent.json",
+			HeaderFunc: githubHeaderFunc,
+			URLs: []string{
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+			},
+		},
+		{
+			Name:       "gitlab",
+			Payload:    "gitlab/testdata/pushevent.json",
+			HeaderFunc: gitlabHeaderFunc,
+			URLs: []string{
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret301/gitlab",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret302/gitlab",
+			},
+		},
+		{
+			Name:       "bitbucket",
+			Payload:    "bitbucket/testdata/pushevent.json",
+			HeaderFunc: bitbucketHeaderFunc,
+			URLs: []string{
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret401/bitbucket",
+				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret402/bitbucket",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		for _, s := range test.URLs {
+			// trigger build event sending push notification
+			clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			body := postFile(osClient.RESTClient.Client, test.HeaderFunc, test.Payload, clusterAdminClientConfig.Host+s, http.StatusOK, t)
+			if len(body) == 0 {
+				t.Fatalf("%s: Webhook did not return expected Build object.", test.Name)
+			}
+
+			returnedBuild := &buildapiv1.Build{}
+			err = json.Unmarshal(body, returnedBuild)
+			if err != nil {
+				t.Fatalf("%s: Unable to unmarshal returned body into a Build object: %v", test.Name, err)
+			}
+
+			actual, err := osClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+			if err != nil {
+				t.Errorf("Created build not found in cluster: %v", err)
+			}
+
+			// There should only be one trigger on these builds.
+			if actual.Spec.TriggeredBy[0].Message != returnedBuild.Spec.TriggeredBy[0].Message {
+				t.Fatalf("%s: Webhook returned incorrect build.", test.Name)
+			}
+		}
+	}
+}
+
 func TestWebhookGitHubPushWithImage(t *testing.T) {
 	testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
@@ -92,13 +203,13 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	}
 
 	for _, s := range []string{
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
 		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 
 		// trigger build event sending push notification
-		body := postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		body := postFile(clusterAdminClient.RESTClient.Client, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 		if len(body) == 0 {
 			t.Errorf("Webhook did not return Build in body")
 		}
@@ -216,7 +327,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	} {
 
 		// trigger build event sending push notification
-		postFile(clusterAdminClient.RESTClient.Client, "push", "pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(clusterAdminClient.RESTClient.Client, githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		event := <-watch.ResultChan()
 		actual := event.Object.(*buildapi.Build)
@@ -278,7 +389,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		postFile(osClient.RESTClient.Client, "ping", "pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+		postFile(osClient.RESTClient.Client, githubHeaderFuncPing, "github/testdata/pingevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
 		// TODO: improve negative testing
 		timer := time.NewTimer(time.Second * 5)
@@ -292,8 +403,8 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client restclient.HTTPClient, event, filename, url string, expStatusCode int, t *testing.T) []byte {
-	data, err := ioutil.ReadFile("../../pkg/build/webhook/github/testdata/" + filename)
+func postFile(client restclient.HTTPClient, headerFunc func(*http.Header), filename, url string, expStatusCode int, t *testing.T) []byte {
+	data, err := ioutil.ReadFile("../../pkg/build/webhook/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
 	}
@@ -301,9 +412,7 @@ func postFile(client restclient.HTTPClient, event, filename, url string, expStat
 	if err != nil {
 		t.Fatalf("Error creating POST request: %v", err)
 	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("User-Agent", "GitHub-Hookshot/github")
-	req.Header.Add("X-Github-Event", event)
+	headerFunc(&req.Header)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed posting webhook: %v", err)
@@ -344,7 +453,55 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 				{
 					Type: buildapi.GenericWebHookBuildTriggerType,
 					GenericWebHook: &buildapi.WebHookTrigger{
-						Secret: "secret103",
+						Secret: "secret202",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret201",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret200",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret301",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret300",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret302",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret401",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret400",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret402",
 					},
 				},
 			},
@@ -400,6 +557,96 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 						Secret: "secret102",
 					},
 				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret201",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret200",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret202",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret301",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret300",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret302",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret202",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret201",
+					},
+				},
+				{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret200",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret301",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret300",
+					},
+				},
+				{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret302",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret401",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret400",
+					},
+				},
+				{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
+						Secret: "secret402",
+					},
+				},
 			},
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{
@@ -425,4 +672,30 @@ func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *b
 			},
 		},
 	}
+}
+
+func genericHeaderFunc(header *http.Header) {
+	header.Add("Content-Type", "application/json")
+}
+
+func githubHeaderFunc(header *http.Header) {
+	header.Add("Content-Type", "application/json")
+	header.Add("User-Agent", "GitHub-Hookshot/github")
+	header.Add("X-Github-Event", "push")
+}
+
+func githubHeaderFuncPing(header *http.Header) {
+	header.Add("Content-Type", "application/json")
+	header.Add("User-Agent", "GitHub-Hookshot/github")
+	header.Add("X-Github-Event", "ping")
+}
+
+func gitlabHeaderFunc(header *http.Header) {
+	header.Add("Content-Type", "application/json")
+	header.Add("X-Gitlab-Event", "Push Hook")
+}
+
+func bitbucketHeaderFunc(header *http.Header) {
+	header.Add("Content-Type", "application/json")
+	header.Add("X-Event-Key", "repo:push")
 }

@@ -53,8 +53,10 @@ import (
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/build/webhook/gitlab"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
@@ -780,8 +782,10 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 		// is the same API version that the storage is going to be used for.
 		buildapiv1.SchemeGroupVersion,
 		map[string]webhook.Plugin{
-			"generic": generic.New(),
-			"github":  github.New(),
+			"generic":   generic.New(),
+			"github":    github.New(),
+			"gitlab":    gitlab.New(),
+			"bitbucket": bitbucket.New(),
 		},
 	)
 

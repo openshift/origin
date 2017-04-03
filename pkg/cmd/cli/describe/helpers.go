@@ -169,6 +169,12 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 		case buildapi.GitHubWebHookBuildTriggerType:
 			webHookTrigger = trigger.GitHubWebHook.Secret
 
+		case buildapi.GitLabWebHookBuildTriggerType:
+			webHookTrigger = trigger.GitLabWebHook.Secret
+
+		case buildapi.BitbucketWebHookBuildTriggerType:
+			webHookTrigger = trigger.BitbucketWebHook.Secret
+
 		case buildapi.GenericWebHookBuildTriggerType:
 			webHookTrigger = trigger.GenericWebHook.Secret
 			allowEnv = &trigger.GenericWebHook.AllowEnv

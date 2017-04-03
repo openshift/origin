@@ -23225,6 +23225,14 @@
      "imageChange": {
       "$ref": "v1.ImageChangeTrigger",
       "description": "imageChange contains parameters for an ImageChange type of trigger"
+     },
+     "gitlab": {
+      "$ref": "v1.WebHookTrigger",
+      "description": "GitLabWebHook contains the parameters for a GitLab webhook type of trigger"
+     },
+     "bitbucket": {
+      "$ref": "v1.WebHookTrigger",
+      "description": "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger"
      }
     }
    },
@@ -24137,6 +24145,14 @@
      "imageChangeBuild": {
       "$ref": "v1.ImageChangeCause",
       "description": "imageChangeBuild stores information about an imagechange event that triggered a new build."
+     },
+     "gitlabWebHook": {
+      "$ref": "v1.GitLabWebHookCause",
+      "description": "GitLabWebHook represents data for a GitLab webhook that fired a specific build."
+     },
+     "bitbucketWebHook": {
+      "$ref": "v1.BitbucketWebHookCause",
+      "description": "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build."
      }
     }
    },
@@ -24179,6 +24195,34 @@
      "fromRef": {
       "$ref": "v1.ObjectReference",
       "description": "fromRef contains detailed information about an image that triggered a build."
+     }
+    }
+   },
+   "v1.GitLabWebHookCause": {
+    "id": "v1.GitLabWebHookCause",
+    "description": "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
+    "properties": {
+     "revision": {
+      "$ref": "v1.SourceRevision",
+      "description": "Revision is the git source revision information of the trigger."
+     },
+     "secret": {
+      "type": "string",
+      "description": "Secret is the obfuscated webhook secret that triggered a build."
+     }
+    }
+   },
+   "v1.BitbucketWebHookCause": {
+    "id": "v1.BitbucketWebHookCause",
+    "description": "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
+    "properties": {
+     "revision": {
+      "$ref": "v1.SourceRevision",
+      "description": "Revision is the git source revision information of the trigger."
+     },
+     "secret": {
+      "type": "string",
+      "description": "Secret is the obfuscated webhook secret that triggered a build."
      }
     }
    },
