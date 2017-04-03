@@ -58,7 +58,7 @@ type storeBuildConfigsNamespacer struct {
 }
 
 // Get the build config matching the name from the cache.
-func (s storeBuildConfigsNamespacer) Get(name string) (*buildapi.BuildConfig, error) {
+func (s storeBuildConfigsNamespacer) Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

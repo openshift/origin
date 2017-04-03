@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -17,7 +17,7 @@ type FakeNetNamespace struct {
 
 var netNamespacesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "netnamespaces"}
 
-func (c *FakeNetNamespace) Get(name string) (*sdnapi.NetNamespace, error) {
+func (c *FakeNetNamespace) Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
 	if obj == nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (c *FakeNetNamespace) Get(name string) (*sdnapi.NetNamespace, error) {
 	return obj.(*sdnapi.NetNamespace), err
 }
 
-func (c *FakeNetNamespace) List(opts metainternal.ListOptions) (*sdnapi.NetNamespaceList, error) {
+func (c *FakeNetNamespace) List(opts metav1.ListOptions) (*sdnapi.NetNamespaceList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(netNamespacesResource, opts), &sdnapi.NetNamespaceList{})
 	if obj == nil {
 		return nil, err
@@ -58,6 +58,6 @@ func (c *FakeNetNamespace) Delete(name string) error {
 	return err
 }
 
-func (c *FakeNetNamespace) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeNetNamespace) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(netNamespacesResource, opts))
 }

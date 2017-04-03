@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -18,7 +18,7 @@ type FakePolicyBindings struct {
 
 var policyBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "policybindings"}
 
-func (c *FakePolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (c *FakePolicyBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(policyBindingsResource, c.Namespace, name), &authorizationapi.PolicyBinding{})
 	if obj == nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *FakePolicyBindings) Get(name string) (*authorizationapi.PolicyBinding, 
 	return obj.(*authorizationapi.PolicyBinding), err
 }
 
-func (c *FakePolicyBindings) List(opts metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (c *FakePolicyBindings) List(opts metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(policyBindingsResource, c.Namespace, opts), &authorizationapi.PolicyBindingList{})
 	if obj == nil {
 		return nil, err
@@ -50,6 +50,6 @@ func (c *FakePolicyBindings) Delete(name string) error {
 	return err
 }
 
-func (c *FakePolicyBindings) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakePolicyBindings) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(policyBindingsResource, c.Namespace, opts))
 }

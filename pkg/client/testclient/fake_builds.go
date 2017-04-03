@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -18,7 +18,7 @@ type FakeBuilds struct {
 
 var buildsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "builds"}
 
-func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
+func (c *FakeBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Build, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(buildsResource, c.Namespace, name), &buildapi.Build{})
 	if obj == nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *FakeBuilds) Get(name string) (*buildapi.Build, error) {
 	return obj.(*buildapi.Build), err
 }
 
-func (c *FakeBuilds) List(opts metainternal.ListOptions) (*buildapi.BuildList, error) {
+func (c *FakeBuilds) List(opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildsResource, c.Namespace, opts), &buildapi.BuildList{})
 	if obj == nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (c *FakeBuilds) Delete(name string) error {
 	return err
 }
 
-func (c *FakeBuilds) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeBuilds) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(buildsResource, c.Namespace, opts))
 }
 

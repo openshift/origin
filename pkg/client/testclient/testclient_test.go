@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -16,7 +16,7 @@ func TestNewClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	oc, _ := NewFixtureClients(o...)
-	list, err := oc.DeploymentConfigs("test").List(metainternal.ListOptions{})
+	list, err := oc.DeploymentConfigs("test").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,7 +25,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	// same result
-	list, err = oc.DeploymentConfigs("test").List(metainternal.ListOptions{})
+	list, err = oc.DeploymentConfigs("test").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,13 +37,13 @@ func TestNewClient(t *testing.T) {
 
 func TestErrors(t *testing.T) {
 	oc, _ := NewErrorClients(errors.NewNotFound(deployapi.Resource("DeploymentConfigList"), ""))
-	_, err := oc.DeploymentConfigs("test").List(metainternal.ListOptions{})
+	_, err := oc.DeploymentConfigs("test").List(metav1.ListOptions{})
 	if !errors.IsNotFound(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	oc, _ = NewErrorClients(errors.NewForbidden(deployapi.Resource("DeploymentConfigList"), "", nil))
-	_, err = oc.DeploymentConfigs("test").List(metainternal.ListOptions{})
+	_, err = oc.DeploymentConfigs("test").List(metav1.ListOptions{})
 	if !errors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}

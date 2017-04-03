@@ -21,7 +21,7 @@ func (s *IndexerToSecurityContextConstraintsLister) List() ([]*kapi.SecurityCont
 	return sccs, nil
 }
 
-func (s *IndexerToSecurityContextConstraintsLister) Get(name string) (*kapi.SecurityContextConstraints, error) {
+func (s *IndexerToSecurityContextConstraintsLister) Get(name string, options metav1.GetOptions) (*kapi.SecurityContextConstraints, error) {
 	keyObj := &kapi.SecurityContextConstraints{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
