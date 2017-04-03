@@ -101,7 +101,7 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 
 	eventcast := record.NewBroadcaster()
 	recorder := eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "persistent-volume-controller"})
-	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.CoreV1().RESTClient()).Events("")})
 
 	volumeController := persistentvolumecontroller.NewController(
 		persistentvolumecontroller.ControllerParameters{
@@ -300,7 +300,7 @@ func (c *MasterConfig) RunScheduler() {
 	}
 	eventcast := record.NewBroadcaster()
 	config.Recorder = eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: kapi.DefaultSchedulerName})
-	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.Core().RESTClient()).Events("")})
+	eventcast.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(c.KubeClient.CoreV1().RESTClient()).Events("")})
 
 	s := scheduler.New(config)
 	go s.Run()
