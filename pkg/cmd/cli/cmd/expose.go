@@ -132,7 +132,10 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 			cmd.Flags().Set("generator", generator)
 			fallthrough
 		case "route/v1":
-			route, err := cmdutil.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"))
+			// The upstream generator will incorrectly chose service.Port instead of service.TargetPort
+			// for the route TargetPort when no port is present.  Passing forcePort=true
+			// causes UnsecuredRoute to always set a Port so the upstream default is not used.
+			route, err := cmdutil.UnsecuredRoute(kc, namespace, info.Name, info.Name, kcmdutil.GetFlagString(cmd, "port"), true)
 			if err != nil {
 				return err
 			}

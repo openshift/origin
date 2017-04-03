@@ -283,7 +283,7 @@ os::cmd::expect_success 'oc delete svc external'
 # Expose multiport service and verify we set a port in the route
 os::cmd::expect_success 'oc create -f test/testdata/multiport-service.yaml'
 os::cmd::expect_success 'oc expose svc/frontend --name route-with-set-port'
-os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}' --output-version=v1" "web"
+os::cmd::expect_success_and_text "oc get route route-with-set-port --template='{{.spec.port.targetPort}}'" "web"
 echo "expose: ok"
 os::test::junit::declare_suite_end
 
