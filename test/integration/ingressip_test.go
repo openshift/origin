@@ -44,6 +44,13 @@ func TestIngressIPAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	extkc, _, err := configapi.GetExternalKubeClient(clusterAdminKubeConfig, &configapi.ClientConnectionOverrides{
+		QPS:   20,
+		Burst: 50,
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	stopChannel := make(chan struct{})
 	defer close(stopChannel)
@@ -79,7 +86,7 @@ func TestIngressIPAllocation(t *testing.T) {
 
 	// Start a second controller that will be out of sync with the first
 	_, ipNet, err := net.ParseCIDR(masterConfig.NetworkConfig.IngressIPNetworkCIDR)
-	c := ingressip.NewIngressIPController(kc, ipNet, 10*time.Minute)
+	c := ingressip.NewIngressIPController(kc, extkc, ipNet, 10*time.Minute)
 	go c.Run(stopChannel)
 
 	t.Log("waiting for sentinel to be updated with external ip")

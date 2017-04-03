@@ -14,6 +14,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
@@ -29,7 +30,7 @@ func newController(t *testing.T, client *fake.Clientset) *IngressIPController {
 	if client == nil {
 		client = fake.NewSimpleClientset()
 	}
-	return NewIngressIPController(client, ipNet, 10*time.Minute)
+	return NewIngressIPController(client, kfakeexternal.NewSimpleClientset(), ipNet, 10*time.Minute)
 }
 
 func controllerSetup(t *testing.T, startingObjects []runtime.Object) (*fake.Clientset, *watch.FakeWatcher, *IngressIPController) {
