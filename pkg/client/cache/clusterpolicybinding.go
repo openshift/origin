@@ -2,7 +2,6 @@ package cache
 
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -25,10 +24,14 @@ func (i *InformerToClusterPolicyBindingLister) ClusterPolicyBindings() client.Cl
 	return i
 }
 
-func (i *InformerToClusterPolicyBindingLister) List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (i *InformerToClusterPolicyBindingLister) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	clusterPolicyBindingList := &authorizationapi.ClusterPolicyBindingList{}
 	returnedList := i.GetIndexer().List()
-	matcher := clusterpolicybindingregistry.Matcher(oapi.ListOptionsToSelectors(&options))
+	labelSel, fieldSel, err := oapi.ListOptionsToSelectors(&options)
+	if err != nil {
+		return nil, err
+	}
+	matcher := clusterpolicybindingregistry.Matcher(labelSel, fieldSel)
 	for i := range returnedList {
 		clusterPolicyBinding := returnedList[i].(*authorizationapi.ClusterPolicyBinding)
 		if matches, err := matcher.Matches(clusterPolicyBinding); err == nil && matches {
@@ -38,7 +41,7 @@ func (i *InformerToClusterPolicyBindingLister) List(options metainternal.ListOpt
 	return clusterPolicyBindingList, nil
 }
 
-func (i *InformerToClusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (i *InformerToClusterPolicyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 

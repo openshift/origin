@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -17,7 +17,7 @@ type FakeGroups struct {
 
 var groupsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "groups"}
 
-func (c *FakeGroups) Get(name string) (*userapi.Group, error) {
+func (c *FakeGroups) Get(name string, options metav1.GetOptions) (*userapi.Group, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(groupsResource, name), &userapi.Group{})
 	if obj == nil {
 		return nil, err
@@ -26,7 +26,7 @@ func (c *FakeGroups) Get(name string) (*userapi.Group, error) {
 	return obj.(*userapi.Group), err
 }
 
-func (c *FakeGroups) List(opts metainternal.ListOptions) (*userapi.GroupList, error) {
+func (c *FakeGroups) List(opts metav1.ListOptions) (*userapi.GroupList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(groupsResource, opts), &userapi.GroupList{})
 	if obj == nil {
 		return nil, err
@@ -58,6 +58,6 @@ func (c *FakeGroups) Delete(name string) error {
 	return err
 }
 
-func (c *FakeGroups) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeGroups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(groupsResource, opts))
 }

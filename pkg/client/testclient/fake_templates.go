@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -18,7 +18,7 @@ type FakeTemplates struct {
 
 var templatesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
 
-func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
+func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateapi.Template, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})
 	if obj == nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) List(opts metainternal.ListOptions) (*templateapi.TemplateList, error) {
+func (c *FakeTemplates) List(opts metav1.ListOptions) (*templateapi.TemplateList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
@@ -59,6 +59,6 @@ func (c *FakeTemplates) Delete(name string) error {
 	return err
 }
 
-func (c *FakeTemplates) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeTemplates) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(templatesResource, c.Namespace, opts))
 }

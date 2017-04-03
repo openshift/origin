@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
@@ -23,7 +23,7 @@ var _ client.ImageStreamInterface = &FakeImageStreams{}
 var imageStreamsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreams"}
 var imageStreamImportsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
 
-func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
+func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
 	if obj == nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (c *FakeImageStreams) Get(name string) (*imageapi.ImageStream, error) {
 	return obj.(*imageapi.ImageStream), err
 }
 
-func (c *FakeImageStreams) List(opts metainternal.ListOptions) (*imageapi.ImageStreamList, error) {
+func (c *FakeImageStreams) List(opts metav1.ListOptions) (*imageapi.ImageStreamList, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, c.Namespace, opts), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (c *FakeImageStreams) Delete(name string) error {
 	return err
 }
 
-func (c *FakeImageStreams) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *FakeImageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(imageStreamsResource, c.Namespace, opts))
 }
 

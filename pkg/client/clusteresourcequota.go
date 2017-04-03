@@ -1,7 +1,7 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -13,12 +13,12 @@ type ClusterResourceQuotasInterface interface {
 }
 
 type ClusterResourceQuotaInterface interface {
-	List(opts metainternal.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
-	Get(name string) (*quotaapi.ClusterResourceQuota, error)
+	List(opts metav1.ListOptions) (*quotaapi.ClusterResourceQuotaList, error)
+	Get(name string, options metav1.GetOptions) (*quotaapi.ClusterResourceQuota, error)
 	Create(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Update(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 
 	UpdateStatus(resourceQuota *quotaapi.ClusterResourceQuota) (*quotaapi.ClusterResourceQuota, error)
 }
@@ -34,15 +34,15 @@ func newClusterResourceQuotas(c *Client) *clusterResourceQuotas {
 	}
 }
 
-func (c *clusterResourceQuotas) List(opts metainternal.ListOptions) (result *quotaapi.ClusterResourceQuotaList, err error) {
+func (c *clusterResourceQuotas) List(opts metav1.ListOptions) (result *quotaapi.ClusterResourceQuotaList, err error) {
 	result = &quotaapi.ClusterResourceQuotaList{}
 	err = c.r.Get().Resource("clusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
-func (c *clusterResourceQuotas) Get(name string) (result *quotaapi.ClusterResourceQuota, err error) {
+func (c *clusterResourceQuotas) Get(name string, options metav1.GetOptions) (result *quotaapi.ClusterResourceQuota, err error) {
 	result = &quotaapi.ClusterResourceQuota{}
-	err = c.r.Get().Resource("clusterresourcequotas").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterresourcequotas").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -63,7 +63,7 @@ func (c *clusterResourceQuotas) Delete(name string) (err error) {
 	return
 }
 
-func (c *clusterResourceQuotas) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *clusterResourceQuotas) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }
 

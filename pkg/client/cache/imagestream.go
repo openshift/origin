@@ -41,7 +41,7 @@ func (s *StoreToImageStreamLister) GetStreamsForConfig(config *deployapi.Deploym
 
 		from := t.ImageChangeParams.From
 		name, _, _ := imageapi.SplitImageStreamTag(from.Name)
-		stream, err := s.ImageStreams(from.Namespace).Get(name)
+		stream, err := s.ImageStreams(from.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			glog.Infof("Cannot retrieve image stream %s/%s: %v", from.Namespace, name, err)
 			continue
@@ -58,7 +58,7 @@ type storeImageStreamsNamespacer struct {
 }
 
 // Get the image stream matching the name from the cache.
-func (s storeImageStreamsNamespacer) Get(name string) (*imageapi.ImageStream, error) {
+func (s storeImageStreamsNamespacer) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,7 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -19,13 +19,13 @@ type DeploymentConfigsNamespacer interface {
 
 // DeploymentConfigInterface contains methods for working with DeploymentConfigs
 type DeploymentConfigInterface interface {
-	List(opts metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
-	Get(name string) (*deployapi.DeploymentConfig, error)
+	List(opts metav1.ListOptions) (*deployapi.DeploymentConfigList, error)
+	Get(name string, options metav1.GetOptions) (*deployapi.DeploymentConfig, error)
 	Create(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Update(config *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *deployapi.DeploymentConfig, err error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Generate(name string) (*deployapi.DeploymentConfig, error)
 	Rollback(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
 	RollbackDeprecated(config *deployapi.DeploymentConfigRollback) (*deployapi.DeploymentConfig, error)
@@ -50,7 +50,7 @@ func newDeploymentConfigs(c *Client, namespace string) *deploymentConfigs {
 }
 
 // List takes a label and field selectors, and returns the list of deploymentConfigs that match that selectors
-func (c *deploymentConfigs) List(opts metainternal.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts metav1.ListOptions) (result *deployapi.DeploymentConfigList, err error) {
 	result = &deployapi.DeploymentConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -62,9 +62,9 @@ func (c *deploymentConfigs) List(opts metainternal.ListOptions) (result *deploya
 }
 
 // Get returns information about a particular deploymentConfig
-func (c *deploymentConfigs) Get(name string) (result *deployapi.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Get(name string, options metav1.GetOptions) (result *deployapi.DeploymentConfig, err error) {
 	result = &deployapi.DeploymentConfig{}
-	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -96,7 +96,7 @@ func (c *deploymentConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
@@ -186,7 +186,7 @@ func UpdateConfigWithRetries(dn DeploymentConfigsNamespacer, namespace, name str
 
 	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
-		config, err = dn.DeploymentConfigs(namespace).Get(name)
+		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
