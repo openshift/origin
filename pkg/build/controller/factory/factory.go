@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
@@ -72,6 +73,7 @@ func limitedLogAndRetry(buildupdater buildclient.BuildUpdater, maxTimeout time.D
 type BuildControllerFactory struct {
 	OSClient            osclient.Interface
 	KubeClient          kclientset.Interface
+	ExternalKubeClient  kclientsetexternal.Interface
 	BuildUpdater        buildclient.BuildUpdater
 	BuildLister         buildclient.BuildLister
 	DockerBuildStrategy *strategy.DockerBuildStrategy
@@ -90,7 +92,7 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	cache.NewReflector(newBuildLW(factory.OSClient), &buildapi.Build{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.ExternalKubeClient.CoreV1().RESTClient()).Events("")})
 
 	client := ControllerClient{factory.KubeClient, factory.OSClient}
 	buildController := &buildcontroller.BuildController{
@@ -267,6 +269,7 @@ func (factory *ImageChangeControllerFactory) waitForSyncedStores() {
 type BuildConfigControllerFactory struct {
 	Client                  osclient.Interface
 	KubeClient              kclientset.Interface
+	ExternalKubeClient      kclientsetexternal.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
@@ -278,7 +281,7 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 	cache.NewReflector(newBuildConfigLW(factory.Client), &buildapi.BuildConfig{}, queue, 2*time.Minute).RunUntil(factory.Stop)
 
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.KubeClient.Core().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(factory.ExternalKubeClient.CoreV1().RESTClient()).Events("")})
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
