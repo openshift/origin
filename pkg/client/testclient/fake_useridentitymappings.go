@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 
@@ -15,7 +16,7 @@ type FakeUserIdentityMappings struct {
 
 var userIdentityMappingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "useridentitymappings"}
 
-func (c *FakeUserIdentityMappings) Get(name string) (*userapi.UserIdentityMapping, error) {
+func (c *FakeUserIdentityMappings) Get(name string, options metav1.GetOptions) (*userapi.UserIdentityMapping, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(userIdentityMappingsResource, name), &userapi.UserIdentityMapping{})
 	if obj == nil {
 		return nil, err

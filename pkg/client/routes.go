@@ -1,7 +1,7 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -15,13 +15,13 @@ type RoutesNamespacer interface {
 
 // RouteInterface exposes methods on Route resources
 type RouteInterface interface {
-	List(opts metainternal.ListOptions) (*routeapi.RouteList, error)
-	Get(name string) (*routeapi.Route, error)
+	List(opts metav1.ListOptions) (*routeapi.RouteList, error)
+	Get(name string, options metav1.GetOptions) (*routeapi.Route, error)
 	Create(route *routeapi.Route) (*routeapi.Route, error)
 	Update(route *routeapi.Route) (*routeapi.Route, error)
 	UpdateStatus(route *routeapi.Route) (*routeapi.Route, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // routes implements RouteInterface interface
@@ -39,7 +39,7 @@ func newRoutes(c *Client, namespace string) *routes {
 }
 
 // List takes a label and field selector, and returns the list of routes that match that selectors
-func (c *routes) List(opts metainternal.ListOptions) (result *routeapi.RouteList, err error) {
+func (c *routes) List(opts metav1.ListOptions) (result *routeapi.RouteList, err error) {
 	result = &routeapi.RouteList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -51,9 +51,9 @@ func (c *routes) List(opts metainternal.ListOptions) (result *routeapi.RouteList
 }
 
 // Get takes the name of the route, and returns the corresponding Route object, and an error if it occurs
-func (c *routes) Get(name string) (result *routeapi.Route, err error) {
+func (c *routes) Get(name string, options metav1.GetOptions) (result *routeapi.Route, err error) {
 	result = &routeapi.Route{}
-	err = c.r.Get().Namespace(c.ns).Resource("routes").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("routes").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -84,7 +84,7 @@ func (c *routes) UpdateStatus(route *routeapi.Route) (result *routeapi.Route, er
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *routes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

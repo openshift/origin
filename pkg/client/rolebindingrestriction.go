@@ -1,7 +1,7 @@
 package client
 
 import (
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -13,12 +13,12 @@ type RoleBindingRestrictionsNamespacer interface {
 }
 
 type RoleBindingRestrictionInterface interface {
-	List(opts metainternal.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error)
-	Get(name string) (*authorizationapi.RoleBindingRestriction, error)
+	List(opts metav1.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBindingRestriction, error)
 	Create(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Update(roleBindingRestriction *authorizationapi.RoleBindingRestriction) (*authorizationapi.RoleBindingRestriction, error)
 	Delete(name string) error
-	Watch(opts metainternal.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type roleBindingRestrictions struct {
@@ -34,7 +34,7 @@ func newRoleBindingRestrictions(c *Client, namespace string) *roleBindingRestric
 	}
 }
 
-func (c *roleBindingRestrictions) List(opts metainternal.ListOptions) (result *authorizationapi.RoleBindingRestrictionList, err error) {
+func (c *roleBindingRestrictions) List(opts metav1.ListOptions) (result *authorizationapi.RoleBindingRestrictionList, err error) {
 	result = &authorizationapi.RoleBindingRestrictionList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -45,7 +45,7 @@ func (c *roleBindingRestrictions) List(opts metainternal.ListOptions) (result *a
 	return
 }
 
-func (c *roleBindingRestrictions) Get(name string) (result *authorizationapi.RoleBindingRestriction, err error) {
+func (c *roleBindingRestrictions) Get(name string, options metav1.GetOptions) (result *authorizationapi.RoleBindingRestriction, err error) {
 	result = &authorizationapi.RoleBindingRestriction{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -89,7 +89,7 @@ func (c *roleBindingRestrictions) Delete(name string) (err error) {
 	return
 }
 
-func (c *roleBindingRestrictions) Watch(opts metainternal.ListOptions) (watch.Interface, error) {
+func (c *roleBindingRestrictions) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).
