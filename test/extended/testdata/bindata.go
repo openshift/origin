@@ -13337,7 +13337,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "openshift.io/display-name": "Jenkins 1.X",
               "description": "Provides a Jenkins 1.X server on CentOS 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
-              "tags": "jenkins",
+              "tags": "hidden,jenkins",
               "version": "1.x"
             },
             "from": {
@@ -14090,7 +14090,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
               "openshift.io/display-name": "Jenkins 1.X",
               "description": "Provides a Jenkins 1.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
-              "tags": "jenkins",
+              "tags": "hidden,jenkins",
               "version": "1.x"
             },
             "from": {
