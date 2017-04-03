@@ -19,6 +19,7 @@ import (
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
@@ -268,12 +269,13 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 		return err
 	}
 
-	osclient, kclient := c.BuildControllerClients()
+	osclient, internalKubeClientset, externalKubeClientset := c.BuildControllerClients()
 	factory := buildcontrollerfactory.BuildControllerFactory{
-		KubeClient:   kclient,
-		OSClient:     osclient,
-		BuildUpdater: buildclient.NewOSClientBuildClient(osclient),
-		BuildLister:  buildclient.NewOSClientBuildClient(osclient),
+		KubeClient:         internalKubeClientset,
+		ExternalKubeClient: externalKubeClientset,
+		OSClient:           osclient,
+		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
+		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
@@ -324,11 +326,12 @@ func (c *MasterConfig) RunBuildImageChangeTriggerController() {
 
 // RunBuildConfigChangeController starts the build config change trigger controller process.
 func (c *MasterConfig) RunBuildConfigChangeController() {
-	bcClient, kClient := c.BuildConfigChangeControllerClients()
+	bcClient, internalKubeClientset, externalKubeClientset := c.BuildConfigChangeControllerClients()
 	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
 	factory := buildcontrollerfactory.BuildConfigControllerFactory{
 		Client:                  bcClient,
-		KubeClient:              kClient,
+		KubeClient:              internalKubeClientset,
+		ExternalKubeClient:      externalKubeClientset,
 		BuildConfigInstantiator: bcInstantiator,
 	}
 	factory.Create().Run()
@@ -339,7 +342,7 @@ func (c *MasterConfig) RunDeploymentController() {
 	// TODO these should be external
 	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
 	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	_, kclient := c.DeploymentControllerClients()
+	_, internalKubeClientset, externalKubeClientset := c.DeploymentControllerClients()
 
 	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
@@ -356,7 +359,8 @@ func (c *MasterConfig) RunDeploymentController() {
 	controller := deploycontroller.NewDeploymentController(
 		rcInformer,
 		podInformer,
-		kclient,
+		internalKubeClientset,
+		externalKubeClientset,
 		bootstrappolicy.DeployerServiceAccountName,
 		c.ImageFor("deployer"),
 		env,
@@ -370,9 +374,9 @@ func (c *MasterConfig) RunDeploymentConfigController() {
 	dcInfomer := c.Informers.DeploymentConfigs().Informer()
 	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
 	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	osclient, kclient := c.DeploymentConfigControllerClients()
+	osclient, kclientInternal, kclientExternal := c.DeploymentConfigControllerClients()
 
-	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclient, c.ExternalVersionCodec)
+	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclientInternal, kclientExternal, c.ExternalVersionCodec)
 	go controller.Run(5, utilwait.NeverStop)
 }
 
@@ -557,7 +561,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 }
 
 // RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
-func (c *MasterConfig) RunIngressIPController(client kclientsetinternal.Interface) {
+func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetinternal.Interface, externalKubeClientset kclientsetexternal.Interface) {
 	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		return
 	}
@@ -570,7 +574,7 @@ func (c *MasterConfig) RunIngressIPController(client kclientsetinternal.Interfac
 	if ipNet.IP.IsUnspecified() {
 		return
 	}
-	ingressIPController := ingressip.NewIngressIPController(client, ipNet, defaultIngressIPSyncPeriod)
+	ingressIPController := ingressip.NewIngressIPController(internalKubeClientset, externalKubeClientset, ipNet, defaultIngressIPSyncPeriod)
 	go ingressIPController.Run(utilwait.NeverStop)
 }
 
