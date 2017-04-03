@@ -13,7 +13,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kclientgoclientset "k8s.io/client-go/kubernetes"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/util/cert"
 	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
@@ -21,6 +21,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -57,6 +58,8 @@ type NodeConfig struct {
 
 	// Client to connect to the master.
 	Client kclientset.Interface
+	// External kube client
+	ExternalKubeClientset kclientsetexternal.Interface
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// DockerClient is a client to connect to Docker
@@ -95,11 +98,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, err
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	_, eventClientConfig, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-	eventClient, err := kclientgoclientset.NewForConfig(eventClientConfig)
+	eventClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +236,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	// provide any config overrides
 	//deps.NodeName = options.NodeName
 	deps.KubeClient = externalKubeClient
-	deps.EventClient = eventClient
+	deps.EventClient = kv1core.New(eventClient.CoreV1().RESTClient())
 
 	// Setup auth
 	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
@@ -305,6 +304,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		Containerized:       containerized,
 
 		Client:                kubeClient,
+		ExternalKubeClientset: externalKubeClient,
 		InternalKubeInformers: internalKubeInformers,
 
 		VolumeDir: options.VolumeDirectory,
