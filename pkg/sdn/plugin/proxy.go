@@ -38,7 +38,7 @@ type OsdnProxy struct {
 
 	lock         sync.Mutex
 	firewall     map[string]*proxyFirewallItem
-	allEndpoints []kapi.Endpoints
+	allEndpoints []*kapi.Endpoints
 
 	idLock sync.Mutex
 	ids    map[string]uint32
@@ -226,7 +226,7 @@ func (proxy *OsdnProxy) firewallBlocksIP(namespace string, ip net.IP) bool {
 	return false
 }
 
-func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []*kapi.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 	proxy.allEndpoints = allEndpoints
@@ -239,7 +239,7 @@ func (proxy *OsdnProxy) updateEndpoints() {
 		return
 	}
 
-	filteredEndpoints := make([]kapi.Endpoints, 0, len(proxy.allEndpoints))
+	filteredEndpoints := make([]*kapi.Endpoints, 0, len(proxy.allEndpoints))
 
 EndpointLoop:
 	for _, ep := range proxy.allEndpoints {
