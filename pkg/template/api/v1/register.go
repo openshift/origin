@@ -26,22 +26,14 @@ var (
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Template{},
 		&TemplateList{},
 		&TemplateInstance{},
 		&TemplateInstanceList{},
 		&BrokerTemplateInstance{},
 		&BrokerTemplateInstanceList{},
-	}
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&metav1.ListOptions{},
-			&metav1.DeleteOptions{},
-			&metav1.ExportOptions{},
-			&kapiv1.List{},
-		)...,
+		&kapiv1.List{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
