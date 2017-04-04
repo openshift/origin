@@ -405,7 +405,7 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 
 	for _, t := range triggers {
 		switch t.Type {
-		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GenericWebHookBuildTriggerType:
+		case buildapi.GitHubWebHookBuildTriggerType, buildapi.GenericWebHookBuildTriggerType, buildapi.GitLabWebHookBuildTriggerType, buildapi.BitbucketWebHookBuildTriggerType:
 			continue
 		case buildapi.ConfigChangeBuildTriggerType:
 			labels = append(labels, "Config")
@@ -1465,6 +1465,14 @@ func describeBuildTriggerCauses(causes []buildapi.BuildTriggerCause, out *tabwri
 		case cause.GitHubWebHook != nil:
 			squashGitInfo(cause.GitHubWebHook.Revision, out)
 			formatString(out, "Secret", cause.GitHubWebHook.Secret)
+
+		case cause.GitLabWebHook != nil:
+			squashGitInfo(cause.GitLabWebHook.Revision, out)
+			formatString(out, "Secret", cause.GitLabWebHook.Secret)
+
+		case cause.BitbucketWebHook != nil:
+			squashGitInfo(cause.BitbucketWebHook.Revision, out)
+			formatString(out, "Secret", cause.BitbucketWebHook.Secret)
 
 		case cause.GenericWebHook != nil:
 			squashGitInfo(cause.GenericWebHook.Revision, out)

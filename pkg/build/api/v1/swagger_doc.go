@@ -30,6 +30,14 @@ func (BinaryBuildSource) SwaggerDoc() map[string]string {
 	return map_BinaryBuildSource
 }
 
+var map_BitbucketWebHookCause = map[string]string{
+	"": "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
+}
+
+func (BitbucketWebHookCause) SwaggerDoc() map[string]string {
+	return map_BitbucketWebHookCause
+}
+
 var map_Build = map[string]string{
 	"":         "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
 	"metadata": "Standard object's metadata.",
@@ -236,6 +244,8 @@ var map_BuildTriggerCause = map[string]string{
 	"genericWebHook":   "genericWebHook holds data about a builds generic webhook trigger.",
 	"githubWebHook":    "gitHubWebHook represents data for a GitHub webhook that fired a specific build.",
 	"imageChangeBuild": "imageChangeBuild stores information about an imagechange event that triggered a new build.",
+	"gitlabWebHook":    "GitLabWebHook represents data for a GitLab webhook that fired a specific build.",
+	"bitbucketWebHook": "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build.",
 }
 
 func (BuildTriggerCause) SwaggerDoc() map[string]string {
@@ -248,6 +258,8 @@ var map_BuildTriggerPolicy = map[string]string{
 	"github":      "github contains the parameters for a GitHub webhook type of trigger",
 	"generic":     "generic contains the parameters for a Generic webhook type of trigger",
 	"imageChange": "imageChange contains parameters for an ImageChange type of trigger",
+	"gitlab":      "GitLabWebHook contains the parameters for a GitLab webhook type of trigger",
+	"bitbucket":   "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger",
 }
 
 func (BuildTriggerPolicy) SwaggerDoc() map[string]string {
@@ -269,6 +281,16 @@ var map_CommonSpec = map[string]string{
 
 func (CommonSpec) SwaggerDoc() map[string]string {
 	return map_CommonSpec
+}
+
+var map_CommonWebHookCause = map[string]string{
+	"":         "CommonWebHookCause factors out the identical format of these webhook causes into struct so we can share it in the specific causes;  it is too late for GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.",
+	"revision": "Revision is the git source revision information of the trigger.",
+	"secret":   "Secret is the obfuscated webhook secret that triggered a build.",
+}
+
+func (CommonWebHookCause) SwaggerDoc() map[string]string {
+	return map_CommonWebHookCause
 }
 
 var map_CustomBuildStrategy = map[string]string{
@@ -359,6 +381,14 @@ var map_GitInfo = map[string]string{
 
 func (GitInfo) SwaggerDoc() map[string]string {
 	return map_GitInfo
+}
+
+var map_GitLabWebHookCause = map[string]string{
+	"": "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
+}
+
+func (GitLabWebHookCause) SwaggerDoc() map[string]string {
+	return map_GitLabWebHookCause
 }
 
 var map_GitSourceRevision = map[string]string{

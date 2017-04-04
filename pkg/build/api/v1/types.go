@@ -103,6 +103,14 @@ type BuildTriggerCause struct {
 	// imageChangeBuild stores information about an imagechange event
 	// that triggered a new build.
 	ImageChangeBuild *ImageChangeCause `json:"imageChangeBuild,omitempty" protobuf:"bytes,4,opt,name=imageChangeBuild"`
+
+	// GitLabWebHook represents data for a GitLab webhook that fired a specific
+	// build.
+	GitLabWebHook *GitLabWebHookCause `json:"gitlabWebHook,omitempty" protobuf:"bytes,5,opt,name=gitlabWebHook"`
+
+	// BitbucketWebHook represents data for a Bitbucket webhook that fired a
+	// specific build.
+	BitbucketWebHook *BitbucketWebHookCause `json:"bitbucketWebHook,omitempty" protobuf:"bytes,6,opt,name=bitbucketWebHook"`
 }
 
 // GenericWebHookCause holds information about a generic WebHook that
@@ -124,6 +132,29 @@ type GitHubWebHookCause struct {
 
 	// secret is the obfuscated webhook secret that triggered a build.
 	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
+}
+
+// CommonWebHookCause factors out the identical format of these webhook
+// causes into struct so we can share it in the specific causes;  it is too late for
+// GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.
+type CommonWebHookCause struct {
+	// Revision is the git source revision information of the trigger.
+	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,1,opt,name=revision"`
+
+	// Secret is the obfuscated webhook secret that triggered a build.
+	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
+}
+
+// GitLabWebHookCause has information about a GitLab webhook that triggered a
+// build.
+type GitLabWebHookCause struct {
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonSpec"`
+}
+
+// BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
+// build.
+type BitbucketWebHookCause struct {
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonSpec"`
 }
 
 // ImageChangeCause contains information about the image that triggered a
@@ -810,6 +841,13 @@ type BuildTriggerPolicy struct {
 
 	// imageChange contains parameters for an ImageChange type of trigger
 	ImageChange *ImageChangeTrigger `json:"imageChange,omitempty" protobuf:"bytes,4,opt,name=imageChange"`
+
+	// GitLabWebHook contains the parameters for a GitLab webhook type of trigger
+	GitLabWebHook *WebHookTrigger `json:"gitlab,omitempty" protobuf:"bytes,5,opt,name=gitlab"`
+
+	// BitbucketWebHook contains the parameters for a Bitbucket webhook type of
+	// trigger
+	BitbucketWebHook *WebHookTrigger `json:"bitbucket,omitempty" protobuf:"bytes,6,opt,name=bitbucket"`
 }
 
 // BuildTriggerType refers to a specific BuildTriggerPolicy implementation.
@@ -825,6 +863,14 @@ const (
 	// generic webhook invocations
 	GenericWebHookBuildTriggerType           BuildTriggerType = "Generic"
 	GenericWebHookBuildTriggerTypeDeprecated BuildTriggerType = "generic"
+
+	// GitLabWebHookBuildTriggerType represents a trigger that launches builds on
+	// GitLab webhook invocations
+	GitLabWebHookBuildTriggerType BuildTriggerType = "GitLab"
+
+	// BitbucketWebHookBuildTriggerType represents a trigger that launches builds on
+	// Bitbucket webhook invocations
+	BitbucketWebHookBuildTriggerType BuildTriggerType = "Bitbucket"
 
 	// ImageChangeBuildTriggerType represents a trigger that launches builds on
 	// availability of a new version of an image

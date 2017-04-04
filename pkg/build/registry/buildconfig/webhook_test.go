@@ -21,7 +21,9 @@ import (
 	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 	"github.com/openshift/origin/pkg/build/webhook"
+	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/github"
+	"github.com/openshift/origin/pkg/build/webhook/gitlab"
 	"github.com/openshift/origin/pkg/util/rest"
 )
 
@@ -283,6 +285,18 @@ var testBuildConfig = &api.BuildConfig{
 					Secret: "secret101",
 				},
 			},
+			{
+				Type: api.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &api.WebHookTrigger{
+					Secret: "secret201",
+				},
+			},
+			{
+				Type: api.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &api.WebHookTrigger{
+					Secret: "secret301",
+				},
+			},
 		},
 		CommonSpec: api.CommonSpec{
 			Source: api.BuildSource{
@@ -306,7 +320,7 @@ var mockBuildStrategy = api.BuildStrategy{
 func TestParseUrlError(t *testing.T) {
 	bcRegistry := &test.BuildConfigRegistry{BuildConfig: testBuildConfig}
 	responder := &fakeResponder{}
-	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"github": github.New()}).
+	handler, _ := NewWebHookREST(bcRegistry, &okBuildConfigInstantiator{}, buildapiv1.SchemeGroupVersion, map[string]webhook.Plugin{"github": github.New(), "gitlab": gitlab.New(), "bitbucket": bitbucket.New()}).
 		Connect(kapi.NewDefaultContext(), "build100", &kapi.PodProxyOptions{Path: ""}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -487,6 +501,66 @@ func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
 		}
 		if cause.Message != api.BuildTriggerCauseGithubMsg {
 			t.Errorf("Expected build reason to be 'GitHub WebHook, go %s'", cause.Message)
+		}
+	}
+}
+
+func TestGeneratedBuildTriggerInfoGitLabWebHook(t *testing.T) {
+	revision := &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Author: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Committer: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Message: "A random act of kindness",
+		},
+	}
+
+	buildtriggerCause := generateBuildTriggerInfo(revision, "gitlab", "mysecret")
+	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	for _, cause := range buildtriggerCause {
+		if !reflect.DeepEqual(revision, cause.GitLabWebHook.Revision) {
+			t.Errorf("Expected returned revision to equal: %v", revision)
+		}
+		if cause.GitLabWebHook.Secret != hiddenSecret {
+			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
+		}
+		if cause.Message != api.BuildTriggerCauseGitLabMsg {
+			t.Errorf("Expected build reason to be 'GitLab WebHook, go %s'", cause.Message)
+		}
+	}
+}
+
+func TestGeneratedBuildTriggerInfoBitbucketWebHook(t *testing.T) {
+	revision := &api.SourceRevision{
+		Git: &api.GitSourceRevision{
+			Author: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Committer: api.SourceControlUser{
+				Name:  "John Doe",
+				Email: "john.doe@test.com",
+			},
+			Message: "A random act of kindness",
+		},
+	}
+
+	buildtriggerCause := generateBuildTriggerInfo(revision, "bitbucket", "mysecret")
+	hiddenSecret := fmt.Sprintf("%s***", "mysecret"[:(len("mysecret")/2)])
+	for _, cause := range buildtriggerCause {
+		if !reflect.DeepEqual(revision, cause.BitbucketWebHook.Revision) {
+			t.Errorf("Expected returned revision to equal: %v", revision)
+		}
+		if cause.BitbucketWebHook.Secret != hiddenSecret {
+			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
+		}
+		if cause.Message != api.BuildTriggerCauseBitbucketMsg {
+			t.Errorf("Expected build reason to be 'Bitbucket WebHook, go %s'", cause.Message)
 		}
 	}
 }

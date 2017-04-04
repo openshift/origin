@@ -76,6 +76,10 @@ func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPol
 		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
 	case trigger.GitHubWebHook != nil:
 		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
+	case trigger.GitLabWebHook != nil:
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitLabWebHook.Secret, "gitlab").URL(), nil
+	case trigger.BitbucketWebHook != nil:
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.BitbucketWebHook.Secret, "bitbucket").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}

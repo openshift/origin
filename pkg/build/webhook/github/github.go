@@ -53,8 +53,8 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
 	method := getEvent(req.Header)
-	if method != "ping" && method != "push" && method != "Push Hook" {
-		return revision, envvars, dockerStrategyOptions, proceed, errors.NewBadRequest(fmt.Sprintf("Unknown X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event %s", method))
+	if method != "ping" && method != "push" {
+		return revision, envvars, dockerStrategyOptions, proceed, errors.NewBadRequest(fmt.Sprintf("Unknown X-GitHub-Event or X-Gogs-Event %s", method))
 	}
 	if method == "ping" {
 		return revision, envvars, dockerStrategyOptions, proceed, err
@@ -96,7 +96,7 @@ func verifyRequest(req *http.Request) error {
 		return errors.NewBadRequest(fmt.Sprintf("unsupported Content-Type %s", contentType))
 	}
 	if len(getEvent(req.Header)) == 0 {
-		return errors.NewBadRequest("missing X-GitHub-Event, X-Gogs-Event or X-Gitlab-Event")
+		return errors.NewBadRequest("missing X-GitHub-Event or X-Gogs-Event")
 	}
 	return nil
 }
@@ -105,9 +105,6 @@ func getEvent(header http.Header) string {
 	event := header.Get("X-GitHub-Event")
 	if len(event) == 0 {
 		event = header.Get("X-Gogs-Event")
-	}
-	if len(event) == 0 {
-		event = header.Get("X-Gitlab-Event")
 	}
 	return event
 }

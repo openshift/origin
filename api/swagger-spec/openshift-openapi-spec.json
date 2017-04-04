@@ -67844,6 +67844,19 @@
      }
     }
    },
+   "v1.BitbucketWebHookCause": {
+    "description": "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
+    "properties": {
+     "revision": {
+      "description": "Revision is the git source revision information of the trigger.",
+      "$ref": "#/definitions/v1.SourceRevision"
+     },
+     "secret": {
+      "description": "Secret is the obfuscated webhook secret that triggered a build.",
+      "type": "string"
+     }
+    }
+   },
    "v1.Build": {
     "description": "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
     "properties": {
@@ -68342,6 +68355,10 @@
    "v1.BuildTriggerCause": {
     "description": "BuildTriggerCause holds information about a triggered build. It is used for displaying build trigger data for each build and build configuration in oc describe. It is also used to describe which triggers led to the most recent update in the build configuration.",
     "properties": {
+     "bitbucketWebHook": {
+      "description": "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build.",
+      "$ref": "#/definitions/v1.BitbucketWebHookCause"
+     },
      "genericWebHook": {
       "description": "genericWebHook holds data about a builds generic webhook trigger.",
       "$ref": "#/definitions/v1.GenericWebHookCause"
@@ -68349,6 +68366,10 @@
      "githubWebHook": {
       "description": "gitHubWebHook represents data for a GitHub webhook that fired a specific build.",
       "$ref": "#/definitions/v1.GitHubWebHookCause"
+     },
+     "gitlabWebHook": {
+      "description": "GitLabWebHook represents data for a GitLab webhook that fired a specific build.",
+      "$ref": "#/definitions/v1.GitLabWebHookCause"
      },
      "imageChangeBuild": {
       "description": "imageChangeBuild stores information about an imagechange event that triggered a new build.",
@@ -68366,12 +68387,20 @@
      "type"
     ],
     "properties": {
+     "bitbucket": {
+      "description": "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger",
+      "$ref": "#/definitions/v1.WebHookTrigger"
+     },
      "generic": {
       "description": "generic contains the parameters for a Generic webhook type of trigger",
       "$ref": "#/definitions/v1.WebHookTrigger"
      },
      "github": {
       "description": "github contains the parameters for a GitHub webhook type of trigger",
+      "$ref": "#/definitions/v1.WebHookTrigger"
+     },
+     "gitlab": {
+      "description": "GitLabWebHook contains the parameters for a GitLab webhook type of trigger",
       "$ref": "#/definitions/v1.WebHookTrigger"
      },
      "imageChange": {
@@ -70633,6 +70662,19 @@
      },
      "secret": {
       "description": "secret is the obfuscated webhook secret that triggered a build.",
+      "type": "string"
+     }
+    }
+   },
+   "v1.GitLabWebHookCause": {
+    "description": "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
+    "properties": {
+     "revision": {
+      "description": "Revision is the git source revision information of the trigger.",
+      "$ref": "#/definitions/v1.SourceRevision"
+     },
+     "secret": {
+      "description": "Secret is the obfuscated webhook secret that triggered a build.",
       "type": "string"
      }
     }

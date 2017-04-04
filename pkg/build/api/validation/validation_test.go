@@ -2476,6 +2476,66 @@ func TestValidateTrigger(t *testing.T) {
 			},
 			expected: []*field.Error{field.Invalid(field.NewPath("github", "allowEnv"), "", "")},
 		},
+		"GitLab type with no gitlab webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GitLabWebHookBuildTriggerType},
+			expected: []*field.Error{field.Required(field.NewPath("gitlab"), "")},
+		},
+		"GitLab trigger with no secret": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:          buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &buildapi.WebHookTrigger{},
+			},
+			expected: []*field.Error{field.Required(field.NewPath("gitlab", "secret"), "")},
+		},
+		"GitLab trigger with generic webhook": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitLabWebHookBuildTriggerType,
+				GenericWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+			expected: []*field.Error{field.Required(field.NewPath("gitlab"), "")},
+		},
+		"GitLab trigger with allow env": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &buildapi.WebHookTrigger{
+					Secret:   "secret101",
+					AllowEnv: true,
+				},
+			},
+			expected: []*field.Error{field.Invalid(field.NewPath("gitlab", "allowEnv"), "", "")},
+		},
+		"Bitbucket type with no Bitbucket webhook": {
+			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.BitbucketWebHookBuildTriggerType},
+			expected: []*field.Error{field.Required(field.NewPath("bitbucket"), "")},
+		},
+		"Bitbucket trigger with no secret": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type:             buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &buildapi.WebHookTrigger{},
+			},
+			expected: []*field.Error{field.Required(field.NewPath("bitbucket", "secret"), "")},
+		},
+		"Bitbucket trigger with generic webhook": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.BitbucketWebHookBuildTriggerType,
+				GenericWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+			expected: []*field.Error{field.Required(field.NewPath("bitbucket"), "")},
+		},
+		"Bitbucket trigger with allow env": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &buildapi.WebHookTrigger{
+					Secret:   "secret101",
+					AllowEnv: true,
+				},
+			},
+			expected: []*field.Error{field.Invalid(field.NewPath("bitbucket", "allowEnv"), "", "")},
+		},
 		"Generic trigger with no generic webhook": {
 			trigger:  buildapi.BuildTriggerPolicy{Type: buildapi.GenericWebHookBuildTriggerType},
 			expected: []*field.Error{field.Required(field.NewPath("generic"), "")},
@@ -2506,6 +2566,22 @@ func TestValidateTrigger(t *testing.T) {
 			trigger: buildapi.BuildTriggerPolicy{
 				Type: buildapi.GitHubWebHookBuildTriggerType,
 				GitHubWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
+		"valid GitLab trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &buildapi.WebHookTrigger{
+					Secret: "secret101",
+				},
+			},
+		},
+		"valid Bitbucket trigger": {
+			trigger: buildapi.BuildTriggerPolicy{
+				Type: buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},

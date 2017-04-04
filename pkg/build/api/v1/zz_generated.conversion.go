@@ -27,6 +27,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions,
 		Convert_v1_BinaryBuildSource_To_api_BinaryBuildSource,
 		Convert_api_BinaryBuildSource_To_v1_BinaryBuildSource,
+		Convert_v1_BitbucketWebHookCause_To_api_BitbucketWebHookCause,
+		Convert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause,
 		Convert_v1_Build_To_api_Build,
 		Convert_api_Build_To_v1_Build,
 		Convert_v1_BuildConfig_To_api_BuildConfig,
@@ -67,6 +69,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy,
 		Convert_v1_CommonSpec_To_api_CommonSpec,
 		Convert_api_CommonSpec_To_v1_CommonSpec,
+		Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause,
+		Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause,
 		Convert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy,
 		Convert_api_CustomBuildStrategy_To_v1_CustomBuildStrategy,
 		Convert_v1_DockerBuildStrategy_To_api_DockerBuildStrategy,
@@ -83,6 +87,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause,
 		Convert_v1_GitInfo_To_api_GitInfo,
 		Convert_api_GitInfo_To_v1_GitInfo,
+		Convert_v1_GitLabWebHookCause_To_api_GitLabWebHookCause,
+		Convert_api_GitLabWebHookCause_To_v1_GitLabWebHookCause,
 		Convert_v1_GitSourceRevision_To_api_GitSourceRevision,
 		Convert_api_GitSourceRevision_To_v1_GitSourceRevision,
 		Convert_v1_ImageChangeCause_To_api_ImageChangeCause,
@@ -166,6 +172,28 @@ func autoConvert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in *api.BinaryBui
 
 func Convert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in *api.BinaryBuildSource, out *BinaryBuildSource, s conversion.Scope) error {
 	return autoConvert_api_BinaryBuildSource_To_v1_BinaryBuildSource(in, out, s)
+}
+
+func autoConvert_v1_BitbucketWebHookCause_To_api_BitbucketWebHookCause(in *BitbucketWebHookCause, out *api.BitbucketWebHookCause, s conversion.Scope) error {
+	if err := Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_BitbucketWebHookCause_To_api_BitbucketWebHookCause(in *BitbucketWebHookCause, out *api.BitbucketWebHookCause, s conversion.Scope) error {
+	return autoConvert_v1_BitbucketWebHookCause_To_api_BitbucketWebHookCause(in, out, s)
+}
+
+func autoConvert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(in *api.BitbucketWebHookCause, out *BitbucketWebHookCause, s conversion.Scope) error {
+	if err := Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(in *api.BitbucketWebHookCause, out *BitbucketWebHookCause, s conversion.Scope) error {
+	return autoConvert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(in, out, s)
 }
 
 func autoConvert_v1_Build_To_api_Build(in *Build, out *api.Build, s conversion.Scope) error {
@@ -975,6 +1003,24 @@ func autoConvert_v1_BuildTriggerCause_To_api_BuildTriggerCause(in *BuildTriggerC
 	} else {
 		out.ImageChangeBuild = nil
 	}
+	if in.GitLabWebHook != nil {
+		in, out := &in.GitLabWebHook, &out.GitLabWebHook
+		*out = new(api.GitLabWebHookCause)
+		if err := Convert_v1_GitLabWebHookCause_To_api_GitLabWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitLabWebHook = nil
+	}
+	if in.BitbucketWebHook != nil {
+		in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
+		*out = new(api.BitbucketWebHookCause)
+		if err := Convert_v1_BitbucketWebHookCause_To_api_BitbucketWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BitbucketWebHook = nil
+	}
 	return nil
 }
 
@@ -1011,6 +1057,24 @@ func autoConvert_api_BuildTriggerCause_To_v1_BuildTriggerCause(in *api.BuildTrig
 	} else {
 		out.ImageChangeBuild = nil
 	}
+	if in.GitLabWebHook != nil {
+		in, out := &in.GitLabWebHook, &out.GitLabWebHook
+		*out = new(GitLabWebHookCause)
+		if err := Convert_api_GitLabWebHookCause_To_v1_GitLabWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.GitLabWebHook = nil
+	}
+	if in.BitbucketWebHook != nil {
+		in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
+		*out = new(BitbucketWebHookCause)
+		if err := Convert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.BitbucketWebHook = nil
+	}
 	return nil
 }
 
@@ -1031,6 +1095,8 @@ func autoConvert_v1_BuildTriggerPolicy_To_api_BuildTriggerPolicy(in *BuildTrigge
 	} else {
 		out.ImageChange = nil
 	}
+	out.GitLabWebHook = (*api.WebHookTrigger)(unsafe.Pointer(in.GitLabWebHook))
+	out.BitbucketWebHook = (*api.WebHookTrigger)(unsafe.Pointer(in.BitbucketWebHook))
 	return nil
 }
 
@@ -1047,6 +1113,8 @@ func autoConvert_api_BuildTriggerPolicy_To_v1_BuildTriggerPolicy(in *api.BuildTr
 	} else {
 		out.ImageChange = nil
 	}
+	out.GitLabWebHook = (*WebHookTrigger)(unsafe.Pointer(in.GitLabWebHook))
+	out.BitbucketWebHook = (*WebHookTrigger)(unsafe.Pointer(in.BitbucketWebHook))
 	return nil
 }
 
@@ -1122,6 +1190,42 @@ func autoConvert_api_CommonSpec_To_v1_CommonSpec(in *api.CommonSpec, out *Common
 
 func Convert_api_CommonSpec_To_v1_CommonSpec(in *api.CommonSpec, out *CommonSpec, s conversion.Scope) error {
 	return autoConvert_api_CommonSpec_To_v1_CommonSpec(in, out, s)
+}
+
+func autoConvert_v1_CommonWebHookCause_To_api_CommonWebHookCause(in *CommonWebHookCause, out *api.CommonWebHookCause, s conversion.Scope) error {
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(api.SourceRevision)
+		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause(in *CommonWebHookCause, out *api.CommonWebHookCause, s conversion.Scope) error {
+	return autoConvert_v1_CommonWebHookCause_To_api_CommonWebHookCause(in, out, s)
+}
+
+func autoConvert_api_CommonWebHookCause_To_v1_CommonWebHookCause(in *api.CommonWebHookCause, out *CommonWebHookCause, s conversion.Scope) error {
+	if in.Revision != nil {
+		in, out := &in.Revision, &out.Revision
+		*out = new(SourceRevision)
+		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Revision = nil
+	}
+	out.Secret = in.Secret
+	return nil
+}
+
+func Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause(in *api.CommonWebHookCause, out *CommonWebHookCause, s conversion.Scope) error {
+	return autoConvert_api_CommonWebHookCause_To_v1_CommonWebHookCause(in, out, s)
 }
 
 func autoConvert_v1_CustomBuildStrategy_To_api_CustomBuildStrategy(in *CustomBuildStrategy, out *api.CustomBuildStrategy, s conversion.Scope) error {
@@ -1548,6 +1652,28 @@ func autoConvert_api_GitInfo_To_v1_GitInfo(in *api.GitInfo, out *GitInfo, s conv
 
 func Convert_api_GitInfo_To_v1_GitInfo(in *api.GitInfo, out *GitInfo, s conversion.Scope) error {
 	return autoConvert_api_GitInfo_To_v1_GitInfo(in, out, s)
+}
+
+func autoConvert_v1_GitLabWebHookCause_To_api_GitLabWebHookCause(in *GitLabWebHookCause, out *api.GitLabWebHookCause, s conversion.Scope) error {
+	if err := Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1_GitLabWebHookCause_To_api_GitLabWebHookCause(in *GitLabWebHookCause, out *api.GitLabWebHookCause, s conversion.Scope) error {
+	return autoConvert_v1_GitLabWebHookCause_To_api_GitLabWebHookCause(in, out, s)
+}
+
+func autoConvert_api_GitLabWebHookCause_To_v1_GitLabWebHookCause(in *api.GitLabWebHookCause, out *GitLabWebHookCause, s conversion.Scope) error {
+	if err := Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_api_GitLabWebHookCause_To_v1_GitLabWebHookCause(in *api.GitLabWebHookCause, out *GitLabWebHookCause, s conversion.Scope) error {
+	return autoConvert_api_GitLabWebHookCause_To_v1_GitLabWebHookCause(in, out, s)
 }
 
 func autoConvert_v1_GitSourceRevision_To_api_GitSourceRevision(in *GitSourceRevision, out *api.GitSourceRevision, s conversion.Scope) error {
