@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/image/api"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeImages implements ImageInterface
@@ -19,7 +20,7 @@ var imagesResource = schema.GroupVersionResource{Group: "", Version: "", Resourc
 
 func (c *FakeImages) Create(image *api.Image) (result *api.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(imagesResource, c.ns, image), &api.Image{})
+		Invokes(testing.NewCreateAction(imagesResource, c.ns, image), &api.Image{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakeImages) Create(image *api.Image) (result *api.Image, err error) {
 
 func (c *FakeImages) Update(image *api.Image) (result *api.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(imagesResource, c.ns, image), &api.Image{})
+		Invokes(testing.NewUpdateAction(imagesResource, c.ns, image), &api.Image{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,23 @@ func (c *FakeImages) Update(image *api.Image) (result *api.Image, err error) {
 	return obj.(*api.Image), err
 }
 
-func (c *FakeImages) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakeImages) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(imagesResource, c.ns, name), &api.Image{})
+		Invokes(testing.NewDeleteAction(imagesResource, c.ns, name), &api.Image{})
 
 	return err
 }
 
-func (c *FakeImages) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(imagesResource, c.ns, listOptions)
+func (c *FakeImages) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(imagesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.ImageList{})
 	return err
 }
 
-func (c *FakeImages) Get(name string) (result *api.Image, err error) {
+func (c *FakeImages) Get(name string, options v1.GetOptions) (result *api.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(imagesResource, c.ns, name), &api.Image{})
+		Invokes(testing.NewGetAction(imagesResource, c.ns, name), &api.Image{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +62,15 @@ func (c *FakeImages) Get(name string) (result *api.Image, err error) {
 	return obj.(*api.Image), err
 }
 
-func (c *FakeImages) List(opts pkg_api.ListOptions) (result *api.ImageList, err error) {
+func (c *FakeImages) List(opts v1.ListOptions) (result *api.ImageList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(imagesResource, c.ns, opts), &api.ImageList{})
+		Invokes(testing.NewListAction(imagesResource, c.ns, opts), &api.ImageList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +84,16 @@ func (c *FakeImages) List(opts pkg_api.ListOptions) (result *api.ImageList, err 
 }
 
 // Watch returns a watch.Interface that watches the requested images.
-func (c *FakeImages) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakeImages) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(imagesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(imagesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched image.
-func (c *FakeImages) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Image, err error) {
+func (c *FakeImages) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(imagesResource, c.ns, name, data, subresources...), &api.Image{})
+		Invokes(testing.NewPatchSubresourceAction(imagesResource, c.ns, name, data, subresources...), &api.Image{})
 
 	if obj == nil {
 		return nil, err

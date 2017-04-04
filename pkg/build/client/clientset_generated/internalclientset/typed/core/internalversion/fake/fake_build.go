@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/build/api"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeBuilds implements BuildInterface
@@ -19,7 +20,7 @@ var buildsResource = schema.GroupVersionResource{Group: "", Version: "", Resourc
 
 func (c *FakeBuilds) Create(build *api.Build) (result *api.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(buildsResource, c.ns, build), &api.Build{})
+		Invokes(testing.NewCreateAction(buildsResource, c.ns, build), &api.Build{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakeBuilds) Create(build *api.Build) (result *api.Build, err error) {
 
 func (c *FakeBuilds) Update(build *api.Build) (result *api.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(buildsResource, c.ns, build), &api.Build{})
+		Invokes(testing.NewUpdateAction(buildsResource, c.ns, build), &api.Build{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,33 @@ func (c *FakeBuilds) Update(build *api.Build) (result *api.Build, err error) {
 	return obj.(*api.Build), err
 }
 
-func (c *FakeBuilds) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakeBuilds) UpdateStatus(build *api.Build) (*api.Build, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(buildsResource, "status", c.ns, build), &api.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.Build), err
+}
+
+func (c *FakeBuilds) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(buildsResource, c.ns, name), &api.Build{})
+		Invokes(testing.NewDeleteAction(buildsResource, c.ns, name), &api.Build{})
 
 	return err
 }
 
-func (c *FakeBuilds) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(buildsResource, c.ns, listOptions)
+func (c *FakeBuilds) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(buildsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.BuildList{})
 	return err
 }
 
-func (c *FakeBuilds) Get(name string) (result *api.Build, err error) {
+func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *api.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(buildsResource, c.ns, name), &api.Build{})
+		Invokes(testing.NewGetAction(buildsResource, c.ns, name), &api.Build{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +72,15 @@ func (c *FakeBuilds) Get(name string) (result *api.Build, err error) {
 	return obj.(*api.Build), err
 }
 
-func (c *FakeBuilds) List(opts pkg_api.ListOptions) (result *api.BuildList, err error) {
+func (c *FakeBuilds) List(opts v1.ListOptions) (result *api.BuildList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(buildsResource, c.ns, opts), &api.BuildList{})
+		Invokes(testing.NewListAction(buildsResource, c.ns, opts), &api.BuildList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +94,16 @@ func (c *FakeBuilds) List(opts pkg_api.ListOptions) (result *api.BuildList, err 
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *FakeBuilds) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakeBuilds) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(buildsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(buildsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched build.
-func (c *FakeBuilds) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Build, err error) {
+func (c *FakeBuilds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(buildsResource, c.ns, name, data, subresources...), &api.Build{})
+		Invokes(testing.NewPatchSubresourceAction(buildsResource, c.ns, name, data, subresources...), &api.Build{})
 
 	if obj == nil {
 		return nil, err
