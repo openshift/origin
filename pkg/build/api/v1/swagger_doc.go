@@ -334,9 +334,7 @@ func (DockerStrategyOptions) SwaggerDoc() map[string]string {
 }
 
 var map_GenericWebHookCause = map[string]string{
-	"":         "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
-	"revision": "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available.",
-	"secret":   "secret is the obfuscated webhook secret that triggered a build.",
+	"": "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
 }
 
 func (GenericWebHookCause) SwaggerDoc() map[string]string {
@@ -366,9 +364,7 @@ func (GitBuildSource) SwaggerDoc() map[string]string {
 }
 
 var map_GitHubWebHookCause = map[string]string{
-	"":         "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
-	"revision": "revision is the git revision information of the trigger.",
-	"secret":   "secret is the obfuscated webhook secret that triggered a build.",
+	"": "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
 }
 
 func (GitHubWebHookCause) SwaggerDoc() map[string]string {

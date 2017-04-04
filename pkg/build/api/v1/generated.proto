@@ -55,7 +55,7 @@ message BinaryBuildSource {
 // BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
 // build.
 message BitbucketWebHookCause {
-  optional CommonWebHookCause commonSpec = 1;
+  optional CommonWebHookCause commonWebHookCause = 1;
 }
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
@@ -640,12 +640,7 @@ message DockerStrategyOptions {
 // GenericWebHookCause holds information about a generic WebHook that
 // triggered a build.
 message GenericWebHookCause {
-  // revision is an optional field that stores the git source revision
-  // information of the generic webhook trigger when it is available.
-  optional SourceRevision revision = 1;
-
-  // secret is the obfuscated webhook secret that triggered a build.
-  optional string secret = 2;
+  optional CommonWebHookCause commonWebHookCause = 1;
 }
 
 // GenericWebHookEvent is the payload expected for a generic webhook post
@@ -681,11 +676,7 @@ message GitBuildSource {
 // GitHubWebHookCause has information about a GitHub webhook that triggered a
 // build.
 message GitHubWebHookCause {
-  // revision is the git revision information of the trigger.
-  optional SourceRevision revision = 1;
-
-  // secret is the obfuscated webhook secret that triggered a build.
-  optional string secret = 2;
+  optional CommonWebHookCause commonWebHookCause = 1;
 }
 
 // GitInfo is the aggregated git information for a generic webhook post
@@ -698,7 +689,7 @@ message GitInfo {
 // GitLabWebHookCause has information about a GitLab webhook that triggered a
 // build.
 message GitLabWebHookCause {
-  optional CommonWebHookCause commonSpec = 1;
+  optional CommonWebHookCause commonWebHookCause = 1;
 }
 
 // GitSourceRevision is the commit information from a git source for a build

@@ -24162,11 +24162,11 @@
     "properties": {
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available."
+      "description": "Revision is the git source revision information of the trigger."
      },
      "secret": {
       "type": "string",
-      "description": "secret is the obfuscated webhook secret that triggered a build."
+      "description": "Secret is the obfuscated webhook secret that triggered a build."
      }
     }
    },
@@ -24176,11 +24176,11 @@
     "properties": {
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "revision is the git revision information of the trigger."
+      "description": "Revision is the git source revision information of the trigger."
      },
      "secret": {
       "type": "string",
-      "description": "secret is the obfuscated webhook secret that triggered a build."
+      "description": "Secret is the obfuscated webhook secret that triggered a build."
      }
     }
    },

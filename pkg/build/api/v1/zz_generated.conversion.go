@@ -1453,16 +1453,9 @@ func Convert_api_DockerStrategyOptions_To_v1_DockerStrategyOptions(in *api.Docke
 }
 
 func autoConvert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHookCause, out *api.GenericWebHookCause, s conversion.Scope) error {
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(api.SourceRevision)
-		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Revision = nil
+	if err := Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
 	}
-	out.Secret = in.Secret
 	return nil
 }
 
@@ -1471,16 +1464,9 @@ func Convert_v1_GenericWebHookCause_To_api_GenericWebHookCause(in *GenericWebHoo
 }
 
 func autoConvert_api_GenericWebHookCause_To_v1_GenericWebHookCause(in *api.GenericWebHookCause, out *GenericWebHookCause, s conversion.Scope) error {
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(SourceRevision)
-		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Revision = nil
+	if err := Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
 	}
-	out.Secret = in.Secret
 	return nil
 }
 
@@ -1590,16 +1576,9 @@ func Convert_api_GitBuildSource_To_v1_GitBuildSource(in *api.GitBuildSource, out
 }
 
 func autoConvert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCause, out *api.GitHubWebHookCause, s conversion.Scope) error {
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(api.SourceRevision)
-		if err := Convert_v1_SourceRevision_To_api_SourceRevision(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Revision = nil
+	if err := Convert_v1_CommonWebHookCause_To_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
 	}
-	out.Secret = in.Secret
 	return nil
 }
 
@@ -1608,16 +1587,9 @@ func Convert_v1_GitHubWebHookCause_To_api_GitHubWebHookCause(in *GitHubWebHookCa
 }
 
 func autoConvert_api_GitHubWebHookCause_To_v1_GitHubWebHookCause(in *api.GitHubWebHookCause, out *GitHubWebHookCause, s conversion.Scope) error {
-	if in.Revision != nil {
-		in, out := &in.Revision, &out.Revision
-		*out = new(SourceRevision)
-		if err := Convert_api_SourceRevision_To_v1_SourceRevision(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.Revision = nil
+	if err := Convert_api_CommonWebHookCause_To_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, s); err != nil {
+		return err
 	}
-	out.Secret = in.Secret
 	return nil
 }
 

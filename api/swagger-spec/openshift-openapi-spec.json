@@ -70616,11 +70616,11 @@
     "description": "GenericWebHookCause holds information about a generic WebHook that triggered a build.",
     "properties": {
      "revision": {
-      "description": "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available.",
+      "description": "Revision is the git source revision information of the trigger.",
       "$ref": "#/definitions/v1.SourceRevision"
      },
      "secret": {
-      "description": "secret is the obfuscated webhook secret that triggered a build.",
+      "description": "Secret is the obfuscated webhook secret that triggered a build.",
       "type": "string"
      }
     }
@@ -70657,11 +70657,11 @@
     "description": "GitHubWebHookCause has information about a GitHub webhook that triggered a build.",
     "properties": {
      "revision": {
-      "description": "revision is the git revision information of the trigger.",
+      "description": "Revision is the git source revision information of the trigger.",
       "$ref": "#/definitions/v1.SourceRevision"
      },
      "secret": {
-      "description": "secret is the obfuscated webhook secret that triggered a build.",
+      "description": "Secret is the obfuscated webhook secret that triggered a build.",
       "type": "string"
      }
     }
