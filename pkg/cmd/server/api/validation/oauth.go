@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"path"
 	"strings"
 
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -270,14 +271,26 @@ func ValidateRequestHeaderIdentityProvider(provider *api.RequestHeaderIdentityPr
 	if len(provider.LoginURL) > 0 {
 		url, urlErrs := ValidateURL(provider.LoginURL, fieldPath.Child("provider", "loginURL"))
 		validationResults.AddErrors(urlErrs...)
-		if len(urlErrs) == 0 && !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
-			validationResults.AddWarnings(
-				field.Invalid(
-					fieldPath.Child("provider", "loginURL"),
-					provider.LoginURL,
-					fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
-				),
-			)
+		if len(urlErrs) == 0 {
+			if !strings.Contains(url.RawQuery, redirector.URLToken) && !strings.Contains(url.RawQuery, redirector.QueryToken) {
+				validationResults.AddWarnings(
+					field.Invalid(
+						fieldPath.Child("provider", "loginURL"),
+						provider.LoginURL,
+						fmt.Sprintf("query does not include %q or %q, redirect will not preserve original authorize parameters", redirector.URLToken, redirector.QueryToken),
+					),
+				)
+			}
+			if strings.HasSuffix(url.Path, "/") {
+				validationResults.AddWarnings(
+					field.Invalid(fieldPath.Child("provider", "loginURL"), provider.LoginURL, `path ends with "/", grant approval flows will not function correctly`),
+				)
+			}
+			if _, file := path.Split(url.Path); file != "authorize" {
+				validationResults.AddWarnings(
+					field.Invalid(fieldPath.Child("provider", "loginURL"), provider.LoginURL, `path does not end with "/authorize", grant approval flows will not function correctly`),
+				)
+			}
 		}
 	}
 

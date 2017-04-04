@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -139,13 +140,6 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	uri, err := getBaseURL(req)
-	if err != nil {
-		glog.Errorf("Unable to generate base URL: %v", err)
-		http.Error(w, "Unable to determine URL", http.StatusInternalServerError)
-		return
-	}
-
 	csrf, err := l.csrf.Generate(w, req)
 	if err != nil {
 		glog.Errorf("Unable to generate CSRF token: %v", err)
@@ -169,8 +163,12 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		grantedScopes = append(grantedScopes, getScopeData(s, grantedScopeNames))
 	}
 
+	// Submit to the current path, so we can target this page even via an auth proxy.
+	// Depends on any auth proxies matching at least the last segment of the URL.
+	_, lastSegment := path.Split(req.URL.Path)
+
 	form := Form{
-		Action:        uri.String(),
+		Action:        lastSegment,
 		GrantedScopes: grantedScopes,
 		Names: GrantFormFields{
 			Then:        thenParam,
@@ -201,16 +199,16 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 }
 
 func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Request) {
-	if ok, err := l.csrf.Check(req, req.FormValue(csrfParam)); !ok || err != nil {
+	if ok, err := l.csrf.Check(req, req.PostFormValue(csrfParam)); !ok || err != nil {
 		glog.Errorf("Unable to check CSRF token: %v", err)
 		l.failed("Invalid CSRF token", w, req)
 		return
 	}
 
 	req.ParseForm()
-	then := req.FormValue(thenParam)
-	scopes := scope.Join(req.Form[scopeParam])
-	username := req.FormValue(userNameParam)
+	then := req.PostFormValue(thenParam)
+	scopes := scope.Join(req.PostForm[scopeParam])
+	username := req.PostFormValue(userNameParam)
 
 	if username != user.GetName() {
 		glog.Errorf("User (%v) did not match authenticated user (%v)", username, user.GetName())
@@ -218,7 +216,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	if len(req.FormValue(approveParam)) == 0 || len(scopes) == 0 {
+	if len(req.PostFormValue(approveParam)) == 0 || len(scopes) == 0 {
 		// Redirect with an error param
 		url, err := url.Parse(then)
 		if len(then) == 0 || err != nil {
@@ -228,11 +226,12 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		q := url.Query()
 		q.Set("error", "access_denied")
 		url.RawQuery = q.Encode()
-		http.Redirect(w, req, url.String(), http.StatusFound)
+		w.Header().Set("Location", url.String())
+		w.WriteHeader(http.StatusFound)
 		return
 	}
 
-	clientID := req.FormValue(clientIDParam)
+	clientID := req.PostFormValue(clientIDParam)
 	client, err := l.clientregistry.GetClient(kapi.NewContext(), clientID)
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
@@ -282,7 +281,8 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	q := url.Query()
 	q.Set("scope", scopes)
 	url.RawQuery = q.Encode()
-	http.Redirect(w, req, url.String(), http.StatusFound)
+	w.Header().Set("Location", url.String())
+	w.WriteHeader(http.StatusFound)
 }
 
 func (l *Grant) failed(reason string, w http.ResponseWriter, req *http.Request) {
@@ -299,16 +299,8 @@ func (l *Grant) redirect(reason string, w http.ResponseWriter, req *http.Request
 		l.failed(reason, w, req)
 		return
 	}
-	http.Redirect(w, req, then, http.StatusFound)
-}
-
-func getBaseURL(req *http.Request) (*url.URL, error) {
-	uri, err := url.Parse(req.RequestURI)
-	if err != nil {
-		return nil, err
-	}
-	uri.Scheme, uri.Host, uri.RawQuery, uri.Fragment = req.URL.Scheme, req.URL.Host, "", ""
-	return uri, nil
+	w.Header().Set("Location", then)
+	w.WriteHeader(http.StatusFound)
 }
 
 func getScopeData(scopeName string, grantedScopeNames []string) Scope {
