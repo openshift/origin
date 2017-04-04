@@ -4,7 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 const (
@@ -25,7 +24,7 @@ var (
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Role{},
 		&RoleBinding{},
 		&Policy{},
@@ -56,16 +55,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 
 		&RoleBindingRestriction{},
 		&RoleBindingRestrictionList{},
-	}
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&metainternal.ListOptions{},
-			&metainternal.DeleteOptions{},
-			&metainternal.ExportOptions{},
-		)...,
 	)
-	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
 
