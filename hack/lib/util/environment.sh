@@ -128,7 +128,6 @@ readonly -f os::util::environment::update_path_var
 #  - export VOLUME_DIR
 #  - export ARTIFACT_DIR
 #  - export FAKE_HOME_DIR
-#  - export HOME
 #  - export OS_TMP_ENV_SET
 function os::util::environment::setup_tmpdir_vars() {
     local sub_dir=$1
@@ -143,6 +142,21 @@ function os::util::environment::setup_tmpdir_vars() {
     export ARTIFACT_DIR
     FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
     export FAKE_HOME_DIR
+
+    local rootbasedir="$(dirname "${BASETMPDIR}")"
+    if [ ! -d "${rootbasedir}" ]; then
+        echo >&2 "[WARNING] ${rootbasedir} doesn't exist and will be created on behalf of user with id $(id -u)"
+    elif [ ! -w "${rootbasedir}" -o ! -x "${rootbasedir}" ]; then
+        echo >&2 "[WARNING] Current user doesn't have permissions to create directories in the ${rootbasedir}"
+        echo >&2 "[WARNING] Directory info:"
+        echo >&2 "[WARNING] $(ls -ldZn "${rootbasedir}")"
+        echo >&2 "[WARNING] Current user info:"
+        echo >&2 "[WARNING] $(id)"
+        echo >&2 "[WARNING] SELinux state: $(getenforce >2&1)"
+        echo >&2 "[WARNING] audit logs:"
+        sudo ausearch --file "${rootbasedir}" || :
+        echo >&2 "[WARNING] end of audit logs"
+    fi
 
     mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}"
 
