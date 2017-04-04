@@ -357,6 +357,7 @@ func (c *NodeConfig) RunProxy() {
 	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
+	var servicesHandler pconfig.ServiceConfigHandler
 	var endpointsHandler pconfig.EndpointsConfigHandler
 
 	switch c.ProxyConfig.Mode {
@@ -388,6 +389,7 @@ func (c *NodeConfig) RunProxy() {
 		}
 		proxier = proxierIptables
 		endpointsHandler = proxierIptables
+		servicesHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
 		glog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
@@ -418,6 +420,7 @@ func (c *NodeConfig) RunProxy() {
 			}
 		}
 		proxier = proxierUserspace
+		servicesHandler = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
 		glog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
@@ -429,7 +432,10 @@ func (c *NodeConfig) RunProxy() {
 	// Note: RegisterHandler() calls need to happen before creation of Sources because sources
 	// only notify on changes, and the initial update (on process start) may be lost if no handlers
 	// are registered yet.
-	serviceConfig := pconfig.NewServiceConfig()
+	serviceConfig := pconfig.NewServiceConfig(
+		c.InternalKubeInformers.Core().InternalVersion().Services(),
+		c.ProxyConfig.ConfigSyncPeriod,
+	)
 
 	if c.EnableUnidling {
 		unidlingLoadBalancer := ouserspace.NewLoadBalancerRR()
@@ -442,7 +448,15 @@ func (c *NodeConfig) RunProxy() {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
 			}
 		}
-		hybridProxier, err := hybrid.NewHybridProxier(unidlingLoadBalancer, unidlingUserspaceProxy, endpointsHandler, proxier, c.ProxyConfig.IPTablesSyncPeriod.Duration, serviceConfig)
+		hybridProxier, err := hybrid.NewHybridProxier(
+			unidlingLoadBalancer,
+			unidlingUserspaceProxy,
+			endpointsHandler,
+			proxier,
+			servicesHandler,
+			c.ProxyConfig.IPTablesSyncPeriod.Duration,
+			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+		)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -451,13 +465,18 @@ func (c *NodeConfig) RunProxy() {
 			}
 		}
 		endpointsHandler = hybridProxier
+		servicesHandler = hybridProxier
 		proxier = hybridProxier
 	}
 
 	iptInterface.AddReloadFunc(proxier.Sync)
-	serviceConfig.RegisterHandler(proxier)
+	serviceConfig.RegisterHandler(servicesHandler)
+	go serviceConfig.Run(utilwait.NeverStop)
 
-	endpointsConfig := pconfig.NewEndpointsConfig()
+	endpointsConfig := pconfig.NewEndpointsConfig(
+		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
+		c.ProxyConfig.ConfigSyncPeriod,
+	)
 	// customized handling registration that inserts a filter if needed
 	if c.SDNProxy != nil {
 		if err := c.SDNProxy.Start(endpointsHandler); err != nil {
@@ -466,15 +485,7 @@ func (c *NodeConfig) RunProxy() {
 		endpointsHandler = c.SDNProxy
 	}
 	endpointsConfig.RegisterHandler(endpointsHandler)
-
-	// This adds event handlers for services and endpoints and waits for the caches to be synced before
-	// returning.
-	pconfig.NewSourceAPIOpenShift(
-		c.InternalKubeInformers.Core().InternalVersion().Services(),
-		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
-		serviceConfig.Channel("api"),
-		endpointsConfig.Channel("api"),
-	)
+	go endpointsConfig.Run(utilwait.NeverStop)
 
 	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
 
