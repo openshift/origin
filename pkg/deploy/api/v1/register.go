@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 const (
@@ -41,7 +40,7 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&DeploymentConfig{},
 		&DeploymentConfigList{},
 		&DeploymentConfigRollback{},
@@ -49,15 +48,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentLog{},
 		&DeploymentLogOptions{},
 		&extensionsv1beta1.Scale{},
-	}
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&metainternal.ListOptions{},
-			&metainternal.DeleteOptions{},
-			&metainternal.ExportOptions{},
-		)...,
 	)
-	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
