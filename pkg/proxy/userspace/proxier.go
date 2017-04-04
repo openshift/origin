@@ -377,11 +377,11 @@ func (proxier *Proxier) addServiceOnPort(service proxy.ServicePortName, serviceR
 // OnServiceUpdate manages the active set of service proxies.
 // Active service proxies are reinitialized if found in the update set or
 // shutdown if missing from the update set.
-func (proxier *Proxier) OnServiceUpdate(services []api.Service) {
+func (proxier *Proxier) OnServiceUpdate(services []*api.Service) {
 	glog.V(4).Infof("Received update notice: %+v", services)
 	activeServices := make(map[proxy.ServicePortName]bool) // use a map as a set
 	for i := range services {
-		service := &services[i]
+		service := services[i]
 
 		// if ClusterIP is "None" or empty, skip proxying
 		if !api.IsServiceIPSet(service) {
