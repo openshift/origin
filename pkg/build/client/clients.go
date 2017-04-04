@@ -47,7 +47,7 @@ type BuildLister interface {
 	List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error)
 }
 
-// OSClientBuildClient deletes build create and update operations to the OpenShift client interface
+// OSClientBuildClient delegates build create and update operations to the OpenShift client interface
 type OSClientBuildClient struct {
 	Client osclient.Interface
 }

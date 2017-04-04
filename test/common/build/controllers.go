@@ -624,6 +624,24 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 	if newBuild.Status.Phase != buildapi.BuildPhaseError {
 		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status.Phase)
 	}
+	events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(newBuild)
+	if err != nil {
+		t.Fatalf("error getting build events: %v", err)
+	}
+	foundFailed := false
+	for _, event := range events.Items {
+		if event.Reason == buildapi.BuildFailedEventReason {
+			foundFailed = true
+			expect := fmt.Sprintf(buildapi.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
+			if event.Message != expect {
+				t.Fatalf("expected failed event message to be %s, got %s", expect, event.Message)
+			}
+			break
+		}
+	}
+	if !foundFailed {
+		t.Fatalf("expected to find a failed event on the build %s/%s", newBuild.Namespace, newBuild.Name)
+	}
 }
 
 func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient *client.Client, clusterAdminKubeClientset *kclientset.Clientset) {
