@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch/versioned"
 )
 
 const (
@@ -31,7 +30,7 @@ func Kind(kind string) schema.GroupKind {
 }
 
 // LegacyKind takes an unqualified kind and returns back a Group qualified GroupKind
-func LegacyKind(kind string) unversioned.GroupKind {
+func LegacyKind(kind string) schema.GroupKind {
 	return LegacySchemeGroupVersion.WithKind(kind).GroupKind()
 }
 
@@ -46,36 +45,28 @@ func LegacyResource(resource string) schema.GroupResource {
 
 // IsKindOrLegacy checks if the provided GroupKind matches with the given kind by looking
 // up the API group and also the legacy API.
-func IsKindOrLegacy(kind string, gk unversioned.GroupKind) bool {
+func IsKindOrLegacy(kind string, gk schema.GroupKind) bool {
 	return gk == Kind(kind) || gk == LegacyKind(kind)
 }
 
 // IsResourceOrLegacy checks if the provided GroupResources matches with the given
 // resource by looking up the API group and also the legacy API.
-func IsResourceOrLegacy(resource string, gr unversioned.GroupResource) bool {
+func IsResourceOrLegacy(resource string, gr schema.GroupResource) bool {
 	return gr == Resource(resource) || gr == LegacyResource(resource)
 }
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
+	scheme.AddKnownTypes(SchemeGroupVersion,
 		&Template{},
 		&TemplateList{},
 		&TemplateInstance{},
 		&TemplateInstanceList{},
 		&BrokerTemplateInstance{},
 		&BrokerTemplateInstanceList{},
-	}
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&metav1.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&metainternal.ListOptions{},
-			&metainternal.DeleteOptions{},
-			&metainternal.ExportOptions{},
-			&kapi.List{},
-		)...,
+		&kapi.List{},
 	)
-	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
 
