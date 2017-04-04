@@ -76,6 +76,9 @@ type Value struct {
 
 	// AWS Session Token
 	SessionToken string
+
+	// Provider used to get credentials
+	ProviderName string
 }
 
 // A Provider is the interface for any component which will provide credentials
@@ -85,7 +88,7 @@ type Value struct {
 // The Provider should not need to implement its own mutexes, because
 // that will be managed by Credentials.
 type Provider interface {
-	// Refresh returns nil if it successfully retrieved the value.
+	// Retrieve returns nil if it successfully retrieved the value.
 	// Error is returned if the value were not obtainable, or empty.
 	Retrieve() (Value, error)
 
