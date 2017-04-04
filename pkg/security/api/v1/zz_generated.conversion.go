@@ -5,13 +5,12 @@
 package v1
 
 import (
-	unsafe "unsafe"
-
 	api "github.com/openshift/origin/pkg/security/api"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	unsafe "unsafe"
 )
 
 func init() {

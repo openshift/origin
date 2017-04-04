@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/template/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -49,9 +49,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_BrokerTemplateInstance_To_api_BrokerTemplateInstance(in *BrokerTemplateInstance, out *api.BrokerTemplateInstance, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_BrokerTemplateInstanceSpec_To_api_BrokerTemplateInstanceSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -63,9 +61,7 @@ func Convert_v1_BrokerTemplateInstance_To_api_BrokerTemplateInstance(in *BrokerT
 }
 
 func autoConvert_api_BrokerTemplateInstance_To_v1_BrokerTemplateInstance(in *api.BrokerTemplateInstance, out *BrokerTemplateInstance, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_BrokerTemplateInstanceSpec_To_v1_BrokerTemplateInstanceSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -177,9 +173,7 @@ func Convert_api_Parameter_To_v1_Parameter(in *api.Parameter, out *Parameter, s 
 }
 
 func autoConvert_v1_Template_To_api_Template(in *Template, out *api.Template, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	if in.Objects != nil {
 		in, out := &in.Objects, &out.Objects
@@ -202,9 +196,7 @@ func Convert_v1_Template_To_api_Template(in *Template, out *api.Template, s conv
 }
 
 func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.Message = in.Message
 	out.Parameters = *(*[]Parameter)(unsafe.Pointer(&in.Parameters))
 	if in.Objects != nil {
@@ -227,9 +219,7 @@ func Convert_api_Template_To_v1_Template(in *api.Template, out *Template, s conv
 }
 
 func autoConvert_v1_TemplateInstance_To_api_TemplateInstance(in *TemplateInstance, out *api.TemplateInstance, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_TemplateInstanceSpec_To_api_TemplateInstanceSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -244,9 +234,7 @@ func Convert_v1_TemplateInstance_To_api_TemplateInstance(in *TemplateInstance, o
 }
 
 func autoConvert_api_TemplateInstance_To_v1_TemplateInstance(in *api.TemplateInstance, out *TemplateInstance, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_TemplateInstanceSpec_To_v1_TemplateInstanceSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
