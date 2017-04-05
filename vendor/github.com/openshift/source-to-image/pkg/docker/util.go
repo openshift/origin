@@ -206,13 +206,7 @@ func parseRepositoryTag(repos string) (string, string, string) {
 
 // PullImage pulls the Docker image specified by name taking the pull policy
 // into the account.
-// TODO: The 'force' option will be removed
-func PullImage(name string, d Docker, policy api.PullPolicy, force bool) (*PullResult, error) {
-	// TODO: Remove this after we deprecate --force-pull
-	if force {
-		policy = api.PullAlways
-	}
-
+func PullImage(name string, d Docker, policy api.PullPolicy) (*PullResult, error) {
 	if len(policy) == 0 {
 		return nil, errors.New("the policy for pull image must be set")
 	}
@@ -305,8 +299,8 @@ func CheckReachable(config *api.Config) error {
 	return err
 }
 
-func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config, forcePull bool) (*PullResult, error) {
-	r, err := PullImage(image, docker, pullPolicy, forcePull)
+func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config *api.Config) (*PullResult, error) {
+	r, err := PullImage(image, docker, pullPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +323,7 @@ func GetBuilderImage(config *api.Config) (*PullResult, error) {
 		return nil, err
 	}
 
-	return pullAndCheck(config.BuilderImage, d, config.BuilderPullPolicy, config, config.ForcePull)
+	return pullAndCheck(config.BuilderImage, d, config.BuilderPullPolicy, config)
 }
 
 // GetRebuildImage obtains the metadata information for the image specified in
@@ -341,18 +335,13 @@ func GetRebuildImage(config *api.Config) (*PullResult, error) {
 		return nil, err
 	}
 
-	return pullAndCheck(config.Tag, d, config.BuilderPullPolicy, config, config.ForcePull)
+	return pullAndCheck(config.Tag, d, config.BuilderPullPolicy, config)
 }
 
 // GetRuntimeImage processes the config and performs operations necessary to
 // make the Docker image specified as RuntimeImage available locally.
 func GetRuntimeImage(config *api.Config, docker Docker) error {
-	pullPolicy := config.RuntimeImagePullPolicy
-	if len(pullPolicy) == 0 {
-		pullPolicy = api.DefaultRuntimeImagePullPolicy
-	}
-
-	_, err := pullAndCheck(config.RuntimeImage, docker, pullPolicy, config, false)
+	_, err := pullAndCheck(config.RuntimeImage, docker, config.RuntimeImagePullPolicy, config)
 	return err
 }
 

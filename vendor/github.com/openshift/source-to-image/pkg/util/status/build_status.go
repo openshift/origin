@@ -114,7 +114,7 @@ const (
 )
 
 // NewFailureReason initializes a new failure reason that contains both the
-// reason and a message to be displayed
+// reason and a message to be displayed.
 func NewFailureReason(reason api.StepFailureReason, message api.StepFailureMessage) api.FailureReason {
 	return api.FailureReason{
 		Reason:  reason,
