@@ -150,3 +150,15 @@ func VersionForBuild(build *buildapi.Build) int {
 	}
 	return version
 }
+
+func BuildDeepCopy(build *buildapi.Build) (*buildapi.Build, error) {
+	objCopy, err := kapi.Scheme.DeepCopy(build)
+	if err != nil {
+		return nil, err
+	}
+	copied, ok := objCopy.(*buildapi.Build)
+	if !ok {
+		return nil, fmt.Errorf("expected Build, got %#v", objCopy)
+	}
+	return copied, nil
+}

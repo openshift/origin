@@ -26,6 +26,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
 
 		username, password, execPodName, ns, host string
+		hasHealth, hasMetrics                     bool
 	)
 
 	g.BeforeEach(func() {
@@ -38,6 +39,9 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		env := dc.Spec.Template.Spec.Containers[0].Env
 		username, password = findEnvVar(env, "STATS_USERNAME"), findEnvVar(env, "STATS_PASSWORD")
 
+		hasMetrics = len(findEnvVar(env, "ROUTER_METRICS_TYPE")) > 0
+		hasHealth = len(findEnvVar(env, "ROUTER_LISTEN_ADDR")) > 0
+
 		epts, err := oc.AdminKubeClient().Endpoints("default").Get("router")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		host = epts.Subsets[0].Addresses[0].IP
@@ -47,6 +51,9 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
+			if !hasHealth {
+				g.Skip("router does not have ROUTER_LISTEN_ADDR set")
+			}
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
 
@@ -56,6 +63,9 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		})
 
 		g.It("should expose prometheus metrics for a route", func() {
+			if !hasMetrics {
+				g.Skip("router does not have ROUTER_METRICS_TYPE set")
+			}
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
@@ -142,6 +152,9 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		})
 
 		g.It("should expose the profiling endpoints", func() {
+			if !hasHealth {
+				g.Skip("router does not have ROUTER_LISTEN_ADDR set")
+			}
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
 

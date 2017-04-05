@@ -26,7 +26,6 @@ import (
 	buildcontroller "github.com/openshift/origin/pkg/build/controller"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	controller "github.com/openshift/origin/pkg/controller"
@@ -167,18 +166,6 @@ func (factory *BuildControllerFactory) CreateDeleteController() controller.Runna
 	}
 }
 
-// BuildPodControllerFactory construct BuildPodController objects
-type BuildPodControllerFactory struct {
-	OSClient     osclient.Interface
-	KubeClient   kclientset.Interface
-	BuildLister  buildclient.BuildLister
-	BuildUpdater buildclient.BuildUpdater
-	// Stop may be set to allow controllers created by this factory to be terminated.
-	Stop <-chan struct{}
-
-	buildStore cache.Store
-}
-
 // retryFunc returns a function to retry a controller event
 func retryFunc(kind string, isFatal func(err error) bool) controller.RetryFunc {
 	return func(obj interface{}, err error, retries controller.Retry) bool {
@@ -198,37 +185,6 @@ func retryFunc(kind string, isFatal func(err error) bool) controller.RetryFunc {
 		}
 		glog.V(4).Infof("Retrying %s %s: %v", kind, name, err)
 		return true
-	}
-}
-
-// Create constructs a BuildPodController
-func (factory *BuildPodControllerFactory) Create() controller.RunnableController {
-	factory.buildStore = cache.NewStore(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&buildLW{client: factory.OSClient}, &buildapi.Build{}, factory.buildStore, 2*time.Minute).RunUntil(factory.Stop)
-
-	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(&podLW{client: factory.KubeClient}, &kapi.Pod{}, queue, 2*time.Minute).RunUntil(factory.Stop)
-
-	client := ControllerClient{factory.KubeClient, factory.OSClient}
-	buildPodController := &buildcontroller.BuildPodController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.BuildUpdater,
-		SecretClient: factory.KubeClient.Core(),
-		PodManager:   client,
-		RunPolicies:  policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
-	}
-
-	return &controller.RetryController{
-		Queue: queue,
-		RetryManager: controller.NewQueueRetryManager(
-			queue,
-			cache.MetaNamespaceKeyFunc,
-			retryFunc("BuildPod", nil),
-			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
-		Handle: func(obj interface{}) error {
-			pod := obj.(*kapi.Pod)
-			return buildPodController.HandlePod(pod)
-		},
 	}
 }
 
@@ -253,37 +209,6 @@ func (keyListerGetter) ListKeys() []string {
 // always "", true, nil; used only to force DeltaFIFO to always queue delete events.
 func (keyListerGetter) GetByKey(key string) (interface{}, bool, error) {
 	return "", true, nil
-}
-
-// CreateDeleteController constructs a BuildPodDeleteController
-func (factory *BuildPodControllerFactory) CreateDeleteController() controller.RunnableController {
-
-	client := ControllerClient{factory.KubeClient, factory.OSClient}
-	queue := cache.NewDeltaFIFO(cache.MetaNamespaceKeyFunc, nil, keyListerGetter{})
-	cache.NewReflector(&buildPodDeleteLW{client, queue}, &kapi.Pod{}, queue, 5*time.Minute).RunUntil(factory.Stop)
-
-	buildPodDeleteController := &buildcontroller.BuildPodDeleteController{
-		BuildStore:   factory.buildStore,
-		BuildUpdater: factory.BuildUpdater,
-	}
-
-	return &controller.RetryController{
-		Queue: queue,
-		RetryManager: controller.NewQueueRetryManager(
-			queue,
-			queue.KeyOf,
-			controller.RetryNever,
-			flowcontrol.NewTokenBucketRateLimiter(1, 10)),
-		Handle: func(obj interface{}) error {
-			deltas := obj.(cache.Deltas)
-			for _, delta := range deltas {
-				if delta.Type == cache.Deleted {
-					return buildPodDeleteController.HandleBuildPodDeletion(delta.Object.(*kapi.Pod))
-				}
-			}
-			return nil
-		},
-	}
 }
 
 // ImageChangeControllerFactory can create an ImageChangeController which obtains ImageStreams
@@ -556,76 +481,6 @@ func (lw *imageStreamLW) List(options kapi.ListOptions) (runtime.Object, error) 
 // Watch watches all ImageStreams.
 func (lw *imageStreamLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
 	return lw.client.ImageStreams(kapi.NamespaceAll).Watch(options)
-}
-
-// buildPodDeleteLW is a ListWatcher implementation that watches for Pods(that are associated with a Build) being deleted
-type buildPodDeleteLW struct {
-	ControllerClient
-	store cache.Store
-}
-
-// List lists all Pods associated with a Build.
-func (lw *buildPodDeleteLW) List(options kapi.ListOptions) (runtime.Object, error) {
-	glog.V(5).Info("Checking for deleted build pods")
-	buildList, err := lw.Client.Builds(kapi.NamespaceAll).List(options)
-	if err != nil {
-		glog.V(4).Infof("Failed to find any builds due to error %v", err)
-		return nil, err
-	}
-	for _, build := range buildList.Items {
-		glog.V(5).Infof("Found build %s/%s", build.Namespace, build.Name)
-		if buildutil.IsBuildComplete(&build) {
-			glog.V(5).Infof("Ignoring build %s/%s because it is complete", build.Namespace, build.Name)
-			continue
-		}
-		if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
-			glog.V(5).Infof("Ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
-			continue
-		}
-		pod, err := lw.KubeClient.Core().Pods(build.Namespace).Get(buildapi.GetBuildPodName(&build))
-		if err != nil {
-			if !kerrors.IsNotFound(err) {
-				glog.V(4).Infof("Error getting pod for build %s/%s: %v", build.Namespace, build.Name, err)
-				return nil, err
-			} else {
-				pod = nil
-			}
-		} else {
-			if buildName := buildapi.GetBuildName(pod); buildName != build.Name {
-				pod = nil
-			}
-		}
-		if pod == nil {
-			deletedPod := &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
-					Name:      buildapi.GetBuildPodName(&build),
-					Namespace: build.Namespace,
-				},
-			}
-			glog.V(4).Infof("No build pod found for build %s/%s, sending delete event for build pod", build.Namespace, build.Name)
-			err := lw.store.Delete(deletedPod)
-			if err != nil {
-				glog.V(4).Infof("Error queuing delete event: %v", err)
-			}
-		} else {
-			glog.V(5).Infof("Found build pod %s/%s for build %s", pod.Namespace, pod.Name, build.Name)
-		}
-	}
-	return &kapi.PodList{}, nil
-}
-
-// Watch watches all Pods that have a build label, for deletion
-func (lw *buildPodDeleteLW) Watch(options kapi.ListOptions) (watch.Interface, error) {
-	// FIXME: since we cannot have OR on label name we'll just get builds with new label
-	sel, err := labels.Parse(buildapi.BuildLabel)
-	if err != nil {
-		return nil, err
-	}
-	opts := kapi.ListOptions{
-		LabelSelector:   sel,
-		ResourceVersion: options.ResourceVersion,
-	}
-	return lw.KubeClient.Core().Pods(kapi.NamespaceAll).Watch(opts)
 }
 
 // ControllerClient implements the common interfaces needed for build controllers

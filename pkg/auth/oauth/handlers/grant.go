@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/RangelReale/osin"
@@ -140,32 +141,50 @@ func (g *autoGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.Respons
 }
 
 type redirectGrant struct {
-	url string
+	subpath string
 }
 
-// NewRedirectGrant returns a grant handler that redirects to the given URL when a grant is needed.
+// NewRedirectGrant returns a grant handler that redirects to the given subpath when a grant is needed.
 // The following query parameters are added to the URL:
 //   then - original request URL
 //   client_id - requesting client's ID
 //   scopes - grant scope requested
 //   redirect_uri - original authorize request redirect_uri
-func NewRedirectGrant(url string) GrantHandler {
-	return &redirectGrant{url}
+func NewRedirectGrant(subpath string) GrantHandler {
+	return &redirectGrant{subpath}
 }
 
 // GrantNeeded implements the GrantHandler interface
 func (g *redirectGrant) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {
-	redirectURL, err := url.Parse(g.url)
-	if err != nil {
-		return false, false, err
+	_, lastSegment := path.Split(req.URL.Path)
+
+	// We're going to descend one dir for the approve endpoint.
+	// Make our "then" URL a relative backstep, so we can return to this URL (with no trailing slash) even via an auth proxy.
+	// Depends on any auth proxies matching the last segment of the URL we used to get here, proxying subpaths of this URL, and passing through the complete query.
+	// Example:
+	//   User -> https://auth.example.com/foo/oauth/authorize?... -> https://api.example.com/oauth/authorize?...
+	//        <- Location: authorize/approve?then=../authorize?...
+	//   User -> https://auth.example.com/foo/oauth/authorize/approve?then=../authorize?...
+	//           submits grant approval form, gets redirected to 'then' URL
+	//        <- Location: ../authorize?...
+	//   User -> https://auth.example.com/foo/oauth/authorize?...
+	reqURL := &(*req.URL)
+	reqURL.Host = ""
+	reqURL.Scheme = ""
+	reqURL.Path = path.Join("..", lastSegment)
+
+	// Make our redirect URL a relative redirect to the subpath
+	redirectURL := &url.URL{
+		Path: path.Join(lastSegment, g.subpath),
+		RawQuery: url.Values{
+			"then":         {reqURL.String()},
+			"client_id":    {grant.Client.GetId()},
+			"scope":        {grant.Scope},
+			"redirect_uri": {grant.RedirectURI},
+		}.Encode(),
 	}
-	redirectURL.RawQuery = url.Values{
-		"then":         {req.URL.String()},
-		"client_id":    {grant.Client.GetId()},
-		"scope":        {grant.Scope},
-		"redirect_uri": {grant.RedirectURI},
-	}.Encode()
-	http.Redirect(w, req, redirectURL.String(), http.StatusFound)
+	w.Header().Set("Location", redirectURL.String())
+	w.WriteHeader(http.StatusFound)
 	return false, true, nil
 }
 

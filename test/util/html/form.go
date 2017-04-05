@@ -61,22 +61,10 @@ func NewRequestFromForm(form *html.Node, currentURL *url.URL, filterFunc InputFi
 	}
 
 	// URL defaults to current URL if empty
-	if action, _ := GetAttr(form, "action"); len(action) > 0 {
-		reqURL, err = url.Parse(action)
-		if err != nil {
-			return nil, err
-		}
-		if reqURL.Scheme == "" {
-			reqURL.Scheme = currentURL.Scheme
-		}
-		if reqURL.Host == "" {
-			reqURL.Host = currentURL.Host
-		}
-	} else {
-		reqURL, err = url.Parse(currentURL.String())
-		if err != nil {
-			return nil, err
-		}
+	action, _ := GetAttr(form, "action")
+	reqURL, err = currentURL.Parse(action)
+	if err != nil {
+		return nil, err
 	}
 
 	formData := url.Values{}
