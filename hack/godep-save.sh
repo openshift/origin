@@ -93,3 +93,14 @@ fork::with::fake::packages github.com/docker/docker \
 GOPATH=$TMPGOPATH:$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save -t "${REQUIRED_BINS[@]}"
 
 undo::forks::in::godep::json
+
+# godep fails to copy all package in staging because it gets confused with the symlinks.
+# Hence, we copy over manually until we have proper staging repo tooling.
+rsync -avx --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/staging/src/* vendor/k8s.io/kubernetes/staging/src/
+
+# recreate symlinks
+for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
+  dir=$(basename $pkg)
+  rm -rf vendor/k8s.io/$dir
+  ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
+done
