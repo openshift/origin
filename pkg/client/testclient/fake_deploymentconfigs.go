@@ -55,6 +55,10 @@ func (c *FakeDeploymentConfigs) Update(inObj *deployapi.DeploymentConfig) (*depl
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
+func (c *FakeDeploymentConfigs) Patch(name string, pt kapi.PatchType, data []byte, subresources ...string) (*deployapi.DeploymentConfig, error) {
+	return nil, nil
+}
+
 func (c *FakeDeploymentConfigs) Delete(name string) error {
 	_, err := c.Fake.Invokes(core.NewDeleteAction(deploymentConfigsResource, c.Namespace, name), &deployapi.DeploymentConfig{})
 	return err
