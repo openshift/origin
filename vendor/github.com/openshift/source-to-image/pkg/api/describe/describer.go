@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -78,12 +79,18 @@ func Config(config *api.Config) string {
 		if len(config.BuildVolumes) > 0 {
 			result := []string{}
 			for _, i := range config.BuildVolumes {
-				result = append(result, fmt.Sprintf("%s->%s", i.Source, i.Destination))
+				if runtime.GOOS == "windows" {
+					// We need to avoid the colon in the Windows drive letter
+					result = append(result, i[0:2]+strings.Replace(i[3:], ":", "->", 1))
+				} else {
+					result = append(result, strings.Replace(i, ":", "->", 1))
+				}
 			}
 			fmt.Fprintf(out, "Bind mounts:\t%s\n", strings.Join(result, ","))
 		}
 		return nil
 	})
+
 	if err != nil {
 		fmt.Printf("error: %v", err)
 	}
@@ -123,12 +130,7 @@ func describeRuntimeImage(config *api.Config, out io.Writer) {
 	}
 
 	fmt.Fprintf(out, "Runtime Image:\t%s\n", config.RuntimeImage)
-
-	pullPolicy := config.RuntimeImagePullPolicy
-	if len(pullPolicy) == 0 {
-		pullPolicy = api.DefaultRuntimeImagePullPolicy
-	}
-	fmt.Fprintf(out, "Runtime Image Pull Policy:\t%s\n", pullPolicy)
+	fmt.Fprintf(out, "Runtime Image Pull Policy:\t%s\n", config.RuntimeImagePullPolicy)
 	if len(config.RuntimeAuthentication.Username) > 0 {
 		fmt.Fprintf(out, "Runtime Image Pull User:\t%s\n", config.RuntimeAuthentication.Username)
 	}
