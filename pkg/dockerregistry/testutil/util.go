@@ -9,7 +9,6 @@ import (
 	mrand "math/rand"
 	"net/http"
 	"net/url"
-	"testing"
 	"time"
 
 	"github.com/docker/distribution"
@@ -19,12 +18,6 @@ import (
 	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
-
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -143,6 +136,31 @@ func CreateRandomTarFile() ([]byte, error) {
 	return target.Bytes(), nil
 }
 
+// CreateRandomImage creates an image with a random content.
+func CreateRandomImage(namespace, name string) (*imageapi.Image, error) {
+	_, manifest, _, err := CreateRandomManifest(ManifestSchema1, 3)
+	if err != nil {
+		return nil, err
+	}
+
+	_, manifestSchema1, err := manifest.Payload()
+	if err != nil {
+		return nil, err
+	}
+
+	image, err := NewImageForManifest(
+		fmt.Sprintf("%s/%s", namespace, name),
+		string(manifestSchema1),
+		"",
+		false,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return image, nil
+}
+
 const SampleImageManifestSchema1 = `{
    "schemaVersion": 1,
    "name": "nm/is",
@@ -181,110 +199,6 @@ const SampleImageManifestSchema1 = `{
       }
    ]
 }`
-
-// GetFakeImageGetHandler returns a reaction function for use with fake os client returning one of given image
-// objects if found.
-func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) clientgotesting.ReactionFunc {
-	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		switch a := action.(type) {
-		case clientgotesting.GetAction:
-			for _, is := range imgs {
-				if a.GetName() == is.Name {
-					t.Logf("images get handler: returning image %s", is.Name)
-					return true, &is, nil
-				}
-			}
-
-			err := kerrors.NewNotFound(kapi.Resource("images"), a.GetName())
-			t.Logf("image get handler: %v", err)
-			return true, nil, err
-		}
-		return false, nil, nil
-	}
-}
-
-// GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with core.Fake client
-// that handles Get request on image stream resource. Matching is from given image stream list will be
-// returned if found. Additionally, a shared image stream may be requested.
-func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
-	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		switch a := action.(type) {
-		case clientgotesting.GetAction:
-			for _, is := range iss {
-				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
-					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
-					return true, &is, nil
-				}
-			}
-
-			err := kerrors.NewNotFound(kapi.Resource("imageStreams"), a.GetName())
-			t.Logf("imagestream get handler: %v", err)
-			return true, nil, err
-		}
-		return false, nil, nil
-	}
-}
-
-// TestNewImageStreamObject returns a new image stream object filled with given values.
-func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageReference string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      name,
-		},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				tag: {
-					Items: []imageapi.TagEvent{
-						{
-							Image:                imageName,
-							DockerImageReference: dockerImageReference,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-// GetFakeImageStreamImageGetHandler returns a reaction function for use
-// with fake os client returning one of given imagestream image objects if found.
-func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, imgs ...imageapi.Image) clientgotesting.ReactionFunc {
-	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		switch a := action.(type) {
-		case clientgotesting.GetAction:
-			for _, is := range imgs {
-				name, imageID, err := imageapi.ParseImageStreamImageName(a.GetName())
-				if err != nil {
-					return true, nil, err
-				}
-
-				if imageID != is.Name {
-					continue
-				}
-
-				t.Logf("imagestreamimage get handler: returning image %s", is.Name)
-
-				isi := imageapi.ImageStreamImage{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace:         is.Namespace,
-						Name:              imageapi.MakeImageStreamImageName(name, imageID),
-						CreationTimestamp: is.ObjectMeta.CreationTimestamp,
-						Annotations:       iss.Annotations,
-					},
-					Image: is,
-				}
-
-				return true, &isi, nil
-			}
-
-			err := kerrors.NewNotFound(kapi.Resource("imagestreamimages"), a.GetName())
-			t.Logf("imagestreamimage get handler: %v", err)
-			return true, nil, err
-		}
-		return false, nil, nil
-	}
-}
 
 type testCredentialStore struct {
 	username      string

@@ -2,25 +2,27 @@ package testutil
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/docker/distribution/context"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	"github.com/openshift/origin/pkg/image/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // FakeOpenShift is an in-mempory reactors for fake.Client.
 type FakeOpenShift struct {
 	logger context.Logger
+	mu     sync.Mutex
 
-	imagesStorage       map[string]*imageapi.Image
-	imageStreamsStorage map[string]*imageapi.ImageStream
+	images       map[string]imageapi.Image
+	imageStreams map[string]imageapi.ImageStream
 }
 
 // NewFakeOpenShift constructs the fake OpenShift reactors.
@@ -28,8 +30,8 @@ func NewFakeOpenShift() *FakeOpenShift {
 	return &FakeOpenShift{
 		logger: context.GetLogger(context.Background()),
 
-		imagesStorage:       make(map[string]*imageapi.Image),
-		imageStreamsStorage: make(map[string]*imageapi.ImageStream),
+		images:       make(map[string]imageapi.Image),
+		imageStreams: make(map[string]imageapi.ImageStream),
 	}
 }
 
@@ -37,75 +39,99 @@ func NewFakeOpenShift() *FakeOpenShift {
 // the stateful fake in-memory OpenShift reactors. The fake OpenShift is
 // available for direct interaction, so you can make buggy states.
 func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake) {
-	os := NewFakeOpenShift()
+	fos := NewFakeOpenShift()
 	client := &testclient.Fake{}
-	os.AddReactorsTo(client)
-	return os, client
+	fos.AddReactorsTo(client)
+	return fos, client
 }
 
-func (os *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, error) {
-	_, ok := os.imagesStorage[image.Name]
+func (fos *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, error) {
+	fos.mu.Lock()
+	defer fos.mu.Unlock()
+
+	_, ok := fos.images[image.Name]
 	if ok {
-		return nil, errors.NewAlreadyExists(schema.GroupResource{
-			Group:    "",
-			Resource: "images",
-		}, image.Name)
+		return nil, errors.NewAlreadyExists(api.Resource("images"), image.Name)
 	}
 
-	os.logger.Debug("(*FakeOpenShift).CreateImage: ", image.Name)
-	os.imagesStorage[image.Name] = image
+	fos.images[image.Name] = *image
+	fos.logger.Debugf("(*FakeOpenShift).images[%q] created", image.Name)
+
 	return image, nil
 }
 
-func (os *FakeOpenShift) GetImage(name string) (*imageapi.Image, error) {
-	image, ok := os.imagesStorage[name]
+func (fos *FakeOpenShift) GetImage(name string) (*imageapi.Image, error) {
+	fos.mu.Lock()
+	defer fos.mu.Unlock()
+
+	image, ok := fos.images[name]
 	if !ok {
-		return nil, errors.NewNotFound(schema.GroupResource{
-			Group:    "",
-			Resource: "images",
-		}, name)
+		return nil, errors.NewNotFound(api.Resource("images"), name)
 	}
-	return image, nil
+
+	return &image, nil
 }
 
-func (os *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	fos.mu.Lock()
+	defer fos.mu.Unlock()
+
 	ref := fmt.Sprintf("%s/%s", namespace, is.Name)
 
-	_, ok := os.imageStreamsStorage[ref]
+	_, ok := fos.imageStreams[ref]
 	if ok {
-		return nil, errors.NewAlreadyExists(schema.GroupResource{
-			Group:    "",
-			Resource: "imagestreams",
-		}, is.Name)
+		return nil, errors.NewAlreadyExists(api.Resource("imagestreams"), is.Name)
 	}
 
 	is.Namespace = namespace
+	is.CreationTimestamp = metav1.Now()
 
-	os.logger.Debug("(*FakeOpenShift).CreateImageStream: ", ref)
-	os.imageStreamsStorage[ref] = is
+	fos.imageStreams[ref] = *is
+	fos.logger.Debugf("(*FakeOpenShift).imageStreams[%q] created", ref)
+
 	return is, nil
 }
 
-func (os *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.ImageStream, error) {
+func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	fos.mu.Lock()
+	defer fos.mu.Unlock()
+
+	ref := fmt.Sprintf("%s/%s", namespace, is.Name)
+
+	oldis, ok := fos.imageStreams[ref]
+	if !ok {
+		return nil, errors.NewNotFound(api.Resource("imagestreams"), is.Name)
+	}
+
+	is.Namespace = namespace
+	is.CreationTimestamp = oldis.CreationTimestamp
+
+	fos.imageStreams[ref] = *is
+	fos.logger.Debugf("(*FakeOpenShift).imageStreams[%q] updated", ref)
+
+	return is, nil
+}
+
+func (fos *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.ImageStream, error) {
+	fos.mu.Lock()
+	defer fos.mu.Unlock()
+
 	ref := fmt.Sprintf("%s/%s", namespace, repo)
 
-	is, ok := os.imageStreamsStorage[ref]
+	is, ok := fos.imageStreams[ref]
 	if !ok {
-		return nil, errors.NewNotFound(schema.GroupResource{
-			Group:    "",
-			Resource: "imagestreams",
-		}, repo)
+		return nil, errors.NewNotFound(api.Resource("imagestreams"), repo)
 	}
-	return is, nil
+	return &is, nil
 }
 
-func (os *FakeOpenShift) CreateImageStreamMapping(group string, ism *imageapi.ImageStreamMapping) (*imageapi.ImageStreamMapping, error) {
-	is, err := os.GetImageStream(group, ism.ObjectMeta.Name)
+func (fos *FakeOpenShift) CreateImageStreamMapping(namespace string, ism *imageapi.ImageStreamMapping) (*imageapi.ImageStreamMapping, error) {
+	is, err := fos.GetImageStream(namespace, ism.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = os.CreateImage(&ism.Image)
+	_, err = fos.CreateImage(&ism.Image)
 	if err != nil {
 		return nil, err
 	}
@@ -116,14 +142,125 @@ func (os *FakeOpenShift) CreateImageStreamMapping(group string, ism *imageapi.Im
 
 	tagEventList := is.Status.Tags[ism.Tag]
 	tagEventList.Items = append(tagEventList.Items, imageapi.TagEvent{
-		Image: ism.Image.Name,
+		DockerImageReference: ism.Image.DockerImageReference,
+		Image:                ism.Image.Name,
 	})
 	is.Status.Tags[ism.Tag] = tagEventList
+
+	_, err = fos.UpdateImageStream(namespace, is)
+	if err != nil {
+		return nil, err
+	}
 
 	return ism, nil
 }
 
-func (os *FakeOpenShift) getName(action clientgotesting.Action) string {
+func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi.ImageStreamTag) (*imageapi.ImageStreamTag, error) {
+	imageStreamName, imageTag, ok := imageapi.SplitImageStreamTag(istag.Name)
+	if !ok {
+		return nil, fmt.Errorf("%q must be of the form <stream_name>:<tag>", istag.Name)
+	}
+
+	is, err := fos.GetImageStream(namespace, imageStreamName)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return nil, err
+		}
+
+		is = &imageapi.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageStreamName,
+				Namespace: namespace,
+			},
+		}
+	}
+
+	if is.Spec.Tags == nil {
+		is.Spec.Tags = make(map[string]imageapi.TagReference)
+	}
+
+	// The user wants to symlink a tag.
+	_, exists := is.Spec.Tags[imageTag]
+	if exists {
+		return nil, errors.NewAlreadyExists(api.Resource("imagestreamtag"), istag.Name)
+	}
+	is.Spec.Tags[imageTag] = *istag.Tag
+
+	// TODO(dmage): use code from (pkg/image/registry/imagestream.Strategy).tagsChanged
+	if is.Status.Tags == nil {
+		is.Status.Tags = make(map[string]imageapi.TagEventList)
+	}
+	tagEventList := is.Status.Tags[imageTag]
+	tagEventList.Items = append(
+		[]imageapi.TagEvent{{
+			Created:              istag.CreationTimestamp,
+			DockerImageReference: istag.Image.DockerImageReference,
+			Image:                istag.Image.Name,
+			Generation:           istag.Generation,
+		}},
+		tagEventList.Items...,
+	)
+	is.Status.Tags[imageTag] = tagEventList
+
+	// Check the stream creation timestamp and make sure we will not
+	// create a new image stream while deleting.
+	if is.CreationTimestamp.IsZero() {
+		_, err = fos.CreateImageStream(namespace, is)
+	} else {
+		_, err = fos.UpdateImageStream(namespace, is)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return istag, nil
+}
+
+func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*imageapi.ImageStreamImage, error) {
+	name, imageID, err := api.ParseImageStreamImageName(id)
+	if err != nil {
+		return nil, errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
+	}
+
+	repo, err := fos.GetImageStream(namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if repo.Status.Tags == nil {
+		return nil, errors.NewNotFound(api.Resource("imagestreamimage"), id)
+	}
+
+	event, err := api.ResolveImageID(repo, imageID)
+	if err != nil {
+		return nil, err
+	}
+
+	imageName := event.Image
+	image, err := fos.GetImage(imageName)
+	if err != nil {
+		return nil, err
+	}
+	if err := api.ImageWithMetadata(image); err != nil {
+		return nil, err
+	}
+	image.DockerImageManifest = ""
+	image.DockerImageConfig = ""
+
+	isi := api.ImageStreamImage{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         namespace,
+			Name:              api.MakeImageStreamImageName(name, imageID),
+			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
+			Annotations:       repo.Annotations,
+		},
+		Image: *image,
+	}
+
+	return &isi, nil
+}
+
+func (fos *FakeOpenShift) getName(action clientgotesting.Action) string {
 	if getnamer, ok := action.(interface {
 		GetName() string
 	}); ok {
@@ -144,141 +281,95 @@ func (os *FakeOpenShift) getName(action clientgotesting.Action) string {
 	return "..."
 }
 
-func (os *FakeOpenShift) log(msg string, f func() (bool, runtime.Object, error)) (bool, runtime.Object, error) {
+func (fos *FakeOpenShift) log(msg string, f func() (bool, runtime.Object, error)) (bool, runtime.Object, error) {
 	ok, obj, err := f()
-	os.logger.Debug(msg, ": err=", err)
+	fos.logger.Debug(msg, ": err=", err)
 	return ok, obj, err
 }
 
-func (os *FakeOpenShift) todo(action clientgotesting.Action) (bool, runtime.Object, error) {
+func (fos *FakeOpenShift) todo(action clientgotesting.Action) (bool, runtime.Object, error) {
 	return true, nil, fmt.Errorf("no reaction implemented for %v", action)
 }
 
-func (os *FakeOpenShift) images(action clientgotesting.Action) (bool, runtime.Object, error) {
-	return os.log(
-		fmt.Sprintf("(*FakeOpenShift).images: %s %s",
-			action.GetVerb(), os.getName(action)),
+func (fos *FakeOpenShift) imagesHandler(action clientgotesting.Action) (bool, runtime.Object, error) {
+	return fos.log(
+		fmt.Sprintf("(*FakeOpenShift).imagesHandler: %s %s",
+			action.GetVerb(), fos.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
 			case clientgotesting.GetActionImpl:
-				image, err := os.GetImage(action.Name)
+				image, err := fos.GetImage(action.Name)
 				return true, image, err
 			}
-			return os.todo(action)
+			return fos.todo(action)
 		},
 	)
 }
 
-func (os *FakeOpenShift) imageStreams(action clientgotesting.Action) (bool, runtime.Object, error) {
-	return os.log(
-		fmt.Sprintf("(*FakeOpenShift).imageStreams: %s %s/%s",
-			action.GetVerb(), action.GetNamespace(), os.getName(action)),
+func (fos *FakeOpenShift) imageStreamsHandler(action clientgotesting.Action) (bool, runtime.Object, error) {
+	return fos.log(
+		fmt.Sprintf("(*FakeOpenShift).imageStreamsHandler: %s %s/%s",
+			action.GetVerb(), action.GetNamespace(), fos.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
 			case clientgotesting.CreateActionImpl:
-				is, err := os.CreateImageStream(
+				is, err := fos.CreateImageStream(
 					action.GetNamespace(),
 					action.Object.(*imageapi.ImageStream),
 				)
 				return true, is, err
 			case clientgotesting.GetActionImpl:
-				is, err := os.GetImageStream(
+				is, err := fos.GetImageStream(
 					action.GetNamespace(),
 					action.GetName(),
 				)
 				return true, is, err
 			}
-			return os.todo(action)
+			return fos.todo(action)
 		},
 	)
 }
 
-func (os *FakeOpenShift) imageStreamMappings(action clientgotesting.Action) (bool, runtime.Object, error) {
-	return os.log(
-		fmt.Sprintf("(*FakeOpenShift).imageStreamMappings: %s %s/%s",
-			action.GetVerb(), action.GetNamespace(), os.getName(action)),
+func (fos *FakeOpenShift) imageStreamMappingsHandler(action clientgotesting.Action) (bool, runtime.Object, error) {
+	return fos.log(
+		fmt.Sprintf("(*FakeOpenShift).imageStreamMappingsHandler: %s %s/%s",
+			action.GetVerb(), action.GetNamespace(), fos.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
 			case clientgotesting.CreateActionImpl:
-				ism, err := os.CreateImageStreamMapping(
+				ism, err := fos.CreateImageStreamMapping(
 					action.GetNamespace(),
 					action.Object.(*imageapi.ImageStreamMapping),
 				)
 				return true, ism, err
 			}
-			return os.todo(action)
+			return fos.todo(action)
+		},
+	)
+}
+
+func (fos *FakeOpenShift) imageStreamImagesHandler(action clientgotesting.Action) (bool, runtime.Object, error) {
+	return fos.log(
+		fmt.Sprintf("(*FakeOpenShift).imageStreamImagesHandler: %s %s/%s",
+			action.GetVerb(), action.GetNamespace(), fos.getName(action)),
+		func() (bool, runtime.Object, error) {
+			switch action := action.(type) {
+			case clientgotesting.GetActionImpl:
+				isi, err := fos.GetImageStreamImage(
+					action.GetNamespace(),
+					action.GetName(),
+				)
+				return true, isi, err
+			}
+			return fos.todo(action)
 		},
 	)
 }
 
 // AddReactorsTo binds the reactors to client.
-func (os *FakeOpenShift) AddReactorsTo(client *testclient.Fake) {
-	client.AddReactor("*", "images", os.images)
-	client.AddReactor("*", "imagestreams", os.imageStreams)
-	client.AddReactor("*", "imagestreammappings", os.imageStreamMappings)
-}
-
-// CreateRandomImage creates an image with a random content.
-func CreateRandomImage(namespace, name string) (*imageapi.Image, error) {
-	_, manifest, _, err := CreateRandomManifest(ManifestSchema1, 3)
-	if err != nil {
-		return nil, err
-	}
-
-	_, manifestSchema1, err := manifest.Payload()
-	if err != nil {
-		return nil, err
-	}
-
-	image, err := NewImageForManifest(
-		fmt.Sprintf("%s/%s", namespace, name),
-		string(manifestSchema1),
-		"",
-		false,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return image, nil
-}
-
-// RegisterImage adds image to the image stream namespace/name.
-func RegisterImage(os *FakeOpenShift, image *imageapi.Image, namespace, name, tag string) error {
-	is, err := os.GetImageStream(namespace, name)
-	if err != nil {
-		is = &imageapi.ImageStream{}
-		is.Name = name
-		is.Annotations = map[string]string{
-			imageapi.InsecureRepositoryAnnotation: "true",
-		}
-
-		is, err = os.CreateImageStream(namespace, is)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, err = os.CreateImageStreamMapping(namespace, &imageapi.ImageStreamMapping{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Image: *image,
-		Tag:   tag,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// RegisterRandomImage adds image with a random content to the image stream namespace/name.
-func RegisterRandomImage(os *FakeOpenShift, namespace, name, tag string) (*imageapi.Image, error) {
-	image, err := CreateRandomImage(namespace, name)
-	if err != nil {
-		return nil, err
-	}
-
-	return image, RegisterImage(os, image, namespace, name, tag)
+func (fos *FakeOpenShift) AddReactorsTo(client *testclient.Fake) {
+	client.AddReactor("*", "images", fos.imagesHandler)
+	client.AddReactor("*", "imagestreams", fos.imageStreamsHandler)
+	client.AddReactor("*", "imagestreammappings", fos.imageStreamMappingsHandler)
+	client.AddReactor("*", "imagestreamimages", fos.imageStreamImagesHandler)
 }
