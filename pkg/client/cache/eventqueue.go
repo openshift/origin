@@ -304,7 +304,7 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 		// Track the last replace key immediately after the store
 		// state has been changed to prevent subsequent errors from
 		// leaving a stale key.
-		if eq.lastReplaceKey != "" && eq.lastReplaceKey == key {
+		if eq.lastReplaceKey == key {
 			eq.lastReplaceKey = ""
 		}
 
