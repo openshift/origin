@@ -197,35 +197,41 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 	})
 
-	g.It("should respect image stream tag reference policy [Conformance]", func() {
-		o.Expect(oc.Run("create").Args("-f", resolutionFixture).Execute()).NotTo(o.HaveOccurred())
+	g.Describe("should respect image stream tag reference policy [Conformance]", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "deployment-image-resolution", g.CurrentGinkgoTestDescription().Failed)
+		})
 
-		name := "deployment-image-resolution"
-		o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
+		g.It("resolve the image pull spec", func() {
+			o.Expect(oc.Run("create").Args("-f", resolutionFixture).Execute()).NotTo(o.HaveOccurred())
 
-		is, err := oc.Client().ImageStreams(oc.Namespace()).Get(name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
-		o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
-		o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
+			name := "deployment-image-resolution"
+			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
 
-		dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
+			is, err := oc.Client().ImageStreams(oc.Namespace()).Get(name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
+			o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
+			o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
 
-		imageID := is.Status.Tags["pullthrough"].Items[0].Image
-		resolvedReference := fmt.Sprintf("%s@%s", is.Status.DockerImageRepository, imageID)
-		directReference := is.Status.Tags["direct"].Items[0].DockerImageReference
+			dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
 
-		// controller should be using pullthrough for this (pointing to local registry)
-		o.Expect(dc.Spec.Triggers[1].ImageChangeParams).NotTo(o.BeNil())
-		o.Expect(dc.Spec.Triggers[1].ImageChangeParams.LastTriggeredImage).To(o.Equal(resolvedReference))
-		o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(resolvedReference))
+			imageID := is.Status.Tags["pullthrough"].Items[0].Image
+			resolvedReference := fmt.Sprintf("%s@%s", is.Status.DockerImageRepository, imageID)
+			directReference := is.Status.Tags["direct"].Items[0].DockerImageReference
 
-		// controller should have preferred the base image
-		o.Expect(dc.Spec.Triggers[2].ImageChangeParams).NotTo(o.BeNil())
-		o.Expect(dc.Spec.Triggers[2].ImageChangeParams.LastTriggeredImage).To(o.Equal(directReference))
-		o.Expect(dc.Spec.Template.Spec.Containers[1].Image).To(o.Equal(directReference))
+			// controller should be using pullthrough for this (pointing to local registry)
+			o.Expect(dc.Spec.Triggers[1].ImageChangeParams).NotTo(o.BeNil())
+			o.Expect(dc.Spec.Triggers[1].ImageChangeParams.LastTriggeredImage).To(o.Equal(resolvedReference))
+			o.Expect(dc.Spec.Template.Spec.Containers[0].Image).To(o.Equal(resolvedReference))
+
+			// controller should have preferred the base image
+			o.Expect(dc.Spec.Triggers[2].ImageChangeParams).NotTo(o.BeNil())
+			o.Expect(dc.Spec.Triggers[2].ImageChangeParams.LastTriggeredImage).To(o.Equal(directReference))
+			o.Expect(dc.Spec.Template.Spec.Containers[1].Image).To(o.Equal(directReference))
+		})
 	})
 
 	g.Describe("with test deployments [Conformance]", func() {
