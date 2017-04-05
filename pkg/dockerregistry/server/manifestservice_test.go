@@ -18,12 +18,8 @@ func TestManifestServiceExists(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := testutil.NewFakeOpenShiftWithClient()
-
-	testImage, err := testutil.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := testutil.NewFakeOpenShiftWithClient()
+	testImage := testutil.AddRandomImage(t, fos, namespace, repo, tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: client,
@@ -56,17 +52,21 @@ func TestManifestServicePut(t *testing.T) {
 
 	_, client := testutil.NewFakeOpenShiftWithClient()
 
+	bs := newTestBlobStore(map[digest.Digest][]byte{
+		"test:1": []byte("{}"),
+	})
+
+	tms := newTestManifestService(repoName, nil)
+
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: client,
-		blobs: newTestBlobStore(map[digest.Digest][]byte{
-			"test:1": []byte("{}"),
-		}),
+		blobs:  bs,
 	})
 
 	ms := &manifestService{
 		ctx:           context.Background(),
 		repo:          r,
-		manifests:     newTestManifestService(repoName, nil),
+		manifests:     tms,
 		acceptschema2: r.acceptschema2,
 	}
 
@@ -90,6 +90,19 @@ func TestManifestServicePut(t *testing.T) {
 	dgst, err := ms.Put(ctx, manifest)
 	if err != nil {
 		t.Fatalf("ms.Put(ctx, manifest): %s", err)
+	}
+
+	// recreate repository to reset cached image stream
+	r = newTestRepository(t, namespace, repo, testRepositoryOptions{
+		client: client,
+		blobs:  bs,
+	})
+
+	ms = &manifestService{
+		ctx:           context.Background(),
+		repo:          r,
+		manifests:     tms,
+		acceptschema2: r.acceptschema2,
 	}
 
 	ctx = context.Background()

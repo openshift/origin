@@ -29,10 +29,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
@@ -294,9 +292,21 @@ func TestRepositoryBlobStat(t *testing.T) {
 			ctx = withDeferredErrors(ctx, tc.deferredErrors)
 		}
 
-		client := &testclient.Fake{}
-		client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.imageStreams...))
-		client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, tc.images...))
+		fos, client := registrytest.NewFakeOpenShiftWithClient()
+
+		for _, is := range tc.imageStreams {
+			_, err = fos.CreateImageStream(is.Namespace, &is)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		for _, image := range tc.images {
+			_, err = fos.CreateImage(&image)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 
 		reg, err := newTestRegistry(ctx, client, driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
 		if err != nil {
@@ -346,7 +356,6 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 		t.Fatal(err)
 	}
 	testImage := testImages["nm/is:latest"][0]
-	testImageStream := registrytest.TestNewImageStreamObject("nm", "is", "latest", testImage.Name, "")
 
 	blob1Desc := testNewDescriptorForLayer(testImage.DockerImageLayers[0])
 	blob1Dgst := blob1Desc.Digest
@@ -362,9 +371,9 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := &testclient.Fake{}
-	client.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, *testImageStream))
-	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	registrytest.AddImageStream(t, fos, "nm", "is", nil)
+	registrytest.AddImage(t, fos, testImage, "nm", "is", "latest")
 
 	reg, err := newTestRegistry(ctx, client, driver, blobRepoCacheTTL, false, false)
 	if err != nil {
