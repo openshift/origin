@@ -41,7 +41,9 @@ type F5Error struct {
 // The F5 router uses it within f5Vserver to unmarshal the JSON response when
 // requesting a vserver from F5 BIG-IP.
 type f5VserverPolicy struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	Partition string `json:"partition"`
+	FullPath  string `json:"fullPath"`
 }
 
 // f5VserverPolicies represents the policies associated with an F5 BIG-IP LTM
@@ -76,6 +78,9 @@ type f5Pool struct {
 	// Monitor is the name of the monitor associated with the pool.  The F5 router
 	// uses /Common/http.
 	Monitor string `json:"monitor"`
+
+	// Partition is the F5 partition to use for the pool.
+	Partition string `json:"partition"`
 
 	// Name is the name of the pool.  The F5 router uses names of the form
 	// openshift_<namespace>_<servicename>.
@@ -136,6 +141,9 @@ type f5Ver12Policy struct {
 type f5Policy struct {
 	// Name is the name of the policy.
 	Name string `json:"name"`
+
+	// Partition is the F5 partition to use for the policy.
+	Partition string `json:"partition"`
 
 	// Controls is a list of F5 BIG-IP LTM features enabled for the pool.
 	// Typically we use just forwarding; other possible values are caching,
@@ -264,6 +272,9 @@ type f5Datagroup struct {
 type f5IRule struct {
 	// Name is the name of the iRule.
 	Name string `json:"name"`
+
+	// Partition is the F5 partition to use for the iRule.
+	Partition string `json:"partition"`
 
 	// Code is the TCL code of the iRule.
 	Code string `json:"apiAnonymous"`
