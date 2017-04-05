@@ -17,7 +17,6 @@ import (
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
