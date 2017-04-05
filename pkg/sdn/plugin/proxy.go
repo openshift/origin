@@ -148,6 +148,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 	}
 
 	firewall := []firewallItem{}
+	dnsFound := false
 	for _, rule := range policy.Spec.Egress {
 		if len(rule.To.CIDRSelector) > 0 {
 			_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
@@ -158,6 +159,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 			}
 			firewall = append(firewall, firewallItem{rule.Type, cidr})
 		} else if len(rule.To.DNSName) > 0 {
+			dnsFound = true
 			cidrs := proxy.egressDNS.GetNetCIDRs(policy, rule.To.DNSName)
 			for _, cidr := range cidrs {
 				firewall = append(firewall, firewallItem{rule.Type, &cidr})
@@ -186,6 +188,14 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 
 	// Set active policy for the namespace
 	if ref, ok := proxy.firewall[ns]; ok {
+		if dnsFound {
+			if err := CheckDNSResolver(); err != nil {
+				ref.activePolicy = nil
+				glog.Errorf("DNS resolver failed: %v, dropping all firewall rules for namespace: %q", err, ns)
+				return
+			}
+		}
+
 		if len(ref.namespaceFirewalls) == 1 {
 			for uid := range ref.namespaceFirewalls {
 				ref.activePolicy = &uid
