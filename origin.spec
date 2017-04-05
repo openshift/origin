@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7b1d68d0ab092c603f2eb8577020fbd6e96c4554
+%global commit 9063c514c0451cbcde09648a02f2e5939e38e9ff
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.15 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=7b1d68d
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.16 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=9063c51
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.16
+Version:        3.6.17
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,26 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed Apr 05 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.17-1
+- Extended tests for router metrics should skip when not configured
+  (ccoleman@redhat.com)
+- Add pruning example using the CronJob (mfojtik@redhat.com)
+- Fix go tests; policy requests now include the partition paths
+  (rchopra@redhat.com)
+- Used shared informer in BuildPodController and BuildPodDeleteController
+  (cewong@redhat.com)
+- Update OAuth grant flow tests (jliggitt@redhat.com)
+- Redirect to relative subpath for approval, relative parent path on success
+  (jliggitt@redhat.com)
+- policy urls should support partitions (rchopra@redhat.com)
+- F5 router partition path changes:   o Use fully qualified names so that there
+  is no defaulting to /Common     and need to have all the referenced objects
+  in the same partition,     otherwise F5 has reference errors across
+  partitions.   o Fix policy partition path + rework and ensure we check the
+  vserver     which is inside the partition we are configured in.   o Comment
+  re: delete errors.   o Bug fixes.   o F5 unit test changes for supporting
+  partition paths. (smitram@gmail.com)
+
 * Tue Apr 04 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.16-1
 - bump(github.com/openshift/origin-web-console):
   94c8d8999c237310857d7d9b8400b777a561152e (dmcphers+openshiftbot@redhat.com)
