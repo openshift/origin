@@ -7,6 +7,8 @@ govet_blacklist=(
 	"pkg/auth/ldaputil/client.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"pkg/.*/client/clientset_generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
 	"pkg/.*/client/clientset_generated/release_v1_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
+	"pkg/.*/clientset/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
+	"pkg/.*/clientset/release_v3_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
 )
 
 function govet_blacklist_contains() {
@@ -68,11 +70,11 @@ for test_dir in $ALL_DIRS
 do
   # use `grep` failure to determine that a directory is not in the blacklist
   if ! echo "${DIR_BLACKLIST}" | grep -q "${test_dir}"; then
-    go tool vet -shadow -shadowstrict $test_dir
-    if [ "$?" -ne "0" ]
-    then
-      FAILURE=true
-    fi
+	go tool vet -shadow -shadowstrict $test_dir
+	if [ "$?" -ne "0" ]
+	then
+	  FAILURE=true
+	fi
   fi
 done
 
