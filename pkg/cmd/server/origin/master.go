@@ -543,7 +543,17 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 	initVersionRoute(apiContainer.Container, "/version/openshift")
 
 	if c.Options.EnableTemplateServiceBroker {
-		openservicebrokerserver.Route(apiContainer.Container, templateapi.ServiceBrokerRoot, templateservicebroker.NewBroker(&c.PrivilegedLoopbackClientConfig, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset, c.Informers, c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace))
+		openservicebrokerserver.Route(
+			apiContainer.Container,
+			templateapi.ServiceBrokerRoot,
+			templateservicebroker.NewBroker(
+				c.PrivilegedLoopbackClientConfig,
+				c.PrivilegedLoopbackOpenShiftClient,
+				c.PrivilegedLoopbackKubernetesClientset.Core(),
+				c.Informers,
+				c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace,
+			),
+		)
 	}
 
 	// Set up OAuth metadata only if we are configured to use OAuth

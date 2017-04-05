@@ -2,7 +2,6 @@ package secretinjector
 
 import (
 	"io"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -11,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/admission"
 	"k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
 
 	authclient "github.com/openshift/origin/pkg/auth/client"
@@ -45,12 +43,7 @@ func (si *secretInjector) Admit(attr admission.Attributes) (err error) {
 		return nil
 	}
 
-	impersonatingConfig := si.restClientConfig
-	impersonatingConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return authclient.NewImpersonatingRoundTripper(attr.GetUserInfo(), si.restClientConfig.WrapTransport(rt))
-	}
-
-	client, err := coreclient.NewForConfig(&impersonatingConfig)
+	client, err := authclient.NewImpersonatingKubernetesClientset(attr.GetUserInfo(), si.restClientConfig)
 	if err != nil {
 		glog.V(2).Infof("secretinjector: could not create client: %v", err)
 		return nil
@@ -64,7 +57,7 @@ func (si *secretInjector) Admit(attr admission.Attributes) (err error) {
 		return nil
 	}
 
-	secrets, err := client.Secrets(namespace).List(api.ListOptions{})
+	secrets, err := client.Core().Secrets(namespace).List(api.ListOptions{})
 	if err != nil {
 		glog.V(2).Infof("secretinjector: failed to list Secrets: %v", err)
 		return nil
