@@ -617,6 +617,7 @@ func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, err
 func (h *Helper) serverVersion() (semver.Version, error) {
 	versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
+		DiscardContainer().
 		Output()
 	if err != nil {
 		return semver.Version{}, err

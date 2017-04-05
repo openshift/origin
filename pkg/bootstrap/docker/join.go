@@ -101,7 +101,7 @@ func (c *ClientJoinConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) 
 	}
 
 	// Create an OpenShift configuration and start a container that uses it.
-	c.addTask("Joining OpenShift cluster", c.StartOpenShiftNode)
+	c.addTask(simpleTask("Joining OpenShift cluster", c.StartOpenShiftNode))
 
 	return nil
 }
