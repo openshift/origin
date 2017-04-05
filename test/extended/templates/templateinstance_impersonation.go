@@ -172,7 +172,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
@@ -180,7 +180,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
@@ -194,10 +194,10 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			newtemplateinstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
+			newtemplateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
@@ -209,10 +209,10 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			// ensure spec (particularly including spec.requester.username) is
 			// immutable
 			templateinstance.Spec.Requester.Username = edituser2.Name
-			_, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Update(templateinstance)
+			_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
 			o.Expect(err).To(o.HaveOccurred())
 
-			err = cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})
@@ -224,17 +224,17 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			if test.expectDeleteSuccess {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			} else {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsForbidden(err)).To(o.BeTrue())
 
-				err = cli.AdminTemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+				err = cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}

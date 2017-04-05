@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -12,7 +13,7 @@ import (
 
 // RunInPodContainer will run provided command in the specified pod container.
 func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) error {
-	pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), selector, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
+	pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), selector, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 	if err != nil {
 		return err
 	}
@@ -20,7 +21,7 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 		return fmt.Errorf("Got %d pods for selector %v, expected 1", len(pods), selector)
 	}
 
-	pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+	pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

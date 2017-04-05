@@ -118,10 +118,10 @@ func testPruneImages(oc *exutil.CLI, schemaVersion int) {
 	o.Expect(pruneSize < keepSize).To(o.BeTrue())
 
 	g.By(fmt.Sprintf("ensure uploaded image is of schema %d", schemaVersion))
-	imgPrune, err := oc.AsAdmin().Client().Images().Get(imgPruneName)
+	imgPrune, err := oc.AsAdmin().Client().Images().Get(imgPruneName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(imgPrune.DockerImageManifestMediaType).To(o.Equal(mediaType))
-	imgKeep, err := oc.AsAdmin().Client().Images().Get(imgKeepName)
+	imgKeep, err := oc.AsAdmin().Client().Images().Get(imgKeepName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(imgKeep.DockerImageManifestMediaType).To(o.Equal(mediaType))
 
@@ -248,7 +248,7 @@ func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 		return nil
 	}
 
-	dc, err := oc.Client().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry")
+	dc, err := oc.Client().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

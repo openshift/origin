@@ -80,7 +80,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		cli.AdminTemplateClient().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
 	})
 
 	catalog := func() {
@@ -133,7 +133,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 		g.By("having no permissions to the namespace, no BrokerTemplateInstance should be created")
-		_, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -144,7 +144,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 		g.By("having view permissions to the namespace, no BrokerTemplateInstance should be created")
-		_, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
@@ -152,7 +152,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		err = provision(edituser.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -163,7 +163,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 		g.By("having no permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-		brokerTemplateInstance, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -174,7 +174,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err.(*client.ServerError).StatusCode).To(o.Equal(http.StatusForbidden))
 
 		g.By("having view permissions to the namespace, the BrokerTemplateInstance should be unchanged")
-		brokerTemplateInstance, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 
@@ -182,7 +182,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		err = bind(edituser.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 	})

@@ -149,7 +149,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
-		is, err := oc.Client().ImageStreams(oc.Namespace()).Get("stream")
+		is, err := oc.Client().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["foo"] = imageapi.TagReference{
 			Name: "foo",
@@ -166,7 +166,7 @@ var _ = g.Describe("[imageapis] openshift limit range admission", func() {
 		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
-		is, err = oc.Client().ImageStreams(oc.Namespace()).Get("stream")
+		is, err = oc.Client().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["duplicate"] = imageapi.TagReference{
 			Name: "duplicate",
@@ -276,7 +276,7 @@ func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits 
 // bumpLimit changes the limit value for given resource for all the limit types of limit range object
 func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump a limit on resource %q to %s", resourceName, limit))
-	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName)
+	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -17,11 +17,12 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-func createDNSPod(namespace, probeCmd string) *api.Pod {
-	pod := &api.Pod{
+func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
+	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: kapi.Registry.GroupOrDie(api.GroupName).GroupVersion.String(),
@@ -30,9 +31,9 @@ func createDNSPod(namespace, probeCmd string) *api.Pod {
 			Name:      "dns-test-" + string(uuid.NewUUID()),
 			Namespace: namespace,
 		},
-		Spec: api.PodSpec{
-			RestartPolicy: api.RestartPolicyNever,
-			Containers: []api.Container{
+		Spec: kapiv1.PodSpec{
+			RestartPolicy: kapiv1.RestartPolicyNever,
+			Containers: []kapiv1.Container{
 				{
 					Name:    "querier",
 					Image:   "gcr.io/google_containers/dnsutils:e2e",
@@ -173,9 +174,9 @@ func PodSucceeded(event watch.Event) (bool, error) {
 	return false, nil
 }
 
-func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, expect int) {
+func validateDNSResults(f *e2e.Framework, pod *kapiv1.Pod, fileNames sets.String, expect int) {
 	By("submitting the pod to kubernetes")
-	podClient := f.ClientSet.Core().Pods(f.Namespace.Name)
+	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
 	defer func() {
 		By("deleting the pod")
 		defer GinkgoRecover()
@@ -186,7 +187,7 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 		e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
 	}
 
-	w, err := f.ClientSet.Core().Pods(f.Namespace.Name).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+	w, err := f.ClientSet.CoreV1().Pods(f.Namespace.Name).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
 	if err != nil {
 		e2e.Failf("Failed: %v", err)
 	}
@@ -195,7 +196,7 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 	}
 
 	By("retrieving the pod logs")
-	r, err := podClient.GetLogs(pod.Name, &api.PodLogOptions{Container: "querier"}).Stream()
+	r, err := podClient.GetLogs(pod.Name, &kapiv1.PodLogOptions{Container: "querier"}).Stream()
 	if err != nil {
 		e2e.Failf("Failed to get pod logs %s: %v", pod.Name, err)
 	}
@@ -215,13 +216,13 @@ func validateDNSResults(f *e2e.Framework, pod *api.Pod, fileNames sets.String, e
 	e2e.Logf("DNS probes using %s succeeded\n", pod.Name)
 }
 
-func createServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *api.Service {
-	s := &api.Service{
+func createServiceSpec(serviceName string, isHeadless bool, externalName string, selector map[string]string) *kapiv1.Service {
+	s := &kapiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: serviceName,
 		},
-		Spec: api.ServiceSpec{
-			Ports: []api.ServicePort{
+		Spec: kapiv1.ServiceSpec{
+			Ports: []kapiv1.ServicePort{
 				{Port: 80, Name: "http", Protocol: "TCP"},
 			},
 			Selector: selector,
@@ -231,29 +232,29 @@ func createServiceSpec(serviceName string, isHeadless bool, externalName string,
 		s.Spec.ClusterIP = "None"
 	}
 	if len(externalName) > 0 {
-		s.Spec.Type = api.ServiceTypeExternalName
+		s.Spec.Type = kapiv1.ServiceTypeExternalName
 		s.Spec.ExternalName = externalName
 		s.Spec.ClusterIP = ""
 	}
 	return s
 }
 
-func createEndpointSpec(name string) *api.Endpoints {
-	return &api.Endpoints{
+func createEndpointSpec(name string) *kapiv1.Endpoints {
+	return &kapiv1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Subsets: []api.EndpointSubset{
+		Subsets: []kapiv1.EndpointSubset{
 			{
-				Addresses: []api.EndpointAddress{
+				Addresses: []kapiv1.EndpointAddress{
 					{IP: "1.1.1.1", Hostname: "endpoint1"},
 					{IP: "1.1.1.2"},
 				},
-				NotReadyAddresses: []api.EndpointAddress{
+				NotReadyAddresses: []kapiv1.EndpointAddress{
 					{IP: "2.1.1.1"},
 					{IP: "2.1.1.2"},
 				},
-				Ports: []api.EndpointPort{
+				Ports: []kapiv1.EndpointPort{
 					{Port: 80},
 				},
 			},
@@ -261,7 +262,7 @@ func createEndpointSpec(name string) *api.Endpoints {
 	}
 }
 
-func ipsForEndpoints(ep *api.Endpoints) []string {
+func ipsForEndpoints(ep *kapiv1.Endpoints) []string {
 	ips := sets.NewString()
 	for _, sub := range ep.Subsets {
 		for _, addr := range sub.Addresses {
@@ -275,23 +276,23 @@ var _ = Describe("DNS", func() {
 	f := e2e.NewDefaultFramework("dns")
 
 	It("should answer endpoint and wildcard queries for the cluster [Conformance]", func() {
-		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("headless", true, "", nil)); err != nil {
 			e2e.Failf("unable to create headless service: %v", err)
 		}
-		if _, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
+		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(createEndpointSpec("headless")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("clusterip", false, "", nil)); err != nil {
 			e2e.Failf("unable to create clusterip service: %v", err)
 		}
-		if _, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
+		if _, err := f.ClientSet.CoreV1().Endpoints(f.Namespace.Name).Create(createEndpointSpec("clusterip")); err != nil {
 			e2e.Failf("unable to create clusterip endpoints: %v", err)
 		}
-		if _, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
+		if _, err := f.ClientSet.CoreV1().Services(f.Namespace.Name).Create(createServiceSpec("externalname", true, "www.google.com", nil)); err != nil {
 			e2e.Failf("unable to create externalName service: %v", err)
 		}
 
-		ep, err := f.ClientSet.Core().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
+		ep, err := f.ClientSet.CoreV1().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to find endpoints for kubernetes.default: %v", err)
 		}

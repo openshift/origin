@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util/wait"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"

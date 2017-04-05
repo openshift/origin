@@ -12,9 +12,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -29,7 +30,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 	)
 
 	g.BeforeEach(func() {
-		dc, err := oc.AdminClient().DeploymentConfigs("default").Get("router")
+		dc, err := oc.AdminClient().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return
@@ -38,7 +39,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		env := dc.Spec.Template.Spec.Containers[0].Env
 		username, password = findEnvVar(env, "STATS_USERNAME"), findEnvVar(env, "STATS_PASSWORD")
 
-		epts, err := oc.AdminKubeClient().Endpoints("default").Get("router")
+		epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		host = epts.Subsets[0].Addresses[0].IP
 
@@ -48,7 +49,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 	g.Describe("The HAProxy router", func() {
 		g.It("should expose a health check on the metrics port", func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
+			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("listening on the health port")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/healthz", host), 200)
@@ -62,7 +63,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
+			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
 			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/metrics", host), 403)
@@ -99,7 +100,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			allEndpoints := sets.NewString()
 			services := []string{"weightedendpoints1", "weightedendpoints2"}
 			for _, name := range services {
-				epts, err := oc.AdminKubeClient().Endpoints(ns).Get(name)
+				epts, err := oc.AdminKubeClient().CoreV1().Endpoints(ns).Get(name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				for _, s := range epts.Subsets {
 					for _, a := range s.Addresses {
@@ -143,7 +144,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 
 		g.It("should expose the profiling endpoints", func() {
 			execPodName = exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
+			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/debug/pprof/heap", host), 403)

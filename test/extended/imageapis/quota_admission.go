@@ -168,7 +168,7 @@ func assertQuotasEqual(a, b kapi.ResourceList) error {
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump the quota to %s=%d", resourceName, value))
-	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName)
+	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

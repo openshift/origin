@@ -7,8 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapierrs "k8s.io/kubernetes/pkg/api/errors"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -60,7 +60,7 @@ USER 1001
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(result.BuildSuccess).To(o.BeTrue(), "Build did not succeed: %v", result)
 
-		pod, err := oc.KubeClient().Pods(oc.Namespace()).Get(build.Name + "-build")
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(build.Name+"-build", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		if strings.HasSuffix(pod.Spec.Containers[0].Image, ":v3.6.0-alpha.0") {
 			g.Skip(fmt.Sprintf("The currently selected builder image does not yet support optimized image builds: %s", pod.Spec.Containers[0].Image))

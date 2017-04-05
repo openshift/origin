@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -81,7 +82,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyservice},
 				expectCondition: templateapi.TemplateInstanceReady,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
+					_, err := cli.AdminKubeClient().CoreV1().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
 					return err == nil
 				},
 			},
@@ -92,7 +93,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				objects:         []runtime.Object{dummyservice},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminKubeClient().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
+					_, err := cli.AdminKubeClient().CoreV1().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
@@ -124,7 +125,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			g.By(test.by)
 			cli.ChangeUser(test.user.Name)
 
-			secret, err := cli.KubeClient().Secrets(cli.Namespace()).Create(&kapi.Secret{
+			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&kapiv1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret",
 				},
@@ -160,11 +161,11 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			err = templateapi.AddObjectsToTemplate(&templateinstance.Spec.Template, test.objects, latest.Versions...)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			templateinstance, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Create(templateinstance)
+			templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				templateinstance, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -177,9 +178,9 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			o.Expect(cond.Type).To(o.Equal(test.expectCondition))
 			o.Expect(test.checkOK(test.namespace)).To(o.BeTrue())
 
-			err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
+			err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = cli.KubeClient().Secrets(cli.Namespace()).Delete(secret.Name, nil)
+			err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Delete(secret.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 	})

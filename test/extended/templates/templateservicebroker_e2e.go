@@ -70,7 +70,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		cli.AdminTemplateClient().BrokerTemplateInstances().Delete(instanceID, nil)
+		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
 	})
 
 	catalog := func() {
@@ -101,11 +101,11 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		templateInstance, err := cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		templateInstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		secret, err := cli.KubeClient().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(brokerTemplateInstance.Spec).To(o.Equal(templateapi.BrokerTemplateInstanceSpec{
@@ -142,7 +142,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			"DATABASE_USER": []byte("test"),
 		}))
 
-		examplesecret, err := cli.KubeClient().Secrets(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))
@@ -167,13 +167,13 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
 		services := bind.Credentials["services"].(map[string]interface{})
 
-		service, err := cli.KubeClient().Services(cli.Namespace()).Get("mysql", metav1.GetOptions{})
+		service, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("mysql", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(services["MYSQL_SERVICE_HOST"]).To(o.Equal(service.Spec.ClusterIP))
 		o.Expect(services["MYSQL_SERVICE_PORT"]).To(o.Equal(strconv.Itoa(int(service.Spec.Ports[0].Port))))
@@ -184,7 +184,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		err := brokercli.Unbind(context.Background(), instanceID, bindingID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		brokerTemplateInstance, err := cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.HaveLen(0))
 	}
@@ -194,19 +194,19 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		err := brokercli.Deprovision(context.Background(), instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminTemplateClient().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.TemplateClient().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.KubeClient().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.KubeClient().Secrets(cli.Namespace()).Get("examplesecret", metav1.GetOptions{})
+		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("examplesecret", metav1.GetOptions{})
 		// TODO: uncomment  when GC is enabled
 		// o.Expect(err).To(o.HaveOccurred())
 		// o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())

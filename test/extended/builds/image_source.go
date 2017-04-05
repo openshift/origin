@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -42,7 +44,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), imageSourceLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods)).To(o.Equal(1))
-			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0])
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")
@@ -65,7 +67,7 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), imageDockerLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(pods)).To(o.Equal(1))
-			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0])
+			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod to contain the file from the input image")
