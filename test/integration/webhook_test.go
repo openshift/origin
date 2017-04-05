@@ -118,7 +118,7 @@ func TestWebhook(t *testing.T) {
 				t.Fatalf("%s: Unable to unmarshal returned body into a Build object: %v", test.Name, err)
 			}
 
-			actual, err := osClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+			actual, err := osClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("Created build not found in cluster: %v", err)
 			}
@@ -223,7 +223,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			t.Errorf("Webhook returned incomplete or wrong Build")
 		}
 
-		actual, err := clusterAdminClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+		actual, err := clusterAdminClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Created build not found in cluster: %v", err)
 		}
