@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# This prevents creation of temporary directories inside of the /tmp. This
+# script don't need them and creating them under root user could lead to other
+# scripts failing down the road.
+OS_TMP_ENV_SET=install-etcd
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 etcd_version=$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json github.com/coreos/etcd/etcdserver)
