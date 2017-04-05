@@ -92,7 +92,7 @@ func TestGrant(t *testing.T) {
 
 			ExpectStatusCode: 200,
 			ExpectContains: []string{
-				`action="/grant"`,
+				`action="grant"`,
 				`name="csrf" value="test"`,
 				`name="client_id" value="myclient"`,
 				`checked name="scope" value="myscope1"`,
@@ -111,7 +111,7 @@ func TestGrant(t *testing.T) {
 
 			ExpectStatusCode: 200,
 			ExpectContains: []string{
-				`action="/grant"`,
+				`action="grant"`,
 				`name="csrf" value="test"`,
 				`name="client_id" value="myclient"`,
 				`checked name="scope" value="newscope1"`,
