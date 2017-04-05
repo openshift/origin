@@ -9,16 +9,20 @@ import (
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 	"k8s.io/kubernetes/pkg/runtime"
 	kstorage "k8s.io/kubernetes/pkg/storage"
+	"k8s.io/kubernetes/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authclient "github.com/openshift/origin/pkg/auth/client"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
+	"github.com/openshift/origin/pkg/project/api/validation"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
@@ -28,6 +32,8 @@ import (
 type REST struct {
 	// client can modify Kubernetes namespaces
 	client kcoreclient.NamespaceInterface
+	// config to build a client that can impersonate users
+	config restclient.Config
 	// lister can enumerate project lists that enforce policy
 	lister projectauth.Lister
 	// Allows extended behavior during creation, required
@@ -40,9 +46,10 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
+func NewREST(client kcoreclient.NamespaceInterface, privilegedConfig restclient.Config, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
 	return &REST{
 		client:         client,
+		config:         privilegedConfig,
 		lister:         lister,
 		createStrategy: projectregistry.Strategy,
 		updateStrategy: projectregistry.Strategy,
@@ -156,6 +163,14 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 
 	s.updateStrategy.PrepareForUpdate(ctx, obj, oldObj)
 	if errs := s.updateStrategy.ValidateUpdate(ctx, obj, oldObj); len(errs) > 0 {
+		// If the user has the ability to update the namespace directly, they can circumvent most of the
+		// project validation code.  Thus, as a convenience, if we see that the validation errors are all in
+		// the project's immutable fields, we try to impersonate the user and update the namespace directly.
+		if containsOnlyImmutableProjectFieldErrors(errs) {
+			if namespace, ok := s.tryImpersonatingNamespaceUpdate(project, ctx); ok {
+				return projectutil.ConvertNamespace(namespace), false, nil
+			}
+		}
 		return nil, false, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
 	}
 
@@ -165,6 +180,34 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 	}
 
 	return projectutil.ConvertNamespace(namespace), false, nil
+}
+
+func (s *REST) tryImpersonatingNamespaceUpdate(project *api.Project, ctx kapi.Context) (*kapi.Namespace, bool) {
+	user, ok := kapi.UserFrom(ctx)
+	if !ok {
+		return nil, false
+	}
+
+	impersonatingClient, err := authclient.NewImpersonatingKubernetesClientset(user, s.config)
+	if err != nil {
+		return nil, false
+	}
+
+	namespace, err := impersonatingClient.Core().Namespaces().Update(projectutil.ConvertProject(project))
+	if err != nil {
+		return nil, false
+	}
+
+	return namespace, true // There was no error updating the namespace so the user has the rights to do so
+}
+
+func containsOnlyImmutableProjectFieldErrors(errs field.ErrorList) bool {
+	for _, err := range errs {
+		if err.Type != field.ErrorTypeInvalid || err.Detail != validation.ImmutableProjectFieldError {
+			return false
+		}
+	}
+	return true
 }
 
 var _ = rest.Deleter(&REST{})

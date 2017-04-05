@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/restclient"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/project/api"
@@ -70,7 +71,7 @@ func TestCreateProjectBadObject(t *testing.T) {
 
 func TestCreateInvalidProject(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.Core().Namespaces(), restclient.Config{}, &mockLister{}, nil, nil)
 	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{
 			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
@@ -83,7 +84,7 @@ func TestCreateInvalidProject(t *testing.T) {
 
 func TestCreateProjectOK(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.Core().Namespaces(), restclient.Config{}, &mockLister{}, nil, nil)
 	_, err := storage.Create(kapi.NewContext(), &api.Project{
 		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
 	})
@@ -100,7 +101,7 @@ func TestCreateProjectOK(t *testing.T) {
 
 func TestGetProjectOK(t *testing.T) {
 	mockClient := fake.NewSimpleClientset(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: "foo"}})
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.Core().Namespaces(), restclient.Config{}, &mockLister{}, nil, nil)
 	project, err := storage.Get(kapi.NewContext(), "foo")
 	if project == nil {
 		t.Error("Unexpected nil project")
