@@ -312,7 +312,7 @@ func TestApiGroups(t *testing.T) {
 	}
 	respBuild, ok := respObj.(*buildv1.Build)
 	if !ok {
-		t.Fatalf("Unexpected type %t, expected buildv1.Build", respObj)
+		t.Fatalf("Unexpected type %T, expected buildv1.Build", respObj)
 	}
 	if got, expected := respBuild.APIVersion, buildv1.SchemeGroupVersion.String(); got != expected {
 		t.Fatalf("Unexpected APIVersion: got=%q, expected=%q", got, expected)
