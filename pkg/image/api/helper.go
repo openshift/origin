@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"regexp"
 	"sort"
@@ -34,6 +35,10 @@ const (
 
 	// TagReferenceAnnotationTagHidden indicates that a given TagReference is hidden from search results
 	TagReferenceAnnotationTagHidden = "hidden"
+
+	// ImportRegistryNotAllowed indicates that the image tag was not imported due to
+	// untrusted registry.
+	ImportRegistryNotAllowed = "registry is not allowed for import"
 )
 
 // DefaultRegistry returns the default Docker registry (host or host:port), or false if it is not available.
@@ -166,6 +171,21 @@ func (r DockerImageReference) RepositoryName() string {
 	r.ID = ""
 	r.Registry = ""
 	return r.Exact()
+}
+
+// RegistryHostPort returns the registry hostname and the port.
+// If the port is not specified in the registry hostname we default to 443.
+// This will also default to Docker client defaults if the registry hostname is empty.
+func (r DockerImageReference) RegistryHostPort(insecure bool) (string, string) {
+	registryHost := r.AsV2().DockerClientDefaults().Registry
+	if strings.Contains(registryHost, ":") {
+		hostname, port, _ := net.SplitHostPort(registryHost)
+		return hostname, port
+	}
+	if insecure {
+		return registryHost, "80"
+	}
+	return registryHost, "443"
 }
 
 // RepositoryName returns the registry relative name

@@ -305,6 +305,7 @@ var map_ImagePolicyConfig = map[string]string{
 	"disableScheduledImport":                     "DisableScheduledImport allows scheduled background import of images to be disabled.",
 	"scheduledImageImportMinimumIntervalSeconds": "ScheduledImageImportMinimumIntervalSeconds is the minimum number of seconds that can elapse between when image streams scheduled for background import are checked against the upstream repository. The default value is 15 minutes.",
 	"maxScheduledImageImportsPerMinute":          "MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the background per minute. The default value is 60. Set to -1 for unlimited.",
+	"allowedRegistriesForImport":                 "AllowedRegistriesForImport limits the docker registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
 }
 
 func (ImagePolicyConfig) SwaggerDoc() map[string]string {
@@ -700,6 +701,16 @@ var map_RFC2307Config = map[string]string{
 
 func (RFC2307Config) SwaggerDoc() map[string]string {
 	return map_RFC2307Config
+}
+
+var map_RegistryLocation = map[string]string{
+	"":           "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
+	"domainName": "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
+	"insecure":   "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
+}
+
+func (RegistryLocation) SwaggerDoc() map[string]string {
+	return map_RegistryLocation
 }
 
 var map_RemoteConnectionInfo = map[string]string{

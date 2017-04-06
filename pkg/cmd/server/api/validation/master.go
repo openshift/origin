@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -472,6 +473,28 @@ func ValidateImagePolicyConfig(config api.ImagePolicyConfig, fldPath *field.Path
 	}
 	if config.MaxScheduledImageImportsPerMinute == 0 || config.MaxScheduledImageImportsPerMinute < -1 {
 		errs = append(errs, field.Invalid(fldPath.Child("maxScheduledImageImportsPerMinute"), config.MaxScheduledImageImportsPerMinute, "must be a positive integer or -1"))
+	}
+	if config.AllowedRegistriesForImport != nil {
+		for i, registry := range *config.AllowedRegistriesForImport {
+			if len(registry.DomainName) == 0 {
+				errs = append(errs, field.Invalid(fldPath.Index(i).Child("allowedRegistriesForImport", "domainName"), registry.DomainName, "cannot be an empty string"))
+			}
+			parts := strings.Split(registry.DomainName, ":")
+			// Check for ':8080'
+			if len(parts) == 0 || len(parts[0]) == 0 {
+				errs = append(errs, field.Invalid(fldPath.Index(i).Child("allowedRegistriesForImport", "domainName"), registry.DomainName, "invalid domain specified, must be registry.url.local[:port]"))
+			}
+			// Check for 'foo:bar:1234'
+			if len(parts) > 2 {
+				errs = append(errs, field.Invalid(fldPath.Index(i).Child("allowedRegistriesForImport", "domainName"), registry.DomainName, "invalid format, must be registry.url.local[:port]"))
+			}
+			// Check for 'foo:bar'
+			if len(parts) == 2 {
+				if _, err := strconv.Atoi(parts[1]); err != nil {
+					errs = append(errs, field.Invalid(fldPath.Index(i).Child("allowedRegistriesForImport", "domainName"), registry.DomainName, "invalid port format, must be a number"))
+				}
+			}
+		}
 	}
 	return errs
 }

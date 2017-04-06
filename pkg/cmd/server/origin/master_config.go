@@ -996,6 +996,11 @@ func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+// ImageStreamImportSARClient returns the client capable of performing self-SAR requests
+func (c *MasterConfig) ImageStreamImportSARClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
 // evaluation
 func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, *kclientset.Clientset) {

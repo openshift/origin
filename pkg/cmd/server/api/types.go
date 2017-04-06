@@ -124,6 +124,23 @@ var (
 	}
 	KnownOpenShiftFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
 	AtomicDisabledFeatures = []string{FeatureBuilder, FeatureS2I, FeatureWebConsole}
+
+	// List public registries that we are allowing to import images from by default.
+	// By default all registries have set to be "secure", iow. the port for them is
+	// defaulted to "443".
+	// If the registry you are adding here is insecure, you can add 'Insecure: true' to
+	// make it default to port '80'.
+	// If the registry you are adding use custom port, you have to specify the port as
+	// part of the domain name.
+	DefaultAllowedRegistriesForImport = &AllowedRegistries{
+		{DomainName: "docker.io"},
+		{DomainName: "*.docker.io"}, // registry-1.docker.io
+		{DomainName: "registry.access.redhat.com"},
+		{DomainName: "gcr.io"},
+		{DomainName: "quay.io"},
+		// FIXME: Probably need to have more fine-tuned pattern defined
+		{DomainName: "*.amazonaws.com"},
+	}
 )
 
 type ExtendedArguments map[string][]string
@@ -455,6 +472,28 @@ type ImagePolicyConfig struct {
 	// MaxScheduledImageImportsPerMinute is the maximum number of image streams that will be imported in the background per minute.
 	// The default value is 60. Set to -1 for unlimited.
 	MaxScheduledImageImportsPerMinute int
+	// AllowedRegistriesForImport limits the docker registries that normal users may import
+	// images from. Set this list to the registries that you trust to contain valid Docker
+	// images and that you want applications to be able to import from. Users with
+	// permission to create Images or ImageStreamMappings via the API are not affected by
+	// this policy - typically only administrators or system integrations will have those
+	// permissions.
+	AllowedRegistriesForImport *AllowedRegistries
+}
+
+// AllowedRegistries represents a list of registries allowed for the image import.
+type AllowedRegistries []RegistryLocation
+
+// RegistryLocation contains a location of the registry specified by the registry domain
+// name. The domain name might include wildcards, like '*' or '??'.
+type RegistryLocation struct {
+	// DomainName specifies a domain name for the registry
+	// In case the registry use non-standard (80 or 443) port, the port should be included
+	// in the domain name as well.
+	DomainName string
+	// Insecure indicates whether the registry is secure (https) or insecure (http)
+	// By default (if not specified) the registry is assumed as secure.
+	Insecure bool
 }
 
 type ProjectConfig struct {
