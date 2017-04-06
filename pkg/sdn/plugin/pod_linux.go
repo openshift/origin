@@ -375,7 +375,7 @@ func (m *podManager) ipamGarbageCollection() {
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -497,7 +497,7 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		req.Netns = netns
 	}
 
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return 0, err
 	}
