@@ -279,8 +279,19 @@ func (checker ServiceAccountSubjectChecker) Allowed(subject kapi.ObjectReference
 		return false, nil
 	}
 
+	subjectNamespace := subject.Namespace
+	if len(subjectNamespace) == 0 {
+		// If a RoleBinding has a subject that is a ServiceAccount with
+		// no namespace specified, the namespace will be defaulted to
+		// that of the RoleBinding.  However, admission control plug-ins
+		// execute before this happens, so in order not to reject such
+		// subjects erroneously, we copy the logic here of using the
+		// RoleBinding's namespace if the subject's is empty.
+		subjectNamespace = ctx.namespace
+	}
+
 	for _, namespace := range checker.serviceAccountRestriction.Namespaces {
-		if subject.Namespace == namespace {
+		if subjectNamespace == namespace {
 			return true, nil
 		}
 	}
@@ -292,7 +303,7 @@ func (checker ServiceAccountSubjectChecker) Allowed(subject kapi.ObjectReference
 		}
 
 		if subject.Name == serviceAccountRef.Name &&
-			subject.Namespace == serviceAccountNamespace {
+			subjectNamespace == serviceAccountNamespace {
 			return true, nil
 		}
 	}
