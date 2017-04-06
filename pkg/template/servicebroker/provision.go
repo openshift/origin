@@ -5,17 +5,18 @@ import (
 	"net/http"
 	"reflect"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
+	internalversiontemplate "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/auth/user"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/openservicebroker/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-func (b *Broker) ensureSecret(impersonatedKC *kclientset.Clientset, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
+func (b *Broker) ensureSecret(impersonatedKC internalversion.SecretsGetter, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
 	secret := &kapi.Secret{
 		ObjectMeta: kapi.ObjectMeta{Name: instanceID},
 		Data:       map[string][]byte{},
@@ -48,7 +49,7 @@ func (b *Broker) ensureSecret(impersonatedKC *kclientset.Clientset, namespace st
 	return nil, api.InternalServerError(err)
 }
 
-func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient *templateclientset.Clientset, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, impersonate string, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
+func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient internalversiontemplate.TemplateInterface, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, impersonate string, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
 	templateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: kapi.ObjectMeta{Name: instanceID},
 		Spec: templateapi.TemplateInstanceSpec{
@@ -158,7 +159,7 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 				Resource: "templateinstances",
 			},
 		})
-	lsarResp, err := b.oc.LocalSubjectAccessReviews(namespace).Create(lsar)
+	lsarResp, err := b.localSAR.LocalSubjectAccessReviews(namespace).Create(lsar)
 	if err != nil || lsarResp == nil || !lsarResp.Allowed {
 		if err == nil {
 			err = errors.New("forbidden")
@@ -173,12 +174,12 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		return resp
 	}
 
-	secret, resp := b.ensureSecret(impersonatedKC, namespace, instanceID, preq, &didWork)
+	secret, resp := b.ensureSecret(impersonatedKC.Core(), namespace, instanceID, preq, &didWork)
 	if resp != nil {
 		return resp
 	}
 
-	templateInstance, resp := b.ensureTemplateInstance(impersonatedTemplateclient, namespace, instanceID, template, secret, impersonate, &didWork)
+	templateInstance, resp := b.ensureTemplateInstance(impersonatedTemplateclient.Template(), namespace, instanceID, template, secret, impersonate, &didWork)
 	if resp != nil {
 		return resp
 	}

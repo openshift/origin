@@ -3,7 +3,6 @@ package jenkinsbootstrapper
 import (
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/admission"
@@ -95,11 +94,7 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 		return fmt.Errorf("template %s/%s does not contain required service %q", a.jenkinsConfig.TemplateNamespace, a.jenkinsConfig.TemplateName, a.jenkinsConfig.ServiceName)
 	}
 
-	impersonatingConfig := a.privilegedRESTClientConfig
-	oldWrapTransport := impersonatingConfig.WrapTransport
-	impersonatingConfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return authenticationclient.NewImpersonatingRoundTripper(attributes.GetUserInfo(), oldWrapTransport(rt))
-	}
+	impersonatingConfig := authenticationclient.NewImpersonatingConfig(attributes.GetUserInfo(), a.privilegedRESTClientConfig)
 
 	var bulkErr error
 
