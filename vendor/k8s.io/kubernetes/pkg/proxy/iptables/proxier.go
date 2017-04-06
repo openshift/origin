@@ -197,9 +197,14 @@ type Proxier struct {
 	serviceMap                proxyServiceMap
 	endpointsMap              proxyEndpointMap
 	portsMap                  map[localPort]closeable
-	haveReceivedServiceUpdate bool            // true once we've seen an OnServiceUpdate event
-	allEndpoints              []api.Endpoints // nil until we have seen an OnEndpointsUpdate event
-	throttle                  flowcontrol.RateLimiter
+	haveReceivedServiceUpdate bool // true once we've seen an OnServiceUpdate event
+	// allEndpoints should never be modified by proxier - the pointers
+	// are shared with higher layers of kube-proxy. They are guaranteed
+	// to not be modified in the meantime, but also require to be not
+	// modified by Proxier.
+	// nil until we have seen an OnEndpointsUpdate event.
+	allEndpoints []*api.Endpoints
+	throttle     flowcontrol.RateLimiter
 
 	// These are effectively const and do not need the mutex to be held.
 	syncPeriod     time.Duration
@@ -452,13 +457,12 @@ type healthCheckPort struct {
 // Accepts a list of Services and the existing service map.  Returns the new
 // service map, a list of healthcheck ports to add to or remove from the health
 // checking listener service, and a set of stale UDP services.
-func buildServiceMap(allServices []api.Service, oldServiceMap proxyServiceMap) (proxyServiceMap, []healthCheckPort, []healthCheckPort, sets.String) {
+func buildServiceMap(allServices []*api.Service, oldServiceMap proxyServiceMap) (proxyServiceMap, []healthCheckPort, []healthCheckPort, sets.String) {
 	newServiceMap := make(proxyServiceMap)
 	healthCheckAdd := make([]healthCheckPort, 0)
 	healthCheckDel := make([]healthCheckPort, 0)
 
-	for i := range allServices {
-		service := &allServices[i]
+	for _, service := range allServices {
 		svcName := types.NamespacedName{
 			Namespace: service.Namespace,
 			Name:      service.Name,
@@ -524,7 +528,7 @@ func buildServiceMap(allServices []api.Service, oldServiceMap proxyServiceMap) (
 
 // OnServiceUpdate tracks the active set of service proxies.
 // They will be synchronized using syncProxyRules()
-func (proxier *Proxier) OnServiceUpdate(allServices []api.Service) {
+func (proxier *Proxier) OnServiceUpdate(allServices []*api.Service) {
 	start := time.Now()
 	defer func() {
 		glog.V(4).Infof("OnServiceUpdate took %v for %d services", time.Since(start), len(allServices))
@@ -559,7 +563,7 @@ func (proxier *Proxier) OnServiceUpdate(allServices []api.Service) {
 }
 
 // OnEndpointsUpdate takes in a slice of updated endpoints.
-func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
+func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []*api.Endpoints) {
 	proxier.mu.Lock()
 	defer proxier.mu.Unlock()
 	if proxier.allEndpoints == nil {
@@ -580,7 +584,7 @@ func (proxier *Proxier) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
 }
 
 // Convert a slice of api.Endpoints objects into a map of service-port -> endpoints.
-func updateEndpoints(allEndpoints []api.Endpoints, curMap proxyEndpointMap, hostname string,
+func updateEndpoints(allEndpoints []*api.Endpoints, curMap proxyEndpointMap, hostname string,
 	healthChecker healthChecker) (newMap proxyEndpointMap, staleSet map[endpointServicePair]bool) {
 
 	// return values
@@ -589,7 +593,7 @@ func updateEndpoints(allEndpoints []api.Endpoints, curMap proxyEndpointMap, host
 
 	// Update endpoints for services.
 	for i := range allEndpoints {
-		accumulateEndpointsMap(&allEndpoints[i], hostname, curMap, &newMap)
+		accumulateEndpointsMap(allEndpoints[i], hostname, curMap, &newMap)
 	}
 	// Check stale connections against endpoints missing from the update.
 	// TODO: we should really only mark a connection stale if the proto was UDP
@@ -629,6 +633,8 @@ func updateEndpoints(allEndpoints []api.Endpoints, curMap proxyEndpointMap, host
 // This can not report complete info on stale connections because it has limited
 // scope - it only knows one Endpoints, but sees the whole current map. That
 // cleanup has to be done above.
+//
+// NOTE: endpoints object should NOT be modified.
 //
 // TODO: this could be simplified:
 // - hostPortInfo and endpointsInfo overlap too much
