@@ -66,16 +66,6 @@ func (vmap *nodeVNIDMap) GetNamespaces(id uint32) []string {
 	}
 }
 
-func (vmap *nodeVNIDMap) GetVNID(name string) (uint32, error) {
-	vmap.lock.Lock()
-	defer vmap.lock.Unlock()
-
-	if id, ok := vmap.ids[name]; ok {
-		return id, nil
-	}
-	return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
-}
-
 func (vmap *nodeVNIDMap) GetMulticastEnabled(id uint32) bool {
 	vmap.lock.Lock()
 	defer vmap.lock.Unlock()
@@ -107,7 +97,7 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		id, err = vmap.GetVNID(name)
+		id, err = vmap.getVNID(name)
 		return err == nil, nil
 	})
 	if err == nil {
@@ -115,6 +105,16 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 	} else {
 		return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 	}
+}
+
+func (vmap *nodeVNIDMap) getVNID(name string) (uint32, error) {
+	vmap.lock.Lock()
+	defer vmap.lock.Unlock()
+
+	if id, ok := vmap.ids[name]; ok {
+		return id, nil
+	}
+	return 0, fmt.Errorf("failed to find netid for namespace: %s in vnid map", name)
 }
 
 func (vmap *nodeVNIDMap) setVNID(name string, id uint32, mcEnabled bool) {
@@ -182,7 +182,7 @@ func (vmap *nodeVNIDMap) watchNetNamespaces() {
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			// Skip this event if nothing has changed
-			oldNetID, err := vmap.GetVNID(netns.NetName)
+			oldNetID, err := vmap.getVNID(netns.NetName)
 			oldMCEnabled := vmap.mcEnabled[netns.NetName]
 			mcEnabled := netnsIsMulticastEnabled(netns)
 			if err == nil && oldNetID == netns.NetID && oldMCEnabled == mcEnabled {
