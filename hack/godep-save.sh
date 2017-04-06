@@ -72,9 +72,14 @@ fork::with::fake::packages () {
   pushd "$TMPGOPATH/src/$PKG" >/dev/null
     local OLDREV=$(git rev-parse HEAD)
     for FAKEPKG in "$@"; do
+      if [ -n "$(ls $FAKEPKG/*.go 2>/dev/null)" ]; then
+        echo "'fork::with::fake::packages $PKG $FAKEPKG' failed because $FAKEPKG already exists." 1>&2
+        exit 1
+      fi
       mkdir -p "$FAKEPKG"
       echo "package $(basename $DIR)" > "$FAKEPKG/doc.go"
       git add "$FAKEPKG/doc.go"
+      echo "$PKG/$FAKEPKG" >> "$TMPGOPATH/fake-packages"
     done
     git commit -a -q -m "Add fake package $*"
     local NEWREV=$(git rev-parse HEAD)
@@ -119,10 +124,16 @@ for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
   ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
 
   # create regex for jq further down
-  re+="$sep$dir"
+  re+="${sep}k8s.io/$dir"
+  sep="|"
+done
+
+# filter out fake packages
+for pkg in $(cat "$TMPGOPATH/fake-packages"); do
+  re+="${sep}$pkg"
   sep="|"
 done
 
 # filter out staging repos from Godeps.json
-jq ".Deps |= map( select(.ImportPath | test(\"^k8s.io/(${re})\"; \"\") | not ) )" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
+jq ".Deps |= map( select(.ImportPath | test(\"^(${re})\$\"; \"\") | not ) )" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
 unexpand -t2 "$TMPGOPATH/Godeps.json" > Godeps/Godeps.json
