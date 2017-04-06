@@ -149,33 +149,35 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/images${IMAGES_TESTS_POSTFIX:-}/tag"
 # oc tag
-os::cmd::expect_success 'oc tag mysql:latest tagtest:tag1 --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mysql:latest mysql:tag1 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success "oc tag mysql@${name} tagtest:tag2 --alias"
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 1).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag mysql@${name} mysql:tag2 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success 'oc tag mysql:notfound tagtest:tag3 --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 2).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mysql:notfound mysql:tag3 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 7).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest tagtest:tag4 --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 3).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag --source=imagestreamtag mysql:latest mysql:tag4 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success 'oc tag --source=istag mysql:latest tagtest:tag5 --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 4).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag --source=istag mysql:latest mysql:tag5 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 9).from.kind}}'" 'ImageStreamTag'
 
-os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} tagtest:tag6 --alias"
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 5).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag --source=imagestreamimage mysql@${name} mysql:tag6 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 10).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success "oc tag --source=isimage mysql@${name} tagtest:tag7 --alias"
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 6).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success "oc tag --source=isimage mysql@${name} mysql:tag7 --alias"
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 11).from.kind}}'" 'ImageStreamImage'
 
-os::cmd::expect_success 'oc tag --source=docker mysql:latest tagtest:tag8 --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 7).from.kind}}'" 'DockerImage'
+os::cmd::expect_success 'oc tag --source=docker mysql:latest mysql:tag8 --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 12).from.kind}}'" 'DockerImage'
 
-os::cmd::expect_success 'oc tag mysql:latest tagtest:zzz tagtest2:zzz --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest --template='{{(index .spec.tags 8).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mysql:latest mysql:zzz mysql:yyy --alias'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 13).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tags 14).from.kind}}'" 'ImageStreamTag'
+
+os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
 
 # test copying tags
 os::cmd::expect_success 'oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest'
@@ -185,20 +187,13 @@ os::cmd::try_until_success 'oc get istag/mysql:5.5'
 os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^openshift/mysql-55-centos7@sha256:'
-# aliases set the spec tag to be a reference to the originating stream
-os::cmd::expect_success 'oc tag mysql:5.5 newrepo:latest --alias'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .status.tags 0 \"items\" 0).dockerImageReference}}'" '^openshift/mysql-55-centos7@sha256:'
 # when copying a tag that points to the internal registry, update the docker image reference
 os::cmd::expect_success "oc tag test:new newrepo:direct"
 os::cmd::expect_success_and_text 'oc get istag/newrepo:direct -o jsonpath={.image.dockerImageReference}' "/$project/newrepo@sha256:"
 # test references
-os::cmd::expect_success 'oc tag mysql:5.5 reference:latest --alias --reference'
-os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
+os::cmd::expect_success 'oc tag mysql:5.5 reference:latest --reference'
+os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 0).reference}}'" 'true'
-os::cmd::expect_success 'oc tag mysql:5.5 reference:other --reference'
-os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 1).from.kind}}'" 'ImageStreamImage'
-os::cmd::expect_success_and_text "oc get is/reference --template='{{(index .spec.tags 1).reference}}'" 'true'
 # create a second project to test tagging across projects
 os::cmd::expect_success 'oc new-project test-cmd-images-2'
 os::cmd::expect_success "oc tag $project/mysql:5.5 newrepo:latest"
@@ -227,13 +222,12 @@ os::cmd::expect_success_and_not_text "oc describe is/newrepo" 'updates automatic
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 1).importPolicy.insecure}}'" 'true'
 
 # test creating streams that don't exist
-os::cmd::expect_failure_and_text 'oc get imageStreams tagtest3' 'not found'
-os::cmd::expect_failure_and_text 'oc get imageStreams tagtest4' 'not found'
-os::cmd::expect_success 'oc tag mysql:latest tagtest3:latest tagtest4:latest --alias'
-os::cmd::expect_success_and_text "oc get is/tagtest3 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success_and_text "oc get is/tagtest4 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamTag'
-os::cmd::expect_success 'oc delete is/tagtest is/tagtest2 is/tagtest3 is/tagtest4'
-os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1 --alias' 'Tag tagtest:new1 set up to track mysql:latest.'
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest1' 'not found'
+os::cmd::expect_failure_and_text 'oc get imageStreams tagtest2' 'not found'
+os::cmd::expect_success 'oc tag mysql:latest tagtest1:latest tagtest2:latest'
+os::cmd::expect_success_and_text "oc get is/tagtest1 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
+os::cmd::expect_success 'oc delete is/tagtest1 is/tagtest2'
 os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
 
 # test deleting a spec tag using oc tag

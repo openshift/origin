@@ -92,13 +92,13 @@ func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Comm
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
 			kcmdutil.CheckErr(opts.Validate())
-			kcmdutil.CheckErr(opts.RunTag())
+			kcmdutil.CheckErr(opts.Run())
 		},
 	}
 
 	cmd.Flags().StringVar(&opts.sourceKind, "source", opts.sourceKind, "Optional hint for the source type; valid values are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'.")
 	cmd.Flags().BoolVarP(&opts.deleteTag, "delete", "d", opts.deleteTag, "Delete the provided spec tags.")
-	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Defaults to false.")
+	cmd.Flags().BoolVar(&opts.aliasTag, "alias", false, "Should the destination tag be updated whenever the source tag changes. Applies only to a single image stream. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.referenceTag, "reference", false, "Should the destination tag continue to pull from the source namespace. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.scheduleTag, "scheduled", false, "Set a Docker image to be periodically imported from a remote repository. Defaults to false.")
 	cmd.Flags().BoolVar(&opts.insecureTag, "insecure", false, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate. Defaults to false.")
@@ -271,6 +271,25 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	return nil
 }
 
+// isCrossImageStream verifies if destination is the same image stream as source. Returns true
+// if any of the destination image stream is different and error from parsing
+// image stream tag.
+func isCrossImageStream(namespace string, srcRef imageapi.DockerImageReference, destNamespace []string, destNameAndTag []string) (bool, error) {
+	for i, ns := range destNamespace {
+		if namespace != ns {
+			return true, nil
+		}
+		name, _, ok := imageapi.SplitImageStreamTag(destNameAndTag[i])
+		if !ok {
+			return false, fmt.Errorf("%q must be of the form <stream_name>:<tag>", destNameAndTag[i])
+		}
+		if srcRef.Name != name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // Validate validates all the required options for the tag command.
 func (o TagOptions) Validate() error {
 	// Validate client and writer
@@ -319,15 +338,24 @@ func (o TagOptions) Validate() error {
 	if o.sourceKind != "DockerImage" && (o.scheduleTag || o.insecureTag) {
 		return errors.New("only Docker images can have importing flags set")
 	}
-	if o.aliasTag && (o.scheduleTag || o.insecureTag) {
-		return errors.New("cannot set a Docker image tag as an alias and also set import flags")
+	if o.aliasTag {
+		if o.scheduleTag || o.insecureTag {
+			return errors.New("cannot set a Docker image tag as an alias and also set import flags")
+		}
+		cross, err := isCrossImageStream(o.namespace, o.ref, o.destNamespace, o.destNameAndTag)
+		if err != nil {
+			return err
+		}
+		if cross {
+			return errors.New("cannot set alias across different Image Streams")
+		}
 	}
 
 	return nil
 }
 
-// RunTag contains all the necessary functionality for the OpenShift cli tag command.
-func (o TagOptions) RunTag() error {
+// Run contains all the necessary functionality for the OpenShift cli tag command.
+func (o TagOptions) Run() error {
 	var tagReferencePolicy imageapi.TagReferencePolicyType
 	switch o.referencePolicy {
 	case sourceReferencePolicy:
