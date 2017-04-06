@@ -294,7 +294,6 @@ func (o *NewAppOptions) RunNewApp() error {
 			}
 		}
 	}
-
 	if err := setAnnotations(map[string]string{newcmd.GeneratedByNamespace: newcmd.GeneratedByNewApp}, result); err != nil {
 		return err
 	}
@@ -543,7 +542,7 @@ func setAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 	for _, object := range result.List.Items {
 		err := util.AddObjectAnnotations(object, annotations)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to add annotation to object of type %q, this resource type is probably unsupported by your client version.", object.GetObjectKind().GroupVersionKind())
 		}
 	}
 	return nil
@@ -553,7 +552,7 @@ func setLabels(labels map[string]string, result *newcmd.AppResult) error {
 	for _, object := range result.List.Items {
 		err := util.AddObjectLabels(object, labels)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to add annotation to object of type %q, this resource type is probably unsupported by your client version.", object.GetObjectKind().GroupVersionKind())
 		}
 	}
 	return nil

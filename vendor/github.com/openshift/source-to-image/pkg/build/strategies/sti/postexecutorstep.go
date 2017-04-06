@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/openshift/source-to-image/pkg/api"
 	dockerpkg "github.com/openshift/source-to-image/pkg/docker"
@@ -128,7 +129,7 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 	if entrypoint == nil {
 		entrypoint = []string{}
 	}
-
+	startTime := time.Now()
 	ctx.imageID, err = commitContainer(
 		step.docker,
 		ctx.containerID,
@@ -139,7 +140,7 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 		entrypoint,
 		ctx.labels,
 	)
-
+	step.builder.result.BuildInfo.Stages = api.RecordStageAndStepInfo(step.builder.result.BuildInfo.Stages, api.StageCommit, api.StepCommitContainer, startTime, time.Now())
 	if err != nil {
 		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonCommitContainerFailed,
@@ -226,6 +227,10 @@ func (step *downloadFilesFromBuilderImageStep) downloadAndExtractFile(artifactPa
 	}()
 
 	if err := step.docker.DownloadFromContainer(artifactPath, fd, containerID); err != nil {
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
 		return fmt.Errorf("could not download file (%q -> %q) from container %s: %v", artifactPath, fd.Name(), containerID, err)
 	}
 
@@ -260,6 +265,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 
 	fd, err := ioutil.TempFile("", "s2i-upload-done")
 	if err != nil {
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
 		return err
 	}
 	fd.Close()
@@ -281,6 +290,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		destinationDir := filepath.Join(artifactsDir, "scripts")
 		err = step.copyScriptIfNeeded(script, destinationDir)
 		if err != nil {
+			step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonGenericS2IBuildFailed,
+				utilstatus.ReasonMessageGenericS2iBuildFailed,
+			)
 			return err
 		}
 	}
@@ -288,6 +301,10 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	image := step.builder.config.RuntimeImage
 	workDir, err := step.docker.GetImageWorkdir(image)
 	if err != nil {
+		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
 		return fmt.Errorf("could not get working dir of %q image: %v", image, err)
 	}
 
@@ -298,9 +315,17 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 		var scriptsURL string
 		scriptsURL, err = step.docker.GetScriptsURL(image)
 		if err != nil {
+			step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonGenericS2IBuildFailed,
+				utilstatus.ReasonMessageGenericS2iBuildFailed,
+			)
 			return err
 		}
 		if len(scriptsURL) == 0 {
+			step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonGenericS2IBuildFailed,
+				utilstatus.ReasonMessageGenericS2iBuildFailed,
+			)
 			return fmt.Errorf("could not determine scripts URL for image %q", image)
 		}
 		commandBaseDir = strings.TrimPrefix(scriptsURL, "image://")

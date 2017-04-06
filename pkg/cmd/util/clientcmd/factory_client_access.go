@@ -25,6 +25,7 @@ import (
 	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	"k8s.io/kubernetes/pkg/runtime"
@@ -269,15 +270,17 @@ func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kubectl.PrintO
 func (f *ring0Factory) Pauser(info *resource.Info) (bool, error) {
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
-		if t.Spec.Paused {
+		patches := set.CalculatePatches([]*resource.Info{info}, f.JSONEncoder(), func(*resource.Info) (bool, error) {
+			if t.Spec.Paused {
+				return false, nil
+			}
+			t.Spec.Paused = true
+			return true, nil
+		})
+		if len(patches) == 0 {
 			return true, nil
 		}
-		t.Spec.Paused = true
-		oc, _, err := f.Clients()
-		if err != nil {
-			return false, err
-		}
-		_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
+		_, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patches[0].Patch)
 		// TODO: Pause the deployer containers.
 		return false, err
 	default:
@@ -328,15 +331,17 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 func (f *ring0Factory) Resumer(info *resource.Info) (bool, error) {
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
-		if !t.Spec.Paused {
+		patches := set.CalculatePatches([]*resource.Info{info}, f.JSONEncoder(), func(*resource.Info) (bool, error) {
+			if !t.Spec.Paused {
+				return false, nil
+			}
+			t.Spec.Paused = false
+			return true, nil
+		})
+		if len(patches) == 0 {
 			return true, nil
 		}
-		t.Spec.Paused = false
-		oc, _, err := f.Clients()
-		if err != nil {
-			return false, err
-		}
-		_, err = oc.DeploymentConfigs(t.Namespace).Update(t)
+		_, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patches[0].Patch)
 		// TODO: Resume the deployer containers.
 		return false, err
 	default:

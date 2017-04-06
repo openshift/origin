@@ -110,6 +110,11 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
 
+	routingSuffix := h.routingSuffix
+	if len(routingSuffix) == 0 {
+		routingSuffix = fmt.Sprintf("%s.nip.io", hostIP)
+	}
+
 	// Create router cert
 	cmdOutput := &bytes.Buffer{}
 	createCertOptions := &admin.CreateServerCertOptions{
@@ -120,10 +125,10 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		},
 		Overwrite: true,
 		Hostnames: []string{
-			fmt.Sprintf("%s.nip.io", hostIP),
+			routingSuffix,
 			// This will ensure that routes using edge termination and the default
 			// certs will use certs valid for their arbitrary subdomain names.
-			fmt.Sprintf("*.%s.nip.io", hostIP),
+			fmt.Sprintf("*.%s", routingSuffix),
 		},
 		CertFile: filepath.Join(masterDir, "router.crt"),
 		KeyFile:  filepath.Join(masterDir, "router.key"),

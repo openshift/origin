@@ -70,6 +70,21 @@ const (
 
 	// DefaultShmSize is the default shared memory size to use (in bytes) if not specified.
 	DefaultShmSize = int64(1024 * 1024 * 64)
+	// DefaultPullRetryDelay is the default pull image retry interval
+	DefaultPullRetryDelay = 5 * time.Second
+	// DefaultPullRetryCount is the default pull image retry times
+	DefaultPullRetryCount = 6
+)
+
+var (
+	// RetriableErrors is a set of strings that indicate that an retriable error occurred.
+	RetriableErrors = []string{
+		"ping attempt failed with error",
+		"is already in progress",
+		"connection reset by peer",
+		"transport closed before response was received",
+		"connection refused",
+	}
 )
 
 // containerNamePrefix prefixes the name of containers launched by S2I. We
@@ -127,6 +142,7 @@ type Client interface {
 	ContainerInspect(ctx context.Context, containerID string) (dockertypes.ContainerJSON, error)
 	ContainerRemove(ctx context.Context, containerID string, options dockertypes.ContainerRemoveOptions) error
 	ContainerStart(ctx context.Context, containerID string) error
+	ContainerKill(ctx context.Context, containerID, signal string) error
 	ContainerWait(ctx context.Context, containerID string) (int, error)
 	CopyToContainer(ctx context.Context, container, path string, content io.Reader, opts dockertypes.CopyToContainerOptions) error
 	CopyFromContainer(ctx context.Context, container, srcPath string) (io.ReadCloser, dockertypes.ContainerPathStat, error)
@@ -433,9 +449,6 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 		return "", s2ierr.NewInspectImageError(name, err)
 	}
 	user := resp.Config.User
-	if len(user) == 0 {
-		user = resp.ContainerConfig.User
-	}
 	return user, nil
 }
 
@@ -530,40 +543,58 @@ func (d *stiDocker) PullImage(name string) (*api.Image, error) {
 	if err != nil {
 		return nil, s2ierr.NewPullImageError(name, err)
 	}
+	var retriableError = false
 
-	err = util.TimeoutAfter(DefaultDockerTimeout, fmt.Sprintf("pulling image %q", name), func(timer *time.Timer) error {
-		resp, pullErr := d.client.ImagePull(context.Background(), name, dockertypes.ImagePullOptions{RegistryAuth: base64Auth})
-		if pullErr != nil {
-			return pullErr
-		}
-		defer resp.Close()
-
-		decoder := json.NewDecoder(resp)
-		for {
-			if !timer.Stop() {
-				return &util.TimeoutError{}
-			}
-			timer.Reset(DefaultDockerTimeout)
-
-			var msg dockermessage.JSONMessage
-			pullErr = decoder.Decode(&msg)
-			if pullErr == io.EOF {
-				return nil
-			}
+	for retries := 0; retries <= DefaultPullRetryCount; retries++ {
+		err = util.TimeoutAfter(DefaultDockerTimeout, fmt.Sprintf("pulling image %q", name), func(timer *time.Timer) error {
+			resp, pullErr := d.client.ImagePull(context.Background(), name, dockertypes.ImagePullOptions{RegistryAuth: base64Auth})
 			if pullErr != nil {
 				return pullErr
 			}
+			defer resp.Close()
 
-			if msg.Error != nil {
-				return msg.Error
+			decoder := json.NewDecoder(resp)
+			for {
+				if !timer.Stop() {
+					return &util.TimeoutError{}
+				}
+				timer.Reset(DefaultDockerTimeout)
+
+				var msg dockermessage.JSONMessage
+				pullErr = decoder.Decode(&msg)
+				if pullErr == io.EOF {
+					return nil
+				}
+				if pullErr != nil {
+					return pullErr
+				}
+
+				if msg.Error != nil {
+					return msg.Error
+				}
+				if msg.ProgressMessage != "" {
+					glog.V(4).Infof("pulling image %s: %s", name, msg.ProgressMessage)
+				}
 			}
-			if msg.ProgressMessage != "" {
-				glog.V(4).Infof("pulling image %s: %s", name, msg.ProgressMessage)
+		})
+		if err == nil {
+			break
+		}
+		glog.V(0).Infof("pulling image error : %v", err)
+		errMsg := fmt.Sprintf("%s", err)
+		for _, errorString := range RetriableErrors {
+			if strings.Contains(errMsg, errorString) {
+				retriableError = true
+				break
 			}
 		}
-	})
-	if err != nil {
-		return nil, s2ierr.NewPullImageError(name, err)
+
+		if !retriableError {
+			return nil, s2ierr.NewPullImageError(name, err)
+		}
+
+		glog.V(0).Infof("retrying in %s ...", DefaultPullRetryDelay)
+		time.Sleep(DefaultPullRetryDelay)
 	}
 
 	inspectResp, err := d.InspectImage(name)
@@ -600,9 +631,15 @@ func (d *stiDocker) RemoveContainer(id string) error {
 	defer cancel()
 	opts := dockertypes.ContainerRemoveOptions{
 		RemoveVolumes: true,
-		Force:         true,
 	}
 	return d.client.ContainerRemove(ctx, id, opts)
+}
+
+// KillContainer kills a container.
+func (d *stiDocker) KillContainer(id string) error {
+	ctx, cancel := getDefaultContext()
+	defer cancel()
+	return d.client.ContainerKill(ctx, id, "SIGKILL")
 }
 
 // GetLabels retrieves the labels of the given image.
@@ -633,17 +670,13 @@ func getLabel(image *api.Image, name string) string {
 	if value, ok := image.Config.Labels[name]; ok {
 		return value
 	}
-	if value, ok := image.ContainerConfig.Labels[name]; ok {
-		return value
-	}
 	return ""
 }
 
 // getVariable gets environment variable's value from the image metadata
 func getVariable(image *api.Image, name string) string {
 	envName := name + "="
-	env := append(image.ContainerConfig.Env, image.Config.Env...)
-	for _, v := range env {
+	for _, v := range image.Config.Env {
 		if strings.HasPrefix(v, envName) {
 			return strings.TrimSpace((v[len(envName):]))
 		}
@@ -932,6 +965,13 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 
 	// Container was created, so we defer its removal, and also remove it if we get a SIGINT/SIGTERM/SIGQUIT/SIGHUP.
 	removeContainer := func() {
+		glog.V(4).Infof("Killing container %q ...", container.ID)
+		if killErr := d.KillContainer(container.ID); killErr != nil {
+			glog.V(5).Infof("warning: Failed to kill container %q: %v", container.ID, killErr)
+		} else {
+			glog.V(4).Infof("Killed container %q", container.ID)
+		}
+
 		glog.V(4).Infof("Removing container %q ...", container.ID)
 		if removeErr := d.RemoveContainer(container.ID); removeErr != nil {
 			glog.V(0).Infof("warning: Failed to remove container %q: %v", container.ID, removeErr)
@@ -1066,7 +1106,6 @@ func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
 		NoCache:        true,
 		SuppressOutput: false,
 		Remove:         true,
-		ForceRemove:    true,
 	}
 	if opts.CGroupLimits != nil {
 		dockerOpts.Memory = opts.CGroupLimits.MemoryLimitBytes
