@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9063c514c0451cbcde09648a02f2e5939e38e9ff
+%global commit 186c0ff3fcd48b82893320a7498e82d77c767674
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.16 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=9063c51
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.17 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=186c0ff
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.17
+Version:        3.6.18
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,24 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Apr 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.18-1
+- cluster up: use routing suffix for router certificate hostnames
+  (cewong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  722fec3e194df2a9aa507a0adb605abc4530c3a2 (dmcphers+openshiftbot@redhat.com)
+- Bug 1435588 - Forbid creating aliases across different Image Streams.
+  (maszulik@redhat.com)
+- Fix govet (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  0765440c43e9622d42cf17f452c751a416e84fc4 (bparees@redhat.com)
+- better error on invalid types (bparees@redhat.com)
+- registry: add --fs-group and --supplementary-groups to oc adm registry
+  (mfojtik@redhat.com)
+- deploy: use patch for pausing and resuming deployment config
+  (mfojtik@redhat.com)
+- Update instructions to explicitly tag an image from docker repository
+  (maszulik@redhat.com)
+
 * Wed Apr 05 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.17-1
 - Extended tests for router metrics should skip when not configured
   (ccoleman@redhat.com)
