@@ -15,7 +15,7 @@ go get -u github.com/tools/godep 2>/dev/null || true
 GODEP="${GOPATH}/bin/godep"
 
 # Use to following if we ever need to pin godep to a specific version again
-pin-godep 'v75'
+pin-godep 'v79'
 
 # Some things we want in godeps aren't code dependencies, so ./...
 # won't pick them up.

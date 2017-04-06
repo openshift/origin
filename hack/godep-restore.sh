@@ -49,7 +49,7 @@ go get -u github.com/tools/godep 2>/dev/null || true
 GODEP="${GOPATH}/bin/godep"
 
 # Use to following if we ever need to pin godep to a specific version again
-pin-godep 'v75'
+pin-godep 'v79'
 
 # preload any odd-ball remotes
 preload-remote "github.com/openshift" "origin" "github.com/openshift" "origin" # this looks goofy, but if you are not in GOPATH you need to pull origin explicitly
