@@ -38,6 +38,15 @@ type Reporter interface {
 	Changed() bool
 }
 
+// ReporterBool implements the Reporter interface for a boolean.
+type ReporterBool bool
+
+func (r ReporterBool) Changed() bool { return bool(r) }
+
+func AlwaysRequiresMigration(_ *resource.Info) (Reporter, error) {
+	return ReporterBool(true), nil
+}
+
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
@@ -327,7 +336,7 @@ var ErrUnchanged = fmt.Errorf("migration was not necessary")
 
 // ErrRecalculate may be returned by MigrateActionFunc to indicate that the object
 // has changed and needs to have its information recalculated prior to being saved.
-// Use when a resource requries multiple API operations to persist (for instance,
+// Use when a resource requires multiple API operations to persist (for instance,
 // both status and spec must be changed).
 var ErrRecalculate = fmt.Errorf("recalculate migration")
 
