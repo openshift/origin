@@ -1015,6 +1015,7 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiendpoints.APIGroupVersion {
 		Typer:     kapi.Scheme,
 		Convertor: kapi.Scheme,
 		Copier:    kapi.Scheme,
+		Defaulter: kapi.Scheme,
 		Linker:    kapi.Registry.GroupOrDie("").SelfLinker,
 
 		Admit:                       c.AdmissionControl,
