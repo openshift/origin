@@ -113,7 +113,7 @@ undo::forks::in::godep::json
 
 # godep fails to copy all package in staging because it gets confused with the symlinks.
 # Hence, we copy over manually until we have proper staging repo tooling.
-rsync -avx --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/staging/src/* vendor/k8s.io/kubernetes/staging/src/
+rsync -ax --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/staging/src/* vendor/k8s.io/kubernetes/staging/src/
 
 # recreate symlinks
 re=""
