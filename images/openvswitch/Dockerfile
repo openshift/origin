@@ -18,5 +18,6 @@ ENV HOME /root
 # files required to run as a system container
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/service.template system-container/tmpfiles.template system-container/manifest.json /exports/
+RUN chmod +x /usr/local/bin/*.sh
 
 ENTRYPOINT ["/usr/local/bin/ovs-run.sh"]
