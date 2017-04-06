@@ -432,9 +432,9 @@ func (d *stiDocker) GetImageUser(name string) (string, error) {
 		glog.V(4).Infof("error inspecting image %s: %v", name, err)
 		return "", s2ierr.NewInspectImageError(name, err)
 	}
-	user := resp.Config.User
+	user := resp.ContainerConfig.User
 	if len(user) == 0 {
-		user = resp.ContainerConfig.User
+		user = resp.Config.User
 	}
 	return user, nil
 }

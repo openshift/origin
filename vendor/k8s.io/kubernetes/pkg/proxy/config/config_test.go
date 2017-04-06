@@ -24,14 +24,20 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
-	ktesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
-type sortedServices []*api.Service
+const TomcatPort int = 8080
+const TomcatName = "tomcat"
+
+var TomcatEndpoints = map[string]string{"c0": "1.1.1.1:18080", "c1": "2.2.2.2:18081"}
+
+const MysqlPort int = 3306
+const MysqlName = "mysql"
+
+var MysqlEndpoints = map[string]string{"c0": "1.1.1.1:13306", "c3": "2.2.2.2:13306"}
+
+type sortedServices []api.Service
 
 func (s sortedServices) Len() int {
 	return len(s)
@@ -44,24 +50,24 @@ func (s sortedServices) Less(i, j int) bool {
 }
 
 type ServiceHandlerMock struct {
-	updated chan []*api.Service
+	updated chan []api.Service
 	waits   int
 }
 
 func NewServiceHandlerMock() *ServiceHandlerMock {
-	return &ServiceHandlerMock{updated: make(chan []*api.Service, 5)}
+	return &ServiceHandlerMock{updated: make(chan []api.Service, 5)}
 }
 
-func (h *ServiceHandlerMock) OnServiceUpdate(services []*api.Service) {
+func (h *ServiceHandlerMock) OnServiceUpdate(services []api.Service) {
 	sort.Sort(sortedServices(services))
 	h.updated <- services
 }
 
-func (h *ServiceHandlerMock) ValidateServices(t *testing.T, expectedServices []*api.Service) {
+func (h *ServiceHandlerMock) ValidateServices(t *testing.T, expectedServices []api.Service) {
 	// We might get 1 or more updates for N service updates, because we
 	// over write older snapshots of services from the producer go-routine
 	// if the consumer falls behind.
-	var services []*api.Service
+	var services []api.Service
 	for {
 		select {
 		case services = <-h.updated:
@@ -77,7 +83,7 @@ func (h *ServiceHandlerMock) ValidateServices(t *testing.T, expectedServices []*
 	}
 }
 
-type sortedEndpoints []*api.Endpoints
+type sortedEndpoints []api.Endpoints
 
 func (s sortedEndpoints) Len() int {
 	return len(s)
@@ -90,24 +96,24 @@ func (s sortedEndpoints) Less(i, j int) bool {
 }
 
 type EndpointsHandlerMock struct {
-	updated chan []*api.Endpoints
+	updated chan []api.Endpoints
 	waits   int
 }
 
 func NewEndpointsHandlerMock() *EndpointsHandlerMock {
-	return &EndpointsHandlerMock{updated: make(chan []*api.Endpoints, 5)}
+	return &EndpointsHandlerMock{updated: make(chan []api.Endpoints, 5)}
 }
 
-func (h *EndpointsHandlerMock) OnEndpointsUpdate(endpoints []*api.Endpoints) {
+func (h *EndpointsHandlerMock) OnEndpointsUpdate(endpoints []api.Endpoints) {
 	sort.Sort(sortedEndpoints(endpoints))
 	h.updated <- endpoints
 }
 
-func (h *EndpointsHandlerMock) ValidateEndpoints(t *testing.T, expectedEndpoints []*api.Endpoints) {
+func (h *EndpointsHandlerMock) ValidateEndpoints(t *testing.T, expectedEndpoints []api.Endpoints) {
 	// We might get 1 or more updates for N endpoint updates, because we
 	// over write older snapshots of endpoints from the producer go-routine
 	// if the consumer falls behind. Unittests will hard timeout in 5m.
-	var endpoints []*api.Endpoints
+	var endpoints []api.Endpoints
 	for {
 		select {
 		case endpoints = <-h.updated:
@@ -123,208 +129,197 @@ func (h *EndpointsHandlerMock) ValidateEndpoints(t *testing.T, expectedEndpoints
 	}
 }
 
+func CreateServiceUpdate(op Operation, service *api.Service) ServiceUpdate {
+	return ServiceUpdate{Op: op, Service: service}
+}
+
+func CreateEndpointsUpdate(op Operation, endpoints *api.Endpoints) EndpointsUpdate {
+	return EndpointsUpdate{Op: op, Endpoints: endpoints}
+}
+
 func TestNewServiceAddedAndNotified(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("services", ktesting.DefaultWatchReactor(fakeWatch, nil))
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	sharedInformers := informers.NewSharedInformerFactory(client, time.Minute)
-
-	config := NewServiceConfig(sharedInformers.Core().InternalVersion().Services(), time.Minute)
+	config := NewServiceConfig()
+	config.store.synced = true
+	channel := config.Channel("one")
 	handler := NewServiceHandlerMock()
 	config.RegisterHandler(handler)
-	go sharedInformers.Start(stopCh)
-	go config.Run(stopCh)
-
-	service := &api.Service{
+	serviceUpdate := CreateServiceUpdate(ADD, &api.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 10}}},
-	}
-	fakeWatch.Add(service)
-	handler.ValidateServices(t, []*api.Service{service})
+	})
+	channel <- serviceUpdate
+	handler.ValidateServices(t, []api.Service{*serviceUpdate.Service})
 }
 
 func TestServiceAddedRemovedSetAndNotified(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("services", ktesting.DefaultWatchReactor(fakeWatch, nil))
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	sharedInformers := informers.NewSharedInformerFactory(client, time.Minute)
-
-	config := NewServiceConfig(sharedInformers.Core().InternalVersion().Services(), time.Minute)
+	config := NewServiceConfig()
+	config.store.synced = true
+	channel := config.Channel("one")
 	handler := NewServiceHandlerMock()
 	config.RegisterHandler(handler)
-	go sharedInformers.Start(stopCh)
-	go config.Run(stopCh)
-
-	service1 := &api.Service{
+	serviceUpdate := CreateServiceUpdate(ADD, &api.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 10}}},
-	}
-	fakeWatch.Add(service1)
-	handler.ValidateServices(t, []*api.Service{service1})
+	})
+	channel <- serviceUpdate
+	handler.ValidateServices(t, []api.Service{*serviceUpdate.Service})
 
-	service2 := &api.Service{
+	serviceUpdate2 := CreateServiceUpdate(ADD, &api.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 20}}},
-	}
-	fakeWatch.Add(service2)
-	services := []*api.Service{service2, service1}
+	})
+	channel <- serviceUpdate2
+	services := []api.Service{*serviceUpdate2.Service, *serviceUpdate.Service}
 	handler.ValidateServices(t, services)
 
-	fakeWatch.Delete(service1)
-	services = []*api.Service{service2}
+	serviceUpdate3 := CreateServiceUpdate(REMOVE, &api.Service{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
+	})
+	channel <- serviceUpdate3
+	services = []api.Service{*serviceUpdate2.Service}
 	handler.ValidateServices(t, services)
 }
 
-func TestNewServicesMultipleHandlersAddedAndNotified(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("services", ktesting.DefaultWatchReactor(fakeWatch, nil))
+func TestNewMultipleSourcesServicesAddedAndNotified(t *testing.T) {
+	config := NewServiceConfig()
+	config.store.synced = true
+	channelOne := config.Channel("one")
+	channelTwo := config.Channel("two")
+	if channelOne == channelTwo {
+		t.Error("Same channel handed back for one and two")
+	}
+	handler := NewServiceHandlerMock()
+	config.RegisterHandler(handler)
+	serviceUpdate1 := CreateServiceUpdate(ADD, &api.Service{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
+		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 10}}},
+	})
+	serviceUpdate2 := CreateServiceUpdate(ADD, &api.Service{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"},
+		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 20}}},
+	})
+	channelOne <- serviceUpdate1
+	channelTwo <- serviceUpdate2
+	services := []api.Service{*serviceUpdate2.Service, *serviceUpdate1.Service}
+	handler.ValidateServices(t, services)
+}
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	sharedInformers := informers.NewSharedInformerFactory(client, time.Minute)
-
-	config := NewServiceConfig(sharedInformers.Core().InternalVersion().Services(), time.Minute)
+func TestNewMultipleSourcesServicesMultipleHandlersAddedAndNotified(t *testing.T) {
+	config := NewServiceConfig()
+	config.store.synced = true
+	channelOne := config.Channel("one")
+	channelTwo := config.Channel("two")
 	handler := NewServiceHandlerMock()
 	handler2 := NewServiceHandlerMock()
 	config.RegisterHandler(handler)
 	config.RegisterHandler(handler2)
-	go sharedInformers.Start(stopCh)
-	go config.Run(stopCh)
-
-	service1 := &api.Service{
+	serviceUpdate1 := CreateServiceUpdate(ADD, &api.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 10}}},
-	}
-	service2 := &api.Service{
+	})
+	serviceUpdate2 := CreateServiceUpdate(ADD, &api.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"},
 		Spec:       api.ServiceSpec{Ports: []api.ServicePort{{Protocol: "TCP", Port: 20}}},
-	}
-	fakeWatch.Add(service1)
-	fakeWatch.Add(service2)
-
-	services := []*api.Service{service2, service1}
+	})
+	channelOne <- serviceUpdate1
+	channelTwo <- serviceUpdate2
+	services := []api.Service{*serviceUpdate2.Service, *serviceUpdate1.Service}
 	handler.ValidateServices(t, services)
 	handler2.ValidateServices(t, services)
 }
 
-func TestNewEndpointsMultipleHandlersAddedAndNotified(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("endpoints", ktesting.DefaultWatchReactor(fakeWatch, nil))
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	sharedInformers := informers.NewSharedInformerFactory(client, time.Minute)
-
-	config := NewEndpointsConfig(sharedInformers.Core().InternalVersion().Endpoints(), time.Minute)
+func TestNewMultipleSourcesEndpointsMultipleHandlersAddedAndNotified(t *testing.T) {
+	config := NewEndpointsConfig()
+	config.store.synced = true
+	channelOne := config.Channel("one")
+	channelTwo := config.Channel("two")
 	handler := NewEndpointsHandlerMock()
 	handler2 := NewEndpointsHandlerMock()
 	config.RegisterHandler(handler)
 	config.RegisterHandler(handler2)
-	go sharedInformers.Start(stopCh)
-	go config.Run(stopCh)
-
-	endpoints1 := &api.Endpoints{
+	endpointsUpdate1 := CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "1.1.1.1"}, {IP: "2.2.2.2"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	endpoints2 := &api.Endpoints{
+	})
+	endpointsUpdate2 := CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "3.3.3.3"}, {IP: "4.4.4.4"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	fakeWatch.Add(endpoints1)
-	fakeWatch.Add(endpoints2)
+	})
+	channelOne <- endpointsUpdate1
+	channelTwo <- endpointsUpdate2
 
-	endpoints := []*api.Endpoints{endpoints2, endpoints1}
+	endpoints := []api.Endpoints{*endpointsUpdate2.Endpoints, *endpointsUpdate1.Endpoints}
 	handler.ValidateEndpoints(t, endpoints)
 	handler2.ValidateEndpoints(t, endpoints)
 }
 
-func TestNewEndpointsMultipleHandlersAddRemoveSetAndNotified(t *testing.T) {
-	client := fake.NewSimpleClientset()
-	fakeWatch := watch.NewFake()
-	client.PrependWatchReactor("endpoints", ktesting.DefaultWatchReactor(fakeWatch, nil))
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	sharedInformers := informers.NewSharedInformerFactory(client, time.Minute)
-
-	config := NewEndpointsConfig(sharedInformers.Core().InternalVersion().Endpoints(), time.Minute)
+func TestNewMultipleSourcesEndpointsMultipleHandlersAddRemoveSetAndNotified(t *testing.T) {
+	config := NewEndpointsConfig()
+	config.store.synced = true
+	channelOne := config.Channel("one")
+	channelTwo := config.Channel("two")
 	handler := NewEndpointsHandlerMock()
 	handler2 := NewEndpointsHandlerMock()
 	config.RegisterHandler(handler)
 	config.RegisterHandler(handler2)
-	go sharedInformers.Start(stopCh)
-	go config.Run(stopCh)
-
-	endpoints1 := &api.Endpoints{
+	endpointsUpdate1 := CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "1.1.1.1"}, {IP: "2.2.2.2"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	endpoints2 := &api.Endpoints{
+	})
+	endpointsUpdate2 := CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "3.3.3.3"}, {IP: "4.4.4.4"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	fakeWatch.Add(endpoints1)
-	fakeWatch.Add(endpoints2)
+	})
+	channelOne <- endpointsUpdate1
+	channelTwo <- endpointsUpdate2
 
-	endpoints := []*api.Endpoints{endpoints2, endpoints1}
+	endpoints := []api.Endpoints{*endpointsUpdate2.Endpoints, *endpointsUpdate1.Endpoints}
 	handler.ValidateEndpoints(t, endpoints)
 	handler2.ValidateEndpoints(t, endpoints)
 
 	// Add one more
-	endpoints3 := &api.Endpoints{
+	endpointsUpdate3 := CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foobar"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "5.5.5.5"}, {IP: "6.6.6.6"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	fakeWatch.Add(endpoints3)
-	endpoints = []*api.Endpoints{endpoints2, endpoints1, endpoints3}
+	})
+	channelTwo <- endpointsUpdate3
+	endpoints = []api.Endpoints{*endpointsUpdate2.Endpoints, *endpointsUpdate1.Endpoints, *endpointsUpdate3.Endpoints}
 	handler.ValidateEndpoints(t, endpoints)
 	handler2.ValidateEndpoints(t, endpoints)
 
 	// Update the "foo" service with new endpoints
-	endpoints1v2 := &api.Endpoints{
+	endpointsUpdate1 = CreateEndpointsUpdate(ADD, &api.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "foo"},
 		Subsets: []api.EndpointSubset{{
 			Addresses: []api.EndpointAddress{{IP: "7.7.7.7"}},
 			Ports:     []api.EndpointPort{{Port: 80}},
 		}},
-	}
-	fakeWatch.Modify(endpoints1v2)
-	endpoints = []*api.Endpoints{endpoints2, endpoints1v2, endpoints3}
+	})
+	channelOne <- endpointsUpdate1
+	endpoints = []api.Endpoints{*endpointsUpdate2.Endpoints, *endpointsUpdate1.Endpoints, *endpointsUpdate3.Endpoints}
 	handler.ValidateEndpoints(t, endpoints)
 	handler2.ValidateEndpoints(t, endpoints)
 
-	// Remove "bar" endpoints
-	fakeWatch.Delete(endpoints2)
-	endpoints = []*api.Endpoints{endpoints1v2, endpoints3}
+	// Remove "bar" service
+	endpointsUpdate2 = CreateEndpointsUpdate(REMOVE, &api.Endpoints{ObjectMeta: metav1.ObjectMeta{Namespace: "testnamespace", Name: "bar"}})
+	channelTwo <- endpointsUpdate2
+
+	endpoints = []api.Endpoints{*endpointsUpdate1.Endpoints, *endpointsUpdate3.Endpoints}
 	handler.ValidateEndpoints(t, endpoints)
 	handler2.ValidateEndpoints(t, endpoints)
 }
