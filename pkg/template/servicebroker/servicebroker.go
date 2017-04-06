@@ -1,54 +1,55 @@
 package servicebroker
 
 import (
-	"k8s.io/kubernetes/pkg/auth/user"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	"net/http"
 
 	authclient "github.com/openshift/origin/pkg/auth/client"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
 	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
+	"k8s.io/kubernetes/pkg/auth/user"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
 )
 
 type Broker struct {
-	secretsGetter     internalversion.SecretsGetter
-	localSAR          client.LocalSubjectAccessReviewsNamespacer
-	templateclient    internalversiontemplate.TemplateInterface
-	restconfig        restclient.Config
+	kc                *kclientset.Clientset
+	oc                *client.Client
+	templateclient    *templateclientset.Clientset
+	restconfig        *restclient.Config
 	lister            cache.StoreToTemplateLister
 	templateNamespace string
 }
 
-func NewBroker(restconfig restclient.Config, localSAR client.LocalSubjectAccessReviewsNamespacer, secretsGetter internalversion.SecretsGetter, informers shared.InformerFactory, templateNamespace string) *Broker {
+func NewBroker(restconfig *restclient.Config, oc *client.Client, kc *kclientset.Clientset, informers shared.InformerFactory, templateNamespace string) *Broker {
 	return &Broker{
-		secretsGetter:     secretsGetter,
-		localSAR:          localSAR,
-		templateclient:    templateclientset.NewForConfigOrDie(&restconfig).Template(),
+		kc:                kc,
+		oc:                oc,
+		templateclient:    templateclientset.NewForConfigOrDie(restconfig),
 		restconfig:        restconfig,
 		lister:            informers.Templates().Lister(),
 		templateNamespace: templateNamespace,
 	}
 }
 
-func (b *Broker) getClientsForUsername(username string) (kclientset.Interface, client.Interface, templateclientset.Interface, error) {
-	u := &user.DefaultInfo{Name: username}
+func (b *Broker) getClientsForUsername(username string) (*kclientset.Clientset, *client.Client, *templateclientset.Clientset, error) {
+	restconfigCopy := *b.restconfig
+	restconfigCopy.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return authclient.NewImpersonatingRoundTripper(&user.DefaultInfo{Name: username}, b.restconfig.WrapTransport(rt))
+	}
 
-	oc, err := authclient.NewImpersonatingOpenShiftClient(u, b.restconfig)
+	oc, err := client.New(&restconfigCopy)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	kc, err := authclient.NewImpersonatingKubernetesClientset(u, b.restconfig)
+	kc, err := kclientset.NewForConfig(&restconfigCopy)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	impersonatingConfig := authclient.NewImpersonatingConfig(u, b.restconfig)
-	templateclient, err := templateclientset.NewForConfig(&impersonatingConfig)
+	templateclient, err := templateclientset.NewForConfig(&restconfigCopy)
 	if err != nil {
 		return nil, nil, nil, err
 	}

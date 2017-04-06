@@ -2,18 +2,7 @@ package controller
 
 import (
 	"fmt"
-
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/meta/metatypes"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	"net/http"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authclient "github.com/openshift/origin/pkg/auth/client"
@@ -22,17 +11,28 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/kubernetes/pkg/api/meta/metatypes"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/kubernetes/pkg/client/cache"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/runtime"
+	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	"k8s.io/kubernetes/pkg/watch"
 )
 
 type TemplateInstanceController struct {
-	restconfig     restclient.Config
-	templateclient internalversiontemplate.TemplateInterface
-	controller     cache.ControllerInterface
+	restconfig     *restclient.Config
+	templateclient *templateclientset.Clientset
+	controller     *cache.Controller
 }
 
-func NewTemplateInstanceController(restconfig restclient.Config) *TemplateInstanceController {
-	c := TemplateInstanceController{restconfig: restconfig, templateclient: templateclientset.NewForConfigOrDie(&restconfig).Template()}
+func NewTemplateInstanceController(restconfig *restclient.Config) *TemplateInstanceController {
+	c := TemplateInstanceController{restconfig: restconfig, templateclient: templateclientset.NewForConfigOrDie(restconfig)}
 
 	_, c.controller = cache.NewInformer(
 		&cache.ListWatch{
@@ -107,20 +107,22 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 		return fmt.Errorf("spec.requester.username not set")
 	}
 
-	u := &user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}
+	restconfigCopy := *c.restconfig
+	restconfigCopy.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return authclient.NewImpersonatingRoundTripper(&user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}, c.restconfig.WrapTransport(rt))
+	}
 
-	impersonatingConfig := authclient.NewImpersonatingConfig(u, c.restconfig)
-	impersonatedOC, err := client.New(&impersonatingConfig)
+	impersonatedOC, err := client.New(&restconfigCopy)
 	if err != nil {
 		return err
 	}
 
-	impersonatedKC, err := authclient.NewImpersonatingKubernetesClientset(u, c.restconfig)
+	impersonatedKC, err := kclientset.NewForConfig(&restconfigCopy)
 	if err != nil {
 		return err
 	}
 
-	secret, err := impersonatedKC.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name)
+	secret, err := impersonatedKC.Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name)
 	if err != nil {
 		return err
 	}
@@ -173,7 +175,7 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 				if latest.OriginKind(mapping.GroupVersionKind) {
 					return impersonatedOC, nil
 				}
-				return impersonatedKC.Core().RESTClient(), nil
+				return impersonatedKC.CoreClient.RESTClient(), nil
 			}),
 		},
 		Op: cmd.Create,
