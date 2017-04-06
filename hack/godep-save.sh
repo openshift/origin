@@ -9,6 +9,18 @@ pin-godep() {
   popd > /dev/null
 }
 
+# fail early without jq
+os::util::ensure::system_binary_exists "jq"
+
+# fail early if any of the staging dirs is checked out
+for pkg in "$GOPATH/src/k8s.io/kubernetes/staging/src/k8s.io/"*; do
+  dir=$(basename $pkg)
+  if [ -d "$GOPATH/src/k8s.io/$dir" ]; then
+    echo "Conflicting $GOPATH/src/k8s.io/$dir found. Please remove from GOPATH." 1>&2
+    exit 1
+  fi
+done
+
 # build the godep tool
 # Again go get stinks, hence || true
 go get -u github.com/tools/godep 2>/dev/null || true
@@ -99,8 +111,18 @@ undo::forks::in::godep::json
 rsync -avx --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/staging/src/* vendor/k8s.io/kubernetes/staging/src/
 
 # recreate symlinks
+re=""
+sep=""
 for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
   dir=$(basename $pkg)
   rm -rf vendor/k8s.io/$dir
   ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
+
+  # create regex for jq further down
+  re+="$sep$dir"
+  sep="|"
 done
+
+# filter out staging repos from Godeps.json
+jq ".Deps |= map( select(.ImportPath | test(\"^k8s.io/(${re})\"; \"\") | not ) )" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
+unexpand -t2 "$TMPGOPATH/Godeps.json" > Godeps/Godeps.json
