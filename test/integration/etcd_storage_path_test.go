@@ -268,29 +268,29 @@ var etcdStorageData = map[unversioned.GroupVersionResource]struct {
 		expectedGVK:      gvkP("", "v1", "NetNamespace"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "hostsubnets"): {
-		stub:             `{"host": "hostname", "hostIP": "192.168.1.1", "metadata": {"name": "hostname"}, "subnet": "192.168.1.1/24"}`,
+		stub:             `{"host": "hostname", "hostIP": "192.168.1.1", "metadata": {"name": "hostname"}, "subnet": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostname",
 	},
 	gvr("network.openshift.io", "v1", "hostsubnets"): {
-		stub:             `{"host": "hostnameg", "hostIP": "192.168.1.1", "metadata": {"name": "hostnameg"}, "subnet": "192.168.1.1/24"}`,
+		stub:             `{"host": "hostnameg", "hostIP": "192.168.1.1", "metadata": {"name": "hostnameg"}, "subnet": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnsubnets/hostnameg",
 		expectedGVK:      gvkP("", "v1", "HostSubnet"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1"}, "network": "192.168.0.1/24", "serviceNetwork": "192.168.1.1/24"}`,
+		stub:             `{"metadata": {"name": "cn1"}, "network": "192.168.0.0/24", "serviceNetwork": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1",
 	},
 	gvr("network.openshift.io", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1g"}, "network": "192.168.0.1/24", "serviceNetwork": "192.168.1.1/24"}`,
+		stub:             `{"metadata": {"name": "cn1g"}, "network": "192.168.0.0/24", "serviceNetwork": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
 		expectedGVK:      gvkP("", "v1", "ClusterNetwork"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "egressnetworkpolicies"): {
-		stub:             `{"metadata": {"name": "enp1"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.1/24"}, "type": "Allow"}]}}`,
+		stub:             `{"metadata": {"name": "enp1"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
 		expectedEtcdPath: "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1",
 	},
 	gvr("network.openshift.io", "v1", "egressnetworkpolicies"): {
-		stub:             `{"metadata": {"name": "enp1g"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.1/24"}, "type": "Allow"}]}}`,
+		stub:             `{"metadata": {"name": "enp1g"}, "spec": {"egress": [{"to": {"cidrSelector": "192.168.1.0/24"}, "type": "Allow"}]}}`,
 		expectedEtcdPath: "openshift.io/registry/egressnetworkpolicy/etcdstoragepathtestnamespace/enp1g",
 		expectedGVK:      gvkP("", "v1", "EgressNetworkPolicy"), // expect the legacy group to be persisted
 	},
