@@ -75,7 +75,7 @@ preload-dep "github.com/karlseguin" "ccache" "master"
 echo "Starting to download all godeps. This takes a while"
 
 pushd "${GOPATH}/src/github.com/openshift/origin" > /dev/null
-"${GODEP}" restore
+  GOPATH=$GOPATH:${PWD}/vendor/k8s.io/kubernetes/staging "${GODEP}" restore
 popd > /dev/null
 
 echo "Download finished into ${GOPATH}"
