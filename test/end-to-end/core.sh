@@ -129,7 +129,7 @@ os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWAR
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 os::log::info "Restore configured to enable mirroring"
 
-registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')"
+registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --show-all=false --template='{{(index .items 0).metadata.name}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
