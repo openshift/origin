@@ -4,3 +4,4 @@ baseurl = https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin15/
 enabled = 1
 gpgcheck = 0
 sslverify = 0
+includepkgs = openvswitch
