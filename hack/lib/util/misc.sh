@@ -120,11 +120,10 @@ readonly -f os::util::format_seconds
 # Return:
 #  None
 function os::util::sed() {
-	local sudo="${USE_SUDO:+sudo}"
 	if LANG=C sed --help 2>&1 | grep -q "GNU sed"; then
-		${sudo} sed -i'' "$@"
+		sed -i'' "$@"
 	else
-		${sudo} sed -i '' "$@"
+		sed -i '' "$@"
 	fi
 }
 readonly -f os::util::sed
