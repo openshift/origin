@@ -543,7 +543,17 @@ func (c *MasterConfig) InstallProtectedAPI(apiserver *genericapiserver.GenericAP
 	initVersionRoute(apiContainer.Container, "/version/openshift")
 
 	if c.Options.EnableTemplateServiceBroker {
-		openservicebrokerserver.Route(apiContainer.Container, templateapi.ServiceBrokerRoot, templateservicebroker.NewBroker(&c.PrivilegedLoopbackClientConfig, c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientset, c.Informers, c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace))
+		openservicebrokerserver.Route(
+			apiContainer.Container,
+			templateapi.ServiceBrokerRoot,
+			templateservicebroker.NewBroker(
+				c.PrivilegedLoopbackClientConfig,
+				c.PrivilegedLoopbackOpenShiftClient,
+				c.PrivilegedLoopbackKubernetesClientset.Core(),
+				c.Informers,
+				c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace,
+			),
+		)
 	}
 
 	// Set up OAuth metadata only if we are configured to use OAuth
@@ -729,7 +739,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	importerDockerClientFn := func() dockerregistry.Client {
 		return dockerregistry.NewClient(20*time.Second, false)
 	}
-	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importTransport, insecureImportTransport, importerDockerClientFn)
+	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importTransport, insecureImportTransport, importerDockerClientFn, c.Options.ImagePolicyConfig.AllowedRegistriesForImport, c.RegistryNameFn, c.ImageStreamImportSARClient().SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 

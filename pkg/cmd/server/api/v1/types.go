@@ -341,6 +341,28 @@ type ImagePolicyConfig struct {
 	// MaxScheduledImageImportsPerMinute is the maximum number of scheduled image streams that will be imported in the
 	// background per minute. The default value is 60. Set to -1 for unlimited.
 	MaxScheduledImageImportsPerMinute int `json:"maxScheduledImageImportsPerMinute"`
+	// AllowedRegistriesForImport limits the docker registries that normal users may import
+	// images from. Set this list to the registries that you trust to contain valid Docker
+	// images and that you want applications to be able to import from. Users with
+	// permission to create Images or ImageStreamMappings via the API are not affected by
+	// this policy - typically only administrators or system integrations will have those
+	// permissions.
+	AllowedRegistriesForImport *AllowedRegistries `json:"allowedRegistriesForImport,omitempty"`
+}
+
+// AllowedRegistries represents a list of registries allowed for the image import.
+type AllowedRegistries []RegistryLocation
+
+// RegistryLocation contains a location of the registry specified by the registry domain
+// name. The domain name might include wildcards, like '*' or '??'.
+type RegistryLocation struct {
+	// DomainName specifies a domain name for the registry
+	// In case the registry use non-standard (80 or 443) port, the port should be included
+	// in the domain name as well.
+	DomainName string `json:"domainName"`
+	// Insecure indicates whether the registry is secure (https) or insecure (http)
+	// By default (if not specified) the registry is assumed as secure.
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 //  holds the necessary configuration options for

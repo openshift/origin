@@ -10,7 +10,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/selection"
 )
@@ -23,7 +23,7 @@ func makeEnvVariableName(str string) string {
 	return strings.ToUpper(strings.Replace(str, "-", "_", -1))
 }
 
-func (b *Broker) getServices(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]string, *api.Response) {
+func (b *Broker) getServices(impersonatedKC internalversion.ServicesGetter, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	serviceList, err := impersonatedKC.Services(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
@@ -57,7 +57,7 @@ func (b *Broker) getServices(impersonatedKC *kclientset.Clientset, namespace, in
 	return services, nil
 }
 
-func (b *Broker) getSecrets(impersonatedKC *kclientset.Clientset, namespace, instanceID string) (map[string]string, *api.Response) {
+func (b *Broker) getSecrets(impersonatedKC internalversion.SecretsGetter, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	secretList, err := impersonatedKC.Secrets(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
@@ -120,12 +120,12 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	services, resp := b.getServices(impersonatedKC, namespace, instanceID)
+	services, resp := b.getServices(impersonatedKC.Core(), namespace, instanceID)
 	if resp != nil {
 		return resp
 	}
 
-	secrets, resp := b.getSecrets(impersonatedKC, namespace, instanceID)
+	secrets, resp := b.getSecrets(impersonatedKC.Core(), namespace, instanceID)
 	if resp != nil {
 		return resp
 	}

@@ -22,7 +22,7 @@ func (b *Broker) Deprovision(instanceID string) *api.Response {
 		return api.InternalServerError(err)
 	}
 
-	err = b.kc.Secrets(brokerTemplateInstance.Spec.Secret.Namespace).Delete(brokerTemplateInstance.Spec.Secret.Name, kapi.NewPreconditionDeleteOptions(string(brokerTemplateInstance.Spec.Secret.UID)))
+	err = b.secretsGetter.Secrets(brokerTemplateInstance.Spec.Secret.Namespace).Delete(brokerTemplateInstance.Spec.Secret.Name, kapi.NewPreconditionDeleteOptions(string(brokerTemplateInstance.Spec.Secret.UID)))
 	if err != nil && !kerrors.IsNotFound(err) {
 		return api.InternalServerError(err)
 	}

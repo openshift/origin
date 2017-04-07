@@ -137,6 +137,11 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	}
 
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
+	allowedRegistries := append(
+		*configapi.DefaultAllowedRegistriesForImport,
+		configapi.RegistryLocation{DomainName: "127.0.0.1:*"},
+	)
+	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true

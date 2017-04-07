@@ -98,6 +98,9 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 	if internalTypesWithAllowedJsonTags.Has(objType.Name()) {
 		return
 	}
+	if objType.Kind() != reflect.Struct {
+		return
+	}
 
 	for i := 0; i < objType.NumField(); i++ {
 		structField := objType.FieldByIndex([]int{i})
@@ -140,6 +143,10 @@ func checkExternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 	}
 	(*seen)[objType] = true
 	if !strings.Contains(objType.PkgPath(), "github.com/openshift/origin/pkg") {
+		return
+	}
+
+	if objType.Kind() != reflect.Struct {
 		return
 	}
 

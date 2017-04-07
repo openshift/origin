@@ -36,6 +36,9 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = configapi.DefaultOpenShiftAPILevels
 			}
+			if obj.ImagePolicyConfig.AllowedRegistriesForImport == nil {
+				obj.ImagePolicyConfig.AllowedRegistriesForImport = &configapi.AllowedRegistries{}
+			}
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = configapi.ControllersAll
 			}
@@ -258,6 +261,10 @@ func fuzzInternalObject(t *testing.T, forVersion unversioned.GroupVersion, item 
 			}
 			if obj.ScheduledImageImportMinimumIntervalSeconds == 0 {
 				obj.ScheduledImageImportMinimumIntervalSeconds = 15 * 60
+			}
+			obj.AllowedRegistriesForImport = &configapi.AllowedRegistries{
+				{DomainName: "docker.io"},
+				{DomainName: "gcr.io"},
 			}
 		},
 		func(obj *configapi.DNSConfig, c fuzz.Continue) {
