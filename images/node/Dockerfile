@@ -10,7 +10,7 @@
 #
 FROM openshift/origin
 
-COPY centos-paas-sig-openshift-future.repo /etc/yum.repos.d/
+COPY centos-paas-sig-openshift-origin36.repo /etc/yum.repos.d/
 COPY usr/bin/* /usr/bin/
 COPY opt/cni/bin/* /opt/cni/bin/
 COPY etc/cni/net.d/* /etc/cni/net.d/
