@@ -158,7 +158,7 @@ func TestHandlePod(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseComplete,
 			podStatus:           kapi.PodSucceeded,
 			exitCode:            0,
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 4
@@ -167,7 +167,7 @@ func TestHandlePod(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseFailed,
 			podStatus:           kapi.PodFailed,
 			exitCode:            -1,
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 5
@@ -177,7 +177,7 @@ func TestHandlePod(t *testing.T) {
 			podStatus:           kapi.PodSucceeded,
 			exitCode:            0,
 			buildUpdater:        &errBuildUpdater{},
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 6
