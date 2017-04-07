@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 186c0ff3fcd48b82893320a7498e82d77c767674
+%global commit e492a475ae88c3b2ab9671cb0073fb530122e6aa
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.17 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=186c0ff
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.18 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=e492a47
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.18
+Version:        3.6.19
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,26 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri Apr 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.19-1
+- Revert "Increase journald rate limiter when running test-end-to-end-
+  docker.sh" (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1268da031a08bd67c377cb25bbd315339007f15c (dmcphers+openshiftbot@redhat.com)
+- Add gpgme and libassuan to release dockerfile (mfojtik@redhat.com)
+- deploy: add missing failure trap (mfojtik@redhat.com)
+- Fix tags test to ignore pointers to list (mfojtik@redhat.com)
+- Update swagger (mfojtik@redhat.com)
+- Add AllowedRegistriesForImport to allow whitelisting registries allowed for
+  import (mfojtik@redhat.com)
+- Re-enable e2e tests that were failing due to #12558 (maszulik@redhat.com)
+- Increase journald rate limiter when running test-end-to-end-docker.sh
+  (maszulik@redhat.com)
+- Cleanup impersonating code (mkhan@redhat.com)
+- deployment: carry over the securityContext from the deployment config to
+  lifecycle hook (mfojtik@redhat.com)
+- deploy: add owner reference to rc from the deployer (mfojtik@redhat.com)
+- Fix the typo of FatalErr (yu.peng36@zte.com.cn)
+
 * Thu Apr 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.18-1
 - cluster up: use routing suffix for router certificate hostnames
   (cewong@redhat.com)
