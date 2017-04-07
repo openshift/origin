@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e492a475ae88c3b2ab9671cb0073fb530122e6aa
+%global commit b590cc90468312fbdcff6b47d415c36cc8391e03
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.18 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=e492a47
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.19 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=b590cc9
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.19
+Version:        3.6.20
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,13 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri Apr 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.20-1
+- Stop depending on `$BASETMPDIR` for `os::cmd` tempfiles (skuznets@redhat.com)
+- Build pod controller integration test - add debug (cewong@redhat.com)
+- Handle RPM version calculations correctly when we're on a tag
+  (skuznets@redhat.com)
+- Update style of temp dir cleanup function (skuznets@redhat.com)
+
 * Fri Apr 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.19-1
 - Revert "Increase journald rate limiter when running test-end-to-end-
   docker.sh" (skuznets@redhat.com)
