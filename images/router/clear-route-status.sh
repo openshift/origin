@@ -40,9 +40,8 @@ function clear_routers_status() {
     local route_name="${2}"
     local router_name="${3}"
     local my_json_blob; my_json_blob=$(oc get --raw http://localhost:8001/oapi/v1/namespaces/"${namespace}"/routes/"${route_name}"/) 
-    local index; index=$(echo "${my_json_blob}" | jq '.status.ingress | map(.routerName != "'${router_name}'") | index(false)')
-    if [[ "${index}" != null ]]; then
-        local modified_json; modified_json=$(echo "${my_json_blob}" | jq 'del(.status.ingress['${index}'])')
+    local modified_json; modified_json=$(echo "${my_json_blob}" | jq '."status"."ingress"|=map(select(.routerName != "'${router_name}'"))')
+    if [[ "${modified_json}" != "$(echo "${my_json_blob}" | jq '.')" ]]; then
         curl -s -X PUT http://localhost:8001/oapi/v1/namespaces/"${namespace}"/routes/"${route_name}"/status --data-binary "${modified_json}" -H "Content-Type: application/json" > /dev/null
         echo "route status for route "${route_name}" set by router "${router_name}" cleared"
     else
