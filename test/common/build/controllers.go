@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
@@ -224,6 +225,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 				if !ok {
 					t.Fatalf("%s: unexpected object received: %#v\n", test.Name, e.Object)
 				}
+				glog.Infof("pod watch event received for pod %s/%s: %v, pod phase: %v", pod.Namespace, pod.Name, e.Type, pod.Status.Phase)
 				if pod.Status.Phase == kapi.PodPending {
 					podReadyChan <- pod
 					break
@@ -277,6 +279,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 					if !ok {
 						errChan <- fmt.Errorf("%s: unexpected object received: %#v", test.Name, e.Object)
 					}
+					glog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
 					if e.Type != watchapi.Modified {
 						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", test.Name, e.Type, e.Object)
 					}
@@ -297,6 +300,15 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient *kcl
 			case <-time.After(BuildPodControllerTestWait):
 				buildWatch.Stop()
 				if atomic.LoadInt32(&stateReached) != 1 {
+					// attempt to retrieve build and get current state
+					func() {
+						currentBuild, err := osClient.Builds(b.Namespace).Get(b.Name)
+						if err != nil {
+							glog.Infof("Cannot get build %s/%s: %v", b.Namespace, b.Name, err)
+							return
+						}
+						glog.Infof("Failing build %s/%s. Current build phase: %s", currentBuild.Namespace, currentBuild.Name, currentBuild.Status.Phase)
+					}()
 					t.Errorf("%s: Did not reach desired build state: %s", test.Name, state.BuildPhase)
 					break
 				}
