@@ -648,19 +648,15 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 // for a tag and the image stream is at least as old as the minimum pruning
 // age.
 func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode) bool {
-	onlyWeakReferences := true
-
 	for _, n := range g.To(imageNode) {
 		glog.V(4).Infof("Examining predecessor %#v", n)
-		if !edgeKind(g, n, imageNode, WeakReferencedImageEdgeKind) {
+		if edgeKind(g, n, imageNode, ReferencedImageEdgeKind) {
 			glog.V(4).Infof("Strong reference detected")
-			onlyWeakReferences = false
-			break
+			return false
 		}
 	}
 
-	return onlyWeakReferences
-
+	return true
 }
 
 // calculatePrunableImages returns the list of prunable images and a

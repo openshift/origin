@@ -9,13 +9,14 @@ import (
 	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // ValidateClusterNetwork tests if required fields in the ClusterNetwork are set.
 func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&clusterNet.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
-	clusterIP, clusterIPNet, err := net.ParseCIDR(clusterNet.Network)
+	clusterIPNet, err := netutils.ParseCIDRMask(clusterNet.Network)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
 	} else {
@@ -25,15 +26,15 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 		}
 	}
 
-	serviceIP, serviceIPNet, err := net.ParseCIDR(clusterNet.ServiceNetwork)
+	serviceIPNet, err := netutils.ParseCIDRMask(clusterNet.ServiceNetwork)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, err.Error()))
 	}
 
-	if (clusterIPNet != nil) && (serviceIP != nil) && clusterIPNet.Contains(serviceIP) {
+	if (clusterIPNet != nil) && (serviceIPNet != nil) && clusterIPNet.Contains(serviceIPNet.IP) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, "service network overlaps with cluster network"))
 	}
-	if (serviceIPNet != nil) && (clusterIP != nil) && serviceIPNet.Contains(clusterIP) {
+	if (serviceIPNet != nil) && (clusterIPNet != nil) && serviceIPNet.Contains(clusterIPNet.IP) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cluster network overlaps with service network"))
 	}
 
@@ -41,20 +42,20 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 }
 
 func validateNewNetwork(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) *field.Error {
-	oldBase, oldNet, err := net.ParseCIDR(old.Network)
+	oldNet, err := netutils.ParseCIDRMask(old.Network)
 	if err != nil {
 		// Shouldn't happen, but if the existing value is invalid, then any change should be an improvement...
 		return nil
 	}
 	oldSize, _ := oldNet.Mask.Size()
-	_, newNet, err := net.ParseCIDR(obj.Network)
+	newNet, err := netutils.ParseCIDRMask(obj.Network)
 	if err != nil {
 		return field.Invalid(field.NewPath("network"), obj.Network, err.Error())
 	}
 	newSize, _ := newNet.Mask.Size()
 	// oldSize/newSize is, eg the "16" in "10.1.0.0/16", so "newSize < oldSize" means
 	// the new network is larger
-	if newSize < oldSize && newNet.Contains(oldBase) {
+	if newSize < oldSize && newNet.Contains(oldNet.IP) {
 		return nil
 	} else {
 		return field.Invalid(field.NewPath("network"), obj.Network, "cannot change the cluster's network CIDR to a value that does not include the existing network.")
@@ -96,7 +97,7 @@ func ValidateHostSubnet(hs *sdnapi.HostSubnet) field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "field cannot be empty"))
 		}
 	} else {
-		_, _, err := net.ParseCIDR(hs.Subnet)
+		_, err := netutils.ParseCIDRMask(hs.Subnet)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
 		}
@@ -147,7 +148,7 @@ func ValidateEgressNetworkPolicy(policy *sdnapi.EgressNetworkPolicy) field.Error
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("type"), rule.Type, "invalid policy type"))
 		}
 
-		_, _, err := net.ParseCIDR(rule.To.CIDRSelector)
+		_, err := netutils.ParseCIDRMask(rule.To.CIDRSelector)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("egress").Index(i).Child("to"), rule.To.CIDRSelector, err.Error()))
 		}

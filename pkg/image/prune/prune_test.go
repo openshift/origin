@@ -22,10 +22,12 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 type fakeRegistryPinger struct {
@@ -1210,4 +1212,85 @@ func newBool(a bool) *bool {
 	r := new(bool)
 	*r = a
 	return r
+}
+
+func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	images := imageList(
+		agedImage("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 1540),
+		agedImage("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 1540),
+		agedImage("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003", 1540),
+	)
+	streams := streamList(
+		stream("registry1", "foo", "bar", tags(
+			tag("latest",
+				tagEvent("0000000000000000000000000000000000000000000000000000000000000003", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000003"),
+				tagEvent("0000000000000000000000000000000000000000000000000000000000000002", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+				tagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			),
+			tag("strong",
+				tagEvent("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			),
+		)),
+	)
+	pods := podList()
+	rcs := rcList()
+	bcs := bcList()
+	builds := buildList()
+	dcs := dcList()
+
+	options := PrunerOptions{
+		Images:  &images,
+		Streams: &streams,
+		Pods:    &pods,
+		RCs:     &rcs,
+		BCs:     &bcs,
+		Builds:  &builds,
+		DCs:     &dcs,
+	}
+	keepYoungerThan := 24 * time.Hour
+	keepTagRevisions := 2
+	options.KeepYoungerThan = &keepYoungerThan
+	options.KeepTagRevisions = &keepTagRevisions
+	p := NewPruner(options)
+	p.(*pruner).registryPinger = &fakeRegistryPinger{}
+
+	imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+	streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
+	layerLinkDeleter := &fakeLayerLinkDeleter{invocations: sets.NewString()}
+	blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
+	manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
+
+	if err := p.Prune(imageDeleter, streamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if imageDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected imageDeleter invocations: %v", imageDeleter.invocations)
+	}
+	if streamDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected streamDeleter invocations: %v", streamDeleter.invocations)
+	}
+	if layerLinkDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected layerLinkDeleter invocations: %v", layerLinkDeleter.invocations)
+	}
+	if blobDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected blobDeleter invocations: %v", blobDeleter.invocations)
+	}
+	if manifestDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected manifestDeleter invocations: %v", manifestDeleter.invocations)
+	}
+}
+
+func TestImageIsPrunable(t *testing.T) {
+	g := graph.New()
+	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "myImage"}})
+	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "myStream"}})
+	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
+	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
+
+	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode)) {
+		t.Fatalf("Image is prunable although it should not")
+	}
 }
