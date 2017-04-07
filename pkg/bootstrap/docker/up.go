@@ -162,6 +162,15 @@ type task struct {
 	name      string
 	fn        taskFunc
 	condition conditionFunc
+	stdOut    bool // true if task's output should go directly to stdout
+}
+
+func simpleTask(name string, fn taskFunc) task {
+	return task{name: name, fn: fn}
+}
+
+func conditionalTask(name string, fn taskFunc, condition conditionFunc) task {
+	return task{name: name, fn: fn, condition: condition}
 }
 
 type CommonStartConfig struct {
@@ -175,9 +184,8 @@ type CommonStartConfig struct {
 	ShouldInstallLogging      bool
 	PortForwarding            bool
 
-	Out         io.Writer
-	TaskPrinter *TaskPrinter
-	Tasks       []task
+	Out   io.Writer
+	Tasks []task
 
 	HostName                 string
 	LocalConfigDir           string
@@ -219,12 +227,8 @@ type CommonStartConfig struct {
 	containerNetworkErr chan error
 }
 
-func (c *CommonStartConfig) addTask(name string, fn taskFunc) {
-	c.addConditionalTask(name, fn, nil)
-}
-
-func (c *CommonStartConfig) addConditionalTask(name string, fn taskFunc, condition conditionFunc) {
-	c.Tasks = append(c.Tasks, task{name: name, fn: fn, condition: condition})
+func (c *CommonStartConfig) addTask(t task) {
+	c.Tasks = append(c.Tasks, t)
 }
 
 func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
@@ -261,18 +265,19 @@ func (c *CommonStartConfig) Validate(out io.Writer) error {
 
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *CommonStartConfig) Start(out io.Writer) error {
+	taskPrinter := NewTaskPrinter(out)
 	for _, task := range c.Tasks {
 		if task.condition != nil && !task.condition() {
 			continue
 		}
-		c.TaskPrinter.StartTask(task.name)
-		w := c.TaskPrinter.TaskWriter()
+		taskPrinter.StartTask(task.name)
+		w := taskPrinter.TaskWriter()
 		err := task.fn(w)
 		if err != nil {
-			c.TaskPrinter.Failure(err)
+			taskPrinter.Failure(err)
 			return err
 		}
-		c.TaskPrinter.Success()
+		taskPrinter.Success()
 	}
 	return nil
 }
@@ -287,7 +292,6 @@ func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 }
 
 func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
-	c.TaskPrinter = NewTaskPrinter(c.Out)
 	c.originalFactory = f
 	c.command = cmd
 
@@ -295,42 +299,44 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 		c.ImageVersion = defaultImageVersion()
 	}
 
-	c.addTask("Checking OpenShift client", c.CheckOpenShiftClient)
+	c.addTask(simpleTask("Checking OpenShift client", c.CheckOpenShiftClient))
 
-	c.addConditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine })
+	c.addTask(conditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine }))
 	// Get a Docker client.
 	// If a Docker machine was specified, make sure that the machine is
 	// running. Otherwise, use environment variables.
-	c.addTask("Checking Docker client", c.GetDockerClient)
+	c.addTask(simpleTask("Checking Docker client", c.GetDockerClient))
 
 	// Check that we have the minimum Docker version available to run OpenShift
-	c.addTask("Checking Docker version", c.CheckDockerVersion)
+	c.addTask(simpleTask("Checking Docker version", c.CheckDockerVersion))
 
 	// Check for an OpenShift container. If one exists and is running, exit.
 	// If one exists but not running, delete it.
-	c.addTask("Checking for existing OpenShift container", c.CheckExistingOpenShiftContainer)
+	c.addTask(simpleTask("Checking for existing OpenShift container", c.CheckExistingOpenShiftContainer))
 
 	// Ensure that the OpenShift Docker image is available. If not present,
 	// pull it.
-	c.addTask(fmt.Sprintf("Checking for %s image", c.openshiftImage()), c.CheckOpenShiftImage)
+	t := simpleTask(fmt.Sprintf("Checking for %s image", c.openshiftImage()), c.CheckOpenShiftImage)
+	t.stdOut = true
+	c.addTask(t)
 
 	// Ensure that the Docker daemon has the right --insecure-registry argument. If
 	// not, then exit.
 	if !c.SkipRegistryCheck {
-		c.addTask("Checking Docker daemon configuration", c.CheckDockerInsecureRegistry)
+		c.addTask(simpleTask("Checking Docker daemon configuration", c.CheckDockerInsecureRegistry))
 	}
 
 	// Ensure that ports used by OpenShift are available on the host machine
-	c.addTask("Checking for available ports", c.CheckAvailablePorts)
+	c.addTask(simpleTask("Checking for available ports", c.CheckAvailablePorts))
 
 	// Check whether the Docker host has the right binaries to use Kubernetes' nsenter mounter
 	// If not, use a shared volume to mount volumes on OpenShift
-	c.addTask("Checking type of volume mount", c.CheckNsenterMounter)
+	c.addTask(simpleTask("Checking type of volume mount", c.CheckNsenterMounter))
 
 	// Ensure that host directories exist.
 	// If not using the nsenter mounter, create a volume share on the host machine to
 	// mount OpenShift volumes.
-	c.addTask("Creating host directories", c.EnsureHostDirectories)
+	c.addTask(simpleTask("Creating host directories", c.EnsureHostDirectories))
 
 	// Determine an IP to use for OpenShift.
 	// The result is that c.ServerIP will be populated with
@@ -348,7 +354,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// included in the server's certificate. These include any IPs that are currently
 	// assigned to the Docker host (hostname -I)
 	// Each IP is tested to ensure that it can be accessed from the current client
-	c.addTask("Finding server IP", c.DetermineServerIP)
+	c.addTask(simpleTask("Finding server IP", c.DetermineServerIP))
 
 	return nil
 }
@@ -360,47 +366,49 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	}
 
 	// Create an OpenShift configuration and start a container that uses it.
-	c.addTask("Starting OpenShift container", c.StartOpenShift)
+	c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
 
 	// Add default redirect URIs to an OAuthClient to enable local web-console development.
-	c.addConditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData)
+	c.addTask(conditionalTask("Adding default OAuthClient redirect URIs", c.EnsureDefaultRedirectURIs, c.ShouldInitializeData))
 
 	// Install a registry
-	c.addConditionalTask("Installing registry", c.InstallRegistry, c.ShouldInitializeData)
+	c.addTask(conditionalTask("Installing registry", c.InstallRegistry, c.ShouldInitializeData))
 
 	// Install a router
-	c.addConditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData)
+	c.addTask(conditionalTask("Installing router", c.InstallRouter, c.ShouldInitializeData))
 
 	// Install metrics
-	c.addConditionalTask("Installing metrics", c.InstallMetrics, func() bool {
+	c.addTask(conditionalTask("Installing metrics", c.InstallMetrics, func() bool {
 		return c.ShouldInstallMetrics && c.ShouldInitializeData()
-	})
+	}))
 
 	// Import default image streams
-	c.addConditionalTask("Importing image streams", c.ImportImageStreams, c.ShouldInitializeData)
+	c.addTask(conditionalTask("Importing image streams", c.ImportImageStreams, c.ShouldInitializeData))
 
 	// Import templates
-	c.addConditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData)
+	c.addTask(conditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData))
 
 	// Install logging
-	c.addConditionalTask("Installing logging", c.InstallLogging, func() bool {
+	c.addTask(conditionalTask("Installing logging", c.InstallLogging, func() bool {
 		return c.ShouldInstallLogging && c.ShouldInitializeData()
-	})
+	}))
 
 	// Login with an initial default user
-	c.addConditionalTask("Login to server", c.Login, c.ShouldCreateUser)
+	c.addTask(conditionalTask("Login to server", c.Login, c.ShouldCreateUser))
 
 	// Create an initial project
-	c.addConditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser)
+	c.addTask(conditionalTask(fmt.Sprintf("Creating initial project %q", initialProjectName), c.CreateProject, c.ShouldCreateUser))
 
 	// Remove temporary directory
-	c.addTask("Removing temporary directory", c.RemoveTemporaryDirectory)
+	c.addTask(simpleTask("Removing temporary directory", c.RemoveTemporaryDirectory))
 
-	// Check container networking
-	c.addTask("Checking container networking", c.CheckContainerNetworking)
+	// Check container networking (only when loglevel > 0)
+	if glog.V(1) {
+		c.addTask(simpleTask("Checking container networking", c.CheckContainerNetworking))
+	}
 
 	// Display server information
-	c.addTask("Server Information", c.ServerInfo)
+	c.addTask(simpleTask("Server Information", c.ServerInfo))
 
 	return nil
 }
@@ -416,18 +424,44 @@ func (c *ClientStartConfig) Validate(out, errout io.Writer) error {
 
 // Start runs the start tasks ensuring that they are executed in sequence
 func (c *ClientStartConfig) Start(out io.Writer) error {
-	for _, task := range c.Tasks {
-		if task.condition != nil && !task.condition() {
-			continue
+	var detailedOut io.Writer
+
+	// When loglevel > 0, just use stdout to write all messages
+	if glog.V(1) {
+		detailedOut = out
+	} else {
+		fmt.Fprintf(out, "Starting OpenShift using %s ...\n", c.openshiftImage())
+		detailedOut = &bytes.Buffer{}
+	}
+
+	taskPrinter := NewTaskPrinter(detailedOut)
+	startError := func() error {
+		for _, task := range c.Tasks {
+			if task.condition != nil && !task.condition() {
+				continue
+			}
+			taskPrinter.StartTask(task.name)
+			w := taskPrinter.TaskWriter()
+			if task.stdOut && !bool(glog.V(1)) {
+				w = io.MultiWriter(w, out)
+			}
+			err := task.fn(w)
+			if err != nil {
+				taskPrinter.Failure(err)
+				return err
+			}
+			taskPrinter.Success()
 		}
-		c.TaskPrinter.StartTask(task.name)
-		w := c.TaskPrinter.TaskWriter()
-		err := task.fn(w)
-		if err != nil {
-			c.TaskPrinter.Failure(err)
-			return err
+		return nil
+	}()
+	if startError != nil {
+		if !bool(glog.V(1)) {
+			fmt.Fprintf(out, "%s", detailedOut.(*bytes.Buffer).String())
 		}
-		c.TaskPrinter.Success()
+		return startError
+	}
+	if !bool(glog.V(1)) {
+		c.ServerInfo(out)
 	}
 	return nil
 }
@@ -790,10 +824,15 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		return err
 	}
 
+	serverIP, err := c.OpenShiftHelper().ServerIP()
+	if err != nil {
+		return err
+	}
+
 	// Start a container networking test
 	c.containerNetworkErr = make(chan error)
 	go func() {
-		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking()
+		c.containerNetworkErr <- c.OpenShiftHelper().TestContainerNetworking(serverIP)
 	}()
 
 	// Setup persistent storage
@@ -816,13 +855,17 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 }
 
 func (c *ClientStartConfig) CheckContainerNetworking(out io.Writer) error {
+	serverIP, err := c.OpenShiftHelper().ServerIP()
+	if err != nil {
+		return err
+	}
 	networkErr := <-c.containerNetworkErr
 	if networkErr != nil {
 		return errors.NewError("containers cannot communicate with the OpenShift master").
 			WithDetails("The cluster was started. However, the container networking test failed.").
 			WithSolution(
 				fmt.Sprintf("Ensure that access to ports tcp/8443, udp/53 and udp/8053 is allowed on %s.\n"+
-					"You may need to open these ports on your machine's firewall.", c.ServerIP)).
+					"You may need to open these ports on your machine's firewall.", serverIP)).
 			WithCause(networkErr)
 	}
 	return nil
@@ -934,18 +977,16 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	if len(c.PublicHostname) > 0 {
 		masterURL = fmt.Sprintf("https://%s:8443", c.PublicHostname)
 	}
-	msg := fmt.Sprintf("OpenShift server started.\n"+
+	msg := fmt.Sprintf("OpenShift server started.\n\n"+
 		"The server is accessible via web console at:\n"+
 		"    %s\n\n%s%s", masterURL, metricsInfo, loggingInfo)
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+
-			"    User:     %s\n"+
-			"    Password: %s\n\n", initialUser, initialPassword)
+			"    User:     %s\n\n", initialUser)
+		msg += "To login as administrator:\n" +
+			"    oc login -u system:admin\n\n"
 	}
-
-	msg += "To login as administrator:\n" +
-		"    oc login -u system:admin\n\n"
 
 	msg += c.checkProxySettings()
 
