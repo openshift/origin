@@ -19,10 +19,12 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/sets"
 
+	"github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
 type fakeRegistryPinger struct {
@@ -1095,4 +1097,85 @@ func newBool(a bool) *bool {
 	r := new(bool)
 	*r = a
 	return r
+}
+
+func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
+	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+
+	images := imageList(
+		agedImage("id1", "registry1/foo/bar@id1", 1540),
+		agedImage("id2", "registry1/foo/bar@id2", 1540),
+		agedImage("id3", "registry1/foo/bar@id3", 1540),
+	)
+	streams := streamList(
+		stream("registry1", "foo", "bar", tags(
+			tag("latest",
+				tagEvent("id3", "registry1/foo/bar@id3"),
+				tagEvent("id2", "registry1/foo/bar@id2"),
+				tagEvent("id1", "registry1/foo/bar@id1"),
+			),
+			tag("strong",
+				tagEvent("id1", "registry1/foo/bar@id1"),
+			),
+		)),
+	)
+	pods := podList()
+	rcs := rcList()
+	bcs := bcList()
+	builds := buildList()
+	dcs := dcList()
+
+	options := PrunerOptions{
+		Images:  &images,
+		Streams: &streams,
+		Pods:    &pods,
+		RCs:     &rcs,
+		BCs:     &bcs,
+		Builds:  &builds,
+		DCs:     &dcs,
+	}
+	keepYoungerThan := 24 * time.Hour
+	keepTagRevisions := 2
+	options.KeepYoungerThan = &keepYoungerThan
+	options.KeepTagRevisions = &keepTagRevisions
+	p := NewPruner(options)
+	p.(*pruner).registryPinger = &fakeRegistryPinger{}
+
+	imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
+	streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
+	layerDeleter := &fakeLayerDeleter{invocations: sets.NewString()}
+	blobDeleter := &fakeBlobDeleter{invocations: sets.NewString()}
+	manifestDeleter := &fakeManifestDeleter{invocations: sets.NewString()}
+
+	if err := p.Prune(imageDeleter, streamDeleter, layerDeleter, blobDeleter, manifestDeleter); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if imageDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected imageDeleter invocations: %v", imageDeleter.invocations)
+	}
+	if streamDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected streamDeleter invocations: %v", streamDeleter.invocations)
+	}
+	if layerDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected layerDeleter invocations: %v", layerDeleter.invocations)
+	}
+	if blobDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected blobDeleter invocations: %v", blobDeleter.invocations)
+	}
+	if manifestDeleter.invocations.Len() > 0 {
+		t.Fatalf("unexpected manifestDeleter invocations: %v", manifestDeleter.invocations)
+	}
+}
+
+func TestImageIsPrunable(t *testing.T) {
+	g := graph.New()
+	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "myImage"}})
+	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "myStream"}})
+	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
+	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
+
+	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode)) {
+		t.Fatalf("Image is prunable although it should not")
+	}
 }
