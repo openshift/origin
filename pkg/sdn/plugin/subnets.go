@@ -48,33 +48,38 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	return nil
 }
 
-func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string) error {
+// addNode takes the nodeName, a preferred nodeIP, the node's annotations and other valid ip addresses
+// Creates or updates a HostSubnet if needed
+// Returns the IP address used for hostsubnet (either the preferred or one from the otherValidAddresses) and any error
+func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string, otherValidAddresses []kapi.NodeAddress) (string, error) {
 	// Validate node IP before proceeding
 	if err := master.networkInfo.validateNodeIP(nodeIP); err != nil {
-		return err
+		return "", err
 	}
 
 	// Check if subnet needs to be created or updated
 	sub, err := master.osClient.HostSubnets().Get(nodeName)
 	if err == nil {
 		if sub.HostIP == nodeIP {
-			return nil
+			return nodeIP, nil
+		} else if isValidNodeIP(otherValidAddresses, sub.HostIP) {
+			return sub.HostIP, nil
 		} else {
 			// Node IP changed, update old subnet
 			sub.HostIP = nodeIP
 			sub, err = master.osClient.HostSubnets().Update(sub)
 			if err != nil {
-				return fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
+				return "", fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
 			log.Infof("Updated HostSubnet %s", hostSubnetToString(sub))
-			return nil
+			return nodeIP, nil
 		}
 	}
 
 	// Create new subnet
 	sn, err := master.subnetAllocator.GetNetwork()
 	if err != nil {
-		return fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
+		return "", fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
 	}
 
 	sub = &osapi.HostSubnet{
@@ -87,10 +92,10 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	sub, err = master.osClient.HostSubnets().Create(sub)
 	if err != nil {
 		master.subnetAllocator.ReleaseNetwork(sn)
-		return fmt.Errorf("error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
+		return "", fmt.Errorf("error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
 	}
 	log.Infof("Created HostSubnet %s", hostSubnetToString(sub))
-	return nil
+	return nodeIP, nil
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
@@ -107,8 +112,8 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 	return nil
 }
 
-func isValidNodeIP(node *kapi.Node, nodeIP string) bool {
-	for _, addr := range node.Status.Addresses {
+func isValidNodeIP(validAddresses []kapi.NodeAddress, nodeIP string) bool {
+	for _, addr := range validAddresses {
 		if addr.Address == nodeIP {
 			return true
 		}
@@ -180,17 +185,17 @@ func (master *OsdnMaster) watchNodes() {
 		case cache.Sync, cache.Added, cache.Updated:
 			master.clearInitialNodeNetworkUnavailableCondition(node)
 
-			if oldNodeIP, ok := nodeAddressMap[uid]; ok && ((nodeIP == oldNodeIP) || isValidNodeIP(node, oldNodeIP)) {
+			if oldNodeIP, ok := nodeAddressMap[uid]; ok && ((nodeIP == oldNodeIP) || isValidNodeIP(node.Status.Addresses, oldNodeIP)) {
 				break
 			}
 			// Node status is frequently updated by kubelet, so log only if the above condition is not met
 			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 
-			err = master.addNode(name, nodeIP, nil)
+			usedNodeIP, err := master.addNode(name, nodeIP, nil, node.Status.Addresses)
 			if err != nil {
 				return fmt.Errorf("error creating subnet for node %s, ip %s: %v", name, nodeIP, err)
 			}
-			nodeAddressMap[uid] = nodeIP
+			nodeAddressMap[uid] = usedNodeIP
 		case cache.Deleted:
 			log.V(5).Infof("Watch %s event for Node %q", delta.Type, name)
 			delete(nodeAddressMap, uid)
@@ -242,7 +247,7 @@ func (master *OsdnMaster) watchSubnets() {
 						log.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, osapi.FixedVNIDHostAnnotation)
 					}
 				}
-				err = master.addNode(name, hostIP, hsAnnotations)
+				_, err = master.addNode(name, hostIP, hsAnnotations, nil)
 				if err != nil {
 					log.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
 					return nil
