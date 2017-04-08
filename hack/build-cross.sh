@@ -15,7 +15,6 @@ platforms=(
   linux/amd64
   darwin/amd64
   windows/amd64
-  linux/386
 )
 image_platforms=( )
 test_platforms=( "${host_platform}" )
