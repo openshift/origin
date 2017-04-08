@@ -100,7 +100,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 		err = oc.Client().ImageStreams(oc.Namespace()).Delete("first")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
-			oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+			oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 			quotaName,
 			kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")},
 			true,
@@ -131,7 +131,7 @@ func createResourceQuota(oc *exutil.CLI, hard kapi.ResourceList) (*kapi.Resource
 	}
 
 	g.By(fmt.Sprintf("creating resource quota with a limit %v", hard))
-	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Create(rq)
+	rq, err := oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Create(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -168,12 +168,12 @@ func assertQuotasEqual(a, b kapi.ResourceList) error {
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump the quota to %s=%d", resourceName, value))
-	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName, metav1.GetOptions{})
+	rq, err := oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	rq.Spec.Hard[resourceName] = *resource.NewQuantity(value, resource.DecimalSI)
-	_, err = oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Update(rq)
+	_, err = oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Update(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kap
 func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kapi.ResourceList) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", name))
 	used, err := exutil.WaitForResourceQuotaSync(
-		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+		oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		expectedResources,
 		false,
@@ -204,7 +204,7 @@ func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kap
 func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", quotaName))
 	return testutil.WaitForResourceQuotaLimitSync(
-		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+		oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		hardLimit,
 		waitTimeout)

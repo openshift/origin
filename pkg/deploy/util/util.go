@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
+	kapiv1      "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
@@ -621,6 +622,14 @@ type ByLatestVersionAsc []*api.ReplicationController
 func (d ByLatestVersionAsc) Len() int      { return len(d) }
 func (d ByLatestVersionAsc) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
 func (d ByLatestVersionAsc) Less(i, j int) bool {
+	return DeploymentVersionFor(d[i]) < DeploymentVersionFor(d[j])
+}
+
+type ByLatestVersionAscV1 []*kapiv1.ReplicationController
+
+func (d ByLatestVersionAscV1) Len() int      { return len(d) }
+func (d ByLatestVersionAscV1) Swap(i, j int) { d[i], d[j] = d[j], d[i] }
+func (d ByLatestVersionAscV1) Less(i, j int) bool {
 	return DeploymentVersionFor(d[i]) < DeploymentVersionFor(d[j])
 }
 

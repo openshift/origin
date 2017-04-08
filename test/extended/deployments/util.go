@@ -58,10 +58,10 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRu
 			hasDeployer = true
 
 			switch pod.Status.Phase {
-			case kapi.PodSucceeded:
+			case kapiv1.PodSucceeded:
 				succeeded = true
 				completed = true
-			case kapi.PodFailed:
+			case kapiv1.PodFailed:
 				completed = true
 			default:
 				running = true
@@ -77,8 +77,8 @@ func checkDeployerPodInvariants(deploymentName string, pods []*kapiv1.Pod) (isRu
 		switch {
 		case strings.HasSuffix(pod.Name, "-pre"), strings.HasSuffix(pod.Name, "-mid"), strings.HasSuffix(pod.Name, "-post"):
 			switch pod.Status.Phase {
-			case kapi.PodSucceeded:
-			case kapi.PodFailed:
+			case kapiv1.PodSucceeded:
+			case kapiv1.PodFailed:
 				if succeeded {
 					return false, false, fmt.Errorf("deployer hook pod %q failed but the deployment %q pod succeeded", pod.Name, deploymentName)
 				}
@@ -312,7 +312,7 @@ func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, [
 		deployments = append(deployments, &rcs.Items[i])
 	}
 
-	sort.Sort(deployutil.ByLatestVersionAsc(deployments))
+	sort.Sort(deployutil.ByLatestVersionAscV1(deployments))
 
 	return dc, deployments, pods.Items, nil
 }
