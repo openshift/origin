@@ -192,7 +192,7 @@ func TestSubjectCheckers(t *testing.T) {
 			shouldAllow: true,
 		},
 		{
-			name: "allow service account by literal name match",
+			name: "allow service account with explicit namespace by match on literal name and explicit namespace",
 			checker: mustNewSubjectChecker(t,
 				&authorizationapi.RoleBindingRestrictionSpec{
 					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
@@ -208,7 +208,7 @@ func TestSubjectCheckers(t *testing.T) {
 			shouldAllow: true,
 		},
 		{
-			name: "allow service account by literal name match with implicit namespace",
+			name: "allow service account with explicit namespace by match on literal name and implicit namespace",
 			checker: mustNewSubjectChecker(t,
 				&authorizationapi.RoleBindingRestrictionSpec{
 					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
@@ -219,6 +219,113 @@ func TestSubjectCheckers(t *testing.T) {
 				}),
 			subject:     serviceaccountRef,
 			shouldAllow: true,
+		},
+		{
+			name: "prohibit service account with explicit namespace where literal name matches but explicit namespace does not",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{
+								Namespace: serviceaccountRef.Namespace,
+								Name:      serviceaccountRef.Name,
+							},
+						},
+					},
+				}),
+			subject: kapi.ObjectReference{
+				Kind:      authorizationapi.ServiceAccountKind,
+				Namespace: "othernamespace",
+				Name:      serviceaccountRef.Name,
+			},
+			shouldAllow: false,
+		},
+		{
+			name: "prohibit service account with explicit namespace where literal name matches but implicit namespace does not",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{Name: serviceaccountRef.Name},
+						},
+					},
+				}),
+			subject: kapi.ObjectReference{
+				Kind:      authorizationapi.ServiceAccountKind,
+				Namespace: "othernamespace",
+				Name:      serviceaccountRef.Name,
+			},
+			shouldAllow: false,
+		},
+		{
+			name: "allow service account with implicit namespace by match on literal name and explicit namespace",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{
+								Name:      serviceaccountRef.Name,
+								Namespace: serviceaccountRef.Namespace,
+							},
+						},
+					},
+				}),
+			subject: kapi.ObjectReference{
+				Kind: authorizationapi.ServiceAccountKind,
+				Name: serviceaccountRef.Name,
+			},
+			shouldAllow: true,
+		},
+		{
+			name: "allow service account with implicit namespace by match on literal name and implicit namespace",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{Name: serviceaccountRef.Name},
+						},
+					},
+				}),
+			subject: kapi.ObjectReference{
+				Kind: authorizationapi.ServiceAccountKind,
+				Name: serviceaccountRef.Name,
+			},
+			shouldAllow: true,
+		},
+		{
+			name: "prohibit service account with implicit namespace where literal name matches but explicit namespace does not",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{
+								Namespace: "othernamespace",
+								Name:      serviceaccountRef.Name,
+							},
+						},
+					},
+				}),
+			subject: kapi.ObjectReference{
+				Kind: authorizationapi.ServiceAccountKind,
+				Name: serviceaccountRef.Name,
+			},
+			shouldAllow: false,
+		},
+		{
+			name: "prohibit service account with explicit namespace where explicit namespace matches but literal name does not",
+			checker: mustNewSubjectChecker(t,
+				&authorizationapi.RoleBindingRestrictionSpec{
+					ServiceAccountRestriction: &authorizationapi.ServiceAccountRestriction{
+						ServiceAccounts: []authorizationapi.ServiceAccountReference{
+							{
+								Namespace: serviceaccountRef.Namespace,
+								Name:      "othername",
+							},
+						},
+					},
+				}),
+			subject:     serviceaccountRef,
+			shouldAllow: false,
 		},
 		{
 			name: "allow service account by match on namespace",

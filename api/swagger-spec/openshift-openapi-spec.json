@@ -68293,7 +68293,7 @@
       "type": "string"
      },
      "phase": {
-      "description": "phase is the point in the build lifecycle.",
+      "description": "phase is the point in the build lifecycle. Possible values are \"New\", \"Pending\", \"Running\", \"Complete\", \"Failed\", \"Error\", and \"Cancelled\".",
       "type": "string"
      },
      "reason": {

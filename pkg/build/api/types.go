@@ -228,7 +228,8 @@ type ImageChangeCause struct {
 
 // BuildStatus contains the status of a build
 type BuildStatus struct {
-	// Phase is the point in the build lifecycle.
+	// Phase is the point in the build lifecycle. Possible values are
+	// "New", "Pending", "Running", "Complete", "Failed", "Error", and "Cancelled".
 	Phase BuildPhase
 
 	// Cancelled describes if a cancel event was triggered for the build.

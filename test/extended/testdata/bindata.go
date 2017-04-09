@@ -5626,10 +5626,27 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
             from: 
               kind: "DockerImage"
               name: "centos/ruby-22-centos7"
-        resources: {}
-      status: 
-        lastVersion: 0
-
+    - 
+      kind: "BuildConfig"
+      apiVersion: "v1"
+      metadata: 
+        name: "sample-serial-build-fail"
+      spec: 
+        runPolicy: "Serial"
+        triggers: 
+          - 
+            type: "imageChange"
+            imageChange: {}
+        source: 
+          type: "Git"
+          git: 
+            uri: "git://github.com/openshift/invalidrepo.git"
+        strategy: 
+          type: "Source"
+          sourceStrategy: 
+            from: 
+              kind: "DockerImage"
+              name: "centos/ruby-22-centos7"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {

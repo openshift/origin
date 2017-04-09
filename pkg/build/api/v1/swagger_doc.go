@@ -191,7 +191,7 @@ func (BuildSpec) SwaggerDoc() map[string]string {
 
 var map_BuildStatus = map[string]string{
 	"":                           "BuildStatus contains the status of a build",
-	"phase":                      "phase is the point in the build lifecycle.",
+	"phase":                      "phase is the point in the build lifecycle. Possible values are \"New\", \"Pending\", \"Running\", \"Complete\", \"Failed\", \"Error\", and \"Cancelled\".",
 	"cancelled":                  "cancelled describes if a cancel event was triggered for the build.",
 	"reason":                     "reason is a brief CamelCase string that describes any failure and is meant for machine parsing and tidy display in the CLI.",
 	"message":                    "message is a human-readable message indicating details about why the build has this status.",
