@@ -447,7 +447,7 @@ func TestCancelBuild(t *testing.T) {
 			inStatus:            buildapi.BuildPhaseNew,
 			outStatus:           buildapi.BuildPhaseCancelled,
 			exitCode:            0,
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 1
@@ -455,7 +455,7 @@ func TestCancelBuild(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseCancelled,
 			podStatus:           kapi.PodRunning,
 			exitCode:            0,
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 2
@@ -463,7 +463,7 @@ func TestCancelBuild(t *testing.T) {
 			outStatus:           buildapi.BuildPhaseCancelled,
 			podStatus:           kapi.PodRunning,
 			exitCode:            0,
-			startTimestamp:      nil,
+			startTimestamp:      curtime,
 			completionTimestamp: curtime,
 		},
 		{ // 3

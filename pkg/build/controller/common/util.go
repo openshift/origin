@@ -11,12 +11,23 @@ import (
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
-func SetBuildCompletionTimeAndDuration(build *buildapi.Build) {
+// SetBuildCompletionTimeAndDuration will set the build completion timestamp
+// to the current time if it is nil.  It will also set the start timestamp to
+// the same value if it is nil.  Returns true if the build object was
+// modified.
+func SetBuildCompletionTimeAndDuration(build *buildapi.Build) bool {
+	if build.Status.CompletionTimestamp != nil {
+		return false
+	}
 	now := unversioned.Now()
 	build.Status.CompletionTimestamp = &now
-	if build.Status.StartTimestamp != nil {
-		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	// apparently this build completed so fast we didn't see the pod running event,
+	// so just use the completion time as the start time.
+	if build.Status.StartTimestamp == nil {
+		build.Status.StartTimestamp = &now
 	}
+	build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	return true
 }
 
 func HandleBuildCompletion(build *buildapi.Build, runPolicies []policy.RunPolicy) {

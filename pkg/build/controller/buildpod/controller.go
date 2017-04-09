@@ -121,6 +121,9 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	nextStatus := build.Status.Phase
 	currentReason := build.Status.Reason
 
+	// if the build is marked failed, the build status reason has already been
+	// set (probably by the build pod itself), so don't do any updating here
+	// or we'll overwrite the correct value.
 	if build.Status.Phase != buildapi.BuildPhaseFailed {
 		switch pod.Status.Phase {
 		case kapi.PodPending:
@@ -176,9 +179,14 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.Status.Message = ""
 		}
 	}
+
+	needsUpdate := false
 	// Update the build object when it progress to a next state or the reason for
-	// the current state changed.
-	if (!common.HasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus || build.Status.Phase == buildapi.BuildPhaseFailed) && !buildutil.IsBuildComplete(build) {
+	// the current state changed.  Do not touch builds that are complete
+	// because we'd potentially be overwriting build state information set by the
+	// build pod directly.
+	if (!common.HasBuildPodNameAnnotation(build) || build.Status.Phase != nextStatus) && !buildutil.IsBuildComplete(build) {
+		needsUpdate = true
 		common.SetBuildPodNameAnnotation(build, pod.Name)
 		reason := ""
 		if len(build.Status.Reason) > 0 {
@@ -186,23 +194,33 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		}
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s%s", build.Namespace, build.Name, build.Status.Phase, nextStatus, reason)
 		build.Status.Phase = nextStatus
-
-		if buildutil.IsBuildComplete(build) {
-			common.SetBuildCompletionTimeAndDuration(build)
-		}
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
 			now := unversioned.Now()
 			build.Status.StartTimestamp = &now
 		}
+	}
+
+	// we're going to get pod relist events for completed/failed pods,
+	// there's no reason to re-update the build and rerun
+	// HandleBuildCompletion if we've already done it for this
+	// build previously.
+	buildWasComplete := build.Status.CompletionTimestamp != nil
+	if !buildWasComplete && buildutil.IsBuildComplete(build) && build.Status.Phase != buildapi.BuildPhaseCancelled {
+		needsUpdate = common.SetBuildCompletionTimeAndDuration(build)
+	}
+	if needsUpdate {
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
 		glog.V(4).Infof("Build %s/%s status was updated to %s", build.Namespace, build.Name, build.Status.Phase)
-
-		if buildutil.IsBuildComplete(build) {
-			common.HandleBuildCompletion(build, bc.runPolicies)
-		}
 	}
+	// if the build was not previously marked complete but it's complete now,
+	// handle completion for it.  otherwise ignore it because we've already
+	// handled its completion previously.
+	if !buildWasComplete && buildutil.IsBuildComplete(build) {
+		common.HandleBuildCompletion(build, bc.runPolicies)
+	}
+
 	return nil
 }
 
@@ -244,6 +262,7 @@ func (bc *BuildPodController) HandleBuildPodDeletion(pod *kapi.Pod) error {
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
+		common.HandleBuildCompletion(build, bc.runPolicies)
 	}
 	return nil
 }
