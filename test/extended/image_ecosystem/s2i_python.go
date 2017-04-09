@@ -58,6 +58,9 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
+				if err != nil || !result {
+					exutil.DumpDeploymentLogs(dcName, oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(result).To(o.BeTrue())
 			}
