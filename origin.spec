@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 788f8cdbbc3c572f932ea94e486b33efdb59d5d6
+%global commit 9f9f09fc942288a6f96c5802003e5bc53d6b6718
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.22 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=788f8cd
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.23 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=9f9f09f
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.23
+Version:        3.6.24
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,17 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sun Apr 09 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.24-1
+- ensure next build is kicked off when a build completes (bparees@redhat.com)
+- Enumerated the possible build phase states in the comment
+  (skuznets@redhat.com)
+- Stop forcing a re-build when updating generated completions
+  (skuznets@redhat.com)
+- RestrictUsersAdmission: allow SA with implicit NS (miciah.masters@gmail.com)
+- openvswitch: update system container to oci 1.0.0-rc5 (gscrivan@redhat.com)
+- origin: update system container to oci 1.0.0-rc5 (gscrivan@redhat.com)
+- node: update system container to oci 1.0.0-rc5 (gscrivan@redhat.com)
+
 * Sat Apr 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.23-1
 - Restrict packages from CentOS to OVS only (skuznets@redhat.com)
 
