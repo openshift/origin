@@ -85,10 +85,24 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 		}
 	}
 
-	object, err := resource.AsVersionedObject(infos, len(infos) != 1, schema.GroupVersion{}, api.Codecs.LegacyCodec())
+	printAsList := len(infos) != 1
+
+	// If we're not printing multiple objects, we'll pass an empty GroupVersion to AsVersionedObject
+	// because we shouldn't need to do any conversion.
+	var gv schema.GroupVersion
+
+	if printAsList {
+		// If we're printing a list of objects, we do need to convert at least the outer List container
+		// from internal to versioned, so we need to set gv appropriately.
+		// TODO is there a better way to do this?
+		gv = schema.GroupVersion{Group: "", Version: "v1"}
+	}
+
+	object, err := resource.AsVersionedObject(infos, printAsList, gv, api.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
+
 	return printer.PrintObj(object, out)
 }
 
