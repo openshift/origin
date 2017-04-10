@@ -21,6 +21,8 @@ if [[ "${OS_RELEASE:-}" == "n" ]]; then
 		OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]:-${platform}}")
 		OS_IMAGE_COMPILE_TARGETS=("${OS_IMAGE_COMPILE_TARGETS[@]:-${OS_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
 		OS_SCRATCH_IMAGE_COMPILE_TARGETS=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]:-${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
+		readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
+		readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
 
 		echo "Building images from source ${OS_RELEASE_COMMIT}:"
 		echo
