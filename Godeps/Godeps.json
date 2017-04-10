@@ -2167,6 +2167,33 @@
 			"Rev": "3573b8b52aa7b37b9358d966a898feb387f62437"
 		},
 		{
+			"ImportPath": "github.com/containers/image/signature",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/types",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/docker/reference",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/manifest",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/transports",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/version",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
