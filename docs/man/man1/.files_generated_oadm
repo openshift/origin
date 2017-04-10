@@ -91,5 +91,6 @@ oadm-top-node.1
 oadm-top-pod.1
 oadm-top.1
 oadm-uncordon.1
+oadm-verify-image-signature.1
 oadm-version.1
 oadm.1
