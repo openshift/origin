@@ -478,9 +478,9 @@ os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 # test that rsh inherits the TERM variable by default
 # this must be done as an echo and not an argument to rsh because rsh only sets the TERM if
 # no arguments are supplied.
-TERM=test_terminal os::cmd::expect_success_and_text "echo 'echo $TERM' | oc rsh ${frontend_pod}" $TERM
+os::cmd::expect_success_and_text "echo 'echo \$TERM' | TERM=test_terminal oc rsh ${frontend_pod}" test_terminal
 # and does not inherit it when the user provides a command.
-TERM=test_terminal os::cmd::expect_success_and_not_text "oc rsh ${frontend_pod} echo \$TERM" $TERM
+os::cmd::expect_success_and_not_text "TERM=test_terminal oc rsh ${frontend_pod} echo '\$TERM'" test_terminal
 
 # Wait for the rollout to finish
 os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
