@@ -7,6 +7,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/labels"
 
+	g "github.com/onsi/ginkgo"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -26,7 +28,11 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 	}
 	args := []string{pod.Name, "-c", pod.Spec.Containers[0].Name, "--"}
 	args = append(args, cmd...)
-	return oc.Run("exec").Args(args...).Execute()
+	output, err := oc.Run("exec").Args(args...).Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "RunInPodContainer exec output: %s", output)
+	}
+	return err
 }
 
 // CheckPageContains makes a http request for an example application and checks
@@ -41,5 +47,9 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 	if err != nil {
 		return false, err
 	}
-	return strings.Contains(response, contents), nil
+	success := strings.Contains(response, contents)
+	if !success {
+		fmt.Fprintf(g.GinkgoWriter, "CheckPageContains was looking for %s but got %s", contents, response)
+	}
+	return success, nil
 }
