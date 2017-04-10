@@ -67,6 +67,7 @@ function start() {
   local network_plugin=$5
   local wait_for_cluster=$6
   local node_count=$7
+  local additional_args=$8
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -86,6 +87,7 @@ function start() {
   # Initialize the cluster config path
   mkdir -p "${config_root}"
   echo "OPENSHIFT_NETWORK_PLUGIN=${network_plugin}" > "${config_root}/network-plugin"
+  echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" > "${config_root}/additional-args"
   copy-runtime "${origin_root}" "${config_root}/"
 
   local volumes="-v ${config_root}:${deployed_config_root}"
@@ -287,13 +289,11 @@ MASTER_NAME="${CLUSTER_ID}-master"
 NODE_PREFIX="${CLUSTER_ID}-node-"
 NODE_COUNT=2
 NODE_NAMES=()
-for (( i=1; i<=NODE_COUNT; i++ )); do
-  NODE_NAMES+=( "${NODE_PREFIX}${i}" )
-done
 
 BASE_IMAGE="openshift/dind"
 NODE_IMAGE="openshift/dind-node"
 MASTER_IMAGE="openshift/dind-master"
+ADDITIONAL_ARGS=""
 
 case "${1:-""}" in
   start)
@@ -303,7 +303,7 @@ case "${1:-""}" in
     NETWORK_PLUGIN=
     REMOVE_EXISTING_CLUSTER=
     OPTIND=2
-    while getopts ":bin:rs" opt; do
+    while getopts ":bin:rsN:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -313,6 +313,9 @@ case "${1:-""}" in
           ;;
         n)
           NETWORK_PLUGIN="${OPTARG}"
+          ;;
+        N)
+          NODE_COUNT="${OPTARG}"
           ;;
         r)
           REMOVE_EXISTING_CLUSTER=1
@@ -330,6 +333,14 @@ case "${1:-""}" in
           ;;
       esac
     done
+
+   if [[ ${@:OPTIND-1:1} = "--" ]]; then
+      ADDITIONAL_ARGS=${@:OPTIND}
+   fi
+
+   for (( i=1; i<=NODE_COUNT; i++ )); do
+      NODE_NAMES+=( "${NODE_PREFIX}${i}" )
+   done
 
     if [[ -n "${REMOVE_EXISTING_CLUSTER}" ]]; then
       stop "${CONFIG_ROOT}" "${CLUSTER_ID}"
@@ -349,7 +360,7 @@ case "${1:-""}" in
     NETWORK_PLUGIN="$(get-network-plugin "${NETWORK_PLUGIN}")"
     start "${OS_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
           "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${WAIT_FOR_CLUSTER}" \
-          "${NODE_COUNT}" "${NODE_PREFIX}"
+          "${NODE_COUNT}" "${ADDITIONAL_ARGS}" "${NODE_PREFIX}"
     ;;
   stop)
     stop "${CONFIG_ROOT}" "${CLUSTER_ID}"
@@ -367,6 +378,8 @@ start accepts the following options:
 
  -n [net plugin]   the name of the network plugin to deploy
 
+ -N                number of nodes in the cluster
+
  -b                build origin before starting the cluster
 
  -i                build container images before starting the cluster
@@ -374,6 +387,10 @@ start accepts the following options:
  -r                remove an existing cluster
 
  -s                skip waiting for nodes to become ready
+
+Any of the arguments that would be used in creating openshift master can be passed
+as is to the script  after '--' ex: setting host subnet to 3
+./dind-cluster.sh start -- --host-subnet-length=3
 "
     exit 2
 esac
