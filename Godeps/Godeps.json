@@ -2194,6 +2194,11 @@
 			"ImportPath": "github.com/containers/image/version",
 			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
 		},
+		{
+			"ImportPath": "github.com/containers/storage/pkg/homedir",
+			"Rev": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
