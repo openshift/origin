@@ -9,7 +9,7 @@ import (
 	exeutil "github.com/openshift/origin/test/extended/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/apis/batch"
+	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 )
 
 var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
@@ -44,7 +44,7 @@ var _ = g.Describe("[job][Conformance] openshift can execute jobs", func() {
 				o.Expect(len(jobs.Items)).Should(o.Equal(1))
 				job := jobs.Items[0]
 				o.Expect(len(job.Status.Conditions)).Should(o.Equal(1))
-				o.Expect(job.Status.Conditions[0].Type).Should(o.Equal(batch.JobComplete))
+				o.Expect(job.Status.Conditions[0].Type).Should(o.Equal(batchv1.JobComplete))
 
 				g.By("removing a job...")
 				err = oc.Run("delete").Args(fmt.Sprintf("job/%s", name)).Execute()
