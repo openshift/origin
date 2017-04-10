@@ -269,14 +269,14 @@ func createLimitRangeOfType(oc *exutil.CLI, limitType kapi.LimitType, maxLimits 
 	}
 
 	g.By(fmt.Sprintf("creating limit range object %q with %s limited to: %v", limitRangeName, limitType, maxLimits))
-	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(lr)
+	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(lr)
 	return lr, err
 }
 
 // bumpLimit changes the limit value for given resource for all the limit types of limit range object
 func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump a limit on resource %q to %s", resourceName, limit))
-	lr, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
+	lr, err := oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Get(limitRangeName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 	if !change {
 		return res, nil
 	}
-	_, err = oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Update(lr)
+	_, err = oc.InternalAdminKubeClient().Core().LimitRanges(oc.Namespace()).Update(lr)
 	return res, err
 }
 
