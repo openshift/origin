@@ -176,6 +176,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 			if len(obj.DockerShimSocket) == 0 {
 				obj.DockerShimSocket = "/var/run/dockershim.sock"
 			}
+			if len(obj.DockershimRootDirectory) == 0 {
+				obj.DockershimRootDirectory = "/var/lib/dockershim"
+			}
 		},
 		func(obj *ServingInfo) {
 			if len(obj.BindNetwork) == 0 {
