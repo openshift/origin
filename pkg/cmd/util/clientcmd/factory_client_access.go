@@ -103,7 +103,7 @@ func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	cobra.MarkFlagFilename(flags, config.OpenShiftConfigFlagName)
 
 	// set our explicit defaults
-	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmdapi.Cluster{Server: os.Getenv("KUBERNETES_MASTER")}}
+	defaultOverrides := &kclientcmd.ConfigOverrides{ClusterDefaults: kclientcmd.ClusterDefaults}
 	loadingRules.DefaultClientConfig = kclientcmd.NewDefaultClientConfig(kclientcmdapi.Config{}, defaultOverrides)
 
 	overrides := &kclientcmd.ConfigOverrides{ClusterDefaults: defaultOverrides.ClusterDefaults}
