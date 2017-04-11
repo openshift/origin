@@ -22,12 +22,20 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructuredconversion "k8s.io/apimachinery/pkg/conversion/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/kubernetes/pkg/api"
 	authorizationv1beta1 "k8s.io/kubernetes/pkg/apis/authorization/v1beta1"
+	rbacinternal "k8s.io/kubernetes/pkg/apis/rbac"
 	rbacv1beta1 "k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	v1beta1authorization "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1beta1"
 	v1beta1rbac "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/rbac/v1beta1"
+
+	openshiftauthzinternal "github.com/openshift/origin/pkg/authorization/api"
+	openshiftauthzexternal "github.com/openshift/origin/pkg/authorization/api/v1"
 )
 
 const (
@@ -70,9 +78,9 @@ func WaitForAuthorizationUpdate(c v1beta1authorization.SubjectAccessReviewsGette
 }
 
 // BindClusterRole binds the cluster role at the cluster scope
-func BindClusterRole(c v1beta1rbac.ClusterRoleBindingsGetter, clusterRole, ns string, subjects ...rbacv1beta1.Subject) {
+func BindClusterRole(c v1beta1rbac.ClusterRoleBindingsGetter, clientPool dynamic.ClientPool, clusterRole, ns string, subjects ...rbacv1beta1.Subject) {
 	// Since the namespace names are unique, we can leave this lying around so we don't have to race any caches
-	_, err := c.ClusterRoleBindings().Create(&rbacv1beta1.ClusterRoleBinding{
+	clusterRoleBinding := &rbacv1beta1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns + "--" + clusterRole,
 		},
@@ -82,18 +90,58 @@ func BindClusterRole(c v1beta1rbac.ClusterRoleBindingsGetter, clusterRole, ns st
 			Name:     clusterRole,
 		},
 		Subjects: subjects,
-	})
+	}
+	_, err := c.ClusterRoleBindings().Create(clusterRoleBinding)
 
 	// if we failed, don't fail the entire test because it may still work. RBAC may simply be disabled.
 	if err != nil {
 		fmt.Printf("Error binding clusterrole/%s for %q for %v\n", clusterRole, ns, subjects)
 	}
+
+	// CARRY: also do this for OpenShift
+	internalClusterRoleBinding := &rbacinternal.ClusterRoleBinding{}
+	if err := api.Scheme.Convert(clusterRoleBinding, internalClusterRoleBinding, nil); err != nil {
+		fmt.Printf("Error converting v1beta1 ClusterRoleBinding to internal: %v\n", err)
+		return
+	}
+
+	openShiftInternal := &openshiftauthzinternal.ClusterRoleBinding{}
+	if err := api.Scheme.Convert(internalClusterRoleBinding, openShiftInternal, nil); err != nil {
+		fmt.Printf("Error converting kube ClusterRoleBinding to openshift internal: %v\n", err)
+		return
+	}
+
+	openShiftExternal := &openshiftauthzexternal.ClusterRoleBinding{}
+	if err := api.Scheme.Convert(openShiftInternal, openShiftExternal, nil); err != nil {
+		fmt.Printf("Error converting openshift internal ClusterRoleBinding to external: %v\n", err)
+		return
+	}
+
+	gvkClient, err := clientPool.ClientForGroupVersionKind(openshiftauthzexternal.SchemeGroupVersion.WithKind("ClusterRoleBinding"))
+	if err != nil {
+		fmt.Printf("Error creating dynamic client: %v", err)
+		return
+	}
+
+	oc := gvkClient.Resource(&metav1.APIResource{Name: "clusterrolebindings"}, "")
+
+	unstructured := metav1unstructured.Unstructured{
+		Object: make(map[string]interface{}),
+	}
+	if err := unstructuredconversion.DefaultConverter.ToUnstructured(openShiftExternal, &unstructured.Object); err != nil {
+		fmt.Printf("Error converting to unstructured: %v", err)
+		return
+	}
+
+	if _, err := oc.Create(&unstructured); err != nil {
+		fmt.Printf("Error binding OpenShift clusterrole/%s for %q for %v: %v\n", clusterRole, ns, subjects, err)
+	}
 }
 
 // BindClusterRoleInNamespace binds the cluster role at the namespace scope
-func BindClusterRoleInNamespace(c v1beta1rbac.RoleBindingsGetter, clusterRole, ns string, subjects ...rbacv1beta1.Subject) {
+func BindClusterRoleInNamespace(c v1beta1rbac.RoleBindingsGetter, clientPool dynamic.ClientPool, clusterRole, ns string, subjects ...rbacv1beta1.Subject) {
 	// Since the namespace names are unique, we can leave this lying around so we don't have to race any caches
-	_, err := c.RoleBindings(ns).Create(&rbacv1beta1.RoleBinding{
+	roleBinding := &rbacv1beta1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns + "--" + clusterRole,
 		},
@@ -103,10 +151,51 @@ func BindClusterRoleInNamespace(c v1beta1rbac.RoleBindingsGetter, clusterRole, n
 			Name:     clusterRole,
 		},
 		Subjects: subjects,
-	})
+	}
+
+	_, err := c.RoleBindings(ns).Create(roleBinding)
 
 	// if we failed, don't fail the entire test because it may still work. RBAC may simply be disabled.
 	if err != nil {
 		fmt.Printf("Error binding clusterrole/%s into %q for %v\n", clusterRole, ns, subjects)
+	}
+
+	// CARRY: also do this for OpenShift
+	internalRoleBinding := &rbacinternal.RoleBinding{}
+	if err := api.Scheme.Convert(roleBinding, internalRoleBinding, nil); err != nil {
+		fmt.Printf("Error converting v1beta1 RoleBinding to internal: %v\n", err)
+		return
+	}
+
+	openShiftInternal := &openshiftauthzinternal.RoleBinding{}
+	if err := api.Scheme.Convert(internalRoleBinding, openShiftInternal, nil); err != nil {
+		fmt.Printf("Error converting kube RoleBinding to openshift internal: %v\n", err)
+		return
+	}
+
+	openShiftExternal := &openshiftauthzexternal.RoleBinding{}
+	if err := api.Scheme.Convert(openShiftInternal, openShiftExternal, nil); err != nil {
+		fmt.Printf("Error converting openshift internal RoleBinding to external: %v\n", err)
+		return
+	}
+
+	gvkClient, err := clientPool.ClientForGroupVersionKind(openshiftauthzexternal.SchemeGroupVersion.WithKind("RoleBinding"))
+	if err != nil {
+		fmt.Printf("Error creating dynamic client: %v", err)
+		return
+	}
+
+	oc := gvkClient.Resource(&metav1.APIResource{Name: "rolebindings"}, "")
+
+	unstructured := metav1unstructured.Unstructured{
+		Object: make(map[string]interface{}),
+	}
+	if err := unstructuredconversion.DefaultConverter.ToUnstructured(openShiftExternal, &unstructured.Object); err != nil {
+		fmt.Printf("Error converting to unstructured: %v", err)
+		return
+	}
+
+	if _, err := oc.Create(&unstructured); err != nil {
+		fmt.Printf("Error binding OpenShift clusterrole/%s for %q for %v: %v\n", clusterRole, ns, subjects, err)
 	}
 }

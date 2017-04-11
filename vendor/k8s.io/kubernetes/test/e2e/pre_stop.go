@@ -180,7 +180,7 @@ var _ = framework.KubeDescribe("PreStop", func() {
 	BeforeEach(func() {
 		// this test wants extra permissions.  Since the namespace names are unique, we can leave this
 		// lying around so we don't have to race any caches
-		framework.BindClusterRole(f.ClientSet.Rbac(), "cluster-admin", f.Namespace.Name,
+		framework.BindClusterRole(f.ClientSet.RbacV1beta1(), f.ClientPool, "cluster-admin", f.Namespace.Name,
 			rbacv1beta1.Subject{Kind: rbacv1beta1.ServiceAccountKind, Namespace: f.Namespace.Name, Name: "default"})
 
 		err := framework.WaitForAuthorizationUpdate(f.ClientSet.AuthorizationV1beta1(),
