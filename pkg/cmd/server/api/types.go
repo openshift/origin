@@ -287,6 +287,8 @@ type DockerConfig struct {
 	ExecHandlerName DockerExecHandlerType
 	// DockerShimSocket is the location of the dockershim socket the kubelet uses.
 	DockerShimSocket string
+	// DockershimRootDirectory is the dockershim root directory.
+	DockershimRootDirectory string
 }
 
 type DockerExecHandlerType string
