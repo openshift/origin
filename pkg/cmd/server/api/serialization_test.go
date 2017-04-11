@@ -248,6 +248,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.DockerShimSocket) == 0 {
 				obj.DockerShimSocket = "/var/run/sockershim.sock"
 			}
+			if len(obj.DockershimRootDirectory) == 0 {
+				obj.DockershimRootDirectory = "/var/lib/dockershim"
+			}
 		},
 		func(obj *configapi.ServingInfo, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
