@@ -106,7 +106,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	for _, ns := range namespaces.Items {
 		np.kNamespaces[ns.Name] = ns
 
-		if vnid, err := np.vnids.GetVNID(ns.Name); err == nil {
+		if vnid, err := np.vnids.WaitAndGetVNID(ns.Name); err == nil {
 			np.namespaces[vnid] = &npNamespace{
 				name:     ns.Name,
 				vnid:     vnid,
@@ -125,7 +125,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 		return err
 	}
 	for _, policy := range policies.Items {
-		vnid, err := np.vnids.GetVNID(policy.Namespace)
+		vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
 		if err != nil {
 			continue
 		}
