@@ -2211,6 +2211,30 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
+		"github.com/openshift/origin/pkg/build/api/v1.BitbucketWebHookCause": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "BitbucketWebHookCause has information about a Bitbucket webhook that triggered a build.",
+					Properties: map[string]spec.Schema{
+						"revision": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Revision is the git source revision information of the trigger.",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.SourceRevision"),
+							},
+						},
+						"secret": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Secret is the obfuscated webhook secret that triggered a build.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/build/api/v1.SourceRevision"},
+		},
 		"github.com/openshift/origin/pkg/build/api/v1.Build": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -3147,11 +3171,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.ImageChangeCause"),
 							},
 						},
+						"gitlabWebHook": {
+							SchemaProps: spec.SchemaProps{
+								Description: "GitLabWebHook represents data for a GitLab webhook that fired a specific build.",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.GitLabWebHookCause"),
+							},
+						},
+						"bitbucketWebHook": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BitbucketWebHook represents data for a Bitbucket webhook that fired a specific build.",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.BitbucketWebHookCause"),
+							},
+						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/api/v1.GenericWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.GitHubWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.ImageChangeCause"},
+				"github.com/openshift/origin/pkg/build/api/v1.BitbucketWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.GenericWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.GitHubWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.GitLabWebHookCause", "github.com/openshift/origin/pkg/build/api/v1.ImageChangeCause"},
 		},
 		"github.com/openshift/origin/pkg/build/api/v1.BuildTriggerPolicy": {
 			Schema: spec.Schema{
@@ -3181,6 +3217,18 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							SchemaProps: spec.SchemaProps{
 								Description: "imageChange contains parameters for an ImageChange type of trigger",
 								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.ImageChangeTrigger"),
+							},
+						},
+						"gitlab": {
+							SchemaProps: spec.SchemaProps{
+								Description: "GitLabWebHook contains the parameters for a GitLab webhook type of trigger",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.WebHookTrigger"),
+							},
+						},
+						"bitbucket": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BitbucketWebHook contains the parameters for a Bitbucket webhook type of trigger",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.WebHookTrigger"),
 							},
 						},
 					},
@@ -3265,6 +3313,30 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/build/api/v1.BuildOutput", "github.com/openshift/origin/pkg/build/api/v1.BuildPostCommitSpec", "github.com/openshift/origin/pkg/build/api/v1.BuildSource", "github.com/openshift/origin/pkg/build/api/v1.BuildStrategy", "github.com/openshift/origin/pkg/build/api/v1.SourceRevision", "k8s.io/kubernetes/pkg/api/v1.ResourceRequirements"},
+		},
+		"github.com/openshift/origin/pkg/build/api/v1.CommonWebHookCause": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "CommonWebHookCause factors out the identical format of these webhook causes into struct so we can share it in the specific causes;  it is too late for GitHub and Generic but we can leverage this pattern with GitLab and Bitbucket.",
+					Properties: map[string]spec.Schema{
+						"revision": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Revision is the git source revision information of the trigger.",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.SourceRevision"),
+							},
+						},
+						"secret": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Secret is the obfuscated webhook secret that triggered a build.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/build/api/v1.SourceRevision"},
 		},
 		"github.com/openshift/origin/pkg/build/api/v1.CustomBuildStrategy": {
 			Schema: spec.Schema{
@@ -3390,7 +3462,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"buildArgs": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+								Description: "buildArgs contains build arguments that will be resolved in the Dockerfile.  See https://docs.docker.com/engine/reference/builder/#/arg for more details.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -3399,6 +3471,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 										},
 									},
 								},
+							},
+						},
+						"imageOptimizationPolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "imageOptimizationPolicy describes what optimizations the system can use when building images to reduce the final size or time spent building the image. The default policy is 'None' which means the final build image will be equivalent to an image created by the Docker build API. The experimental policy 'SkipLayers' will avoid commiting new layers in between each image step, and will fail if the Dockerfile cannot provide compatibility with the 'None' policy. An additional experimental policy 'SkipLayersAndWarn' is the same as 'SkipLayers' but simply warns if compatibility cannot be preserved.",
+								Type:        []string{"string"},
+								Format:      "",
 							},
 						},
 					},
@@ -3640,6 +3719,30 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/build/api/v1.SourceControlUser"},
+		},
+		"github.com/openshift/origin/pkg/build/api/v1.GitLabWebHookCause": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "GitLabWebHookCause has information about a GitLab webhook that triggered a build.",
+					Properties: map[string]spec.Schema{
+						"revision": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Revision is the git source revision information of the trigger.",
+								Ref:         ref("github.com/openshift/origin/pkg/build/api/v1.SourceRevision"),
+							},
+						},
+						"secret": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Secret is the obfuscated webhook secret that triggered a build.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/build/api/v1.SourceRevision"},
 		},
 		"github.com/openshift/origin/pkg/build/api/v1.GitSourceRevision": {
 			Schema: spec.Schema{
@@ -5323,6 +5426,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy"),
 							},
 						},
+						"referencePolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ReferencePolicy defines how other components should consume the image",
+								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.TagReferencePolicy"),
+							},
+						},
 						"includeManifest": {
 							SchemaProps: spec.SchemaProps{
 								Description: "IncludeManifest determines if the manifest for each image is returned in the response",
@@ -5335,7 +5444,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy", "k8s.io/kubernetes/pkg/api/v1.LocalObjectReference", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+				"github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy", "github.com/openshift/origin/pkg/image/api/v1.TagReferencePolicy", "k8s.io/kubernetes/pkg/api/v1.LocalObjectReference", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/openshift/origin/pkg/image/api/v1.ImageImportStatus": {
 			Schema: spec.Schema{
@@ -6067,6 +6176,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy"),
 							},
 						},
+						"referencePolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ReferencePolicy defines how other components should consume the image",
+								Ref:         ref("github.com/openshift/origin/pkg/image/api/v1.TagReferencePolicy"),
+							},
+						},
 						"includeManifest": {
 							SchemaProps: spec.SchemaProps{
 								Description: "IncludeManifest determines if the manifest for each image is returned in the response",
@@ -6079,7 +6194,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+				"github.com/openshift/origin/pkg/image/api/v1.TagImportPolicy", "github.com/openshift/origin/pkg/image/api/v1.TagReferencePolicy", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/openshift/origin/pkg/image/api/v1.RepositoryImportStatus": {
 			Schema: spec.Schema{
@@ -8745,6 +8860,127 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"k8s.io/kubernetes/pkg/api/v1.ObjectReference", "k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"},
 		},
+		"github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstance": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "BrokerTemplateInstance holds the service broker-related state associated with a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "spec describes the state of this BrokerTemplateInstance.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstanceSpec"),
+							},
+						},
+					},
+					Required: []string{"spec"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstanceSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstanceList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "items is a list of BrokerTemplateInstances",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstance"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.BrokerTemplateInstanceSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "BrokerTemplateInstanceSpec describes the state of a BrokerTemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"templateInstance": {
+							SchemaProps: spec.SchemaProps{
+								Description: "templateinstance is a reference to a TemplateInstance object residing in a namespace.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"secret": {
+							SchemaProps: spec.SchemaProps{
+								Description: "secret is a reference to a Secret object residing in a namespace, containing the necessary template parameters.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"bindingIDs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "bindingids is a list of 'binding_id's provided during successive bind calls to the template service broker.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"templateInstance", "secret", "bindingIDs"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
 		"github.com/openshift/origin/pkg/template/api/v1.Parameter": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -8883,6 +9119,214 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/template/api/v1.Parameter", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstance": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstance requests and records the instantiation of a Template. TemplateInstance is part of an experimental API.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "spec describes the desired state of this TemplateInstance.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Description: "status describes the current state of this TemplateInstance.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceStatus"),
+							},
+						},
+					},
+					Required: []string{"spec", "status"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceSpec", "github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceCondition": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceCondition contains condition information for a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type of the condition, currently Ready or InstantiateFailure.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Status of the condition, one of True, False or Unknown.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"lastTransitionTime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LastTransitionTime is the last time a condition status transitioned from one state to another.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
+						"reason": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Reason is a brief machine readable explanation for the condition's last transition.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"message": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Message is a human readable description of the details of the last transition, complementing reason.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"type", "status", "lastTransitionTime", "reason", "message"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceList is a list of TemplateInstance objects.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "items is a list of Templateinstances",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/api/v1.TemplateInstance"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceRequester": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
+					Properties: map[string]spec.Schema{
+						"username": {
+							SchemaProps: spec.SchemaProps{
+								Description: "username is the username of the agent requesting a template instantiation.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"username"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceSpec describes the desired state of a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "template is a full copy of the template for instantiation.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/api/v1.Template"),
+							},
+						},
+						"secret": {
+							SchemaProps: spec.SchemaProps{
+								Description: "secret is a reference to a Secret object containing the necessary template parameters.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.LocalObjectReference"),
+							},
+						},
+						"requester": {
+							SchemaProps: spec.SchemaProps{
+								Description: "requester holds the identity of the agent requesting the template instantiation.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceRequester"),
+							},
+						},
+					},
+					Required: []string{"template", "secret", "requester"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.Template", "github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceRequester", "k8s.io/kubernetes/pkg/api/v1.LocalObjectReference"},
+		},
+		"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceStatus describes the current state of a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"conditions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "conditions represent the latest available observations of a TemplateInstance's current state.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceCondition"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"conditions"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/api/v1.TemplateInstanceCondition"},
 		},
 		"github.com/openshift/origin/pkg/template/api/v1.TemplateList": {
 			Schema: spec.Schema{
@@ -9614,7 +10058,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"propagationPolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Whether and how garbage collection will be performed. Defaults to Default. Either this field or OrphanDependents may be set, but not both.",
+								Description: "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -10690,93 +11134,6 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"status": {
-							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus"),
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus"},
-		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Type: []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType"},
-		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Properties: map[string]spec.Schema{
-						"Blah": {
-							SchemaProps: spec.SchemaProps{
-								Type:   []string{"string"},
-								Format: "",
-							},
-						},
-					},
-					Required: []string{"Blah"},
-				},
-			},
-			Dependencies: []string{},
-		},
 		"k8s.io/kubernetes/federation/apis/federation/v1beta1.Cluster": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -11807,7 +12164,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"envFrom": {
 							SchemaProps: spec.SchemaProps{
-								Description: "List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. An invalid key will prevent the container from starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated.",
+								Description: "List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -15305,7 +15662,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"namespaces": {
 							SchemaProps: spec.SchemaProps{
-								Description: "namespaces specifies which namespaces the labelSelector applies to (matches against); nil list means \"this pod's namespace,\" empty list means \"all namespaces\" The json tag here is not \"omitempty\" since we need to distinguish nil and empty. See https://golang.org/pkg/encoding/json/#Marshal for more details.",
+								Description: "namespaces specifies which namespaces the labelSelector applies to (matches against); null or empty list means \"this pod's namespace\"",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -15325,7 +15682,6 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"namespaces"},
 				},
 			},
 			Dependencies: []string{
@@ -17636,7 +17992,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"allowedCapabilities": {
 							SchemaProps: spec.SchemaProps{
-								Description: "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.",
+								Description: "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities. To allow all capabilities you may use '*'.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -23842,13 +24198,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"spec": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Spec defines the desired behavior of this daemon set. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
+								Description: "The desired behavior of this daemon set. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
 								Ref:         ref("k8s.io/kubernetes/pkg/apis/extensions/v1beta1.DaemonSetSpec"),
 							},
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Status is the current status of this daemon set. This data may be out of date by some window of time. Populated by the system. Read-only. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
+								Description: "The current status of this daemon set. This data may be out of date by some window of time. Populated by the system. Read-only. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status",
 								Ref:         ref("k8s.io/kubernetes/pkg/apis/extensions/v1beta1.DaemonSetStatus"),
 							},
 						},
@@ -23885,7 +24241,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"items": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Items is a list of daemon sets.",
+								Description: "A list of daemon sets.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -23910,25 +24266,25 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 					Properties: map[string]spec.Schema{
 						"selector": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Selector is a label query over pods that are managed by the daemon set. Must match in order to be controlled. If empty, defaulted to labels on Pod template. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors",
+								Description: "A label query over pods that are managed by the daemon set. Must match in order to be controlled. If empty, defaulted to labels on Pod template. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors",
 								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 							},
 						},
 						"template": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Template is the object that describes the pod that will be created. The DaemonSet will create exactly one copy of this pod on every node that matches the template's node selector (or on every node if no node selector is specified). More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template",
+								Description: "An object that describes the pod that will be created. The DaemonSet will create exactly one copy of this pod on every node that matches the template's node selector (or on every node if no node selector is specified). More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template",
 								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"),
 							},
 						},
 						"updateStrategy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "UpdateStrategy to replace existing DaemonSet pods with new pods.",
+								Description: "An update strategy to replace existing DaemonSet pods with new pods.",
 								Ref:         ref("k8s.io/kubernetes/pkg/apis/extensions/v1beta1.DaemonSetUpdateStrategy"),
 							},
 						},
 						"minReadySeconds": {
 							SchemaProps: spec.SchemaProps{
-								Description: "MinReadySeconds minimum number of seconds for which a newly created DaemonSet pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready).",
+								Description: "The minimum number of seconds for which a newly created DaemonSet pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready).",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
@@ -23954,56 +24310,56 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 					Properties: map[string]spec.Schema{
 						"currentNumberScheduled": {
 							SchemaProps: spec.SchemaProps{
-								Description: "CurrentNumberScheduled is the number of nodes that are running at least 1 daemon pod and are supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
+								Description: "The number of nodes that are running at least 1 daemon pod and are supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"numberMisscheduled": {
 							SchemaProps: spec.SchemaProps{
-								Description: "NumberMisscheduled is the number of nodes that are running the daemon pod, but are not supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
+								Description: "The number of nodes that are running the daemon pod, but are not supposed to run the daemon pod. More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"desiredNumberScheduled": {
 							SchemaProps: spec.SchemaProps{
-								Description: "DesiredNumberScheduled is the total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod). More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
+								Description: "The total number of nodes that should be running the daemon pod (including nodes correctly running the daemon pod). More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"numberReady": {
 							SchemaProps: spec.SchemaProps{
-								Description: "NumberReady is the number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready.",
+								Description: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and ready.",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"observedGeneration": {
 							SchemaProps: spec.SchemaProps{
-								Description: "ObservedGeneration is the most recent generation observed by the daemon set controller.",
+								Description: "The most recent generation observed by the daemon set controller.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
 						"updatedNumberScheduled": {
 							SchemaProps: spec.SchemaProps{
-								Description: "UpdatedNumberScheduled is the total number of nodes that are running updated daemon pod",
+								Description: "The total number of nodes that are running updated daemon pod",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"numberAvailable": {
 							SchemaProps: spec.SchemaProps{
-								Description: "NumberAvailable is the number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available (ready for at least minReadySeconds)",
+								Description: "The number of nodes that should be running the daemon pod and have one or more of the daemon pod running and available (ready for at least spec.minReadySeconds)",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
 						},
 						"numberUnavailable": {
 							SchemaProps: spec.SchemaProps{
-								Description: "NumberUnavailable is the number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least minReadySeconds)",
+								Description: "The number of nodes that should be running the daemon pod and have none of the daemon pod running and available (ready for at least spec.minReadySeconds)",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
@@ -24027,7 +24383,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"rollingUpdate": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Rolling update config params. Present only if DaemonSetUpdateStrategy = RollingUpdate.",
+								Description: "Rolling update config params. Present only if type = \"RollingUpdate\".",
 								Ref:         ref("k8s.io/kubernetes/pkg/apis/extensions/v1beta1.RollingUpdateDaemonSet"),
 							},
 						},
@@ -25458,7 +25814,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 					Properties: map[string]spec.Schema{
 						"maxUnavailable": {
 							SchemaProps: spec.SchemaProps{
-								Description: "The maximum number of DaemonSet pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total number of DaemonSet pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up. This cannot be 0. Default value is 1. Example: when this is set to 30%, 30% of the currently running DaemonSet pods can be stopped for an update at any given time. The update starts by stopping at most 30% of the currently running DaemonSet pods and then brings up new DaemonSet pods in their place. Once the new pods are ready, it then proceeds onto other DaemonSet pods, thus ensuring that at least 70% of original number of DaemonSet pods are available at all times during the update.",
+								Description: "The maximum number of DaemonSet pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total number of DaemonSet pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up. This cannot be 0. Default value is 1. Example: when this is set to 30%, at most 30% of the total number of nodes that should be running the daemon pod (i.e. status.desiredNumberScheduled) can have their pods stopped for an update at any given time. The update starts by stopping at most 30% of those DaemonSet pods and then brings up new DaemonSet pods in their place. Once the new pods are available, it then proceeds onto other DaemonSet pods, thus ensuring that at least 70% of original number of DaemonSet pods are available at all times during the update.",
 								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
 							},
 						},
