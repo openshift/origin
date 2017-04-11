@@ -37,6 +37,7 @@ dnsDomain: ""
 dnsIP: ""
 dnsNameservers: null
 dockerConfig:
+  dockerShimRootDirectory: ""
   dockerShimSocket: ""
   execHandlerName: ""
 enableUnidling: false
