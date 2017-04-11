@@ -53,8 +53,7 @@ func (rlf *RateLimitedFunction) pop() {
 	}
 }
 
-// Invoke adds a request if its not already present and waits for the
-// background processor to execute it.
+// Invoke adds a request if its not already present and returns immediately
 func (rlf *RateLimitedFunction) Invoke(resource interface{}) {
 	rlf.queue.AddIfNotPresent(resource)
 }
