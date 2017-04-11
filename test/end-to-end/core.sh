@@ -129,7 +129,7 @@ os::cmd::expect_success 'oc env -n default dc/docker-registry REGISTRY_MIDDLEWAR
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 os::log::info "Restore configured to enable mirroring"
 
-registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template='{{(index .items 0).metadata.name}}')"
+registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --show-all=false --template='{{(index .items 0).metadata.name}}')"
 
 # Client setup (log in as e2e-user and set 'test' as the default project)
 # This is required to be able to push to the registry!
@@ -478,9 +478,9 @@ os::cmd::expect_success_and_text "oc rsh -T ${frontend_pod} id -u" '1000'
 # test that rsh inherits the TERM variable by default
 # this must be done as an echo and not an argument to rsh because rsh only sets the TERM if
 # no arguments are supplied.
-TERM=test_terminal os::cmd::expect_success_and_text "echo 'echo $TERM' | oc rsh ${frontend_pod}" $TERM
+os::cmd::expect_success_and_text "echo 'echo \$TERM' | TERM=test_terminal oc rsh ${frontend_pod}" test_terminal
 # and does not inherit it when the user provides a command.
-TERM=test_terminal os::cmd::expect_success_and_not_text "oc rsh ${frontend_pod} echo \$TERM" $TERM
+os::cmd::expect_success_and_not_text "TERM=test_terminal oc rsh ${frontend_pod} echo '\$TERM'" test_terminal
 
 # Wait for the rollout to finish
 os::cmd::expect_success "oc rollout status dc/frontend --revision=1"
