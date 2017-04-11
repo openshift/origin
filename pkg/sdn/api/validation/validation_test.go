@@ -117,6 +117,81 @@ func TestValidateClusterNetwork(t *testing.T) {
 	}
 }
 
+func TestSetDefaultClusterNetwork(t *testing.T) {
+	defaultClusterNetwork := api.ClusterNetwork{
+		ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+		Network:          "10.20.0.0/16",
+		HostSubnetLength: 8,
+		ServiceNetwork:   "172.30.0.0/16",
+		PluginName:       "redhat/openshift-ovs-multitenant",
+	}
+	SetDefaultClusterNetwork(defaultClusterNetwork)
+
+	tests := []struct {
+		name           string
+		cn             *api.ClusterNetwork
+		expectedErrors int
+	}{
+		{
+			name:           "Good one",
+			cn:             &defaultClusterNetwork,
+			expectedErrors: 0,
+		},
+		{
+			name: "Wrong Network",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+				Network:          "10.30.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "172.30.0.0/16",
+				PluginName:       "redhat/openshift-ovs-multitenant",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Wrong HostSubnetLength",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 9,
+				ServiceNetwork:   "172.30.0.0/16",
+				PluginName:       "redhat/openshift-ovs-multitenant",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Wrong ServiceNetwork",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "172.20.0.0/16",
+				PluginName:       "redhat/openshift-ovs-multitenant",
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Wrong PluginName",
+			cn: &api.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+				Network:          "10.20.0.0/16",
+				HostSubnetLength: 8,
+				ServiceNetwork:   "172.30.0.0/16",
+				PluginName:       "redhat/openshift-ovs-subnet",
+			},
+			expectedErrors: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		errs := ValidateClusterNetwork(tc.cn)
+
+		if len(errs) != tc.expectedErrors {
+			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
+		}
+	}
+}
+
 func TestValidateHostSubnet(t *testing.T) {
 	tests := []struct {
 		name           string
