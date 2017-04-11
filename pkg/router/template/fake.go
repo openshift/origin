@@ -13,6 +13,17 @@ func NewFakeTemplateRouter() *templateRouter {
 	}
 }
 
+// FakeReloadHandler implements the minimal changes needed to make the locking behavior work
+// This MUST match the behavior with the stateChanged of commitAndReload
+func (r *templateRouter) FakeReloadHandler() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.stateChanged = false
+
+	return
+}
+
 // fakeCertWriter is a certificate writer that records actions but is a no-op
 type fakeCertWriter struct {
 	addedCerts   []string
