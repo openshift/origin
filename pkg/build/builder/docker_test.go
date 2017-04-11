@@ -189,6 +189,8 @@ func TestDockerfilePath(t *testing.T) {
 		"\"io.openshift.build.commit.id\"=\"commitid\"",
 		"\"io.openshift.build.commit.ref\"=\"ref\"",
 		"\"io.openshift.build.commit.message\"=\"message\"",
+		"\"io.openshift.build.name\"=\"name\"",
+		"\"io.openshift.build.namespace\"=\"namespace\"",
 	}
 
 	for _, test := range tests {

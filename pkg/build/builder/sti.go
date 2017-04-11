@@ -365,6 +365,7 @@ func buildEnvVars(build *api.Build, sourceInfo *git.SourceInfo) s2iapi.Environme
 
 func buildLabels(build *api.Build) map[string]string {
 	labels := make(map[string]string)
+	addBuildLabels(labels, build)
 	for _, lbl := range build.Spec.Output.ImageLabels {
 		labels[lbl.Name] = lbl.Value
 	}

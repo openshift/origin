@@ -180,6 +180,10 @@ func TestBuildEnvVars(t *testing.T) {
 			Value: "http://test/insecure:8080",
 		},
 	}
+	expectedLabelList := map[string]string{
+		"io.openshift.build.name":      "openshift-test-1-build",
+		"io.openshift.build.namespace": "openshift-demo",
+	}
 
 	mockBuild := makeBuild()
 	mockBuild.Name = "openshift-test-1-build"
@@ -191,6 +195,12 @@ func TestBuildEnvVars(t *testing.T) {
 	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
 		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
 	}
+
+	resultedLabelList := buildLabels(mockBuild)
+	if !reflect.DeepEqual(expectedLabelList, resultedLabelList) {
+		t.Errorf("Expected LabelList to match: %#v, got %#v", expectedLabelList, resultedLabelList)
+	}
+
 }
 
 func TestScriptProxyConfig(t *testing.T) {

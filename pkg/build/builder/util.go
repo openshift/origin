@@ -15,6 +15,8 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 var (
@@ -191,4 +193,11 @@ func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthCo
 		glog.V(0).Infof("Registry server Password: %s", passwordPresent)
 	}
 	return fmt.Errorf("Failed to push image: %v", err)
+}
+
+// addBuildLabels adds some common image labels describing the build that produced
+// this image.
+func addBuildLabels(labels map[string]string, build *buildapi.Build) {
+	labels[buildapi.DefaultDockerLabelNamespace+"build.name"] = build.Name
+	labels[buildapi.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
 }
