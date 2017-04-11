@@ -25,7 +25,8 @@ func TestKubeletDefaults(t *testing.T) {
 	// If the default changes (new fields are added, or default values change), we want to know
 	// Once we've reacted to the changes appropriately in BuildKubernetesNodeConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &kubeletoptions.KubeletServer{
-		KubeConfig: flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+		KubeConfig:              flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+		DockershimRootDirectory: "/var/lib/dockershim",
 
 		KubeletConfiguration: componentconfig.KubeletConfiguration{
 			Address:         "0.0.0.0", // overridden
@@ -45,19 +46,19 @@ func TestKubeletDefaults(t *testing.T) {
 					CacheUnauthorizedTTL: metav1.Duration{Duration: 30 * time.Second},
 				},
 			},
-			CAdvisorPort:                4194, // disabled
-			VolumeStatsAggPeriod:        metav1.Duration{Duration: time.Minute},
-			CertDirectory:               "/var/run/kubernetes",
-			CgroupRoot:                  "",
-			CgroupDriver:                "cgroupfs",
-			ClusterDNS:                  nil, // overridden
-			ClusterDomain:               "",  // overridden
-			ContainerRuntime:            "docker",
-			Containerized:               false, // overridden based on OPENSHIFT_CONTAINERIZED
-			CPUCFSQuota:                 true,  // forced to true
-			DockerExecHandlerName:       "native",
-			DockerEndpoint:              "unix:///var/run/docker.sock",
-			DockerShimSocket:            "/var/run/dockershim.sock",
+			CAdvisorPort:          4194, // disabled
+			VolumeStatsAggPeriod:  metav1.Duration{Duration: time.Minute},
+			CertDirectory:         "/var/run/kubernetes",
+			CgroupRoot:            "",
+			CgroupDriver:          "cgroupfs",
+			ClusterDNS:            nil, // overridden
+			ClusterDomain:         "",  // overridden
+			ContainerRuntime:      "docker",
+			Containerized:         false, // overridden based on OPENSHIFT_CONTAINERIZED
+			CPUCFSQuota:           true,  // forced to true
+			DockerExecHandlerName: "native",
+			DockerEndpoint:        "unix:///var/run/docker.sock",
+
 			EventBurst:                  10,
 			EventRecordQPS:              5.0,
 			EnableCustomMetrics:         false,
