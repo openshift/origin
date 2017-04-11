@@ -28,8 +28,9 @@ const ReconcileSCCRecommendedName = "reconcile-sccs"
 type ReconcileSCCOptions struct {
 	// confirmed indicates that the data should be persisted
 	Confirmed bool
-	// union controls if we make additive changes to the users/groups fields or overwrite them
-	// as well as preserving existing priorities (unset priorities will always be reconciled)
+	// union controls if we make additive changes to the users/groups/labels/annotations fields
+	// or overwrite them as well as preserving existing priorities (unset priorities will
+	// always be reconciled)
 	Union bool
 	// is the name of the openshift infrastructure namespace.  It is provided here so that
 	// the command doesn't need to try and parse the policy config.
@@ -51,7 +52,7 @@ var (
 		This command will not remove any additional cluster SCCs.  By default, this command
 		will not remove additional users and groups that have been granted access to the SCC and
 		will preserve existing priorities (but will always reconcile unset priorities and the policy
-		definition).
+		definition), labels, and annotations.
 
 		You can see which cluster SCCs have recommended changes by choosing an output type.`)
 
@@ -60,10 +61,10 @@ var (
 	  %[1]s
 
 	  # Update cluster SCCs that don't match the current defaults preserving additional grants
-	  # for users and group and keeping any priorities that are already set
+	  # for users, groups, labels, annotations and keeping any priorities that are already set
 	  %[1]s --confirm
 
-	  # Replace existing users, groups, and priorities that do not match defaults
+	  # Replace existing users, groups, labels, annotations, and priorities that do not match defaults
 	  %[1]s --additive-only=false --confirm`)
 )
 
