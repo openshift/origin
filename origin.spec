@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 005e3b3c661f509476c9a9502f2b2204a06844a9
+%global commit 85ab4f04b3f49758a7b6bf834433d0397ae14c2c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.25 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=005e3b3
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.26 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=85ab4f0
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.26
+Version:        3.6.27
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,27 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Apr 11 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.27-1
+- bump(github.com/openshift/origin-web-console):
+  a172029b6d375f52775f7b3d5b064f9a94c31fe4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  428eb00293c69f662936dee9a865fb455019213e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  448a8b3205c5aa83a6510e109f8c50097898059e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1cfff7844eecd016adaf0b3e255dbf147076180c (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5ec55aba0928e896f611b2a8afe29c370afe11dd (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5c07e9658690473f04528919d0ea537a25d2a121 (dmcphers+openshiftbot@redhat.com)
+- oadm policy reconcile-sccs: update comments and help text.
+  (vsemushi@redhat.com)
+- Expand configuration options of the dind tool (jtanenba@redhat.com)
+- Fix for bz1438402 (rchopra@redhat.com)
+- BZ1429398 removed the call to index from jq (jtanenba@redhat.com)
+- Bug 1433244 - allow imageimports to be long runing requests
+  (maszulik@redhat.com)
+
 * Mon Apr 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.26-1
 - 
 
