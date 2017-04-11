@@ -720,7 +720,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, certauth)
 	}
 
-	resultingAuthenticator := union.New(authenticators...)
+	resultingAuthenticator := union.NewFailOnError(authenticators...)
 
 	topLevelAuthenticators := []authenticator.Request{}
 	// if we have a front proxy providing authentication configuration, wire it up and it should come first
@@ -743,7 +743,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	}
 	topLevelAuthenticators = append(topLevelAuthenticators, anonymous.NewAuthenticator())
 
-	return group.NewAuthenticatedGroupAdder(union.New(topLevelAuthenticators...)), nil
+	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
 func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {

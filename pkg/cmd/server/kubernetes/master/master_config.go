@@ -125,8 +125,9 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 
 	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
 
-	server.Etcd.EnableGarbageCollection = false // disabled until we add the controller. MUST be in synced with the value in CMServer
-	server.Etcd.StorageConfig.Type = "etcd2"    // TODO(rebase): enable etcd3 as upstream
+	server.Etcd.EnableGarbageCollection = false              // disabled until we add the controller. MUST be in synced with the value in CMServer
+	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(rebase): enable etcd3 as upstream
+	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(rebase): enable protobuf with etcd3 as upstream
 	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
 	server.Etcd.StorageConfig.ServerList = masterConfig.EtcdClientInfo.URLs
 	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile

@@ -581,7 +581,7 @@ var _ = framework.KubeDescribe("Kubectl client", func() {
 		It("should handle in-cluster config", func() {
 			By("adding rbac permissions")
 			// grant the view permission widely to allow inspection of the `invalid` namespace.
-			framework.BindClusterRole(f.ClientSet.Rbac(), "view", f.Namespace.Name,
+			framework.BindClusterRole(f.ClientSet.RbacV1beta1(), f.ClientPool, "view", f.Namespace.Name,
 				rbacv1beta1.Subject{Kind: rbacv1beta1.ServiceAccountKind, Namespace: f.Namespace.Name, Name: "default"})
 
 			err := framework.WaitForAuthorizationUpdate(f.ClientSet.AuthorizationV1beta1(),
