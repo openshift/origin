@@ -788,7 +788,7 @@ func TestHandleRouteExtendedValidation(t *testing.T) {
 					},
 				},
 			},
-			errorExpected: true,
+			errorExpected: false,
 		},
 		{
 			name: "Edge termination OK with certs without host",

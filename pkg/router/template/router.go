@@ -65,6 +65,11 @@ type templateRouter struct {
 	defaultCertificatePath string
 	// if the default certificate is in a secret this will be filled in so it can be passed to the templates
 	defaultCertificateDir string
+	// defaultDestinationCAPath is a path to a CA bundle that should be used by the underlying implementation as the default
+	// destination CA if no certificate is resolved by the normal matching mechanisms. This is usually the service serving
+	// certificate CA (/var/run/secrets/kubernetes.io/serviceaccount/serving_ca.crt) that the infrastructure uses to
+	// generate certificates for services by name.
+	defaultDestinationCAPath string
 	// peerService provides a namespace/name to check against when receiving endpoint events in order
 	// to track the peers of this router.  This may be used to populate the set of peer ip addresses
 	// that a router can use for talking to other routers controlled by the same service.
@@ -101,21 +106,22 @@ type templateRouter struct {
 
 // templateRouterCfg holds all configuration items required to initialize the template router
 type templateRouterCfg struct {
-	dir                    string
-	templates              map[string]*template.Template
-	reloadScriptPath       string
-	reloadInterval         time.Duration
-	reloadCallbacks        []func()
-	defaultCertificate     string
-	defaultCertificatePath string
-	defaultCertificateDir  string
-	statsUser              string
-	statsPassword          string
-	statsPort              int
-	allowWildcardRoutes    bool
-	peerEndpointsKey       string
-	includeUDP             bool
-	bindPortsAfterSync     bool
+	dir                      string
+	templates                map[string]*template.Template
+	reloadScriptPath         string
+	reloadInterval           time.Duration
+	reloadCallbacks          []func()
+	defaultCertificate       string
+	defaultCertificatePath   string
+	defaultCertificateDir    string
+	defaultDestinationCAPath string
+	statsUser                string
+	statsPassword            string
+	statsPort                int
+	allowWildcardRoutes      bool
+	peerEndpointsKey         string
+	includeUDP               bool
+	bindPortsAfterSync       bool
 }
 
 // templateConfig is a subset of the templateRouter information that should be passed to the template for generating
@@ -129,6 +135,8 @@ type templateData struct {
 	ServiceUnits map[string]ServiceUnit
 	// full path and file name to the default certificate
 	DefaultCertificate string
+	// full path and file name to the default destination certificate
+	DefaultDestinationCA string
 	// peers
 	PeerEndpoints []Endpoint
 	//username to expose stats with (if the template supports it)
@@ -161,24 +169,25 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 	}
 
 	router := &templateRouter{
-		dir:                    dir,
-		templates:              cfg.templates,
-		reloadScriptPath:       cfg.reloadScriptPath,
-		reloadInterval:         cfg.reloadInterval,
-		reloadCallbacks:        cfg.reloadCallbacks,
-		state:                  make(map[string]ServiceAliasConfig),
-		serviceUnits:           make(map[string]ServiceUnit),
-		certManager:            certManager,
-		defaultCertificate:     cfg.defaultCertificate,
-		defaultCertificatePath: cfg.defaultCertificatePath,
-		defaultCertificateDir:  cfg.defaultCertificateDir,
-		statsUser:              cfg.statsUser,
-		statsPassword:          cfg.statsPassword,
-		statsPort:              cfg.statsPort,
-		allowWildcardRoutes:    cfg.allowWildcardRoutes,
-		peerEndpointsKey:       cfg.peerEndpointsKey,
-		peerEndpoints:          []Endpoint{},
-		bindPortsAfterSync:     cfg.bindPortsAfterSync,
+		dir:                      dir,
+		templates:                cfg.templates,
+		reloadScriptPath:         cfg.reloadScriptPath,
+		reloadInterval:           cfg.reloadInterval,
+		reloadCallbacks:          cfg.reloadCallbacks,
+		state:                    make(map[string]ServiceAliasConfig),
+		serviceUnits:             make(map[string]ServiceUnit),
+		certManager:              certManager,
+		defaultCertificate:       cfg.defaultCertificate,
+		defaultCertificatePath:   cfg.defaultCertificatePath,
+		defaultCertificateDir:    cfg.defaultCertificateDir,
+		defaultDestinationCAPath: cfg.defaultDestinationCAPath,
+		statsUser:                cfg.statsUser,
+		statsPassword:            cfg.statsPassword,
+		statsPort:                cfg.statsPort,
+		allowWildcardRoutes:      cfg.allowWildcardRoutes,
+		peerEndpointsKey:         cfg.peerEndpointsKey,
+		peerEndpoints:            []Endpoint{},
+		bindPortsAfterSync:       cfg.bindPortsAfterSync,
 
 		metricReload: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
 			Namespace: "template_router",
@@ -489,15 +498,16 @@ func (r *templateRouter) writeConfig() error {
 		}
 
 		data := templateData{
-			WorkingDir:         r.dir,
-			State:              r.state,
-			ServiceUnits:       r.serviceUnits,
-			DefaultCertificate: r.defaultCertificatePath,
-			PeerEndpoints:      r.peerEndpoints,
-			StatsUser:          r.statsUser,
-			StatsPassword:      r.statsPassword,
-			StatsPort:          r.statsPort,
-			BindPorts:          !r.bindPortsAfterSync || r.synced,
+			WorkingDir:           r.dir,
+			State:                r.state,
+			ServiceUnits:         r.serviceUnits,
+			DefaultCertificate:   r.defaultCertificatePath,
+			DefaultDestinationCA: r.defaultDestinationCAPath,
+			PeerEndpoints:        r.peerEndpoints,
+			StatsUser:            r.statsUser,
+			StatsPassword:        r.statsPassword,
+			StatsPort:            r.statsPort,
+			BindPorts:            !r.bindPortsAfterSync || r.synced,
 		}
 		if err := template.Execute(file, data); err != nil {
 			file.Close()
@@ -561,8 +571,10 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 
 // CreateServiceUnit creates a new service named with the given id.
 func (r *templateRouter) CreateServiceUnit(id string) {
+	parts := strings.SplitN(id, "/", 2)
 	service := ServiceUnit{
 		Name:          id,
+		Hostname:      fmt.Sprintf("%s.%s.svc", parts[1], parts[0]),
 		EndpointTable: []Endpoint{},
 	}
 
@@ -683,6 +695,10 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 		config.TLSTermination = tls.Termination
 
 		config.InsecureEdgeTerminationPolicy = tls.InsecureEdgeTerminationPolicy
+
+		if tls.Termination == routeapi.TLSTerminationReencrypt && len(tls.DestinationCACertificate) == 0 && len(r.defaultDestinationCAPath) > 0 {
+			config.VerifyServiceHostname = true
+		}
 
 		if tls.Termination != routeapi.TLSTerminationPassthrough {
 			config.Certificates = make(map[string]Certificate)
@@ -853,9 +869,15 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 			return true
 		}
 
-		if cfg.TLSTermination == routeapi.TLSTerminationReencrypt && hasReencryptDestinationCACert(cfg) {
-			glog.V(4).Infof("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
-			return true
+		if cfg.TLSTermination == routeapi.TLSTerminationReencrypt {
+			if hasReencryptDestinationCACert(cfg) {
+				glog.V(4).Infof("a reencrypt route with host %s does not have an edge certificate, using default router certificate", cfg.Host)
+				return true
+			}
+			if len(r.defaultDestinationCAPath) > 0 {
+				glog.V(4).Infof("a reencrypt route with host %s does not have a destination CA, using default destination CA", cfg.Host)
+				return true
+			}
 		}
 
 		msg := fmt.Sprintf("a %s terminated route with host %s does not have the required certificates.  The route will still be created but no certificates will be written",
@@ -953,6 +975,7 @@ func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
 		config1.InsecureEdgeTerminationPolicy == config2.InsecureEdgeTerminationPolicy &&
 		config1.RoutingKeyName == config2.RoutingKeyName &&
 		config1.IsWildcard == config2.IsWildcard &&
+		config1.VerifyServiceHostname == config2.VerifyServiceHostname &&
 		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
 		reflect.DeepEqual(config1.ServiceUnitNames, config2.ServiceUnitNames)
 }

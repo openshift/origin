@@ -959,7 +959,7 @@ func TestValidateTLS(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
+			expectedErrors: 0,
 		},
 		{
 			name: "Edge termination OK with certs",
@@ -1383,7 +1383,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
+			expectedErrors: 0,
 		},
 		{
 			name: "Edge termination OK with certs without host",
