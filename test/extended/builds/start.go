@@ -216,10 +216,11 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			err := exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseCancelled))
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildapi.BuildCancelledEventReason, buildapi.BuildCancelledEventMessage)
 		})
 	})
 
-	g.Describe("cancelling build started by oc start-build --wait", func() {
+	g.Describe("cancel a build started by oc start-build --wait", func() {
 		g.It("should start a build and wait for the build to cancel", func() {
 			g.By("starting the build with --wait flag")
 			var wg sync.WaitGroup
@@ -247,11 +248,16 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			})
 
 			o.Expect(buildName).ToNot(o.BeEmpty())
+			build, err := oc.Client().Builds(oc.Namespace()).Get(buildName)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build).NotTo(o.BeNil(), "build object should exist")
 
 			g.By(fmt.Sprintf("cancelling the build %q", buildName))
-			err := oc.Run("cancel-build").Args(buildName).Execute()
+			err = oc.Run("cancel-build").Args(buildName).Execute()
 			o.Expect(err).ToNot(o.HaveOccurred())
 			wg.Wait()
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildapi.BuildCancelledEventReason, buildapi.BuildCancelledEventMessage)
+
 		})
 
 	})

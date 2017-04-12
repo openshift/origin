@@ -9,6 +9,7 @@ import (
 
 	coreosetcdclient "github.com/coreos/etcd/client"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -133,6 +134,7 @@ func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConn
 	if err != nil {
 		return err
 	}
+	etcdKeyClient := coreosetcdclient.NewKeysAPI(etcdClient)
 
 	nodeList := []*coreosetcdclient.Node{}
 	nodeList = append(nodeList, etcdDump.Node)
@@ -150,13 +152,13 @@ func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConn
 		}
 
 		if node.Dir {
-			if _, err := etcdClient.CreateDir(node.Key, uint64(0)); err != nil {
+			if _, err := etcdKeyClient.Create(context.TODO(), node.Key, ""); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if _, err := etcdClient.Create(node.Key, node.Value, uint64(0)); err != nil {
+		if _, err := etcdKeyClient.Create(context.TODO(), node.Key, node.Value); err != nil {
 			return err
 		}
 	}

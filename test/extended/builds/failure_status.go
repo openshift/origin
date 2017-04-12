@@ -53,6 +53,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPostCommitHookFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePostCommitHookFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -70,6 +72,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -87,6 +91,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -104,6 +110,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPullBuilderImageFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePullBuilderImageFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -121,6 +129,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPushImageToRegistryFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePushImageToRegistryFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -138,6 +148,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
 			o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -155,6 +167,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonFetchRuntimeArtifacts))
 			o.Expect(build.Status.Message).To(o.Equal(messageFetchRuntimeArtifacts))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 
@@ -172,6 +186,8 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})
 	})
 })

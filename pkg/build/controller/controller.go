@@ -72,6 +72,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 
 	build.Status.Phase = buildapi.BuildPhaseCancelled
 	common.SetBuildCompletionTimeAndDuration(build)
+	bc.Recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildCancelledEventReason, fmt.Sprintf(buildapi.BuildCancelledEventMessage, build.Namespace, build.Name))
 	// set the status details for the cancelled build before updating the build
 	// object.
 	build.Status.Reason = buildapi.StatusReasonCancelledBuild
