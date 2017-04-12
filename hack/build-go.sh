@@ -9,7 +9,6 @@ platform="$(os::build::host_platform)"
 
 # Set build tags for these binaries
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
-readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
 
 # only works on Linux for now, all other platforms must build binaries themselves
 if [[ -z "$@" ]]; then
