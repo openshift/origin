@@ -27,7 +27,7 @@ function os::cleanup::dump_etcd() {
 #  None
 function os::cleanup::containers() {
 	if ! os::util::find::system_binary docker >/dev/null 2>&1; then
-		os::log::warninging "No \`docker\` binary found, skipping container cleanup."
+		os::log::warning "No \`docker\` binary found, skipping container cleanup."
 		return
 	fi
 
@@ -60,7 +60,7 @@ readonly -f os::cleanup::containers
 #  None
 function os::cleanup::dump_container_logs() {
 	if ! os::util::find::system_binary docker >/dev/null 2>&1; then
-		os::log::warninging "No \`docker\` binary found, skipping container cleanup."
+		os::log::warning "No \`docker\` binary found, skipping container cleanup."
 		return
 	fi
 
