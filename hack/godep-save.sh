@@ -48,7 +48,7 @@ TMPGOPATH=`mktemp -d`
 trap "rm -rf $TMPGOPATH" EXIT
 mkdir $TMPGOPATH/src
 
-fork::without::vendor () {
+fork-without-vendor () {
   local PKG="$1"
   echo "Forking $PKG without vendor/"
   local DIR=$(dirname "$PKG")
@@ -63,7 +63,7 @@ fork::without::vendor () {
   echo "s/$NEWREV/$OLDREV/" >> "$TMPGOPATH/undo.sed"
 }
 
-fork::with::fake::packages () {
+fork-with-fake-packages () {
   local PKG="$1"
   shift
   echo "Forking $PKG with fake packages: $*"
@@ -88,15 +88,15 @@ fork::with::fake::packages () {
   echo "s/$NEWREV/$OLDREV/" >> "$TMPGOPATH/undo.sed"
 }
 
-undo::forks::in::godep::json () {
+undo-forks-in-godeps-json () {
   echo "Replacing forked revisions with original revisions in Godeps.json"
   sed -f "$TMPGOPATH/undo.sed" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
   mv "$TMPGOPATH/Godeps.json" Godeps/Godeps.json
 }
 
-fork::without::vendor github.com/docker/distribution
-fork::without::vendor github.com/libopenstorage/openstorage
-fork::with::fake::packages github.com/docker/docker \
+fork-without-vendor github.com/docker/distribution
+fork-without-vendor github.com/libopenstorage/openstorage
+fork-with-fake-packages github.com/docker/docker \
   api/types \
   api/types/blkiodev \
   api/types/container \
@@ -110,7 +110,7 @@ fork::with::fake::packages github.com/docker/docker \
 
 GOPATH=$TMPGOPATH:$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save -t "${REQUIRED_BINS[@]}"
 
-undo::forks::in::godep::json
+undo-forks-in-godeps-json
 
 # godep fails to copy all package in staging because it gets confused with the symlinks.
 # Hence, we copy over manually until we have proper staging repo tooling.
