@@ -44,11 +44,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -156,42 +156,33 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 }
 
 // BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
-// This storage factory is ONLY USED FOR kubernetes registries right now. Compare pkg/util/restoptions/configgetter.go.
+// This storage factory is used for kubernetes and origin registries. Compare pkg/util/restoptions/configgetter.go.
 func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions []schema.GroupVersionResource) (*apiserverstorage.DefaultStorageFactory, error) {
 	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
-
-	// TODO(rebase): the following were without effect at least since 3.5. Remove them?
-	// resourceEncodingConfig.SetVersionEncoding(kapi.GroupName, schema.GroupVersion{Group: kapi.GroupName, Version: masterConfig.EtcdStorageConfig.KubernetesStorageVersion}, kapi.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(extensions.GroupName, schema.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"}, extensions.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(batch.GroupName, schema.GroupVersion{Group: batch.GroupName, Version: "v1"}, batch.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(autoscaling.GroupName, schema.GroupVersion{Group: autoscaling.GroupName, Version: "v1"}, autoscaling.SchemeGroupVersion)
 
 	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
 		return nil, err
 	}
-
-	storageFactory, err := kubeapiserver.NewStorageFactory(
-		server.Etcd.StorageConfig,
-		server.Etcd.DefaultStorageMediaType,
-		kapi.Codecs,
-		resourceEncodingConfig,
-		storageGroupsToEncodingVersion,
-		// FIXME: this GroupVersionResource override should be configurable
-		[]schema.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
-		master.DefaultAPIResourceConfigSource(),
-		server.APIEnablement.RuntimeConfig,
-	)
-	if err != nil {
-		return nil, err
+	for group, storageEncodingVersion := range storageGroupsToEncodingVersion {
+		resourceEncodingConfig.SetVersionEncoding(group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
-
-	// TODO: the following works, but better make single resource overrides possible in BuildDefaultStorageFactory
-	// instead of being late to the party and patching here:
+	resourceEncodingConfig.SetResourceEncoding(batch.Resource("cronjobs"), batchv2alpha1.SchemeGroupVersion, batch.SchemeGroupVersion)
 
 	// use legacy group name "" for all resources that existed when apigroups were introduced
 	for _, gvr := range enforcedStorageVersions {
 		resourceEncodingConfig.SetResourceEncoding(gvr.GroupResource(), schema.GroupVersion{Version: gvr.Version}, schema.GroupVersion{Version: runtime.APIVersionInternal})
+	}
+
+	storageFactory := apiserverstorage.NewDefaultStorageFactory(
+		server.Etcd.StorageConfig,
+		server.Etcd.DefaultStorageMediaType,
+		kapi.Codecs,
+		resourceEncodingConfig,
+		master.DefaultAPIResourceConfigSource(),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	// the order here is important, it defines which version will be used for storage
