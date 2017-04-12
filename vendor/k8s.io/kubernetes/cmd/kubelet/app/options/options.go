@@ -64,6 +64,8 @@ type KubeletServer struct {
 	// If runOnce is true, the Kubelet will check the API server once for pods,
 	// run those in addition to the pods specified by the local manifest, and exit.
 	RunOnce bool
+
+	DockershimRootDirectory string
 }
 
 // NewKubeletServer will create a new KubeletServer with default values.
@@ -73,9 +75,10 @@ func NewKubeletServer() *KubeletServer {
 	config := componentconfig.KubeletConfiguration{}
 	api.Scheme.Convert(versioned, &config, nil)
 	return &KubeletServer{
-		KubeConfig:           flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
-		RequireKubeConfig:    false, // in 1.5, default to true
-		KubeletConfiguration: config,
+		KubeConfig:              flag.NewStringFlag("/var/lib/kubelet/kubeconfig"),
+		RequireKubeConfig:       false, // in 1.5, default to true
+		KubeletConfiguration:    config,
+		DockershimRootDirectory: "/var/lib/dockershim",
 	}
 }
 

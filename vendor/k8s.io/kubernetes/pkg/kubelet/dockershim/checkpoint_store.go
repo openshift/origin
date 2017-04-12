@@ -25,8 +25,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/golang/glog"
-
 	"k8s.io/kubernetes/pkg/kubelet/dockershim/errors"
 )
 
@@ -62,13 +60,7 @@ type FileStore struct {
 
 func NewFileStore(path string) (CheckpointStore, error) {
 	if err := ensurePath(path); err != nil {
-		if err == os.ErrPermission && os.Getuid() != 0 {
-			// as non-root swallow error to keep integration tests running.
-			// TODO: make this configurable and set it to a temporary path during tests
-			glog.Errorf("Failed to create dockershim checkpoint directory %q.", path)
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	return &FileStore{path: path}, nil
 }
