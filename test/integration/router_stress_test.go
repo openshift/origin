@@ -112,7 +112,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	// Create the routers
 	for i := int32(0); i < routerCount; i++ {
 		routerName := fmt.Sprintf("router_%d", i)
-		router := launchRouter(oc, kc, maxRouterDelay, routerName, reloadInterval, reloadedMap)
+		router := launchRouter(t, oc, kc, maxRouterDelay, routerName, reloadInterval, reloadedMap)
 		plugins = append(plugins, router)
 	}
 
@@ -148,12 +148,12 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 		}
 	}
 
-	for _, reloadCount := range reloadedMap {
+	for routerName, reloadCount := range reloadedMap {
 		if reloadCount > 1 {
 			// If a router reloads more than once, post-sync watch
 			// events resulting from route status updates are
 			// incorrectly updating router state.
-			t.Fatalf("One or more routers reloaded more than once")
+			t.Fatalf("One or more routers reloaded more than once (%s reloaded %d times)", routerName, reloadCount)
 		}
 	}
 
@@ -281,12 +281,14 @@ func (p *DelayPlugin) Commit() error {
 
 // launchRouter launches a template router that communicates with the
 // api via the provided clients.
-func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32, name string, reloadInterval int, reloadedMap map[string]int) (templatePlugin *templateplugin.TemplatePlugin) {
+func launchRouter(t *testing.T, oc osclient.Interface, kc kclientset.Interface, maxDelay int32, name string, reloadInterval int, reloadedMap map[string]int) (templatePlugin *templateplugin.TemplatePlugin) {
 	r := templateplugin.NewFakeTemplateRouter()
 
 	reloadedMap[name] = 0
 	r.EnableRateLimiter(reloadInterval, func() error {
 		reloadedMap[name] += 1
+		t.Logf("Router %s reloaded (%d times)\n", name, reloadedMap[name])
+		r.FakeReloadHandler()
 		return nil
 	})
 
