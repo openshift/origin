@@ -210,13 +210,14 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
 		return nil, err
 	}
-	_, apiServerServiceIP, err := master.DefaultServiceIPRange(s.ServiceClusterIPRange)
-	if err != nil {
-		return nil, fmt.Errorf("error determining service IP ranges: %v", err)
-	}
-	if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), apiServerServiceIP); err != nil {
-		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
-	}
+	// In origin: certs should be available:
+	//_, apiServerServiceIP, err := master.DefaultServiceIPRange(s.ServiceClusterIPRange)
+	//if err != nil {
+	//	return nil, fmt.Errorf("error determining service IP ranges: %v", err)
+	//}
+	//if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), apiServerServiceIP); err != nil {
+	//	return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
+	//}
 	if err := s.CloudProvider.DefaultExternalHost(s.GenericServerRunOptions); err != nil {
 		return nil, fmt.Errorf("error setting the external host value: %v", err)
 	}
@@ -253,7 +254,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.Authentication.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	// REBASE: do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
+	// In origin: do not wait for etcd because the internal etcd is launched after this and origin has an etcd test already
 	// if err := utilwait.PollImmediate(etcdRetryInterval, etcdRetryLimit*etcdRetryInterval, preflight.EtcdConnection{ServerList: s.Etcd.StorageConfig.ServerList}.CheckEtcdServers); err != nil {
 	// 	return nil, fmt.Errorf("error waiting for etcd connection: %v", err)
 	// }

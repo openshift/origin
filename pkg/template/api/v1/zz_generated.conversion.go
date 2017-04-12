@@ -103,7 +103,7 @@ func autoConvert_api_BrokerTemplateInstanceList_To_v1_BrokerTemplateInstanceList
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]BrokerTemplateInstance, 0)
 	}
 	return nil
 }
@@ -134,7 +134,11 @@ func autoConvert_api_BrokerTemplateInstanceSpec_To_v1_BrokerTemplateInstanceSpec
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
-	out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
+	if in.BindingIDs == nil {
+		out.BindingIDs = make([]string, 0)
+	} else {
+		out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
+	}
 	return nil
 }
 
@@ -208,7 +212,7 @@ func autoConvert_api_Template_To_v1_Template(in *api.Template, out *Template, s 
 			}
 		}
 	} else {
-		out.Objects = nil
+		out.Objects = make([]runtime.RawExtension, 0)
 	}
 	out.ObjectLabels = *(*map[string]string)(unsafe.Pointer(&in.ObjectLabels))
 	return nil
@@ -305,7 +309,7 @@ func autoConvert_api_TemplateInstanceList_To_v1_TemplateInstanceList(in *api.Tem
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]TemplateInstance, 0)
 	}
 	return nil
 }
@@ -372,7 +376,11 @@ func Convert_v1_TemplateInstanceStatus_To_api_TemplateInstanceStatus(in *Templat
 }
 
 func autoConvert_api_TemplateInstanceStatus_To_v1_TemplateInstanceStatus(in *api.TemplateInstanceStatus, out *TemplateInstanceStatus, s conversion.Scope) error {
-	out.Conditions = *(*[]TemplateInstanceCondition)(unsafe.Pointer(&in.Conditions))
+	if in.Conditions == nil {
+		out.Conditions = make([]TemplateInstanceCondition, 0)
+	} else {
+		out.Conditions = *(*[]TemplateInstanceCondition)(unsafe.Pointer(&in.Conditions))
+	}
 	return nil
 }
 
@@ -411,7 +419,7 @@ func autoConvert_api_TemplateList_To_v1_TemplateList(in *api.TemplateList, out *
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]Template, 0)
 	}
 	return nil
 }

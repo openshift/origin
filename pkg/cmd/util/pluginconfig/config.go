@@ -17,7 +17,7 @@ import (
 
 var (
 	groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
-	registry             = registered.NewOrDie(os.Getenv("KUBE_API_VERSIONS"))
+	registry             = registered.NewOrDie("")
 	scheme               = runtime.NewScheme()
 	codecs               = serializer.NewCodecFactory(scheme)
 )

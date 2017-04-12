@@ -258,7 +258,7 @@ func autoConvert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *api.Dep
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]DeploymentConfig, 0)
 	}
 	return nil
 }
@@ -376,7 +376,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *api.Dep
 			}
 		}
 	} else {
-		out.Triggers = nil
+		out.Triggers = make(DeploymentTriggerPolicies, 0)
 	}
 	out.Replicas = in.Replicas
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
@@ -480,7 +480,7 @@ func autoConvert_api_DeploymentDetails_To_v1_DeploymentDetails(in *api.Deploymen
 			}
 		}
 	} else {
-		out.Causes = nil
+		out.Causes = make([]DeploymentCause, 0)
 	}
 	return nil
 }
@@ -726,7 +726,11 @@ func Convert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *ap
 }
 
 func autoConvert_api_ExecNewPodHook_To_v1_ExecNewPodHook(in *api.ExecNewPodHook, out *ExecNewPodHook, s conversion.Scope) error {
-	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	if in.Command == nil {
+		out.Command = make([]string, 0)
+	} else {
+		out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]api_v1.EnvVar, len(*in))
