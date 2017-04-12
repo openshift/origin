@@ -109,7 +109,7 @@ func makeMounts(pod *api.Pod, podDir string, container *api.Container, hostName,
 	for _, mount := range container.VolumeMounts {
 		mountEtcHostsFile = mountEtcHostsFile && (mount.MountPath != etcHostsPath)
 		vol, ok := podVolumes[mount.Name]
-		if !ok {
+		if !ok || vol.Mounter == nil {
 			glog.Warningf("Mount cannot be satisfied for container %q, because the volume is missing: %q", container.Name, mount)
 			continue
 		}
