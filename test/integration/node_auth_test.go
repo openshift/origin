@@ -222,15 +222,15 @@ func TestNodeAuth(t *testing.T) {
 
 			// not found admin requests
 			{"GET", "/containerLogs/mynamespace/mypod/mycontainer", adminResultMissing},
-			{"POST", "/exec/mynamespace/mypod/mycontainer", adminResultMissing},
+			{"POST", "/exec/mynamespace/mypod/mycontainer?output=1", adminResultMissing},
 			{"POST", "/run/mynamespace/mypod/mycontainer", adminResultMissing},
-			{"POST", "/attach/mynamespace/mypod/mycontainer", adminResultMissing},
+			{"POST", "/attach/mynamespace/mypod/mycontainer?output=1", adminResultMissing},
 			{"POST", "/portForward/mynamespace/mypod/mycontainer", adminResultMissing},
 
 			// GET is supported in origin on /exec and /attach for backwards compatibility
 			// make sure node admin permissions are required
-			{"GET", "/exec/mynamespace/mypod/mycontainer", adminResultMissing},
-			{"GET", "/attach/mynamespace/mypod/mycontainer", adminResultMissing},
+			{"GET", "/exec/mynamespace/mypod/mycontainer?output=1", adminResultMissing},
+			{"GET", "/attach/mynamespace/mypod/mycontainer?output=1", adminResultMissing},
 		}
 
 		rt, err := kubeletclient.MakeTransport(tc.KubeletClientConfig)
