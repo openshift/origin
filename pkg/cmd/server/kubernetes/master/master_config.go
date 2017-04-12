@@ -35,6 +35,7 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
@@ -124,6 +125,17 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.InsecureServing.BindPort = 0
 
 	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
+	if masterConfig.AuthConfig.RequestHeader == nil {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{}
+	} else {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{
+			ClientCAFile:        masterConfig.AuthConfig.RequestHeader.ClientCA,
+			UsernameHeaders:     masterConfig.AuthConfig.RequestHeader.UsernameHeaders,
+			GroupHeaders:        masterConfig.AuthConfig.RequestHeader.GroupHeaders,
+			ExtraHeaderPrefixes: masterConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+			AllowedNames:        masterConfig.AuthConfig.RequestHeader.ClientCommonNames,
+		}
+	}
 
 	server.Etcd.EnableGarbageCollection = false              // disabled until we add the controller. MUST be in synced with the value in CMServer
 	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(rebase): enable etcd3 as upstream
@@ -259,6 +271,27 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	return genericConfig, nil
 }
 
+// buildUpstreamClientCARegistrationHook copies the ClientCARegistrationHook code from k8s.io/kubernetes/cmd/kube-apiserver/app/server.go.
+// ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
+func buildUpstreamClientCARegistrationHook(s *kapiserveroptions.ServerRunOptions) (master.ClientCARegistrationHook, error) {
+	clientCA, err := readCAorNil(s.Authentication.ClientCert.ClientCA)
+	if err != nil {
+		return master.ClientCARegistrationHook{}, err
+	}
+	requestHeaderProxyCA, err := readCAorNil(s.Authentication.RequestHeader.ClientCAFile)
+	if err != nil {
+		return master.ClientCARegistrationHook{}, err
+	}
+	return master.ClientCARegistrationHook{
+		ClientCA:                         clientCA,
+		RequestHeaderUsernameHeaders:     s.Authentication.RequestHeader.UsernameHeaders,
+		RequestHeaderGroupHeaders:        s.Authentication.RequestHeader.GroupHeaders,
+		RequestHeaderExtraHeaderPrefixes: s.Authentication.RequestHeader.ExtraHeaderPrefixes,
+		RequestHeaderCA:                  requestHeaderProxyCA,
+		RequestHeaderAllowedNames:        s.Authentication.RequestHeader.AllowedNames,
+	}, nil
+}
+
 func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
 	podEvictionTimeout, err := time.ParseDuration(masterConfig.KubernetesMasterConfig.PodEvictionTimeout)
 	if err != nil {
@@ -373,6 +406,11 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
+	clientCARegistrationHook, err := buildUpstreamClientCARegistrationHook(apiserverOptions)
+	if err != nil {
+		return nil, err
+	}
+
 	// override config values
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
@@ -428,11 +466,6 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
-	clientCARegistrationHook, err := ClientCARegistrationHook(&masterConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
 		MasterCount:   apiserverOptions.MasterCount,
@@ -447,7 +480,7 @@ func buildKubeApiserverConfig(
 			},
 		}),
 
-		ClientCARegistrationHook: *clientCARegistrationHook,
+		ClientCARegistrationHook: clientCARegistrationHook,
 
 		APIServerServicePort:      443,
 		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
@@ -575,29 +608,6 @@ func BuildKubernetesMasterConfig(
 	}
 
 	return kmaster, nil
-}
-
-func ClientCARegistrationHook(options *configapi.MasterConfig) (*master.ClientCARegistrationHook, error) {
-	clientCA, err := readCAorNil(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
-	ret := &master.ClientCARegistrationHook{ClientCA: clientCA}
-
-	var requestHeaderProxyCA []byte
-	if options.AuthConfig.RequestHeader != nil {
-		requestHeaderProxyCA, err = readCAorNil(options.AuthConfig.RequestHeader.ClientCA)
-		if err != nil {
-			return nil, err
-		}
-		ret.RequestHeaderUsernameHeaders = options.AuthConfig.RequestHeader.UsernameHeaders
-		ret.RequestHeaderGroupHeaders = options.AuthConfig.RequestHeader.GroupHeaders
-		ret.RequestHeaderExtraHeaderPrefixes = options.AuthConfig.RequestHeader.ExtraHeaderPrefixes
-		ret.RequestHeaderCA = requestHeaderProxyCA
-		ret.RequestHeaderAllowedNames = options.AuthConfig.RequestHeader.ClientCommonNames
-	}
-
-	return ret, nil
 }
 
 func DefaultOpenAPIConfig() *openapicommon.Config {
