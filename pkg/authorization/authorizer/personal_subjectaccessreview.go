@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apiserver/request"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -35,7 +35,7 @@ func (a *personalSARRequestInfoResolver) NewRequestInfo(req *http.Request) (*req
 	case !requestInfo.IsResourceRequest:
 		return requestInfo, nil
 
-	case len(requestInfo.APIGroup) != 0:
+	case len(requestInfo.APIGroup) != 0 && requestInfo.APIGroup != "authorization.openshift.io":
 		return requestInfo, nil
 
 	case len(requestInfo.Subresource) != 0:
@@ -49,7 +49,7 @@ func (a *personalSARRequestInfoResolver) NewRequestInfo(req *http.Request) (*req
 	}
 
 	// at this point we're probably running a SAR or LSAR.  Decode the body and check.  This is expensive.
-	isSelfSAR, err := isPersonalAccessReviewFromRequest(req)
+	isSelfSAR, err := isPersonalAccessReviewFromRequest(req, requestInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *personalSARRequestInfoResolver) NewRequestInfo(req *http.Request) (*req
 }
 
 // isPersonalAccessReviewFromRequest this variant handles the case where we have an httpRequest
-func isPersonalAccessReviewFromRequest(req *http.Request) (bool, error) {
+func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.RequestInfo) (bool, error) {
 	// TODO once we're integrated with the api installer, we should have direct access to the deserialized content
 	// for now, this only happens on subjectaccessreviews with a personal check, pay the double retrieve and decode cost
 	body, err := ioutil.ReadAll(req.Body)
@@ -74,7 +74,15 @@ func isPersonalAccessReviewFromRequest(req *http.Request) (bool, error) {
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), body)
+	defaultGVK := unversioned.GroupVersionKind{Version: requestInfo.APIVersion, Group: requestInfo.APIGroup}
+	switch strings.ToLower(requestInfo.Resource) {
+	case "subjectaccessreviews":
+		defaultGVK.Kind = "SubjectAccessReview"
+	case "localsubjectaccessreviews":
+		defaultGVK.Kind = "LocalSubjectAccessReview"
+	}
+
+	obj, _, err := kapi.Codecs.UniversalDecoder().Decode(body, &defaultGVK, nil)
 	if err != nil {
 		return false, err
 	}
