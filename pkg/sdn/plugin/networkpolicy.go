@@ -73,7 +73,7 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 		return err
 	}
 
-	otx := node.ovs.NewTransaction()
+	otx := node.oc.NewTransaction()
 	otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=goto_table:30", np.node.networkInfo.ServiceNetwork.String())
 	otx.AddFlow("table=21, priority=100, ip, actions=ct(commit,table=30)")
 	otx.AddFlow("table=80, priority=50, ip, actions=ct(commit,table=81)")
@@ -193,7 +193,7 @@ func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 	}
 
 	glog.V(5).Infof("syncNamespace %d", npns.vnid)
-	otx := np.node.ovs.NewTransaction()
+	otx := np.node.oc.NewTransaction()
 	otx.DeleteFlows("table=80, reg1=%d", npns.vnid)
 	if inUse {
 		if npns.isolated {

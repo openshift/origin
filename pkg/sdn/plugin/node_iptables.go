@@ -88,6 +88,8 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	return nil
 }
 
+const VXLAN_PORT = "4789"
+
 // Get openshift iptables rules
 func (n *NodeIPTables) getStaticNodeIPTablesRules() []FirewallRule {
 	return []FirewallRule{

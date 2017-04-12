@@ -1,4 +1,3 @@
-// Package ovs provides a wrapper around ovs-vsctl and ovs-ofctl
 package ovs
 
 import (
@@ -12,18 +11,96 @@ import (
 	utilversion "k8s.io/kubernetes/pkg/util/version"
 )
 
+// Interface represents an interface to OVS
+type Interface interface {
+	// AddBridge creates the bridge associated with the interface, optionally setting
+	// properties on it (as with "ovs-vsctl set Bridge ..."). If the bridge already
+	// existed, it will be destroyed and recreated.
+	AddBridge(properties ...string) error
+
+	// DeleteBridge deletes the bridge associated with the interface. (It is an
+	// error if the bridge does not exist.)
+	DeleteBridge() error
+
+	// AddPort adds an interface to the bridge, requesting the indicated port
+	// number, and optionally setting properties on it (as with "ovs-vsctl set
+	// Interface ..."). Returns the allocated port number (or an error).
+	AddPort(port string, ofportRequest int, properties ...string) (int, error)
+
+	// DeletePort removes an interface from the bridge. (It is not an
+	// error if the interface is not currently a bridge port.)
+	DeletePort(port string) error
+
+	// GetOFPort returns the OpenFlow port number of a given network interface
+	// attached to a bridge.
+	GetOFPort(port string) (int, error)
+
+	// SetFrags sets the fragmented-packet-handling mode (as with
+	// "ovs-ofctl set-frags")
+	SetFrags(mode string) error
+
+	// Create creates a record in the OVS database, as with "ovs-vsctl create" and
+	// returns the UUID of the newly-created item.
+	// NOTE: This only works for QoS; for all other tables the created object will
+	// immediately be garbage-collected; we'd need an API that calls "create" and "set"
+	// in the same "ovs-vsctl" call.
+	Create(table string, values ...string) (string, error)
+
+	// Destroy deletes the indicated record in the OVS database. It is not an error if
+	// the record does not exist
+	Destroy(table, record string) error
+
+	// Get gets the indicated value from the OVS database. For multi-valued or
+	// map-valued columns, the data is returned in the same format as "ovs-vsctl get".
+	Get(table, record, column string) (string, error)
+
+	// Set sets one or more columns on a record in the OVS database, as with
+	// "ovs-vsctl set"
+	Set(table, record string, values ...string) error
+
+	// Clear unsets the indicated columns in the OVS database. It is not an error if
+	// the value is already unset
+	Clear(table, record string, columns ...string) error
+
+	// DumpFlows dumps the flow table for the bridge and returns it as an array of
+	// strings, one per flow.
+	DumpFlows() ([]string, error)
+
+	// NewTransaction begins a new OVS transaction. If an error occurs at
+	// any step in the transaction, it will be recorded until
+	// EndTransaction(), and any further calls on the transaction will be
+	// ignored.
+	NewTransaction() Transaction
+}
+
+// Transaction manages a single set of OVS flow modifications
+type Transaction interface {
+	// AddFlow adds a flow to the bridge. The arguments are passed to fmt.Sprintf().
+	AddFlow(flow string, args ...interface{})
+
+	// DeleteFlows deletes all matching flows from the bridge. The arguments are
+	// passed to fmt.Sprintf().
+	DeleteFlows(flow string, args ...interface{})
+
+	// EndTransaction ends an OVS transaction and returns any error that occurred
+	// during the transaction. You should not use the transaction again after
+	// calling this function.
+	EndTransaction() error
+}
+
 const (
 	OVS_OFCTL = "ovs-ofctl"
 	OVS_VSCTL = "ovs-vsctl"
 )
 
-type Interface struct {
+// ovsExec implements ovs.Interface via calls to ovs-ofctl and ovs-vsctl
+type ovsExec struct {
 	execer exec.Interface
 	bridge string
 }
 
 // New returns a new ovs.Interface
-func New(execer exec.Interface, bridge string, minVersion string) (*Interface, error) {
+func New(execer exec.Interface, bridge string, minVersion string) (Interface, error) {
 	if _, err := execer.LookPath(OVS_OFCTL); err != nil {
 		return nil, fmt.Errorf("OVS is not installed")
 	}
@@ -31,7 +108,7 @@ func New(execer exec.Interface, bridge string, minVersion string) (*Interface, e
 		return nil, fmt.Errorf("OVS is not installed")
 	}
 
-	ovsif := &Interface{execer: execer, bridge: bridge}
+	ovsif := &ovsExec{execer: execer, bridge: bridge}
 
 	if minVersion != "" {
 		minVer := utilversion.MustParseGeneric(minVersion)
@@ -55,7 +132,7 @@ func New(execer exec.Interface, bridge string, minVersion string) (*Interface, e
 	return ovsif, nil
 }
 
-func (ovsif *Interface) exec(cmd string, args ...string) (string, error) {
+func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 	if cmd == OVS_OFCTL {
 		args = append([]string{"-O", "OpenFlow13"}, args...)
 	}
@@ -78,10 +155,7 @@ func (ovsif *Interface) exec(cmd string, args ...string) (string, error) {
 	return outStr, nil
 }
 
-// AddBridge creates the bridge associated with the interface, optionally setting
-// properties on it (as with "ovs-vsctl set Bridge ..."). If the bridge already
-// existed, it will be destroyed and recreated.
-func (ovsif *Interface) AddBridge(properties ...string) error {
+func (ovsif *ovsExec) AddBridge(properties ...string) error {
 	args := []string{"--if-exists", "del-br", ovsif.bridge, "--", "add-br", ovsif.bridge}
 	if len(properties) > 0 {
 		args = append(args, "--", "set", "Bridge", ovsif.bridge)
@@ -91,16 +165,12 @@ func (ovsif *Interface) AddBridge(properties ...string) error {
 	return err
 }
 
-// DeleteBridge deletes the bridge associated with the interface. (It is an
-// error if the bridge does not exist.)
-func (ovsif *Interface) DeleteBridge() error {
+func (ovsif *ovsExec) DeleteBridge() error {
 	_, err := ovsif.exec(OVS_VSCTL, "del-br", ovsif.bridge)
 	return err
 }
 
-// GetOFPort returns the OpenFlow port number of a given network interface
-// attached to a bridge.
-func (ovsif *Interface) GetOFPort(port string) (int, error) {
+func (ovsif *ovsExec) GetOFPort(port string) (int, error) {
 	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
 	if err != nil {
 		return -1, err
@@ -112,10 +182,7 @@ func (ovsif *Interface) GetOFPort(port string) (int, error) {
 	return ofport, nil
 }
 
-// AddPort adds an interface to the bridge, requesting the indicated port
-// number, and optionally setting properties on it (as with "ovs-vsctl set
-// Interface ..."). Returns the allocated port number (or an error).
-func (ovsif *Interface) AddPort(port string, ofportRequest int, properties ...string) (int, error) {
+func (ovsif *ovsExec) AddPort(port string, ofportRequest int, properties ...string) (int, error) {
 	args := []string{"--may-exist", "add-port", ovsif.bridge, port}
 	if ofportRequest > 0 || len(properties) > 0 {
 		args = append(args, "--", "set", "Interface", port)
@@ -137,63 +204,48 @@ func (ovsif *Interface) AddPort(port string, ofportRequest int, properties ...st
 	return ofport, nil
 }
 
-// DeletePort removes an interface from the bridge. (It is not an
-// error if the interface is not currently a bridge port.)
-func (ovsif *Interface) DeletePort(port string) error {
+func (ovsif *ovsExec) DeletePort(port string) error {
 	_, err := ovsif.exec(OVS_VSCTL, "--if-exists", "del-port", ovsif.bridge, port)
 	return err
 }
 
-func (ovsif *Interface) SetFrags(mode string) error {
+func (ovsif *ovsExec) SetFrags(mode string) error {
 	_, err := ovsif.exec(OVS_OFCTL, "set-frags", ovsif.bridge, mode)
 	return err
 }
 
-// Create creates a record in the OVS database, as with "ovs-vsctl create" and
-// returns the UUID of the newly-created item.
-// NOTE: This only works for QoS; for all other tables the created object will
-// immediately be garbage-collected; we'd need an API that calls "create" and "set"
-// in the same "ovs-vsctl" call.
-func (ovsif *Interface) Create(table string, values ...string) (string, error) {
+func (ovsif *ovsExec) Create(table string, values ...string) (string, error) {
 	args := append([]string{"create", table}, values...)
 	return ovsif.exec(OVS_VSCTL, args...)
 }
 
-// Destroy deletes the indicated record in the OVS database. It is not an error if
-// the record does not exist
-func (ovsif *Interface) Destroy(table, record string) error {
+func (ovsif *ovsExec) Destroy(table, record string) error {
 	_, err := ovsif.exec(OVS_VSCTL, "--if-exists", "destroy", table, record)
 	return err
 }
 
-// Get gets the indicated value from the OVS database. For multi-valued or
-// map-valued columns, the data is returned in the same format as "ovs-vsctl get".
-func (ovsif *Interface) Get(table, record, column string) (string, error) {
+func (ovsif *ovsExec) Get(table, record, column string) (string, error) {
 	return ovsif.exec(OVS_VSCTL, "get", table, record, column)
 }
 
-// Set sets one or more columns on a record in the OVS database, as with
-// "ovs-vsctl set"
-func (ovsif *Interface) Set(table, record string, values ...string) error {
+func (ovsif *ovsExec) Set(table, record string, values ...string) error {
 	args := append([]string{"set", table, record}, values...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
 }
 
-// Clear unsets the indicated columns in the OVS database. It is not an error if
-// the value is already unset
-func (ovsif *Interface) Clear(table, record string, columns ...string) error {
+func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {
 	args := append([]string{"--if-exists", "clear", table, record}, columns...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
 }
 
-type Transaction struct {
-	ovsif *Interface
+type ovsExecTx struct {
+	ovsif *ovsExec
 	err   error
 }
 
-func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
+func (tx *ovsExecTx) exec(cmd string, args ...string) (string, error) {
 	out := ""
 	if tx.err == nil {
 		out, tx.err = tx.ovsif.exec(cmd, args...)
@@ -201,43 +253,31 @@ func (tx *Transaction) exec(cmd string, args ...string) (string, error) {
 	return out, tx.err
 }
 
-// NewTransaction begins a new OVS transaction. If an error occurs at
-// any step in the transaction, it will be recorded until
-// EndTransaction(), and any further calls on the transaction will be
-// ignored.
-func (ovsif *Interface) NewTransaction() *Transaction {
-	return &Transaction{ovsif: ovsif}
+func (ovsif *ovsExec) NewTransaction() Transaction {
+	return &ovsExecTx{ovsif: ovsif}
 }
 
-// AddFlow adds a flow to the bridge. The arguments are passed to fmt.Sprintf().
-func (tx *Transaction) AddFlow(flow string, args ...interface{}) {
+func (tx *ovsExecTx) AddFlow(flow string, args ...interface{}) {
 	if len(args) > 0 {
 		flow = fmt.Sprintf(flow, args...)
 	}
 	tx.exec(OVS_OFCTL, "add-flow", tx.ovsif.bridge, flow)
 }
 
-// DeleteFlows deletes all matching flows from the bridge. The arguments are
-// passed to fmt.Sprintf().
-func (tx *Transaction) DeleteFlows(flow string, args ...interface{}) {
+func (tx *ovsExecTx) DeleteFlows(flow string, args ...interface{}) {
 	if len(args) > 0 {
 		flow = fmt.Sprintf(flow, args...)
 	}
 	tx.exec(OVS_OFCTL, "del-flows", tx.ovsif.bridge, flow)
 }
 
-// EndTransaction ends an OVS transaction and returns any error that occurred
-// during the transaction. You should not use the transaction again after
-// calling this function.
-func (tx *Transaction) EndTransaction() error {
+func (tx *ovsExecTx) EndTransaction() error {
 	err := tx.err
 	tx.err = nil
 	return err
 }
 
-// DumpFlows dumps the flow table for the bridge and returns it as an array of
-// strings, one per flow.
-func (ovsif *Interface) DumpFlows() ([]string, error) {
+func (ovsif *ovsExec) DumpFlows() ([]string, error) {
 	out, err := ovsif.exec(OVS_OFCTL, "dump-flows", ovsif.bridge)
 	if err != nil {
 		return nil, err
