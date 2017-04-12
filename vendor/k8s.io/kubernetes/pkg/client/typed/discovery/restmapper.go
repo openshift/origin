@@ -42,8 +42,11 @@ func NewRESTMapper(groupResources []*APIGroupResources, versionInterfaces meta.V
 	unionMapper := meta.MultiRESTMapper{}
 
 	var groupPriority []string
-	var resourcePriority []unversioned.GroupVersionResource
-	var kindPriority []unversioned.GroupVersionKind
+
+	// New servers will report non-core apigroups for origin resources. Because this client does not know about
+	// them yet, we enforce that all origin resources resolve to /v1 kinds.
+	var resourcePriority = []unversioned.GroupVersionResource{{Group: "", Version: "v1", Resource: meta.AnyResource}}
+	var kindPriority = []unversioned.GroupVersionKind{{Group: "", Version: "v1", Kind: meta.AnyKind}}
 
 	for _, group := range groupResources {
 		groupPriority = append(groupPriority, group.Group.Name)
