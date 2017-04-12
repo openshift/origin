@@ -41,4 +41,5 @@ rsync -av \
   $KUBE_ROOT/ $KUBE_GODEP_ROOT <<EOF
 /pkg/***
 /plugin/***
+/staging/***
 EOF
