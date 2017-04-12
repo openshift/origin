@@ -13,6 +13,7 @@ const (
 
 var (
 	RegistryAPIRequests *prometheus.SummaryVec
+	MasterAPIRequests   *prometheus.SummaryVec
 )
 
 // Register the metrics.
@@ -27,6 +28,17 @@ func Register() {
 		[]string{"operation", "name"},
 	)
 	prometheus.MustRegister(RegistryAPIRequests)
+
+	MasterAPIRequests = prometheus.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Namespace: registryNamespace,
+			Subsystem: registrySubsystem,
+			Name:      "masterapi_request_duration_seconds",
+			Help:      "Master API request latency summary in microseconds for each operation",
+		},
+		[]string{"operation"},
+	)
+	prometheus.MustRegister(MasterAPIRequests)
 }
 
 // NewTimer wraps the SummaryVec and used to track amount of time passed since the Timer was created.

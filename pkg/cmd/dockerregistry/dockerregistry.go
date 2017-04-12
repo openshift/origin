@@ -43,6 +43,7 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 // Execute runs the Docker registry.
@@ -61,7 +62,7 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("error configuring logger: %v", err)
 	}
 
-	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+	registryClient := oapi.NewRegistryClient(clientcmd.NewConfig().BindToFile())
 	ctx = server.WithRegistryClient(ctx, registryClient)
 
 	log.Infof("version=%s", version.Version)
@@ -75,8 +76,8 @@ func Execute(configFile io.Reader) {
 			dockerConfig.Auth[server.OpenShiftAuth] = make(configuration.Parameters)
 		}
 		dockerConfig.Auth[server.OpenShiftAuth][server.AccessControllerOptionParams] = server.AccessControllerParams{
-			Logger:           context.GetLogger(ctx),
-			SafeClientConfig: registryClient.SafeClientConfig(),
+			Logger:         context.GetLogger(ctx),
+			RegistryClient: registryClient,
 		}
 	}
 

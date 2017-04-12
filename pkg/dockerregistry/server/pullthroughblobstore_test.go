@@ -19,6 +19,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -135,7 +136,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, name, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: true,
 		})
 		ptbs := &pullthroughBlobStore{
@@ -286,7 +287,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 
 	ctx := WithTestPassthroughToUpstream(context.Background(), false)
 	repo := newTestRepository(t, namespace, name, testRepositoryOptions{
-		client:            client,
+		client:            oapi.NewAPIClient(client, nil),
 		enablePullThrough: true,
 	})
 	ptbs := &pullthroughBlobStore{
@@ -605,7 +606,7 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
 		repo := newTestRepository(t, namespace, repo1, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: true,
 		})
 
