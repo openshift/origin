@@ -139,7 +139,11 @@ func Convert_v1_RouteList_To_api_RouteList(in *RouteList, out *api.RouteList, s 
 
 func autoConvert_api_RouteList_To_v1_RouteList(in *api.RouteList, out *RouteList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Route)(unsafe.Pointer(&in.Items))
+	if in.Items == nil {
+		out.Items = make([]Route, 0)
+	} else {
+		out.Items = *(*[]Route)(unsafe.Pointer(&in.Items))
+	}
 	return nil
 }
 
@@ -209,7 +213,11 @@ func Convert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *api.RouteSt
 }
 
 func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *api.RouteStatus, out *RouteStatus, s conversion.Scope) error {
-	out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
+	if in.Ingress == nil {
+		out.Ingress = make([]RouteIngress, 0)
+	} else {
+		out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
+	}
 	return nil
 }
 

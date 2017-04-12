@@ -76,7 +76,11 @@ func Convert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *api.Project
 
 func autoConvert_api_ProjectList_To_v1_ProjectList(in *api.ProjectList, out *ProjectList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
+	if in.Items == nil {
+		out.Items = make([]Project, 0)
+	} else {
+		out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
+	}
 	return nil
 }
 
