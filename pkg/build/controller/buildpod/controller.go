@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/client/record"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -49,16 +50,22 @@ type BuildPodController struct {
 	podStoreSynced   func() bool
 
 	runPolicies []policy.RunPolicy
+
+	recorder record.EventRecorder
 }
 
 // NewBuildPodController creates a new BuildPodController.
 func NewBuildPodController(buildInformer, podInformer cache.SharedIndexInformer, kc kclientset.Interface, oc osclient.Interface) *BuildPodController {
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: kc.Core().Events("")})
+
 	buildListerUpdater := buildclient.NewOSClientBuildClient(oc)
 	c := &BuildPodController{
 		buildUpdater: buildListerUpdater,
 		secretClient: kc.Core(), // TODO: Replace with cache client
 		podClient:    kc.Core(),
 		queue:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		recorder:     eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-pod-controller"}),
 	}
 
 	c.runPolicies = policy.GetAllRunPolicies(buildListerUpdater, buildListerUpdater)
@@ -197,6 +204,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
 			now := unversioned.Now()
 			build.Status.StartTimestamp = &now
+			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildStartedEventReason, fmt.Sprintf(buildapi.BuildStartedEventMessage, build.Namespace, build.Name))
 		}
 	}
 
@@ -218,6 +226,12 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	// handle completion for it.  otherwise ignore it because we've already
 	// handled its completion previously.
 	if !buildWasComplete && buildutil.IsBuildComplete(build) {
+		switch build.Status.Phase {
+		case buildapi.BuildPhaseComplete:
+			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildCompletedEventReason, fmt.Sprintf(buildapi.BuildCompletedEventMessage, build.Namespace, build.Name))
+		case buildapi.BuildPhaseError, buildapi.BuildPhaseFailed:
+			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, build.Namespace, build.Name))
+		}
 		common.HandleBuildCompletion(build, bc.runPolicies)
 	}
 
@@ -259,6 +273,8 @@ func (bc *BuildPodController) HandleBuildPodDeletion(pod *kapi.Pod) error {
 		build.Status.Reason = buildapi.StatusReasonBuildPodDeleted
 		build.Status.Message = buildapi.StatusMessageBuildPodDeleted
 		common.SetBuildCompletionTimeAndDuration(build)
+		bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, build.Namespace, build.Name))
+
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
