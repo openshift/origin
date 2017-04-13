@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 833b00345d8311e5a3deffa424f05b4137b45680
+%global commit 9c6e4f402e066e4f1d55bcd41f8a9469c8c0c3a9
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.27 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=833b003
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.28 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=9c6e4f4
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.28
+Version:        3.6.29
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,32 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Apr 13 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.29-1
+- bump(github.com/openshift/origin-web-console):
+  dd72cfb1df52ff444913da6a2fe21f4db25fc317 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  aa4a228dfad2ce4af2f13a4eb0a8e5e495ad3c80 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1cf9f825df8ba6f06a45ce9530d9b43092a9dd8a (dmcphers+openshiftbot@redhat.com)
+- Clean up a misleading comment in the ratelimiter code (take 2)
+  (bbennett@redhat.com)
+- UPSTREAM: google/cadvisor: 1639: Reduce cAdvisor log spam with multiple
+  devices (decarr@redhat.com)
+- Drop e2e OVS test since it's now redundant (danw@redhat.com)
+- Move pod-related flow logic into ovsController (danw@redhat.com)
+- Move multicast flow logic into ovsController, and fix a bug (danw@redhat.com)
+- Move EgressNetworkPolicy flow logic into ovsController (danw@redhat.com)
+- Split out a unit-testable ovsController type in pkg/sdn/plugin
+  (danw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a230883459f8e19525d96f1105e11dc222c17a5f (dmcphers+openshiftbot@redhat.com)
+- Add a mock implementation of ovs.Interface for testing (danw@redhat.com)
+- Change ovs.Interface, ovs.Transaction from structs to interfaces
+  (danw@redhat.com)
+- Clean up a misleading comment in the ratelimiter code (bbennett@redhat.com)
+- Prevent new project creation with openshift/kubernetes/kube prefixes
+  (jliggitt@redhat.com)
+
 * Wed Apr 12 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.28-1
 - SelfSubjectAccessReview does not authorize with api groups
   (ccoleman@redhat.com)
