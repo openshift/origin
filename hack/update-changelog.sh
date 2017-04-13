@@ -7,11 +7,11 @@ export to=$3
 release="_output/local/releases/CHANGELOG.md"
 
 t="patch"
-if [[ "${to}" == *".0" ]]; then
+if [[ "${to}" == *".0-"* || "${to}" == *".0" ]]; then
   t="feature"
-  v="${to/%.0/}"
+  v="$( echo "${to}" | cut -f1 -d'-' )"
+  v="${v/%.0/}"
   v="${v/#v/}"
-  v+=2
 fi
 
 # NAME FORK PACKAGE PATH
@@ -28,6 +28,8 @@ function component() {
     if [[ "${new}" != "${old}" ]]; then
       version=$(go run tools/godepversion/godepversion.go /tmp/godeps.new $3 comment)
       echo "- Updated to $1 [$version + patches](https://github.com/$2/commits/$new)"
+    else
+      echo "- Updates to $1"
     fi
     git log --grep=UPSTREAM --no-merges --pretty='tformat:%H' $from..$to -- vendor/$4 | \
       xargs -L 1 /bin/sh -c 'echo "  - $( git show -s --pretty=tformat:%s $1 | cut -f 2- -d " " ) [\\$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " )](https://github.com/$repo/pull/$( git log $to ^$1 --merges --ancestry-path --pretty="tformat:%s" | tail -1 | cut -f 4 -d " " | cut -c 2- ))"' '' | sort -n
@@ -35,6 +37,8 @@ function component() {
 }
 
 cat << EOF
+${to}
+
 This is a ${t} release of OpenShift Origin.
 
 ## Backwards Compatibility
