@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	"github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 
@@ -192,8 +193,9 @@ func (s *S2IBuilder) Build() error {
 	}
 	if scriptDownloadProxyConfig != nil {
 		glog.V(0).Infof("Using HTTP proxy %v and HTTPS proxy %v for script download",
-			scriptDownloadProxyConfig.HTTPProxy,
-			scriptDownloadProxyConfig.HTTPSProxy)
+			util.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPProxy),
+			util.SafeForLoggingURL(scriptDownloadProxyConfig.HTTPSProxy),
+		)
 	}
 
 	var incremental bool
@@ -283,7 +285,10 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(client, config))
+	if glog.Is(4) {
+		redactedConfig := util.SafeForLoggingS2IConfig(config)
+		glog.V(4).Infof("Creating a new S2I builder with config: %#v\n", describe.Config(client, redactedConfig))
+	}
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Phase = api.BuildPhaseFailed
