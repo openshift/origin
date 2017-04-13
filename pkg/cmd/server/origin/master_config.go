@@ -572,8 +572,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			saAdmitter := saadmit.NewServiceAccount()
 			saAdmitter.SetInternalKubeClientSet(kubeClientSet)
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
-			// TODO(rebase): the following is not needed anymore?
-			// saAdmitter.Run()
 			plugin = saAdmitter
 
 		default:

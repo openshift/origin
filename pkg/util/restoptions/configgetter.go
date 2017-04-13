@@ -55,7 +55,7 @@ func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig
 	storageFactory.DefaultResourcePrefixes = resourcePrefixOverrides
 	storageFactory.StorageConfig.Prefix = masterOptions.EtcdStorageConfig.OpenShiftStoragePrefix
 
-	// TODO(rebase): refactor vendor/k8s.io/kubernetes/pkg/registry/cachesize to remove our custom cache size code
+	// TODO: refactor vendor/k8s.io/kubernetes/pkg/registry/cachesize to remove our custom cache size code
 	errs := []error{}
 	cacheSizes := map[schema.GroupResource]int{}
 	for _, c := range apiserverOptions.GenericServerRunOptions.WatchCacheSizes {

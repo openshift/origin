@@ -48,7 +48,6 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 		return nil, err
 	}
 
-	// TODO(rebase): are the GetOptions related?
 	repo, err := r.imageStreamRegistry.GetImageStream(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -64,7 +63,6 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 	}
 
 	imageName := event.Image
-	// TODO(rebase): are the GetOptions related?
 	image, err := r.imageRegistry.GetImage(ctx, imageName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
