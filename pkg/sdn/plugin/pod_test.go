@@ -368,9 +368,10 @@ func TestPodManager(t *testing.T) {
 
 	for k, tc := range testcases {
 		podTester := newPodTester(t, k, socketPath)
-		podManager := newDefaultPodManager(newFakeHost())
+		podManager := newDefaultPodManager()
 		podManager.podHandler = podTester
-		podManager.Start(socketPath)
+		_, net, _ := net.ParseCIDR("1.2.0.0/16")
+		podManager.Start(socketPath, newFakeHost(), "1.2.3.0/24", net)
 
 		// Add pods to our expected pod list before kicking off the
 		// actual pod setup to ensure we don't concurrently access
@@ -463,9 +464,10 @@ func TestDirectPodUpdate(t *testing.T) {
 	socketPath := filepath.Join(tmpDir, "cni-server.sock")
 
 	podTester := newPodTester(t, "update", socketPath)
-	podManager := newDefaultPodManager(newFakeHost())
+	podManager := newDefaultPodManager()
 	podManager.podHandler = podTester
-	podManager.Start(socketPath)
+	_, net, _ := net.ParseCIDR("1.2.0.0/16")
+	podManager.Start(socketPath, newFakeHost(), "1.2.3.0/24", net)
 
 	op := &operation{
 		command:   cniserver.CNI_UPDATE,
