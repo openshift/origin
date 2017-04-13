@@ -1,6 +1,7 @@
 package deploymentconfig
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -125,12 +126,12 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %+v", obj))
 			return
 		}
 		dc, ok = tombstone.Obj.(*deployapi.DeploymentConfig)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not a deployment config: %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a deployment config: %+v", obj))
 			return
 		}
 	}
@@ -148,7 +149,6 @@ func (c *DeploymentConfigController) updateReplicationController(old, cur interf
 		return
 	}
 
-	glog.V(4).Infof("Replication controller %q updated.", curRC.Name)
 	if dc, err := c.dcStore.GetConfigForController(curRC); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
@@ -166,16 +166,15 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
 		rc, ok = tombstone.Obj.(*kapi.ReplicationController)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not a replication controller %#v", obj)
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a replication controller %#v", obj))
 			return
 		}
 	}
-	glog.V(4).Infof("Replication controller %q deleted.", rc.Name)
 	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
@@ -198,12 +197,12 @@ func (c *DeploymentConfigController) deletePod(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %+v", obj))
 			return
 		}
 		pod, ok = tombstone.Obj.(*kapi.Pod)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not a pod: %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod: %+v", obj))
 			return
 		}
 	}
@@ -215,7 +214,7 @@ func (c *DeploymentConfigController) deletePod(obj interface{}) {
 func (c *DeploymentConfigController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %#v: %v", dc, err)
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", dc, err))
 		return
 	}
 	c.queue.Add(key)
@@ -238,7 +237,7 @@ func (c *DeploymentConfigController) work() bool {
 
 	dc, err := c.getByKey(key.(string))
 	if err != nil {
-		glog.Error(err.Error())
+		utilruntime.HandleError(err)
 	}
 
 	if dc == nil {
@@ -254,7 +253,6 @@ func (c *DeploymentConfigController) work() bool {
 func (c *DeploymentConfigController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
 	obj, exists, err := c.dcStore.Indexer.GetByKey(key)
 	if err != nil {
-		glog.V(2).Infof("Unable to retrieve deployment config %q from store: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return nil, err
 	}
