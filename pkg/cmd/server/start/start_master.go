@@ -474,7 +474,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// verify we can connect to etcd with the provided config
-	// TODO(rebase): uncomment etcd3 support
+	// TODO(post-1.6.1-rebase): uncomment etcd3 support
 	//if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd2" {
 	if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
 		return err

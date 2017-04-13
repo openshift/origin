@@ -793,7 +793,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			// we need to filter out any deployments that we don't care about,
 			// namely the active deployment and any newer deployments
-			// TODO(rebase): ugly conversion
+			// TODO: get rid of ugly conversion by porting the deploymentconfig controller to v1 RCs
 			deployments := make([]*kapi.ReplicationController, len(deploymentsv1))
 			for i := range deploymentsv1 {
 				deployments[i] = &kapi.ReplicationController{}
