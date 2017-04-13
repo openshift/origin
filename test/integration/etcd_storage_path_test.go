@@ -696,10 +696,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("federation", "v1beta1", "clusters"), // we cannot create this  // TODO but we should be able to create it in kube
 	// --
 
-	// k8s.io/kubernetes/pkg/api/unversioned
-	gvr("", "v1", "statuses"), // return value for calls, not stored in etcd
-	// --
-
 	// k8s.io/kubernetes/pkg/api/v1
 	gvr("", "v1", "bindings"),             // annotation on pod, not stored in etcd
 	gvr("", "v1", "rangeallocations"),     // stored in various places in etcd but cannot be directly created // TODO maybe possible in kube
@@ -766,6 +762,7 @@ var kindWhiteList = sets.NewString(
 	// k8s.io/apimachinery/pkg/apis/meta/v1
 	"APIVersions",
 	"APIGroup",
+	"Status",
 
 	// k8s.io/kubernetes/pkg/api/v1
 	"DeleteOptions",
