@@ -1,9 +1,11 @@
 package server
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -12,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -358,17 +361,39 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 		return "", err
 	}
 
-	for {
-		// confirm that we can actually query from the api server
-		if client, err := util.GetClusterAdminClient(adminKubeConfigFile); err == nil {
-			if _, err := client.ClusterPolicies().List(metav1.ListOptions{}); err == nil {
-				break
-			}
+	err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
+		var healthy bool
+		healthy, err = IsServerHealthy(*masterURL)
+		if err != nil {
+			return false, err
 		}
-		time.Sleep(100 * time.Millisecond)
+		return healthy, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		return "", fmt.Errorf("server did not become healthy")
+	}
+	if err != nil {
+		return "", err
 	}
 
 	return adminKubeConfigFile, nil
+}
+
+func IsServerHealthy(url url.URL) (bool, error) {
+	transport := knet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	})
+
+	url.Path = "/healthz"
+	req, err := http.NewRequest("GET", url.String(), nil)
+	req.Header.Set("Accept", "text/html")
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		return false, err
+	}
+	return resp.StatusCode == http.StatusOK, nil
 }
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
