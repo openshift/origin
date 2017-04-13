@@ -1,6 +1,7 @@
 package deployment
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,7 +30,7 @@ const (
 func NewDeploymentController(rcInformer, podInformer cache.SharedIndexInformer, kc kclientset.Interface, sa, image string, env []kapi.EnvVar, codec runtime.Codec) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: kc.Core().Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployments-controller"})
+	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
 		rn: kc.Core(),
@@ -79,7 +80,7 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
 	<-stopCh
-	glog.Infof("Shutting down deployment controller")
+	glog.Infof("Shutting down deployer controller")
 	c.queue.ShutDown()
 }
 
@@ -87,7 +88,7 @@ func (c *DeploymentController) waitForSyncedStores(ready chan<- struct{}, stopCh
 	defer utilruntime.HandleCrash()
 
 	for !c.rcStoreSynced() || !c.podStoreSynced() {
-		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployment controller workers")
+		glog.V(4).Infof("Waiting for the rc and pod caches to sync before starting the deployer controller workers")
 		select {
 		case <-time.After(storeSyncedPollPeriod):
 		case <-stopCh:
@@ -141,12 +142,12 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone: %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone: %+v", obj))
 			return
 		}
 		pod, ok = tombstone.Obj.(*kapi.Pod)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not a pod: %+v", obj)
+			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod: %+v", obj))
 			return
 		}
 	}
@@ -159,14 +160,19 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 func (c *DeploymentController) enqueueReplicationController(rc *kapi.ReplicationController) {
 	key, err := kcontroller.KeyFunc(rc)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %#v: %v", rc, err)
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", rc, err))
 		return
 	}
 	c.queue.Add(key)
 }
 
 func (c *DeploymentController) rcForDeployerPod(pod *kapi.Pod) (*kapi.ReplicationController, error) {
-	key := pod.Namespace + "/" + deployutil.DeploymentNameFor(pod)
+	rcName := deployutil.DeploymentNameFor(pod)
+	if len(rcName) == 0 {
+		// Not a deployer pod, so don't bother with it.
+		return nil, nil
+	}
+	key := pod.Namespace + "/" + rcName
 	return c.getByKey(key)
 }
 
@@ -187,7 +193,7 @@ func (c *DeploymentController) work() bool {
 
 	rc, err := c.getByKey(key.(string))
 	if err != nil {
-		glog.Error(err.Error())
+		utilruntime.HandleError(err)
 	}
 
 	if rc == nil {
@@ -207,12 +213,11 @@ func (c *DeploymentController) work() bool {
 func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController, error) {
 	obj, exists, err := c.rcStore.Indexer.GetByKey(key)
 	if err != nil {
-		glog.Infof("Unable to retrieve replication controller %q from store: %v", key, err)
-		c.queue.Add(key)
+		c.queue.AddRateLimited(key)
 		return nil, err
 	}
 	if !exists {
-		glog.Infof("Replication controller %q has been deleted", key)
+		glog.V(4).Infof("Replication controller %q has been deleted", key)
 		return nil, nil
 	}
 

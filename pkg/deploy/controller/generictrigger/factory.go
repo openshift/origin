@@ -1,6 +1,7 @@
 package generictrigger
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -135,7 +136,7 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 	if err != nil {
 		// If we get an error here it may be due to the rc cache lagging behind. In such a case
 		// just defer to the api server (instantiate REST) where we will retry this.
-		glog.V(2).Infof("Cannot get latest rc for dc %s:%d (%v) - will defer to instantiate", deployutil.LabelForDeploymentConfig(newDc), newDc.Status.LatestVersion, err)
+		glog.V(4).Infof("Cannot get latest rc for dc %s:%d (%v) - will defer to instantiate", deployutil.LabelForDeploymentConfig(newDc), newDc.Status.LatestVersion, err)
 	} else {
 		initial, err := deployutil.DecodeDeploymentConfig(latestRc, c.codec)
 		if err != nil {
@@ -190,7 +191,7 @@ func (c *DeploymentTriggerController) updateImageStream(old, cur interface{}) {
 func (c *DeploymentTriggerController) enqueueDeploymentConfig(dc *deployapi.DeploymentConfig) {
 	key, err := kcontroller.KeyFunc(dc)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %+v: %v", dc, err)
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %+v: %v", dc, err))
 		return
 	}
 	c.queue.Add(key)
@@ -213,7 +214,7 @@ func (c *DeploymentTriggerController) work() bool {
 
 	dc, err := c.getByKey(key.(string))
 	if err != nil {
-		glog.Error(err.Error())
+		utilruntime.HandleError(err)
 	}
 
 	if dc == nil {
@@ -229,12 +230,11 @@ func (c *DeploymentTriggerController) work() bool {
 func (c *DeploymentTriggerController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
 	obj, exists, err := c.dcLister.Indexer.GetByKey(key)
 	if err != nil {
-		glog.Infof("Unable to retrieve deployment config %q from store: %v", key, err)
-		c.queue.Add(key)
+		c.queue.AddRateLimited(key)
 		return nil, err
 	}
 	if !exists {
-		glog.Infof("Deployment config %q has been deleted", key)
+		glog.V(4).Infof("Deployment config %q has been deleted", key)
 		return nil, nil
 	}
 

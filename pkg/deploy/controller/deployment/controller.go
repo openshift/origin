@@ -39,7 +39,7 @@ const maxRetryCount = 15
 // fatalError is an error which can't be retried.
 type fatalError string
 
-func (e fatalError) Error() string { return "fatal error handling deployment: " + string(e) }
+func (e fatalError) Error() string { return "fatal error handling rollout: " + string(e) }
 
 // actionableError is an error on which users can act.
 type actionableError string
@@ -131,17 +131,17 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 			// Generate a deployer pod spec.
 			deployerPod, err := c.makeDeployerPod(deployment)
 			if err != nil {
-				return fatalError(fmt.Sprintf("couldn't make deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+				return fatalError(fmt.Sprintf("couldn't make deployer pod for %q: %v", deployutil.LabelForDeployment(deployment), err))
 			}
 			// Create the deployer pod.
 			deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
 			// Retry on error.
 			if err != nil {
-				return actionableError(fmt.Sprintf("couldn't create deployer pod for %s: %v", deployutil.LabelForDeployment(deployment), err))
+				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", deployutil.LabelForDeployment(deployment), err))
 			}
 			updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
 			nextStatus = deployapi.DeploymentStatusPending
-			glog.V(4).Infof("Created deployer pod %s for deployment %s", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
+			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, deployutil.LabelForDeployment(deployment))
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
@@ -164,12 +164,10 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 				nextStatus = deployapi.DeploymentStatusFailed
 				updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedUnrelatedDeploymentExists
 				c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod since another pod with the same name (%q) exists", deployer.Name))
-				glog.V(2).Infof("Couldn't create deployer pod for %s since an unrelated pod with the same name (%q) exists", deployutil.LabelForDeployment(deployment), deployer.Name)
 			} else {
 				// Update to pending or to the appropriate status relative to the existing validated deployer pod.
 				updatedAnnotations[deployapi.DeploymentPodAnnotation] = deployer.Name
 				nextStatus = nextStatusComp(nextStatus, deployapi.DeploymentStatusPending)
-				glog.V(4).Infof("Detected existing deployer pod %s for deployment %s", deployer.Name, deployutil.LabelForDeployment(deployment))
 			}
 		}
 
@@ -187,13 +185,14 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 				}
 				updatedAnnotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentFailedDeployerPodNoLongerExists
 				c.emitDeploymentEvent(deployment, kapi.EventTypeWarning, "Failed", fmt.Sprintf("Deployer pod %q has gone missing", deployerPodName))
-				deployerErr = fmt.Errorf("Failing deployment %q because its deployer pod %q disappeared", deployutil.LabelForDeployment(deployment), deployerPodName)
+				deployerErr = fmt.Errorf("Failing rollout for %q because its deployer pod %q disappeared", deployutil.LabelForDeployment(deployment), deployerPodName)
 				utilruntime.HandleError(deployerErr)
 			}
 
+		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
 			// We'll try again later on resync. Continue to process cancellations.
-			deployerErr = fmt.Errorf("Error getting deployer pod %q for deployment %q: %v", deployerPodName, deployutil.LabelForDeployment(deployment), deployerErr)
+			deployerErr = fmt.Errorf("Error getting deployer pod %q for %q: %v", deployerPodName, deployutil.LabelForDeployment(deployment), deployerErr)
 			utilruntime.HandleError(deployerErr)
 
 		default: /* err == nil */
@@ -242,12 +241,12 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 		}
 
 		if _, err := c.rn.ReplicationControllers(deployment.Namespace).Update(deployment); err != nil {
-			return fmt.Errorf("couldn't update deployment %s to status %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
+			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", deployutil.LabelForDeployment(deployment), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated deployment %s status from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
+		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", deployutil.LabelForDeployment(deployment), currentStatus, nextStatus, deployment.Spec.Replicas)
 
 		if deployutil.IsDeploymentCancelled(deployment) && deployutil.IsFailedDeployment(deployment) {
-			c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "DeploymentCancelled", fmt.Sprintf("Deployment %q cancelled", deployutil.LabelForDeployment(deployment)))
+			c.emitDeploymentEvent(deployment, kapi.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", deployutil.LabelForDeployment(deployment)))
 		}
 	}
 	return nil
@@ -425,13 +424,13 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationC
 		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &kapi.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 			// if the pod deletion failed, then log the error and continue
 			// we will try to delete any remaining deployer pods and return an error later
-			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for deployment %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
+			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for %q: %v", deployerPod.Name, deployutil.LabelForDeployment(deployment), err))
 			cleanedAll = false
 		}
 	}
 
 	if !cleanedAll {
-		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %s", deployment.Name))
+		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %q", deployutil.LabelForDeployment(deployment)))
 	}
 	return nil
 }

@@ -246,7 +246,6 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 				}
 				copied, err = deployutil.DeploymentDeepCopy(rc)
 				if err != nil {
-					glog.V(2).Infof("Deep copy of deployment %q failed: %v", rc.Name, err)
 					return err
 				}
 				copied.Spec.Replicas = newReplicaCount
@@ -279,7 +278,6 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig, deployments []*kapi.ReplicationController, additional ...deployapi.DeploymentCondition) error {
 	newStatus, err := c.calculateStatus(*config, deployments, additional...)
 	if err != nil {
-		glog.V(2).Infof("Cannot calculate the status for %q: %v", deployutil.LabelForDeploymentConfig(config), err)
 		return err
 	}
 
@@ -297,10 +295,14 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	copied.Status = newStatus
 	// TODO: Retry update conficts
 	if _, err := c.dn.DeploymentConfigs(copied.Namespace).UpdateStatus(copied); err != nil {
-		glog.V(2).Infof("Cannot update the status for %q: %v", deployutil.LabelForDeploymentConfig(copied), err)
 		return err
 	}
-	glog.V(4).Infof("Updated the status for %q (observed generation: %d)", deployutil.LabelForDeploymentConfig(copied), copied.Status.ObservedGeneration)
+	glog.V(4).Infof(fmt.Sprintf("Updated status for DeploymentConfig: %s, ", deployutil.LabelForDeploymentConfig(config)) +
+		fmt.Sprintf("replicas %d->%d (need %d), ", config.Status.Replicas, newStatus.Replicas, config.Spec.Replicas) +
+		fmt.Sprintf("readyReplicas %d->%d, ", config.Status.ReadyReplicas, newStatus.ReadyReplicas) +
+		fmt.Sprintf("availableReplicas %d->%d, ", config.Status.AvailableReplicas, newStatus.AvailableReplicas) +
+		fmt.Sprintf("unavailableReplicas %d->%d, ", config.Status.UnavailableReplicas, newStatus.UnavailableReplicas) +
+		fmt.Sprintf("sequence No: %v->%v", config.Status.ObservedGeneration, newStatus.ObservedGeneration))
 	return nil
 }
 
@@ -430,7 +432,6 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 
 		err := c.rn.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
 		if err != nil && !kapierrors.IsNotFound(err) {
-			glog.V(2).Infof("Failed deleting old Replication Controller %q for Deployment Config %q: %v", deployment.Name, deploymentConfig.Name, err)
 			deletionErrors = append(deletionErrors, err)
 		}
 	}
