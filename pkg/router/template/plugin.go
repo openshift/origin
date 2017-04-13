@@ -61,6 +61,9 @@ type routerInterface interface {
 	// frontend key is used; all call sites make certain the frontend
 	// is created.
 
+	// SyncedAtLeastOnce indicates an initial sync has been performed
+	SyncedAtLeastOnce() bool
+
 	// CreateServiceUnit creates a new service named with the given id.
 	CreateServiceUnit(id string)
 	// FindServiceUnit finds the service with the given id.

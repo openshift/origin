@@ -205,3 +205,14 @@ func TestEventQueue_ListConsumed(t *testing.T) {
 		t.Fatalf("expected ListConsumed to be true after queued items read")
 	}
 }
+
+func TestEventQueue_PopAfterResyncShouldBeTypeModified(t *testing.T) {
+	q := NewEventQueue(keyFunc)
+	q.Add(cacheable{"foo", 10})
+	q.Pop()
+	q.Resync()
+	eventType, _, _ := q.Pop()
+	if eventType != watch.Modified {
+		t.Fatalf("Expected resynced event to be of type watch.Modified, got %q", eventType)
+	}
+}

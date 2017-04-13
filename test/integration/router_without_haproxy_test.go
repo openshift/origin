@@ -7,20 +7,85 @@ import (
 	"time"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/watch"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	infrarouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
+	"github.com/openshift/origin/pkg/util/ratelimiter"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
+
+const waitInterval = 50 * time.Millisecond
+
+// TestRouterNamespaceSync validates that labeling a namespace so it
+// will match a router's selector will expose routes in that namespace
+// after the subsequent namespace sync.
+func TestRouterNamespaceSync(t *testing.T) {
+	testutil.RequireEtcd(t)
+
+	oc, kc, err := launchApi()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Create a route in a namespace without the label
+	namespace := createNamespace(t, kc)
+	host := "www.example.com"
+	route := initializeNewRoute(t, oc, kc, namespace.Name, host)
+
+	// Create a router that filters by the namespace label and with a low reysnc interval
+	labelKey := "foo"
+	labelValue := "bar"
+	selector, err := labels.Parse(fmt.Sprintf("%s=%s", labelKey, labelValue))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	routerSelection := infrarouter.RouterSelection{
+		NamespaceLabels: selector,
+		ResyncInterval:  2 * time.Second,
+	}
+	templatePlugin := launchRouter(oc, kc, routerSelection)
+
+	// Wait until the router has completed initial sync
+	err = wait.PollImmediate(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		if templatePlugin.Router.SyncedAtLeastOnce() {
+			return true, nil
+		}
+		return false, nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// The route should not appear
+	if templatePlugin.Router.HasRoute(route) {
+		t.Fatalf("Route in unselected namespace is unexpectedly exposed on router")
+	}
+
+	// Label the namespace
+	updateNamespaceLabels(t, kc, namespace, map[string]string{labelKey: labelValue})
+
+	// Wait for the route to appear
+	waitForRouterToHaveRoute(t, templatePlugin, route, true)
+
+	// Remove the label from the namespace
+	updateNamespaceLabels(t, kc, namespace, map[string]string{})
+
+	// Wait for the route to disappear
+	waitForRouterToHaveRoute(t, templatePlugin, route, false)
+}
 
 // TestRouterReloadSuppressionOnSync validates that the router will
 // not be reloaded until all events from the initial sync have been
@@ -54,38 +119,12 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	// Create initial state
 	for i := int32(0); i < namespaceCount; i++ {
 
-		// Create a namespace
-		namespaceProperties := createNamespaceProperties()
-		namespace, err := kc.Core().Namespaces().Create(namespaceProperties)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		namespace := createNamespace(t, kc)
 
 		for j := int32(0); j < routesPerNamespace; j++ {
-
-			// Create a service for the route
-			serviceProperties := createServiceProperties()
-			service, err := kc.Core().Services(namespace.Name).Create(serviceProperties)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			// Create endpoints
-			endpointsProperties := createEndpointsProperties(service.Name)
-			_, err = kc.Core().Endpoints(namespace.Name).Create(endpointsProperties)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-
-			// Create a route
 			host := fmt.Sprintf("www-%d-%d.example.com", i, j)
-			routeProperties := createRouteProperties(service.Name, host)
-			route, err := oc.Routes(namespace.Name).Create(routeProperties)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			route := initializeNewRoute(t, oc, kc, namespace.Name, host)
 			routes = append(routes, route)
-
 		}
 		// Create a final route that uses the same host as the
 		// previous route to create a conflict.  This will validate
@@ -112,7 +151,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	// Create the routers
 	for i := int32(0); i < routerCount; i++ {
 		routerName := fmt.Sprintf("router_%d", i)
-		router := launchRouter(oc, kc, maxRouterDelay, routerName, reloadInterval, reloadedMap)
+		router := launchRateLimitedRouter(oc, kc, routerName, maxRouterDelay, reloadInterval, reloadedMap)
 		plugins = append(plugins, router)
 	}
 
@@ -157,6 +196,40 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 		}
 	}
 
+}
+
+func createNamespace(t *testing.T, kc kclientset.Interface) *kapi.Namespace {
+	namespaceProperties := createNamespaceProperties()
+	namespace, err := kc.Core().Namespaces().Create(namespaceProperties)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	return namespace
+}
+
+func initializeNewRoute(t *testing.T, oc osclient.Interface, kc kclientset.Interface, nsName, host string) *routeapi.Route {
+	// Create a service for the route
+	serviceProperties := createServiceProperties()
+	service, err := kc.Core().Services(nsName).Create(serviceProperties)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Create endpoints
+	endpointsProperties := createEndpointsProperties(service.Name)
+	_, err = kc.Core().Endpoints(nsName).Create(endpointsProperties)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Create a route
+	routeProperties := createRouteProperties(service.Name, host)
+	route, err := oc.Routes(nsName).Create(routeProperties)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	return route
 }
 
 func createNamespaceProperties() *kapi.Namespace {
@@ -279,26 +352,17 @@ func (p *DelayPlugin) Commit() error {
 	return p.plugin.Commit()
 }
 
-// launchRouter launches a template router that communicates with the
-// api via the provided clients.
-func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32, name string, reloadInterval int, reloadedMap map[string]int) (templatePlugin *templateplugin.TemplatePlugin) {
-	r := templateplugin.NewFakeTemplateRouter()
-
+// launchRateLimitedRouter launches a rate-limited template router
+// that communicates with the api via the provided clients.
+func launchRateLimitedRouter(oc osclient.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval int, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
 	reloadedMap[name] = 0
-	r.EnableRateLimiter(reloadInterval, func() error {
+	rateLimitingFunc := func() error {
 		reloadedMap[name] += 1
 		return nil
-	})
+	}
+	var plugin router.Plugin
+	templatePlugin, plugin := initializeRouterPlugins(oc, name, reloadInterval, rateLimitingFunc)
 
-	templatePlugin = &templateplugin.TemplatePlugin{Router: r}
-
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, name, "")
-
-	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
-
-	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
-
-	var plugin router.Plugin = uniquePlugin
 	if maxDelay > 0 {
 		plugin = NewDelayPlugin(plugin, maxDelay)
 	}
@@ -307,5 +371,64 @@ func launchRouter(oc osclient.Interface, kc kclientset.Interface, maxDelay int32
 	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
-	return
+	return templatePlugin
+}
+
+func initializeRouterPlugins(oc osclient.Interface, name string, reloadInterval int, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
+	r := templateplugin.NewFakeTemplateRouter()
+	r.EnableRateLimiter(reloadInterval, rateLimitingFunc)
+
+	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, name, "")
+	validationPlugin := controller.NewExtendedValidator(statusPlugin, controller.RejectionRecorder(statusPlugin))
+	uniquePlugin := controller.NewUniqueHost(validationPlugin, controller.HostForRoute, false, controller.RejectionRecorder(statusPlugin))
+
+	return templatePlugin, uniquePlugin
+}
+
+// launchRouter launches a template router that communicates with the
+// api via the provided clients.
+func launchRouter(oc osclient.Interface, kc kclientset.Interface, routerSelection infrarouter.RouterSelection) *templateplugin.TemplatePlugin {
+	templatePlugin, plugin := initializeRouterPlugins(oc, "test-router", 0, func() error {
+		return nil
+	})
+	factory := routerSelection.NewFactory(oc, kc)
+	ctrl := factory.Create(plugin, false, false)
+
+	// Minimize resync latency
+	ctrl.NamespaceSyncInterval = factory.ResyncInterval - 1*time.Second
+	ctrl.NamespaceWaitInterval = 1 * time.Second
+
+	ctrl.Run()
+
+	return templatePlugin
+}
+
+func updateNamespaceLabels(t *testing.T, kc kclientset.Interface, namespace *kapi.Namespace, labels map[string]string) {
+	err := wait.PollImmediate(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		namespace.Labels = labels
+		_, err := kc.Core().Namespaces().Update(namespace)
+		if errors.IsConflict(err) {
+			// The resource was updated by kube machinery.
+			// Get the latest version and retry.
+			namespace, err = kc.Core().Namespaces().Get(namespace.Name)
+			return false, err
+		}
+		return (err == nil), err
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func waitForRouterToHaveRoute(t *testing.T, templatePlugin *templateplugin.TemplatePlugin, route *routeapi.Route, present bool) {
+	err := wait.PollImmediate(waitInterval, wait.ForeverTestTimeout, func() (bool, error) {
+		if templatePlugin.Router.HasRoute(route) {
+			return present, nil
+		}
+		return !present, nil
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }

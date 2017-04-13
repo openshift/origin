@@ -822,6 +822,13 @@ func (r *templateRouter) HasRoute(route *routeapi.Route) bool {
 	return ok
 }
 
+// SyncedAtLeastOnce indicates whether the router has completed an initial sync.
+func (r *templateRouter) SyncedAtLeastOnce() bool {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.synced
+}
+
 // hasRequiredEdgeCerts ensures that at least a host certificate and key are provided.
 // a ca cert is not required because it may be something that is in the root cert chain
 func hasRequiredEdgeCerts(cfg *ServiceAliasConfig) bool {
