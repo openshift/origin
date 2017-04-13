@@ -38,7 +38,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
 
 	"PodPreset",                // alpha in kube 1.6, not on by default
-	"DefaultTolerationSeconds", // TODO(rebase) do we want this on by default?
+	"DefaultTolerationSeconds", // alpha, not on by default
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
