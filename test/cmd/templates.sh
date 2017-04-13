@@ -140,6 +140,7 @@ os::cmd::expect_success 'oc process template/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process templates/ruby-helloworld-sample'
 os::cmd::expect_success 'oc process openshift//ruby-helloworld-sample'
 os::cmd::expect_success 'oc process openshift/template/ruby-helloworld-sample'
+os::cmd::expect_success 'oc get template ruby-helloworld-sample -n openshift -o yaml | oc process -f -'
 export KUBECONFIG=${old}
 echo "processing templates in different namespace: ok"
 os::test::junit::declare_suite_end
