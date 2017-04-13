@@ -122,12 +122,14 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 	if err != nil {
 		return nil, err
 	}
+	oc := NewOVSController(ovsif, pluginId)
 
 	plugin := &OsdnNode{
 		policy:             policy,
 		kClient:            kClient,
 		osClient:           osClient,
-		oc:                 NewOVSController(ovsif, pluginId),
+		oc:                 oc,
+		podManager:         newPodManager(kClient, policy, mtu, oc),
 		localIP:            selfIP,
 		hostName:           hostname,
 		podNetworkReady:    make(chan struct{}),
@@ -211,14 +213,28 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
-	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
-	if err = nodeIPTables.Setup(); err != nil {
-		return fmt.Errorf("failed to set up iptables: %v", err)
-	}
-
 	node.localSubnetCIDR, err = node.getLocalSubnet()
 	if err != nil {
 		return err
+	}
+
+	// Wait for kubelet to init the plugin so we get a knetwork.Host
+	log.V(5).Infof("Waiting for kubelet network plugin initialization")
+	<-node.kubeletInitReady
+	// Wait for kubelet itself to finish initializing
+	kwait.PollInfinite(100*time.Millisecond,
+		func() (bool, error) {
+			if node.host.GetRuntime() == nil {
+				return false, nil
+			}
+			return true, nil
+		})
+
+	//**** After this point, all OsdnNode fields have been initialized
+
+	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	if err = nodeIPTables.Setup(); err != nil {
+		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
 
 	networkChanged, err := node.SetupSDN()
@@ -236,24 +252,8 @@ func (node *OsdnNode) Start() error {
 	}
 	go kwait.Forever(node.watchServices, 0)
 
-	// Wait for kubelet to init the plugin so we get a knetwork.Host
-	log.V(5).Infof("Waiting for kubelet network plugin initialization")
-	<-node.kubeletInitReady
-	// Wait for kubelet itself to finish initializing
-	kwait.PollInfinite(100*time.Millisecond,
-		func() (bool, error) {
-			if node.host.GetRuntime() == nil {
-				return false, nil
-			}
-			return true, nil
-		})
-
-	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
-	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu, node.oc)
-	if err != nil {
-		return err
-	}
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath); err != nil {
+	log.V(5).Infof("Starting openshift-sdn pod manager")
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.host, node.localSubnetCIDR, node.networkInfo.ClusterNetwork); err != nil {
 		return err
 	}
 

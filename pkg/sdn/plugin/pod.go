@@ -36,45 +36,39 @@ type podManager struct {
 	cniServer  *cniserver.CNIServer
 	// Request queue for pod operations incoming from the CNIServer
 	requests chan (*cniserver.PodRequest)
-	// Tracks pod :: IP address for hostport handling
+	// Tracks pod :: IP address for hostport and multicast handling
 	runningPods     map[string]*runningPod
 	runningPodsLock sync.Mutex
 
 	// Live pod setup/teardown stuff not used in testing code
-	kClient         *kclientset.Clientset
-	policy          osdnPolicy
+	kClient *kclientset.Clientset
+	policy  osdnPolicy
+	mtu     uint32
+	oc      *ovsController
+
+	// Things only accessed through the processCNIRequests() goroutine
+	// and thus can be set from Start()
 	ipamConfig      []byte
-	mtu             uint32
 	hostportHandler kubehostport.HostportHandler
 	host            knetwork.Host
-	oc              *ovsController
 }
 
 // Creates a new live podManager; used by node code
-func newPodManager(host knetwork.Host, localSubnetCIDR string, netInfo *NetworkInfo, kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, oc *ovsController) (*podManager, error) {
-	pm := newDefaultPodManager(host)
+func newPodManager(kClient *kclientset.Clientset, policy osdnPolicy, mtu uint32, oc *ovsController) *podManager {
+	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
-	pm.hostportHandler = kubehostport.NewHostportHandler()
 	pm.podHandler = pm
 	pm.oc = oc
-
-	var err error
-	pm.ipamConfig, err = getIPAMConfig(netInfo.ClusterNetwork, localSubnetCIDR)
-	if err != nil {
-		return nil, err
-	}
-
-	return pm, nil
+	return pm
 }
 
 // Creates a new basic podManager; used by testcases
-func newDefaultPodManager(host knetwork.Host) *podManager {
+func newDefaultPodManager() *podManager {
 	return &podManager{
 		runningPods: make(map[string]*runningPod),
 		requests:    make(chan *cniserver.PodRequest, 20),
-		host:        host,
 	}
 }
 
@@ -132,7 +126,15 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(socketPath string) error {
+func (m *podManager) Start(socketPath string, host knetwork.Host, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
+	m.host = host
+	m.hostportHandler = kubehostport.NewHostportHandler()
+
+	var err error
+	if m.ipamConfig, err = getIPAMConfig(clusterNetwork, localSubnetCIDR); err != nil {
+		return err
+	}
+
 	go m.processCNIRequests()
 
 	m.cniServer = cniserver.NewCNIServer(socketPath)
