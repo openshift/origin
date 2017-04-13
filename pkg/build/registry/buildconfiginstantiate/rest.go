@@ -3,6 +3,7 @@ package buildconfiginstantiate
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -224,6 +225,10 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	buildPodName := buildapi.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin: true,
+		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
+		// fixed
+		Stdout: true,
+		Stderr: true,
 	}
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {
@@ -244,6 +249,10 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	streamOptions := remotecommand.StreamOptions{
 		SupportedProtocols: kubeletremotecommand.SupportedStreamingProtocols,
 		Stdin:              r,
+		// TODO remove Stdout and Stderr once https://github.com/kubernetes/kubernetes/issues/44448 is
+		// fixed
+		Stdout: ioutil.Discard,
+		Stderr: ioutil.Discard,
 	}
 	if err := exec.Stream(streamOptions); err != nil {
 		return nil, errors.NewInternalError(err)
