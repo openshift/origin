@@ -14,7 +14,6 @@ import (
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 	"github.com/openshift/origin/pkg/util/ipcmd"
-	"github.com/openshift/origin/pkg/util/ovs"
 
 	"github.com/golang/glog"
 
@@ -193,45 +192,17 @@ func (m *podManager) ipamDel(id string) error {
 	return nil
 }
 
-func ensureOvsPort(ovsif *ovs.Interface, hostVeth string) (int, error) {
-	return ovsif.AddPort(hostVeth, -1)
-}
-
-func setupPodFlows(ovsif *ovs.Interface, ofport int, podIP, podMac string, vnid uint32) error {
-	otx := ovsif.NewTransaction()
-
-	// ARP/IP traffic from container
-	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, podMac, vnid)
-	otx.AddFlow("table=20, priority=100, in_port=%d, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, vnid)
-
-	// ARP request/response to container (not isolated)
-	otx.AddFlow("table=40, priority=100, arp, nw_dst=%s, actions=output:%d", podIP, ofport)
-
-	// IP traffic to container
-	otx.AddFlow("table=70, priority=100, ip, nw_dst=%s, actions=load:%d->NXM_NX_REG1[], load:%d->NXM_NX_REG2[], goto_table:80", podIP, vnid, ofport)
-
-	return otx.EndTransaction()
-}
-
-func setupPodBandwidth(ovsif *ovs.Interface, pod *kapi.Pod, hostVeth string) error {
-	podIngress, podEgress, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
+func setupPodBandwidth(oc *ovsController, pod *kapi.Pod, hostVeth string) error {
+	ingressVal, egressVal, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod bandwidth: %v", err)
 	}
-	if podIngress == nil && podEgress == nil {
-		return nil
-	}
 
-	var ovsIngress, ovsEgress int64
-	// note pod ingress == OVS egress and vice versa, and OVS ingress is in Kbps
-	if podIngress != nil {
-		ovsEgress = podIngress.Value()
-	}
-	if podEgress != nil {
-		ovsIngress = podEgress.Value() / 1024
-	}
+	ingressBPS := int64(-1)
+	egressBPS := int64(-1)
+	if ingressVal != nil {
+		ingressBPS = ingressVal.Value()
 
-	if ovsEgress > 0 {
 		// FIXME: doesn't seem possible to do this with the netlink library?
 		itx := ipcmd.NewTransaction(kexec.New(), hostVeth)
 		itx.SetLink("qlen", "1000")
@@ -239,45 +210,12 @@ func setupPodBandwidth(ovsif *ovs.Interface, pod *kapi.Pod, hostVeth string) err
 		if err != nil {
 			return err
 		}
-
-		qos, err := ovsif.Create("qos", "type=linux-htb", fmt.Sprintf("other-config:max-rate=%d", ovsEgress))
-		if err != nil {
-			return err
-		}
-		err = ovsif.Set("port", hostVeth, fmt.Sprintf("qos=%s", qos))
-		if err != nil {
-			return err
-		}
 	}
-	if ovsIngress > 0 {
-		err := ovsif.Set("interface", hostVeth, fmt.Sprintf("ingress_policing_rate=%d", ovsIngress))
-		if err != nil {
-			return err
-		}
+	if egressVal != nil {
+		egressBPS = egressVal.Value()
 	}
 
-	return nil
-}
-
-func cleanupPodFlows(ovsif *ovs.Interface, podIP string) error {
-	otx := ovsif.NewTransaction()
-	otx.DeleteFlows("ip, nw_dst=%s", podIP)
-	otx.DeleteFlows("ip, nw_src=%s", podIP)
-	otx.DeleteFlows("arp, nw_dst=%s", podIP)
-	otx.DeleteFlows("arp, nw_src=%s", podIP)
-	return otx.EndTransaction()
-}
-
-func cleanupPodBandwidth(ovsif *ovs.Interface, hostVeth string) error {
-	qos, err := ovsif.Get("port", hostVeth, "qos")
-	if err != nil || qos == "[]" {
-		return err
-	}
-	err = ovsif.Clear("port", hostVeth, "qos")
-	if err != nil {
-		return err
-	}
-	return ovsif.Destroy("qos", qos)
+	return oc.SetPodBandwidth(hostVeth, ingressBPS, egressBPS)
 }
 
 func vnidToString(vnid uint32) string {
@@ -454,14 +392,11 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	ofport, err := ensureOvsPort(m.ovs, hostVethName)
+	ofport, err := m.oc.SetUpPod(hostVethName, podIP.String(), contVethMac, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := setupPodFlows(m.ovs, ofport, podIP.String(), contVethMac, vnid); err != nil {
-		return nil, nil, err
-	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+	if err := setupPodBandwidth(m.oc, pod, hostVethName); err != nil {
 		return nil, nil, err
 	}
 
@@ -505,20 +440,10 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		return 0, err
 	}
 
-	ofport, err := ensureOvsPort(m.ovs, hostVethName)
-	if err != nil {
+	if err := m.oc.UpdatePod(hostVethName, podIP, contVethMac, vnid); err != nil {
 		return 0, err
 	}
-	if err := cleanupPodFlows(m.ovs, podIP); err != nil {
-		return 0, err
-	}
-	if err := setupPodFlows(m.ovs, ofport, podIP, contVethMac, vnid); err != nil {
-		return 0, err
-	}
-	if err := cleanupPodBandwidth(m.ovs, hostVethName); err != nil {
-		return 0, err
-	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+	if err := setupPodBandwidth(m.oc, pod, hostVethName); err != nil {
 		return 0, err
 	}
 
@@ -543,16 +468,9 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 			return err
 		}
 
-		if err := cleanupPodFlows(m.ovs, podIP); err != nil {
+		if err := m.oc.TearDownPod(hostVethName, podIP); err != nil {
 			errList = append(errList, err)
 		}
-		if err := cleanupPodBandwidth(m.ovs, hostVethName); err != nil {
-			errList = append(errList, err)
-		}
-		if err := m.ovs.DeletePort(hostVethName); err != nil {
-			errList = append(errList, err)
-		}
-
 		if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
 			m.policy.UnrefVNID(vnid)
 		}

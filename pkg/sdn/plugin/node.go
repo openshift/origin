@@ -50,7 +50,7 @@ type OsdnNode struct {
 	policy             osdnPolicy
 	kClient            *kclientset.Clientset
 	osClient           *osclient.Client
-	ovs                *ovs.Interface
+	oc                 *ovsController
 	networkInfo        *NetworkInfo
 	podManager         *podManager
 	localSubnetCIDR    string
@@ -71,14 +71,18 @@ type OsdnNode struct {
 // Called by higher layers to create the plugin SDN node instance
 func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
 	var policy osdnPolicy
+	var pluginId int
 	var minOvsVersion string
 	switch strings.ToLower(pluginName) {
 	case osapi.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
+		pluginId = 0
 	case osapi.MultiTenantPluginName:
 		policy = NewMultiTenantPlugin()
+		pluginId = 1
 	case osapi.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
+		pluginId = 2
 		minOvsVersion = "2.5.0"
 	default:
 		// Not an OpenShift plugin
@@ -118,7 +122,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		policy:             policy,
 		kClient:            kClient,
 		osClient:           osClient,
-		ovs:                ovsif,
+		oc:                 NewOVSController(ovsif, pluginId),
 		localIP:            selfIP,
 		hostName:           hostname,
 		podNetworkReady:    make(chan struct{}),
@@ -239,7 +243,7 @@ func (node *OsdnNode) Start() error {
 		})
 
 	log.V(5).Infof("Creating and initializing openshift-sdn pod manager")
-	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu, node.ovs)
+	node.podManager, err = newPodManager(node.host, node.localSubnetCIDR, node.networkInfo, node.kClient, node.policy, node.mtu, node.oc)
 	if err != nil {
 		return err
 	}

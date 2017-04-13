@@ -3,6 +3,7 @@ package delegated
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -62,6 +63,11 @@ func (r *REST) NewList() runtime.Object {
 
 var _ = rest.Creater(&REST{})
 
+var (
+	forbiddenNames    = []string{"openshift", "kubernetes", "kube"}
+	forbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
+)
+
 func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
 
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
@@ -69,6 +75,16 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	projectRequest := obj.(*projectapi.ProjectRequest)
+	for _, s := range forbiddenNames {
+		if projectRequest.Name == s {
+			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
+		}
+	}
+	for _, s := range forbiddenPrefixes {
+		if strings.HasPrefix(projectRequest.Name, s) {
+			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
+		}
+	}
 
 	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name); err == nil {
 		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
