@@ -124,6 +124,10 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
 
+	// disable anonymous authentication
+	// NOTE: this is only to get rid of the "AnonymousAuth is not allowed with the AllowAll authorizer"
+	// warning. We do not use the authenticator or authorizer created by this.
+	server.Authentication.Anonymous.Allow = false
 	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
 	if masterConfig.AuthConfig.RequestHeader == nil {
 		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{}
