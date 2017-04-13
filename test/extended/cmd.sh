@@ -183,7 +183,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "extended/cmd/oc-on-kube"
 os::cmd::expect_success "oc login -u system:admin -n default"
-os::cmd::expect_success "oc new-project kube"
+os::cmd::expect_success "oc new-project kubeapi"
 os::cmd::expect_success "oc create -f test/testdata/kubernetes-server/apiserver.yaml"
 os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.conditions[?(@.type == "Ready")].status}'" "True"
 os::cmd::try_until_text "oc get pods/kube-apiserver -o 'jsonpath={.status.podIP}'" "172"
