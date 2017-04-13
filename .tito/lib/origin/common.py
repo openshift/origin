@@ -44,7 +44,7 @@ def get_os_git_vars():
     git_vars["OS_GIT_VERSION"] = git_vars["OS_GIT_VERSION"].split('-')[0].split('+')[0]
     # Buildtime variables required to change origin to atomic-openshift
     git_vars["OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS"] = "rhel7"
-    git_vars["OS_IMAGE_PREFIX"] = "openshift3/ose"
+    git_vars["OS_IMAGE_PREFIX"] = "registry.access.redhat.com/openshift3/ose"
     return git_vars
 
 
