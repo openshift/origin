@@ -426,7 +426,7 @@ function os::build::archive_tar() {
   if [[ -n "$(which bsdtar)" ]]; then
     bsdtar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -s ",^\.,${base_name}," $@
   else
-    tar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
+    tar -czf --xattrs-exclude='LIBARCHIVE.xattr.security.selinux' "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
   fi
   popd &>/dev/null
 }
