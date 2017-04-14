@@ -225,7 +225,6 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
 		infos, err = resource.NewBuilder(mapper, typer, clientMappingFn, kapi.Codecs.UniversalDecoder()).
-			NamespaceParam(namespace).RequireNamespace().
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
 			Infos()

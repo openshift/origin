@@ -403,7 +403,7 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 
 	a := AppConfig{}
 	a.Out = &bytes.Buffer{}
-	group, err := a.buildPipelines(refs, app.Environment{})
+	group, err := a.buildPipelines(refs, app.Environment{}, app.Environment{})
 	if err != nil {
 		t.Error(err)
 	}
