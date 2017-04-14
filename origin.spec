@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9c6e4f402e066e4f1d55bcd41f8a9469c8c0c3a9
+%global commit ee00deebfda4a1efd142f3a21681b53b1cc33b63
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.28 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=9c6e4f4
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.29 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=ee00dee
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.29
+Version:        3.6.30
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,16 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri Apr 14 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.30-1
+- bump(github.com/openshift/origin-web-console):
+  dc92a52a0a1e672266a755b39606a8c2695bd1d5 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8f396125d34834f9537bd3247f599b901b9ece2b (dmcphers+openshiftbot@redhat.com)
+- don't read buildenv from stdin twice (bparees@redhat.com)
+- Ignore SELinux attributes when creating release tarball (skuznets@redhat.com)
+- Changelog generation not handling versions correctly (ccoleman@redhat.com)
+- ignore namespace when processing templates (bparees@redhat.com)
+
 * Thu Apr 13 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.29-1
 - bump(github.com/openshift/origin-web-console):
   dd72cfb1df52ff444913da6a2fe21f4db25fc317 (dmcphers+openshiftbot@redhat.com)
