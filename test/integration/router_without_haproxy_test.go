@@ -151,7 +151,7 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 	// Create the routers
 	for i := int32(0); i < routerCount; i++ {
 		routerName := fmt.Sprintf("router_%d", i)
-		router := launchRateLimitedRouter(oc, kc, routerName, maxRouterDelay, reloadInterval, reloadedMap)
+		router := launchRateLimitedRouter(t, oc, kc, routerName, maxRouterDelay, reloadInterval, reloadedMap)
 		plugins = append(plugins, router)
 	}
 
@@ -187,12 +187,12 @@ func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount,
 		}
 	}
 
-	for _, reloadCount := range reloadedMap {
+	for routerName, reloadCount := range reloadedMap {
 		if reloadCount > 1 {
 			// If a router reloads more than once, post-sync watch
 			// events resulting from route status updates are
 			// incorrectly updating router state.
-			t.Fatalf("One or more routers reloaded more than once")
+			t.Fatalf("One or more routers reloaded more than once (%s reloaded %d times)", routerName, reloadCount)
 		}
 	}
 
@@ -354,10 +354,11 @@ func (p *DelayPlugin) Commit() error {
 
 // launchRateLimitedRouter launches a rate-limited template router
 // that communicates with the api via the provided clients.
-func launchRateLimitedRouter(oc osclient.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval int, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
+func launchRateLimitedRouter(t *testing.T, oc osclient.Interface, kc kclientset.Interface, name string, maxDelay int32, reloadInterval int, reloadedMap map[string]int) *templateplugin.TemplatePlugin {
 	reloadedMap[name] = 0
 	rateLimitingFunc := func() error {
 		reloadedMap[name] += 1
+		t.Logf("Router %s reloaded (%d times)\n", name, reloadedMap[name])
 		return nil
 	}
 	var plugin router.Plugin
@@ -376,7 +377,11 @@ func launchRateLimitedRouter(oc osclient.Interface, kc kclientset.Interface, nam
 
 func initializeRouterPlugins(oc osclient.Interface, name string, reloadInterval int, rateLimitingFunc ratelimiter.HandlerFunc) (*templateplugin.TemplatePlugin, router.Plugin) {
 	r := templateplugin.NewFakeTemplateRouter()
-	r.EnableRateLimiter(reloadInterval, rateLimitingFunc)
+
+	r.EnableRateLimiter(reloadInterval, func() error {
+		r.FakeReloadHandler()
+		return rateLimitingFunc()
+	})
 
 	templatePlugin := &templateplugin.TemplatePlugin{Router: r}
 	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, name, "")
