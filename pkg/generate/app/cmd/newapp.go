@@ -355,7 +355,7 @@ func validateOutputImageReference(ref string) error {
 }
 
 // buildPipelines converts a set of resolved, valid references into pipelines.
-func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment) (app.PipelineGroup, error) {
+func (c *AppConfig) buildPipelines(components app.ComponentReferences, environment app.Environment, buildEnvironment app.Environment) (app.PipelineGroup, error) {
 	pipelines := app.PipelineGroup{}
 
 	buildArgs, err := cmdutil.ParseBuildArg(c.BuildArgs, c.In)
@@ -372,7 +372,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 	numDockerBuilds := 0
 
-	pipelineBuilder := app.NewPipelineBuilder(c.Name, c.GetBuildEnvironment(), DockerStrategyOptions, c.OutputDocker).To(c.To)
+	pipelineBuilder := app.NewPipelineBuilder(c.Name, buildEnvironment, DockerStrategyOptions, c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
 		glog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}
@@ -723,7 +723,8 @@ func (c *AppConfig) validate() (app.Environment, app.Environment, app.Environmen
 
 // Run executes the provided config to generate objects.
 func (c *AppConfig) Run() (*AppResult, error) {
-	env, _, parameters, err := c.validate()
+	env, buildenv, parameters, err := c.validate()
+
 	if err != nil {
 		return nil, err
 	}
@@ -784,7 +785,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}, nil
 	}
 
-	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env)
+	pipelines, err := c.buildPipelines(components.ImageComponentRefs(), env, buildenv)
 	if err != nil {
 		return nil, err
 	}
@@ -1047,12 +1048,6 @@ func (c *AppConfig) HasArguments() bool {
 		len(c.DockerImages) > 0 ||
 		len(c.Templates) > 0 ||
 		len(c.TemplateFiles) > 0
-}
-
-func (c *AppConfig) GetBuildEnvironment() app.Environment {
-	_, buildEnv, _, _ := c.validate()
-	return buildEnv
-
 }
 
 func optionallyValidateExposedPorts(config *AppConfig, repositories app.SourceRepositories) error {
