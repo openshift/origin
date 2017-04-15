@@ -385,9 +385,9 @@ func (r *templateRouter) readState() error {
 // Commit applies the changes made to the router configuration - persists
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
+// Note: If this is changed FakeCommit() in fake.go should also be updated
 func (r *templateRouter) Commit() {
 	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	if !r.synced {
 		glog.V(4).Infof("Router state synchronized for the first time")
@@ -395,9 +395,11 @@ func (r *templateRouter) Commit() {
 		r.stateChanged = true
 	}
 
-	if r.stateChanged {
+	needsCommit := r.stateChanged
+	r.lock.Unlock()
+
+	if needsCommit {
 		r.rateLimitedCommitFunction.Invoke(r.rateLimitedCommitFunction)
-		r.stateChanged = false
 	}
 }
 
@@ -412,6 +414,8 @@ func (r *templateRouter) commitAndReload() error {
 		if err := r.writeState(); err != nil {
 			return err
 		}
+
+		r.stateChanged = false
 
 		glog.V(4).Infof("Writing the router config")
 		reloadStart := time.Now()
