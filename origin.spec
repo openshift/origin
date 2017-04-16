@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f9f20405b8060ef67b08efc60e61bd490d7df97a
+%global commit 11ac2532f1f25048eeaff035e74a61707ef420a4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.30 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=f9f2040
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.31 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=11ac253
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.31
+Version:        3.6.32
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -590,6 +590,9 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sun Apr 16 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.32-1
+- Fix service IP validation to handle "ClusterIP: None" (danw@redhat.com)
+
 * Sat Apr 15 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.31-1
 - Prevent the router from deadlocking itself when calling Commit()
   (bbennett@redhat.com)
