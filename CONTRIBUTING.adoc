@@ -53,12 +53,12 @@ The exact version requirement is documented https://docs.openshift.org/latest/in
 2. Next, create a Go workspace directory: +
 +
 ----
-$ mkdir $HOME/go
+$ mkdir $HOME/goworkspace
 ----
 3. In your `.bashrc` file or `.bash_profile` file, set a GOPATH and update your PATH: +
 +
 ----
-export GOPATH=$HOME/go
+export GOPATH=$HOME/goworkspace
 export PATH=$PATH:$GOPATH/bin
 export OS_OUTPUT_GOPATH=1
 ----
