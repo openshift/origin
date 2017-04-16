@@ -1,0 +1,46 @@
+{
+  "kind": "Config",
+  "id": "docker-registry",
+  "name": "docker-registry",
+  "apiVersion": "v1beta1",
+  "description": "This example runs docker registry inside openshift origin v3",
+  "items": [
+    {
+      "kind": "Service",
+      "id": "frontend",
+      "apiVersion": "v1beta1",
+      "port": 5000,
+      "selector": {"name": "frontend"},
+    },
+    {
+      "kind": "ReplicationController",
+      "id": "frontendController",
+      "apiVersion": "v1beta1",
+      "desiredState": {
+        "replicas": 1,
+        "replicaSelector": {"name": "frontend"},
+        "podTemplate": {
+          "desiredState": {
+            "manifest": {
+              "id": "frontendController",
+              "version": "v1beta1",
+              "containers": [{
+                  "name": "registry",
+                  "image": "registry",
+                  "ports": [{"containerPort": 5000, "protocol": "TCP"}],
+                  "volumeMounts": [{"name": "docker-registry-directory", "mountPath": "/tmp"}]
+              }],
+              "volumes": [{
+                  "name": "docker-registry-directory",
+                  "source": {"hostDir": {"path": "/tmp/docker"}}
+              }]
+            },
+          },
+          "labels": {"name": "frontend"}
+        }
+      },
+      "labels": {"name": "frontend"}
+    }
+  ]
+}
+
