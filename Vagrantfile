@@ -63,8 +63,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     "hostmanager_enabled" => false,
     "hostmanager_aliases" => [],
     "virtualbox"        => {
-      "box_name" => "fedora_inst",
-      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_inst.box"
+      "box_name" => "fedora_deps",
+      "box_url" => "https://mirror.openshift.com/pub/vagrant/boxes/openshift3/fedora_virtualbox_deps.box"
     },
     "vmware"            => {
       "box_name" => "fedora_inst",
