@@ -487,7 +487,9 @@ type ImageSource struct {
 // ImageSourcePath describes a path to be copied from a source image and its destination within the build directory.
 type ImageSourcePath struct {
 	// SourcePath is the absolute path of the file or directory inside the image to
-	// copy to the build directory.
+	// copy to the build directory.  If the source path ends in /. then the content of
+	// the directory will be copied, but the directory itself will not be created at the
+	// destination.
 	SourcePath string
 
 	// DestinationDir is the relative directory within the build directory

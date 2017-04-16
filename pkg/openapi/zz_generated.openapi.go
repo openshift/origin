@@ -14239,7 +14239,7 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 				Properties: map[string]spec.Schema{
 					"sourcePath": {
 						SchemaProps: spec.SchemaProps{
-							Description: "sourcePath is the absolute path of the file or directory inside the image to copy to the build directory.",
+							Description: "sourcePath is the absolute path of the file or directory inside the image to copy to the build directory.  If the source path ends in /. then the content of the directory will be copied, but the directory itself will not be created at the destination.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
