@@ -308,6 +308,8 @@ func autoConvert_v1_BuildConfigSpec_To_api_BuildConfigSpec(in *BuildConfigSpec, 
 	if err := Convert_v1_CommonSpec_To_api_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
+	out.SuccessfulBuildsHistoryLimit = (*int32)(unsafe.Pointer(in.SuccessfulBuildsHistoryLimit))
+	out.FailedBuildsHistoryLimit = (*int32)(unsafe.Pointer(in.FailedBuildsHistoryLimit))
 	return nil
 }
 
@@ -331,6 +333,8 @@ func autoConvert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *api.BuildConfigSp
 	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
 		return err
 	}
+	out.SuccessfulBuildsHistoryLimit = (*int32)(unsafe.Pointer(in.SuccessfulBuildsHistoryLimit))
+	out.FailedBuildsHistoryLimit = (*int32)(unsafe.Pointer(in.FailedBuildsHistoryLimit))
 	return nil
 }
 

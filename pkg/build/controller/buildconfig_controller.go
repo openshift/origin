@@ -12,6 +12,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildutil "github.com/openshift/origin/pkg/build/controller/common"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 )
 
@@ -35,13 +36,19 @@ func IsFatal(err error) bool {
 
 type BuildConfigController struct {
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-
+	BuildConfigGetter       buildclient.BuildConfigGetter
+	BuildLister             buildclient.BuildLister
+	BuildDeleter            buildclient.BuildDeleter
 	// recorder is used to record events.
 	Recorder record.EventRecorder
 }
 
 func (c *BuildConfigController) HandleBuildConfig(bc *buildapi.BuildConfig) error {
 	glog.V(4).Infof("Handling BuildConfig %s/%s", bc.Namespace, bc.Name)
+
+	if err := buildutil.HandleBuildPruning(bc.Name, bc.Namespace, c.BuildLister, c.BuildConfigGetter, c.BuildDeleter); err != nil {
+		utilruntime.HandleError(err)
+	}
 
 	hasChangeTrigger := buildapi.HasTriggerType(buildapi.ConfigChangeBuildTriggerType, bc)
 

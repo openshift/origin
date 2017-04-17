@@ -111,6 +111,14 @@ message BuildConfigSpec {
 
   // CommonSpec is the desired build specification
   optional CommonSpec commonSpec = 3;
+
+  // successfulBuildsHistoryLimit is the number of old successful builds to retain.
+  // If not specified, all successful builds are retained.
+  optional int32 successfulBuildsHistoryLimit = 4;
+
+  // failedBuildsHistoryLimit is the number of old failed builds to retain.
+  // If not specified, all failed builds are retained.
+  optional int32 failedBuildsHistoryLimit = 5;
 }
 
 // BuildConfigStatus contains current state of the build config object.

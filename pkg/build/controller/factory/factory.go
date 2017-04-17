@@ -76,6 +76,8 @@ type BuildControllerFactory struct {
 	ExternalKubeClient  kclientsetexternal.Interface
 	BuildUpdater        buildclient.BuildUpdater
 	BuildLister         buildclient.BuildLister
+	BuildConfigGetter   buildclient.BuildConfigGetter
+	BuildDeleter        buildclient.BuildDeleter
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -98,6 +100,8 @@ func (factory *BuildControllerFactory) Create() controller.RunnableController {
 	buildController := &buildcontroller.BuildController{
 		BuildUpdater:      factory.BuildUpdater,
 		BuildLister:       factory.BuildLister,
+		BuildConfigGetter: factory.BuildConfigGetter,
+		BuildDeleter:      factory.BuildDeleter,
 		ImageStreamClient: client,
 		PodManager:        client,
 		RunPolicies:       policy.GetAllRunPolicies(factory.BuildLister, factory.BuildUpdater),
@@ -271,6 +275,9 @@ type BuildConfigControllerFactory struct {
 	KubeClient              kclientset.Interface
 	ExternalKubeClient      kclientsetexternal.Interface
 	BuildConfigInstantiator buildclient.BuildConfigInstantiator
+	BuildConfigGetter       buildclient.BuildConfigGetter
+	BuildLister             buildclient.BuildLister
+	BuildDeleter            buildclient.BuildDeleter
 	// Stop may be set to allow controllers created by this factory to be terminated.
 	Stop <-chan struct{}
 }
@@ -285,6 +292,9 @@ func (factory *BuildConfigControllerFactory) Create() controller.RunnableControl
 
 	bcController := &buildcontroller.BuildConfigController{
 		BuildConfigInstantiator: factory.BuildConfigInstantiator,
+		BuildConfigGetter:       factory.BuildConfigGetter,
+		BuildLister:             factory.BuildLister,
+		BuildDeleter:            factory.BuildDeleter,
 		Recorder:                eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "build-config-controller"}),
 	}
 

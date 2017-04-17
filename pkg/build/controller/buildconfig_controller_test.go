@@ -46,6 +46,9 @@ func TestHandleBuildConfig(t *testing.T) {
 		}
 		controller := &BuildConfigController{
 			BuildConfigInstantiator: instantiator,
+			BuildLister:             &okBuildLister{},
+			BuildDeleter:            &okBuildDeleter{},
+			BuildConfigGetter:       &okBuildConfigGetter{BuildConfig: tc.bc},
 			Recorder:                &record.FakeRecorder{},
 		}
 		err := controller.HandleBuildConfig(tc.bc)

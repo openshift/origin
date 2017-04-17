@@ -23359,6 +23359,16 @@
      "nodeSelector": {
       "type": "object",
       "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored."
+     },
+     "successfulBuildsHistoryLimit": {
+      "type": "integer",
+      "format": "int32",
+      "description": "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained."
+     },
+     "failedBuildsHistoryLimit": {
+      "type": "integer",
+      "format": "int32",
+      "description": "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained."
      }
     }
    },
