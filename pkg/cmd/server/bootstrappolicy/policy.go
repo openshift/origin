@@ -283,6 +283,9 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		{
 			ObjectMeta: kapi.ObjectMeta{
 				Name: StorageAdminRoleName,
+				Annotations: map[string]string{
+					roleSystemOnly: roleIsSystemOnly,
+				},
 			},
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule(readWrite...).Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),

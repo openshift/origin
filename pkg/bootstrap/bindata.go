@@ -11869,6 +11869,8 @@ items:
   - apiVersion: v1
     kind: ClusterRole
     metadata:
+      annotations:
+        authorization.openshift.io/system-only: "true"
       name: oauth-editor
     rules:
     - resources:
@@ -11879,6 +11881,8 @@ items:
   - apiVersion: v1
     kind: ClusterRole
     metadata:
+      annotations:
+        authorization.openshift.io/system-only: "true"
       name: daemonset-admin
     rules:
     - resources:
