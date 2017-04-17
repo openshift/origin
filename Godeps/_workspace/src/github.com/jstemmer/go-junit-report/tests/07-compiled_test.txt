@@ -1,0 +1,5 @@
+=== RUN TestOne
+--- PASS: TestOne (0.06s)
+=== RUN TestTwo
+--- PASS: TestTwo (0.10s)
+PASS

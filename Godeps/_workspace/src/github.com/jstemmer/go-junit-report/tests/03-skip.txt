@@ -1,0 +1,7 @@
+=== RUN TestOne
+--- SKIP: TestOne (0.02 seconds)
+	file_test.go:11: Skip message
+=== RUN TestTwo
+--- PASS: TestTwo (0.13 seconds)
+PASS
+ok	package/name 0.150s
