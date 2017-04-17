@@ -112,6 +112,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
         $ ./pullimages.sh
 
+    Note: sudo may be required if you experience "Cannot connect to the Docker daemon. Is the docker daemon running on this host?".
 
 2. Launch an all-in-one `openshift` instance
 
