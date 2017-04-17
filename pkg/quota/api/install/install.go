@@ -45,6 +45,8 @@ func init() {
 		glog.V(4).Infof("%v", err)
 		return
 	}
+
+	installApiGroup()
 }
 
 // TODO: enableVersions should be centralized rather than spread in each API

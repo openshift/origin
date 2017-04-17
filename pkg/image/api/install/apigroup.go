@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/image/api/v1"
 )
 
-func init() {
+func installApiGroup() {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName: api.GroupName,
