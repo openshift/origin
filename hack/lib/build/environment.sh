@@ -127,9 +127,20 @@ function os::build::environment::start() {
         mkdir -p "${parent}"
       fi
       os::log::debug "Copying from ${container}:${workingdir}/${path} to ${parent}"
-      if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
-        os::log::warning "Copying ${path} from the container failed!"
-        os::log::warning "${output}"
+      if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_VOLUME-}" ]]; then
+        os::log::debug "Extracting using \`rsync\`"
+        if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" "${container}:${workingdir}/${path}" "${parent}"; then
+          os::log::debug "Falling back to \`docker cp\` as \`rsync\` is not in container"
+          if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
+            os::log::warning "Copying ${path} from the container failed!"
+            os::log::warning "${output}"
+          fi
+        fi
+      else
+        if ! output="$( docker cp "${container}:${workingdir}/${path}" "${parent}" 2>&1 )"; then
+          os::log::warning "Copying ${path} from the container failed!"
+          os::log::warning "${output}"
+        fi
       fi
     done
     IFS="${oldIFS}"
