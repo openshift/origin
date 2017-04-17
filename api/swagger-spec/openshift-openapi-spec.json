@@ -71489,7 +71489,7 @@
       "type": "string"
      },
      "sourcePath": {
-      "description": "sourcePath is the absolute path of the file or directory inside the image to copy to the build directory.",
+      "description": "sourcePath is the absolute path of the file or directory inside the image to copy to the build directory.  If the source path ends in /. then the content of the directory will be copied, but the directory itself will not be created at the destination.",
       "type": "string"
      }
     }
