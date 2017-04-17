@@ -16,6 +16,13 @@ else
 	make_redistributable=1
 fi
 
+# Add additional --rpmbuild-options to tito
+if [ -z "${RPM_BUILD_OPTS}" ]; then
+    RPM_BUILD_OPTS="--define 'make_redistributable ${make_redistributable}'"
+else
+    RPM_BUILD_OPTS="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS}"
+fi
+
 os::log::info 'Building Origin release RPMs with tito...'
 os::build::rpm::get_nvra_vars
 tito tag --use-version="${OS_RPM_VERSION}" \
@@ -24,7 +31,7 @@ tito tag --use-version="${OS_RPM_VERSION}" \
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+           --rpmbuild-options="${RPM_BUILD_OPTS}"
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
