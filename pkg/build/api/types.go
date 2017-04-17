@@ -82,6 +82,10 @@ const (
 	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
 )
 
+// WhitelistEnvVarNames is a list of environment variable keys that are allowed to be set by the
+// user on the build pod.
+var WhitelistEnvVarNames = [2]string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
+
 // +genclient=true
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as

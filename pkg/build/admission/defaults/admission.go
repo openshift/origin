@@ -8,6 +8,7 @@ import (
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -71,6 +72,8 @@ func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
 	for k, v := range b.config.Annotations {
 		addDefaultAnnotations(k, v, pod.Annotations)
 	}
+	podEnv := &pod.Spec.Containers[0].Env
+	util.MergeTrustedEnvWithoutDuplicates(b.config.Env, podEnv, false)
 }
 
 func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {

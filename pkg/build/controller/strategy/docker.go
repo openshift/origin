@@ -7,6 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 // DockerBuildStrategy creates a Docker build using a Docker builder image.
@@ -37,7 +38,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
-		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
+		util.MergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv, true)
 	}
 
 	pod := &kapi.Pod{
