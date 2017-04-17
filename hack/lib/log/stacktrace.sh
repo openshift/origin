@@ -54,6 +54,12 @@ function os::log::stacktrace::print() {
         return 0
     fi
 
+    # dump the entire stack for debugging purposes
+    os::log::debug "$( os::util::repository_relative_path "${BASH_SOURCE[0]}:${LINENO}: ${BASH_COMMAND}" )"
+    for (( i = 0; i < ${#BASH_LINENO[@]}; i++ )); do
+        os::log::debug "$( os::util::repository_relative_path "${BASH_SOURCE[$i+1]:-"$( os::util::repository_relative_path "$0" )"}" ):${BASH_LINENO[$i]}: ${FUNCNAME[$i]}"
+    done
+
     # iterate backwards through the stack until we leave library files, so we can be sure we start logging
     # actual script code and not this handler's call
     local stack_begin_index
