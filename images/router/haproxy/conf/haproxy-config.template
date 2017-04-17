@@ -17,6 +17,11 @@ global
   stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin
   stats timeout 2m
 
+  # Increase the default request size to be comparable to modern cloud load balancers (ALB: 64kb), affects
+  # total memory use when large numbers of connections are open.
+  tune.maxrewrite 8192
+  tune.bufsize 32768
+
   # Prevent vulnerability to POODLE attacks
   # TODO: use when 1.5.14 is available
   # ssl-default-bind-options no-sslv3
