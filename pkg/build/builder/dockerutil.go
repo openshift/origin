@@ -98,7 +98,7 @@ func RetryImageAction(client DockerClient, opts interface{}, authConfig docker.A
 		time.Sleep(DefaultPushOrPullRetryDelay)
 	}
 
-	return fmt.Errorf("After retrying %d times, %s image still failed", DefaultPushOrPullRetryDelay, actionName)
+	return fmt.Errorf("After retrying %d times, %s image still failed", DefaultPushOrPullRetryCount, actionName)
 }
 
 func pullImage(client DockerClient, name string, authConfig docker.AuthConfiguration) error {
