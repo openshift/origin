@@ -1,0 +1,8 @@
+>>>> BEGIN PACKAGE: /test/package/title <<<<
+>>>> BEGIN PACKAGE: /test/package/other <<<<
+>>>> END PACKAGE <<<<
+>>>> END PACKAGE <<<<
+>>>> BEGIN PACKAGE: /test/package/third <<<<
+>>>> BEGIN PACKAGE: /test/package/different <<<<
+>>>> END PACKAGE <<<<
+>>>> END PACKAGE <<<<

@@ -1,0 +1,7 @@
+>>>> BEGIN PACKAGE: /test/package/title <<<<
+==== BEGIN TEST AT /test/package/test.sh:10: func 'arg' 'arg' ====
+output line 1
+output line 2
+output line 3
+==== END TEST: PASS AFTER 3.3333333 MILLISECONDS ====
+>>>> END PACKAGE <<<<

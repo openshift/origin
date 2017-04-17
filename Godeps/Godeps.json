@@ -6764,6 +6764,10 @@
 			"Comment": "v1.5.2-47-g43a9be4",
 			"Rev": "43a9be421799afb8a9c02d3541212a6e623c9053"
 		},
+ 		{
+			"ImportPath": "github.com/jstemmer/go-junit-report",
+			"Rev": "c7bb460f297b44059c52554e382d41e7b27fd1ca"
+		},
 		{
 			"ImportPath": "k8s.io/kubernetes/pkg/util/flock",
 			"Comment": "v1.5.2-47-g43a9be4",

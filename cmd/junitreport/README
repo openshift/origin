@@ -1,0 +1,26 @@
+# jUnit Report
+
+The jUnit Report binary is able to parse OpenShift Origin `test-cmd` test output and convert it into jUnit XML. This package is based on work by Joel Stemmer at [`go-junit-report`](https://github.com/jstemmer/go-junit-report).
+
+## Installation
+
+The `junitreport` binary can be built with:
+
+```sh
+$ hack/build-go.sh cmd/junitreport
+````
+
+## Usage
+
+`junitreport` expects the input file to be given directly:
+
+```sh
+$ JUNIT_OUTPUT=1 hack/test-cmd.sh | junitreporter > report.xml
+```
+
+or passed in as an argument:
+
+```sh
+$ JUNIT_OUTPUT=1 hack/test-cmd.sh > /tmp/artifact.txt
+$ junitreporter -f /tmp/artifact.txt > report.xml
+```
