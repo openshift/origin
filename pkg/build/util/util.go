@@ -162,3 +162,45 @@ func BuildDeepCopy(build *buildapi.Build) (*buildapi.Build, error) {
 	}
 	return copied, nil
 }
+
+// MergeTrustedEnvWithoutDuplicates merges two environment lists without having
+// duplicate items in the output list.  The source list will be filtered
+// such that only whitelisted environment variables are merged into the
+// output list.  If sourcePrecedence is true, keys in the source list
+// will override keys in the output list.
+func MergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar, sourcePrecedence bool) {
+	// filter out all environment variables except trusted/well known
+	// values, because we do not want random environment variables being
+	// fed into the privileged STI container via the BuildConfig definition.
+	type sourceMapItem struct {
+		index int
+		value string
+	}
+
+	index := 0
+	filteredSourceMap := make(map[string]sourceMapItem)
+	filteredSource := []kapi.EnvVar{}
+	for _, env := range source {
+		for _, acceptable := range buildapi.WhitelistEnvVarNames {
+			if env.Name == acceptable {
+				filteredSource = append(filteredSource, env)
+				filteredSourceMap[env.Name] = sourceMapItem{index, env.Value}
+				index++
+				break
+			}
+		}
+	}
+
+	result := *output
+	for i, env := range result {
+		// If the value exists in output, override it and remove it
+		// from the source list
+		if v, found := filteredSourceMap[env.Name]; found {
+			if sourcePrecedence {
+				result[i].Value = v.value
+			}
+			filteredSource = append(filteredSource[:v.index], filteredSource[v.index+1:]...)
+		}
+	}
+	*output = append(result, filteredSource...)
+}
