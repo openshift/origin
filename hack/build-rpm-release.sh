@@ -17,7 +17,7 @@ else
 fi
 
 # Add additional --rpmbuild-options to tito
-if [ -z "${RPM_BUILD_OPTS}" ]; then
+if [ -z "${RPM_BUILD_OPTS:=}" ]; then
     RPM_BUILD_OPTS="--define 'make_redistributable ${make_redistributable}'"
 else
     RPM_BUILD_OPTS="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS}"
