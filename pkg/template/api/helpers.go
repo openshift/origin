@@ -17,21 +17,27 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 			return errors.New("cannot add a nil object to a template")
 		}
 
-		kind, _, err := kapi.Scheme.ObjectKind(obj)
+		// We currently add legacy types first to the scheme, followed by the types in the new api
+		// groups. We have to check all ObjectKinds and not just use the first one returned by
+		// ObjectKind().
+		gvks, _, err := kapi.Scheme.ObjectKinds(obj)
 		if err != nil {
 			return err
 		}
 
 		var targetVersion *unversioned.GroupVersion
+	outerLoop:
 		for j := range targetVersions {
 			possibleVersion := targetVersions[j]
-			if kind.Group == possibleVersion.Group {
-				targetVersion = &possibleVersion
-				break
+			for _, kind := range gvks {
+				if kind.Group == possibleVersion.Group {
+					targetVersion = &possibleVersion
+					break outerLoop
+				}
 			}
 		}
 		if targetVersion == nil {
-			return fmt.Errorf("no target version found for object[%d], kind %v in %v", i, kind, targetVersions)
+			return fmt.Errorf("no target version found for object[%d], gvks %v in %v", i, gvks, targetVersions)
 		}
 
 		wrappedObject := runtime.NewEncodable(kapi.Codecs.LegacyCodec(*targetVersion), obj)
