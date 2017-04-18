@@ -201,6 +201,9 @@ func (o ProjectOptions) RunProject() error {
 
 	// We have an argument that can be either a context or project
 	argument := o.ProjectName
+	if (argument == "-") {
+		argument = config.PreviousContext
+	}
 
 	contextInUse := ""
 	namespaceInUse := ""
