@@ -1198,6 +1198,11 @@ func TestValidateStrategy(t *testing.T) {
 				DockerStrategy: &buildapi.DockerBuildStrategy{ImageOptimizationPolicy: &goodPolicy},
 			},
 		},
+		{
+			t:        field.ErrorTypeRequired,
+			path:     "",
+			strategy: nil,
+		},
 	}
 	for i, tc := range errorCases {
 		errors := validateStrategy(tc.strategy, nil)
