@@ -111,6 +111,7 @@ func DeepCopy_api_EgressNetworkPolicyPeer(in interface{}, out interface{}, c *co
 		in := in.(*EgressNetworkPolicyPeer)
 		out := out.(*EgressNetworkPolicyPeer)
 		out.CIDRSelector = in.CIDRSelector
+		out.DNSName = in.DNSName
 		return nil
 	}
 }

@@ -66,8 +66,11 @@ message EgressNetworkPolicyList {
 
 // EgressNetworkPolicyPeer specifies a target to apply egress network policy to
 message EgressNetworkPolicyPeer {
-  // cidrSelector is the CIDR range to allow/deny traffic to
+  // cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset
   optional string cidrSelector = 1;
+
+  // dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset
+  optional string dnsName = 2;
 }
 
 // EgressNetworkPolicyRule contains a single egress network policy rule

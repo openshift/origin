@@ -11887,13 +11887,19 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 				Properties: map[string]spec.Schema{
 					"cidrSelector": {
 						SchemaProps: spec.SchemaProps{
-							Description: "cidrSelector is the CIDR range to allow/deny traffic to",
+							Description: "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"dnsName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"cidrSelector"},
 			},
 		},
 		Dependencies: []string{},
