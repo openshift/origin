@@ -9,6 +9,10 @@ OS_ROOT=$(
 )
 USERNAME=vagrant
 
+source ${ORIGIN_ROOT}/contrib/vagrant/provision-util.sh
+
+os::provision::libvirt-vg-setup
+
 yum install -y deltarpm
 yum update -y
 yum install -y docker-io go git bash-completion
