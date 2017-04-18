@@ -69,6 +69,7 @@ preload-dep "github.com/elazarl"     "goproxy" "$( go run "${OS_ROOT}/tools/gode
 preload-dep "github.com/golang/mock" "gomock"  "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/golang/mock/gomock" )"
 # docker storage dep
 preload-dep "google.golang.org" "cloud"  "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "google.golang.org/cloud" )"
+preload-dep "github.com/karlseguin" "ccache" "master"
 
 # fill out that nice clean place with the origin godeps
 echo "Starting to download all godeps. This takes a while"
