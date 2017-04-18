@@ -27,6 +27,7 @@ func (c *ProxyConfig) InstallAPI(container *restful.Container) ([]string, error)
 	}
 
 	container.Handle("/api/", proxy)
+	container.Handle("/apis/", proxy)
 
 	return []string{
 		"Started Kubernetes proxy at %s/api/",
