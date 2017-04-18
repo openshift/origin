@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/golang/glog"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/httpstream/spdy"
+	knet "k8s.io/kubernetes/pkg/util/net"
 	"k8s.io/kubernetes/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -230,11 +230,11 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		}
 		return nil, errors.NewBadRequest(err.Error())
 	}
-	rawTransport, ok := transport.(*http.Transport)
-	if !ok {
-		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to node, unrecognized type: %v", reflect.TypeOf(transport)))
+	tlsClientConfig, err := knet.TLSClientConfig(transport)
+	if err != nil {
+		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to node, could not retrieve TLS client config: %v", err))
 	}
-	upgrader := spdy.NewRoundTripper(rawTransport.TLSClientConfig)
+	upgrader := spdy.NewRoundTripper(tlsClientConfig)
 	exec, err := remotecommand.NewStreamExecutor(upgrader, nil, "POST", location)
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))
