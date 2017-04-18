@@ -58,6 +58,9 @@ function cleanup_openshift() {
 		local sudo="${USE_SUDO:+sudo}"
 		${sudo} rm -rf "${ETCD_DATA_DIR}"
 
+		echo "[INFO] Pruning etcd data directory..."
+		rm -rf "${ETCD_DATA_DIR}"
+
 		set -u
 	fi
 
