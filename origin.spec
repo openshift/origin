@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a0e7505436cfd1ae08fd2474ed25103debee3f53
+%global commit 8eb657c025da6206c0b270af779ba85a9f2718f9
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.34 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=a0e7505
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.35 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=8eb657c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.35
+Version:        3.6.36
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,27 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Apr 18 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.36-1
+- bump(github.com/openshift/origin-web-console):
+  470afd2c653015e37174234c426a1a32218ced3c (dmcphers+openshiftbot@redhat.com)
+- use k8s helper to retrieve tls client config (bparees@redhat.com)
+- Auto generated swagger spec/docs/protobuf/conversions (rpenta@redhat.com)
+- Add bind-utils package to node image and origin spec. (rpenta@redhat.com)
+- Drop all traffic and firewall rules if DNS resolver is not found for
+  resolving a domain in egress network policy (rpenta@redhat.com)
+- Update firewall rules for egress dns entries (rpenta@redhat.com)
+- Fix existing egress bug: Synchronize operations on egress policies
+  (rpenta@redhat.com)
+- Update ovs rules for egress dns entries (rpenta@redhat.com)
+- DNS handler for egress network policy (rpenta@redhat.com)
+- Test cases for generic DNS helper (rpenta@redhat.com)
+- Generic DNS helper that holds map of dns names and associated information.
+  (rpenta@redhat.com)
+- Added 'DNSname' field to EgressNetworkPolicyPeer object (rpenta@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9143df076669593d524c97ac6fcc65eb4f545506 (dmcphers+openshiftbot@redhat.com)
+- Use the correct warning log function in cleanup scripts (skuznets@redhat.com)
+
 * Mon Apr 17 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.35-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 9143df0
   (tdawson@redhat.com)
