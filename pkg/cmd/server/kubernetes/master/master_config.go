@@ -35,6 +35,7 @@ import (
 	apiserver "k8s.io/apiserver/pkg/server"
 	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	genericoptions "k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
@@ -44,11 +45,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
+	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/kubeapiserver"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -124,6 +125,17 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.InsecureServing.BindPort = 0
 
 	server.Authentication.ClientCert = &apiserveroptions.ClientCertAuthenticationOptions{masterConfig.ServingInfo.ClientCA}
+	if masterConfig.AuthConfig.RequestHeader == nil {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{}
+	} else {
+		server.Authentication.RequestHeader = &genericoptions.RequestHeaderAuthenticationOptions{
+			ClientCAFile:        masterConfig.AuthConfig.RequestHeader.ClientCA,
+			UsernameHeaders:     masterConfig.AuthConfig.RequestHeader.UsernameHeaders,
+			GroupHeaders:        masterConfig.AuthConfig.RequestHeader.GroupHeaders,
+			ExtraHeaderPrefixes: masterConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+			AllowedNames:        masterConfig.AuthConfig.RequestHeader.ClientCommonNames,
+		}
+	}
 
 	server.Etcd.EnableGarbageCollection = false              // disabled until we add the controller. MUST be in synced with the value in CMServer
 	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(post-1.6.1-rebase): enable etcd3 as upstream
@@ -156,42 +168,33 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 }
 
 // BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
-// This storage factory is ONLY USED FOR kubernetes registries right now. Compare pkg/util/restoptions/configgetter.go.
+// This storage factory is used for kubernetes and origin registries. Compare pkg/util/restoptions/configgetter.go.
 func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions []schema.GroupVersionResource) (*apiserverstorage.DefaultStorageFactory, error) {
 	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
-
-	// TODO(rebase): the following were without effect at least since 3.5. Remove them?
-	// resourceEncodingConfig.SetVersionEncoding(kapi.GroupName, schema.GroupVersion{Group: kapi.GroupName, Version: masterConfig.EtcdStorageConfig.KubernetesStorageVersion}, kapi.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(extensions.GroupName, schema.GroupVersion{Group: extensions.GroupName, Version: "v1beta1"}, extensions.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(batch.GroupName, schema.GroupVersion{Group: batch.GroupName, Version: "v1"}, batch.SchemeGroupVersion)
-	// resourceEncodingConfig.SetVersionEncoding(autoscaling.GroupName, schema.GroupVersion{Group: autoscaling.GroupName, Version: "v1"}, autoscaling.SchemeGroupVersion)
 
 	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
 	if err != nil {
 		return nil, err
 	}
-
-	storageFactory, err := kubeapiserver.NewStorageFactory(
-		server.Etcd.StorageConfig,
-		server.Etcd.DefaultStorageMediaType,
-		kapi.Codecs,
-		resourceEncodingConfig,
-		storageGroupsToEncodingVersion,
-		// FIXME: this GroupVersionResource override should be configurable
-		[]schema.GroupVersionResource{batch.Resource("cronjobs").WithVersion("v2alpha1")},
-		master.DefaultAPIResourceConfigSource(),
-		server.APIEnablement.RuntimeConfig,
-	)
-	if err != nil {
-		return nil, err
+	for group, storageEncodingVersion := range storageGroupsToEncodingVersion {
+		resourceEncodingConfig.SetVersionEncoding(group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
-
-	// TODO: the following works, but better make single resource overrides possible in BuildDefaultStorageFactory
-	// instead of being late to the party and patching here:
+	resourceEncodingConfig.SetResourceEncoding(batch.Resource("cronjobs"), batchv2alpha1.SchemeGroupVersion, batch.SchemeGroupVersion)
 
 	// use legacy group name "" for all resources that existed when apigroups were introduced
 	for _, gvr := range enforcedStorageVersions {
 		resourceEncodingConfig.SetResourceEncoding(gvr.GroupResource(), schema.GroupVersion{Version: gvr.Version}, schema.GroupVersion{Version: runtime.APIVersionInternal})
+	}
+
+	storageFactory := apiserverstorage.NewDefaultStorageFactory(
+		server.Etcd.StorageConfig,
+		server.Etcd.DefaultStorageMediaType,
+		kapi.Codecs,
+		resourceEncodingConfig,
+		master.DefaultAPIResourceConfigSource(),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	// the order here is important, it defines which version will be used for storage
@@ -266,6 +269,27 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	genericConfig.LoopbackClientConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
 
 	return genericConfig, nil
+}
+
+// buildUpstreamClientCARegistrationHook copies the ClientCARegistrationHook code from k8s.io/kubernetes/cmd/kube-apiserver/app/server.go.
+// ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
+func buildUpstreamClientCARegistrationHook(s *kapiserveroptions.ServerRunOptions) (master.ClientCARegistrationHook, error) {
+	clientCA, err := readCAorNil(s.Authentication.ClientCert.ClientCA)
+	if err != nil {
+		return master.ClientCARegistrationHook{}, err
+	}
+	requestHeaderProxyCA, err := readCAorNil(s.Authentication.RequestHeader.ClientCAFile)
+	if err != nil {
+		return master.ClientCARegistrationHook{}, err
+	}
+	return master.ClientCARegistrationHook{
+		ClientCA:                         clientCA,
+		RequestHeaderUsernameHeaders:     s.Authentication.RequestHeader.UsernameHeaders,
+		RequestHeaderGroupHeaders:        s.Authentication.RequestHeader.GroupHeaders,
+		RequestHeaderExtraHeaderPrefixes: s.Authentication.RequestHeader.ExtraHeaderPrefixes,
+		RequestHeaderCA:                  requestHeaderProxyCA,
+		RequestHeaderAllowedNames:        s.Authentication.RequestHeader.AllowedNames,
+	}, nil
 }
 
 func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
@@ -382,6 +406,11 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
+	clientCARegistrationHook, err := buildUpstreamClientCARegistrationHook(apiserverOptions)
+	if err != nil {
+		return nil, err
+	}
+
 	// override config values
 	kubeVersion := kversion.Get()
 	genericConfig.Version = &kubeVersion
@@ -437,11 +466,6 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
-	clientCARegistrationHook, err := ClientCARegistrationHook(&masterConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
 		MasterCount:   apiserverOptions.MasterCount,
@@ -456,7 +480,7 @@ func buildKubeApiserverConfig(
 			},
 		}),
 
-		ClientCARegistrationHook: *clientCARegistrationHook,
+		ClientCARegistrationHook: clientCARegistrationHook,
 
 		APIServerServicePort:      443,
 		ServiceNodePortRange:      apiserverOptions.ServiceNodePortRange,
@@ -584,29 +608,6 @@ func BuildKubernetesMasterConfig(
 	}
 
 	return kmaster, nil
-}
-
-func ClientCARegistrationHook(options *configapi.MasterConfig) (*master.ClientCARegistrationHook, error) {
-	clientCA, err := readCAorNil(options.ServingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
-	ret := &master.ClientCARegistrationHook{ClientCA: clientCA}
-
-	var requestHeaderProxyCA []byte
-	if options.AuthConfig.RequestHeader != nil {
-		requestHeaderProxyCA, err = readCAorNil(options.AuthConfig.RequestHeader.ClientCA)
-		if err != nil {
-			return nil, err
-		}
-		ret.RequestHeaderUsernameHeaders = options.AuthConfig.RequestHeader.UsernameHeaders
-		ret.RequestHeaderGroupHeaders = options.AuthConfig.RequestHeader.GroupHeaders
-		ret.RequestHeaderExtraHeaderPrefixes = options.AuthConfig.RequestHeader.ExtraHeaderPrefixes
-		ret.RequestHeaderCA = requestHeaderProxyCA
-		ret.RequestHeaderAllowedNames = options.AuthConfig.RequestHeader.ClientCommonNames
-	}
-
-	return ret, nil
 }
 
 func DefaultOpenAPIConfig() *openapicommon.Config {
