@@ -38,12 +38,80 @@ REQUIRED_BINS=(
   "github.com/containernetworking/cni/plugins/main/loopback"
   "k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo"
   "k8s.io/kubernetes/cmd/libs/go2idl/client-gen"
+  "k8s.io/kubernetes/pkg/api/testing/compat"
+  "k8s.io/kubernetes/test/e2e/generated"
   "github.com/onsi/ginkgo/ginkgo"
   "github.com/jteeuwen/go-bindata/go-bindata"
   "./..."
 )
 
+TMPGOPATH=`mktemp -d`
+trap "rm -rf $TMPGOPATH" EXIT
+mkdir $TMPGOPATH/src
+
+fork-without-vendor () {
+  local PKG="$1"
+  echo "Forking $PKG without vendor/"
+  local DIR=$(dirname "$PKG")
+  mkdir -p "$TMPGOPATH/src/$DIR"
+  cp -a "$GOPATH/src/$PKG" "$TMPGOPATH/src/$DIR"
+  pushd "$TMPGOPATH/src/$PKG" >/dev/null
+    local OLDREV=$(git rev-parse HEAD)
+    git rm -qrf vendor/
+    git commit -q -m "Remove vendor/"
+    local NEWREV=$(git rev-parse HEAD)
+  popd >/dev/null
+  echo "s/$NEWREV/$OLDREV/" >> "$TMPGOPATH/undo.sed"
+}
+
+fork-with-fake-packages () {
+  local PKG="$1"
+  shift
+  echo "Forking $PKG with fake packages: $*"
+  local DIR=$(dirname "$PKG")
+  mkdir -p "$TMPGOPATH/src/$DIR"
+  cp -a "$GOPATH/src/$PKG" "$TMPGOPATH/src/$DIR"
+  pushd "$TMPGOPATH/src/$PKG" >/dev/null
+    local OLDREV=$(git rev-parse HEAD)
+    for FAKEPKG in "$@"; do
+      if [ -n "$(ls $FAKEPKG/*.go 2>/dev/null)" ]; then
+        echo "'fork::with::fake::packages $PKG $FAKEPKG' failed because $FAKEPKG already exists." 1>&2
+        exit 1
+      fi
+      mkdir -p "$FAKEPKG"
+      echo "package $(basename $DIR)" > "$FAKEPKG/doc.go"
+      git add "$FAKEPKG/doc.go"
+      echo "$PKG/$FAKEPKG" >> "$TMPGOPATH/fake-packages"
+    done
+    git commit -a -q -m "Add fake package $*"
+    local NEWREV=$(git rev-parse HEAD)
+  popd >/dev/null
+  echo "s/$NEWREV/$OLDREV/" >> "$TMPGOPATH/undo.sed"
+}
+
+undo-forks-in-godeps-json () {
+  echo "Replacing forked revisions with original revisions in Godeps.json"
+  sed -f "$TMPGOPATH/undo.sed" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
+  mv "$TMPGOPATH/Godeps.json" Godeps/Godeps.json
+}
+
+fork-without-vendor github.com/docker/distribution
+fork-without-vendor github.com/libopenstorage/openstorage
+fork-with-fake-packages github.com/docker/docker \
+  api/types \
+  api/types/blkiodev \
+  api/types/container \
+  api/types/filters \
+  api/types/mount \
+  api/types/network \
+  api/types/registry \
+  api/types/strslice \
+  api/types/swarm \
+  api/types/versions
+
 GOPATH=$TMPGOPATH:$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save -t "${REQUIRED_BINS[@]}"
+
+undo-forks-in-godeps-json
 
 # godep fails to copy all package in staging because it gets confused with the symlinks.
 # Hence, we copy over manually until we have proper staging repo tooling.
@@ -59,6 +127,12 @@ for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
 
   # create regex for jq further down
   re+="${sep}k8s.io/$dir"
+  sep="|"
+done
+
+# filter out fake packages
+for pkg in $(cat "$TMPGOPATH/fake-packages"); do
+  re+="${sep}$pkg"
   sep="|"
 done
 
