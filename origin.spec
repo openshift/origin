@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8eb657c025da6206c0b270af779ba85a9f2718f9
+%global commit 8bda130acfb9077310b0ad011e1e117501122341
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.35 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=8eb657c
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.36 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=openshift3/ose OS_GIT_COMMIT=8bda130
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.36
+Version:        3.6.37
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,18 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Apr 18 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.37-1
+- bump(github.com/openshift/origin-web-console):
+  a6c277c2e75903d0a91a0e76497c4b9fdb45e6ca (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3e2bab4cfe4cdb94c88bc072a7db0216b35077a0 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6c0257867c68da506b49a3e42fd6476e035c2863 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  82ed8832b64650779ef76d5a7c4b32f63a86a7b9 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b5de937c73d44a623cc5d5f37da1872dbc76ac4e (dmcphers+openshiftbot@redhat.com)
+
 * Tue Apr 18 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.36-1
 - bump(github.com/openshift/origin-web-console):
   470afd2c653015e37174234c426a1a32218ced3c (dmcphers+openshiftbot@redhat.com)
