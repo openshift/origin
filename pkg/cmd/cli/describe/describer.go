@@ -1653,7 +1653,11 @@ func (d *EgressNetworkPolicyDescriber) Describe(namespace, name string, settings
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, policy.ObjectMeta)
 		for _, rule := range policy.Spec.Egress {
-			fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
+			if len(rule.To.CIDRSelector) > 0 {
+				fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.CIDRSelector)
+			} else {
+				fmt.Fprintf(out, "Rule:\t%s to %s\n", rule.Type, rule.To.DNSName)
+			}
 		}
 		return nil
 	})

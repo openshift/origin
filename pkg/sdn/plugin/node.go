@@ -5,6 +5,7 @@ import (
 	"net"
 	osexec "os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/golang/glog"
@@ -60,7 +61,11 @@ type OsdnNode struct {
 	kubeletInitReady   chan struct{}
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
+
+	// Synchronizes operations on egressPolicies
+	egressPoliciesLock sync.Mutex
 	egressPolicies     map[uint32][]osapi.EgressNetworkPolicy
+	egressDNS          *EgressDNS
 
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
@@ -130,6 +135,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient *kclien
 		iptablesSyncPeriod: iptablesSyncPeriod,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
+		egressDNS:          NewEgressDNS(),
 	}
 
 	if err := plugin.dockerPreCNICleanup(); err != nil {
