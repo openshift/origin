@@ -679,7 +679,9 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			}
 
 			// use the canonical ImageChangeTrigger with nil From
-			strategyTrigger.Auto = trigger.Auto
+			if strategyTrigger != nil {
+				strategyTrigger.Auto = trigger.Auto
+			}
 			if reflect.DeepEqual(strategyTrigger, &trigger) {
 				change.From = nil
 			}

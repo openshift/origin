@@ -20,6 +20,8 @@ os::cmd::expect_success 'oc new-app centos/ruby-22-centos7~https://github.com/op
 os::cmd::expect_success 'oc get bc/ruby-hello-world'
 os::cmd::expect_success 'oc get dc/ruby-hello-world'
 
+os::cmd::expect_success "oc new-build --name=scratch --docker-image=scratch --dockerfile='FROM scratch'"
+
 os::test::junit::declare_suite_start "cmd/triggers/buildconfigs"
 ## Build configs
 
@@ -75,6 +77,9 @@ os::cmd::expect_success_and_not_text 'oc set triggers bc/ruby-hello-world' 'imag
 os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*false'
 os::cmd::expect_success_and_text 'oc set triggers bc --all --auto' 'updated'
 os::cmd::expect_success_and_text 'oc set triggers bc --all' 'buildconfigs/ruby-hello-world.*image.*ruby-22-centos7:latest.*true'
+# set a trigger on a build that doesn't have an imagestream strategy.from-image
+os::cmd::expect_success_and_text 'oc set triggers bc/scratch --from-image=test:latest' 'updated'
+
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/triggers/deploymentconfigs"
