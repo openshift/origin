@@ -40,12 +40,15 @@ const (
 	// TimedOutReason is added in a deployment config when its newest replication controller fails to show
 	// any progress within the given deadline (progressDeadlineSeconds).
 	TimedOutReason = "ProgressDeadlineExceeded"
-	// PausedDeployReason is added in a deployment config when it is paused. Lack of progress shouldn't be
+	// PausedConfigReason is added in a deployment config when it is paused. Lack of progress shouldn't be
 	// estimated once a deployment config is paused.
-	PausedDeployReason = "DeploymentConfigPaused"
-	// ResumedDeployReason is added in a deployment config when it is resumed. Useful for not failing accidentally
+	PausedConfigReason = "DeploymentConfigPaused"
+	// ResumedConfigReason is added in a deployment config when it is resumed. Useful for not failing accidentally
 	// deployment configs that paused amidst a rollout.
-	ResumedDeployReason = "DeploymentConfigResumed"
+	ResumedConfigReason = "DeploymentConfigResumed"
+	// CancelledRolloutReason is added in a deployment config when its newest rollout was
+	// interrupted by cancellation.
+	CancelledRolloutReason = "RolloutCancelled"
 )
 
 // NewDeploymentCondition creates a new deployment condition.

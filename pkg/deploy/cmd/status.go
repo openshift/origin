@@ -55,7 +55,10 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 		case cond != nil && cond.Reason == deployutil.TimedOutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == deployutil.PausedDeployReason:
+		case cond != nil && cond.Reason == deployutil.CancelledRolloutReason:
+			return "", true, errors.New(cond.Message)
+
+		case cond != nil && cond.Reason == deployutil.PausedConfigReason:
 			return "", true, fmt.Errorf("Deployment config %q is paused. Resume to continue watching the status of the rollout.\n", config.Name)
 
 		case config.Status.UpdatedReplicas < config.Spec.Replicas:
