@@ -317,9 +317,7 @@ type Client struct {
 // objects. An error is returned if the provided configuration is not valid.
 func New(c *restclient.Config) (*Client, error) {
 	config := *c
-	if err := SetOpenShiftDefaults(&config); err != nil {
-		return nil, err
-	}
+	SetOpenShiftDefaults(&config)
 	client, err := restclient.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
@@ -336,7 +334,7 @@ func (c *Client) Discovery() discovery.DiscoveryInterface {
 
 // SetOpenShiftDefaults sets the default settings on the passed
 // client configuration
-func SetOpenShiftDefaults(config *restclient.Config) error {
+func SetOpenShiftDefaults(config *restclient.Config) {
 	if len(config.UserAgent) == 0 {
 		config.UserAgent = DefaultOpenShiftUserAgent()
 	}
@@ -351,7 +349,6 @@ func SetOpenShiftDefaults(config *restclient.Config) error {
 	if config.NegotiatedSerializer == nil {
 		config.NegotiatedSerializer = kapi.Codecs
 	}
-	return nil
 }
 
 // NewOrDie creates an OpenShift client and panics if the provided API version is not recognized.
