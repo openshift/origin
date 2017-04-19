@@ -305,10 +305,10 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 // RunBuildPodController starts the build/pod status sync loop for build status
 func (c *MasterConfig) RunBuildPodController() {
 	buildInfomer := c.Informers.Builds().Informer()
-	podInformer := c.Informers.KubernetesInformers().Pods().Informer()
-	osclient, kclient := c.BuildPodControllerClients()
+	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
+	osclient, kclientInternal, kclientExternal := c.BuildPodControllerClients()
 
-	controller := buildpodcontroller.NewBuildPodController(buildInfomer, podInformer, kclient, osclient)
+	controller := buildpodcontroller.NewBuildPodController(buildInfomer, podInformer, kclientInternal, kclientExternal, osclient)
 	go controller.Run(5, utilwait.NeverStop)
 }
 
