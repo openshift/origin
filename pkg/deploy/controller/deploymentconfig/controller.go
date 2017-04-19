@@ -374,8 +374,14 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 				deployutil.SetDeploymentCondition(newStatus, *condition)
 			}
 		case deployapi.DeploymentStatusFailed:
-			msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
-			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
+			var condition *deployapi.DeploymentCondition
+			if deployutil.IsDeploymentCancelled(latestRC) {
+				msg := fmt.Sprintf("rollout of replication controller %q was cancelled", latestRC.Name)
+				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.CancelledRolloutReason, msg)
+			} else {
+				msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
+				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
+			}
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusComplete:
 			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
