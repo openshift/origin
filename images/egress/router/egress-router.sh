@@ -6,16 +6,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [[ -z "${EGRESS_SOURCE:-}" ]]; then
-    echo "No EGRESS_SOURCE specified"
+IP_REGEX="[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"
+
+if [[ ! "${EGRESS_SOURCE:-}" =~ ^${IP_REGEX}$ ]]; then
+    echo "EGRESS_SOURCE unspecified or invalid"
     exit 1
 fi
-if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
-    echo "No EGRESS_DESTINATION specified"
+if [[ ! "${EGRESS_DESTINATION:-}" =~ ^${IP_REGEX}$ ]]; then
+    echo "EGRESS_DESTINATION unspecified or invalid"
     exit 1
 fi
-if [[ -z "${EGRESS_GATEWAY:-}" ]]; then
-    echo "No EGRESS_GATEWAY specified"
+if [[ ! "${EGRESS_GATEWAY:-}" =~ ^${IP_REGEX}$ ]]; then
+    echo "EGRESS_GATEWAY unspecified or invalid"
     exit 1
 fi
 
