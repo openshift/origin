@@ -32,7 +32,6 @@ go_library(
         "//pkg/registry/cachesize:go_default_library",
         "//pkg/registry/securitycontextconstraints:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
-        "//vendor:k8s.io/apiserver/pkg/endpoints/request",
         "//vendor:k8s.io/apiserver/pkg/registry/generic",
         "//vendor:k8s.io/apiserver/pkg/registry/generic/registry",
     ],

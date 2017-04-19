@@ -4380,10 +4380,26 @@ func autoConvert_api_SecurityContextConstraints_To_v1_SecurityContextConstraints
 	out.ObjectMeta = in.ObjectMeta
 	out.Priority = (*int32)(unsafe.Pointer(in.Priority))
 	out.AllowPrivilegedContainer = in.AllowPrivilegedContainer
-	out.DefaultAddCapabilities = *(*[]Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
-	out.RequiredDropCapabilities = *(*[]Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
-	out.AllowedCapabilities = *(*[]Capability)(unsafe.Pointer(&in.AllowedCapabilities))
-	out.Volumes = *(*[]FSType)(unsafe.Pointer(&in.Volumes))
+	if in.DefaultAddCapabilities == nil {
+		out.DefaultAddCapabilities = make([]Capability, 0)
+	} else {
+		out.DefaultAddCapabilities = *(*[]Capability)(unsafe.Pointer(&in.DefaultAddCapabilities))
+	}
+	if in.RequiredDropCapabilities == nil {
+		out.RequiredDropCapabilities = make([]Capability, 0)
+	} else {
+		out.RequiredDropCapabilities = *(*[]Capability)(unsafe.Pointer(&in.RequiredDropCapabilities))
+	}
+	if in.AllowedCapabilities == nil {
+		out.AllowedCapabilities = make([]Capability, 0)
+	} else {
+		out.AllowedCapabilities = *(*[]Capability)(unsafe.Pointer(&in.AllowedCapabilities))
+	}
+	if in.Volumes == nil {
+		out.Volumes = make([]FSType, 0)
+	} else {
+		out.Volumes = *(*[]FSType)(unsafe.Pointer(&in.Volumes))
+	}
 	out.AllowHostNetwork = in.AllowHostNetwork
 	out.AllowHostPorts = in.AllowHostPorts
 	out.AllowHostPID = in.AllowHostPID
@@ -4438,7 +4454,7 @@ func autoConvert_api_SecurityContextConstraintsList_To_v1_SecurityContextConstra
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]SecurityContextConstraints, 0)
 	}
 	return nil
 }

@@ -1807,7 +1807,7 @@ var map_SecurityContextConstraints = map[string]string{
 	"allowPrivilegedContainer": "AllowPrivilegedContainer determines if a container can request to be run as privileged.",
 	"defaultAddCapabilities":   "DefaultAddCapabilities is the default set of capabilities that will be added to the container unless the pod spec specifically drops the capability.  You may not list a capabiility in both DefaultAddCapabilities and RequiredDropCapabilities.",
 	"requiredDropCapabilities": "RequiredDropCapabilities are the capabilities that will be dropped from the container.  These are required to be dropped and cannot be added.",
-	"allowedCapabilities":      "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.",
+	"allowedCapabilities":      "AllowedCapabilities is a list of capabilities that can be requested to add to the container. Capabilities in this field maybe added at the pod author's discretion. You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities. To allow all capabilities you may use '*'.",
 	"allowHostDirVolumePlugin": "AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin",
 	"volumes":                  "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.",
 	"allowHostNetwork":         "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
