@@ -17,13 +17,12 @@ limitations under the License.
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/runtime"
-	versionedwatch "k8s.io/kubernetes/pkg/watch/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "testgroup.k8s.io", Version: "v1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: "testgroup.k8s.io", Version: "v1"}
 
 var (
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
@@ -38,14 +37,11 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	)
 
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&v1.ListOptions{},
-		&v1.DeleteOptions{},
-		&unversioned.Status{},
-		&v1.ExportOptions{},
+		&metav1.Status{},
 	)
-	versionedwatch.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }
 
-func (obj *TestType) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
-func (obj *TestTypeList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestType) GetObjectKind() schema.ObjectKind     { return &obj.TypeMeta }
+func (obj *TestTypeList) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

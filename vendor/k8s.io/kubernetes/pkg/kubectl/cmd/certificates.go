@@ -20,11 +20,12 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/util/i18n"
 
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,8 @@ import (
 func NewCmdCertificate(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "certificate SUBCOMMAND",
-		Short: "Modify certificate resources.",
+		Short: i18n.T("Modify certificate resources."),
+		Long:  "Modify certificate resources.",
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
@@ -67,7 +69,7 @@ func NewCmdCertificateApprove(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := CertificateOptions{}
 	cmd := &cobra.Command{
 		Use:   "approve (-f FILENAME | NAME)",
-		Short: "Approve a certificate signing request",
+		Short: i18n.T("Approve a certificate signing request"),
 		Long: templates.LongDesc(`
 		Approve a certificate signing request.
 
@@ -107,7 +109,7 @@ func (options *CertificateOptions) RunCertificateApprove(f cmdutil.Factory, out 
 			Type:           certificates.CertificateApproved,
 			Reason:         "KubectlApprove",
 			Message:        "This CSR was approved by kubectl certificate approve.",
-			LastUpdateTime: unversioned.Now(),
+			LastUpdateTime: metav1.Now(),
 		})
 		return csr, "approved"
 	})
@@ -117,7 +119,7 @@ func NewCmdCertificateDeny(f cmdutil.Factory, out io.Writer) *cobra.Command {
 	options := CertificateOptions{}
 	cmd := &cobra.Command{
 		Use:   "deny (-f FILENAME | NAME)",
-		Short: "Deny a certificate signing request",
+		Short: i18n.T("Deny a certificate signing request"),
 		Long: templates.LongDesc(`
 		Deny a certificate signing request.
 
@@ -152,7 +154,7 @@ func (options *CertificateOptions) RunCertificateDeny(f cmdutil.Factory, out io.
 			Type:           certificates.CertificateDenied,
 			Reason:         "KubectlDeny",
 			Message:        "This CSR was approved by kubectl certificate deny.",
-			LastUpdateTime: unversioned.Now(),
+			LastUpdateTime: metav1.Now(),
 		})
 		return csr, "denied"
 	})
