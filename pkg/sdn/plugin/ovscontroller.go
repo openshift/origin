@@ -335,6 +335,9 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressN
 				var dst string
 				if selector == "0.0.0.0/0" {
 					dst = ""
+				} else if selector == "0.0.0.0/32" {
+					glog.Warningf("Correcting CIDRSelector '0.0.0.0/32' to '0.0.0.0/0' in EgressNetworkPolicy %s:%s", policies[0].Namespace, policies[0].Name)
+					dst = ""
 				} else {
 					dst = fmt.Sprintf(", nw_dst=%s", selector)
 				}
