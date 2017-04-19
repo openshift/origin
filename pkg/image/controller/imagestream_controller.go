@@ -2,21 +2,49 @@ package controller
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/client"
+	oscache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/image/api"
 )
 
-var ErrNotImportable = errors.New("the specified stream cannot be imported")
+var ErrNotImportable = errors.New("requested image cannot be imported")
 
-type ImportController struct {
-	streams client.ImageStreamsNamespacer
+// imageStreamNamespaceLister helps get ImageStreams.
+// TODO: replace with generated informer interfaces
+type imageStreamNamespaceLister interface {
+	// Get retrieves the Deployment from the indexer for a given namespace and name.
+	Get(name string, options metav1.GetOptions) (*api.ImageStream, error)
+}
+
+// imageStreamLister is the subset interface required off an ImageStream client to
+// implement this controller.
+// TODO: replace with generated informer interfaces
+type imageStreamLister interface {
+	// ImageStreams returns an object that can get ImageStreams.
+	ImageStreams(namespace string) imageStreamNamespaceLister
+}
+
+// TODO: replace with generated informer interfaces
+type temporaryLister struct {
+	*oscache.StoreToImageStreamLister
+}
+
+func (l temporaryLister) ImageStreams(namespace string) imageStreamNamespaceLister {
+	return l.StoreToImageStreamLister.ImageStreams(namespace)
 }
 
 // Notifier provides information about when the controller makes a decision
@@ -25,23 +53,128 @@ type Notifier interface {
 	Importing(stream *api.ImageStream)
 }
 
-// NotifierFunc implements Notifier
-type NotifierFunc func(stream *api.ImageStream)
+type ImageStreamController struct {
+	// image stream client
+	isNamespacer client.ImageStreamsNamespacer
 
-// Importing adapts NotifierFunc to Notifier
-func (fn NotifierFunc) Importing(stream *api.ImageStream) {
-	fn(stream)
+	// queue contains replication controllers that need to be synced.
+	queue workqueue.RateLimitingInterface
+
+	// lister can list/get image streams from a shared informer's cache
+	lister imageStreamLister
+	// listerSynced makes sure the is store is synced before reconciling streams
+	listerSynced cache.InformerSynced
+
+	// notifier informs other controllers that an import is being performed
+	notifier Notifier
+}
+
+func (c *ImageStreamController) SetNotifier(n Notifier) {
+	c.notifier = n
+}
+
+// Run begins watching and syncing.
+func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+	defer c.queue.ShutDown()
+
+	glog.Infof("Starting image stream controller")
+
+	// Wait for the stream store to sync before starting any work in this controller.
+	if !cache.WaitForCacheSync(stopCh, c.listerSynced) {
+		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		return
+	}
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(c.worker, time.Second, stopCh)
+	}
+
+	<-stopCh
+	glog.Infof("Shutting down image stream controller")
+}
+
+func (c *ImageStreamController) addImageStream(obj interface{}) {
+	if stream, ok := obj.(*api.ImageStream); ok {
+		c.enqueueImageStream(stream)
+	}
+}
+
+func (c *ImageStreamController) updateImageStream(old, cur interface{}) {
+	curStream, ok := cur.(*api.ImageStream)
+	if !ok {
+		return
+	}
+	oldStream, ok := old.(*api.ImageStream)
+	if !ok {
+		return
+	}
+	// we only compare resource version, since deeper inspection if a stream
+	// needs to be re-imported happens in syncImageStream
+	//
+	// FIXME: this will only be ever true on cache resync
+	if curStream.ResourceVersion == oldStream.ResourceVersion {
+		return
+	}
+	c.enqueueImageStream(curStream)
+}
+
+func (c *ImageStreamController) enqueueImageStream(stream *api.ImageStream) {
+	key, err := kcontroller.KeyFunc(stream)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Couldn't get key for image stream %#v: %v", stream, err))
+		return
+	}
+	c.queue.Add(key)
+}
+
+func (c *ImageStreamController) worker() {
+	for c.processNextWorkItem() {
+	}
+}
+
+func (c *ImageStreamController) processNextWorkItem() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return false
+	}
+	defer c.queue.Done(key)
+
+	stream, err := c.getByKey(key.(string))
+	if err == nil && stream != nil {
+		glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
+		if err = handleImageStream(stream, c.isNamespacer, c.notifier); err == nil {
+			c.queue.Forget(key)
+			return true
+		}
+	}
+
+	utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
+	c.queue.AddRateLimited(key)
+
+	return true
+}
+
+func (c *ImageStreamController) getByKey(key string) (*api.ImageStream, error) {
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return nil, err
+	}
+	stream, err := c.lister.ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	if apierrs.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		glog.Infof("Unable to retrieve image stream %q from store: %v", key, err)
+		return nil, err
+	}
+
+	return stream, nil
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
 func tagImportable(tagRef api.TagReference) bool {
-	if tagRef.From == nil {
-		return false
-	}
-	if tagRef.From.Kind != "DockerImage" || tagRef.Reference {
-		return false
-	}
-	return true
+	return !(tagRef.From == nil || tagRef.From.Kind != "DockerImage" || tagRef.Reference)
 }
 
 // tagNeedsImport is true if the observed tag generation for this tag is older than the
@@ -81,28 +214,7 @@ func needsImport(stream *api.ImageStream) (ok bool, partial bool) {
 	return false, false
 }
 
-// needsScheduling returns true if this image stream has any scheduled tags
-func needsScheduling(stream *api.ImageStream) bool {
-	for _, tagRef := range stream.Spec.Tags {
-		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
-			return true
-		}
-	}
-	return false
-}
-
-// resetScheduledTags artificially increments the generation on the tags that should be imported.
-func resetScheduledTags(stream *api.ImageStream) {
-	next := stream.Generation + 1
-	for tag, tagRef := range stream.Spec.Tags {
-		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
-			tagRef.Generation = &next
-			stream.Spec.Tags[tag] = tagRef
-		}
-	}
-}
-
-// Next processes the given image stream, looking for streams that have DockerImageRepository
+// Processes the given image stream, looking for streams that have DockerImageRepository
 // set but have not yet been marked as "ready". If transient errors occur, err is returned but
 // the image stream is not modified (so it will be tried again later). If a permanent
 // failure occurs the image is marked with an annotation and conditions are set on the status
@@ -122,7 +234,7 @@ func resetScheduledTags(stream *api.ImageStream) {
 // 3. spec.DockerImageRepository not defined - import tags per each definition.
 //
 // Notifier, if passed, will be invoked if the stream is going to be imported.
-func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) error {
+func handleImageStream(stream *api.ImageStream, isNamespacer client.ImageStreamsNamespacer, notifier Notifier) error {
 	ok, partial := needsImport(stream)
 	if !ok {
 		return nil
@@ -160,7 +272,7 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 			ImportPolicy: api.TagImportPolicy{Insecure: insecure},
 		}
 	}
-	result, err := c.streams.ImageStreams(stream.Namespace).Import(isi)
+	result, err := isNamespacer.ImageStreams(stream.Namespace).Import(isi)
 	if err != nil {
 		if apierrs.IsNotFound(err) && client.IsStatusErrorKind(err, "imageStream") {
 			return ErrNotImportable
@@ -170,26 +282,4 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 		glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
 	}
 	return err
-}
-
-func (c *ImportController) NextTimedByName(namespace, name string) error {
-	stream, err := c.streams.ImageStreams(namespace).Get(name, metav1.GetOptions{})
-	if err != nil {
-		if apierrs.IsNotFound(err) {
-			return ErrNotImportable
-		}
-		return err
-	}
-	return c.NextTimed(stream)
-}
-
-func (c *ImportController) NextTimed(stream *api.ImageStream) error {
-	if !needsScheduling(stream) {
-		return ErrNotImportable
-	}
-	resetScheduledTags(stream)
-
-	glog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
-
-	return c.Next(stream, nil)
 }
