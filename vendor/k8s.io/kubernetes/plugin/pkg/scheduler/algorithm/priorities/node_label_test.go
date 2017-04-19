@@ -21,7 +21,8 @@ import (
 	"sort"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api/v1"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 )
@@ -31,17 +32,17 @@ func TestNewNodeLabelPriority(t *testing.T) {
 	label2 := map[string]string{"bar": "foo"}
 	label3 := map[string]string{"bar": "baz"}
 	tests := []struct {
-		nodes        []*api.Node
+		nodes        []*v1.Node
 		label        string
 		presence     bool
 		expectedList schedulerapi.HostPriorityList
 		test         string
 	}{
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 0}, {Host: "machine2", Score: 0}, {Host: "machine3", Score: 0}},
 			label:        "baz",
@@ -49,10 +50,10 @@ func TestNewNodeLabelPriority(t *testing.T) {
 			test:         "no match found, presence true",
 		},
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 10}, {Host: "machine2", Score: 10}, {Host: "machine3", Score: 10}},
 			label:        "baz",
@@ -60,10 +61,10 @@ func TestNewNodeLabelPriority(t *testing.T) {
 			test:         "no match found, presence false",
 		},
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 10}, {Host: "machine2", Score: 0}, {Host: "machine3", Score: 0}},
 			label:        "foo",
@@ -71,10 +72,10 @@ func TestNewNodeLabelPriority(t *testing.T) {
 			test:         "one match found, presence true",
 		},
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 0}, {Host: "machine2", Score: 10}, {Host: "machine3", Score: 10}},
 			label:        "foo",
@@ -82,10 +83,10 @@ func TestNewNodeLabelPriority(t *testing.T) {
 			test:         "one match found, presence false",
 		},
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 0}, {Host: "machine2", Score: 10}, {Host: "machine3", Score: 10}},
 			label:        "bar",
@@ -93,10 +94,10 @@ func TestNewNodeLabelPriority(t *testing.T) {
 			test:         "two matches found, presence true",
 		},
 		{
-			nodes: []*api.Node{
-				{ObjectMeta: api.ObjectMeta{Name: "machine1", Labels: label1}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine2", Labels: label2}},
-				{ObjectMeta: api.ObjectMeta{Name: "machine3", Labels: label3}},
+			nodes: []*v1.Node{
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine1", Labels: label1}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine2", Labels: label2}},
+				{ObjectMeta: metav1.ObjectMeta{Name: "machine3", Labels: label3}},
 			},
 			expectedList: []schedulerapi.HostPriority{{Host: "machine1", Score: 10}, {Host: "machine2", Score: 0}, {Host: "machine3", Score: 0}},
 			label:        "bar",

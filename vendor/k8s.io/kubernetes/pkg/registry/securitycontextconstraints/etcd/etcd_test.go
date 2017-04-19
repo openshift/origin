@@ -19,22 +19,28 @@ package etcd
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/runtime"
-	etcdtesting "k8s.io/kubernetes/pkg/storage/etcd/testing"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
-	return NewStorage(restOptions), server
+	restOptions := generic.RESTOptions{
+		StorageConfig:           etcdStorage,
+		Decorator:               generic.UndecoratedStorage,
+		DeleteCollectionWorkers: 1,
+		ResourcePrefix:          "securitycontextconstraints",
+	}
+	return NewREST(restOptions), server
 }
 
 func validNewSecurityContextConstraints(name string) *api.SecurityContextConstraints {
 	return &api.SecurityContextConstraints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		SELinuxContext: api.SELinuxContextStrategyOptions{
@@ -57,13 +63,13 @@ func TestCreate(t *testing.T) {
 	defer server.Terminate(t)
 	test := registrytest.New(t, storage.Store).ClusterScope()
 	scc := validNewSecurityContextConstraints("foo")
-	scc.ObjectMeta = api.ObjectMeta{GenerateName: "foo-"}
+	scc.ObjectMeta = metav1.ObjectMeta{GenerateName: "foo-"}
 	test.TestCreate(
 		// valid
 		scc,
 		// invalid
 		&api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{Name: "name with spaces"},
+			ObjectMeta: metav1.ObjectMeta{Name: "name with spaces"},
 		},
 	)
 }

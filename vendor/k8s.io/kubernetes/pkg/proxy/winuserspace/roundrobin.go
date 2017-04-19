@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/proxy"
-	"k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/slice"
 )
 
@@ -236,14 +236,15 @@ func (lb *LoadBalancerRR) updateAffinityMap(svcPort proxy.ServicePortName, newEn
 // OnEndpointsUpdate manages the registered service endpoints.
 // Registered endpoints are updated if found in the update set or
 // unregistered if missing from the update set.
-func (lb *LoadBalancerRR) OnEndpointsUpdate(allEndpoints []api.Endpoints) {
+func (lb *LoadBalancerRR) OnEndpointsUpdate(allEndpoints []*api.Endpoints) {
 	registeredEndpoints := make(map[proxy.ServicePortName]bool)
 	lb.lock.Lock()
 	defer lb.lock.Unlock()
 
 	// Update endpoints for services.
 	for i := range allEndpoints {
-		svcEndpoints := &allEndpoints[i]
+		// svcEndpoints should NOT be modified.
+		svcEndpoints := allEndpoints[i]
 
 		// We need to build a map of portname -> all ip:ports for that
 		// portname.  Explode Endpoints.Subsets[*] into this structure.
