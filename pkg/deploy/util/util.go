@@ -21,38 +21,8 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
-const (
-	// Reasons for deployment config conditions:
-	//
-	// ReplicationControllerUpdatedReason is added in a deployment config when one of its replication
-	// controllers is updated as part of the rollout process.
-	ReplicationControllerUpdatedReason = "ReplicationControllerUpdated"
-	// FailedRcCreateReason is added in a deployment config when it cannot create a new replication
-	// controller.
-	FailedRcCreateReason = "ReplicationControllerCreateError"
-	// NewReplicationControllerReason is added in a deployment config when it creates a new replication
-	// controller.
-	NewReplicationControllerReason = "NewReplicationControllerCreated"
-	// NewRcAvailableReason is added in a deployment config when its newest replication controller is made
-	// available ie. the number of new pods that have passed readiness checks and run for at least
-	// minReadySeconds is at least the minimum available pods that need to run for the deployment config.
-	NewRcAvailableReason = "NewReplicationControllerAvailable"
-	// TimedOutReason is added in a deployment config when its newest replication controller fails to show
-	// any progress within the given deadline (progressDeadlineSeconds).
-	TimedOutReason = "ProgressDeadlineExceeded"
-	// PausedConfigReason is added in a deployment config when it is paused. Lack of progress shouldn't be
-	// estimated once a deployment config is paused.
-	PausedConfigReason = "DeploymentConfigPaused"
-	// ResumedConfigReason is added in a deployment config when it is resumed. Useful for not failing accidentally
-	// deployment configs that paused amidst a rollout.
-	ResumedConfigReason = "DeploymentConfigResumed"
-	// CancelledRolloutReason is added in a deployment config when its newest rollout was
-	// interrupted by cancellation.
-	CancelledRolloutReason = "RolloutCancelled"
-)
-
 // NewDeploymentCondition creates a new deployment condition.
-func NewDeploymentCondition(condType deployapi.DeploymentConditionType, status api.ConditionStatus, reason, message string) *deployapi.DeploymentCondition {
+func NewDeploymentCondition(condType deployapi.DeploymentConditionType, status api.ConditionStatus, reason deployapi.DeploymentConditionReason, message string) *deployapi.DeploymentCondition {
 	return &deployapi.DeploymentCondition{
 		Type:               condType,
 		Status:             status,

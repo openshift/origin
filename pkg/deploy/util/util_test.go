@@ -363,7 +363,6 @@ var (
 			Type:               deployapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: now,
-			Reason:             "ForSomeReason",
 		}
 	}
 
@@ -372,7 +371,6 @@ var (
 			Type:               deployapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: later,
-			Reason:             "ForSomeReason",
 		}
 	}
 
@@ -381,7 +379,7 @@ var (
 			Type:               deployapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: later,
-			Reason:             "BecauseItIs",
+			Reason:             deployapi.NewReplicationControllerReason,
 		}
 	}
 
@@ -391,7 +389,6 @@ var (
 			Status:             kapi.ConditionFalse,
 			LastUpdateTime:     earlier,
 			LastTransitionTime: earlier,
-			Reason:             "NotYet",
 		}
 	}
 
@@ -399,7 +396,6 @@ var (
 		return deployapi.DeploymentCondition{
 			Type:   deployapi.DeploymentAvailable,
 			Status: kapi.ConditionTrue,
-			Reason: "AwesomeController",
 		}
 	}
 )
@@ -417,7 +413,6 @@ func TestGetCondition(t *testing.T) {
 		status     deployapi.DeploymentConfigStatus
 		condType   deployapi.DeploymentConditionType
 		condStatus kapi.ConditionStatus
-		condReason string
 
 		expected bool
 	}{
@@ -515,7 +510,7 @@ func TestSetCondition(t *testing.T) {
 						// Note that LastTransitionTime stays the same.
 						LastTransitionTime: now,
 						// Only the reason changes.
-						Reason: "BecauseItIs",
+						Reason: deployapi.NewReplicationControllerReason,
 					},
 				},
 			},
