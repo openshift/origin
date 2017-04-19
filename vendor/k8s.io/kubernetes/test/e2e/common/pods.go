@@ -26,13 +26,14 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubelet"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/watch"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -46,7 +47,7 @@ var (
 )
 
 // testHostIP tests that a pod gets a host IP
-func testHostIP(podClient *framework.PodClient, pod *api.Pod) {
+func testHostIP(podClient *framework.PodClient, pod *v1.Pod) {
 	By("creating pod")
 	podClient.CreateSync(pod)
 
@@ -54,7 +55,7 @@ func testHostIP(podClient *framework.PodClient, pod *api.Pod) {
 	hostIPTimeout := 2 * time.Minute
 	t := time.Now()
 	for {
-		p, err := podClient.Get(pod.Name)
+		p, err := podClient.Get(pod.Name, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred(), "Failed to get pod %q", pod.Name)
 		if p.Status.HostIP != "" {
 			framework.Logf("Pod %s has hostIP: %s", p.Name, p.Status.HostIP)
@@ -69,7 +70,7 @@ func testHostIP(podClient *framework.PodClient, pod *api.Pod) {
 	}
 }
 
-func startPodAndGetBackOffs(podClient *framework.PodClient, pod *api.Pod, sleepAmount time.Duration) (time.Duration, time.Duration) {
+func startPodAndGetBackOffs(podClient *framework.PodClient, pod *v1.Pod, sleepAmount time.Duration) (time.Duration, time.Duration) {
 	podClient.CreateSync(pod)
 	time.Sleep(sleepAmount)
 	Expect(pod.Spec.Containers).NotTo(BeEmpty())
@@ -100,9 +101,9 @@ func getRestartDelay(podClient *framework.PodClient, podName string, containerNa
 	beginTime := time.Now()
 	for time.Since(beginTime) < (2 * maxBackOffTolerance) { // may just miss the 1st MaxContainerBackOff delay
 		time.Sleep(time.Second)
-		pod, err := podClient.Get(podName)
+		pod, err := podClient.Get(podName, metav1.GetOptions{})
 		framework.ExpectNoError(err, fmt.Sprintf("getting pod %s", podName))
-		status, ok := api.GetContainerStatus(pod.Status.ContainerStatuses, containerName)
+		status, ok := v1.GetContainerStatus(pod.Status.ContainerStatuses, containerName)
 		if !ok {
 			framework.Logf("getRestartDelay: status missing")
 			continue
@@ -127,12 +128,12 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 	It("should get a host IP [Conformance]", func() {
 		name := "pod-hostip-" + string(uuid.NewUUID())
-		testHostIP(podClient, &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		testHostIP(podClient, &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:  "test",
 						Image: framework.GetPauseImageName(f.ClientSet),
@@ -146,16 +147,16 @@ var _ = framework.KubeDescribe("Pods", func() {
 		By("creating the pod")
 		name := "pod-submit-remove-" + string(uuid.NewUUID())
 		value := strconv.Itoa(time.Now().Nanosecond())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					"name": "foo",
 					"time": value,
 				},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:  "nginx",
 						Image: "gcr.io/google_containers/nginx-slim:0.7",
@@ -166,12 +167,12 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("setting up watch")
 		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options := api.ListOptions{LabelSelector: selector}
+		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err := podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(0))
-		options = api.ListOptions{
-			LabelSelector:   selector,
+		options = metav1.ListOptions{
+			LabelSelector:   selector.String(),
 			ResourceVersion: pods.ListMeta.ResourceVersion,
 		}
 		w, err := podClient.Watch(options)
@@ -182,7 +183,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying the pod is in kubernetes")
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options = api.ListOptions{LabelSelector: selector}
+		options = metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err = podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(1))
@@ -201,12 +202,12 @@ var _ = framework.KubeDescribe("Pods", func() {
 		// may be carried out immediately rather than gracefully.
 		framework.ExpectNoError(f.WaitForPodRunning(pod.Name))
 		// save the running pod
-		pod, err = podClient.Get(pod.Name)
+		pod, err = podClient.Get(pod.Name, metav1.GetOptions{})
 		Expect(err).NotTo(HaveOccurred(), "failed to GET scheduled pod")
 		framework.Logf("running pod: %#v", pod)
 
 		By("deleting the pod gracefully")
-		err = podClient.Delete(pod.Name, api.NewDeleteOptions(30))
+		err = podClient.Delete(pod.Name, metav1.NewDeleteOptions(30))
 		Expect(err).NotTo(HaveOccurred(), "failed to delete pod")
 
 		By("verifying the kubelet observed the termination notice")
@@ -232,18 +233,21 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying pod deletion was observed")
 		deleted := false
-		timeout := false
-		var lastPod *api.Pod
-		timer := time.After(2 * time.Minute)
-		for !deleted && !timeout {
+		var lastPod *v1.Pod
+		timer := time.After(framework.DefaultPodDeletionTimeout)
+		for !deleted {
 			select {
 			case event, _ := <-w.ResultChan():
-				if event.Type == watch.Deleted {
-					lastPod = event.Object.(*api.Pod)
+				switch event.Type {
+				case watch.Deleted:
+					lastPod = event.Object.(*v1.Pod)
 					deleted = true
+				case watch.Error:
+					framework.Logf("received a watch error: %v", event.Object)
+					Fail("watch closed with error")
 				}
 			case <-timer:
-				timeout = true
+				Fail("timed out waiting for pod deletion")
 			}
 		}
 		if !deleted {
@@ -254,7 +258,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 		Expect(lastPod.Spec.TerminationGracePeriodSeconds).ToNot(BeZero())
 
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options = api.ListOptions{LabelSelector: selector}
+		options = metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err = podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(0))
@@ -264,16 +268,16 @@ var _ = framework.KubeDescribe("Pods", func() {
 		By("creating the pod")
 		name := "pod-update-" + string(uuid.NewUUID())
 		value := strconv.Itoa(time.Now().Nanosecond())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					"name": "foo",
 					"time": value,
 				},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:  "nginx",
 						Image: "gcr.io/google_containers/nginx-slim:0.7",
@@ -287,13 +291,13 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying the pod is in kubernetes")
 		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options := api.ListOptions{LabelSelector: selector}
+		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err := podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(1))
 
 		By("updating the pod")
-		podClient.Update(name, func(pod *api.Pod) {
+		podClient.Update(name, func(pod *v1.Pod) {
 			value = strconv.Itoa(time.Now().Nanosecond())
 			pod.Labels["time"] = value
 		})
@@ -302,7 +306,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying the updated pod is in kubernetes")
 		selector = labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options = api.ListOptions{LabelSelector: selector}
+		options = metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err = podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(1))
@@ -313,16 +317,16 @@ var _ = framework.KubeDescribe("Pods", func() {
 		By("creating the pod")
 		name := "pod-update-activedeadlineseconds-" + string(uuid.NewUUID())
 		value := strconv.Itoa(time.Now().Nanosecond())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					"name": "foo",
 					"time": value,
 				},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:  "nginx",
 						Image: "gcr.io/google_containers/nginx-slim:0.7",
@@ -336,13 +340,13 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("verifying the pod is in kubernetes")
 		selector := labels.SelectorFromSet(labels.Set(map[string]string{"time": value}))
-		options := api.ListOptions{LabelSelector: selector}
+		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pods, err := podClient.List(options)
 		Expect(err).NotTo(HaveOccurred(), "failed to query for pods")
 		Expect(len(pods.Items)).To(Equal(1))
 
 		By("updating the pod")
-		podClient.Update(name, func(pod *api.Pod) {
+		podClient.Update(name, func(pod *v1.Pod) {
 			newDeadline := int64(5)
 			pod.Spec.ActiveDeadlineSeconds = &newDeadline
 		})
@@ -354,17 +358,17 @@ var _ = framework.KubeDescribe("Pods", func() {
 		// Make a pod that will be a service.
 		// This pod serves its hostname via HTTP.
 		serverName := "server-envvars-" + string(uuid.NewUUID())
-		serverPod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		serverPod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   serverName,
 				Labels: map[string]string{"name": serverName},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:  "srv",
 						Image: "gcr.io/google_containers/serve_hostname:v1.4",
-						Ports: []api.ContainerPort{{ContainerPort: 9376}},
+						Ports: []v1.ContainerPort{{ContainerPort: 9376}},
 					},
 				},
 			},
@@ -379,15 +383,15 @@ var _ = framework.KubeDescribe("Pods", func() {
 		// to match the service.  Another is to rethink environment variable names and possibly
 		// allow overriding the prefix in the service manifest.
 		svcName := "fooservice"
-		svc := &api.Service{
-			ObjectMeta: api.ObjectMeta{
+		svc := &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: svcName,
 				Labels: map[string]string{
 					"name": svcName,
 				},
 			},
-			Spec: api.ServiceSpec{
-				Ports: []api.ServicePort{{
+			Spec: v1.ServiceSpec{
+				Ports: []v1.ServicePort{{
 					Port:       8765,
 					TargetPort: intstr.FromInt(8080),
 				}},
@@ -402,20 +406,20 @@ var _ = framework.KubeDescribe("Pods", func() {
 		// Make a client pod that verifies that it has the service environment variables.
 		podName := "client-envvars-" + string(uuid.NewUUID())
 		const containerName = "env3cont"
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   podName,
 				Labels: map[string]string{"name": podName},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:    containerName,
 						Image:   "gcr.io/google_containers/busybox:1.24",
 						Command: []string{"sh", "-c", "env"},
 					},
 				},
-				RestartPolicy: api.RestartPolicyNever,
+				RestartPolicy: v1.RestartPolicyNever,
 			},
 		}
 
@@ -442,12 +446,12 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("creating the pod")
 		name := "pod-exec-websocket-" + string(uuid.NewUUID())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:    "main",
 						Image:   "gcr.io/google_containers/busybox:1.24",
@@ -512,12 +516,12 @@ var _ = framework.KubeDescribe("Pods", func() {
 
 		By("creating the pod")
 		name := "pod-logs-websocket-" + string(uuid.NewUUID())
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:    "main",
 						Image:   "gcr.io/google_containers/busybox:1.24",
@@ -566,13 +570,13 @@ var _ = framework.KubeDescribe("Pods", func() {
 	It("should have their auto-restart back-off timer reset on image update [Slow]", func() {
 		podName := "pod-back-off-image"
 		containerName := "back-off"
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   podName,
 				Labels: map[string]string{"test": "back-off-image"},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:    containerName,
 						Image:   "gcr.io/google_containers/busybox:1.24",
@@ -585,7 +589,7 @@ var _ = framework.KubeDescribe("Pods", func() {
 		delay1, delay2 := startPodAndGetBackOffs(podClient, pod, buildBackOffDuration)
 
 		By("updating the image")
-		podClient.Update(podName, func(pod *api.Pod) {
+		podClient.Update(podName, func(pod *v1.Pod) {
 			pod.Spec.Containers[0].Image = "gcr.io/google_containers/nginx-slim:0.7"
 		})
 
@@ -607,13 +611,13 @@ var _ = framework.KubeDescribe("Pods", func() {
 	It("should cap back-off at MaxContainerBackOff [Slow]", func() {
 		podName := "back-off-cap"
 		containerName := "back-off-cap"
-		pod := &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+		pod := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   podName,
 				Labels: map[string]string{"test": "liveness"},
 			},
-			Spec: api.PodSpec{
-				Containers: []api.Container{
+			Spec: v1.PodSpec{
+				Containers: []v1.Container{
 					{
 						Name:    containerName,
 						Image:   "gcr.io/google_containers/busybox:1.24",

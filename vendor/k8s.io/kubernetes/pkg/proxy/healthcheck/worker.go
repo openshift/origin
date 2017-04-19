@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package healthcheck LoadBalancer Healthcheck responder library for kubernetes network proxies
-package healthcheck
+package healthcheck // import "k8s.io/kubernetes/pkg/proxy/healthcheck"
 
 import (
 	"time"

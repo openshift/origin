@@ -19,8 +19,8 @@ package v1
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/conversion"
 )
 
 func TestAPItoV1VolumeSourceConversion(t *testing.T) {
