@@ -340,8 +340,13 @@ message DeploymentTriggerPolicy {
 // based on the specified container which is assumed to be part of the
 // deployment template.
 message ExecNewPodHook {
-  // Command is the action command and its arguments.
+  // Command represents an entrypoint array. Not executed within a shell. The docker image’s ENTRYPOINT
+  // is used if this is not provided.
   repeated string command = 1;
+
+  // Args represents an arguments to the entrypoint. The docker image’s CMD is
+  // used if this is not provided.
+  repeated string args = 5;
 
   // Env is a set of environment variables to supply to the hook pod's container.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 2;
