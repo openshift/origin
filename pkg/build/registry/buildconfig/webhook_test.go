@@ -83,7 +83,7 @@ func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigReg
 
 func TestNewWebHook(t *testing.T) {
 	hook, _, _ := newStorage()
-	if out, ok := hook.New().(*metav1.Status); !ok {
+	if out, ok := hook.New().(*api.Build); !ok {
 		t.Errorf("unexpected new: %#v", out)
 	}
 }
