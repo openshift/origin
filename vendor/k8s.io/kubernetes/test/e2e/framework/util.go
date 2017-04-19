@@ -1288,6 +1288,13 @@ func waitTimeoutForPodRunningInNamespace(c clientset.Interface, podName, namespa
 		return err
 	}
 	_, err = watch.Until(timeout, w, client.PodRunning)
+
+	// DEBUG: add more details about the pod and events in error cases
+	if err != nil {
+		if pod, getErr := c.Pods(namespace).Get(podName); getErr == nil {
+			err = fmt.Errorf("%#v\n\n%#v", err, pod)
+		}
+	}
 	return err
 }
 
