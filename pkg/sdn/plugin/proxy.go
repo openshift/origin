@@ -152,7 +152,12 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 	dnsFound := false
 	for _, rule := range policy.Spec.Egress {
 		if len(rule.To.CIDRSelector) > 0 {
-			_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
+			selector := rule.To.CIDRSelector
+			if selector == "0.0.0.0/32" {
+				// ovscontroller.go already logs a warning about this
+				selector = "0.0.0.0/0"
+			}
+			_, cidr, err := net.ParseCIDR(selector)
 			if err != nil {
 				// should have been caught by validation
 				glog.Errorf("illegal CIDR value %q in EgressNetworkPolicy rule for policy: %v", rule.To.CIDRSelector, policy.UID)
