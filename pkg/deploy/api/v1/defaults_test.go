@@ -557,7 +557,8 @@ func TestDefaults(t *testing.T) {
 			t.Errorf("unexpected object: %v", got)
 			t.FailNow()
 		}
-		if !reflect.DeepEqual(got.Spec, expected.Spec) {
+		// TODO(rebase): check that there are no fields which have different semantics for nil and []
+		if !kapi.Semantic.DeepEqual(got.Spec, expected.Spec) {
 			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
 		}
 	}
