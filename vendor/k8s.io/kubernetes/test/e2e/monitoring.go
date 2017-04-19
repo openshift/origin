@@ -18,14 +18,16 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
-	influxdb "github.com/influxdata/influxdb/client"
-	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/labels"
+	influxdb "github.com/influxdata/influxdb/client/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -44,12 +46,13 @@ var _ = framework.KubeDescribe("Monitoring", func() {
 })
 
 const (
-	influxdbService      = "monitoring-influxdb"
-	influxdbDatabaseName = "k8s"
-	podlistQuery         = "show tag values from \"cpu/usage\" with key = pod_id"
-	nodelistQuery        = "show tag values from \"cpu/usage\" with key = hostname"
-	sleepBetweenAttempts = 5 * time.Second
-	testTimeout          = 5 * time.Minute
+	influxdbService       = "monitoring-influxdb"
+	influxdbDatabaseName  = "k8s"
+	podlistQuery          = "show tag values from \"cpu/usage\" with key = pod_id"
+	nodelistQuery         = "show tag values from \"cpu/usage\" with key = hostname"
+	sleepBetweenAttempts  = 5 * time.Second
+	testTimeout           = 5 * time.Minute
+	initializationTimeout = 5 * time.Minute
 )
 
 var (
@@ -62,19 +65,47 @@ var (
 
 // Query sends a command to the server and returns the Response
 func Query(c clientset.Interface, query string) (*influxdb.Response, error) {
-	result, err := c.Core().RESTClient().Get().
-		Prefix("proxy").
-		Namespace("kube-system").
-		Resource("services").
-		Name(influxdbService+":api").
-		Suffix("query").
-		Param("q", query).
-		Param("db", influxdbDatabaseName).
-		Param("epoch", "s").
-		Do().
-		Raw()
+	subResourceProxyAvailable, err := framework.ServerVersionGTE(framework.SubResourceServiceAndNodeProxyVersion, c.Discovery())
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), framework.SingleCallTimeout)
+	defer cancel()
+
+	var result []byte
+	if subResourceProxyAvailable {
+		result, err = c.Core().RESTClient().Get().
+			Context(ctx).
+			Namespace("kube-system").
+			Resource("services").
+			Name(influxdbService+":api").
+			SubResource("proxy").
+			Suffix("query").
+			Param("q", query).
+			Param("db", influxdbDatabaseName).
+			Param("epoch", "s").
+			Do().
+			Raw()
+	} else {
+		result, err = c.Core().RESTClient().Get().
+			Context(ctx).
+			Prefix("proxy").
+			Namespace("kube-system").
+			Resource("services").
+			Name(influxdbService+":api").
+			Suffix("query").
+			Param("q", query).
+			Param("db", influxdbDatabaseName).
+			Param("epoch", "s").
+			Do().
+			Raw()
+	}
 
 	if err != nil {
+		if ctx.Err() != nil {
+			framework.Failf("Failed to query influx db: %v", err)
+		}
 		return nil, err
 	}
 
@@ -101,16 +132,16 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 	// is running (which would be an error except during a rolling update).
 	for _, rcLabel := range rcLabels {
 		selector := labels.Set{"k8s-app": rcLabel}.AsSelector()
-		options := api.ListOptions{LabelSelector: selector}
-		deploymentList, err := c.Extensions().Deployments(api.NamespaceSystem).List(options)
+		options := metav1.ListOptions{LabelSelector: selector.String()}
+		deploymentList, err := c.Extensions().Deployments(metav1.NamespaceSystem).List(options)
 		if err != nil {
 			return nil, err
 		}
-		rcList, err := c.Core().ReplicationControllers(api.NamespaceSystem).List(options)
+		rcList, err := c.Core().ReplicationControllers(metav1.NamespaceSystem).List(options)
 		if err != nil {
 			return nil, err
 		}
-		psList, err := c.Apps().StatefulSets(api.NamespaceSystem).List(options)
+		psList, err := c.Apps().StatefulSets(metav1.NamespaceSystem).List(options)
 		if err != nil {
 			return nil, err
 		}
@@ -121,8 +152,8 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 		// Check all the replication controllers.
 		for _, rc := range rcList.Items {
 			selector := labels.Set(rc.Spec.Selector).AsSelector()
-			options := api.ListOptions{LabelSelector: selector}
-			podList, err := c.Core().Pods(api.NamespaceSystem).List(options)
+			options := metav1.ListOptions{LabelSelector: selector.String()}
+			podList, err := c.Core().Pods(metav1.NamespaceSystem).List(options)
 			if err != nil {
 				return nil, err
 			}
@@ -136,8 +167,8 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 		// Do the same for all deployments.
 		for _, rc := range deploymentList.Items {
 			selector := labels.Set(rc.Spec.Selector.MatchLabels).AsSelector()
-			options := api.ListOptions{LabelSelector: selector}
-			podList, err := c.Core().Pods(api.NamespaceSystem).List(options)
+			options := metav1.ListOptions{LabelSelector: selector.String()}
+			podList, err := c.Core().Pods(metav1.NamespaceSystem).List(options)
 			if err != nil {
 				return nil, err
 			}
@@ -151,8 +182,8 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 		// And for pet sets.
 		for _, ps := range psList.Items {
 			selector := labels.Set(ps.Spec.Selector.MatchLabels).AsSelector()
-			options := api.ListOptions{LabelSelector: selector}
-			podList, err := c.Core().Pods(api.NamespaceSystem).List(options)
+			options := metav1.ListOptions{LabelSelector: selector.String()}
+			podList, err := c.Core().Pods(metav1.NamespaceSystem).List(options)
 			if err != nil {
 				return nil, err
 			}
@@ -168,7 +199,7 @@ func verifyExpectedRcsExistAndGetExpectedPods(c clientset.Interface) ([]string, 
 }
 
 func expectedServicesExist(c clientset.Interface) error {
-	serviceList, err := c.Core().Services(api.NamespaceSystem).List(api.ListOptions{})
+	serviceList, err := c.Core().Services(metav1.NamespaceSystem).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -187,7 +218,7 @@ func expectedServicesExist(c clientset.Interface) error {
 
 func getAllNodesInCluster(c clientset.Interface) ([]string, error) {
 	// It should be OK to list unschedulable Nodes here.
-	nodeList, err := c.Core().Nodes().List(api.ListOptions{})
+	nodeList, err := c.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -257,10 +288,27 @@ func validatePodsAndNodes(c clientset.Interface, expectedPods, expectedNodes []s
 
 func testMonitoringUsingHeapsterInfluxdb(c clientset.Interface) {
 	// Check if heapster pods and services are up.
-	expectedPods, err := verifyExpectedRcsExistAndGetExpectedPods(c)
-	framework.ExpectNoError(err)
-	framework.ExpectNoError(expectedServicesExist(c))
-	// TODO: Wait for all pods and services to be running.
+	var expectedPods []string
+	rcErr := fmt.Errorf("failed to verify expected RCs within timeout")
+	serviceErr := fmt.Errorf("failed to verify expected services within timeout")
+	err := wait.PollImmediate(sleepBetweenAttempts, initializationTimeout, func() (bool, error) {
+		expectedPods, rcErr = verifyExpectedRcsExistAndGetExpectedPods(c)
+		if rcErr != nil {
+			framework.Logf("Waiting for expected RCs (got error: %v)", rcErr)
+			return false, nil
+		}
+		serviceErr = expectedServicesExist(c)
+		if serviceErr != nil {
+			framework.Logf("Waiting for expected services (got error: %v)", serviceErr)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		framework.ExpectNoError(rcErr)
+		framework.ExpectNoError(serviceErr)
+		framework.Failf("Failed to verify RCs and services within timeout: %v", err)
+	}
 
 	expectedNodes, err := getAllNodesInCluster(c)
 	framework.ExpectNoError(err)
@@ -281,8 +329,8 @@ func testMonitoringUsingHeapsterInfluxdb(c clientset.Interface) {
 
 func printDebugInfo(c clientset.Interface) {
 	set := labels.Set{"k8s-app": "heapster"}
-	options := api.ListOptions{LabelSelector: set.AsSelector()}
-	podList, err := c.Core().Pods(api.NamespaceSystem).List(options)
+	options := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
+	podList, err := c.Core().Pods(metav1.NamespaceSystem).List(options)
 	if err != nil {
 		framework.Logf("Error while listing pods %v", err)
 		return

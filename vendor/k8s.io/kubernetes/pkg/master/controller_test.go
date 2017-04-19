@@ -17,22 +17,21 @@ limitations under the License.
 package master
 
 import (
-	"errors"
 	"net"
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	core "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/registry/registrytest"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 func TestReconcileEndpoints(t *testing.T) {
-	ns := api.NamespaceDefault
-	om := func(name string) api.ObjectMeta {
-		return api.ObjectMeta{Namespace: ns, Name: name}
+	ns := metav1.NamespaceDefault
+	om := func(name string) metav1.ObjectMeta {
+		return metav1.ObjectMeta{Namespace: ns, Name: name}
 	}
 	reconcile_tests := []struct {
 		testName          string
@@ -543,9 +542,9 @@ func TestReconcileEndpoints(t *testing.T) {
 }
 
 func TestCreateOrUpdateMasterService(t *testing.T) {
-	ns := api.NamespaceDefault
-	om := func(name string) api.ObjectMeta {
-		return api.ObjectMeta{Namespace: ns, Name: name}
+	ns := metav1.NamespaceDefault
+	om := func(name string) metav1.ObjectMeta {
+		return metav1.ObjectMeta{Namespace: ns, Name: name}
 	}
 
 	create_tests := []struct {
@@ -578,10 +577,6 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 	}
 	for _, test := range create_tests {
 		master := Controller{}
-		registry := &registrytest.ServiceRegistry{
-			Err: errors.New("unable to get svc"),
-		}
-		master.ServiceRegistry = registry
 		fakeClient := fake.NewSimpleClientset()
 		master.ServiceClient = fakeClient.Core()
 		master.CreateOrUpdateMasterServiceIfNeeded(test.serviceName, net.ParseIP("1.2.3.4"), test.servicePorts, test.serviceType, false)
@@ -602,7 +597,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			}
 		}
 		if test.expectCreate == nil && len(creates) > 1 {
-			t.Errorf("case %q: no create expected, yet saw: %v", test.testName, registry.List.Items)
+			t.Errorf("case %q: no create expected, yet saw: %v", test.testName, creates)
 		}
 	}
 
@@ -864,10 +859,6 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 	}
 	for _, test := range reconcile_tests {
 		master := Controller{}
-		registry := &registrytest.ServiceRegistry{
-			Service: test.service,
-		}
-		master.ServiceRegistry = registry
 		fakeClient := fake.NewSimpleClientset(test.service)
 		master.ServiceClient = fakeClient.Core()
 		err := master.CreateOrUpdateMasterServiceIfNeeded(test.serviceName, net.ParseIP("1.2.3.4"), test.servicePorts, test.serviceType, true)
@@ -891,7 +882,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			}
 		}
 		if test.expectUpdate == nil && len(updates) > 0 {
-			t.Errorf("case %q: no update expected, yet saw: %v", test.testName, registry.Updates)
+			t.Errorf("case %q: no update expected, yet saw: %v", test.testName, updates)
 		}
 	}
 
@@ -927,10 +918,6 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 	}
 	for _, test := range non_reconcile_tests {
 		master := Controller{}
-		registry := &registrytest.ServiceRegistry{
-			Service: test.service,
-		}
-		master.ServiceRegistry = registry
 		fakeClient := fake.NewSimpleClientset(test.service)
 		master.ServiceClient = fakeClient.Core()
 		err := master.CreateOrUpdateMasterServiceIfNeeded(test.serviceName, net.ParseIP("1.2.3.4"), test.servicePorts, test.serviceType, false)
@@ -954,7 +941,7 @@ func TestCreateOrUpdateMasterService(t *testing.T) {
 			}
 		}
 		if test.expectUpdate == nil && len(updates) > 0 {
-			t.Errorf("case %q: no update expected, yet saw: %v", test.testName, registry.Updates)
+			t.Errorf("case %q: no update expected, yet saw: %v", test.testName, updates)
 		}
 	}
 }

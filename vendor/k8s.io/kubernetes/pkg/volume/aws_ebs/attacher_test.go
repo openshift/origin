@@ -20,13 +20,13 @@ import (
 	"errors"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/types"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestGetVolumeName_Volume(t *testing.T) {
@@ -191,9 +191,9 @@ func newDetacher(testcase *testcase) *awsElasticBlockStoreDetacher {
 
 func createVolSpec(name aws.KubernetesVolumeID, readOnly bool) *volume.Spec {
 	return &volume.Spec{
-		Volume: &api.Volume{
-			VolumeSource: api.VolumeSource{
-				AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{
+		Volume: &v1.Volume{
+			VolumeSource: v1.VolumeSource{
+				AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
 					VolumeID: string(name),
 					ReadOnly: readOnly,
 				},
@@ -204,10 +204,10 @@ func createVolSpec(name aws.KubernetesVolumeID, readOnly bool) *volume.Spec {
 
 func createPVSpec(name aws.KubernetesVolumeID, readOnly bool) *volume.Spec {
 	return &volume.Spec{
-		PersistentVolume: &api.PersistentVolume{
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					AWSElasticBlockStore: &api.AWSElasticBlockStoreVolumeSource{
+		PersistentVolume: &v1.PersistentVolume{
+			Spec: v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
 						VolumeID: string(name),
 						ReadOnly: readOnly,
 					},
@@ -321,7 +321,7 @@ func (testcase *testcase) DiskIsAttached(diskName aws.KubernetesVolumeID, nodeNa
 	return expected.isAttached, expected.ret
 }
 
-func (testcase *testcase) DisksAreAttached(diskNames []aws.KubernetesVolumeID, nodeName types.NodeName) (map[aws.KubernetesVolumeID]bool, error) {
+func (testcase *testcase) DisksAreAttached(nodeDisks map[types.NodeName][]aws.KubernetesVolumeID) (map[types.NodeName]map[aws.KubernetesVolumeID]bool, error) {
 	return nil, errors.New("Not implemented")
 }
 

@@ -17,16 +17,17 @@ limitations under the License.
 package utils
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
-// Convenient wrapper around cache.Store that returns list of api.Pod instead of interface{}.
+// Convenient wrapper around cache.Store that returns list of v1.Pod instead of interface{}.
 type PodStore struct {
 	cache.Store
 	stopCh    chan struct{}
@@ -35,30 +36,30 @@ type PodStore struct {
 
 func NewPodStore(c clientset.Interface, namespace string, label labels.Selector, field fields.Selector) *PodStore {
 	lw := &cache.ListWatch{
-		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-			options.LabelSelector = label
-			options.FieldSelector = field
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.LabelSelector = label.String()
+			options.FieldSelector = field.String()
 			obj, err := c.Core().Pods(namespace).List(options)
 			return runtime.Object(obj), err
 		},
-		WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-			options.LabelSelector = label
-			options.FieldSelector = field
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.LabelSelector = label.String()
+			options.FieldSelector = field.String()
 			return c.Core().Pods(namespace).Watch(options)
 		},
 	}
 	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	stopCh := make(chan struct{})
-	reflector := cache.NewReflector(lw, &api.Pod{}, store, 0)
+	reflector := cache.NewReflector(lw, &v1.Pod{}, store, 0)
 	reflector.RunUntil(stopCh)
 	return &PodStore{Store: store, stopCh: stopCh, Reflector: reflector}
 }
 
-func (s *PodStore) List() []*api.Pod {
+func (s *PodStore) List() []*v1.Pod {
 	objects := s.Store.List()
-	pods := make([]*api.Pod, 0)
+	pods := make([]*v1.Pod, 0)
 	for _, o := range objects {
-		pods = append(pods, o.(*api.Pod))
+		pods = append(pods, o.(*v1.Pod))
 	}
 	return pods
 }
