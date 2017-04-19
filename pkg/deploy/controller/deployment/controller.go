@@ -7,6 +7,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/record"
@@ -314,6 +315,14 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 	}
 
 	gracePeriod := int64(10)
+
+	// In case the deployment config strategy does not set the resource requests,
+	// we default them.
+	if deploymentConfig.Spec.Strategy.Resources.Requests == nil {
+		deploymentConfig.Spec.Strategy.Resources.Requests = kapi.ResourceList{}
+		deploymentConfig.Spec.Strategy.Resources.Requests[kapi.ResourceCPU] = resource.MustParse("100m")
+		deploymentConfig.Spec.Strategy.Resources.Requests[kapi.ResourceMemory] = resource.MustParse("256Mi")
+	}
 
 	pod := &kapi.Pod{
 		ObjectMeta: kapi.ObjectMeta{
