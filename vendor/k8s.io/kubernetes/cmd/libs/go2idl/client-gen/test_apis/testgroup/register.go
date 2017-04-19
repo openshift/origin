@@ -17,12 +17,11 @@ limitations under the License.
 package testgroup
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var SchemeGroupVersion = unversioned.GroupVersion{Group: "testgroup.k8s.io", Version: runtime.APIVersionInternal}
+var SchemeGroupVersion = schema.GroupVersion{Group: "testgroup.k8s.io", Version: runtime.APIVersionInternal}
 
 var (
 	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
@@ -36,11 +35,9 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TestTypeList{},
 	)
 
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&api.ListOptions{},
-	)
+	scheme.AddKnownTypes(SchemeGroupVersion)
 	return nil
 }
 
-func (obj *TestType) GetObjectKind() unversioned.ObjectKind     { return &obj.TypeMeta }
-func (obj *TestTypeList) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestType) GetObjectKind() schema.ObjectKind     { return &obj.TypeMeta }
+func (obj *TestTypeList) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

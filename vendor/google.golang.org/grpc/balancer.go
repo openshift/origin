@@ -38,7 +38,6 @@ import (
 	"sync"
 
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/naming"
@@ -316,7 +315,7 @@ func (rr *roundRobin) Get(ctx context.Context, opts BalancerGetOptions) (addr Ad
 	if !opts.BlockingWait {
 		if len(rr.addrs) == 0 {
 			rr.mu.Unlock()
-			err = Errorf(codes.Unavailable, "there is no address available")
+			err = fmt.Errorf("there is no address available")
 			return
 		}
 		// Returns the next addr on rr.addrs for failfast RPCs.

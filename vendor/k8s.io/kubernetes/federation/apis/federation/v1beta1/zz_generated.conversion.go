@@ -21,11 +21,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	federation "k8s.io/kubernetes/federation/apis/federation"
 	api "k8s.io/kubernetes/pkg/api"
 	v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -53,10 +53,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_Cluster_To_federation_Cluster(in *Cluster, out *federation.Cluster, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_ClusterSpec_To_federation_ClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -71,10 +68,7 @@ func Convert_v1beta1_Cluster_To_federation_Cluster(in *Cluster, out *federation.
 }
 
 func autoConvert_federation_Cluster_To_v1beta1_Cluster(in *federation.Cluster, out *Cluster, s conversion.Scope) error {
-	// TODO: Inefficient conversion - can we improve it?
-	if err := s.Convert(&in.ObjectMeta, &out.ObjectMeta, 0); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_federation_ClusterSpec_To_v1beta1_ClusterSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -128,7 +122,11 @@ func Convert_v1beta1_ClusterList_To_federation_ClusterList(in *ClusterList, out 
 
 func autoConvert_federation_ClusterList_To_v1beta1_ClusterList(in *federation.ClusterList, out *ClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Cluster)(unsafe.Pointer(&in.Items))
+	if in.Items == nil {
+		out.Items = make([]Cluster, 0)
+	} else {
+		out.Items = *(*[]Cluster)(unsafe.Pointer(&in.Items))
+	}
 	return nil
 }
 
@@ -147,7 +145,11 @@ func Convert_v1beta1_ClusterSpec_To_federation_ClusterSpec(in *ClusterSpec, out 
 }
 
 func autoConvert_federation_ClusterSpec_To_v1beta1_ClusterSpec(in *federation.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
-	out.ServerAddressByClientCIDRs = *(*[]ServerAddressByClientCIDR)(unsafe.Pointer(&in.ServerAddressByClientCIDRs))
+	if in.ServerAddressByClientCIDRs == nil {
+		out.ServerAddressByClientCIDRs = make([]ServerAddressByClientCIDR, 0)
+	} else {
+		out.ServerAddressByClientCIDRs = *(*[]ServerAddressByClientCIDR)(unsafe.Pointer(&in.ServerAddressByClientCIDRs))
+	}
 	out.SecretRef = (*v1.LocalObjectReference)(unsafe.Pointer(in.SecretRef))
 	return nil
 }
