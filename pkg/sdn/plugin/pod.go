@@ -53,15 +53,15 @@ type podManager struct {
 	host           knetwork.Host
 }
 
-// Creates a new live podManager; used by node code
-func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, oc *ovsController) *podManager {
+// Creates a new live podManager; used by node code0
+func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
 	pm.podHandler = pm
-	pm.ovs = oc
-	return pm
+	pm.ovs = ovs
+	return pm 
 }
 
 // Creates a new basic podManager; used by testcases
