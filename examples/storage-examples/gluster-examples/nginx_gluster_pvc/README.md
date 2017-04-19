@@ -72,12 +72,12 @@ At this point, all [environment assumptions](../../gluster-examples) are met, an
         oc describe pv gluster-default-volume    (name from get pv)
 
         [root@OpenShift1 nginx_gluster_pvc]# oc describe pv gluster-default-volume 
-        Name:		gluster-default-volume 
-        Labels:		<none> 
-        Status:		Available 
-        Claim:		 
-        Reclaim Policy:	%!d(api.PersistentVolumeReclaimPolicy=Recycle) 
-        Message:	%!d(string=) 
+        Name:          gluster-default-volume 
+        Labels:        <none> 
+        Status:        Available 
+        Claim:         
+        Reclaim Policy:    %!d(api.PersistentVolumeReclaimPolicy=Recycle) 
+        Message:    %!d(string=) 
 
 
 
@@ -134,10 +134,10 @@ At this point, all [environment assumptions](../../gluster-examples) are met, an
          claim-default   map[]     Bound     gluster-default-volume 
 
          [root@OpenShift1 nginx_gluster_pvc]# oc describe pvc claim-default 
-         Name:		claim-default 
-         Namespace:	default 
-         Status:		%!d(api.PersistentVolumeClaimPhase=Bound) 
-         Volume:		%!d(string=gluster-default-volume) 
+         Name:        claim-default 
+         Namespace:    default 
+         Status:        %!d(api.PersistentVolumeClaimPhase=Bound) 
+         Volume:        %!d(string=gluster-default-volume) 
 
 
 
@@ -250,10 +250,10 @@ At this point, all [environment assumptions](../../gluster-examples) are met, an
 
         [root@OpenShift2 data2]# docker exec -it eefb2a76f6c5 bash 
         bash-4.3# ls 
-        bin  boot  dev	etc  home  lib	lib64  lost+found  media  mnt  opt  proc  root	run  sbin  srv	sys  tmp  usr  var 
+        bin  boot  dev    etc  home  lib    lib64  lost+found  media  mnt  opt  proc  root    run  sbin  srv    sys  tmp  usr  var 
         bash-4.3# cd /usr/share/nginx/html/test 
         bash-4.3# ls 
-        glusterfs-nginx  glusterfs-nginx-atomichost-mount  glusterfs-nginx-pvc	helloworld.html  test1	test2  test3 
+        glusterfs-nginx  glusterfs-nginx-atomichost-mount  glusterfs-nginx-pvc    helloworld.html  test1    test2  test3 
 
 
      From the Container:
