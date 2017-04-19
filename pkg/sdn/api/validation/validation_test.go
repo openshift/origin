@@ -39,7 +39,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Bad network CIDR",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.1/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -69,7 +69,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		{
 			name: "Bad service network CIDR",
 			cn: &api.ClusterNetwork{
-				ObjectMeta:       kapi.ObjectMeta{Name: "any"},
+				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.1.0/16",
@@ -152,7 +152,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		{
 			name: "Malformed subnet CIDR",
 			hs: &api.HostSubnet{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
 				Host:   "abc.def.com",
@@ -284,7 +284,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Policy rule with both CIDR and DNS",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -305,7 +305,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Policy rule without CIDR or DNS",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -323,7 +323,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Policy rule with invalid DNS",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
@@ -343,7 +343,7 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		{
 			name: "Policy rule with wildcard DNS",
 			fw: &api.EgressNetworkPolicy{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
