@@ -19,7 +19,7 @@ limitations under the License.
 
 syntax = 'proto2';
 
-package k8s.io.kubernetes.pkg.apis.authorization.v1beta1;
+package k8s.io.kubernetes.pkg.apis.authorization.v1;
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
@@ -29,7 +29,7 @@ import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
-option go_package = "v1beta1";
+option go_package = "v1";
 
 // ExtraValue masks the value so protobuf can generate
 // +protobuf.nullable=true
@@ -153,13 +153,13 @@ message SubjectAccessReviewSpec {
   optional NonResourceAttributes nonResourceAttributes = 2;
 
   // User is the user you're testing for.
-  // If you specify "User" but not "Group", then is it interpreted as "What if User were not a member of any groups
+  // If you specify "User" but not "Groups", then is it interpreted as "What if User were not a member of any groups
   // +optional
   optional string verb = 3;
 
   // Groups is the groups you're testing for.
   // +optional
-  repeated string group = 4;
+  repeated string groups = 4;
 
   // Extra corresponds to the user.Info.GetExtra() method from the authenticator.  Since that is input to the authorizer
   // it needs a reflection here.
