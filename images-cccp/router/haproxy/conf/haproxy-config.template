@@ -1,0 +1,348 @@
+{{/*
+    haproxy-config.cfg: contains the main config with helper backends that are used to terminate
+    					encryption before finally sending to a host_be which is the backend that is the final
+    					backend for a route and contains all the endpoints for the service
+*/}}
+{{ define "/var/lib/haproxy/conf/haproxy.config" }}
+{{ $workingDir := .WorkingDir }}
+global
+  # maxconn 4096
+  daemon
+  ca-base /etc/ssl
+  crt-base /etc/ssl
+  stats socket /var/lib/haproxy/run/haproxy.sock mode 600 level admin
+  stats timeout 2m
+
+  # Prevent vulnerability to POODLE attacks
+  # TODO: use when 1.5.14 is available
+  # ssl-default-bind-options no-sslv3
+
+  # Modern cipher suite (no legacy browser support) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  # tune.ssl.default-dh-param 2048
+  # ssl-default-bind-ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK
+
+  # Intermediate cipher suite (default) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  tune.ssl.default-dh-param 2048
+  ssl-default-bind-ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA
+
+  # Old cipher suite (maximum compatibility but insecure) from https://wiki.mozilla.org/Security/Server_Side_TLS
+  # tune.ssl.default-dh-param 1024
+  # ssl-default-bind-ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA
+
+defaults
+  # maxconn 4096
+  # Add x-forwarded-for header.
+  timeout connect 5s
+  timeout client 30s
+  timeout server 30s
+  # Long timeout for WebSocket connections.
+  timeout tunnel 1h
+
+{{ if (gt .StatsPort 0) }}
+listen stats :{{.StatsPort}}
+{{ else }}
+listen stats :1936
+{{ end }}
+    mode http
+    # Health check monitoring uri.
+    monitor-uri /healthz
+
+{{ if and (and (ne .StatsUser "") (ne .StatsPassword "")) (gt .StatsPort 0) }}
+    # Add your custom health check monitoring failure condition here.
+    # monitor fail if <condition>
+    stats enable
+    stats hide-version
+    stats realm Haproxy\ Statistics
+    stats uri /
+    stats auth {{.StatsUser}}:{{.StatsPassword}}
+{{ end }}
+
+frontend public
+  bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}
+  mode http
+  tcp-request inspect-delay 5s
+  tcp-request content accept if HTTP
+
+  # check if we need to redirect/force using https.
+  acl secure_redirect base,map_beg(/var/lib/haproxy/conf/os_edge_http_redirect.map) -m found
+  redirect scheme https if secure_redirect
+
+  # Check if it is an edge route exposed insecurely.
+  acl edge_http_expose base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map) -m found
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_expose.map)] if edge_http_expose
+
+  # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
+  use_backend be_http_%[base,map_beg(/var/lib/haproxy/conf/os_http_be.map)]
+
+  default_backend openshift_default
+
+# public ssl accepts all connections and isn't checking certificates yet certificates to use will be
+# determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
+# that terminates encryption in this router (edge)
+frontend public_ssl
+  bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}
+  tcp-request  inspect-delay 5s
+  tcp-request content accept if { req_ssl_hello_type 1 }
+
+  # if the connection is SNI and the route is a passthrough don't use the termination backend, just use the tcp backend
+  acl sni req.ssl_sni -m found
+  acl sni_passthrough req.ssl_sni,map(/var/lib/haproxy/conf/os_sni_passthrough.map) -m found
+  use_backend be_tcp_%[req.ssl_sni,map(/var/lib/haproxy/conf/os_tcp_be.map)] if sni sni_passthrough
+
+  # if the route is SNI and NOT passthrough enter the termination flow
+  use_backend be_sni if sni
+
+  # non SNI requests should enter a default termination backend rather than the custom cert SNI backend since it
+  # will not be able to match a cert to an SNI host
+  default_backend be_no_sni
+
+##########################################################################
+# TLS SNI
+#
+# When using SNI we can terminate encryption with custom certificates.
+# Certs will be stored in a directory and will be matched with the SNI host header
+# which must exist in the CN of the certificate.  Certificates must be concatenated
+# as a single file (handled by the plugin writer) per the haproxy documentation.
+#
+# Finally, check re-encryption settings and re-encrypt or just pass along the unencrypted
+# traffic
+##########################################################################
+backend be_sni
+  server fe_sni 127.0.0.1:10444 weight 1 send-proxy
+
+frontend fe_sni
+  # terminate ssl on edge
+  bind 127.0.0.1:10444 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt {{ $workingDir }}/certs accept-proxy
+  mode http
+
+  # check re-encrypt backends first - from most specific to general path.
+  acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+
+  # Search from most specific to general path (host case).
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+
+  # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+
+  default_backend openshift_default
+
+##########################################################################
+# END TLS SNI
+##########################################################################
+
+##########################################################################
+# TLS NO SNI
+#
+# When we don't have SNI the only thing we can try to do is terminate the encryption
+# using our wild card certificate.  Once that is complete we can either re-encrypt
+# the traffic or pass it on to the backends
+##########################################################################
+# backend for when sni does not exist, or ssl term needs to happen on the edge
+backend be_no_sni
+  server fe_no_sni 127.0.0.1:10443 weight 1 send-proxy
+
+frontend fe_no_sni
+  # terminate ssl on edge
+  bind 127.0.0.1:10443 ssl no-sslv3 {{ if (len .DefaultCertificate) gt 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  mode http
+
+  # check re-encrypt backends first - path or host based.
+  acl reencrypt base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+
+  # Search from most specific to general path (host case).
+  use_backend be_secure_%[base,map_beg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+
+  # map to http backend
+  # Search from most specific to general path (host case).
+  # Note: If no match, haproxy uses the default_backend, no other
+  #       use_backend directives below this will be processed.
+  use_backend be_edge_http_%[base,map_beg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+
+  default_backend openshift_default
+
+##########################################################################
+# END TLS NO SNI
+##########################################################################
+
+backend openshift_default
+  mode http
+  option forwardfor
+  #option http-keep-alive
+  option http-pretend-keepalive
+  # To configure custom default errors, you can either uncomment the
+  # line below (server ... 127.0.0.1:8080) and point it to your custom
+  # backend service or alternatively, you can send a custom 503 error.
+  #server openshift_backend 127.0.0.1:8080
+  errorfile 503 /var/lib/haproxy/conf/error-page-503.http
+
+##-------------- app level backends ----------------
+{{/*
+    Create backends as follows:
+        1. if the config is terminated at the edge or termination is not set create a be_http_<service> backend,
+            traffic will be sent unencrypted to the pods
+        2. if the config is terminated at the pod create a be_tcp_<service> backend, we will use SNI to discover
+            where to send the traffic but should run the be in tcp mode
+        3. if the config is terminated at the
+*/}}
+{{ range $id, $serviceUnit := .State }}
+        {{ range $cfgIdx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+            {{ if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+                {{ if (eq $cfg.TLSTermination "") }}
+backend be_http_{{$cfgIdx}}
+                {{ else }}
+backend be_edge_http_{{$cfgIdx}}
+                {{ end }}
+  mode http
+  option redispatch
+  option forwardfor
+  balance leastconn
+  timeout check 5000ms
+  http-request set-header X-Forwarded-Host %[req.hdr(host)]
+  http-request set-header X-Forwarded-Port %[dst_port]
+  http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
+  http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  {{ if (eq $cfg.TLSTermination "") }}
+    cookie OPENSHIFT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly
+  {{ else }}
+    cookie OPENSHIFT_EDGE_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+  {{ end }}
+  http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
+                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.ID}}
+                {{ end }}
+            {{ end }}
+
+            {{ if eq $cfg.TLSTermination "passthrough" }}
+backend be_tcp_{{$cfgIdx}}
+  balance source
+  hash-type consistent
+  timeout check 5000ms
+                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms
+                {{ end }}
+            {{ end }}
+
+            {{ if eq $cfg.TLSTermination "reencrypt" }}
+backend be_secure_{{$cfgIdx}}
+  mode http
+  option redispatch
+  balance leastconn
+  timeout check 5000ms
+  cookie OPENSHIFT_REENCRYPT_{{$cfgIdx}}_SERVERID insert indirect nocache httponly secure
+                {{ range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.ID}}
+                {{ end }}
+            {{ end  }}
+        {{ end  }}{{/* $serviceUnit.ServiceAliasConfigs*/}}
+{{ end }}{{/* $serviceUnit */}}
+
+{{ end }}{{/* end haproxy config template */}}
+
+{{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
+{{/*
+    os_http_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
+                        by attaching a prefix (be_http_) by use_backend statements if acls are matched.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_http_be.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "")}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end http host map template */}}
+
+{{/*
+    os_edge_http_be.map: same as os_http_be.map but allows us to separate tls from non-tls routes to ensure we don't expose
+                            a tls only route on the unsecure port
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_be.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "edge")}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge http host map template */}}
+
+{{/*
+    os_edge_http_expose.map: contains a mapping of www.example.com -> <service name>.
+    Map is used to also expose edge terminated routes via an insecure scheme
+    (http) if acls match for routes with insecure option set to expose.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_expose.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Allow"))}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge insecure expose http host map template */}}
+
+{{/*
+    os_edge_http_redirect.map: contains a mapping of www.example.com -> <service name>.
+    Map is used to redirect insecure traffic to use a secure scheme (https)
+    if acls match for routes that have the insecure option set to redirect.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_edge_http_redirect.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (and (eq $cfg.TLSTermination "edge") (eq $cfg.InsecureEdgeTerminationPolicy "Redirect"))}}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end edge insecure redirect http host map template */}}
+
+
+{{/*
+    os_tcp_be.map: contains a mapping of www.example.com -> <service name>.  This map is used to discover the correct backend
+                        by attaching a prefix (be_tcp_ or be_secure_) by use_backend statements if acls are matched.
+*/}}
+{{ define "/var/lib/haproxy/conf/os_tcp_be.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt"))) }}
+{{$cfg.Host}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end tcp host map template */}}
+
+{{/*
+    os_sni_passthrough.map: contains a mapping of routes that expect to have an sni header and should be passed
+    					through to the host_be.  Driven by the termination type of the ServiceAliasConfigs
+*/}}
+{{ define "/var/lib/haproxy/conf/os_sni_passthrough.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (eq $cfg.Path "") (eq $cfg.TLSTermination "passthrough") }}
+{{$cfg.Host}} 1
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end sni passthrough map template */}}
+
+
+{{/*
+    os_reencrypt.map: marker that the host is configured to use a secure backend, allows the selection of a backend
+                    that does specific checks that avoid mitm attacks: http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#5.2-ssl
+*/}}
+{{ define "/var/lib/haproxy/conf/os_reencrypt.map" }}
+{{   range $id, $serviceUnit := .State }}
+{{     range $idx, $cfg := $serviceUnit.ServiceAliasConfigs }}
+{{       if and (ne $cfg.Host "") (eq $cfg.TLSTermination "reencrypt") }}
+{{$cfg.Host}}{{$cfg.Path}} {{$idx}}
+{{       end }}
+{{     end }}
+{{   end }}
+{{ end }}{{/* end reencrypt passthrough map template */}}
