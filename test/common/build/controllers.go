@@ -304,7 +304,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 				if atomic.LoadInt32(&stateReached) != 1 {
 					// attempt to retrieve build and get current state
 					func() {
-						currentBuild, err := osClient.Builds(b.Namespace).Get(b.Name)
+						currentBuild, err := osClient.Builds(b.Namespace).Get(b.Name, metav1.GetOptions{})
 						if err != nil {
 							glog.Infof("Cannot get build %s/%s: %v", b.Namespace, b.Name, err)
 							return
