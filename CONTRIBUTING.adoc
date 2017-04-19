@@ -66,9 +66,9 @@ export OS_OUTPUT_GOPATH=1
 
         $ mkdir -p $GOPATH/src/github.com/openshift
         $ cd $GOPATH/src/github.com/openshift
-        $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your github id
+        $ git clone https://github.com/<forkid>/origin.git  # Replace <forkid> with the your github id
         $ cd origin
-        $ git remote add upstream git://github.com/openshift/origin
+        $ git remote add upstream https://github.com/openshift/origin.git
 
 5.  From here, you can generate the OpenShift binaries by running:
 
