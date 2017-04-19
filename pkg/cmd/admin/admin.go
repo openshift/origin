@@ -10,7 +10,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin/cert"
-	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
+	"github.com/openshift/origin/pkg/cmd/admin/diagnostics"
 	"github.com/openshift/origin/pkg/cmd/admin/groups"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	migrateimages "github.com/openshift/origin/pkg/cmd/admin/migrate/images"
