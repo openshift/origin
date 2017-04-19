@@ -1406,8 +1406,8 @@ func CreateExecPodOnNode(client kcoreclient.CoreV1Interface, ns, nodeName, name 
 	return created.Name
 }
 
-func CheckForBuildEvent(client kcoreclient.CoreInterface, build *buildapi.Build, reason, message string) {
-	events, err := client.Events(build.Namespace).Search(build)
+func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
+	events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
 	o.ExpectWithOffset(1, events).NotTo(o.BeNil(), "Build event list should not be nil")
 
