@@ -3,6 +3,7 @@ package testclient
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
@@ -55,7 +56,7 @@ func (c *FakeDeploymentConfigs) Update(inObj *deployapi.DeploymentConfig) (*depl
 	return obj.(*deployapi.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) Patch(name string, pt kapi.PatchType, data []byte, subresources ...string) (*deployapi.DeploymentConfig, error) {
+func (c *FakeDeploymentConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*deployapi.DeploymentConfig, error) {
 	return nil, nil
 }
 

@@ -1285,8 +1285,8 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 
 func TestImageIsPrunable(t *testing.T) {
 	g := graph.New()
-	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "myImage"}})
-	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "myStream"}})
+	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "myImage"}})
+	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "myStream"}})
 	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
 	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
 
