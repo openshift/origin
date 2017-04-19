@@ -967,8 +967,8 @@ func (c *MasterConfig) BuildControllerClients() (*osclient.Client, kclientsetint
 }
 
 // BuildPodControllerClients returns the build pod controller client objects
-func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
+func (c *MasterConfig) BuildPodControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
 // BuildImageChangeTriggerControllerClients returns the build image change trigger controller client objects

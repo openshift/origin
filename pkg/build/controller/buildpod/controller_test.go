@@ -96,13 +96,14 @@ type FakeIndexer struct {
 
 func mockBuildPodController(build *buildapi.Build, buildUpdater buildclient.BuildUpdater) *BuildPodController {
 	buildInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &buildapi.Build{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	podInformer := cache.NewSharedIndexInformer(&cache.ListWatch{}, &kapi.Pod{}, 2*time.Minute, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	kubeInformerFactory := kinformers.NewSharedInformerFactory(&fake.Clientset{}, 0)
+	podInformer := kubeInformerFactory.Core().InternalVersion().Pods()
 	fakeSecret := &kapi.Secret{}
 	fakeSecret.Name = "fakeSecret"
 	fakeSecret.Namespace = "namespace"
 	kclient := fake.NewSimpleClientset(fakeSecret)
 	osclient := testclient.NewSimpleFake()
-	c := NewBuildPodController(buildInformer, podInformer, kclient, osclient)
+	c := NewBuildPodController(buildInformer, podInformer, kclient, kfakeexternal.NewSimpleClientset(), osclient)
 	if build != nil {
 		c.buildStore.Indexer.Add(build)
 	}
