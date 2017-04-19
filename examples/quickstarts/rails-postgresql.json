@@ -458,6 +458,7 @@
       "displayName": "Namespace",
       "required": true,
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
@@ -465,6 +466,7 @@
       "displayName": "Memory Limit",
       "required": true,
       "description": "Maximum amount of memory the Rails container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
@@ -472,6 +474,7 @@
       "displayName": "Memory Limit (PostgreSQL)",
       "required": true,
       "description": "Maximum amount of memory the PostgreSQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
@@ -479,6 +482,7 @@
       "displayName": "Git Repository URL",
       "required": true,
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/rails-ex.git"
     },
     {
@@ -516,6 +520,7 @@
       "displayName": "Application Username",
       "required": true,
       "description": "The application user that is used within the sample application to authorize access on pages.",
+      "required": true,
       "value": "openshift"
     },
     {
@@ -523,6 +528,7 @@
       "displayName": "Application Password",
       "required": true,
       "description": "The application password that is used within the sample application to authorize access on pages.",
+      "required": true,
       "value": "secret"
     },
     {
@@ -530,12 +536,14 @@
       "displayName": "Rails Environment",
       "required": true,
       "description": "Environment under which the sample application will run. Could be set to production, development or test.",
+      "required": true,
       "value": "production"
     },
     {
       "name": "DATABASE_SERVICE_NAME",
       "required": true,
       "displayName": "Database Service Name",
+      "required": true,
       "value": "postgresql"
     },
     {
@@ -554,6 +562,7 @@
       "name": "DATABASE_NAME",
       "required": true,
       "displayName": "Database Name",
+      "required": true,
       "value": "root"
     },
     {

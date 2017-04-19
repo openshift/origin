@@ -411,6 +411,7 @@
       "displayName": "Namespace",
       "required": true,
       "description": "The OpenShift Namespace where the ImageStream resides.",
+      "required": true,
       "value": "openshift"
     },
     {
@@ -418,6 +419,7 @@
       "displayName": "Memory Limit",
       "required": true,
       "description": "Maximum amount of memory the Django container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
@@ -425,6 +427,7 @@
       "displayName": "Memory Limit (PostgreSQL)",
       "required": true,
       "description": "Maximum amount of memory the PostgreSQL container can use.",
+      "required": true,
       "value": "512Mi"
     },
     {
@@ -432,6 +435,7 @@
       "displayName": "Git Repository URL",
       "required": true,
       "description": "The URL of the repository with your application source code.",
+      "required": true,
       "value": "https://github.com/openshift/django-ex.git"
     },
     {
@@ -468,6 +472,7 @@
       "displayName": "Database Engine",
       "required": true,
       "description": "Database engine: postgresql, mysql or sqlite (default).",
+      "required": true,
       "value": "postgresql"
     },
     {
