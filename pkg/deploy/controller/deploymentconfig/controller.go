@@ -189,7 +189,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
-		cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.FailedRcCreateReason, err.Error())
+		cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployapi.FailedRcCreateReason, err.Error())
 		_ = c.updateStatus(config, existingDeployments, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", deployutil.LabelForDeploymentConfig(config), err)
 	}
@@ -203,7 +203,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCleanupFailed", "Couldn't clean up deployments: %v", err)
 	}
 
-	cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewReplicationControllerReason, msg)
+	cond := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployapi.NewReplicationControllerReason, msg)
 	return c.updateStatus(config, existingDeployments, *cond)
 }
 
@@ -368,7 +368,7 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 			if deployutil.IsProgressing(config, *newStatus) {
 				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
 				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
-				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.ReplicationControllerUpdatedReason, msg)
+				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployapi.ReplicationControllerUpdatedReason, msg)
 				// TODO: Right now, we use lastTransitionTime for storing the last time we had any progress instead
 				// of the last time the condition transitioned to a new status. We should probably change that.
 				deployutil.SetDeploymentCondition(newStatus, *condition)
@@ -377,15 +377,15 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 			var condition *deployapi.DeploymentCondition
 			if deployutil.IsDeploymentCancelled(latestRC) {
 				msg := fmt.Sprintf("rollout of replication controller %q was cancelled", latestRC.Name)
-				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.CancelledRolloutReason, msg)
+				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployapi.CancelledRolloutReason, msg)
 			} else {
 				msg := fmt.Sprintf("replication controller %q has failed progressing", latestRC.Name)
-				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployutil.TimedOutReason, msg)
+				condition = deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionFalse, deployapi.TimedOutReason, msg)
 			}
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusComplete:
 			msg := fmt.Sprintf("replication controller %q successfully rolled out", latestRC.Name)
-			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployutil.NewRcAvailableReason, msg)
+			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployapi.NewRcAvailableReason, msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		}
 	}

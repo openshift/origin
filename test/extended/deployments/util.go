@@ -177,7 +177,7 @@ func deploymentReachedCompletion(dc *deployapi.DeploymentConfig, rcs []*kapi.Rep
 		return false, nil
 	}
 	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
-	if cond == nil || cond.Reason != deployutil.NewRcAvailableReason {
+	if cond == nil || cond.Reason != deployapi.NewRcAvailableReason {
 		return false, nil
 	}
 	expectedReplicas := dc.Spec.Replicas
@@ -208,7 +208,7 @@ func deploymentFailed(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationCon
 		return false, nil
 	}
 	cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
-	return cond != nil && cond.Reason == deployutil.TimedOutReason, nil
+	return cond != nil && cond.Reason == deployapi.TimedOutReason, nil
 }
 
 func deploymentRunning(dc *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, pods []kapi.Pod) (bool, error) {

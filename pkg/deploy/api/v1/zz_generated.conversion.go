@@ -174,7 +174,7 @@ func autoConvert_v1_DeploymentCondition_To_api_DeploymentCondition(in *Deploymen
 	out.Status = pkg_api.ConditionStatus(in.Status)
 	out.LastUpdateTime = in.LastUpdateTime
 	out.LastTransitionTime = in.LastTransitionTime
-	out.Reason = in.Reason
+	out.Reason = api.DeploymentConditionReason(in.Reason)
 	out.Message = in.Message
 	return nil
 }
@@ -188,7 +188,7 @@ func autoConvert_api_DeploymentCondition_To_v1_DeploymentCondition(in *api.Deplo
 	out.Status = api_v1.ConditionStatus(in.Status)
 	out.LastUpdateTime = in.LastUpdateTime
 	out.LastTransitionTime = in.LastTransitionTime
-	out.Reason = in.Reason
+	out.Reason = string(in.Reason)
 	out.Message = in.Message
 	return nil
 }

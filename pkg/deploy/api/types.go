@@ -439,6 +439,36 @@ const (
 	DeploymentReplicaFailure DeploymentConditionType = "ReplicaFailure"
 )
 
+type DeploymentConditionReason string
+
+const (
+	// ReplicationControllerUpdatedReason is added in a deployment config when one of its replication
+	// controllers is updated as part of the rollout process.
+	ReplicationControllerUpdatedReason DeploymentConditionReason = "ReplicationControllerUpdated"
+	// FailedRcCreateReason is added in a deployment config when it cannot create a new replication
+	// controller.
+	FailedRcCreateReason DeploymentConditionReason = "ReplicationControllerCreateError"
+	// NewReplicationControllerReason is added in a deployment config when it creates a new replication
+	// controller.
+	NewReplicationControllerReason DeploymentConditionReason = "NewReplicationControllerCreated"
+	// NewRcAvailableReason is added in a deployment config when its newest replication controller is made
+	// available ie. the number of new pods that have passed readiness checks and run for at least
+	// minReadySeconds is at least the minimum available pods that need to run for the deployment config.
+	NewRcAvailableReason DeploymentConditionReason = "NewReplicationControllerAvailable"
+	// TimedOutReason is added in a deployment config when its newest replication controller fails to show
+	// any progress within the given deadline (progressDeadlineSeconds).
+	TimedOutReason DeploymentConditionReason = "ProgressDeadlineExceeded"
+	// PausedConfigReason is added in a deployment config when it is paused. Lack of progress shouldn't be
+	// estimated once a deployment config is paused.
+	PausedConfigReason DeploymentConditionReason = "DeploymentConfigPaused"
+	// ResumedConfigReason is added in a deployment config when it is resumed. Useful for not failing accidentally
+	// deployment configs that paused amidst a rollout.
+	ResumedConfigReason DeploymentConditionReason = "DeploymentConfigResumed"
+	// CancelledRolloutReason is added in a deployment config when its newest rollout was
+	// interrupted by cancellation.
+	CancelledRolloutReason DeploymentConditionReason = "RolloutCancelled"
+)
+
 // DeploymentCondition describes the state of a deployment config at a certain point.
 type DeploymentCondition struct {
 	// Type of deployment condition.
@@ -450,7 +480,7 @@ type DeploymentCondition struct {
 	// The last time the condition transitioned from one status to another.
 	LastTransitionTime unversioned.Time
 	// The reason for the condition's last transition.
-	Reason string
+	Reason DeploymentConditionReason
 	// A human readable message indicating details about the transition.
 	Message string
 }
