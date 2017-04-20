@@ -2,10 +2,11 @@ package v1
 
 import (
 	v1 "github.com/openshift/origin/pkg/build/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/build/clientset/release_v3_6/scheme"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // BuildsGetter has a method to return a BuildResourceInterface.
@@ -19,18 +20,18 @@ type BuildResourceInterface interface {
 	Create(*v1.Build) (*v1.Build, error)
 	Update(*v1.Build) (*v1.Build, error)
 	UpdateStatus(*v1.Build) (*v1.Build, error)
-	Delete(name string, options *api_v1.DeleteOptions) error
-	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
-	Get(name string) (*v1.Build, error)
-	List(opts api_v1.ListOptions) (*v1.BuildList, error)
-	Watch(opts api_v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Get(name string, options meta_v1.GetOptions) (*v1.Build, error)
+	List(opts meta_v1.ListOptions) (*v1.BuildList, error)
+	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
 	BuildResourceExpansion
 }
 
 // builds implements BuildResourceInterface
 type builds struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -67,6 +68,9 @@ func (c *builds) Update(build *v1.Build) (result *v1.Build, err error) {
 	return
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+
 func (c *builds) UpdateStatus(build *v1.Build) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Put().
@@ -81,7 +85,7 @@ func (c *builds) UpdateStatus(build *v1.Build) (result *v1.Build, err error) {
 }
 
 // Delete takes name of the build and deletes it. Returns an error if one occurs.
-func (c *builds) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *builds) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("builds").
@@ -92,52 +96,53 @@ func (c *builds) Delete(name string, options *api_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *builds) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
+func (c *builds) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("builds").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the build, and returns the corresponding build object, and an error if there is any.
-func (c *builds) Get(name string) (result *v1.Build, err error) {
+func (c *builds) Get(name string, options meta_v1.GetOptions) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("builds").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *builds) List(opts api_v1.ListOptions) (result *v1.BuildList, err error) {
+func (c *builds) List(opts meta_v1.ListOptions) (result *v1.BuildList, err error) {
 	result = &v1.BuildList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("builds").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested builds.
-func (c *builds) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *builds) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("builds").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched build.
-func (c *builds) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Build, err error) {
+func (c *builds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error) {
 	result = &v1.Build{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

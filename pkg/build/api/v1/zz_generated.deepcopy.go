@@ -5,11 +5,11 @@
 package v1
 
 import (
-	reflect "reflect"
-
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	reflect "reflect"
 )
 
 func init() {
@@ -74,17 +74,12 @@ func DeepCopy_v1_BinaryBuildRequestOptions(in interface{}, out interface{}, c *c
 	{
 		in := in.(*BinaryBuildRequestOptions)
 		out := out.(*BinaryBuildRequestOptions)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.AsFile = in.AsFile
-		out.Commit = in.Commit
-		out.Message = in.Message
-		out.AuthorName = in.AuthorName
-		out.AuthorEmail = in.AuthorEmail
-		out.CommitterName = in.CommitterName
-		out.CommitterEmail = in.CommitterEmail
 		return nil
 	}
 }
@@ -93,7 +88,7 @@ func DeepCopy_v1_BinaryBuildSource(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*BinaryBuildSource)
 		out := out.(*BinaryBuildSource)
-		out.AsFile = in.AsFile
+		*out = *in
 		return nil
 	}
 }
@@ -102,6 +97,7 @@ func DeepCopy_v1_BitbucketWebHookCause(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*BitbucketWebHookCause)
 		out := out.(*BitbucketWebHookCause)
+		*out = *in
 		if err := DeepCopy_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
 			return err
 		}
@@ -113,9 +109,11 @@ func DeepCopy_v1_Build(in interface{}, out interface{}, c *conversion.Cloner) er
 	{
 		in := in.(*Build)
 		out := out.(*Build)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
 		if err := DeepCopy_v1_BuildSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -131,14 +129,15 @@ func DeepCopy_v1_BuildConfig(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*BuildConfig)
 		out := out.(*BuildConfig)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
 		if err := DeepCopy_v1_BuildConfigSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		out.Status = in.Status
 		return nil
 	}
 }
@@ -147,8 +146,7 @@ func DeepCopy_v1_BuildConfigList(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*BuildConfigList)
 		out := out.(*BuildConfigList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]BuildConfig, len(*in))
@@ -157,8 +155,6 @@ func DeepCopy_v1_BuildConfigList(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -168,6 +164,7 @@ func DeepCopy_v1_BuildConfigSpec(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*BuildConfigSpec)
 		out := out.(*BuildConfigSpec)
+		*out = *in
 		if in.Triggers != nil {
 			in, out := &in.Triggers, &out.Triggers
 			*out = make([]BuildTriggerPolicy, len(*in))
@@ -176,10 +173,7 @@ func DeepCopy_v1_BuildConfigSpec(in interface{}, out interface{}, c *conversion.
 					return err
 				}
 			}
-		} else {
-			out.Triggers = nil
 		}
-		out.RunPolicy = in.RunPolicy
 		if err := DeepCopy_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, c); err != nil {
 			return err
 		}
@@ -191,7 +185,7 @@ func DeepCopy_v1_BuildConfigStatus(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*BuildConfigStatus)
 		out := out.(*BuildConfigStatus)
-		out.LastVersion = in.LastVersion
+		*out = *in
 		return nil
 	}
 }
@@ -200,8 +194,7 @@ func DeepCopy_v1_BuildList(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*BuildList)
 		out := out.(*BuildList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Build, len(*in))
@@ -210,8 +203,6 @@ func DeepCopy_v1_BuildList(in interface{}, out interface{}, c *conversion.Cloner
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -221,7 +212,7 @@ func DeepCopy_v1_BuildLog(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*BuildLog)
 		out := out.(*BuildLog)
-		out.TypeMeta = in.TypeMeta
+		*out = *in
 		return nil
 	}
 }
@@ -230,46 +221,31 @@ func DeepCopy_v1_BuildLogOptions(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*BuildLogOptions)
 		out := out.(*BuildLogOptions)
-		out.TypeMeta = in.TypeMeta
-		out.Container = in.Container
-		out.Follow = in.Follow
-		out.Previous = in.Previous
+		*out = *in
 		if in.SinceSeconds != nil {
 			in, out := &in.SinceSeconds, &out.SinceSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.SinceSeconds = nil
 		}
 		if in.SinceTime != nil {
 			in, out := &in.SinceTime, &out.SinceTime
-			*out = new(metav1.Time)
+			*out = new(meta_v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.SinceTime = nil
 		}
-		out.Timestamps = in.Timestamps
 		if in.TailLines != nil {
 			in, out := &in.TailLines, &out.TailLines
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.TailLines = nil
 		}
 		if in.LimitBytes != nil {
 			in, out := &in.LimitBytes, &out.LimitBytes
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.LimitBytes = nil
 		}
-		out.NoWait = in.NoWait
 		if in.Version != nil {
 			in, out := &in.Version, &out.Version
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.Version = nil
 		}
 		return nil
 	}
@@ -279,28 +255,21 @@ func DeepCopy_v1_BuildOutput(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*BuildOutput)
 		out := out.(*BuildOutput)
+		*out = *in
 		if in.To != nil {
 			in, out := &in.To, &out.To
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.To = nil
 		}
 		if in.PushSecret != nil {
 			in, out := &in.PushSecret, &out.PushSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.PushSecret = nil
 		}
 		if in.ImageLabels != nil {
 			in, out := &in.ImageLabels, &out.ImageLabels
 			*out = make([]ImageLabel, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.ImageLabels = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -310,21 +279,17 @@ func DeepCopy_v1_BuildPostCommitSpec(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*BuildPostCommitSpec)
 		out := out.(*BuildPostCommitSpec)
+		*out = *in
 		if in.Command != nil {
 			in, out := &in.Command, &out.Command
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Command = nil
 		}
 		if in.Args != nil {
 			in, out := &in.Args, &out.Args
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Args = nil
 		}
-		out.Script = in.Script
 		return nil
 	}
 }
@@ -333,9 +298,11 @@ func DeepCopy_v1_BuildRequest(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*BuildRequest)
 		out := out.(*BuildRequest)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
 		if in.Revision != nil {
 			in, out := &in.Revision, &out.Revision
@@ -343,36 +310,26 @@ func DeepCopy_v1_BuildRequest(in interface{}, out interface{}, c *conversion.Clo
 			if err := DeepCopy_v1_SourceRevision(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Revision = nil
 		}
 		if in.TriggeredByImage != nil {
 			in, out := &in.TriggeredByImage, &out.TriggeredByImage
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.TriggeredByImage = nil
 		}
 		if in.From != nil {
 			in, out := &in.From, &out.From
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.From = nil
 		}
 		if in.Binary != nil {
 			in, out := &in.Binary, &out.Binary
 			*out = new(BinaryBuildSource)
 			**out = **in
-		} else {
-			out.Binary = nil
 		}
 		if in.LastVersion != nil {
 			in, out := &in.LastVersion, &out.LastVersion
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.LastVersion = nil
 		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
@@ -382,8 +339,6 @@ func DeepCopy_v1_BuildRequest(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
 		if in.TriggeredBy != nil {
 			in, out := &in.TriggeredBy, &out.TriggeredBy
@@ -393,8 +348,6 @@ func DeepCopy_v1_BuildRequest(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.TriggeredBy = nil
 		}
 		if in.DockerStrategyOptions != nil {
 			in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
@@ -402,8 +355,6 @@ func DeepCopy_v1_BuildRequest(in interface{}, out interface{}, c *conversion.Clo
 			if err := DeepCopy_v1_DockerStrategyOptions(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.DockerStrategyOptions = nil
 		}
 		return nil
 	}
@@ -413,20 +364,16 @@ func DeepCopy_v1_BuildSource(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*BuildSource)
 		out := out.(*BuildSource)
-		out.Type = in.Type
+		*out = *in
 		if in.Binary != nil {
 			in, out := &in.Binary, &out.Binary
 			*out = new(BinaryBuildSource)
 			**out = **in
-		} else {
-			out.Binary = nil
 		}
 		if in.Dockerfile != nil {
 			in, out := &in.Dockerfile, &out.Dockerfile
 			*out = new(string)
 			**out = **in
-		} else {
-			out.Dockerfile = nil
 		}
 		if in.Git != nil {
 			in, out := &in.Git, &out.Git
@@ -434,8 +381,6 @@ func DeepCopy_v1_BuildSource(in interface{}, out interface{}, c *conversion.Clon
 			if err := DeepCopy_v1_GitBuildSource(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Git = nil
 		}
 		if in.Images != nil {
 			in, out := &in.Images, &out.Images
@@ -445,25 +390,16 @@ func DeepCopy_v1_BuildSource(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Images = nil
 		}
-		out.ContextDir = in.ContextDir
 		if in.SourceSecret != nil {
 			in, out := &in.SourceSecret, &out.SourceSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.SourceSecret = nil
 		}
 		if in.Secrets != nil {
 			in, out := &in.Secrets, &out.Secrets
 			*out = make([]SecretBuildSource, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Secrets = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -473,6 +409,7 @@ func DeepCopy_v1_BuildSpec(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*BuildSpec)
 		out := out.(*BuildSpec)
+		*out = *in
 		if err := DeepCopy_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, c); err != nil {
 			return err
 		}
@@ -484,8 +421,6 @@ func DeepCopy_v1_BuildSpec(in interface{}, out interface{}, c *conversion.Cloner
 					return err
 				}
 			}
-		} else {
-			out.TriggeredBy = nil
 		}
 		return nil
 	}
@@ -495,32 +430,21 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*BuildStatus)
 		out := out.(*BuildStatus)
-		out.Phase = in.Phase
-		out.Cancelled = in.Cancelled
-		out.Reason = in.Reason
-		out.Message = in.Message
+		*out = *in
 		if in.StartTimestamp != nil {
 			in, out := &in.StartTimestamp, &out.StartTimestamp
-			*out = new(metav1.Time)
+			*out = new(meta_v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.StartTimestamp = nil
 		}
 		if in.CompletionTimestamp != nil {
 			in, out := &in.CompletionTimestamp, &out.CompletionTimestamp
-			*out = new(metav1.Time)
+			*out = new(meta_v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.CompletionTimestamp = nil
 		}
-		out.Duration = in.Duration
-		out.OutputDockerImageReference = in.OutputDockerImageReference
 		if in.Config != nil {
 			in, out := &in.Config, &out.Config
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.Config = nil
 		}
 		if err := DeepCopy_v1_BuildStatusOutput(&in.Output, &out.Output, c); err != nil {
 			return err
@@ -533,12 +457,11 @@ func DeepCopy_v1_BuildStatusOutput(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*BuildStatusOutput)
 		out := out.(*BuildStatusOutput)
+		*out = *in
 		if in.To != nil {
 			in, out := &in.To, &out.To
 			*out = new(BuildStatusOutputTo)
 			**out = **in
-		} else {
-			out.To = nil
 		}
 		return nil
 	}
@@ -548,7 +471,7 @@ func DeepCopy_v1_BuildStatusOutputTo(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*BuildStatusOutputTo)
 		out := out.(*BuildStatusOutputTo)
-		out.ImageDigest = in.ImageDigest
+		*out = *in
 		return nil
 	}
 }
@@ -557,15 +480,13 @@ func DeepCopy_v1_BuildStrategy(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*BuildStrategy)
 		out := out.(*BuildStrategy)
-		out.Type = in.Type
+		*out = *in
 		if in.DockerStrategy != nil {
 			in, out := &in.DockerStrategy, &out.DockerStrategy
 			*out = new(DockerBuildStrategy)
 			if err := DeepCopy_v1_DockerBuildStrategy(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.DockerStrategy = nil
 		}
 		if in.SourceStrategy != nil {
 			in, out := &in.SourceStrategy, &out.SourceStrategy
@@ -573,8 +494,6 @@ func DeepCopy_v1_BuildStrategy(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_v1_SourceBuildStrategy(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.SourceStrategy = nil
 		}
 		if in.CustomStrategy != nil {
 			in, out := &in.CustomStrategy, &out.CustomStrategy
@@ -582,8 +501,6 @@ func DeepCopy_v1_BuildStrategy(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_v1_CustomBuildStrategy(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.CustomStrategy = nil
 		}
 		if in.JenkinsPipelineStrategy != nil {
 			in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
@@ -591,8 +508,6 @@ func DeepCopy_v1_BuildStrategy(in interface{}, out interface{}, c *conversion.Cl
 			if err := DeepCopy_v1_JenkinsPipelineBuildStrategy(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.JenkinsPipelineStrategy = nil
 		}
 		return nil
 	}
@@ -602,15 +517,13 @@ func DeepCopy_v1_BuildTriggerCause(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*BuildTriggerCause)
 		out := out.(*BuildTriggerCause)
-		out.Message = in.Message
+		*out = *in
 		if in.GenericWebHook != nil {
 			in, out := &in.GenericWebHook, &out.GenericWebHook
 			*out = new(GenericWebHookCause)
 			if err := DeepCopy_v1_GenericWebHookCause(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.GenericWebHook = nil
 		}
 		if in.GitHubWebHook != nil {
 			in, out := &in.GitHubWebHook, &out.GitHubWebHook
@@ -618,8 +531,6 @@ func DeepCopy_v1_BuildTriggerCause(in interface{}, out interface{}, c *conversio
 			if err := DeepCopy_v1_GitHubWebHookCause(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.GitHubWebHook = nil
 		}
 		if in.ImageChangeBuild != nil {
 			in, out := &in.ImageChangeBuild, &out.ImageChangeBuild
@@ -627,8 +538,6 @@ func DeepCopy_v1_BuildTriggerCause(in interface{}, out interface{}, c *conversio
 			if err := DeepCopy_v1_ImageChangeCause(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ImageChangeBuild = nil
 		}
 		if in.GitLabWebHook != nil {
 			in, out := &in.GitLabWebHook, &out.GitLabWebHook
@@ -636,8 +545,6 @@ func DeepCopy_v1_BuildTriggerCause(in interface{}, out interface{}, c *conversio
 			if err := DeepCopy_v1_GitLabWebHookCause(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.GitLabWebHook = nil
 		}
 		if in.BitbucketWebHook != nil {
 			in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
@@ -645,8 +552,6 @@ func DeepCopy_v1_BuildTriggerCause(in interface{}, out interface{}, c *conversio
 			if err := DeepCopy_v1_BitbucketWebHookCause(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.BitbucketWebHook = nil
 		}
 		return nil
 	}
@@ -656,20 +561,16 @@ func DeepCopy_v1_BuildTriggerPolicy(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*BuildTriggerPolicy)
 		out := out.(*BuildTriggerPolicy)
-		out.Type = in.Type
+		*out = *in
 		if in.GitHubWebHook != nil {
 			in, out := &in.GitHubWebHook, &out.GitHubWebHook
 			*out = new(WebHookTrigger)
 			**out = **in
-		} else {
-			out.GitHubWebHook = nil
 		}
 		if in.GenericWebHook != nil {
 			in, out := &in.GenericWebHook, &out.GenericWebHook
 			*out = new(WebHookTrigger)
 			**out = **in
-		} else {
-			out.GenericWebHook = nil
 		}
 		if in.ImageChange != nil {
 			in, out := &in.ImageChange, &out.ImageChange
@@ -677,22 +578,16 @@ func DeepCopy_v1_BuildTriggerPolicy(in interface{}, out interface{}, c *conversi
 			if err := DeepCopy_v1_ImageChangeTrigger(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ImageChange = nil
 		}
 		if in.GitLabWebHook != nil {
 			in, out := &in.GitLabWebHook, &out.GitLabWebHook
 			*out = new(WebHookTrigger)
 			**out = **in
-		} else {
-			out.GitLabWebHook = nil
 		}
 		if in.BitbucketWebHook != nil {
 			in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
 			*out = new(WebHookTrigger)
 			**out = **in
-		} else {
-			out.BitbucketWebHook = nil
 		}
 		return nil
 	}
@@ -702,7 +597,7 @@ func DeepCopy_v1_CommonSpec(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*CommonSpec)
 		out := out.(*CommonSpec)
-		out.ServiceAccount = in.ServiceAccount
+		*out = *in
 		if err := DeepCopy_v1_BuildSource(&in.Source, &out.Source, c); err != nil {
 			return err
 		}
@@ -712,8 +607,6 @@ func DeepCopy_v1_CommonSpec(in interface{}, out interface{}, c *conversion.Clone
 			if err := DeepCopy_v1_SourceRevision(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Revision = nil
 		}
 		if err := DeepCopy_v1_BuildStrategy(&in.Strategy, &out.Strategy, c); err != nil {
 			return err
@@ -731,8 +624,6 @@ func DeepCopy_v1_CommonSpec(in interface{}, out interface{}, c *conversion.Clone
 			in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
 			*out = new(int64)
 			**out = **in
-		} else {
-			out.CompletionDeadlineSeconds = nil
 		}
 		if in.NodeSelector != nil {
 			in, out := &in.NodeSelector, &out.NodeSelector
@@ -740,8 +631,6 @@ func DeepCopy_v1_CommonSpec(in interface{}, out interface{}, c *conversion.Clone
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.NodeSelector = nil
 		}
 		return nil
 	}
@@ -751,16 +640,14 @@ func DeepCopy_v1_CommonWebHookCause(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*CommonWebHookCause)
 		out := out.(*CommonWebHookCause)
+		*out = *in
 		if in.Revision != nil {
 			in, out := &in.Revision, &out.Revision
 			*out = new(SourceRevision)
 			if err := DeepCopy_v1_SourceRevision(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Revision = nil
 		}
-		out.Secret = in.Secret
 		return nil
 	}
 }
@@ -769,13 +656,11 @@ func DeepCopy_v1_CustomBuildStrategy(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*CustomBuildStrategy)
 		out := out.(*CustomBuildStrategy)
-		out.From = in.From
+		*out = *in
 		if in.PullSecret != nil {
 			in, out := &in.PullSecret, &out.PullSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.PullSecret = nil
 		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
@@ -785,21 +670,12 @@ func DeepCopy_v1_CustomBuildStrategy(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
-		out.ExposeDockerSocket = in.ExposeDockerSocket
-		out.ForcePull = in.ForcePull
 		if in.Secrets != nil {
 			in, out := &in.Secrets, &out.Secrets
 			*out = make([]SecretSpec, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Secrets = nil
+			copy(*out, *in)
 		}
-		out.BuildAPIVersion = in.BuildAPIVersion
 		return nil
 	}
 }
@@ -808,21 +684,17 @@ func DeepCopy_v1_DockerBuildStrategy(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*DockerBuildStrategy)
 		out := out.(*DockerBuildStrategy)
+		*out = *in
 		if in.From != nil {
 			in, out := &in.From, &out.From
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.From = nil
 		}
 		if in.PullSecret != nil {
 			in, out := &in.PullSecret, &out.PullSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.PullSecret = nil
 		}
-		out.NoCache = in.NoCache
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
 			*out = make([]api_v1.EnvVar, len(*in))
@@ -831,11 +703,7 @@ func DeepCopy_v1_DockerBuildStrategy(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
-		out.ForcePull = in.ForcePull
-		out.DockerfilePath = in.DockerfilePath
 		if in.BuildArgs != nil {
 			in, out := &in.BuildArgs, &out.BuildArgs
 			*out = make([]api_v1.EnvVar, len(*in))
@@ -844,15 +712,11 @@ func DeepCopy_v1_DockerBuildStrategy(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.BuildArgs = nil
 		}
 		if in.ImageOptimizationPolicy != nil {
 			in, out := &in.ImageOptimizationPolicy, &out.ImageOptimizationPolicy
 			*out = new(ImageOptimizationPolicy)
 			**out = **in
-		} else {
-			out.ImageOptimizationPolicy = nil
 		}
 		return nil
 	}
@@ -862,6 +726,7 @@ func DeepCopy_v1_DockerStrategyOptions(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*DockerStrategyOptions)
 		out := out.(*DockerStrategyOptions)
+		*out = *in
 		if in.BuildArgs != nil {
 			in, out := &in.BuildArgs, &out.BuildArgs
 			*out = make([]api_v1.EnvVar, len(*in))
@@ -870,8 +735,6 @@ func DeepCopy_v1_DockerStrategyOptions(in interface{}, out interface{}, c *conve
 					return err
 				}
 			}
-		} else {
-			out.BuildArgs = nil
 		}
 		return nil
 	}
@@ -881,16 +744,14 @@ func DeepCopy_v1_GenericWebHookCause(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*GenericWebHookCause)
 		out := out.(*GenericWebHookCause)
+		*out = *in
 		if in.Revision != nil {
 			in, out := &in.Revision, &out.Revision
 			*out = new(SourceRevision)
 			if err := DeepCopy_v1_SourceRevision(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Revision = nil
 		}
-		out.Secret = in.Secret
 		return nil
 	}
 }
@@ -899,15 +760,13 @@ func DeepCopy_v1_GenericWebHookEvent(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*GenericWebHookEvent)
 		out := out.(*GenericWebHookEvent)
-		out.Type = in.Type
+		*out = *in
 		if in.Git != nil {
 			in, out := &in.Git, &out.Git
 			*out = new(GitInfo)
 			if err := DeepCopy_v1_GitInfo(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Git = nil
 		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
@@ -917,8 +776,6 @@ func DeepCopy_v1_GenericWebHookEvent(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
 		if in.DockerStrategyOptions != nil {
 			in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
@@ -926,8 +783,6 @@ func DeepCopy_v1_GenericWebHookEvent(in interface{}, out interface{}, c *convers
 			if err := DeepCopy_v1_DockerStrategyOptions(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.DockerStrategyOptions = nil
 		}
 		return nil
 	}
@@ -937,8 +792,7 @@ func DeepCopy_v1_GitBuildSource(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*GitBuildSource)
 		out := out.(*GitBuildSource)
-		out.URI = in.URI
-		out.Ref = in.Ref
+		*out = *in
 		if err := DeepCopy_v1_ProxyConfig(&in.ProxyConfig, &out.ProxyConfig, c); err != nil {
 			return err
 		}
@@ -950,16 +804,14 @@ func DeepCopy_v1_GitHubWebHookCause(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*GitHubWebHookCause)
 		out := out.(*GitHubWebHookCause)
+		*out = *in
 		if in.Revision != nil {
 			in, out := &in.Revision, &out.Revision
 			*out = new(SourceRevision)
 			if err := DeepCopy_v1_SourceRevision(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.Revision = nil
 		}
-		out.Secret = in.Secret
 		return nil
 	}
 }
@@ -968,10 +820,10 @@ func DeepCopy_v1_GitInfo(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*GitInfo)
 		out := out.(*GitInfo)
+		*out = *in
 		if err := DeepCopy_v1_GitBuildSource(&in.GitBuildSource, &out.GitBuildSource, c); err != nil {
 			return err
 		}
-		out.GitSourceRevision = in.GitSourceRevision
 		return nil
 	}
 }
@@ -980,6 +832,7 @@ func DeepCopy_v1_GitLabWebHookCause(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*GitLabWebHookCause)
 		out := out.(*GitLabWebHookCause)
+		*out = *in
 		if err := DeepCopy_v1_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
 			return err
 		}
@@ -991,10 +844,7 @@ func DeepCopy_v1_GitSourceRevision(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*GitSourceRevision)
 		out := out.(*GitSourceRevision)
-		out.Commit = in.Commit
-		out.Author = in.Author
-		out.Committer = in.Committer
-		out.Message = in.Message
+		*out = *in
 		return nil
 	}
 }
@@ -1003,13 +853,11 @@ func DeepCopy_v1_ImageChangeCause(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*ImageChangeCause)
 		out := out.(*ImageChangeCause)
-		out.ImageID = in.ImageID
+		*out = *in
 		if in.FromRef != nil {
 			in, out := &in.FromRef, &out.FromRef
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.FromRef = nil
 		}
 		return nil
 	}
@@ -1019,13 +867,11 @@ func DeepCopy_v1_ImageChangeTrigger(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*ImageChangeTrigger)
 		out := out.(*ImageChangeTrigger)
-		out.LastTriggeredImageID = in.LastTriggeredImageID
+		*out = *in
 		if in.From != nil {
 			in, out := &in.From, &out.From
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.From = nil
 		}
 		return nil
 	}
@@ -1035,8 +881,7 @@ func DeepCopy_v1_ImageLabel(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*ImageLabel)
 		out := out.(*ImageLabel)
-		out.Name = in.Name
-		out.Value = in.Value
+		*out = *in
 		return nil
 	}
 }
@@ -1045,22 +890,16 @@ func DeepCopy_v1_ImageSource(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ImageSource)
 		out := out.(*ImageSource)
-		out.From = in.From
+		*out = *in
 		if in.Paths != nil {
 			in, out := &in.Paths, &out.Paths
 			*out = make([]ImageSourcePath, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Paths = nil
+			copy(*out, *in)
 		}
 		if in.PullSecret != nil {
 			in, out := &in.PullSecret, &out.PullSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.PullSecret = nil
 		}
 		return nil
 	}
@@ -1070,8 +909,7 @@ func DeepCopy_v1_ImageSourcePath(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*ImageSourcePath)
 		out := out.(*ImageSourcePath)
-		out.SourcePath = in.SourcePath
-		out.DestinationDir = in.DestinationDir
+		*out = *in
 		return nil
 	}
 }
@@ -1080,8 +918,7 @@ func DeepCopy_v1_JenkinsPipelineBuildStrategy(in interface{}, out interface{}, c
 	{
 		in := in.(*JenkinsPipelineBuildStrategy)
 		out := out.(*JenkinsPipelineBuildStrategy)
-		out.JenkinsfilePath = in.JenkinsfilePath
-		out.Jenkinsfile = in.Jenkinsfile
+		*out = *in
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
 			*out = make([]api_v1.EnvVar, len(*in))
@@ -1090,8 +927,6 @@ func DeepCopy_v1_JenkinsPipelineBuildStrategy(in interface{}, out interface{}, c
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
 		return nil
 	}
@@ -1101,26 +936,21 @@ func DeepCopy_v1_ProxyConfig(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ProxyConfig)
 		out := out.(*ProxyConfig)
+		*out = *in
 		if in.HTTPProxy != nil {
 			in, out := &in.HTTPProxy, &out.HTTPProxy
 			*out = new(string)
 			**out = **in
-		} else {
-			out.HTTPProxy = nil
 		}
 		if in.HTTPSProxy != nil {
 			in, out := &in.HTTPSProxy, &out.HTTPSProxy
 			*out = new(string)
 			**out = **in
-		} else {
-			out.HTTPSProxy = nil
 		}
 		if in.NoProxy != nil {
 			in, out := &in.NoProxy, &out.NoProxy
 			*out = new(string)
 			**out = **in
-		} else {
-			out.NoProxy = nil
 		}
 		return nil
 	}
@@ -1130,8 +960,7 @@ func DeepCopy_v1_SecretBuildSource(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*SecretBuildSource)
 		out := out.(*SecretBuildSource)
-		out.Secret = in.Secret
-		out.DestinationDir = in.DestinationDir
+		*out = *in
 		return nil
 	}
 }
@@ -1140,8 +969,7 @@ func DeepCopy_v1_SecretSpec(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*SecretSpec)
 		out := out.(*SecretSpec)
-		out.SecretSource = in.SecretSource
-		out.MountPath = in.MountPath
+		*out = *in
 		return nil
 	}
 }
@@ -1150,13 +978,11 @@ func DeepCopy_v1_SourceBuildStrategy(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*SourceBuildStrategy)
 		out := out.(*SourceBuildStrategy)
-		out.From = in.From
+		*out = *in
 		if in.PullSecret != nil {
 			in, out := &in.PullSecret, &out.PullSecret
 			*out = new(api_v1.LocalObjectReference)
 			**out = **in
-		} else {
-			out.PullSecret = nil
 		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
@@ -1166,33 +992,21 @@ func DeepCopy_v1_SourceBuildStrategy(in interface{}, out interface{}, c *convers
 					return err
 				}
 			}
-		} else {
-			out.Env = nil
 		}
-		out.Scripts = in.Scripts
 		if in.Incremental != nil {
 			in, out := &in.Incremental, &out.Incremental
 			*out = new(bool)
 			**out = **in
-		} else {
-			out.Incremental = nil
 		}
-		out.ForcePull = in.ForcePull
 		if in.RuntimeImage != nil {
 			in, out := &in.RuntimeImage, &out.RuntimeImage
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.RuntimeImage = nil
 		}
 		if in.RuntimeArtifacts != nil {
 			in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
 			*out = make([]ImageSourcePath, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.RuntimeArtifacts = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -1202,8 +1016,7 @@ func DeepCopy_v1_SourceControlUser(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*SourceControlUser)
 		out := out.(*SourceControlUser)
-		out.Name = in.Name
-		out.Email = in.Email
+		*out = *in
 		return nil
 	}
 }
@@ -1212,13 +1025,11 @@ func DeepCopy_v1_SourceRevision(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*SourceRevision)
 		out := out.(*SourceRevision)
-		out.Type = in.Type
+		*out = *in
 		if in.Git != nil {
 			in, out := &in.Git, &out.Git
 			*out = new(GitSourceRevision)
 			**out = **in
-		} else {
-			out.Git = nil
 		}
 		return nil
 	}
@@ -1228,8 +1039,7 @@ func DeepCopy_v1_WebHookTrigger(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*WebHookTrigger)
 		out := out.(*WebHookTrigger)
-		out.Secret = in.Secret
-		out.AllowEnv = in.AllowEnv
+		*out = *in
 		return nil
 	}
 }
