@@ -106,7 +106,7 @@ verify-commits:
 #
 # Example:
 #   make update
-update: build
+update:
 	hack/update-generated-bindata.sh
 	hack/update-generated-deep-copies.sh
 	hack/update-generated-conversions.sh
