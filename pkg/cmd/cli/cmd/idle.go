@@ -485,12 +485,16 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
 func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
-	newData, err := json.Marshal(obj)
+	versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
+	if err != nil {
+		return nil, err
+	}
+	newData, err := json.Marshal(versionedObj)
 	if err != nil {
 		return nil, err
 	}
 
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, versionedObj)
 	if err != nil {
 		return nil, err
 	}
@@ -597,14 +601,22 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 				hadError = true
 				continue
 			}
-			oldData, err := json.Marshal(info.obj)
+			// we need a versioned obj to properly marshal to JSON, so that we can compute the patch
+			mapping, err := mapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
 			if err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
 				continue
 			}
 
-			mapping, err := mapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
+			versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(info.obj, schema.GroupVersions{gvks[0].GroupVersion()})
+			if err != nil {
+				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
+				hadError = true
+				continue
+			}
+
+			oldData, err := json.Marshal(versionedObj)
 			if err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to mark service %q as idled: %v", serviceName.String(), err)
 				hadError = true
