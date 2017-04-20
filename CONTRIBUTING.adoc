@@ -157,10 +157,8 @@ TIP: To ensure you get the latest image first run `vagrant box remove fedora_ins
 
     Or:
 
-        # must cd / to use prepopulated $KUBECONFIG
-        $ cd /
-        # redirect the logs to /home/vagrant/openshift.log for easier debugging
-        $ sudo `which openshift` start --public-master=localhost &> $HOME/openshift.log &
+        $ cd / #must cd / to use prepopulated $KUBECONFIG
+        $ sudo `which openshift` start --public-master=localhost &> $HOME/openshift.log & #redirect the logs to /home/vagrant/openshift.log for easier debugging
 
 +
 NOTE: This will generate three directories in / (openshift.local.config, openshift.local.etcd, openshift.local.volumes) as well as create the /home/vagrant/openshift.log file.
