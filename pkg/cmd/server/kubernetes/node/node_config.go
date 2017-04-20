@@ -211,6 +211,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
 		server.NetworkPluginName = kubeletcni.CNIPluginName
 		server.NetworkPluginDir = kubeletcni.DefaultNetDir
+		server.CNIConfDir = kubeletcni.DefaultNetDir
+		server.CNIBinDir = kubeletcni.DefaultCNIDir
 		server.HairpinMode = componentconfig.HairpinNone
 	}
 
