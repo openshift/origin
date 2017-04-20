@@ -207,7 +207,7 @@ func IsValidUserId(uid int64) []string {
 }
 
 var portNameCharsetRegex = regexp.MustCompile("^[-a-z0-9]+$")
-var portNameOneLetterRegexp = regexp.MustCompile("[a-z]")
+var portNameOneLetterRegexp = regexp.MustCompile("[a-z0-9]")
 
 // IsValidPortName check that the argument is valid syntax. It must be
 // non-empty and no more than 15 characters long. It may contain only [-a-z0-9]
