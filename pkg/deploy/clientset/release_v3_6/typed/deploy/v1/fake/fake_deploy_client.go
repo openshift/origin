@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/deploy/clientset/release_v3_6/typed/deploy/v1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeDeployV1 struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeDeployV1) DeploymentConfigs(namespace string) v1.DeploymentConfigInterface {
@@ -16,7 +16,7 @@ func (c *FakeDeployV1) DeploymentConfigs(namespace string) v1.DeploymentConfigIn
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeDeployV1) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeDeployV1) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

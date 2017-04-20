@@ -5,13 +5,13 @@
 package v1
 
 import (
-	unsafe "unsafe"
-
 	api "github.com/openshift/origin/pkg/deploy/api"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
+	unsafe "unsafe"
 )
 
 func init() {
@@ -198,9 +198,7 @@ func Convert_api_DeploymentCondition_To_v1_DeploymentCondition(in *api.Deploymen
 }
 
 func autoConvert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, out *api.DeploymentConfig, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_DeploymentConfigSpec_To_api_DeploymentConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -215,9 +213,7 @@ func Convert_v1_DeploymentConfig_To_api_DeploymentConfig(in *DeploymentConfig, o
 }
 
 func autoConvert_api_DeploymentConfig_To_v1_DeploymentConfig(in *api.DeploymentConfig, out *DeploymentConfig, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -262,7 +258,7 @@ func autoConvert_api_DeploymentConfigList_To_v1_DeploymentConfigList(in *api.Dep
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]DeploymentConfig, 0)
 	}
 	return nil
 }
@@ -380,7 +376,7 @@ func autoConvert_api_DeploymentConfigSpec_To_v1_DeploymentConfigSpec(in *api.Dep
 			}
 		}
 	} else {
-		out.Triggers = nil
+		out.Triggers = make(DeploymentTriggerPolicies, 0)
 	}
 	out.Replicas = in.Replicas
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
@@ -484,7 +480,7 @@ func autoConvert_api_DeploymentDetails_To_v1_DeploymentDetails(in *api.Deploymen
 			}
 		}
 	} else {
-		out.Causes = nil
+		out.Causes = make([]DeploymentCause, 0)
 	}
 	return nil
 }
@@ -514,7 +510,7 @@ func autoConvert_v1_DeploymentLogOptions_To_api_DeploymentLogOptions(in *Deploym
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -532,7 +528,7 @@ func autoConvert_api_DeploymentLogOptions_To_v1_DeploymentLogOptions(in *api.Dep
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*metav1.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -730,7 +726,11 @@ func Convert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *ap
 }
 
 func autoConvert_api_ExecNewPodHook_To_v1_ExecNewPodHook(in *api.ExecNewPodHook, out *ExecNewPodHook, s conversion.Scope) error {
-	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	if in.Command == nil {
+		out.Command = make([]string, 0)
+	} else {
+		out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]api_v1.EnvVar, len(*in))
@@ -885,8 +885,8 @@ func autoConvert_v1_RollingDeploymentStrategyParams_To_api_RollingDeploymentStra
 	out.UpdatePeriodSeconds = (*int64)(unsafe.Pointer(in.UpdatePeriodSeconds))
 	out.IntervalSeconds = (*int64)(unsafe.Pointer(in.IntervalSeconds))
 	out.TimeoutSeconds = (*int64)(unsafe.Pointer(in.TimeoutSeconds))
-	// WARNING: in.MaxUnavailable requires manual conversion: inconvertible types (*k8s.io/kubernetes/pkg/util/intstr.IntOrString vs k8s.io/kubernetes/pkg/util/intstr.IntOrString)
-	// WARNING: in.MaxSurge requires manual conversion: inconvertible types (*k8s.io/kubernetes/pkg/util/intstr.IntOrString vs k8s.io/kubernetes/pkg/util/intstr.IntOrString)
+	// WARNING: in.MaxUnavailable requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/util/intstr.IntOrString vs k8s.io/apimachinery/pkg/util/intstr.IntOrString)
+	// WARNING: in.MaxSurge requires manual conversion: inconvertible types (*k8s.io/apimachinery/pkg/util/intstr.IntOrString vs k8s.io/apimachinery/pkg/util/intstr.IntOrString)
 	if in.Pre != nil {
 		in, out := &in.Pre, &out.Pre
 		*out = new(api.LifecycleHook)
@@ -912,8 +912,8 @@ func autoConvert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStra
 	out.UpdatePeriodSeconds = (*int64)(unsafe.Pointer(in.UpdatePeriodSeconds))
 	out.IntervalSeconds = (*int64)(unsafe.Pointer(in.IntervalSeconds))
 	out.TimeoutSeconds = (*int64)(unsafe.Pointer(in.TimeoutSeconds))
-	// WARNING: in.MaxUnavailable requires manual conversion: inconvertible types (k8s.io/kubernetes/pkg/util/intstr.IntOrString vs *k8s.io/kubernetes/pkg/util/intstr.IntOrString)
-	// WARNING: in.MaxSurge requires manual conversion: inconvertible types (k8s.io/kubernetes/pkg/util/intstr.IntOrString vs *k8s.io/kubernetes/pkg/util/intstr.IntOrString)
+	// WARNING: in.MaxUnavailable requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/util/intstr.IntOrString vs *k8s.io/apimachinery/pkg/util/intstr.IntOrString)
+	// WARNING: in.MaxSurge requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/util/intstr.IntOrString vs *k8s.io/apimachinery/pkg/util/intstr.IntOrString)
 	if in.Pre != nil {
 		in, out := &in.Pre, &out.Pre
 		*out = new(LifecycleHook)
