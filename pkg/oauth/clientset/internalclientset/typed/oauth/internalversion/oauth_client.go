@@ -1,19 +1,18 @@
 package internalversion
 
 import (
-	api "k8s.io/kubernetes/pkg/api"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	"github.com/openshift/origin/pkg/oauth/clientset/internalclientset/scheme"
+	rest "k8s.io/client-go/rest"
 )
 
 type OauthInterface interface {
-	RESTClient() restclient.Interface
+	RESTClient() rest.Interface
 	OAuthClientsGetter
 }
 
-// OauthClient is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// OauthClient is used to interact with features provided by the oauth.openshift.io group.
 type OauthClient struct {
-	restClient restclient.Interface
+	restClient rest.Interface
 }
 
 func (c *OauthClient) OAuthClients(namespace string) OAuthClientInterface {
@@ -21,12 +20,12 @@ func (c *OauthClient) OAuthClients(namespace string) OAuthClientInterface {
 }
 
 // NewForConfig creates a new OauthClient for the given config.
-func NewForConfig(c *restclient.Config) (*OauthClient, error) {
+func NewForConfig(c *rest.Config) (*OauthClient, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := restclient.RESTClientFor(&config)
+	client, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,7 @@ func NewForConfig(c *restclient.Config) (*OauthClient, error) {
 
 // NewForConfigOrDie creates a new OauthClient for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *restclient.Config) *OauthClient {
+func NewForConfigOrDie(c *rest.Config) *OauthClient {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -44,25 +43,25 @@ func NewForConfigOrDie(c *restclient.Config) *OauthClient {
 }
 
 // New creates a new OauthClient for the given RESTClient.
-func New(c restclient.Interface) *OauthClient {
+func New(c rest.Interface) *OauthClient {
 	return &OauthClient{c}
 }
 
-func setConfigDefaults(config *restclient.Config) error {
-	// if oauth group is not registered, return an error
-	g, err := registered.Group("oauth.openshift.io")
+func setConfigDefaults(config *rest.Config) error {
+	g, err := scheme.Registry.Group("oauth.openshift.io")
 	if err != nil {
 		return err
 	}
+
 	config.APIPath = "/apis"
 	if config.UserAgent == "" {
-		config.UserAgent = restclient.DefaultKubernetesUserAgent()
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
 	if config.GroupVersion == nil || config.GroupVersion.Group != g.GroupVersion.Group {
-		copyGroupVersion := g.GroupVersion
-		config.GroupVersion = &copyGroupVersion
+		gv := g.GroupVersion
+		config.GroupVersion = &gv
 	}
-	config.NegotiatedSerializer = api.Codecs
+	config.NegotiatedSerializer = scheme.Codecs
 
 	if config.QPS == 0 {
 		config.QPS = 5
@@ -70,12 +69,13 @@ func setConfigDefaults(config *restclient.Config) error {
 	if config.Burst == 0 {
 		config.Burst = 10
 	}
+
 	return nil
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *OauthClient) RESTClient() restclient.Interface {
+func (c *OauthClient) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}
