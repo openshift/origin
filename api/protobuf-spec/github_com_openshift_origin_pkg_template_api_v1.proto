@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.template.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -17,7 +19,7 @@ option go_package = "v1";
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
 message BrokerTemplateInstance {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec describes the state of this BrokerTemplateInstance.
   optional BrokerTemplateInstanceSpec spec = 2;
@@ -26,7 +28,7 @@ message BrokerTemplateInstance {
 // BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.
 message BrokerTemplateInstanceList {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of BrokerTemplateInstances
   repeated BrokerTemplateInstance items = 2;
@@ -94,7 +96,7 @@ message Parameter {
 // Template contains the inputs needed to produce a Config.
 message Template {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // message is an optional instructional message that will
   // be displayed when this template is instantiated.
@@ -110,7 +112,7 @@ message Template {
   // is, or contains, a ${PARAMETER_REFERENCE}, the resolved
   // value after parameter substitution will be respected and the object
   // will be created in that namespace.
-  repeated k8s.io.kubernetes.pkg.runtime.RawExtension objects = 3;
+  repeated k8s.io.apimachinery.pkg.runtime.RawExtension objects = 3;
 
   // parameters is an optional array of Parameters used during the
   // Template to Config transformation.
@@ -125,7 +127,7 @@ message Template {
 // TemplateInstance is part of an experimental API.
 message TemplateInstance {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec describes the desired state of this TemplateInstance.
   optional TemplateInstanceSpec spec = 2;
@@ -145,7 +147,7 @@ message TemplateInstanceCondition {
 
   // LastTransitionTime is the last time a condition status transitioned from
   // one state to another.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
 
   // Reason is a brief machine readable explanation for the condition's last
   // transition.
@@ -159,7 +161,7 @@ message TemplateInstanceCondition {
 // TemplateInstanceList is a list of TemplateInstance objects.
 message TemplateInstanceList {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of Templateinstances
   repeated TemplateInstance items = 2;
@@ -196,7 +198,7 @@ message TemplateInstanceStatus {
 // TemplateList is a list of Template objects.
 message TemplateList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of templates
   repeated Template items = 2;

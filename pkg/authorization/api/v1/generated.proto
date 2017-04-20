@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.authorization.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -42,17 +44,17 @@ message Action {
   optional bool isNonResourceURL = 9;
 
   // Content is the actual content of the request for create and update
-  optional k8s.io.kubernetes.pkg.runtime.RawExtension content = 7;
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension content = 7;
 }
 
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
 message ClusterPolicy {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // LastModified is the last time that any part of the ClusterPolicy was created, updated, or deleted
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastModified = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // Roles holds all the ClusterRoles held by this ClusterPolicy, mapped by ClusterRole.Name
   repeated NamedClusterRole roles = 3;
@@ -62,10 +64,10 @@ message ClusterPolicy {
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace
 message ClusterPolicyBinding {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // LastModified is the last time that any part of the ClusterPolicyBinding was created, updated, or deleted
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastModified = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // PolicyRef is a reference to the ClusterPolicy that contains all the ClusterRoles that this ClusterPolicyBinding's RoleBindings may reference
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference policyRef = 3;
@@ -77,7 +79,7 @@ message ClusterPolicyBinding {
 // ClusterPolicyBindingList is a collection of ClusterPolicyBindings
 message ClusterPolicyBindingList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterPolicyBindings
   repeated ClusterPolicyBinding items = 2;
@@ -86,7 +88,7 @@ message ClusterPolicyBindingList {
 // ClusterPolicyList is a collection of ClusterPolicies
 message ClusterPolicyList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterPolicies
   repeated ClusterPolicy items = 2;
@@ -95,7 +97,7 @@ message ClusterPolicyList {
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 message ClusterRole {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this ClusterRole
   repeated PolicyRule rules = 2;
@@ -106,7 +108,7 @@ message ClusterRole {
 // ClusterRoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 message ClusterRoleBinding {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role.
   // This field should only be specified when supporting legacy clients and servers.
@@ -136,7 +138,7 @@ message ClusterRoleBinding {
 // ClusterRoleBindingList is a collection of ClusterRoleBindings
 message ClusterRoleBindingList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoleBindings
   repeated ClusterRoleBinding items = 2;
@@ -145,7 +147,7 @@ message ClusterRoleBindingList {
 // ClusterRoleList is a collection of ClusterRoles
 message ClusterRoleList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of ClusterRoles
   repeated ClusterRole items = 2;
@@ -160,7 +162,7 @@ message GroupRestriction {
   repeated string groups = 1;
 
   // Selectors specifies a list of label selectors over group labels.
-  repeated k8s.io.kubernetes.pkg.api.unversioned.LabelSelector labels = 2;
+  repeated k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector labels = 2;
 }
 
 // IsPersonalSubjectAccessReview is a marker for PolicyRule.AttributeRestrictions that denotes that subjectaccessreviews on self should be allowed
@@ -188,6 +190,7 @@ message LocalSubjectAccessReview {
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil for a self-SAR, means "use the scopes on this request".
   // Nil for a regular SAR, means the same as empty.
+  // +k8s:conversion-gen=false
   optional OptionalScopes scopes = 4;
 }
 
@@ -249,10 +252,10 @@ message OptionalScopes {
 // one Policy document per namespace.
 message Policy {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // LastModified is the last time that any part of the Policy was created, updated, or deleted
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastModified = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // Roles holds all the Roles held by this Policy, mapped by Role.Name
   repeated NamedRole roles = 3;
@@ -262,10 +265,10 @@ message Policy {
 // one PolicyBinding document per referenced Policy namespace
 message PolicyBinding {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // LastModified is the last time that any part of the PolicyBinding was created, updated, or deleted
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastModified = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastModified = 2;
 
   // PolicyRef is a reference to the Policy that contains all the Roles that this PolicyBinding's RoleBindings may reference
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference policyRef = 3;
@@ -277,7 +280,7 @@ message PolicyBinding {
 // PolicyBindingList is a collection of PolicyBindings
 message PolicyBindingList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of PolicyBindings
   repeated PolicyBinding items = 2;
@@ -286,7 +289,7 @@ message PolicyBindingList {
 // PolicyList is a collection of Policies
 message PolicyList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of Policies
   repeated Policy items = 2;
@@ -300,7 +303,7 @@ message PolicyRule {
 
   // AttributeRestrictions will vary depending on what the Authorizer/AuthorizationAttributeBuilder pair supports.
   // If the Authorizer does not recognize how to handle the AttributeRestrictions, the Authorizer should report an error.
-  optional k8s.io.kubernetes.pkg.runtime.RawExtension attributeRestrictions = 2;
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension attributeRestrictions = 2;
 
   // APIGroups is the name of the APIGroup that contains the resources.  If this field is empty, then both kubernetes and origin API groups are assumed.
   // That means that if an action is requested against one of the enumerated resources in either the kubernetes or the origin API group, the request
@@ -347,7 +350,7 @@ message ResourceAccessReviewResponse {
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 message Role {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Rules holds all the PolicyRules for this Role
   repeated PolicyRule rules = 2;
@@ -358,7 +361,7 @@ message Role {
 // RoleBindings in a given namespace only have effect in that namespace (excepting the master namespace which has power in all namespaces).
 message RoleBinding {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // UserNames holds all the usernames directly bound to the role.
   // This field should only be specified when supporting legacy clients and servers.
@@ -388,7 +391,7 @@ message RoleBinding {
 // RoleBindingList is a collection of RoleBindings
 message RoleBindingList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of RoleBindings
   repeated RoleBinding items = 2;
@@ -401,7 +404,7 @@ message RoleBindingList {
 // a subject, rolebindings on that subject in the namespace are allowed.
 message RoleBindingRestriction {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the matcher.
   optional RoleBindingRestrictionSpec spec = 2;
@@ -410,7 +413,7 @@ message RoleBindingRestriction {
 // RoleBindingRestrictionList is a collection of RoleBindingRestriction objects.
 message RoleBindingRestrictionList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of RoleBindingRestriction objects.
   repeated RoleBindingRestriction items = 2;
@@ -432,7 +435,7 @@ message RoleBindingRestrictionSpec {
 // RoleList is a collection of Roles
 message RoleList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of Roles
   repeated Role items = 2;
@@ -451,6 +454,7 @@ message SelfSubjectRulesReview {
 message SelfSubjectRulesReviewSpec {
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil means "use the scopes on this request".
+  // +k8s:conversion-gen=false
   optional OptionalScopes scopes = 1;
 }
 
@@ -493,6 +497,7 @@ message SubjectAccessReview {
   // Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
   // Nil for a self-SAR, means "use the scopes on this request".
   // Nil for a regular SAR, means the same as empty.
+  // +k8s:conversion-gen=false
   optional OptionalScopes scopes = 4;
 }
 
@@ -555,6 +560,6 @@ message UserRestriction {
   repeated string groups = 2;
 
   // Selectors specifies a list of label selectors over user labels.
-  repeated k8s.io.kubernetes.pkg.api.unversioned.LabelSelector labels = 3;
+  repeated k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector labels = 3;
 }
 
