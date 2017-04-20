@@ -91,7 +91,6 @@
 // test/extended/testdata/jenkins-plugin/multitag-template.json
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
 // test/extended/testdata/jobs/v1.yaml
-// test/extended/testdata/jobs/v1beta1.yaml
 // test/extended/testdata/ldap/ldapserver-buildconfig.json
 // test/extended/testdata/ldap/ldapserver-deploymentconfig.json
 // test/extended/testdata/ldap/ldapserver-imagestream-testenv.json
@@ -5076,39 +5075,6 @@ func testExtendedTestdataJobsV1Yaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/jobs/v1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataJobsV1beta1Yaml = []byte(`apiVersion: extensions/v1beta1
-kind: Job
-metadata:
-  name: simplev1beta1
-spec:
-  template:
-    metadata:
-      name: simplev1beta1
-      labels:
-        app: simplev1beta1
-    spec:
-      containers:
-      - name: simplev1beta1
-        image: gcr.io/google_containers/busybox
-        command: ["/bin/sh", "-c", "exit 0"]
-      restartPolicy: Never
-`)
-
-func testExtendedTestdataJobsV1beta1YamlBytes() ([]byte, error) {
-	return _testExtendedTestdataJobsV1beta1Yaml, nil
-}
-
-func testExtendedTestdataJobsV1beta1Yaml() (*asset, error) {
-	bytes, err := testExtendedTestdataJobsV1beta1YamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/jobs/v1beta1.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19043,7 +19009,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/multitag-template.json": testExtendedTestdataJenkinsPluginMultitagTemplateJson,
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
 	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
-	"test/extended/testdata/jobs/v1beta1.yaml": testExtendedTestdataJobsV1beta1Yaml,
 	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
 	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
 	"test/extended/testdata/ldap/ldapserver-imagestream-testenv.json": testExtendedTestdataLdapLdapserverImagestreamTestenvJson,
@@ -19391,7 +19356,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"jobs": &bintree{nil, map[string]*bintree{
 					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
-					"v1beta1.yaml": &bintree{testExtendedTestdataJobsV1beta1Yaml, map[string]*bintree{}},
 				}},
 				"ldap": &bintree{nil, map[string]*bintree{
 					"ldapserver-buildconfig.json": &bintree{testExtendedTestdataLdapLdapserverBuildconfigJson, map[string]*bintree{}},
