@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.route.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -32,7 +34,7 @@ option go_package = "v1";
 // to indicate the route cannot be chosen.
 message Route {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the desired state of the route
   optional RouteSpec spec = 2;
@@ -79,13 +81,13 @@ message RouteIngressCondition {
   optional string message = 4;
 
   // RFC 3339 date and time when this condition last transitioned
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 5;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 5;
 }
 
 // RouteList is a collection of Routes.
 message RouteList {
   // Standard object metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of routes
   repeated Route items = 2;
@@ -96,7 +98,7 @@ message RoutePort {
   // The target port on pods selected by the service this route points to.
   // If this is a string, it will be looked up as a named port in the target
   // endpoints port list. Required
-  optional k8s.io.kubernetes.pkg.util.intstr.IntOrString targetPort = 1;
+  optional k8s.io.apimachinery.pkg.util.intstr.IntOrString targetPort = 1;
 }
 
 // RouteSpec describes the hostname or path the route exposes, any security information,
