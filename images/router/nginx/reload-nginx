@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -o nounset
+
+config_file=/var/lib/nginx/conf/nginx.config
+old_pids=$(ps -A -opid,args | grep nginx | egrep -v -e 'grep|reload-nginx' | awk '{print $1}' | tr '\n' ' ')
+
+reload_status=0
+if [ -n "$old_pids" ]; then
+  /usr/sbin/nginx -c ${config_file} -s reload
+  reload_status=$?
+else
+  /usr/sbin/nginx -c ${config_file}
+  reload_status=$?
+fi
+exit $reload_status

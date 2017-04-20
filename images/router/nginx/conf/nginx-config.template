@@ -1,0 +1,60 @@
+{{/*
+    nginx.config: contains the main config with helper backends that are used to terminate
+    					encryption before finally sending to a host_be which is the backend that is the final
+    					backend for a route and contains all the endpoints for the service
+*/}}
+{{- define "/var/lib/nginx/conf/nginx.config" -}}
+#user       www www;  ## Default: nobody
+worker_processes  5;  ## Default: 1
+error_log  /var/lib/nginx/logs/error.log;
+pid        /var/lib/nginx/logs/nginx.pid;
+worker_rlimit_nofile 8192;
+
+events {
+  worker_connections  4096;  ## Default: 1024
+}
+
+http {
+  #include    conf/mime.types;
+  #include    /etc/nginx/proxy.conf;
+  #include    /etc/nginx/fastcgi.conf;
+  index    index.html index.htm index.php;
+
+  default_type application/octet-stream;
+  log_format   main '$remote_addr - $remote_user [$time_local]  $status '
+    '"$request" $body_bytes_sent "$http_referer" '
+    '"$http_user_agent" "$http_x_forwarded_for"';
+  access_log   /var/lib/nginx/logs/access.log  main;
+  sendfile     on;
+  tcp_nopush   on;
+  server_names_hash_bucket_size 128; # this seems to be required for some vhosts
+
+
+
+{{- range $cfgIdx, $cfg := .State }}
+ {{- if (eq $cfg.TLSTermination "") }}
+
+# Plain http backend
+  upstream be_http_{{$cfgIdx}} {
+    {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
+      {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+        {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
+    server {{$endpoint.IP}}:{{$endpoint.Port}};
+        {{ end -}}
+      {{ end -}}
+    {{ end -}}
+  }
+
+  server { # simple load balancing
+    listen          80;
+    server_name     {{$cfg.Host}};
+    access_log      /var/lib/nginx/logs/be_http_{{$cfgIdx}}.log main;
+
+    location / {
+      proxy_pass      http://be_http_{{$cfgIdx}};
+    }
+  }
+  {{ end -}}{{/* end if plain http */}}
+{{ end -}}{{/* end all routes */}}
+}
+{{ end -}}{{/* end config file */}}
