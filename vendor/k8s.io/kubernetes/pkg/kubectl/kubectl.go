@@ -138,34 +138,33 @@ var ResourcesShortcutStatic = []ResourceShortcuts{
 		ShortForm: schema.GroupResource{Group: "extensions", Resource: "psp"},
 		LongForm:  schema.GroupResource{Group: "extensions", Resource: "podSecurityPolicies"},
 	},
-
 	{
 		ShortForm: schema.GroupResource{Resource: "scc"},
 		LongForm:  schema.GroupResource{Resource: "securityContextConstraints"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "dc"},
-		LongForm:  schema.GroupResource{Resource: "deploymentConfigs"},
+		ShortForm: schema.GroupResource{Group: "apps.openshift.io", Resource: "dc"},
+		LongForm:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentConfigs"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "bc"},
-		LongForm:  schema.GroupResource{Resource: "buildConfigs"},
+		ShortForm: schema.GroupResource{Group: "build.openshift.io", Resource: "bc"},
+		LongForm:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildConfigs"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "is"},
-		LongForm:  schema.GroupResource{Resource: "imageStreams"},
+		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "is"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreams"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "istag"},
-		LongForm:  schema.GroupResource{Resource: "imageStreamTags"},
+		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "istag"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreamTags"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "isimage"},
-		LongForm:  schema.GroupResource{Resource: "imageStreamImages"},
+		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "isimage"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreamImages"},
 	},
 	{
-		ShortForm: schema.GroupResource{Resource: "clusterquota"},
-		LongForm:  schema.GroupResource{Resource: "clusterResourceQuota"},
+		ShortForm: schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterquota"},
+		LongForm:  schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterResourceQuota"},
 	},
 }
 
