@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/template/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeTemplates implements TemplateResourceInterface
@@ -16,11 +16,11 @@ type FakeTemplates struct {
 	ns   string
 }
 
-var templatesResource = unversioned.GroupVersionResource{Group: "template.openshift.io", Version: "v1", Resource: "templates"}
+var templatesResource = schema.GroupVersionResource{Group: "template.openshift.io", Version: "v1", Resource: "templates"}
 
 func (c *FakeTemplates) Create(template *v1.Template) (result *v1.Template, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(templatesResource, c.ns, template), &v1.Template{})
+		Invokes(testing.NewCreateAction(templatesResource, c.ns, template), &v1.Template{})
 
 	if obj == nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (c *FakeTemplates) Create(template *v1.Template) (result *v1.Template, err 
 
 func (c *FakeTemplates) Update(template *v1.Template) (result *v1.Template, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(templatesResource, c.ns, template), &v1.Template{})
+		Invokes(testing.NewUpdateAction(templatesResource, c.ns, template), &v1.Template{})
 
 	if obj == nil {
 		return nil, err
@@ -38,23 +38,23 @@ func (c *FakeTemplates) Update(template *v1.Template) (result *v1.Template, err 
 	return obj.(*v1.Template), err
 }
 
-func (c *FakeTemplates) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeTemplates) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(templatesResource, c.ns, name), &v1.Template{})
+		Invokes(testing.NewDeleteAction(templatesResource, c.ns, name), &v1.Template{})
 
 	return err
 }
 
-func (c *FakeTemplates) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(templatesResource, c.ns, listOptions)
+func (c *FakeTemplates) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(templatesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.TemplateList{})
 	return err
 }
 
-func (c *FakeTemplates) Get(name string) (result *v1.Template, err error) {
+func (c *FakeTemplates) Get(name string, options meta_v1.GetOptions) (result *v1.Template, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(templatesResource, c.ns, name), &v1.Template{})
+		Invokes(testing.NewGetAction(templatesResource, c.ns, name), &v1.Template{})
 
 	if obj == nil {
 		return nil, err
@@ -62,15 +62,15 @@ func (c *FakeTemplates) Get(name string) (result *v1.Template, err error) {
 	return obj.(*v1.Template), err
 }
 
-func (c *FakeTemplates) List(opts api_v1.ListOptions) (result *v1.TemplateList, err error) {
+func (c *FakeTemplates) List(opts meta_v1.ListOptions) (result *v1.TemplateList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(templatesResource, c.ns, opts), &v1.TemplateList{})
+		Invokes(testing.NewListAction(templatesResource, c.ns, opts), &v1.TemplateList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -84,16 +84,16 @@ func (c *FakeTemplates) List(opts api_v1.ListOptions) (result *v1.TemplateList, 
 }
 
 // Watch returns a watch.Interface that watches the requested templates.
-func (c *FakeTemplates) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeTemplates) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(templatesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(templatesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched template.
-func (c *FakeTemplates) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Template, err error) {
+func (c *FakeTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Template, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(templatesResource, c.ns, name, data, subresources...), &v1.Template{})
+		Invokes(testing.NewPatchSubresourceAction(templatesResource, c.ns, name, data, subresources...), &v1.Template{})
 
 	if obj == nil {
 		return nil, err

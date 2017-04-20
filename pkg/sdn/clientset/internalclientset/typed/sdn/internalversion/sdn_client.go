@@ -1,19 +1,18 @@
 package internalversion
 
 import (
-	api "k8s.io/kubernetes/pkg/api"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
+	"github.com/openshift/origin/pkg/sdn/clientset/internalclientset/scheme"
+	rest "k8s.io/client-go/rest"
 )
 
 type SdnInterface interface {
-	RESTClient() restclient.Interface
+	RESTClient() rest.Interface
 	ClusterNetworksGetter
 }
 
-// SdnClient is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// SdnClient is used to interact with features provided by the network.openshift.io group.
 type SdnClient struct {
-	restClient restclient.Interface
+	restClient rest.Interface
 }
 
 func (c *SdnClient) ClusterNetworks(namespace string) ClusterNetworkInterface {
@@ -21,12 +20,12 @@ func (c *SdnClient) ClusterNetworks(namespace string) ClusterNetworkInterface {
 }
 
 // NewForConfig creates a new SdnClient for the given config.
-func NewForConfig(c *restclient.Config) (*SdnClient, error) {
+func NewForConfig(c *rest.Config) (*SdnClient, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := restclient.RESTClientFor(&config)
+	client, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,7 @@ func NewForConfig(c *restclient.Config) (*SdnClient, error) {
 
 // NewForConfigOrDie creates a new SdnClient for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *restclient.Config) *SdnClient {
+func NewForConfigOrDie(c *rest.Config) *SdnClient {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -44,25 +43,25 @@ func NewForConfigOrDie(c *restclient.Config) *SdnClient {
 }
 
 // New creates a new SdnClient for the given RESTClient.
-func New(c restclient.Interface) *SdnClient {
+func New(c rest.Interface) *SdnClient {
 	return &SdnClient{c}
 }
 
-func setConfigDefaults(config *restclient.Config) error {
-	// if sdn group is not registered, return an error
-	g, err := registered.Group("network.openshift.io")
+func setConfigDefaults(config *rest.Config) error {
+	g, err := scheme.Registry.Group("network.openshift.io")
 	if err != nil {
 		return err
 	}
+
 	config.APIPath = "/apis"
 	if config.UserAgent == "" {
-		config.UserAgent = restclient.DefaultKubernetesUserAgent()
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
 	if config.GroupVersion == nil || config.GroupVersion.Group != g.GroupVersion.Group {
-		copyGroupVersion := g.GroupVersion
-		config.GroupVersion = &copyGroupVersion
+		gv := g.GroupVersion
+		config.GroupVersion = &gv
 	}
-	config.NegotiatedSerializer = api.Codecs
+	config.NegotiatedSerializer = scheme.Codecs
 
 	if config.QPS == 0 {
 		config.QPS = 5
@@ -70,12 +69,13 @@ func setConfigDefaults(config *restclient.Config) error {
 	if config.Burst == 0 {
 		config.Burst = 10
 	}
+
 	return nil
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SdnClient) RESTClient() restclient.Interface {
+func (c *SdnClient) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

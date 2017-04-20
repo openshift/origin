@@ -5,11 +5,10 @@
 package api
 
 import (
-	reflect "reflect"
-
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	pkg_api "k8s.io/kubernetes/pkg/api"
+	reflect "reflect"
 )
 
 func init() {
@@ -34,16 +33,16 @@ func DeepCopy_api_Group(in interface{}, out interface{}, c *conversion.Cloner) e
 	{
 		in := in.(*Group)
 		out := out.(*Group)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if in.Users != nil {
 			in, out := &in.Users, &out.Users
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Users = nil
 		}
 		return nil
 	}
@@ -53,8 +52,7 @@ func DeepCopy_api_GroupList(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*GroupList)
 		out := out.(*GroupList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Group, len(*in))
@@ -63,8 +61,6 @@ func DeepCopy_api_GroupList(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -74,21 +70,18 @@ func DeepCopy_api_Identity(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*Identity)
 		out := out.(*Identity)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.ProviderName = in.ProviderName
-		out.ProviderUserName = in.ProviderUserName
-		out.User = in.User
 		if in.Extra != nil {
 			in, out := &in.Extra, &out.Extra
 			*out = make(map[string]string)
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.Extra = nil
 		}
 		return nil
 	}
@@ -98,8 +91,7 @@ func DeepCopy_api_IdentityList(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*IdentityList)
 		out := out.(*IdentityList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Identity, len(*in))
@@ -108,8 +100,6 @@ func DeepCopy_api_IdentityList(in interface{}, out interface{}, c *conversion.Cl
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -119,24 +109,21 @@ func DeepCopy_api_User(in interface{}, out interface{}, c *conversion.Cloner) er
 	{
 		in := in.(*User)
 		out := out.(*User)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.FullName = in.FullName
 		if in.Identities != nil {
 			in, out := &in.Identities, &out.Identities
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Identities = nil
 		}
 		if in.Groups != nil {
 			in, out := &in.Groups, &out.Groups
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Groups = nil
 		}
 		return nil
 	}
@@ -146,12 +133,12 @@ func DeepCopy_api_UserIdentityMapping(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*UserIdentityMapping)
 		out := out.(*UserIdentityMapping)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Identity = in.Identity
-		out.User = in.User
 		return nil
 	}
 }
@@ -160,8 +147,7 @@ func DeepCopy_api_UserList(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*UserList)
 		out := out.(*UserList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]User, len(*in))
@@ -170,8 +156,6 @@ func DeepCopy_api_UserList(in interface{}, out interface{}, c *conversion.Cloner
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}

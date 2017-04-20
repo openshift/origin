@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/route/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeRoutes implements RouteResourceInterface
@@ -15,11 +16,11 @@ type FakeRoutes struct {
 	ns   string
 }
 
-var routesResource = unversioned.GroupVersionResource{Group: "route.openshift.io", Version: "", Resource: "routes"}
+var routesResource = schema.GroupVersionResource{Group: "route.openshift.io", Version: "", Resource: "routes"}
 
 func (c *FakeRoutes) Create(route *api.Route) (result *api.Route, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(routesResource, c.ns, route), &api.Route{})
+		Invokes(testing.NewCreateAction(routesResource, c.ns, route), &api.Route{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakeRoutes) Create(route *api.Route) (result *api.Route, err error) {
 
 func (c *FakeRoutes) Update(route *api.Route) (result *api.Route, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(routesResource, c.ns, route), &api.Route{})
+		Invokes(testing.NewUpdateAction(routesResource, c.ns, route), &api.Route{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,33 @@ func (c *FakeRoutes) Update(route *api.Route) (result *api.Route, err error) {
 	return obj.(*api.Route), err
 }
 
-func (c *FakeRoutes) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakeRoutes) UpdateStatus(route *api.Route) (*api.Route, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(routesResource, "status", c.ns, route), &api.Route{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.Route), err
+}
+
+func (c *FakeRoutes) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(routesResource, c.ns, name), &api.Route{})
+		Invokes(testing.NewDeleteAction(routesResource, c.ns, name), &api.Route{})
 
 	return err
 }
 
-func (c *FakeRoutes) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(routesResource, c.ns, listOptions)
+func (c *FakeRoutes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(routesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.RouteList{})
 	return err
 }
 
-func (c *FakeRoutes) Get(name string) (result *api.Route, err error) {
+func (c *FakeRoutes) Get(name string, options v1.GetOptions) (result *api.Route, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(routesResource, c.ns, name), &api.Route{})
+		Invokes(testing.NewGetAction(routesResource, c.ns, name), &api.Route{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +72,15 @@ func (c *FakeRoutes) Get(name string) (result *api.Route, err error) {
 	return obj.(*api.Route), err
 }
 
-func (c *FakeRoutes) List(opts pkg_api.ListOptions) (result *api.RouteList, err error) {
+func (c *FakeRoutes) List(opts v1.ListOptions) (result *api.RouteList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(routesResource, c.ns, opts), &api.RouteList{})
+		Invokes(testing.NewListAction(routesResource, c.ns, opts), &api.RouteList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +94,16 @@ func (c *FakeRoutes) List(opts pkg_api.ListOptions) (result *api.RouteList, err 
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *FakeRoutes) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakeRoutes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(routesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(routesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched route.
-func (c *FakeRoutes) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Route, err error) {
+func (c *FakeRoutes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Route, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(routesResource, c.ns, name, data, subresources...), &api.Route{})
+		Invokes(testing.NewPatchSubresourceAction(routesResource, c.ns, name, data, subresources...), &api.Route{})
 
 	if obj == nil {
 		return nil, err
