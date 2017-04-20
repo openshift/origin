@@ -5,10 +5,11 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.sdn.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
-import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -18,7 +19,7 @@ option go_package = "v1";
 // when the cluster is brought up for the first time.
 message ClusterNetwork {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Network is a CIDR string specifying the global overlay network's L3 space
   optional string network = 2;
@@ -36,7 +37,7 @@ message ClusterNetwork {
 // ClusterNetworkList is a collection of ClusterNetworks
 message ClusterNetworkList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of cluster networks
   repeated ClusterNetwork items = 2;
@@ -49,7 +50,7 @@ message ClusterNetworkList {
 // is present) then the traffic will be allowed by default.
 message EgressNetworkPolicy {
   // metadata for EgressNetworkPolicy
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is the specification of the current egress network policy
   optional EgressNetworkPolicySpec spec = 2;
@@ -58,7 +59,7 @@ message EgressNetworkPolicy {
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 message EgressNetworkPolicyList {
   // metadata for EgressNetworkPolicyList
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is the list of policies
   repeated EgressNetworkPolicy items = 2;
@@ -92,7 +93,7 @@ message EgressNetworkPolicySpec {
 // same name as the Node object it corresponds to.
 message HostSubnet {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Host is the name of the node. (This is the same as the object's name, but both fields must be set.)
   optional string host = 2;
@@ -107,7 +108,7 @@ message HostSubnet {
 // HostSubnetList is a collection of HostSubnets
 message HostSubnetList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of host subnets
   repeated HostSubnet items = 2;
@@ -118,7 +119,7 @@ message HostSubnetList {
 // (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)
 message NetNamespace {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
   optional string netname = 2;
@@ -130,7 +131,7 @@ message NetNamespace {
 // NetNamespaceList is a collection of NetNamespaces
 message NetNamespaceList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of net namespaces
   repeated NetNamespace items = 2;
