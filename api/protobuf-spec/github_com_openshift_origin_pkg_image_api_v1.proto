@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.image.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -34,13 +36,13 @@ message DockerImageReference {
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 message Image {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // DockerImageReference is the string that can be used to pull this image.
   optional string dockerImageReference = 2;
 
   // DockerImageMetadata contains metadata about this image
-  optional k8s.io.kubernetes.pkg.runtime.RawExtension dockerImageMetadata = 3;
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension dockerImageMetadata = 3;
 
   // DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
   optional string dockerImageMetadataVersion = 4;
@@ -85,7 +87,7 @@ message ImageImportSpec {
 // ImageImportStatus describes the result of an image import.
 message ImageImportStatus {
   // Status is the status of the image import, including errors encountered while retrieving the image
-  optional k8s.io.kubernetes.pkg.api.unversioned.Status status = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Status status = 1;
 
   // Image is the metadata of that image, if the image was located
   optional Image image = 2;
@@ -109,7 +111,7 @@ message ImageLayer {
 // ImageList is a list of Image objects.
 message ImageList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of images
   repeated Image items = 2;
@@ -122,7 +124,7 @@ message ImageList {
 // signature's content by the server. They serve just an informative purpose.
 message ImageSignature {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Required: Describes a type of stored blob.
   optional string type = 2;
@@ -141,7 +143,7 @@ message ImageSignature {
   map<string, string> signedClaims = 6;
 
   // If specified, it is the time of signature's creation.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time created = 7;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time created = 7;
 
   // If specified, it holds information about an issuer of signing certificate or key (a person or entity
   // who signed the signing certificate or key).
@@ -157,7 +159,7 @@ message ImageSignature {
 // repository on a registry.
 message ImageStream {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec describes the desired state of this stream
   optional ImageStreamSpec spec = 2;
@@ -169,7 +171,7 @@ message ImageStream {
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 message ImageStreamImage {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Image associated with the ImageStream and image name.
   optional Image image = 2;
@@ -185,7 +187,7 @@ message ImageStreamImage {
 // to create spec.tags directly into their image streams.
 message ImageStreamImport {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec is a description of the images that the user wishes to import
   optional ImageStreamImportSpec spec = 2;
@@ -223,7 +225,7 @@ message ImageStreamImportStatus {
 // ImageStreamList is a list of ImageStream objects.
 message ImageStreamList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is a list of imageStreams
   repeated ImageStream items = 2;
@@ -233,7 +235,7 @@ message ImageStreamList {
 // well as the reference to the Docker image stream the image came from.
 message ImageStreamMapping {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Image is a Docker image.
   optional Image image = 2;
@@ -265,7 +267,7 @@ message ImageStreamStatus {
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 message ImageStreamTag {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Tag is the spec tag associated with this image stream tag, and it may be null
   // if only pushes have occurred to this image stream.
@@ -287,7 +289,7 @@ message ImageStreamTag {
 // ImageStreamTagList is a list of ImageStreamTag objects.
 message ImageStreamTagList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of image stream tags
   repeated ImageStreamTag items = 2;
@@ -323,7 +325,7 @@ message RepositoryImportSpec {
 // RepositoryImportStatus describes the result of an image repository import
 message RepositoryImportStatus {
   // Status reflects whether any failure occurred during import
-  optional k8s.io.kubernetes.pkg.api.unversioned.Status status = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Status status = 1;
 
   // Images is a list of images successfully retrieved by the import of the repository.
   repeated ImageImportStatus images = 2;
@@ -342,10 +344,10 @@ message SignatureCondition {
   optional string status = 2;
 
   // Last time the condition was checked.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastProbeTime = 3;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastProbeTime = 3;
 
   // Last time the condition transit from one status to another.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 4;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 4;
 
   // (brief) reason for the condition's last transition.
   optional string reason = 5;
@@ -382,7 +384,7 @@ message SignatureSubject {
 // TagEvent is used by ImageStreamStatus to keep a historical record of images associated with a tag.
 message TagEvent {
   // Created holds the time the TagEvent was created
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time created = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time created = 1;
 
   // DockerImageReference is the string that can be used to pull this image
   optional string dockerImageReference = 2;
@@ -403,7 +405,7 @@ message TagEventCondition {
   optional string status = 2;
 
   // LastTransitionTIme is the time the condition transitioned from one status to another.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time lastTransitionTime = 3;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastTransitionTime = 3;
 
   // Reason is a brief machine readable explanation for the condition's last transition.
   optional string reason = 4;

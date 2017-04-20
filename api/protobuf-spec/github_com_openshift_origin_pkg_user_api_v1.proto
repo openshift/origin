@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.user.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -16,7 +18,7 @@ option go_package = "v1";
 // Group represents a referenceable set of Users
 message Group {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Users is the list of users in this group.
   optional OptionalNames users = 2;
@@ -25,7 +27,7 @@ message Group {
 // GroupList is a collection of Groups
 message GroupList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of groups
   repeated Group items = 2;
@@ -38,7 +40,7 @@ message GroupList {
 // using a schema determined by the provider.
 message Identity {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // ProviderName is the source of identity information
   optional string providerName = 2;
@@ -57,7 +59,7 @@ message Identity {
 // IdentityList is a collection of Identities
 message IdentityList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of identities
   repeated Identity items = 2;
@@ -79,7 +81,7 @@ message OptionalNames {
 // a number appended to it depending on the configuration of the system.
 message User {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // FullName is the full name of user
   optional string fullName = 2;
@@ -96,7 +98,7 @@ message User {
 // UserIdentityMapping maps a user to an identity
 message UserIdentityMapping {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Identity is a reference to an identity
   optional k8s.io.kubernetes.pkg.api.v1.ObjectReference identity = 2;
@@ -108,7 +110,7 @@ message UserIdentityMapping {
 // UserList is a collection of Users
 message UserList {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // Items is the list of users
   repeated User items = 2;

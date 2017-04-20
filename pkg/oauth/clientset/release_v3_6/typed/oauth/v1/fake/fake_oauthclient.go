@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/oauth/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeOAuthClients implements OAuthClientInterface
@@ -16,11 +16,11 @@ type FakeOAuthClients struct {
 	ns   string
 }
 
-var oauthclientsResource = unversioned.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthclients"}
+var oauthclientsResource = schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthclients"}
 
 func (c *FakeOAuthClients) Create(oAuthClient *v1.OAuthClient) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(oauthclientsResource, c.ns, oAuthClient), &v1.OAuthClient{})
+		Invokes(testing.NewCreateAction(oauthclientsResource, c.ns, oAuthClient), &v1.OAuthClient{})
 
 	if obj == nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (c *FakeOAuthClients) Create(oAuthClient *v1.OAuthClient) (result *v1.OAuth
 
 func (c *FakeOAuthClients) Update(oAuthClient *v1.OAuthClient) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(oauthclientsResource, c.ns, oAuthClient), &v1.OAuthClient{})
+		Invokes(testing.NewUpdateAction(oauthclientsResource, c.ns, oAuthClient), &v1.OAuthClient{})
 
 	if obj == nil {
 		return nil, err
@@ -38,23 +38,23 @@ func (c *FakeOAuthClients) Update(oAuthClient *v1.OAuthClient) (result *v1.OAuth
 	return obj.(*v1.OAuthClient), err
 }
 
-func (c *FakeOAuthClients) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeOAuthClients) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(oauthclientsResource, c.ns, name), &v1.OAuthClient{})
+		Invokes(testing.NewDeleteAction(oauthclientsResource, c.ns, name), &v1.OAuthClient{})
 
 	return err
 }
 
-func (c *FakeOAuthClients) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(oauthclientsResource, c.ns, listOptions)
+func (c *FakeOAuthClients) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(oauthclientsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.OAuthClientList{})
 	return err
 }
 
-func (c *FakeOAuthClients) Get(name string) (result *v1.OAuthClient, err error) {
+func (c *FakeOAuthClients) Get(name string, options meta_v1.GetOptions) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(oauthclientsResource, c.ns, name), &v1.OAuthClient{})
+		Invokes(testing.NewGetAction(oauthclientsResource, c.ns, name), &v1.OAuthClient{})
 
 	if obj == nil {
 		return nil, err
@@ -62,15 +62,15 @@ func (c *FakeOAuthClients) Get(name string) (result *v1.OAuthClient, err error) 
 	return obj.(*v1.OAuthClient), err
 }
 
-func (c *FakeOAuthClients) List(opts api_v1.ListOptions) (result *v1.OAuthClientList, err error) {
+func (c *FakeOAuthClients) List(opts meta_v1.ListOptions) (result *v1.OAuthClientList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(oauthclientsResource, c.ns, opts), &v1.OAuthClientList{})
+		Invokes(testing.NewListAction(oauthclientsResource, c.ns, opts), &v1.OAuthClientList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -84,16 +84,16 @@ func (c *FakeOAuthClients) List(opts api_v1.ListOptions) (result *v1.OAuthClient
 }
 
 // Watch returns a watch.Interface that watches the requested oAuthClients.
-func (c *FakeOAuthClients) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeOAuthClients) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(oauthclientsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(oauthclientsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched oAuthClient.
-func (c *FakeOAuthClients) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.OAuthClient, err error) {
+func (c *FakeOAuthClients) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(oauthclientsResource, c.ns, name, data, subresources...), &v1.OAuthClient{})
+		Invokes(testing.NewPatchSubresourceAction(oauthclientsResource, c.ns, name, data, subresources...), &v1.OAuthClient{})
 
 	if obj == nil {
 		return nil, err
