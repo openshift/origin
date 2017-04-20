@@ -1,38 +1,44 @@
-#!/bin/sh
+#!/bin/bash
 
-set -ex
+# OpenShift egress router setup script
 
-if [ -z "${EGRESS_SOURCE}" ]; then
+set -o errexit
+set -o nounset
+set -o pipefail
+
+if [[ -z "${EGRESS_SOURCE:-}" ]]; then
     echo "No EGRESS_SOURCE specified"
     exit 1
 fi
-if [ -z "${EGRESS_DESTINATION}" ]; then
+if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
     echo "No EGRESS_DESTINATION specified"
     exit 1
 fi
-if [ -z "${EGRESS_GATEWAY}" ]; then
+if [[ -z "${EGRESS_GATEWAY:-}" ]]; then
     echo "No EGRESS_GATEWAY specified"
     exit 1
 fi
 
+set -x
+
 # The pod may die and get restarted; only try to add the
 # address/route/rules if they are not already there.
-if ! ip route get ${EGRESS_DESTINATION} | grep -q macvlan0; then
-    ip addr add ${EGRESS_SOURCE}/32 dev macvlan0
+if ! ip route get "${EGRESS_DESTINATION}" | grep -q macvlan0; then
+    ip addr add "${EGRESS_SOURCE}"/32 dev macvlan0
     ip link set up dev macvlan0
-    ip route add ${EGRESS_GATEWAY}/32 dev macvlan0
+    ip route add "${EGRESS_GATEWAY}"/32 dev macvlan0
     if [ "${EGRESS_DESTINATION}" != "${EGRESS_GATEWAY}" ]; then
         ip route add "${EGRESS_DESTINATION}"/32 via "${EGRESS_GATEWAY}" dev macvlan0
     fi
-    iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination ${EGRESS_DESTINATION}
-    iptables -t nat -A POSTROUTING -j SNAT --to-source ${EGRESS_SOURCE}
+    iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination "${EGRESS_DESTINATION}"
+    iptables -t nat -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
 fi
 
 # Update neighbor ARP caches in case another node previously had the IP. (This is
 # the same code ifup uses.)
-arping -q -A -c 1 -I macvlan0 ${EGRESS_SOURCE}
+arping -q -A -c 1 -I macvlan0 "${EGRESS_SOURCE}"
 ( sleep 2;
-  arping -q -U -c 1 -I macvlan0 ${EGRESS_SOURCE} || true ) > /dev/null 2>&1 < /dev/null &
+  arping -q -U -c 1 -I macvlan0 "${EGRESS_SOURCE}" || true ) > /dev/null 2>&1 < /dev/null &
 
 # Now we just wait until we are killed...
 #
