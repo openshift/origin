@@ -94,7 +94,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 				o.Expect(err).NotTo(o.HaveOccurred())
 				//e2e.Logf("Metrics:\n%s", results)
 				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
-					if findGaugesWithLabels(metrics["haproxy_server_connections_total"], serverLabels)[0] > 0 {
+					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
 						break
 					}
 					// send a burst of traffic to the router
