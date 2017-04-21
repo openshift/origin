@@ -12,14 +12,15 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -282,7 +283,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	output := opts.Config.Action.ShouldPrint()
 	generate := output
-	service, err := opts.serviceClient.Services(opts.namespace).Get(name)
+	service, err := opts.serviceClient.Services(opts.namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if !generate {
 			if !errors.IsNotFound(err) {
@@ -349,7 +350,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	mountHost := len(opts.Config.HostMount) > 0
 	podTemplate := &kapi.PodTemplateSpec{
-		ObjectMeta: kapi.ObjectMeta{Labels: opts.label},
+		ObjectMeta: metav1.ObjectMeta{Labels: opts.label},
 		Spec: kapi.PodSpec{
 			NodeSelector: opts.nodeSelector,
 			Containers: []kapi.Container{
@@ -395,9 +396,9 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	}
 
 	objects = append(objects,
-		&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: opts.Config.ServiceAccount}},
+		&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: opts.Config.ServiceAccount}},
 		&authapi.ClusterRoleBinding{
-			ObjectMeta: kapi.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", opts.Config.Name)},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("registry-%s-role", opts.Config.Name)},
 			Subjects: []kapi.ObjectReference{
 				{
 					Kind:      "ServiceAccount",
@@ -414,7 +415,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 
 	if opts.Config.DaemonSet {
 		objects = append(objects, &extensions.DaemonSet{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
@@ -427,7 +428,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 		})
 	} else {
 		objects = append(objects, &deployapi.DeploymentConfig{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   name,
 				Labels: opts.label,
 			},
@@ -527,7 +528,7 @@ func generateSecretsConfig(
 
 	if len(defaultCrt) > 0 {
 		secret := &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("%s-certs", cfg.Name),
 			},
 			Type: kapi.SecretTypeTLS,

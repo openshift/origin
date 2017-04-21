@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 )
 
 func TestDescriptions(t *testing.T) {
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		seen := map[reflect.Type]bool{}
 
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
@@ -42,7 +42,7 @@ func checkDescriptions(objType reflect.Type, seen *map[reflect.Type]bool, t *tes
 		if structField.Name == "TypeMeta" || structField.Name == "ObjectMeta" || structField.Name == "ListMeta" {
 			continue
 		}
-		if structField.Type == reflect.TypeOf(unversioned.Time{}) || structField.Type == reflect.TypeOf(time.Time{}) || structField.Type == reflect.TypeOf(runtime.RawExtension{}) {
+		if structField.Type == reflect.TypeOf(metav1.Time{}) || structField.Type == reflect.TypeOf(time.Time{}) || structField.Type == reflect.TypeOf(runtime.RawExtension{}) {
 			continue
 		}
 
@@ -63,13 +63,13 @@ func TestInternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 	seenGroups := sets.String{}
 
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		if seenGroups.Has(version.Group) {
 			continue
 		}
 		seenGroups.Insert(version.Group)
 
-		internalVersion := unversioned.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
+		internalVersion := schema.GroupVersion{Group: version.Group, Version: runtime.APIVersionInternal}
 		for _, apiType := range kapi.Scheme.KnownTypes(internalVersion) {
 			checkInternalJsonTags(apiType, &seen, t)
 		}
@@ -122,7 +122,7 @@ func checkInternalJsonTags(objType reflect.Type, seen *map[reflect.Type]bool, t 
 func TestExternalJsonTags(t *testing.T) {
 	seen := map[reflect.Type]bool{}
 
-	for _, version := range registered.RegisteredGroupVersions() {
+	for _, version := range kapi.Registry.RegisteredGroupVersions() {
 		for _, apiType := range kapi.Scheme.KnownTypes(version) {
 			checkExternalJsonTags(apiType, &seen, t)
 		}

@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/authorization/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // PoliciesGetter has a method to return a PolicyInterface.
@@ -17,18 +19,18 @@ type PoliciesGetter interface {
 type PolicyInterface interface {
 	Create(*api.Policy) (*api.Policy, error)
 	Update(*api.Policy) (*api.Policy, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.Policy, error)
-	List(opts pkg_api.ListOptions) (*api.PolicyList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.Policy, error)
+	List(opts v1.ListOptions) (*api.PolicyList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Policy, err error)
 	PolicyExpansion
 }
 
 // policies implements PolicyInterface
 type policies struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -66,7 +68,7 @@ func (c *policies) Update(policy *api.Policy) (result *api.Policy, err error) {
 }
 
 // Delete takes name of the policy and deletes it. Returns an error if one occurs.
-func (c *policies) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *policies) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("policies").
@@ -77,52 +79,53 @@ func (c *policies) Delete(name string, options *pkg_api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *policies) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *policies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("policies").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the policy, and returns the corresponding policy object, and an error if there is any.
-func (c *policies) Get(name string) (result *api.Policy, err error) {
+func (c *policies) Get(name string, options v1.GetOptions) (result *api.Policy, err error) {
 	result = &api.Policy{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policies").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Policies that match those selectors.
-func (c *policies) List(opts pkg_api.ListOptions) (result *api.PolicyList, err error) {
+func (c *policies) List(opts v1.ListOptions) (result *api.PolicyList, err error) {
 	result = &api.PolicyList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policies").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested policies.
-func (c *policies) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *policies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("policies").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched policy.
-func (c *policies) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
+func (c *policies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
 	result = &api.Policy{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

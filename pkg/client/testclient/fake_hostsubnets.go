@@ -1,10 +1,10 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -15,10 +15,10 @@ type FakeHostSubnet struct {
 	Fake *Fake
 }
 
-var hostSubnetsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
+var hostSubnetsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
 
-func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
+func (c *FakeHostSubnet) Get(name string, options metav1.GetOptions) (*sdnapi.HostSubnet, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func (c *FakeHostSubnet) Get(name string) (*sdnapi.HostSubnet, error) {
 	return obj.(*sdnapi.HostSubnet), err
 }
 
-func (c *FakeHostSubnet) List(opts kapi.ListOptions) (*sdnapi.HostSubnetList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(hostSubnetsResource, opts), &sdnapi.HostSubnetList{})
+func (c *FakeHostSubnet) List(opts metav1.ListOptions) (*sdnapi.HostSubnetList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(hostSubnetsResource, opts), &sdnapi.HostSubnetList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *FakeHostSubnet) List(opts kapi.ListOptions) (*sdnapi.HostSubnetList, er
 }
 
 func (c *FakeHostSubnet) Create(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(hostSubnetsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(hostSubnetsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *FakeHostSubnet) Create(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, e
 }
 
 func (c *FakeHostSubnet) Update(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(hostSubnetsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(hostSubnetsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (c *FakeHostSubnet) Update(inObj *sdnapi.HostSubnet) (*sdnapi.HostSubnet, e
 }
 
 func (c *FakeHostSubnet) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
 	return err
 }
 
-func (c *FakeHostSubnet) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(hostSubnetsResource, opts))
+func (c *FakeHostSubnet) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(hostSubnetsResource, opts))
 }

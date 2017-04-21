@@ -4,33 +4,33 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // GetBuildFromPod returns a build object encoded in a pod's BUILD environment variable along with
 // its encoding version
-func GetBuildFromPod(pod *kapi.Pod) (*buildapi.Build, unversioned.GroupVersion, error) {
+func GetBuildFromPod(pod *kapi.Pod) (*buildapi.Build, schema.GroupVersion, error) {
 	envVar, err := buildEnvVar(pod)
 	if err != nil {
-		return nil, unversioned.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", err)
+		return nil, schema.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", err)
 	}
 	obj, groupVersionKind, err := kapi.Codecs.UniversalDecoder().Decode([]byte(envVar.Value), nil, nil)
 	if err != nil {
-		return nil, unversioned.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", err)
+		return nil, schema.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", err)
 	}
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return nil, unversioned.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", errors.New("decoded object is not of type Build"))
+		return nil, schema.GroupVersion{}, fmt.Errorf("unable to get build from pod: %v", errors.New("decoded object is not of type Build"))
 	}
 	return build, groupVersionKind.GroupVersion(), nil
 }
 
 // SetBuildInPod encodes a build object and sets it in a pod's BUILD environment variable
-func SetBuildInPod(pod *kapi.Pod, build *buildapi.Build, groupVersion unversioned.GroupVersion) error {
+func SetBuildInPod(pod *kapi.Pod, build *buildapi.Build, groupVersion schema.GroupVersion) error {
 	envVar, err := buildEnvVar(pod)
 	if err != nil {
 		return fmt.Errorf("unable to set build in pod: %v", err)

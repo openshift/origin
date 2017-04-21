@@ -10,8 +10,9 @@ import (
 	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/fsouza/go-dockerclient"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -288,7 +289,7 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	}
 
 	stream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}
@@ -399,7 +400,7 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 		return nil, nil, fmt.Errorf("can't suggest a name for the provided image %q", r.Reference.Exact())
 	}
 
-	meta := kapi.ObjectMeta{
+	meta := metav1.ObjectMeta{
 		Name: fmt.Sprintf("%s-install", name),
 	}
 

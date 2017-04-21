@@ -8,10 +8,9 @@ import (
 	"testing"
 	"text/tabwriter"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/kubectl"
 
 	api "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -31,6 +30,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	_ "k8s.io/kubernetes/pkg/apis/batch/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 )
 
 type describeClient struct {
@@ -126,7 +126,7 @@ func TestDescribers(t *testing.T) {
 	c := &describeClient{T: t, Namespace: "foo", Fake: fake}
 
 	testCases := []struct {
-		d    kubectl.Describer
+		d    kprinters.Describer
 		name string
 	}{
 		{&BuildDescriber{c, fakeKube}, "bar"},
@@ -143,7 +143,7 @@ func TestDescribers(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		out, err := test.d.Describe("foo", test.name, kubectl.DescriberSettings{})
+		out, err := test.d.Describe("foo", test.name, kprinters.DescriberSettings{})
 		if err != nil {
 			t.Errorf("unexpected error for %v: %v", test.d, err)
 		}
@@ -160,15 +160,15 @@ func TestDescribeBuildDuration(t *testing.T) {
 	}
 
 	// now a minute ago
-	now := unversioned.Now()
-	minuteAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-60, 0)
-	twoMinutesAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-120, 0)
-	threeMinutesAgo := unversioned.Unix(now.Rfc3339Copy().Time.Unix()-180, 0)
+	now := metav1.Now()
+	minuteAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-60, 0)
+	twoMinutesAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-120, 0)
+	threeMinutesAgo := metav1.Unix(now.Rfc3339Copy().Time.Unix()-180, 0)
 
 	tests := []testBuild{
 		{ // 0 - build new
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhaseNew,
 				},
@@ -177,7 +177,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 1 - build pending
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: minuteAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: minuteAgo},
 				Status: buildapi.BuildStatus{
 					Phase: buildapi.BuildPhasePending,
 				},
@@ -186,7 +186,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 2 - build running
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: twoMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: twoMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp: &minuteAgo,
 					Phase:          buildapi.BuildPhaseRunning,
@@ -196,7 +196,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 3 - build completed
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -207,7 +207,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 4 - build failed
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -218,7 +218,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 5 - build error
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -229,7 +229,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 6 - build cancelled before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseCancelled,
@@ -239,7 +239,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 7 - build cancelled while running, start time is set already
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					StartTimestamp:      &twoMinutesAgo,
 					CompletionTimestamp: &minuteAgo,
@@ -250,7 +250,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 8 - build failed before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseFailed,
@@ -260,7 +260,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 		},
 		{ // 9 - build error before running, start time wasn't set yet
 			&buildapi.Build{
-				ObjectMeta: kapi.ObjectMeta{CreationTimestamp: threeMinutesAgo},
+				ObjectMeta: metav1.ObjectMeta{CreationTimestamp: threeMinutesAgo},
 				Status: buildapi.BuildStatus{
 					CompletionTimestamp: &minuteAgo,
 					Phase:               buildapi.BuildPhaseError,
@@ -279,7 +279,7 @@ func TestDescribeBuildDuration(t *testing.T) {
 
 func mkPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "PodName"},
+		ObjectMeta: metav1.ObjectMeta{Name: "PodName"},
 		Status: kapi.PodStatus{
 			Phase: status,
 			ContainerStatuses: []kapi.ContainerStatus{

@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -40,8 +40,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 			)
 			bcName := "sample-parallel-build"
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
-				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
 
@@ -126,8 +126,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
-				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -191,8 +191,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
-				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -234,8 +234,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
-				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -307,8 +307,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 
 			bcName := "sample-serial-latest-only-build"
 			buildVerified := map[string]bool{}
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(kapi.ListOptions{
-				LabelSelector: buildutil.BuildConfigSelector(bcName),
+			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
 			o.Expect(err).NotTo(o.HaveOccurred())

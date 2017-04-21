@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/errors"
 )
 
 // copyStrategies is an ordered list of copyStrategy objects that behaves as a single

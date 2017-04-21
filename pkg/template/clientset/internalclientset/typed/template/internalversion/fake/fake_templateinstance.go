@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/template/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeTemplateInstances implements TemplateInstanceInterface
@@ -15,11 +16,11 @@ type FakeTemplateInstances struct {
 	ns   string
 }
 
-var templateinstancesResource = unversioned.GroupVersionResource{Group: "template.openshift.io", Version: "", Resource: "templateinstances"}
+var templateinstancesResource = schema.GroupVersionResource{Group: "template.openshift.io", Version: "", Resource: "templateinstances"}
 
 func (c *FakeTemplateInstances) Create(templateInstance *api.TemplateInstance) (result *api.TemplateInstance, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(templateinstancesResource, c.ns, templateInstance), &api.TemplateInstance{})
+		Invokes(testing.NewCreateAction(templateinstancesResource, c.ns, templateInstance), &api.TemplateInstance{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakeTemplateInstances) Create(templateInstance *api.TemplateInstance) (
 
 func (c *FakeTemplateInstances) Update(templateInstance *api.TemplateInstance) (result *api.TemplateInstance, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(templateinstancesResource, c.ns, templateInstance), &api.TemplateInstance{})
+		Invokes(testing.NewUpdateAction(templateinstancesResource, c.ns, templateInstance), &api.TemplateInstance{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,33 @@ func (c *FakeTemplateInstances) Update(templateInstance *api.TemplateInstance) (
 	return obj.(*api.TemplateInstance), err
 }
 
-func (c *FakeTemplateInstances) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakeTemplateInstances) UpdateStatus(templateInstance *api.TemplateInstance) (*api.TemplateInstance, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(templateinstancesResource, "status", c.ns, templateInstance), &api.TemplateInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.TemplateInstance), err
+}
+
+func (c *FakeTemplateInstances) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(templateinstancesResource, c.ns, name), &api.TemplateInstance{})
+		Invokes(testing.NewDeleteAction(templateinstancesResource, c.ns, name), &api.TemplateInstance{})
 
 	return err
 }
 
-func (c *FakeTemplateInstances) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(templateinstancesResource, c.ns, listOptions)
+func (c *FakeTemplateInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(templateinstancesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.TemplateInstanceList{})
 	return err
 }
 
-func (c *FakeTemplateInstances) Get(name string) (result *api.TemplateInstance, err error) {
+func (c *FakeTemplateInstances) Get(name string, options v1.GetOptions) (result *api.TemplateInstance, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(templateinstancesResource, c.ns, name), &api.TemplateInstance{})
+		Invokes(testing.NewGetAction(templateinstancesResource, c.ns, name), &api.TemplateInstance{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +72,15 @@ func (c *FakeTemplateInstances) Get(name string) (result *api.TemplateInstance, 
 	return obj.(*api.TemplateInstance), err
 }
 
-func (c *FakeTemplateInstances) List(opts pkg_api.ListOptions) (result *api.TemplateInstanceList, err error) {
+func (c *FakeTemplateInstances) List(opts v1.ListOptions) (result *api.TemplateInstanceList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(templateinstancesResource, c.ns, opts), &api.TemplateInstanceList{})
+		Invokes(testing.NewListAction(templateinstancesResource, c.ns, opts), &api.TemplateInstanceList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +94,16 @@ func (c *FakeTemplateInstances) List(opts pkg_api.ListOptions) (result *api.Temp
 }
 
 // Watch returns a watch.Interface that watches the requested templateInstances.
-func (c *FakeTemplateInstances) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakeTemplateInstances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(templateinstancesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(templateinstancesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched templateInstance.
-func (c *FakeTemplateInstances) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.TemplateInstance, err error) {
+func (c *FakeTemplateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.TemplateInstance, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(templateinstancesResource, c.ns, name, data, subresources...), &api.TemplateInstance{})
+		Invokes(testing.NewPatchSubresourceAction(templateinstancesResource, c.ns, name, data, subresources...), &api.TemplateInstance{})
 
 	if obj == nil {
 		return nil, err

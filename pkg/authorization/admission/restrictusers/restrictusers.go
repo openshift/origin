@@ -8,9 +8,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oclient "github.com/openshift/origin/pkg/client"
@@ -20,9 +22,8 @@ import (
 
 func init() {
 	admission.RegisterPlugin("openshift.io/RestrictSubjectBindings",
-		func(kclient kclientset.Interface, config io.Reader) (admission.Interface,
-			error) {
-			return NewRestrictUsersAdmission(kclient)
+		func(config io.Reader) (admission.Interface, error) {
+			return NewRestrictUsersAdmission()
 		})
 }
 
@@ -39,14 +40,18 @@ type restrictUsersAdmission struct {
 
 var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsGroupCache(&restrictUsersAdmission{})
+var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
 // restrictions on adding role bindings in a project.
-func NewRestrictUsersAdmission(kclient kclientset.Interface) (admission.Interface, error) {
+func NewRestrictUsersAdmission() (admission.Interface, error) {
 	return &restrictUsersAdmission{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
-		kclient: kclient,
 	}, nil
+}
+
+func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.kclient = c
 }
 
 func (q *restrictUsersAdmission) SetOpenshiftClient(c oclient.Interface) {
@@ -170,7 +175,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 
 	// TODO: Cache rolebinding restrictions.
 	roleBindingRestrictionList, err := q.oclient.RoleBindingRestrictions(ns).
-		List(kapi.ListOptions{})
+		List(metav1.ListOptions{})
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}

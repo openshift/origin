@@ -3,13 +3,14 @@ package imagestreamtag
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -28,7 +29,7 @@ func (s *strategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s *strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 
 	newIST.Conditions = nil
@@ -39,7 +40,7 @@ func (s *strategy) GenerateName(base string) string {
 	return base
 }
 
-func (s *strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s *strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	istag := obj.(*api.ImageStreamTag)
 
 	return validation.ValidateImageStreamTag(istag)
@@ -57,7 +58,7 @@ func (*strategy) AllowUnconditionalUpdate() bool {
 func (strategy) Canonicalize(obj runtime.Object) {
 }
 
-func (s *strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s *strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)
 
@@ -71,7 +72,7 @@ func (s *strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
 	newIST.Image = oldIST.Image
 }
 
-func (s *strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (s *strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	newIST := obj.(*api.ImageStreamTag)
 	oldIST := old.(*api.ImageStreamTag)
 

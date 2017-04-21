@@ -3,13 +3,14 @@ package policybinding
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/api/validation"
@@ -41,7 +42,7 @@ func (strategy) GenerateName(base string) string {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	binding := obj.(*authorizationapi.PolicyBinding)
 
 	s.scrubBindingRefs(binding)
@@ -61,7 +62,7 @@ func (s strategy) scrubBindingRefs(binding *authorizationapi.PolicyBinding) {
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (s strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	binding := obj.(*authorizationapi.PolicyBinding)
 
 	s.scrubBindingRefs(binding)
@@ -72,12 +73,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new policyBinding.
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	return validation.ValidateLocalPolicyBinding(obj.(*authorizationapi.PolicyBinding))
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (strategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateLocalPolicyBindingUpdate(obj.(*authorizationapi.PolicyBinding), old.(*authorizationapi.PolicyBinding))
 }
 
@@ -103,7 +104,7 @@ func NewEmptyPolicyBinding(namespace, policyNamespace, policyBindingName string)
 	binding := &authorizationapi.PolicyBinding{}
 	binding.Name = policyBindingName
 	binding.Namespace = namespace
-	binding.CreationTimestamp = unversioned.Now()
+	binding.CreationTimestamp = metav1.Now()
 	binding.LastModified = binding.CreationTimestamp
 	binding.PolicyRef = kapi.ObjectReference{Name: authorizationapi.PolicyName, Namespace: policyNamespace}
 	binding.RoleBindings = make(map[string]*authorizationapi.RoleBinding)

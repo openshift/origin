@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/origin/pkg/controller"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
 )
@@ -32,15 +35,15 @@ func ByUserIndexKeys(obj interface{}) ([]string, error) {
 }
 
 func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
-	allNamespaceContext := kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll)
+	allNamespaceContext := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{byUserIndexName: ByUserIndexKeys})
 	reflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+		&controller.InternalListWatch{
+			ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
 				return groupRegistry.ListGroups(allNamespaceContext, &options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
 				return groupRegistry.WatchGroups(allNamespaceContext, &options)
 			},
 		},

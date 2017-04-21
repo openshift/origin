@@ -1,8 +1,8 @@
 package testclient
 
 import (
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	restclient "k8s.io/client-go/rest"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 )
@@ -16,7 +16,7 @@ type FakeDeploymentLogs struct {
 
 // Get builds and returns a buildLog request
 func (c *FakeDeploymentLogs) Get(name string, opt api.DeploymentLogOptions) *restclient.Request {
-	action := core.GenericActionImpl{}
+	action := clientgotesting.GenericActionImpl{}
 	action.Verb = "get"
 	action.Namespace = c.Namespace
 	action.Resource = deploymentConfigsResource

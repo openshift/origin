@@ -13,9 +13,12 @@ import (
 	"github.com/coreos/pkg/capnslog"
 
 	etcdclient "github.com/coreos/etcd/client"
+	etcdclientv3 "github.com/coreos/etcd/clientv3"
 
+	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
+	"k8s.io/apiserver/pkg/storage/storagebackend"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
-	etcdtest "k8s.io/kubernetes/pkg/storage/etcd/testing"
 
 	serveretcd "github.com/openshift/origin/pkg/cmd/server/etcd"
 )
@@ -44,6 +47,12 @@ func RequireEtcd(t *testing.T) *etcdtest.EtcdTestServer {
 	return s
 }
 
+func RequireEtcd3(t *testing.T) (*etcdtest.EtcdTestServer, *storagebackend.Config) {
+	s, c := etcdtest.NewUnsecuredEtcd3TestClientServer(t, kapi.Scheme)
+	url = s.V3Client.Endpoints()[0]
+	return s, c
+}
+
 func NewEtcdClient() etcdclient.Client {
 	client, _ := MakeNewEtcdClient()
 	return client
@@ -60,6 +69,24 @@ func MakeNewEtcdClient() (etcdclient.Client, error) {
 		return nil, err
 	}
 	return client, serveretcd.TestEtcdClient(client)
+}
+
+func NewEtcd3Client() *etcdclientv3.Client {
+	client, _ := MakeNewEtcd3Client()
+	return client
+}
+
+func MakeNewEtcd3Client() (*etcdclientv3.Client, error) {
+	etcdServers := []string{GetEtcdURL()}
+
+	cfg := etcdclientv3.Config{
+		Endpoints: etcdServers,
+	}
+	client, err := etcdclientv3.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, serveretcd.TestEtcdClientV3(client)
 }
 
 func GetEtcdURL() string {

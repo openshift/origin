@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/project/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/project/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // ProjectsGetter has a method to return a ProjectResourceInterface.
@@ -17,18 +19,19 @@ type ProjectsGetter interface {
 type ProjectResourceInterface interface {
 	Create(*api.Project) (*api.Project, error)
 	Update(*api.Project) (*api.Project, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.Project, error)
-	List(opts pkg_api.ListOptions) (*api.ProjectList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Project, err error)
+	UpdateStatus(*api.Project) (*api.Project, error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.Project, error)
+	List(opts v1.ListOptions) (*api.ProjectList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Project, err error)
 	ProjectResourceExpansion
 }
 
 // projects implements ProjectResourceInterface
 type projects struct {
-	client restclient.Interface
+	client rest.Interface
 }
 
 // newProjects returns a Projects
@@ -61,8 +64,23 @@ func (c *projects) Update(project *api.Project) (result *api.Project, err error)
 	return
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+
+func (c *projects) UpdateStatus(project *api.Project) (result *api.Project, err error) {
+	result = &api.Project{}
+	err = c.client.Put().
+		Resource("projects").
+		Name(project.Name).
+		SubResource("status").
+		Body(project).
+		Do().
+		Into(result)
+	return
+}
+
 // Delete takes name of the project and deletes it. Returns an error if one occurs.
-func (c *projects) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *projects) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("projects").
 		Name(name).
@@ -72,48 +90,49 @@ func (c *projects) Delete(name string, options *pkg_api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *projects) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *projects) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Resource("projects").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the project, and returns the corresponding project object, and an error if there is any.
-func (c *projects) Get(name string) (result *api.Project, err error) {
+func (c *projects) Get(name string, options v1.GetOptions) (result *api.Project, err error) {
 	result = &api.Project{}
 	err = c.client.Get().
 		Resource("projects").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Projects that match those selectors.
-func (c *projects) List(opts pkg_api.ListOptions) (result *api.ProjectList, err error) {
+func (c *projects) List(opts v1.ListOptions) (result *api.ProjectList, err error) {
 	result = &api.ProjectList{}
 	err = c.client.Get().
 		Resource("projects").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested projects.
-func (c *projects) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *projects) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Resource("projects").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched project.
-func (c *projects) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Project, err error) {
+func (c *projects) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Project, err error) {
 	result = &api.Project{}
 	err = c.client.Patch(pt).
 		Resource("projects").

@@ -7,13 +7,14 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/runtime"
-	kyaml "k8s.io/kubernetes/pkg/util/yaml"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -25,13 +26,13 @@ import (
 )
 
 type TestPluginConfig struct {
-	unversioned.TypeMeta `json:",inline"`
-	Data                 string `json:"data"`
+	metav1.TypeMeta `json:",inline"`
+	Data            string `json:"data"`
 }
 
-func (obj *TestPluginConfig) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestPluginConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
-func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (*kclientset.Clientset, *client.Client) {
+func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (kclientset.Interface, *client.Client) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -56,6 +57,8 @@ func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig))
 // testAdmissionPlugin sets a label with its name on the object getting admitted
 // on create
 type testAdmissionPlugin struct {
+	metav1.TypeMeta
+
 	name       string
 	labelValue string
 }
@@ -86,7 +89,7 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 func registerAdmissionPlugins(t *testing.T, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(client kclientset.Interface, config io.Reader) (admission.Interface, error) {
+		admission.RegisterPlugin(pluginName, func(config io.Reader) (admission.Interface, error) {
 			plugin := &testAdmissionPlugin{
 				name: pluginName,
 			}
@@ -122,7 +125,7 @@ func admissionTestPod() *kapi.Pod {
 }
 
 func admissionTestBuild() *buildapi.Build {
-	build := &buildapi.Build{ObjectMeta: kapi.ObjectMeta{
+	build := &buildapi.Build{ObjectMeta: metav1.ObjectMeta{
 		Labels: map[string]string{
 			buildapi.BuildConfigLabel:    "mock-build-config",
 			buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
@@ -192,7 +195,7 @@ func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
 
-	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Create(admissionTestPod())
 	if err != nil {
 		t.Fatalf("Unexpected error creating pod: %v", err)
 	}
@@ -214,7 +217,7 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 			},
 		}
 	})
-	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Create(admissionTestPod())
 	if err = checkAdmissionObjectLabelValues(createdPod.Labels, map[string]string{"plugin1": "plugin1configvalue", "plugin2": "default"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -234,7 +237,7 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 			},
 		}
 	})
-	createdPod, err := kubeClient.Core().Pods(kapi.NamespaceDefault).Create(admissionTestPod())
+	createdPod, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Create(admissionTestPod())
 	if err = checkAdmissionObjectLabelValues(createdPod.Labels, map[string]string{"plugin1": "embeddedvalue1", "plugin2": "default"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -247,7 +250,7 @@ func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
 
-	createdBuild, err := openshiftClient.Builds(kapi.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err != nil {
 		t.Errorf("Unexpected error creating build: %v", err)
 	}
@@ -269,7 +272,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 			},
 		}
 	})
-	createdBuild, err := openshiftClient.Builds(kapi.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "plugin2configvalue"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -289,7 +292,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 			},
 		}
 	})
-	createdBuild, err := openshiftClient.Builds(kapi.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "embeddedvalue2"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}

@@ -8,13 +8,16 @@ import (
 	"testing"
 	"time"
 
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	genericrest "k8s.io/kubernetes/pkg/registry/generic/rest"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/registry/test"
@@ -22,7 +25,7 @@ import (
 
 type testPodGetter struct{}
 
-func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (p *testPodGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "pending-build":
@@ -41,7 +44,7 @@ func (p *testPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, erro
 
 type fakeConnectionInfoGetter struct{}
 
-func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
+func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*kubeletclient.ConnectionInfo, error) {
 	rt, err := kubeletclient.MakeTransport(&kubeletclient.KubeletClientConfig{})
 	if err != nil {
 		return nil, err
@@ -60,16 +63,16 @@ func (*fakeConnectionInfoGetter) GetConnectionInfo(ctx kapi.Context, nodeName ty
 // is evaluating the outcome based only on build state.
 func TestRegistryResourceLocation(t *testing.T) {
 	expectedLocations := map[api.BuildPhase]string{
-		api.BuildPhaseComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
-		api.BuildPhaseFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
-		api.BuildPhaseRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", kapi.NamespaceDefault),
+		api.BuildPhaseComplete:  fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
+		api.BuildPhaseFailed:    fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
+		api.BuildPhaseRunning:   fmt.Sprintf("https://foo-host:12345/containerLogs/%s/running-build/foo-container", metav1.NamespaceDefault),
 		api.BuildPhaseNew:       "",
 		api.BuildPhasePending:   "",
 		api.BuildPhaseError:     "",
 		api.BuildPhaseCancelled: "",
 	}
 
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 
 	for BuildPhase, expectedLocation := range expectedLocations {
 		location, err := resourceLocationHelper(BuildPhase, "running", ctx, 1)
@@ -91,7 +94,7 @@ func TestRegistryResourceLocation(t *testing.T) {
 }
 
 func TestWaitForBuild(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	tests := []struct {
 		name        string
 		status      []api.BuildPhase
@@ -169,7 +172,7 @@ func TestWaitForBuild(t *testing.T) {
 }
 
 func TestWaitForBuildTimeout(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	build := mockBuild(api.BuildPhasePending, "running", 1)
 	ch := make(chan watch.Event)
 	watcher := &buildWatcher{
@@ -197,11 +200,11 @@ type buildWatcher struct {
 	Err     error
 }
 
-func (r *buildWatcher) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *buildWatcher) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	return r.Build, nil
 }
 
-func (r *buildWatcher) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *buildWatcher) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return r.Watcher, r.Err
 }
 
@@ -217,7 +220,7 @@ func (w *fakeWatch) ResultChan() <-chan watch.Event {
 	return w.Channel
 }
 
-func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi.Context, version int) (string, error) {
+func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx apirequest.Context, version int) (string, error) {
 	expectedBuild := mockBuild(BuildPhase, podPhase, version)
 	internal := &test.BuildStorage{Build: expectedBuild}
 
@@ -245,9 +248,9 @@ func resourceLocationHelper(BuildPhase api.BuildPhase, podPhase string, ctx kapi
 
 func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: kapi.PodSpec{
 			Containers: []kapi.Container{
@@ -265,7 +268,7 @@ func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 
 func mockBuild(status api.BuildPhase, podName string, version int) *api.Build {
 	return &api.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 			Annotations: map[string]string{
 				api.BuildNumberAnnotation: strconv.Itoa(version),
@@ -282,7 +285,7 @@ func mockBuild(status api.BuildPhase, podName string, version int) *api.Build {
 
 type anotherTestPodGetter struct{}
 
-func (p *anotherTestPodGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (p *anotherTestPodGetter) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	pod := &kapi.Pod{}
 	switch name {
 	case "bc-1-build":
@@ -296,7 +299,7 @@ func (p *anotherTestPodGetter) Get(ctx kapi.Context, name string) (runtime.Objec
 }
 
 func TestPreviousBuildLogs(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	first := mockBuild(api.BuildPhaseComplete, "bc-1", 1)
 	second := mockBuild(api.BuildPhaseComplete, "bc-2", 2)
 	third := mockBuild(api.BuildPhaseComplete, "bc-3", 3)

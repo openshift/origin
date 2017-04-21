@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	schema "github.com/lestrrat/go-jsschema"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestServiceFromTemplate(t *testing.T) {
 	template := &templateapi.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "name",
 			UID:  "ee33151d-a34d-442d-a0ca-6353b73a58fd",
 			Annotations: map[string]string{

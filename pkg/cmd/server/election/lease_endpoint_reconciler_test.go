@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 )
@@ -50,8 +51,8 @@ func (f *fakeLeases) GetUpdatedKeys() []string {
 
 func TestLeaseEndpointReconciler(t *testing.T) {
 	ns := api.NamespaceDefault
-	om := func(name string) api.ObjectMeta {
-		return api.ObjectMeta{Namespace: ns, Name: name}
+	om := func(name string) metav1.ObjectMeta {
+		return metav1.ObjectMeta{Namespace: ns, Name: name}
 	}
 	reconcile_tests := []struct {
 		testName      string

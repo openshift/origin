@@ -5,13 +5,15 @@ import (
 	"net"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/endpoints"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
-	kruntime "k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // Leases is an interface which assists in managing the set of active masters
@@ -34,7 +36,7 @@ var _ Leases = &storageLeases{}
 // ListLeases retrieves a list of the current master IPs from storage
 func (s *storageLeases) ListLeases() ([]string, error) {
 	ipInfoList := &api.EndpointsList{}
-	if err := s.storage.List(api.NewDefaultContext(), s.baseKey, "0", storage.Everything, ipInfoList); err != nil {
+	if err := s.storage.List(apirequest.NewDefaultContext(), s.baseKey, "0", storage.Everything, ipInfoList); err != nil {
 		return nil, err
 	}
 
@@ -50,7 +52,7 @@ func (s *storageLeases) ListLeases() ([]string, error) {
 
 // UpdateLease resets the TTL on a master IP in storage
 func (s *storageLeases) UpdateLease(ip string) error {
-	return s.storage.GuaranteedUpdate(api.NewDefaultContext(), s.baseKey+"/"+ip, &api.Endpoints{}, true, nil, func(input kruntime.Object, respMeta storage.ResponseMeta) (kruntime.Object, *uint64, error) {
+	return s.storage.GuaranteedUpdate(apirequest.NewDefaultContext(), s.baseKey+"/"+ip, &api.Endpoints{}, true, nil, func(input kruntime.Object, respMeta storage.ResponseMeta) (kruntime.Object, *uint64, error) {
 		// just make sure we've got the right IP set, and then refresh the TTL
 		existing := input.(*api.Endpoints)
 		existing.Subsets = []api.EndpointSubset{
@@ -104,7 +106,7 @@ func NewLeaseEndpointReconciler(endpointRegistry endpoint.Registry, masterLeases
 // different from the directory listing, and update the endpoints object
 // accordingly.
 func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.IP, endpointPorts []api.EndpointPort, reconcilePorts bool) error {
-	ctx := api.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 
 	// Refresh the TTL on our key, independently of whether any error or
 	// update conflict happens below. This makes sure that at least some of
@@ -114,14 +116,14 @@ func (r *leaseEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.
 	}
 
 	// Retrieve the current list of endpoints...
-	e, err := r.endpointRegistry.GetEndpoints(ctx, serviceName)
+	e, err := r.endpointRegistry.GetEndpoints(ctx, serviceName, &metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
 
 		e = &api.Endpoints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName,
 				Namespace: api.NamespaceDefault,
 			},

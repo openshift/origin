@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -102,8 +103,8 @@ type buildFilter func(buildapi.Build) bool
 // Optionally you can specify a filter function to select only builds that
 // matches your criteria.
 func BuildConfigBuilds(c buildclient.BuildLister, namespace, name string, filterFunc buildFilter) (*buildapi.BuildList, error) {
-	result, err := c.List(namespace, kapi.ListOptions{
-		LabelSelector: BuildConfigSelector(name),
+	result, err := c.List(namespace, metav1.ListOptions{
+		LabelSelector: BuildConfigSelector(name).String(),
 	})
 	if err != nil {
 		return nil, err

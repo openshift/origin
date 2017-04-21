@@ -6,16 +6,17 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
@@ -30,11 +31,11 @@ type ServiceServingCertUpdateController struct {
 	queue workqueue.RateLimitingInterface
 
 	serviceCache      cache.Store
-	serviceController *cache.Controller
+	serviceController cache.Controller
 	serviceHasSynced  informerSynced
 
 	secretCache      cache.Store
-	secretController *cache.Controller
+	secretController cache.Controller
 	secretHasSynced  informerSynced
 
 	ca         *crypto.CA
@@ -63,11 +64,11 @@ func NewServiceServingCertUpdateController(serviceClient kcoreclient.ServicesGet
 
 	sc.serviceCache, sc.serviceController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return serviceClient.Services(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return serviceClient.Services(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return serviceClient.Services(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return serviceClient.Services(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Service{},
@@ -78,11 +79,11 @@ func NewServiceServingCertUpdateController(serviceClient kcoreclient.ServicesGet
 
 	sc.secretCache, sc.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				return sc.secretClient.Secrets(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				return sc.secretClient.Secrets(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				return sc.secretClient.Secrets(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				return sc.secretClient.Secrets(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Secret{},

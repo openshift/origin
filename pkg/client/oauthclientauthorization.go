@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
@@ -13,11 +14,11 @@ type OAuthClientAuthorizationsInterface interface {
 
 type OAuthClientAuthorizationInterface interface {
 	Create(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
-	List(opts kapi.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error)
-	Get(name string) (*oauthapi.OAuthClientAuthorization, error)
+	List(opts metav1.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error)
+	Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClientAuthorization, error)
 	Update(obj *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type oauthClientAuthorizations struct {
@@ -42,15 +43,15 @@ func (c *oauthClientAuthorizations) Update(obj *oauthapi.OAuthClientAuthorizatio
 	return
 }
 
-func (c *oauthClientAuthorizations) List(opts kapi.ListOptions) (result *oauthapi.OAuthClientAuthorizationList, err error) {
+func (c *oauthClientAuthorizations) List(opts metav1.ListOptions) (result *oauthapi.OAuthClientAuthorizationList, err error) {
 	result = &oauthapi.OAuthClientAuthorizationList{}
 	err = c.r.Get().Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
-func (c *oauthClientAuthorizations) Get(name string) (result *oauthapi.OAuthClientAuthorization, err error) {
+func (c *oauthClientAuthorizations) Get(name string, options metav1.GetOptions) (result *oauthapi.OAuthClientAuthorization, err error) {
 	result = &oauthapi.OAuthClientAuthorization{}
-	err = c.r.Get().Resource("oauthclientauthorizations").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("oauthclientauthorizations").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -59,6 +60,6 @@ func (c *oauthClientAuthorizations) Delete(name string) (err error) {
 	return
 }
 
-func (c *oauthClientAuthorizations) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *oauthClientAuthorizations) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("oauthclientauthorizations").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }
