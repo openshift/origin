@@ -6,11 +6,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	flag "github.com/spf13/pflag"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/util/wait"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -136,8 +138,9 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		d.res.Error("DNet2006", err, err.Error())
 		return
 	}
-	// Wait for network diagnostic pod completion
-	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodSucceeded, kapi.PodFailed}); err != nil {
+	// Wait for network diagnostic pod completion (timeout: ~3 mins)
+	backoff := wait.Backoff{Steps: 38, Duration: 500 * time.Millisecond, Factor: 1.1}
+	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, backoff, []kapi.PodPhase{kapi.PodSucceeded, kapi.PodFailed}); err != nil {
 		d.res.Error("DNet2007", err, err.Error())
 		return
 	}
@@ -156,8 +159,9 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 		return
 	}
 
-	// Wait for network diagnostic pod to start
-	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, []kapi.PodPhase{kapi.PodRunning, kapi.PodFailed, kapi.PodSucceeded}); err != nil {
+	// Wait for network diagnostic pod to start (timeout: ~5 mins)
+	backoff = wait.Backoff{Steps: 36, Duration: time.Second, Factor: 1.1}
+	if err := d.waitForNetworkPod(d.nsName1, util.NetworkDiagPodNamePrefix, backoff, []kapi.PodPhase{kapi.PodRunning, kapi.PodFailed, kapi.PodSucceeded}); err != nil {
 		d.res.Error("DNet2010", err, err.Error())
 		// Do not bail out here, collect what ever info is available from all valid nodes
 	}
