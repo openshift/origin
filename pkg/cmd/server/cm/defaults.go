@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// TODO: adapt for origin
+	// default to the same controllers as upstream
 	ControllersDisabledByDefault = kcmapp.ControllersDisabledByDefault
 )
 
