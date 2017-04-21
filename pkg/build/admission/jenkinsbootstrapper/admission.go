@@ -28,6 +28,9 @@ import (
 	"github.com/openshift/origin/pkg/config/cmd"
 )
 
+// This name reflects the master-config.yaml subsection where the overridden value is
+var JenkinsPipelineConfigMap = "jenkins-pipeline-config"
+
 func init() {
 	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
 		return NewJenkinsBootstrapper(c.Core()), nil
@@ -79,6 +82,32 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 	}
 
 	// TODO pull this from a cache.
+
+	kcl, err := kclient.New(&a.privilegedRESTClientConfig)
+
+	if err != nil {
+		return err
+	}
+
+	configmaps, err := kcl.ConfigMaps(namespace).List(kapi.ListOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	for _, configmap := range configmaps.Items {
+		// We look for the ConfigMap with the correct annotation
+		for k, _ := range configmap.Annotations {
+			// TODO: Convene  on a label for this
+			if k == "project.openshift.io/configuration" {
+				if configmap.Data["autoProvisionEnabled"] == "false" {
+					return nil
+				}
+				break
+			}
+		}
+	}
+
 	if _, err := a.serviceClient.Services(namespace).Get(svcName); !kapierrors.IsNotFound(err) {
 		// if it isn't a "not found" error, return the error.  Either its nil and there's nothing to do or something went really wrong
 		return err

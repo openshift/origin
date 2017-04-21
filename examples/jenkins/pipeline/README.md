@@ -43,6 +43,13 @@ jenkins template represented by jenkinstemplate.json by running these commands a
 
     At this point if you run `oc get pods` you should see a jenkins pod, or at least a jenkins-deploy pod. (along with other items in your project)  This pod was created as a result of the new pipeline buildconfig being defined by the sample-pipeline template.
 
+    Note: If you use a centralized Jenkins server for your cluster, you can
+    stop the automatic Jenkins provisioning by creating a ConfigMap called
+    `jenkins-pipeline-config` with a key-value literal of
+    `autoProvisionEnabled=true`.
+
+        $ oc create configmap jenkins-pipeline-config --from-literal=autoProvisionEnabled=true
+
 5. View/Manage Jenkins (optional)
 
     You should not need to access the jenkins console for anything, but if you want to configure settings or watch the execution,
