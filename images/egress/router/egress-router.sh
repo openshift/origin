@@ -89,6 +89,10 @@ case "${EGRESS_ROUTER_MODE:=legacy}" in
 	wait_until_killed
 	;;
 
+    unit-test)
+	gen_iptables_rules
+	;;
+
     *)
         echo "Unrecognized EGRESS_ROUTER_MODE '${EGRESS_ROUTER_MODE}'"
         exit 1
