@@ -65,7 +65,6 @@ var expectedIndex = []string{
 	"/apis/quota.openshift.io",
 	"/apis/quota.openshift.io/v1",
 	"/apis/rbac.authorization.k8s.io",
-	"/apis/rbac.authorization.k8s.io/v1alpha1",
 	"/apis/rbac.authorization.k8s.io/v1beta1",
 	"/apis/route.openshift.io",
 	"/apis/route.openshift.io/v1",
