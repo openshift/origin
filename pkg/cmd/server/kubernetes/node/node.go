@@ -16,7 +16,6 @@ import (
 
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
-	ouserspace "github.com/openshift/origin/pkg/proxy/userspace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -438,9 +437,9 @@ func (c *NodeConfig) RunProxy() {
 	)
 
 	if c.EnableUnidling {
-		unidlingLoadBalancer := ouserspace.NewLoadBalancerRR()
+		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
 		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
+		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.IPTablesMinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)

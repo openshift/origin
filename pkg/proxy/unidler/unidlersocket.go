@@ -11,8 +11,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/proxy"
-
-	"github.com/openshift/origin/pkg/proxy/userspace"
+	"k8s.io/kubernetes/pkg/proxy/userspace"
 )
 
 const (
