@@ -111,11 +111,6 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defaultSAv1 := &kapiv1.ServiceAccount{}
-	err = kapiv1.Convert_api_ServiceAccount_To_v1_ServiceAccount(defaultSA, defaultSAv1, nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
@@ -131,7 +126,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			if err != nil {
 				return false, err
 			}
-			if serviceaccount.IsServiceAccountToken(secretv1, defaultSAv1) {
+			if serviceaccount.InternalIsServiceAccountToken(secret, defaultSA) {
 				oauthSecret = secret
 				return true, nil
 			}

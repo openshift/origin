@@ -13,7 +13,6 @@ import (
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -394,18 +393,10 @@ func (a *saOAuthClientAdapter) getServiceAccountTokens(sa *kapi.ServiceAccount) 
 	if err != nil {
 		return nil, err
 	}
-	sav1 := &kapiv1.ServiceAccount{}
-	kapiv1.Convert_api_ServiceAccount_To_v1_ServiceAccount(sa, sav1, nil)
-
 	tokens := []string{}
 	for i := range allSecrets.Items {
 		secret := &allSecrets.Items[i]
-		secretv1 := &kapiv1.Secret{}
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(secret, secretv1, nil)
-		if err != nil {
-			return nil, err
-		}
-		if serviceaccount.IsServiceAccountToken(secretv1, sav1) {
+		if serviceaccount.InternalIsServiceAccountToken(secret, sa) {
 			tokens = append(tokens, string(secret.Data[kapi.ServiceAccountTokenKey]))
 		}
 	}
