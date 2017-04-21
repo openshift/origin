@@ -57,9 +57,10 @@ func AnonymousClientConfig(config *restclient.Config) restclient.Config {
 		Prefix:        config.Prefix,
 		ContentConfig: config.ContentConfig,
 		TLSClientConfig: restclient.TLSClientConfig{
-			CAFile:   config.TLSClientConfig.CAFile,
-			CAData:   config.TLSClientConfig.CAData,
-			Insecure: config.Insecure,
+			CAFile:     config.TLSClientConfig.CAFile,
+			CAData:     config.TLSClientConfig.CAData,
+			Insecure:   config.Insecure,
+			ServerName: config.ServerName,
 		},
 		RateLimiter:   config.RateLimiter,
 		UserAgent:     config.UserAgent,
