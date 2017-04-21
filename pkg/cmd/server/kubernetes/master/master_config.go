@@ -443,13 +443,6 @@ func buildKubeApiserverConfig(
 	for _, cert := range oAuthClientCertCAs {
 		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
 	}
-	requestHeaderCACerts, err := configapi.GetRequestHeaderClientCertCAs(masterConfig)
-	if err != nil {
-		glog.Fatalf("Error setting up request header client certificates: %v", err)
-	}
-	for _, cert := range requestHeaderCACerts {
-		genericConfig.SecureServingInfo.ClientCA.AddCert(cert)
-	}
 
 	url, err := url.Parse(masterConfig.MasterPublicURL)
 	if err != nil {
