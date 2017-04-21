@@ -4,6 +4,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
@@ -37,10 +38,10 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 	}
 
 	availableAll := []string{}
-	for _, requestedResource := range userResources {
+	for _, requestedResource := range kcmdutil.UserResources {
 		for _, availableResource := range availableResources {
-			if requestedResource == availableResource.Resource {
-				availableAll = append(availableAll, requestedResource)
+			if requestedResource.Resource == availableResource.Resource {
+				availableAll = append(availableAll, requestedResource.Resource)
 				break
 			}
 		}
@@ -77,20 +78,15 @@ func (e ShortcutExpander) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMa
 	return e.RESTMapper.RESTMappings(gk)
 }
 
-// userResources are the resource names that apply to the primary, user facing resources used by
-// client tools. They are in deletion-first order - dependent resources should be last.
-var userResources = []string{
-	"buildconfigs", "builds",
-	"imagestreams",
-	"deploymentconfigs", "replicationcontrollers",
-	"routes", "services",
-	"pods",
-}
-
 // AliasesForResource returns whether a resource has an alias or not
 func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
+	allResources := []string{}
+	for _, userResource := range kcmdutil.UserResources {
+		allResources = append(allResources, userResource.Resource)
+	}
+
 	aliases := map[string][]string{
-		"all": userResources,
+		"all": allResources,
 	}
 	if len(e.All) != 0 {
 		aliases["all"] = e.All
@@ -106,6 +102,7 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 var shortForms = map[string]string{
 	"dc":           "deploymentconfigs",
 	"bc":           "buildconfigs",
+	"hpa":          "horizontalpodautoscalers",
 	"is":           "imagestreams",
 	"istag":        "imagestreamtags",
 	"isimage":      "imagestreamimages",
