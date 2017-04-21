@@ -49,7 +49,7 @@ func GetResourceKey(obj metav1.ObjectMeta) string {
 func OriginObjects(objs []runtime.Object) []runtime.Object {
 	ret := []runtime.Object{}
 	for _, obj := range objs {
-		if !UpstreamType(obj) {
+		if !upstreamType(obj) {
 			ret = append(ret, obj)
 		}
 	}
@@ -60,15 +60,15 @@ func OriginObjects(objs []runtime.Object) []runtime.Object {
 func UpstreamObjects(objs []runtime.Object) []runtime.Object {
 	ret := []runtime.Object{}
 	for _, obj := range objs {
-		if UpstreamType(obj) {
+		if upstreamType(obj) {
 			ret = append(ret, obj)
 		}
 	}
 	return ret
 }
 
-// UpstreamType returns true for Kubernetes types.
-func UpstreamType(obj runtime.Object) bool {
+// upstreamType returns true for Kubernetes types.
+func upstreamType(obj runtime.Object) bool {
 	t := reflect.TypeOf(obj).Elem()
 	return strings.Contains(t.PkgPath(), "k8s.io/kubernetes/")
 }

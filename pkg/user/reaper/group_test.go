@@ -12,7 +12,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/davecgh/go-spew/spew"
-	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 
@@ -128,8 +127,8 @@ func TestGroupReaper(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tc := testclient.NewSimpleFake(oapi.OriginObjects(test.objects)...)
-		ktc := fake.NewSimpleClientset(oapi.UpstreamObjects(test.objects)...)
+		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
+		ktc := fake.NewSimpleClientset(testclient.UpstreamObjects(test.objects)...)
 
 		actual := []interface{}{}
 		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {

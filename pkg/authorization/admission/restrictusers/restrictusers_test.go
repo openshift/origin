@@ -19,7 +19,6 @@ import (
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	//"github.com/openshift/origin/pkg/project/cache"
-	oapi "github.com/openshift/origin/pkg/api"
 	userapi "github.com/openshift/origin/pkg/user/api"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
@@ -569,8 +568,8 @@ func TestAdmission(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		kclientset := fake.NewSimpleClientset(oapi.UpstreamObjects(tc.objects)...)
-		oclient := otestclient.NewSimpleFake(oapi.OriginObjects(tc.objects)...)
+		kclientset := fake.NewSimpleClientset(otestclient.UpstreamObjects(tc.objects)...)
+		oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(tc.objects)...)
 
 		plugin, err := NewRestrictUsersAdmission()
 		if err != nil {
