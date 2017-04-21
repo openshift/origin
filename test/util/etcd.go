@@ -16,7 +16,6 @@ import (
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
 
 	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
-	"k8s.io/apiserver/pkg/storage/storagebackend"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 
@@ -47,10 +46,10 @@ func RequireEtcd(t *testing.T) *etcdtest.EtcdTestServer {
 	return s
 }
 
-func RequireEtcd3(t *testing.T) (*etcdtest.EtcdTestServer, *storagebackend.Config) {
-	s, c := etcdtest.NewUnsecuredEtcd3TestClientServer(t, kapi.Scheme)
+func RequireEtcd3(t *testing.T) *etcdtest.EtcdTestServer {
+	s, _ := etcdtest.NewUnsecuredEtcd3TestClientServer(t, kapi.Scheme)
 	url = s.V3Client.Endpoints()[0]
-	return s, c
+	return s
 }
 
 func NewEtcdClient() etcdclient.Client {
@@ -101,14 +100,6 @@ func DumpEtcdOnFailure(t *testing.T) {
 		return
 	}
 
-	pc := make([]uintptr, 10)
-	goruntime.Callers(2, pc)
-	f := goruntime.FuncForPC(pc[0])
-	last := strings.LastIndex(f.Name(), "Test")
-	if last == -1 {
-		last = 0
-	}
-	name := f.Name()[last:]
 	client := NewEtcdClient()
 	keyClient := etcdclient.NewKeysAPI(client)
 
@@ -117,12 +108,48 @@ func DumpEtcdOnFailure(t *testing.T) {
 		t.Logf("error dumping etcd: %v", err)
 		return
 	}
-	jsonResponse, err := json.Marshal(response.Node)
+
+	writeEtcdDump(t, response.Node)
+}
+
+func DumpEtcd3OnFailure(t *testing.T) {
+	if !t.Failed() {
+		return
+	}
+
+	client := NewEtcd3Client()
+
+	response, err := client.KV.Get(context.Background(), "/", etcdclientv3.WithPrefix(), etcdclientv3.WithSort(etcdclientv3.SortByKey, etcdclientv3.SortDescend))
+	if err != nil {
+		t.Logf("error dumping etcd: %v", err)
+		return
+	}
+
+	kvData := []etcd3kv{}
+	for _, kvs := range response.Kvs {
+		obj, _, err := kapi.Codecs.UniversalDeserializer().Decode(kvs.Value, nil, nil)
+		if err != nil {
+			t.Logf("error decoding value %s: %v", string(kvs.Value), err)
+			continue
+		}
+		objJSON, err := json.Marshal(obj)
+		if err != nil {
+			t.Logf("error encoding object %#v as JSON: %v", obj, err)
+			continue
+		}
+		kvData = append(kvData, etcd3kv{string(kvs.Key), string(objJSON)})
+	}
+
+	writeEtcdDump(t, kvData)
+}
+
+func writeEtcdDump(t *testing.T, data interface{}) {
+	jsonResponse, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		t.Logf("error encoding etcd dump: %v", err)
 		return
 	}
-
+	name := getCallingTestName()
 	t.Logf("dumping etcd to %q", GetBaseDir()+"/etcd-dump-"+name+".json")
 	dumpFile, err := os.OpenFile(GetBaseDir()+"/etcd-dump-"+name+".json", os.O_WRONLY|os.O_CREATE, 0444)
 	if err != nil {
@@ -135,5 +162,19 @@ func DumpEtcdOnFailure(t *testing.T) {
 		t.Logf("error writing etcd dump: %v", err)
 		return
 	}
+}
 
+func getCallingTestName() string {
+	pc := make([]uintptr, 10)
+	goruntime.Callers(4, pc)
+	f := goruntime.FuncForPC(pc[0])
+	last := strings.LastIndex(f.Name(), "Test")
+	if last == -1 {
+		last = 0
+	}
+	return f.Name()[last:]
+}
+
+type etcd3kv struct {
+	Key, Value string
 }
