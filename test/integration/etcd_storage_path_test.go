@@ -706,17 +706,25 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 
 	// k8s.io/kubernetes/pkg/apis/authentication/v1beta1
 	gvr("authentication.k8s.io", "v1beta1", "tokenreviews"), // not stored in etcd
-	gvr("authentication.k8s.io", "v1", "tokenreviews"),      // not stored in etcd
+	// --
+
+	// k8s.io/kubernetes/pkg/apis/authentication/v1
+	gvr("authentication.k8s.io", "v1", "tokenreviews"), // not stored in etcd
 	// --
 
 	// k8s.io/kubernetes/pkg/apis/authorization/v1beta1
 
 	// SAR objects that are not stored in etcd
 	gvr("authorization.k8s.io", "v1beta1", "selfsubjectaccessreviews"),
-	gvr("authorization.k8s.io", "v1", "selfsubjectaccessreviews"),
 	gvr("authorization.k8s.io", "v1beta1", "localsubjectaccessreviews"),
-	gvr("authorization.k8s.io", "v1", "localsubjectaccessreviews"),
 	gvr("authorization.k8s.io", "v1beta1", "subjectaccessreviews"),
+	// --
+
+	// k8s.io/kubernetes/pkg/apis/authorization/v1
+
+	// SAR objects that are not stored in etcd
+	gvr("authorization.k8s.io", "v1", "selfsubjectaccessreviews"),
+	gvr("authorization.k8s.io", "v1", "localsubjectaccessreviews"),
 	gvr("authorization.k8s.io", "v1", "subjectaccessreviews"),
 	// --
 
@@ -753,8 +761,6 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	// k8s.io/kubernetes/pkg/apis/policy/v1beta1
 	gvr("policy", "v1beta1", "evictions"), // not stored in etcd, deals with evicting kapiv1.Pod
 	// --
-
-	// k8s.io/kubernetes/pkg/apis/rbac/v1alpha1
 )
 
 // Only add kinds to this list when there is no mapping from GVK to GVR (and thus there is no way to create the object)
@@ -763,6 +769,7 @@ var kindWhiteList = sets.NewString(
 	"APIVersions",
 	"APIGroup",
 	"Status",
+	// --
 
 	// k8s.io/kubernetes/pkg/api/v1
 	"DeleteOptions",
