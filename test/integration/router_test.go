@@ -1256,6 +1256,10 @@ u3YLAbyW/lHhOCiZu2iAI8AbmXem9lW6Tr7p/97s0w==
 // createAndStartRouterContainer is responsible for deploying the router image in docker.  It assumes that all router images
 // will use a command line flag that can take --master which points to the master url
 func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int) (containerId string, err error) {
+	return createAndStartRouterContainerBindAfterSync(dockerCli, masterIp, routerStatsPort, reloadInterval, false)
+}
+
+func createAndStartRouterContainerBindAfterSync(dockerCli *dockerClient.Client, masterIp string, routerStatsPort int, reloadInterval int, bindPortsAfterSync bool) (containerId string, err error) {
 	ports := []string{"80", "443"}
 	if routerStatsPort > 0 {
 		ports = append(ports, fmt.Sprintf("%d", routerStatsPort))
@@ -1291,6 +1295,7 @@ func createAndStartRouterContainer(dockerCli *dockerClient.Client, masterIp stri
 		fmt.Sprintf("STATS_USERNAME=%s", statsUser),
 		fmt.Sprintf("STATS_PASSWORD=%s", statsPassword),
 		fmt.Sprintf("DEFAULT_CERTIFICATE=%s", defaultCert),
+		fmt.Sprintf("ROUTER_BIND_PORTS_AFTER_SYNC=%s", strconv.FormatBool(bindPortsAfterSync)),
 	}
 
 	reloadIntVar := fmt.Sprintf("RELOAD_INTERVAL=%ds", reloadInterval)
@@ -1582,8 +1587,80 @@ func TestRouterReloadCoalesce(t *testing.T) {
 
 // waitForRouterToBecomeAvailable checks for the router start up and waits
 // till it becomes available.
-func waitForRouterToBecomeAvailable(host string, port int) {
+func waitForRouterToBecomeAvailable(host string, port int) error {
 	hostAndPort := fmt.Sprintf("%s:%d", host, port)
 	uri := fmt.Sprintf("%s/healthz", hostAndPort)
-	waitForRoute(uri, hostAndPort, "http", nil, "")
+	return waitForRoute(uri, hostAndPort, "http", nil, "")
+}
+
+// Ensure that when configured with ROUTER_BIND_PORTS_AFTER_SYNC=true,
+// haproxy binds ports only when an initial sync has been performed.
+func TestRouterBindsPortsAfterSync(t *testing.T) {
+	// Create a new master but do not start it yet to simulate a router without api access.
+	fakeMasterAndPod := tr.NewTestHttpService()
+
+	dockerCli, err := testutil.NewDockerClient()
+	if err != nil {
+		t.Fatalf("Unable to get docker client: %v", err)
+	}
+
+	bindPortsAfterSync := true
+	reloadInterval := 1
+	routerId, err := createAndStartRouterContainerBindAfterSync(dockerCli, fakeMasterAndPod.MasterHttpAddr, statsPort, reloadInterval, bindPortsAfterSync)
+	if err != nil {
+		t.Fatalf("Error starting container %s : %v", getRouterImage(), err)
+	}
+	defer cleanUp(t, dockerCli, routerId)
+
+	routerIP := "127.0.0.1"
+
+	if err = waitForRouterToBecomeAvailable(routerIP, statsPort); err != nil {
+		t.Fatalf("Unexpected error while waiting for the router to become available: %v", err)
+	}
+
+	routeAddress := getRouteAddress()
+
+	// Validate that the default ports are not yet bound
+	schemes := []string{"http", "https"}
+	for _, scheme := range schemes {
+		_, err = getRoute(routeAddress, routeAddress, scheme, nil, "")
+		if err == nil {
+			t.Fatalf("Router is unexpectedly accepting connections via %v", scheme)
+		} else if !strings.HasSuffix(fmt.Sprintf("%v", err), "connection refused") {
+			t.Fatalf("Unexpected error when dispatching %v request: %v", scheme, err)
+		}
+	}
+
+	// Start the master
+	defer fakeMasterAndPod.Stop()
+	err = fakeMasterAndPod.Start()
+	validateServer(fakeMasterAndPod, t)
+	if err != nil {
+		t.Fatalf("Unable to start http server: %v", err)
+	}
+
+	// Validate that the default ports are now bound
+	var lastErr error
+	for _, scheme := range schemes {
+		err := wait.Poll(time.Millisecond*100, time.Duration(reloadInterval)*2*time.Second, func() (bool, error) {
+			_, err := getRoute(routeAddress, routeAddress, scheme, nil, "")
+			lastErr = nil
+			switch err {
+			case ErrUnavailable:
+				return true, nil
+			case nil:
+				return false, fmt.Errorf("Router is unexpectedly accepting connections via %v", scheme)
+			default:
+				lastErr = fmt.Errorf("Unexpected error when dispatching %v request: %v", scheme, err)
+				return false, nil
+			}
+
+		})
+		if err == wait.ErrWaitTimeout && lastErr != nil {
+			err = lastErr
+		}
+		if err != nil {
+			t.Fatalf(err.Error())
+		}
+	}
 }

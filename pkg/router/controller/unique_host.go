@@ -255,8 +255,8 @@ func (p *UniqueHost) HandleNamespaces(namespaces sets.String) error {
 	return p.plugin.HandleNamespaces(namespaces)
 }
 
-func (p *UniqueHost) SetLastSyncProcessed(processed bool) error {
-	return p.plugin.SetLastSyncProcessed(processed)
+func (p *UniqueHost) Commit() error {
+	return p.plugin.Commit()
 }
 
 // routeKeys returns the internal router key to use for the given Route.

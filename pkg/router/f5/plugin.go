@@ -630,6 +630,6 @@ func (p *F5Plugin) HandleRoute(eventType watch.EventType,
 }
 
 // No-op since f5 configuration can be updated piecemeal
-func (p *F5Plugin) SetLastSyncProcessed(processed bool) error {
+func (p *F5Plugin) Commit() error {
 	return nil
 }
