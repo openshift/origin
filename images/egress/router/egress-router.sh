@@ -19,7 +19,9 @@ if [[ -z "${EGRESS_GATEWAY:-}" ]]; then
     exit 1
 fi
 
-set -x
+if [[ -n "${EGRESS_ROUTER_DEBUG:-}" ]]; then
+    set -x
+fi
 
 # The pod may die and get restarted; only try to add the
 # address/route/rules if they are not already there.
