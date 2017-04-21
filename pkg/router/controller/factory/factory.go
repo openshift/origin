@@ -23,7 +23,6 @@ import (
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	"github.com/openshift/origin/pkg/router"
-	"github.com/openshift/origin/pkg/router/controller"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
 )
 
@@ -78,7 +77,7 @@ func routerKeyFn(obj interface{}) (string, error) {
 
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
-func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *controller.RouterController {
+func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(routerKeyFn)
 	rLW := &routeLW{
 		client:    factory.OSClient,
