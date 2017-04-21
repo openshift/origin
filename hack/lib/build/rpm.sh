@@ -19,7 +19,7 @@ function os::build::rpm::get_nvra_vars() {
 	OS_RPM_NAME="${OS_RPM_NAME:-"origin"}"
 	OS_RPM_ARCHITECTURE="$(uname -i)"
 
-	# we can extract the pacakge version from the build version
+	# we can extract the package version from the build version
 	os::build::get_version_vars
 	if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 		OS_RPM_VERSION="${BASH_REMATCH[1]}"
@@ -42,6 +42,10 @@ function os::build::rpm::get_nvra_vars() {
 		if [[ "${metadata}" =~ ^\+([a-z0-9]{7})-([0-9]+)(-dirty)?$ ]]; then
 			build_sha="${BASH_REMATCH[1]}"
 			build_num="${BASH_REMATCH[2]}"
+		# this is an exact release build
+		elif [[ "${metadata}" =~ ^\+([a-z0-9]{7})(-dirty)?$ ]]; then
+			build_sha="${BASH_REMATCH[1]}"
+			build_num="0"
 		else
 			os::log::fatal "Malformed git version metadata: ${metadata}"
 		fi
