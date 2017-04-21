@@ -845,7 +845,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 			cfg.TLSTermination, cfg.Host)
 		// if a default cert is configured we'll assume it is meant to be a wildcard and only log info
 		// otherwise we'll consider this a warning
-		if len(r.defaultCertificate) > 0 {
+		if len(r.defaultCertificatePath) > 0 {
 			glog.V(4).Info(msg)
 		} else {
 			glog.Warning(msg)
