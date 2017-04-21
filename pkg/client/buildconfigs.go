@@ -74,13 +74,13 @@ func (c *buildConfigs) Get(name string, options metav1.GetOptions) (result *buil
 func (c *buildConfigs) WebHookURL(name string, trigger *buildapi.BuildTriggerPolicy) (*url.URL, error) {
 	switch {
 	case trigger.GenericWebHook != nil:
-		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GenericWebHook.Secret, "generic").URL(), nil
 	case trigger.GitHubWebHook != nil:
-		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitHubWebHook.Secret, "github").URL(), nil
 	case trigger.GitLabWebHook != nil:
-		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitLabWebHook.Secret, "gitlab").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.GitLabWebHook.Secret, "gitlab").URL(), nil
 	case trigger.BitbucketWebHook != nil:
-		return c.r.Get().Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.BitbucketWebHook.Secret, "bitbucket").URL(), nil
+		return c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).SubResource("webhooks").Suffix(trigger.BitbucketWebHook.Secret, "bitbucket").URL(), nil
 	default:
 		return nil, ErrTriggerIsNotAWebHook
 	}
