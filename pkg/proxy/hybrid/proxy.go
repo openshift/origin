@@ -14,8 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/config"
 
-	"github.com/openshift/origin/pkg/proxy/userspace"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+	"k8s.io/kubernetes/pkg/proxy/userspace"
 )
 
 type HybridProxier struct {
