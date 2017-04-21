@@ -91,13 +91,7 @@ func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, er
 	return filteredPodList, nil
 }
 
-func (d *NetworkDiagnostic) waitForNetworkPod(nsName, prefix string, validPhases []kapi.PodPhase) error {
-	backoff := wait.Backoff{
-		Steps:    30,
-		Duration: 500 * time.Millisecond,
-		Factor:   1.1,
-	}
-
+func (d *NetworkDiagnostic) waitForNetworkPod(nsName, prefix string, backoff wait.Backoff, validPhases []kapi.PodPhase) error {
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
 		podList, err := d.getPodList(nsName, prefix)
 		if err != nil {
@@ -149,7 +143,8 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 	errList := []error{}
 	for _, name := range nsList {
-		if err := d.waitForNetworkPod(name, util.NetworkDiagTestPodNamePrefix, []kapi.PodPhase{kapi.PodRunning, kapi.PodSucceeded, kapi.PodFailed}); err != nil {
+		backoff := wait.Backoff{Steps: 36, Duration: time.Second, Factor: 1.1} // timeout: ~5 mins
+		if err := d.waitForNetworkPod(name, util.NetworkDiagTestPodNamePrefix, backoff, []kapi.PodPhase{kapi.PodRunning, kapi.PodSucceeded, kapi.PodFailed}); err != nil {
 			errList = append(errList, err)
 		}
 	}
