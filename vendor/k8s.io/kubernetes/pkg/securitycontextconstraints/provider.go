@@ -19,6 +19,7 @@ package securitycontextconstraints
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/sysctl"
@@ -28,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/selinux"
 	"k8s.io/kubernetes/pkg/securitycontextconstraints/user"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // used to pass in the field being validated for reusable group strategies so they

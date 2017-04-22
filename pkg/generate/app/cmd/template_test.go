@@ -3,13 +3,13 @@ package cmd
 import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
 func TestTransformTemplate(t *testing.T) {
 	templatefoobar := &templateapi.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo_bar_template_name",
 			Namespace: "foo_bar_namespace",
 		},

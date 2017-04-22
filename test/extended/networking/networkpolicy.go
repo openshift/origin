@@ -17,10 +17,10 @@ limitations under the License.
 package networking
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	"fmt"
@@ -56,13 +56,13 @@ var _ = Describe("NetworkPolicy", func() {
 			podServer, service := createServerPodAndService(f, ns, "server", []int{80})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(podServer.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(podServer.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", podServer.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -90,13 +90,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, ns, "server", []int{80})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -107,12 +107,12 @@ var _ = Describe("NetworkPolicy", func() {
 			By("Creating a network policy for the server which allows traffic from the pod 'client-a'.")
 
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-client-a-via-pod-selector",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply this policy to the Server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -120,7 +120,7 @@ var _ = Describe("NetworkPolicy", func() {
 					// Allow traffic only from client-a
 					Ingress: []extensions.NetworkPolicyIngressRule{{
 						From: []extensions.NetworkPolicyPeer{{
-							PodSelector: &unversioned.LabelSelector{
+							PodSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
 									"pod-name": "client-a",
 								},
@@ -130,12 +130,12 @@ var _ = Describe("NetworkPolicy", func() {
 				},
 			}
 
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
@@ -153,13 +153,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, ns, "server", []int{80, 81})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -179,12 +179,12 @@ var _ = Describe("NetworkPolicy", func() {
 
 			By("Creating a network policy for the Service which allows traffic only to one port.")
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-ingress-on-port-81",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply to server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -197,12 +197,12 @@ var _ = Describe("NetworkPolicy", func() {
 					}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
@@ -219,13 +219,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, ns, "server", []int{80, 81})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -239,12 +239,12 @@ var _ = Describe("NetworkPolicy", func() {
 
 			By("Creating a network policy for the Service which allows traffic only to one port.")
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-ingress-on-port-81",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply to server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -257,12 +257,12 @@ var _ = Describe("NetworkPolicy", func() {
 					}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
@@ -279,13 +279,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, ns, "server", []int{80, 81})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -305,12 +305,12 @@ var _ = Describe("NetworkPolicy", func() {
 
 			By("Creating a network policy for the Service which allows traffic only to one port.")
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-ingress-on-port-80",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply to server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -323,24 +323,24 @@ var _ = Describe("NetworkPolicy", func() {
 					}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
 
 			By("Creating a network policy for the Service which allows traffic only to another port.")
 			policy2 := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-ingress-on-port-81",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply to server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -353,12 +353,12 @@ var _ = Describe("NetworkPolicy", func() {
 					}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy2)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy2)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy2.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy2.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy2.Name, err)
 				}
 			}()
@@ -375,13 +375,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, ns, "server", []int{80, 81})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(ns.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(ns.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -401,23 +401,23 @@ var _ = Describe("NetworkPolicy", func() {
 
 			By("Creating a network policy which allows all traffic.")
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-all",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Allow all traffic
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{},
 					},
 					Ingress: []extensions.NetworkPolicyIngressRule{{}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(ns.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
@@ -443,13 +443,13 @@ var _ = Describe("NetworkPolicy", func() {
 			serverPod, service := createServerPodAndService(f, nsA, "server", []int{80})
 			defer func() {
 				By("Cleaning up the server.")
-				if err := f.ClientSet.Core().Pods(nsA.Name).Delete(serverPod.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Pods(nsA.Name).Delete(serverPod.Name, nil); err != nil {
 					framework.Failf("unable to cleanup pod %v: %v", serverPod.Name, err)
 				}
 			}()
 			defer func() {
 				By("Cleaning up the server's service.")
-				if err := f.ClientSet.Core().Services(nsA.Name).Delete(service.Name, nil); err != nil {
+				if err := f.ClientSet.CoreV1().Services(nsA.Name).Delete(service.Name, nil); err != nil {
 					framework.Failf("unable to cleanup svc %v: %v", service.Name, err)
 				}
 			}()
@@ -460,12 +460,12 @@ var _ = Describe("NetworkPolicy", func() {
 			// Create Policy for that service that allows traffic only via namespace B
 			By("Creating a network policy for the server which allows traffic from namespace-b.")
 			policy := extensions.NetworkPolicy{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-ns-b-via-namespace-selector",
 				},
 				Spec: extensions.NetworkPolicySpec{
 					// Apply to server
-					PodSelector: unversioned.LabelSelector{
+					PodSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"pod-name": serverPod.Name,
 						},
@@ -473,7 +473,7 @@ var _ = Describe("NetworkPolicy", func() {
 					// Allow traffic only from NS-B
 					Ingress: []extensions.NetworkPolicyIngressRule{{
 						From: []extensions.NetworkPolicyPeer{{
-							NamespaceSelector: &unversioned.LabelSelector{
+							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
 									"ns-name": nsBName,
 								},
@@ -482,12 +482,12 @@ var _ = Describe("NetworkPolicy", func() {
 					}},
 				},
 			}
-			_, err = f.ClientSet.Extensions().NetworkPolicies(nsA.Name).Create(&policy)
+			_, err = f.InternalClientset.Extensions().NetworkPolicies(nsA.Name).Create(&policy)
 
 			Expect(err).NotTo(HaveOccurred())
 			defer func() {
 				By("Cleaning up the policy.")
-				if err = f.ClientSet.Extensions().NetworkPolicies(nsA.Name).Delete(policy.Name, nil); err != nil {
+				if err = f.InternalClientset.Extensions().NetworkPolicies(nsA.Name).Delete(policy.Name, nil); err != nil {
 					framework.Failf("unable to cleanup policy %v: %v", policy.Name, err)
 				}
 			}()
@@ -498,18 +498,18 @@ var _ = Describe("NetworkPolicy", func() {
 	})
 })
 
-func testCanConnect(f *framework.Framework, ns *api.Namespace, podName string, service *api.Service, targetPort int) {
+func testCanConnect(f *framework.Framework, ns *kapiv1.Namespace, podName string, service *kapiv1.Service, targetPort int) {
 	By(fmt.Sprintf("Creating client pod %s that should successfully connect to %s.", podName, service.Name))
 	podClient := createNetworkClientPod(f, ns, podName, service.Spec.ClusterIP, targetPort)
 	defer func() {
 		By(fmt.Sprintf("Cleaning up the pod %s", podName))
-		if err := f.ClientSet.Core().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
+		if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
 			framework.Failf("unable to cleanup pod %v: %v", podClient.Name, err)
 		}
 	}()
 
 	framework.Logf("Waiting for %s to complete.", podClient.Name)
-	err := framework.WaitForPodNoLongerRunningInNamespace(f.ClientSet, podClient.Name, ns.Name, "0")
+	err := framework.WaitForPodNoLongerRunningInNamespace(f.ClientSet, podClient.Name, ns.Name)
 	Expect(err).NotTo(HaveOccurred(), "Pod did not finish as expected.")
 
 	framework.Logf("Waiting for %s to complete.", podClient.Name)
@@ -517,12 +517,12 @@ func testCanConnect(f *framework.Framework, ns *api.Namespace, podName string, s
 	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("checking %s could communicate with server.", podClient.Name))
 }
 
-func testCannotConnect(f *framework.Framework, ns *api.Namespace, podName string, service *api.Service, targetPort int) {
+func testCannotConnect(f *framework.Framework, ns *kapiv1.Namespace, podName string, service *kapiv1.Service, targetPort int) {
 	By(fmt.Sprintf("Creating client pod %s that should not be able to connect to %s.", podName, service.Name))
 	podClient := createNetworkClientPod(f, ns, podName, service.Spec.ClusterIP, targetPort)
 	defer func() {
 		By(fmt.Sprintf("Cleaning up the pod %s", podName))
-		if err := f.ClientSet.Core().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
+		if err := f.ClientSet.CoreV1().Pods(ns.Name).Delete(podClient.Name, nil); err != nil {
 			framework.Failf("unable to cleanup pod %v: %v", podClient.Name, err)
 		}
 	}()
@@ -535,14 +535,14 @@ func testCannotConnect(f *framework.Framework, ns *api.Namespace, podName string
 // Create a server pod with a listening container for each port in ports[].
 // Will also assign a pod label with key: "pod-name" and label set to the given podname for later use by the network
 // policy.
-func createServerPodAndService(f *framework.Framework, namespace *api.Namespace, podName string, ports []int) (*api.Pod, *api.Service) {
+func createServerPodAndService(f *framework.Framework, namespace *kapiv1.Namespace, podName string, ports []int) (*kapiv1.Pod, *kapiv1.Service) {
 	// Because we have a variable amount of ports, we'll first loop through and generate our Containers for our pod,
 	// and ServicePorts.for our Service.
-	containers := []api.Container{}
-	servicePorts := []api.ServicePort{}
+	containers := []kapiv1.Container{}
+	servicePorts := []kapiv1.ServicePort{}
 	for _, port := range ports {
 		// Build the containers for the server pod.
-		containers = append(containers, api.Container{
+		containers = append(containers, kapiv1.Container{
 			Name:  fmt.Sprintf("%s-container-%d", podName, port),
 			Image: "gcr.io/google_containers/redis:e2e",
 			Args: []string{
@@ -550,11 +550,11 @@ func createServerPodAndService(f *framework.Framework, namespace *api.Namespace,
 				"-c",
 				fmt.Sprintf("/bin/nc -kl %d", port),
 			},
-			Ports: []api.ContainerPort{{ContainerPort: int32(port)}},
+			Ports: []kapiv1.ContainerPort{{ContainerPort: int32(port)}},
 		})
 
 		// Build the Service Ports for the service.
-		servicePorts = append(servicePorts, api.ServicePort{
+		servicePorts = append(servicePorts, kapiv1.ServicePort{
 			Name:       fmt.Sprintf("%s-%d", podName, port),
 			Port:       int32(port),
 			TargetPort: intstr.FromInt(port),
@@ -562,16 +562,16 @@ func createServerPodAndService(f *framework.Framework, namespace *api.Namespace,
 	}
 
 	By(fmt.Sprintf("Creating a server pod %s in namespace %s", podName, namespace.Name))
-	pod, err := f.ClientSet.Core().Pods(namespace.Name).Create(&api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod, err := f.ClientSet.CoreV1().Pods(namespace.Name).Create(&kapiv1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 			Labels: map[string]string{
 				"pod-name": podName,
 			},
 		},
-		Spec: api.PodSpec{
+		Spec: kapiv1.PodSpec{
 			Containers:    containers,
-			RestartPolicy: api.RestartPolicyNever,
+			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -579,11 +579,11 @@ func createServerPodAndService(f *framework.Framework, namespace *api.Namespace,
 
 	svcName := fmt.Sprintf("svc-%s", podName)
 	By(fmt.Sprintf("Creating a service %s for pod %s in namespace %s", svcName, podName, namespace.Name))
-	svc, err := f.ClientSet.Core().Services(namespace.Name).Create(&api.Service{
-		ObjectMeta: api.ObjectMeta{
+	svc, err := f.ClientSet.CoreV1().Services(namespace.Name).Create(&kapiv1.Service{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: svcName,
 		},
-		Spec: api.ServiceSpec{
+		Spec: kapiv1.ServiceSpec{
 			Ports: servicePorts,
 			Selector: map[string]string{
 				"pod-name": podName,
@@ -599,17 +599,17 @@ func createServerPodAndService(f *framework.Framework, namespace *api.Namespace,
 // Create a client pod which will attempt a netcat to the provided service, on the specified port.
 // This client will attempt a oneshot connection, then die, without restarting the pod.
 // Test can then be asserted based on whether the pod quit with an error or not.
-func createNetworkClientPod(f *framework.Framework, namespace *api.Namespace, podName string, targetIP string, targetPort int) *api.Pod {
-	pod, err := f.ClientSet.Core().Pods(namespace.Name).Create(&api.Pod{
-		ObjectMeta: api.ObjectMeta{
+func createNetworkClientPod(f *framework.Framework, namespace *kapiv1.Namespace, podName string, targetIP string, targetPort int) *kapiv1.Pod {
+	pod, err := f.ClientSet.CoreV1().Pods(namespace.Name).Create(&kapiv1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 			Labels: map[string]string{
 				"pod-name": podName,
 			},
 		},
-		Spec: api.PodSpec{
-			RestartPolicy: api.RestartPolicyNever,
-			Containers: []api.Container{
+		Spec: kapiv1.PodSpec{
+			RestartPolicy: kapiv1.RestartPolicyNever,
+			Containers: []kapiv1.Container{
 				{
 					Name:  fmt.Sprintf("%s-container", podName),
 					Image: "gcr.io/google_containers/redis:e2e",
@@ -629,7 +629,7 @@ func createNetworkClientPod(f *framework.Framework, namespace *api.Namespace, po
 
 // Configure namespace network isolation by setting the network-policy annotation
 // on the namespace.
-func setNamespaceIsolation(f *framework.Framework, namespace *api.Namespace, ingressIsolation string) {
+func setNamespaceIsolation(f *framework.Framework, namespace *kapiv1.Namespace, ingressIsolation string) {
 	var annotations = map[string]string{}
 	if ingressIsolation != "" {
 		By(fmt.Sprintf("Enabling isolation through namespace annotations on namespace %v", namespace.Name))
@@ -647,6 +647,6 @@ func setNamespaceIsolation(f *framework.Framework, namespace *api.Namespace, ing
 	// requires less plumbing.
 	namespace.ObjectMeta.Annotations = annotations
 	namespace.ObjectMeta.ResourceVersion = ""
-	_, err := f.ClientSet.Core().Namespaces().Update(namespace)
+	_, err := f.ClientSet.CoreV1().Namespaces().Update(namespace)
 	Expect(err).NotTo(HaveOccurred())
 }

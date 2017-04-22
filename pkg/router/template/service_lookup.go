@@ -3,13 +3,14 @@ package templaterouter
 import (
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // ServiceLookup is an interface for fetching the service associated with the given endpoints
@@ -20,10 +21,10 @@ type ServiceLookup interface {
 func NewListWatchServiceLookup(svcGetter kcoreclient.ServicesGetter, resync time.Duration) ServiceLookup {
 	svcStore := cache.NewStore(cache.MetaNamespaceKeyFunc)
 	lw := &cache.ListWatch{
-		ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			return svcGetter.Services(api.NamespaceAll).List(options)
 		},
-		WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			return svcGetter.Services(api.NamespaceAll).Watch(options)
 		},
 	}
@@ -46,7 +47,7 @@ func (c *serviceLWLookup) LookupService(endpoints *api.Endpoints) (*api.Service,
 	if rawSvc, ok, err = c.store.Get(endpoints); err != nil {
 		return nil, err
 	} else if !ok {
-		return nil, errors.NewNotFound(unversioned.GroupResource{
+		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    api.GroupName,
 			Resource: "Service",
 		}, endpoints.Name)

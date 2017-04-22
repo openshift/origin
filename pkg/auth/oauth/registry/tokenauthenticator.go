@@ -9,8 +9,9 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
-	"k8s.io/kubernetes/pkg/api"
-	kuser "k8s.io/kubernetes/pkg/auth/user"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kuser "k8s.io/apiserver/pkg/authentication/user"
+	kapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type TokenAuthenticator struct {
@@ -30,9 +31,9 @@ func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users user.Registry
 }
 
 func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, error) {
-	ctx := api.NewContext()
+	ctx := kapirequest.NewContext()
 
-	token, err := a.tokens.GetAccessToken(ctx, value)
+	token, err := a.tokens.GetAccessToken(ctx, value, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}
@@ -40,7 +41,7 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 		return nil, false, ErrExpired
 	}
 
-	u, err := a.users.GetUser(ctx, token.UserName)
+	u, err := a.users.GetUser(ctx, token.UserName, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

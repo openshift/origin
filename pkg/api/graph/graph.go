@@ -10,8 +10,8 @@ import (
 	"github.com/gonum/graph/concrete"
 	"github.com/gonum/graph/encoding/dot"
 
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type Node struct {

@@ -3,7 +3,7 @@ package diagnostics
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	hostdiags "github.com/openshift/origin/pkg/diagnostics/host"
 	systemddiags "github.com/openshift/origin/pkg/diagnostics/systemd"

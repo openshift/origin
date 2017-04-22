@@ -3,13 +3,13 @@ package meta
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	securityapi "github.com/openshift/origin/pkg/security/api"
@@ -17,7 +17,7 @@ import (
 
 // resourcesToCheck is a map of resources and corresponding kinds of things that
 // we want handled in this plugin
-var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
+var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	kapi.Resource("pods"):                   kapi.Kind("Pod"),
 	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
 	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
@@ -44,7 +44,7 @@ var resourcesToCheck = map[unversioned.GroupResource]unversioned.GroupKind{
 }
 
 // HasPodSpec returns true if the resource is known to have a pod spec.
-func HasPodSpec(gr unversioned.GroupResource) (unversioned.GroupKind, bool) {
+func HasPodSpec(gr schema.GroupResource) (schema.GroupKind, bool) {
 	gk, ok := resourcesToCheck[gr]
 	return gk, ok
 }

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/proxy"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
 	"github.com/openshift/origin/pkg/proxy/userspace"
 )

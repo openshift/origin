@@ -7,11 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -197,7 +198,7 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 		}
 		rolesNotFound.Delete(expectedClusterRole.Name)
 
-		actualClusterRole, err := o.RoleClient.Get(expectedClusterRole.Name)
+		actualClusterRole, err := o.RoleClient.Get(expectedClusterRole.Name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			changedRoles = append(changedRoles, expectedClusterRole)
 			continue
@@ -259,7 +260,7 @@ func computeReconciledRole(expected authorizationapi.ClusterRole, actual authori
 func (o *ReconcileClusterRolesOptions) ReplaceChangedRoles(changedRoles []*authorizationapi.ClusterRole) error {
 	errs := []error{}
 	for i := range changedRoles {
-		role, err := o.RoleClient.Get(changedRoles[i].Name)
+		role, err := o.RoleClient.Get(changedRoles[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			errs = append(errs, err)
 			continue

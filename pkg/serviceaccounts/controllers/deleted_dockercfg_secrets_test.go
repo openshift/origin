@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 func TestDockercfgDeletion(t *testing.T) {
@@ -18,34 +18,34 @@ func TestDockercfgDeletion(t *testing.T) {
 
 		DeletedSecret *api.Secret
 
-		ExpectedActions []core.Action
+		ExpectedActions []clientgotesting.Action
 	}{
 		"deleted dockercfg secret without serviceaccount": {
 			DeletedSecret: createdDockercfgSecret(),
 
-			ExpectedActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount with reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: createdDockercfgSecret(),
-			ExpectedActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				core.NewUpdateAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
+				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount without reference": {
 			ClientObjects: []runtime.Object{serviceAccount(addTokenSecretReference(tokenSecretReferences()), imagePullSecretReferences()), createdDockercfgSecret()},
 
 			DeletedSecret: createdDockercfgSecret(),
-			ExpectedActions: []core.Action{
-				core.NewGetAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				core.NewUpdateAction(unversioned.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
-				core.NewDeleteAction(unversioned.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+			ExpectedActions: []clientgotesting.Action{
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
+				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
 			},
 		},
 	}

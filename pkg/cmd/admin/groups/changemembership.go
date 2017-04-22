@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/spf13/cobra"
 
@@ -106,7 +107,7 @@ func (o *GroupModificationOptions) Complete(f *clientcmd.Factory, args []string)
 }
 
 func (o *GroupModificationOptions) AddUsers() error {
-	group, err := o.GroupClient.Get(o.Group)
+	group, err := o.GroupClient.Get(o.Group, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -125,7 +126,7 @@ func (o *GroupModificationOptions) AddUsers() error {
 }
 
 func (o *GroupModificationOptions) RemoveUsers() error {
-	group, err := o.GroupClient.Get(o.Group)
+	group, err := o.GroupClient.Get(o.Group, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

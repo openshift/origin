@@ -3,9 +3,10 @@ package imagestreamimport
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
@@ -16,14 +17,14 @@ func (_ fakeImageCreater) New() runtime.Object {
 	return nil
 }
 
-func (_ fakeImageCreater) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	return obj, nil
 }
 
 func TestImportSuccessful(t *testing.T) {
 	one := int64(1)
 	two := int64(2)
-	now := unversioned.Now()
+	now := metav1.Now()
 	tests := map[string]struct {
 		image    *api.Image
 		stream   *api.ImageStream
@@ -31,7 +32,7 @@ func TestImportSuccessful(t *testing.T) {
 	}{
 		"reference differs": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -69,7 +70,7 @@ func TestImportSuccessful(t *testing.T) {
 		},
 		"image differs": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -108,7 +109,7 @@ func TestImportSuccessful(t *testing.T) {
 		},
 		"empty status": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -138,7 +139,7 @@ func TestImportSuccessful(t *testing.T) {
 		// https://github.com/openshift/origin/issues/10402:
 		"only generation differ": {
 			image: &api.Image{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "image",
 				},
 				DockerImageReference: "registry.com/namespace/image:mytag",
@@ -188,7 +189,7 @@ func TestImportSuccessful(t *testing.T) {
 		importedImages := make(map[string]error)
 		updatedImages := make(map[string]*api.Image)
 		storage := REST{images: fakeImageCreater{}}
-		_, ok := storage.importSuccessful(kapi.NewDefaultContext(), test.image, test.stream,
+		_, ok := storage.importSuccessful(apirequest.NewDefaultContext(), test.image, test.stream,
 			ref.Tag, ref.Exact(), two, now, importPolicy, referencePolicy, importedImages, updatedImages)
 		if !ok {
 			t.Errorf("%s: expected success, didn't get one", name)

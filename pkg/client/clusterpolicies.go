@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -14,18 +15,18 @@ type ClusterPoliciesInterface interface {
 
 // ClusterPolicyInterface exposes methods on ClusterPolicies resources
 type ClusterPolicyInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
-	Get(name string) (*authorizationapi.ClusterPolicy, error)
+	List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type ClusterPoliciesListerInterface interface {
 	ClusterPolicies() ClusterPolicyLister
 }
 type ClusterPolicyLister interface {
-	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error)
-	Get(name string) (*authorizationapi.ClusterPolicy, error)
+	List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error)
 }
 type SyncedClusterPoliciesListerInterface interface {
 	ClusterPoliciesListerInterface
@@ -43,16 +44,16 @@ func newClusterPolicies(c *Client) *clusterPolicies {
 }
 
 // List returns a list of policies that match the label and field selectors.
-func (c *clusterPolicies) List(opts kapi.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
+func (c *clusterPolicies) List(opts metav1.ListOptions) (result *authorizationapi.ClusterPolicyList, err error) {
 	result = &authorizationapi.ClusterPolicyList{}
 	err = c.r.Get().Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 // Get returns information about a particular policy and error if one occurs.
-func (c *clusterPolicies) Get(name string) (result *authorizationapi.ClusterPolicy, err error) {
+func (c *clusterPolicies) Get(name string, options metav1.GetOptions) (result *authorizationapi.ClusterPolicy, err error) {
 	result = &authorizationapi.ClusterPolicy{}
-	err = c.r.Get().Resource("clusterPolicies").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterPolicies").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -63,6 +64,6 @@ func (c *clusterPolicies) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested clusterPolicies
-func (c *clusterPolicies) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *clusterPolicies) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("clusterPolicies").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }

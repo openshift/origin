@@ -4,10 +4,11 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -23,7 +24,7 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "no bindings",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "role",
 				},
@@ -32,28 +33,28 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "bindings",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "role",
 					Namespace: "one",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role", Namespace: "one"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-2",
 						Namespace: "one",
 					},
 					RoleRef: kapi.ObjectReference{Name: "role2", Namespace: "one"},
 				},
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-3",
 						Namespace: "one",
 					},
@@ -65,14 +66,14 @@ func TestRoleReaper(t *testing.T) {
 		{
 			name: "bindings in other namespace ignored",
 			role: &authorizationapi.Role{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "role",
 					Namespace: "one",
 				},
 			},
 			bindings: []*authorizationapi.RoleBinding{
 				{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "binding-1",
 						Namespace: "one",
 					},
@@ -91,8 +92,8 @@ func TestRoleReaper(t *testing.T) {
 		tc := testclient.NewSimpleFake(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
-		tc.PrependReactor("delete", "rolebindings", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(core.DeleteAction).GetName())
+		tc.PrependReactor("delete", "rolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			actualDeletedBindingNames = append(actualDeletedBindingNames, action.(clientgotesting.DeleteAction).GetName())
 			return true, nil, nil
 		})
 

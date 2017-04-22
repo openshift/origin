@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type TestAllocationPlugin struct {
@@ -33,7 +33,7 @@ func TestRouteAllocationController(t *testing.T) {
 		{
 			name: "No Name",
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
 				Spec: routeapi.RouteSpec{
@@ -46,7 +46,7 @@ func TestRouteAllocationController(t *testing.T) {
 		{
 			name: "No namespace",
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
 				Spec: routeapi.RouteSpec{
@@ -59,7 +59,7 @@ func TestRouteAllocationController(t *testing.T) {
 		{
 			name: "No service name",
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
@@ -68,7 +68,7 @@ func TestRouteAllocationController(t *testing.T) {
 		{
 			name: "Valid route",
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},

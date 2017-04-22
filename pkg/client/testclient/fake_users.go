@@ -1,10 +1,10 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -15,10 +15,10 @@ type FakeUsers struct {
 	Fake *Fake
 }
 
-var usersResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+var usersResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
 
-func (c *FakeUsers) Get(name string) (*userapi.User, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(usersResource, name), &userapi.User{})
+func (c *FakeUsers) Get(name string, options metav1.GetOptions) (*userapi.User, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(usersResource, name), &userapi.User{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func (c *FakeUsers) Get(name string) (*userapi.User, error) {
 	return obj.(*userapi.User), err
 }
 
-func (c *FakeUsers) List(opts kapi.ListOptions) (*userapi.UserList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(usersResource, opts), &userapi.UserList{})
+func (c *FakeUsers) List(opts metav1.ListOptions) (*userapi.UserList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(usersResource, opts), &userapi.UserList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *FakeUsers) List(opts kapi.ListOptions) (*userapi.UserList, error) {
 }
 
 func (c *FakeUsers) Create(inObj *userapi.User) (*userapi.User, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(usersResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(usersResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *FakeUsers) Create(inObj *userapi.User) (*userapi.User, error) {
 }
 
 func (c *FakeUsers) Update(inObj *userapi.User) (*userapi.User, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(usersResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(usersResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (c *FakeUsers) Update(inObj *userapi.User) (*userapi.User, error) {
 }
 
 func (c *FakeUsers) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(usersResource, name), nil)
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(usersResource, name), nil)
 	return err
 }
 
-func (c *FakeUsers) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(usersResource, opts))
+func (c *FakeUsers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(usersResource, opts))
 }

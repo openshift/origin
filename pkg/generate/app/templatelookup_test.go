@@ -3,9 +3,9 @@ package app
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -14,7 +14,7 @@ import (
 
 func testTemplateClient(templates *templateapi.TemplateList) client.Interface {
 	fake := &testclient.Fake{}
-	fake.AddReactor("list", "templates", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if len(action.GetNamespace()) > 0 {
 			matchingTemplates := &templateapi.TemplateList{
 				Items: []templateapi.Template{},
@@ -109,7 +109,7 @@ func fakeTemplates(testData map[string][]string) *templateapi.TemplateList {
 	for namespace, templateNames := range testData {
 		for _, templateName := range templateNames {
 			template := &templateapi.Template{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      templateName,
 					Namespace: namespace,
 				},

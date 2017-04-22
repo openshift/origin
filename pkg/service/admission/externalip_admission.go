@@ -5,29 +5,28 @@ import (
 	"net"
 	"strings"
 
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 const ExternalIPPluginName = "ExternalIPRanger"
 
 func init() {
-	kadmission.RegisterPlugin("ExternalIPRanger", func(client clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+	admission.RegisterPlugin("ExternalIPRanger", func(config io.Reader) (admission.Interface, error) {
 		return NewExternalIPRanger(nil, nil, false), nil
 	})
 }
 
 type externalIPRanger struct {
-	*kadmission.Handler
+	*admission.Handler
 	reject         []*net.IPNet
 	admit          []*net.IPNet
 	allowIngressIP bool
 }
 
-var _ kadmission.Interface = &externalIPRanger{}
+var _ admission.Interface = &externalIPRanger{}
 
 // ParseRejectAdmitCIDRRules calculates a blacklist and whitelist from a list of string CIDR rules (treating
 // a leading ! as a negation). Returns an error if any rule is invalid.
@@ -54,7 +53,7 @@ func ParseRejectAdmitCIDRRules(rules []string) (reject, admit []*net.IPNet, err 
 // NewConstraint creates a new SCC constraint admission plugin.
 func NewExternalIPRanger(reject, admit []*net.IPNet, allowIngressIP bool) *externalIPRanger {
 	return &externalIPRanger{
-		Handler:        kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		Handler:        admission.NewHandler(admission.Create, admission.Update),
 		reject:         reject,
 		admit:          admit,
 		allowIngressIP: allowIngressIP,
@@ -75,7 +74,7 @@ func (s NetworkSlice) Contains(ip net.IP) bool {
 }
 
 // Admit determines if the service should be admitted based on the configured network CIDR.
-func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
+func (r *externalIPRanger) Admit(a admission.Attributes) error {
 	if a.GetResource().GroupResource() != kapi.Resource("services") {
 		return nil
 	}
@@ -92,7 +91,7 @@ func (r *externalIPRanger) Admit(a kadmission.Attributes) error {
 	// ingress ip since the loadbalancer status cannot be set on
 	// create.
 	ingressIP := ""
-	retrieveIngressIP := a.GetOperation() == kadmission.Update &&
+	retrieveIngressIP := a.GetOperation() == admission.Update &&
 		r.allowIngressIP && svc.Spec.Type == kapi.ServiceTypeLoadBalancer
 	if retrieveIngressIP {
 		old, ok := a.GetOldObject().(*kapi.Service)

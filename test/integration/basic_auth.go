@@ -13,7 +13,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/context"
 
-	knet "k8s.io/kubernetes/pkg/util/net"
+	knet "k8s.io/apimachinery/pkg/util/net"
 )
 
 type User struct {

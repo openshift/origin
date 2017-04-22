@@ -2,15 +2,13 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/oauth/clientset/internalclientset"
-	internalversionoauth "github.com/openshift/origin/pkg/oauth/clientset/internalclientset/typed/oauth/internalversion"
-	fakeinternalversionoauth "github.com/openshift/origin/pkg/oauth/clientset/internalclientset/typed/oauth/internalversion/fake"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
-	fakediscovery "k8s.io/kubernetes/pkg/client/typed/discovery/fake"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch"
+	oauthinternalversion "github.com/openshift/origin/pkg/oauth/clientset/internalclientset/typed/oauth/internalversion"
+	fakeoauthinternalversion "github.com/openshift/origin/pkg/oauth/clientset/internalclientset/typed/oauth/internalversion/fake"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	"k8s.io/client-go/testing"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -18,17 +16,17 @@ import (
 // without applying any validations and/or defaults. It shouldn't be considered a replacement
 // for a real clientset and is mostly useful in simple unit tests.
 func NewSimpleClientset(objects ...runtime.Object) *Clientset {
-	o := core.NewObjectTracker(api.Scheme, api.Codecs.UniversalDecoder())
+	o := testing.NewObjectTracker(registry, scheme, codecs.UniversalDecoder())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)
 		}
 	}
 
-	fakePtr := core.Fake{}
-	fakePtr.AddReactor("*", "*", core.ObjectReaction(o, registered.RESTMapper()))
+	fakePtr := testing.Fake{}
+	fakePtr.AddReactor("*", "*", testing.ObjectReaction(o, registry.RESTMapper()))
 
-	fakePtr.AddWatchReactor("*", core.DefaultWatchReactor(watch.NewFake(), nil))
+	fakePtr.AddWatchReactor("*", testing.DefaultWatchReactor(watch.NewFake(), nil))
 
 	return &Clientset{fakePtr}
 }
@@ -37,7 +35,7 @@ func NewSimpleClientset(objects ...runtime.Object) *Clientset {
 // struct to get a default implementation. This makes faking out just the method
 // you want to test easier.
 type Clientset struct {
-	core.Fake
+	testing.Fake
 }
 
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
@@ -47,6 +45,6 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 var _ clientset.Interface = &Clientset{}
 
 // Oauth retrieves the OauthClient
-func (c *Clientset) Oauth() internalversionoauth.OauthInterface {
-	return &fakeinternalversionoauth.FakeOauth{Fake: &c.Fake}
+func (c *Clientset) Oauth() oauthinternalversion.OauthInterface {
+	return &fakeoauthinternalversion.FakeOauth{Fake: &c.Fake}
 }

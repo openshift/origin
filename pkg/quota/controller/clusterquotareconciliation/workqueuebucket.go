@@ -3,7 +3,7 @@ package clusterquotareconciliation
 import (
 	"sync"
 
-	"k8s.io/kubernetes/pkg/util/workqueue"
+	"k8s.io/client-go/util/workqueue"
 )
 
 // BucketingWorkQueue gives a way to add items related to a single entry in a work queue

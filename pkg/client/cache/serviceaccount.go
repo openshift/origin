@@ -1,10 +1,11 @@
 package cache
 
 import (
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 // StoreToServiceAccountLister gives a store List and Exists methods. The store must contain only ServiceAccounts.
@@ -23,7 +24,7 @@ type storeServiceAccountsNamespacer struct {
 }
 
 // Get the  ServiceAccount matching the name from the cache.
-func (s storeServiceAccountsNamespacer) Get(name string) (*kapi.ServiceAccount, error) {
+func (s storeServiceAccountsNamespacer) Get(name string, options metav1.GetOptions) (*kapi.ServiceAccount, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func (s storeServiceAccountsNamespacer) Get(name string) (*kapi.ServiceAccount, 
 func (s storeServiceAccountsNamespacer) List(selector labels.Selector) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
 
-	if s.namespace == kapi.NamespaceAll {
+	if s.namespace == metav1.NamespaceAll {
 		for _, obj := range s.indexer.List() {
 			bc := obj.(*kapi.ServiceAccount)
 			if selector.Matches(labels.Set(bc.Labels)) {

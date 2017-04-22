@@ -1,22 +1,20 @@
 package v1
 
 import (
-	fmt "fmt"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
+	v1 "github.com/openshift/origin/pkg/user/api/v1"
+	"github.com/openshift/origin/pkg/user/clientset/release_v3_6/scheme"
+	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	rest "k8s.io/client-go/rest"
 )
 
 type UserV1Interface interface {
-	RESTClient() restclient.Interface
+	RESTClient() rest.Interface
 	UsersGetter
 }
 
-// UserV1Client is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// UserV1Client is used to interact with features provided by the user.openshift.io group.
 type UserV1Client struct {
-	restClient restclient.Interface
+	restClient rest.Interface
 }
 
 func (c *UserV1Client) Users(namespace string) UserResourceInterface {
@@ -24,12 +22,12 @@ func (c *UserV1Client) Users(namespace string) UserResourceInterface {
 }
 
 // NewForConfig creates a new UserV1Client for the given config.
-func NewForConfig(c *restclient.Config) (*UserV1Client, error) {
+func NewForConfig(c *rest.Config) (*UserV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := restclient.RESTClientFor(&config)
+	client, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +36,7 @@ func NewForConfig(c *restclient.Config) (*UserV1Client, error) {
 
 // NewForConfigOrDie creates a new UserV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *restclient.Config) *UserV1Client {
+func NewForConfigOrDie(c *rest.Config) *UserV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -47,34 +45,26 @@ func NewForConfigOrDie(c *restclient.Config) *UserV1Client {
 }
 
 // New creates a new UserV1Client for the given RESTClient.
-func New(c restclient.Interface) *UserV1Client {
+func New(c rest.Interface) *UserV1Client {
 	return &UserV1Client{c}
 }
 
-func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("user.openshift.io/v1")
-	if err != nil {
-		return err
-	}
-	// if user.openshift.io/v1 is not enabled, return an error
-	if !registered.IsEnabledVersion(gv) {
-		return fmt.Errorf("user.openshift.io/v1 is not enabled")
-	}
+func setConfigDefaults(config *rest.Config) error {
+	gv := v1.SchemeGroupVersion
+	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	if config.UserAgent == "" {
-		config.UserAgent = restclient.DefaultKubernetesUserAgent()
-	}
-	copyGroupVersion := gv
-	config.GroupVersion = &copyGroupVersion
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
 
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: api.Codecs}
+	if config.UserAgent == "" {
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
+	}
 
 	return nil
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *UserV1Client) RESTClient() restclient.Interface {
+func (c *UserV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

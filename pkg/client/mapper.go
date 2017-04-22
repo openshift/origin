@@ -1,9 +1,9 @@
 package client
 
 import (
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // DefaultMultiRESTMapper returns the multi REST mapper with all OpenShift and
@@ -11,12 +11,12 @@ import (
 func DefaultMultiRESTMapper() meta.MultiRESTMapper {
 	var restMapper meta.MultiRESTMapper
 	seenGroups := sets.String{}
-	for _, gv := range registered.EnabledVersions() {
+	for _, gv := range kapi.Registry.EnabledVersions() {
 		if seenGroups.Has(gv.Group) {
 			continue
 		}
 		seenGroups.Insert(gv.Group)
-		groupMeta, err := registered.Group(gv.Group)
+		groupMeta, err := kapi.Registry.Group(gv.Group)
 		if err != nil {
 			continue
 		}

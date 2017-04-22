@@ -1,8 +1,8 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	internal "github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
 )

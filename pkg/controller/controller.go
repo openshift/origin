@@ -1,10 +1,13 @@
 package controller
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	kcache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // RunnableController is a controller which implements a Run loop.
@@ -131,7 +134,7 @@ type Retry struct {
 	Count int
 
 	// StartTimestamp is retry start timestamp
-	StartTimestamp unversioned.Time
+	StartTimestamp metav1.Time
 }
 
 // ReQueue is a queue that allows an object to be requeued
@@ -158,7 +161,7 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 	id, _ := r.keyFunc(resource)
 
 	if _, exists := r.retries[id]; !exists {
-		r.retries[id] = Retry{0, unversioned.Now()}
+		r.retries[id] = Retry{0, metav1.Now()}
 	}
 	tries := r.retries[id]
 
@@ -178,4 +181,25 @@ func (r *QueueRetryManager) Retry(resource interface{}, err error) {
 func (r *QueueRetryManager) Forget(resource interface{}) {
 	id, _ := r.keyFunc(resource)
 	delete(r.retries, id)
+}
+
+type InternalListWatch struct {
+	ListFunc  func(options metainternal.ListOptions) (runtime.Object, error)
+	WatchFunc func(options metainternal.ListOptions) (watch.Interface, error)
+}
+
+func (lw *InternalListWatch) List(options metav1.ListOptions) (runtime.Object, error) {
+	optionsint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optionsint, nil); err != nil {
+		return nil, err
+	}
+	return lw.ListFunc(optionsint)
+}
+
+func (lw *InternalListWatch) Watch(options metav1.ListOptions) (watch.Interface, error) {
+	optionsint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optionsint, nil); err != nil {
+		return nil, err
+	}
+	return lw.WatchFunc(optionsint)
 }

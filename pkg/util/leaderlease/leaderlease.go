@@ -8,10 +8,10 @@ import (
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 
-	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 )
 
 // Leaser allows a caller to acquire a lease and be notified when it is lost.

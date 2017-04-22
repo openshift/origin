@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/deploy/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeDeploymentConfigs implements DeploymentConfigInterface
@@ -15,11 +16,11 @@ type FakeDeploymentConfigs struct {
 	ns   string
 }
 
-var deploymentconfigsResource = unversioned.GroupVersionResource{Group: "apps.openshift.io", Version: "", Resource: "deploymentconfigs"}
+var deploymentconfigsResource = schema.GroupVersionResource{Group: "apps.openshift.io", Version: "", Resource: "deploymentconfigs"}
 
 func (c *FakeDeploymentConfigs) Create(deploymentConfig *api.DeploymentConfig) (result *api.DeploymentConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(deploymentconfigsResource, c.ns, deploymentConfig), &api.DeploymentConfig{})
+		Invokes(testing.NewCreateAction(deploymentconfigsResource, c.ns, deploymentConfig), &api.DeploymentConfig{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakeDeploymentConfigs) Create(deploymentConfig *api.DeploymentConfig) (
 
 func (c *FakeDeploymentConfigs) Update(deploymentConfig *api.DeploymentConfig) (result *api.DeploymentConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(deploymentconfigsResource, c.ns, deploymentConfig), &api.DeploymentConfig{})
+		Invokes(testing.NewUpdateAction(deploymentconfigsResource, c.ns, deploymentConfig), &api.DeploymentConfig{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,33 @@ func (c *FakeDeploymentConfigs) Update(deploymentConfig *api.DeploymentConfig) (
 	return obj.(*api.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakeDeploymentConfigs) UpdateStatus(deploymentConfig *api.DeploymentConfig) (*api.DeploymentConfig, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(deploymentconfigsResource, "status", c.ns, deploymentConfig), &api.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api.DeploymentConfig), err
+}
+
+func (c *FakeDeploymentConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(deploymentconfigsResource, c.ns, name), &api.DeploymentConfig{})
+		Invokes(testing.NewDeleteAction(deploymentconfigsResource, c.ns, name), &api.DeploymentConfig{})
 
 	return err
 }
 
-func (c *FakeDeploymentConfigs) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(deploymentconfigsResource, c.ns, listOptions)
+func (c *FakeDeploymentConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(deploymentconfigsResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.DeploymentConfigList{})
 	return err
 }
 
-func (c *FakeDeploymentConfigs) Get(name string) (result *api.DeploymentConfig, err error) {
+func (c *FakeDeploymentConfigs) Get(name string, options v1.GetOptions) (result *api.DeploymentConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(deploymentconfigsResource, c.ns, name), &api.DeploymentConfig{})
+		Invokes(testing.NewGetAction(deploymentconfigsResource, c.ns, name), &api.DeploymentConfig{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +72,15 @@ func (c *FakeDeploymentConfigs) Get(name string) (result *api.DeploymentConfig, 
 	return obj.(*api.DeploymentConfig), err
 }
 
-func (c *FakeDeploymentConfigs) List(opts pkg_api.ListOptions) (result *api.DeploymentConfigList, err error) {
+func (c *FakeDeploymentConfigs) List(opts v1.ListOptions) (result *api.DeploymentConfigList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(deploymentconfigsResource, c.ns, opts), &api.DeploymentConfigList{})
+		Invokes(testing.NewListAction(deploymentconfigsResource, c.ns, opts), &api.DeploymentConfigList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +94,16 @@ func (c *FakeDeploymentConfigs) List(opts pkg_api.ListOptions) (result *api.Depl
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *FakeDeploymentConfigs) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakeDeploymentConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(deploymentconfigsResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(deploymentconfigsResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.
-func (c *FakeDeploymentConfigs) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
+func (c *FakeDeploymentConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(deploymentconfigsResource, c.ns, name, data, subresources...), &api.DeploymentConfig{})
+		Invokes(testing.NewPatchSubresourceAction(deploymentconfigsResource, c.ns, name, data, subresources...), &api.DeploymentConfig{})
 
 	if obj == nil {
 		return nil, err

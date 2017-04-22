@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/user/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/user/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // UsersGetter has a method to return a UserResourceInterface.
@@ -17,18 +19,18 @@ type UsersGetter interface {
 type UserResourceInterface interface {
 	Create(*api.User) (*api.User, error)
 	Update(*api.User) (*api.User, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.User, error)
-	List(opts pkg_api.ListOptions) (*api.UserList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.User, err error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.User, error)
+	List(opts v1.ListOptions) (*api.UserList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.User, err error)
 	UserResourceExpansion
 }
 
 // users implements UserResourceInterface
 type users struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -66,7 +68,7 @@ func (c *users) Update(user *api.User) (result *api.User, err error) {
 }
 
 // Delete takes name of the user and deletes it. Returns an error if one occurs.
-func (c *users) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *users) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("users").
@@ -77,52 +79,53 @@ func (c *users) Delete(name string, options *pkg_api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *users) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *users) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("users").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the user, and returns the corresponding user object, and an error if there is any.
-func (c *users) Get(name string) (result *api.User, err error) {
+func (c *users) Get(name string, options v1.GetOptions) (result *api.User, err error) {
 	result = &api.User{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("users").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Users that match those selectors.
-func (c *users) List(opts pkg_api.ListOptions) (result *api.UserList, err error) {
+func (c *users) List(opts v1.ListOptions) (result *api.UserList, err error) {
 	result = &api.UserList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("users").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested users.
-func (c *users) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *users) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("users").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched user.
-func (c *users) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.User, err error) {
+func (c *users) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.User, err error) {
 	result = &api.User{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

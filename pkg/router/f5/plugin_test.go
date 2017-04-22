@@ -15,8 +15,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/openshift/origin/pkg/cmd/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -1510,7 +1511,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint add",
 			eventType: watch.Added,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -1552,7 +1553,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint modify",
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -1594,7 +1595,7 @@ func TestHandleEndpoints(t *testing.T) {
 			name:      "Endpoint delete",
 			eventType: watch.Modified,
 			endpoints: &kapi.Endpoints{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "test",
 				},
@@ -1660,7 +1661,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Unsecure route add",
 			eventType: watch.Added,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
@@ -1715,7 +1716,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Unsecure route modify",
 			eventType: watch.Modified,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
@@ -1769,7 +1770,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Unsecure route delete",
 			eventType: watch.Deleted,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "unsecuretest",
 				},
@@ -1799,7 +1800,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Edge route add",
 			eventType: watch.Added,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
@@ -1867,7 +1868,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Edge route delete",
 			eventType: watch.Deleted,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "edgetest",
 				},
@@ -1935,7 +1936,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Passthrough route add",
 			eventType: watch.Added,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
@@ -1967,7 +1968,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Add route with same hostname as passthrough route",
 			eventType: watch.Added,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
@@ -2001,7 +2002,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Modify route with same hostname as passthrough route",
 			eventType: watch.Modified,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
@@ -2030,7 +2031,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Delete route with same hostname as passthrough route",
 			eventType: watch.Deleted,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "conflictingroutetest",
 				},
@@ -2059,7 +2060,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Passthrough route delete",
 			eventType: watch.Deleted,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "passthroughtest",
 				},
@@ -2091,7 +2092,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Reencrypted route add",
 			eventType: watch.Added,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
@@ -2177,7 +2178,7 @@ func TestHandleRoute(t *testing.T) {
 			name:      "Reencrypted route delete",
 			eventType: watch.Deleted,
 			route: &routeapi.Route{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "reencryptedtest",
 				},
@@ -2275,7 +2276,7 @@ func TestHandleRouteModifications(t *testing.T) {
 	defer mockF5.close()
 
 	testRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 			Name:      "mutatingroute",
 		},
@@ -2344,7 +2345,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 	}
 
 	testRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "xyzzy",
 			Name:      "testroute",
 		},
@@ -2364,7 +2365,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 	}
 
 	testPassthroughRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "quux",
 			Name:      "testpassthroughroute",
 		},
@@ -2380,7 +2381,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 	}
 
 	testHttpEndpoint := &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "xyzzy",
 			Name:      "testhttpendpoint",
 		},
@@ -2391,7 +2392,7 @@ func TestF5RouterSuccessiveInstances(t *testing.T) {
 	}
 
 	testHttpsEndpoint := &kapi.Endpoints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "quux",
 			Name:      "testhttpsendpoint",
 		},

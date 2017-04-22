@@ -1,21 +1,24 @@
 package deployconfig
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
 
 // Registry is an interface for things that know how to store DeploymentConfigs.
 type Registry interface {
-	ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (*deployapi.DeploymentConfigList, error)
-	WatchDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
-	GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error)
-	CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error
-	UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error
-	DeleteDeploymentConfig(ctx kapi.Context, name string) error
+	ListDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*deployapi.DeploymentConfigList, error)
+	WatchDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
+	GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
+	CreateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error
+	UpdateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error
+	DeleteDeploymentConfig(ctx apirequest.Context, name string) error
 }
 
 // storage puts strong typing around storage calls
@@ -29,7 +32,7 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (s *storage) ListDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*deployapi.DeploymentConfigList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -37,29 +40,29 @@ func (s *storage) ListDeploymentConfigs(ctx kapi.Context, options *kapi.ListOpti
 	return obj.(*deployapi.DeploymentConfigList), nil
 }
 
-func (s *storage) WatchDeploymentConfigs(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchDeploymentConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetDeploymentConfig(ctx kapi.Context, name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*deployapi.DeploymentConfig), nil
 }
 
-func (s *storage) CreateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error {
+func (s *storage) CreateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error {
 	_, err := s.Create(ctx, deploymentConfig)
 	return err
 }
 
-func (s *storage) UpdateDeploymentConfig(ctx kapi.Context, deploymentConfig *deployapi.DeploymentConfig) error {
+func (s *storage) UpdateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error {
 	_, _, err := s.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig, kapi.Scheme))
 	return err
 }
 
-func (s *storage) DeleteDeploymentConfig(ctx kapi.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+func (s *storage) DeleteDeploymentConfig(ctx apirequest.Context, name string) error {
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

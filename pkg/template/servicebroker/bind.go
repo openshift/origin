@@ -6,13 +6,15 @@ import (
 	"strconv"
 	"strings"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/selection"
 )
 
 // copied from vendor/k8s.io/kubernetes/pkg/kubelet/envvars/envvars.go
@@ -26,7 +28,7 @@ func makeEnvVariableName(str string) string {
 func (b *Broker) getServices(impersonatedKC internalversion.ServicesGetter, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
-	serviceList, err := impersonatedKC.Services(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
+	serviceList, err := impersonatedKC.Services(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
 			return nil, api.Forbidden(err)
@@ -60,7 +62,7 @@ func (b *Broker) getServices(impersonatedKC internalversion.ServicesGetter, name
 func (b *Broker) getSecrets(impersonatedKC internalversion.SecretsGetter, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
-	secretList, err := impersonatedKC.Secrets(namespace).List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
+	secretList, err := impersonatedKC.Secrets(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
 			return nil, api.Forbidden(err)
@@ -101,7 +103,7 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		return api.InternalServerError(err)
 	}
 
-	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID)
+	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return api.BadRequest(err)
@@ -110,7 +112,7 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		return api.InternalServerError(err)
 	}
 
-	templateInstance, err := b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name)
+	templateInstance, err := b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
 	if err != nil {
 		return api.InternalServerError(err)
 	}

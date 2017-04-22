@@ -21,12 +21,12 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 
 	g.Describe("RunBuildControllerTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildControllerTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildControllerTest(g.GinkgoT(), oc.AdminClient(), oc.InternalAdminKubeClient())
 		})
 	})
 	g.Describe("RunBuildPodControllerTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildPodControllerTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildPodControllerTest(g.GinkgoT(), oc.AdminClient(), oc.InternalAdminKubeClient())
 		})
 	})
 	g.Describe("RunImageChangeTriggerTest [SkipPrevControllers]", func() {
@@ -36,17 +36,17 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 	})
 	g.Describe("RunBuildDeleteTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildDeleteTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildDeleteTest(g.GinkgoT(), oc.AdminClient(), oc.InternalAdminKubeClient())
 		})
 	})
 	g.Describe("RunBuildRunningPodDeleteTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminClient(), oc.InternalAdminKubeClient())
 		})
 	})
 	g.Describe("RunBuildConfigChangeControllerTest", func() {
 		g.It("should succeed", func() {
-			build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminClient(), oc.AdminKubeClient())
+			build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminClient(), oc.InternalAdminKubeClient())
 		})
 	})
 })

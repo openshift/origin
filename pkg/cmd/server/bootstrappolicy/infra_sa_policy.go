@@ -3,6 +3,8 @@ package bootstrappolicy
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
@@ -11,7 +13,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/storage"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -140,7 +141,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraBuildControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: BuildControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -188,7 +189,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraDeploymentConfigControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: DeploymentConfigControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -222,7 +223,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraDeploymentControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: DeploymentControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -263,7 +264,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraReplicationControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: ReplicationControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -308,7 +309,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraReplicaSetControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: ReplicaSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -340,7 +341,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraJobControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: JobControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -391,7 +392,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraHPAControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: HPAControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -441,7 +442,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraPersistentVolumeRecyclerControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: PersistentVolumeRecyclerControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -500,7 +501,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraPersistentVolumeAttachDetachControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: PersistentVolumeAttachDetachControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -549,7 +550,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraPersistentVolumeBinderControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: PersistentVolumeBinderControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -630,7 +631,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraPersistentVolumeProvisionerControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: PersistentVolumeProvisionerControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -674,7 +675,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraDaemonSetControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: DaemonSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -725,7 +726,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraDisruptionControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: DisruptionControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -773,7 +774,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraNamespaceControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: NamespaceControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -806,7 +807,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraGCControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: GCControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -838,7 +839,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraServiceLoadBalancerControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: ServiceLoadBalancerControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -881,7 +882,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraStatefulSetControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: StatefulSetControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -937,7 +938,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraUnidlingControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: UnidlingControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -986,7 +987,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		ServiceServingCertServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: ServiceServingCertControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -1010,7 +1011,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraCertificateSigningControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: CertificateSigningControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -1034,7 +1035,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraEndpointControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: EndpointControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -1066,7 +1067,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraServiceIngressIPControllerServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: ServiceIngressIPControllerRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{
@@ -1103,7 +1104,7 @@ func init() {
 	err = InfraSAs.addServiceAccount(
 		InfraNodeBootstrapServiceAccountName,
 		authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: NodeBootstrapRoleName,
 			},
 			Rules: []authorizationapi.PolicyRule{

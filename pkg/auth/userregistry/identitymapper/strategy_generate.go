@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -43,7 +44,7 @@ func NewStrategyGenerate(user userregistry.Registry, initializer user.Initialize
 	return &StrategyGenerate{user, DefaultGenerator, initializer}
 }
 
-func (s *StrategyGenerate) UserForNewIdentity(ctx kapi.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
+func (s *StrategyGenerate) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
 	// Iterate through the max allowed generated usernames
 	// If an existing user references this identity, associate the identity with that user and return
@@ -56,7 +57,7 @@ UserSearch:
 		potentialUserName := s.generator(preferredUserName, sequence)
 
 		// See if it already exists
-		persistedUser, err := s.user.GetUser(ctx, potentialUserName)
+		persistedUser, err := s.user.GetUser(ctx, potentialUserName, &metav1.GetOptions{})
 
 		switch {
 		case kerrs.IsNotFound(err):

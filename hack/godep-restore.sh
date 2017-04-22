@@ -49,7 +49,7 @@ go get -u github.com/tools/godep 2>/dev/null || true
 GODEP="${GOPATH}/bin/godep"
 
 # Use to following if we ever need to pin godep to a specific version again
-pin-godep 'v75'
+pin-godep 'v79'
 
 # preload any odd-ball remotes
 preload-remote "github.com/openshift" "origin" "github.com/openshift" "origin" # this looks goofy, but if you are not in GOPATH you need to pull origin explicitly
@@ -69,12 +69,13 @@ preload-dep "github.com/elazarl"     "goproxy" "$( go run "${OS_ROOT}/tools/gode
 preload-dep "github.com/golang/mock" "gomock"  "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "github.com/golang/mock/gomock" )"
 # docker storage dep
 preload-dep "google.golang.org" "cloud"  "$( go run "${OS_ROOT}/tools/godepversion/godepversion.go" "${OS_ROOT}/Godeps/Godeps.json" "google.golang.org/cloud" )"
+preload-dep "github.com/karlseguin" "ccache" "master"
 
 # fill out that nice clean place with the origin godeps
 echo "Starting to download all godeps. This takes a while"
 
 pushd "${GOPATH}/src/github.com/openshift/origin" > /dev/null
-"${GODEP}" restore
+  GOPATH=$GOPATH:${PWD}/vendor/k8s.io/kubernetes/staging "${GODEP}" restore "$@"
 popd > /dev/null
 
 echo "Download finished into ${GOPATH}"

@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
@@ -37,7 +38,7 @@ func TestWebhook(t *testing.T) {
 	}
 
 	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 
 	if err := testserver.WaitForServiceAccounts(kubeClient, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
@@ -117,7 +118,7 @@ func TestWebhook(t *testing.T) {
 				t.Fatalf("%s: Unable to unmarshal returned body into a Build object: %v", test.Name, err)
 			}
 
-			actual, err := osClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+			actual, err := osClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 			if err != nil {
 				t.Errorf("Created build not found in cluster: %v", err)
 			}
@@ -164,7 +165,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
+		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:3000/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
@@ -182,10 +183,10 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	}
 
 	ism := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
+		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Tag:        "validtag",
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
 			DockerImageReference: "registry:3000/integration/imagestream:success",
@@ -222,7 +223,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 			t.Errorf("Webhook returned incomplete or wrong Build")
 		}
 
-		actual, err := clusterAdminClient.Builds(testutil.Namespace()).Get(returnedBuild.Name)
+		actual, err := clusterAdminClient.Builds(testutil.Namespace()).Get(returnedBuild.Name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("Created build not found in cluster: %v", err)
 		}
@@ -278,7 +279,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 
 	// create imagerepo
 	imageStream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
+		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Spec: imageapi.ImageStreamSpec{
 			DockerImageRepository: "registry:3000/integration/imagestream",
 			Tags: map[string]imageapi.TagReference{
@@ -296,10 +297,10 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	}
 
 	ism := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: "image-stream"},
+		ObjectMeta: metav1.ObjectMeta{Name: "image-stream"},
 		Tag:        "validtag",
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "myimage",
 			},
 			DockerImageReference: "registry:3000/integration/imagestream:success",
@@ -316,7 +317,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
+	watch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -363,7 +364,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 
 	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: testutil.Namespace()},
+		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 
 	// create buildconfig
@@ -372,7 +373,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 
-	watch, err := osClient.Builds(testutil.Namespace()).Watch(kapi.ListOptions{})
+	watch, err := osClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to builds: %v", err)
 	}
@@ -426,7 +427,7 @@ func postFile(client restclient.HTTPClient, headerFunc func(*http.Header), filen
 
 func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -533,7 +534,7 @@ func mockBuildConfigImageParms(imageName, imageStream, imageTag string) *buildap
 
 func mockBuildConfigImageStreamParms(imageName, imageStream, imageTag string) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pushbuild",
 		},
 		Spec: buildapi.BuildConfigSpec{

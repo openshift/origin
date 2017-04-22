@@ -9,6 +9,7 @@ import (
 
 	flag "github.com/spf13/pflag"
 
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -174,7 +175,7 @@ func (d *NetworkDiagnostic) runNetworkDiagnostic() {
 
 func (d *NetworkDiagnostic) runNetworkPod(command string) error {
 	for _, node := range d.nodes {
-		podName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagPodNamePrefix))
+		podName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagPodNamePrefix))
 
 		pod := GetNetworkDiagnosticsPod(d.PodImage, command, podName, node.Name)
 		_, err := d.KubeClient.Core().Pods(d.nsName1).Create(pod)

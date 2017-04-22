@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/deploy/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // DeploymentConfigsGetter has a method to return a DeploymentConfigInterface.
@@ -17,18 +19,19 @@ type DeploymentConfigsGetter interface {
 type DeploymentConfigInterface interface {
 	Create(*api.DeploymentConfig) (*api.DeploymentConfig, error)
 	Update(*api.DeploymentConfig) (*api.DeploymentConfig, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.DeploymentConfig, error)
-	List(opts pkg_api.ListOptions) (*api.DeploymentConfigList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error)
+	UpdateStatus(*api.DeploymentConfig) (*api.DeploymentConfig, error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.DeploymentConfig, error)
+	List(opts v1.ListOptions) (*api.DeploymentConfigList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error)
 	DeploymentConfigExpansion
 }
 
 // deploymentConfigs implements DeploymentConfigInterface
 type deploymentConfigs struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -65,8 +68,24 @@ func (c *deploymentConfigs) Update(deploymentConfig *api.DeploymentConfig) (resu
 	return
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+
+func (c *deploymentConfigs) UpdateStatus(deploymentConfig *api.DeploymentConfig) (result *api.DeploymentConfig, err error) {
+	result = &api.DeploymentConfig{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(deploymentConfig.Name).
+		SubResource("status").
+		Body(deploymentConfig).
+		Do().
+		Into(result)
+	return
+}
+
 // Delete takes name of the deploymentConfig and deletes it. Returns an error if one occurs.
-func (c *deploymentConfigs) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *deploymentConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
@@ -77,52 +96,53 @@ func (c *deploymentConfigs) Delete(name string, options *pkg_api.DeleteOptions) 
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *deploymentConfigs) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *deploymentConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *deploymentConfigs) Get(name string) (result *api.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Get(name string, options v1.GetOptions) (result *api.DeploymentConfig, err error) {
 	result = &api.DeploymentConfig{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts pkg_api.ListOptions) (result *api.DeploymentConfigList, err error) {
+func (c *deploymentConfigs) List(opts v1.ListOptions) (result *api.DeploymentConfigList, err error) {
 	result = &api.DeploymentConfigList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *deploymentConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("deploymentconfigs").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.
-func (c *deploymentConfigs) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
+func (c *deploymentConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.DeploymentConfig, err error) {
 	result = &api.DeploymentConfig{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

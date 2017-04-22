@@ -12,7 +12,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/libtrust"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )

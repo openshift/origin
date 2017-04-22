@@ -3,8 +3,8 @@ package remotetokenreview
 import (
 	"errors"
 
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/pkg/apis/authentication"
-	"k8s.io/kubernetes/pkg/auth/user"
 	internalauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
 )
 
