@@ -24,6 +24,7 @@ type oauthClients struct {
 	r *Client
 }
 
+
 func newOAuthClients(c *Client) *oauthClients {
 	return &oauthClients{
 		r: c,
