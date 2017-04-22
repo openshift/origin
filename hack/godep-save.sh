@@ -95,6 +95,47 @@ undo-forks-in-godeps-json () {
   mv "$TMPGOPATH/Godeps.json" Godeps/Godeps.json
 }
 
+godep-save () {
+  echo "Deleting vendor/ and Godeps/"
+  rm -rf vendor/ Godeps/
+  echo "Running godep-save. This takes around 15 minutes."
+  GOPATH=$TMPGOPATH:$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save "$@"
+
+  undo-forks-in-godeps-json
+
+  # godep fails to copy all package in staging because it gets confused with the symlinks. Moreover,
+  # godep fails to copy dependencies of tests. Hence, we copy over manually until we have proper staging
+  # repo tooling and we have replaced godep with something sane.
+  rsync -ax --exclude='vendor/' --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/ vendor/k8s.io/kubernetes/
+
+  # recreate symlinks
+  re=""
+  sep=""
+  for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
+    dir=$(basename $pkg)
+    rm -rf vendor/k8s.io/$dir
+    ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
+
+    # create regex for jq further down
+    re+="${sep}k8s.io/$dir"
+    sep="|"
+  done
+
+  # filter out fake packages
+  for pkg in $(cat "$TMPGOPATH/fake-packages"); do
+    re+="${sep}$pkg"
+    sep="|"
+  done
+
+  # filter out staging repos from Godeps.json
+  jq ".Deps |= map( select(.ImportPath | test(\"^(${re})\$\"; \"\") | not ) )" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
+  unexpand -t2 "$TMPGOPATH/Godeps.json" > Godeps/Godeps.json
+}
+
+missing-test-deps () {
+  go list -f $'{{range .Imports}}{{.}}\n{{end}}{{range .TestImports}}{{.}}\n{{end}}{{range .XTestImports}}{{.}}\n{{end}}' ./vendor/k8s.io/kubernetes/... | grep '\.' | grep -v github.com/openshift/origin | sort -u || true
+}
+
 fork-without-vendor github.com/docker/distribution
 fork-without-vendor github.com/libopenstorage/openstorage
 fork-with-fake-packages github.com/docker/docker \
@@ -109,33 +150,19 @@ fork-with-fake-packages github.com/docker/docker \
   api/types/swarm \
   api/types/versions
 
-GOPATH=$TMPGOPATH:$GOPATH:$GOPATH/src/k8s.io/kubernetes/staging "${GODEP}" save -t "${REQUIRED_BINS[@]}"
-
-undo-forks-in-godeps-json
-
-# godep fails to copy all package in staging because it gets confused with the symlinks.
-# Hence, we copy over manually until we have proper staging repo tooling.
-rsync -ax --include='*.go' --include='*/' --exclude='*' $GOPATH/src/k8s.io/kubernetes/staging/src/* vendor/k8s.io/kubernetes/staging/src/
-
-# recreate symlinks
-re=""
-sep=""
-for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
-  dir=$(basename $pkg)
-  rm -rf vendor/k8s.io/$dir
-  ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
-
-  # create regex for jq further down
-  re+="${sep}k8s.io/$dir"
-  sep="|"
+# This is grotesque: godep-save does not copy dependencies of tests. Because we want to run the
+# kubernetes tests, we have to extract the missing test dependencies and run godep-save again
+# until we converge. Because we rsync kubernetes itself above, two iterations should be enough.
+MISSING_TEST_DEPS=""
+while true; do
+  godep-save -t "${REQUIRED_BINS[@]}" ${MISSING_TEST_DEPS}
+  NEW_MISSING_TEST_DEPS="$(missing-test-deps)"
+  if [ -z "${NEW_MISSING_TEST_DEPS}" ]; then
+    break
+  fi
+  echo "Missing dependencies for kubernetes tests found. Sorry, running godep-save again to get: ${NEW_MISSING_TEST_DEPS}"
+  MISSING_TEST_DEPS+=" ${NEW_MISSING_TEST_DEPS}"
 done
 
-# filter out fake packages
-for pkg in $(cat "$TMPGOPATH/fake-packages"); do
-  re+="${sep}$pkg"
-  sep="|"
-done
-
-# filter out staging repos from Godeps.json
-jq ".Deps |= map( select(.ImportPath | test(\"^(${re})\$\"; \"\") | not ) )" Godeps/Godeps.json > "$TMPGOPATH/Godeps.json"
-unexpand -t2 "$TMPGOPATH/Godeps.json" > Godeps/Godeps.json
+echo
+echo "Do not forget to run hack/copy-kube-artifacts.sh"
