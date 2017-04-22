@@ -80,16 +80,17 @@ type PodSecurityPolicyReview struct {
 // PodSecurityPolicyReviewSpec defines specification for PodSecurityPolicyReview
 type PodSecurityPolicyReviewSpec struct {
 	// Template is the PodTemplateSpec to check. The PodTemplateSpec.Spec.ServiceAccountName field is used
-	// if ServiceAccountNames is empty, unless the PodTemplateSpec.Spec.ServiceAccountName is empty,
+	// if ServiceAccountNames is not nil and empty, unless the PodTemplateSpec.Spec.ServiceAccountName is empty,
 	// in which case "default" is used.
-	// If ServiceAccountNames is specified, PodTemplateSpec.Spec.ServiceAccountName is ignored.
+	// If ServiceAccountNames is specified or nil, PodTemplateSpec.Spec.ServiceAccountName is ignored.
 	Template kapi.PodTemplateSpec
 
 	// ServiceAccountNames is an optional set of ServiceAccounts to run the check with.
-	// If ServiceAccountNames is empty, the PodTemplateSpec.Spec.ServiceAccountName is used,
+	// If ServiceAccountNames is nil all ServiceAccounts are taken in account
+	// If ServiceAccountNames is not nil but empty, the PodTemplateSpec.Spec.ServiceAccountName is used,
 	// unless it's empty, in which case "default" is used instead.
-	// If ServiceAccountNames is specified, PodTemplateSpec.Spec.ServiceAccountName is ignored.
-	ServiceAccountNames []string // TODO: find a way to express 'all service accounts'
+	// If ServiceAccountNames is specified or nil, PodTemplateSpec.Spec.ServiceAccountName is ignored.
+	ServiceAccountNames []string
 }
 
 // PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.

@@ -10,6 +10,7 @@ import (
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/cache"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -101,11 +102,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 func getServiceAccounts(psprSpec securityapi.PodSecurityPolicyReviewSpec, saCache *cache.StoreToServiceAccountLister, namespace string) ([]*kapi.ServiceAccount, error) {
 	serviceAccounts := []*kapi.ServiceAccount{}
-	//  TODO: express 'all service accounts'
-	//if serviceAccountList, err := client.Core().ServiceAccounts(namespace).List(kapi.ListOptions{}); err == nil {
-	//	serviceAccounts = serviceAccountList.Items
-	//	return serviceAccounts, fmt.Errorf("unable to retrieve service accounts: %v", err)
-	//}
+	if psprSpec.ServiceAccountNames == nil {
+		serviceAccountList, err := saCache.ServiceAccounts(namespace).List(labels.Everything())
+		if err != nil {
+			return serviceAccounts, fmt.Errorf("unable to retrieve service accounts: %v", err)
+		}
+		return serviceAccountList, nil
+	}
 
 	if len(psprSpec.ServiceAccountNames) > 0 {
 		errs := []error{}
