@@ -256,7 +256,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -289,7 +289,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -307,7 +307,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -325,7 +325,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}

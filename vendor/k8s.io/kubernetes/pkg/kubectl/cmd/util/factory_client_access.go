@@ -168,11 +168,11 @@ func (f *ring0Factory) DiscoveryClient() (discovery.CachedDiscoveryInterface, er
 	return f.discoveryFactory.DiscoveryClient()
 }
 
-func (f *ring0Factory) ClientSet() (*internalclientset.Clientset, error) {
+func (f *ring0Factory) ClientSet() (internalclientset.Interface, error) {
 	return f.clientCache.ClientSetForVersion(nil)
 }
 
-func (f *ring0Factory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*internalclientset.Clientset, error) {
+func (f *ring0Factory) ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (internalclientset.Interface, error) {
 	return f.clientCache.ClientSetForVersion(requiredVersion)
 }
 

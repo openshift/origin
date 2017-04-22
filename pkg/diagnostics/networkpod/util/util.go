@@ -204,7 +204,7 @@ func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in i
 			Stdin:         in != nil,
 		},
 		Executor:  &kubecmd.DefaultRemoteExecutor{},
-		PodClient: client,
+		PodClient: client.Core(),
 		Config:    config,
 		Command:   command,
 	}

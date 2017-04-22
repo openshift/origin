@@ -114,8 +114,8 @@ func (o *NewServiceAccountTokenOptions) Complete(args []string, requestedLabels 
 		return fmt.Errorf("could not retrieve default namespace: %v", err)
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 

@@ -88,8 +88,8 @@ func (o *GetServiceAccountTokenOptions) Complete(args []string, f *clientcmd.Fac
 		return err
 	}
 
-	o.SAClient = client.ServiceAccounts(namespace)
-	o.SecretsClient = client.Secrets(namespace)
+	o.SAClient = client.Core().ServiceAccounts(namespace)
+	o.SecretsClient = client.Core().Secrets(namespace)
 	return nil
 }
 
