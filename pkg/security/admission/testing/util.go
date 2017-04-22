@@ -1,6 +1,7 @@
 package testing
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	allocator "github.com/openshift/origin/pkg/security"
@@ -9,7 +10,7 @@ import (
 // CreateSAForTest Build and Initializes a ServiceAccount for tests
 func CreateSAForTest() *kapi.ServiceAccount {
 	return &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "default",
 			Namespace: "default",
 		},
@@ -19,7 +20,7 @@ func CreateSAForTest() *kapi.ServiceAccount {
 // CreateNamespaceForTest builds and initializes a Namespaces for tests
 func CreateNamespaceForTest() *kapi.Namespace {
 	return &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
 				allocator.UIDRangeAnnotation:           "1/3",
@@ -35,7 +36,7 @@ func UserScc(user string) *kapi.SecurityContextConstraints {
 	var uid int64 = 9999
 	fsGroup := int64(1)
 	return &kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			SelfLink: "/api/version/securitycontextconstraints/" + user,
 			Name:     user,
 		},

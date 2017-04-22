@@ -15,9 +15,10 @@ import (
 	repomw "github.com/docker/distribution/registry/middleware/repository"
 	registrystorage "github.com/docker/distribution/registry/storage"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
@@ -116,7 +117,7 @@ func init() {
 	)
 
 	secureTransport = http.DefaultTransport
-	insecureTransport, err = restclient.TransportFor(&restclient.Config{Insecure: true})
+	insecureTransport, err = restclient.TransportFor(&restclient.Config{TLSClientConfig: restclient.TLSClientConfig{Insecure: true}})
 	if err != nil {
 		panic(fmt.Sprintf("Unable to configure a default transport for importing insecure images: %v", err))
 	}
@@ -355,7 +356,7 @@ func (r *repository) getImage(dgst digest.Digest) (*imageapi.Image, error) {
 		return image, nil
 	}
 
-	image, err := r.registryOSClient.Images().Get(dgst.String())
+	image, err := r.registryOSClient.Images().Get(dgst.String(), metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(r.ctx).Errorf("failed to get image: %v", err)
 		return nil, wrapKStatusErrorOnGetImage(r.name, dgst, err)

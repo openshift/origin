@@ -33,20 +33,20 @@ import (
 
 	"github.com/spf13/cobra"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/rest/fake"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
-	"k8s.io/kubernetes/pkg/conversion"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 const (
@@ -60,16 +60,16 @@ var cordoned_node *api.Node
 func TestMain(m *testing.M) {
 	// Create a node.
 	node = &api.Node{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "node",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 		},
 		Spec: api.NodeSpec{
 			ExternalID: "node",
 		},
 		Status: api.NodeStatus{},
 	}
-	clone, _ := conversion.NewCloner().DeepCopy(node)
+	clone, _ := api.Scheme.DeepCopy(node)
 
 	// A copy of the same node, but cordoned.
 	cordoned_node = clone.(*api.Node)
@@ -149,6 +149,7 @@ func TestCordon(t *testing.T) {
 		new_node := &api.Node{}
 		updated := false
 		tf.Client = &fake.RESTClient{
+			APIRegistry:          api.Registry,
 			NegotiatedSerializer: ns,
 			Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 				m := &MyReq{req}
@@ -221,10 +222,10 @@ func TestDrain(t *testing.T) {
 	labels["my_key"] = "my_value"
 
 	rc := api.ReplicationController{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "rc",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			SelfLink:          testapi.Default.SelfLink("replicationcontrollers", "rc"),
 		},
@@ -237,10 +238,10 @@ func TestDrain(t *testing.T) {
 	rc_anno[api.CreatedByAnnotation] = refJson(t, &rc)
 
 	rc_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       rc_anno,
 		},
@@ -250,14 +251,14 @@ func TestDrain(t *testing.T) {
 	}
 
 	ds := extensions.DaemonSet{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "ds",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/daemonsets/ds",
 		},
 		Spec: extensions.DaemonSetSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
 		},
 	}
 
@@ -265,10 +266,10 @@ func TestDrain(t *testing.T) {
 	ds_anno[api.CreatedByAnnotation] = refJson(t, &ds)
 
 	ds_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       ds_anno,
 		},
@@ -277,38 +278,66 @@ func TestDrain(t *testing.T) {
 		},
 	}
 
+	missing_ds := extensions.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "missing-ds",
+			Namespace:         "default",
+			CreationTimestamp: metav1.Time{Time: time.Now()},
+			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/daemonsets/missing-ds",
+		},
+		Spec: extensions.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
+		},
+	}
+
+	missing_ds_anno := make(map[string]string)
+	missing_ds_anno[api.CreatedByAnnotation] = refJson(t, &missing_ds)
+
+	orphaned_ds_pod := api.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "bar",
+			Namespace:         "default",
+			CreationTimestamp: metav1.Time{Time: time.Now()},
+			Labels:            labels,
+			Annotations:       missing_ds_anno,
+		},
+		Spec: api.PodSpec{
+			NodeName: "node",
+		},
+	}
+
 	job := batch.Job{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "job",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
-			SelfLink:          "/apis/extensions/v1beta1/namespaces/default/jobs/job",
+			CreationTimestamp: metav1.Time{Time: time.Now()},
+			SelfLink:          "/apis/batch/v1/namespaces/default/jobs/job",
 		},
 		Spec: batch.JobSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
 		},
 	}
 
 	job_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       map[string]string{api.CreatedByAnnotation: refJson(t, &job)},
 		},
 	}
 
 	rs := extensions.ReplicaSet{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "rs",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			SelfLink:          testapi.Default.SelfLink("replicasets", "rs"),
 		},
 		Spec: extensions.ReplicaSetSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
 		},
 	}
 
@@ -316,10 +345,10 @@ func TestDrain(t *testing.T) {
 	rs_anno[api.CreatedByAnnotation] = refJson(t, &rs)
 
 	rs_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 			Annotations:       rs_anno,
 		},
@@ -329,10 +358,10 @@ func TestDrain(t *testing.T) {
 	}
 
 	naked_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 		},
 		Spec: api.PodSpec{
@@ -341,10 +370,10 @@ func TestDrain(t *testing.T) {
 	}
 
 	emptydir_pod := api.Pod{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "bar",
 			Namespace:         "default",
-			CreationTimestamp: unversioned.Time{Time: time.Now()},
+			CreationTimestamp: metav1.Time{Time: time.Now()},
 			Labels:            labels,
 		},
 		Spec: api.PodSpec{
@@ -388,6 +417,26 @@ func TestDrain(t *testing.T) {
 			args:         []string{"node"},
 			expectFatal:  true,
 			expectDelete: false,
+		},
+		{
+			description:  "orphaned DS-managed pod",
+			node:         node,
+			expected:     cordoned_node,
+			pods:         []api.Pod{orphaned_ds_pod},
+			rcs:          []api.ReplicationController{},
+			args:         []string{"node"},
+			expectFatal:  true,
+			expectDelete: false,
+		},
+		{
+			description:  "orphaned DS-managed pod with --force",
+			node:         node,
+			expected:     cordoned_node,
+			pods:         []api.Pod{orphaned_ds_pod},
+			rcs:          []api.ReplicationController{},
+			args:         []string{"node", "--force"},
+			expectFatal:  false,
+			expectDelete: true,
 		},
 		{
 			description:  "DS-managed pod with --ignore-daemonsets",
@@ -484,21 +533,22 @@ func TestDrain(t *testing.T) {
 			evicted := false
 			f, tf, codec, ns := cmdtesting.NewAPIFactory()
 			tf.Client = &fake.RESTClient{
+				APIRegistry:          api.Registry,
 				NegotiatedSerializer: ns,
 				Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
 					m := &MyReq{req}
 					switch {
 					case req.Method == "GET" && req.URL.Path == "/api":
-						apiVersions := unversioned.APIVersions{
+						apiVersions := metav1.APIVersions{
 							Versions: []string{"v1"},
 						}
 						return genResponseWithJsonEncodedBody(apiVersions)
 					case req.Method == "GET" && req.URL.Path == "/apis":
-						groupList := unversioned.APIGroupList{
-							Groups: []unversioned.APIGroup{
+						groupList := metav1.APIGroupList{
+							Groups: []metav1.APIGroup{
 								{
 									Name: "policy",
-									PreferredVersion: unversioned.GroupVersionForDiscovery{
+									PreferredVersion: metav1.GroupVersionForDiscovery{
 										GroupVersion: "policy/v1beta1",
 									},
 								},
@@ -506,11 +556,11 @@ func TestDrain(t *testing.T) {
 						}
 						return genResponseWithJsonEncodedBody(groupList)
 					case req.Method == "GET" && req.URL.Path == "/api/v1":
-						resourceList := unversioned.APIResourceList{
+						resourceList := metav1.APIResourceList{
 							GroupVersion: "v1",
 						}
 						if testEviction {
-							resourceList.APIResources = []unversioned.APIResource{
+							resourceList.APIResources = []metav1.APIResource{
 								{
 									Name: EvictionSubresource,
 									Kind: EvictionKind,
@@ -524,8 +574,10 @@ func TestDrain(t *testing.T) {
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &test.rcs[0])}, nil
 					case m.isFor("GET", "/namespaces/default/daemonsets/ds"):
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &ds)}, nil
+					case m.isFor("GET", "/namespaces/default/daemonsets/missing-ds"):
+						return &http.Response{StatusCode: 404, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &extensions.DaemonSet{})}, nil
 					case m.isFor("GET", "/namespaces/default/jobs/job"):
-						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &job)}, nil
+						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Batch.Codec(), &job)}, nil
 					case m.isFor("GET", "/namespaces/default/replicasets/rs"):
 						return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(testapi.Extensions.Codec(), &test.replicaSets[0])}, nil
 					case m.isFor("GET", "/namespaces/default/pods/bar"):
@@ -637,16 +689,15 @@ func TestDeletePods(t *testing.T) {
 					if _, ok := ifHasBeenCalled[name]; !ok {
 						ifHasBeenCalled[name] = true
 						return &oldPod, nil
-					} else {
-						if oldPod.ObjectMeta.Generation < 4 {
-							newPod := newPodMap[name]
-							return &newPod, nil
-						} else {
-							return nil, apierrors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, name)
-						}
 					}
+					if oldPod.ObjectMeta.Generation < 4 {
+						newPod := newPodMap[name]
+						return &newPod, nil
+					}
+					return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+
 				}
-				return nil, apierrors.NewNotFound(unversioned.GroupResource{Resource: "pods"}, name)
+				return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
 			},
 		},
 		{
@@ -661,7 +712,7 @@ func TestDeletePods(t *testing.T) {
 				if oldPod, found := oldPodMap[name]; found {
 					return &oldPod, nil
 				}
-				return nil, errors.New(fmt.Sprintf("%q: not found", name))
+				return nil, fmt.Errorf("%q: not found", name)
 			},
 		},
 		{
@@ -681,7 +732,7 @@ func TestDeletePods(t *testing.T) {
 		f, _, _, _ := cmdtesting.NewAPIFactory()
 		o := DrainOptions{}
 		o.mapper, _ = f.Object()
-		o.out = os.Stdout
+		o.Out = os.Stdout
 		_, pods := createPods(false)
 		pendingPods, err := o.waitForDelete(pods, test.interval, test.timeout, false, test.getPodFn)
 
@@ -717,7 +768,7 @@ func createPods(ifCreateNewPods bool) (map[string]api.Pod, []api.Pod) {
 			uid = types.UID(strconv.Itoa(i) + strconv.Itoa(i))
 		}
 		pod := api.Pod{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:       "pod" + strconv.Itoa(i),
 				Namespace:  "default",
 				UID:        uid,
@@ -744,7 +795,7 @@ func (m *MyReq) isFor(method string, path string) bool {
 }
 
 func refJson(t *testing.T, o runtime.Object) string {
-	ref, err := api.GetReference(o)
+	ref, err := api.GetReference(api.Scheme, o)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

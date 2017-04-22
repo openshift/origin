@@ -22,8 +22,10 @@ import (
 	"net/url"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	remotecommandserver "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 
@@ -62,7 +64,7 @@ func (f *Framework) ExecWithOptions(options ExecOptions) (string, string, error)
 		Namespace(options.Namespace).
 		SubResource("exec").
 		Param("container", options.ContainerName)
-	req.VersionedParams(&api.PodExecOptions{
+	req.VersionedParams(&v1.PodExecOptions{
 		Container: options.ContainerName,
 		Command:   options.Command,
 		Stdin:     options.Stdin != nil,
@@ -111,14 +113,14 @@ func (f *Framework) ExecShellInContainer(podName, containerName string, cmd stri
 }
 
 func (f *Framework) ExecCommandInPod(podName string, cmd ...string) string {
-	pod, err := f.PodClient().Get(podName)
+	pod, err := f.PodClient().Get(podName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred(), "failed to get pod")
 	Expect(pod.Spec.Containers).NotTo(BeEmpty())
 	return f.ExecCommandInContainer(podName, pod.Spec.Containers[0].Name, cmd...)
 }
 
 func (f *Framework) ExecCommandInPodWithFullOutput(podName string, cmd ...string) (string, string, error) {
-	pod, err := f.PodClient().Get(podName)
+	pod, err := f.PodClient().Get(podName, metav1.GetOptions{})
 	Expect(err).NotTo(HaveOccurred(), "failed to get pod")
 	Expect(pod.Spec.Containers).NotTo(BeEmpty())
 	return f.ExecCommandInContainerWithFullOutput(podName, pod.Spec.Containers[0].Name, cmd...)

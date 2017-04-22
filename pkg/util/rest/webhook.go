@@ -3,23 +3,25 @@ package rest
 import (
 	"net/http"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 // HookHandler is a Kubernetes API compatible webhook that is able to get access to the raw request
 // and response. Used when adapting existing webhook code to the Kubernetes patterns.
 type HookHandler interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request, ctx api.Context, name, subpath string) error
+	ServeHTTP(w http.ResponseWriter, r *http.Request, ctx apirequest.Context, name, subpath string) error
 }
 
 type httpHookHandler struct {
 	http.Handler
 }
 
-func (h httpHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, ctx api.Context, name, subpath string) error {
+func (h httpHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, ctx apirequest.Context, name, subpath string) error {
 	h.Handler.ServeHTTP(w, r)
 	return nil
 }
@@ -53,11 +55,11 @@ func NewHTTPWebHook(handler http.Handler, allowGet bool) *WebHook {
 
 // New() responds with the status object.
 func (h *WebHook) New() runtime.Object {
-	return &unversioned.Status{}
+	return &buildapi.Build{}
 }
 
 // Connect responds to connections with a ConnectHandler
-func (h *WebHook) Connect(ctx api.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+func (h *WebHook) Connect(ctx apirequest.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
 	return &WebHookHandler{
 		handler:   h.h,
 		ctx:       ctx,
@@ -83,7 +85,7 @@ func (h *WebHook) ConnectMethods() []string {
 // WebHookHandler responds to web hook requests from the master.
 type WebHookHandler struct {
 	handler   HookHandler
-	ctx       api.Context
+	ctx       apirequest.Context
 	name      string
 	options   *api.PodProxyOptions
 	responder rest.Responder

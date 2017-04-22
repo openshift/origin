@@ -7,11 +7,12 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 
@@ -24,8 +25,8 @@ import (
 
 // ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
 func (c *MasterConfig) ensureOpenShiftSharedResourcesNamespace() {
-	if _, err := c.KubeClientset().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace); kapierror.IsNotFound(err) {
-		namespace, createErr := c.KubeClientset().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace}})
+	if _, err := c.KubeClientsetInternal().Core().Namespaces().Get(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, metav1.GetOptions{}); kapierror.IsNotFound(err) {
+		namespace, createErr := c.KubeClientsetInternal().Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace}})
 		if createErr != nil {
 			glog.Errorf("Error creating namespace: %v due to %v\n", c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, createErr)
 			return
@@ -40,10 +41,10 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 
 	// Ensure namespace exists
-	namespace, err := c.KubeClientset().Namespaces().Create(&kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: ns}})
+	namespace, err := c.KubeClientsetInternal().Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if kapierror.IsAlreadyExists(err) {
 		// Get the persisted namespace
-		namespace, err = c.KubeClientset().Namespaces().Get(ns)
+		namespace, err = c.KubeClientsetInternal().Core().Namespaces().Get(ns, metav1.GetOptions{})
 		if err != nil {
 			glog.Errorf("Error getting namespace %s: %v", ns, err)
 			return
@@ -55,7 +56,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
 	for _, saName := range bootstrappolicy.InfraSAs.GetServiceAccounts() {
-		_, err := c.KubeClientset().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: kapi.ObjectMeta{Name: saName}})
+		_, err := c.KubeClientsetInternal().Core().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saName}})
 		if err != nil && !kapierror.IsAlreadyExists(err) {
 			glog.Errorf("Error creating service account %s/%s: %v", ns, saName, err)
 		}
@@ -93,7 +94,7 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 	// Wait for the default namespace
 	var namespace *kapi.Namespace
 	for i := 0; i < 30; i++ {
-		ns, err := c.KubeClientset().Namespaces().Get(kapi.NamespaceDefault)
+		ns, err := c.KubeClientsetInternal().Core().Namespaces().Get(metav1.NamespaceDefault, metav1.GetOptions{})
 		if err == nil {
 			namespace = ns
 			break
@@ -102,11 +103,11 @@ func (c *MasterConfig) ensureDefaultNamespaceServiceAccountRoles() {
 			time.Sleep(time.Second)
 			continue
 		}
-		glog.Errorf("Error adding service account roles to %q namespace: %v", kapi.NamespaceDefault, err)
+		glog.Errorf("Error adding service account roles to %q namespace: %v", metav1.NamespaceDefault, err)
 		return
 	}
 	if namespace == nil {
-		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", kapi.NamespaceDefault, kapi.NamespaceDefault)
+		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", metav1.NamespaceDefault, metav1.NamespaceDefault)
 		return
 	}
 
@@ -146,7 +147,7 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 	}
 	namespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
 	// Log any error other than a conflict (the update will be retried and recorded again on next startup in that case)
-	if _, err := c.KubeClientset().Namespaces().Update(namespace); err != nil && !kapierror.IsConflict(err) {
+	if _, err := c.KubeClientsetInternal().Core().Namespaces().Update(namespace); err != nil && !kapierror.IsConflict(err) {
 		glog.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err)
 	}
 }
@@ -154,12 +155,12 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 func (c *MasterConfig) securityContextConstraintsSupported() (bool, error) {
 	// TODO to make this a library upstream, ResourceExists(GroupVersionResource) or some such.
 	// look for supported groups
-	serverGroupList, err := c.KubeClientset().ServerGroups()
+	serverGroupList, err := c.KubeClientsetInternal().Discovery().ServerGroups()
 	if err != nil {
 		return false, err
 	}
 	// find the preferred version of the legacy group
-	var legacyGroup *unversioned.APIGroup
+	var legacyGroup *metav1.APIGroup
 	for i := range serverGroupList.Groups {
 		if len(serverGroupList.Groups[i].Name) == 0 {
 			legacyGroup = &serverGroupList.Groups[i]
@@ -169,7 +170,7 @@ func (c *MasterConfig) securityContextConstraintsSupported() (bool, error) {
 		return false, fmt.Errorf("unable to discovery preferred version for legacy api group")
 	}
 	// check if securitycontextconstraints is a resource in the group
-	apiResourceList, err := c.KubeClientset().ServerResourcesForGroupVersion(legacyGroup.PreferredVersion.GroupVersion)
+	apiResourceList, err := c.KubeClientsetInternal().Discovery().ServerResourcesForGroupVersion(legacyGroup.PreferredVersion.GroupVersion)
 	if err != nil {
 		return false, err
 	}
@@ -196,7 +197,7 @@ func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := c.KubeClientset().SecurityContextConstraints().Create(&scc)
+		_, err := c.KubeClientsetInternal().Core().SecurityContextConstraints().Create(&scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue
 		}
@@ -216,9 +217,9 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 		return
 	}
 	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	ctx := kapi.WithNamespace(kapi.NewContext(), "")
+	ctx := apirequest.WithNamespace(apirequest.NewContext(), "")
 
-	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName); kapierror.IsNotFound(err) {
+	if _, err := clusterPolicyRegistry.GetClusterPolicy(ctx, authorizationapi.PolicyName, &metav1.GetOptions{}); kapierror.IsNotFound(err) {
 		glog.Infof("No cluster policy found.  Creating bootstrap policy based on: %v", c.Options.PolicyConfig.BootstrapPolicyFile)
 
 		if err := admin.OverwriteBootstrapPolicy(c.RESTOptionsGetter, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {

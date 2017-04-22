@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )

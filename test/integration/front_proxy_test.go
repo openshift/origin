@@ -13,9 +13,10 @@ import (
 	"sync"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -89,7 +90,7 @@ func TestFrontProxy(t *testing.T) {
 	defer proxyServer.Close()
 	t.Logf("front proxy server is on %v\n", proxyServer.URL)
 
-	w, err := clusterAdminClient.Projects().Watch(kapi.ListOptions{})
+	w, err := clusterAdminClient.Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +99,7 @@ func TestFrontProxy(t *testing.T) {
 	listProjectsRoleName := "list-projects-role"
 	if _, err := clusterAdminClient.ClusterRoles().Create(
 		&authorizationapi.ClusterRole{
-			ObjectMeta: kapi.ObjectMeta{Name: listProjectsRoleName},
+			ObjectMeta: metav1.ObjectMeta{Name: listProjectsRoleName},
 			Rules: []authorizationapi.PolicyRule{
 				authorizationapi.NewRule("list").Groups(projectapi.LegacyGroupName).Resources("projects").RuleOrDie(),
 			},
@@ -117,7 +118,7 @@ func TestFrontProxy(t *testing.T) {
 		// make it so that the user can list projects without any groups
 		if _, err := clusterAdminClient.ClusterRoleBindings().Create(
 			&authorizationapi.ClusterRoleBinding{
-				ObjectMeta: kapi.ObjectMeta{Name: username + "-clusterrolebinding"},
+				ObjectMeta: metav1.ObjectMeta{Name: username + "-clusterrolebinding"},
 				Subjects: []kapi.ObjectReference{
 					{Kind: authorizationapi.UserKind, Name: username},
 				},
@@ -155,6 +156,7 @@ func TestFrontProxy(t *testing.T) {
 				"david-project",
 				"jordan-project",
 				"default",
+				"kube-public",
 				"kube-system",
 				"openshift",
 				"openshift-infra",

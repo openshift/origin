@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
@@ -21,7 +22,7 @@ func newMockServiceAccountDiagnostic(t *testing.T) *mockServiceAccountDiagnostic
 	}
 }
 
-func (m *mockServiceAccountDiagnostic) serviceAccounts(project string, options kapi.ListOptions) (*kapi.ServiceAccountList, error) {
+func (m *mockServiceAccountDiagnostic) serviceAccounts(project string, options metav1.ListOptions) (*kapi.ServiceAccountList, error) {
 	if m.err != nil {
 		return &m.accounts, m.err
 	}
@@ -29,7 +30,7 @@ func (m *mockServiceAccountDiagnostic) serviceAccounts(project string, options k
 }
 
 func (d *mockServiceAccountDiagnostic) addServiceAccountNamed(name string) {
-	meta := kapi.ObjectMeta{Name: name}
+	meta := metav1.ObjectMeta{Name: name}
 	d.accounts.Items = append(d.accounts.Items, kapi.ServiceAccount{ObjectMeta: meta})
 }
 

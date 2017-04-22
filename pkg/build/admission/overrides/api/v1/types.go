@@ -1,14 +1,14 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api/v1"
 )
 
 // BuildOverridesConfig controls override settings for builds
 type BuildOverridesConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// forcePull indicates whether the build strategy should always be set to ForcePull=true
 	ForcePull bool `json:"forcePull"`

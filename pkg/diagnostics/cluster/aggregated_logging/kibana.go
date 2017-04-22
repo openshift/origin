@@ -6,9 +6,10 @@ import (
 	"net/url"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -23,7 +24,7 @@ const (
 
 //checkKibana verifies the various integration points between Kibana and logging
 func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string) {
-	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName)
+	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
 		return
@@ -35,7 +36,7 @@ func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kcli
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
 func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
-	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName)
+	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0105", err, fmt.Sprintf("Error retrieving the secret '%s': %s", kibanaProxySecretName, err))
 		return
@@ -56,7 +57,7 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 //checkKibanaRoutesInOauthClient verifies the client contains the correct redirect uris
 func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.Client, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
-	routeList, err := osClient.Routes(project).List(kapi.ListOptions{LabelSelector: loggingSelector.AsSelector()})
+	routeList, err := osClient.Routes(project).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
 	if err != nil {
 		r.Error("AGL0143", err, fmt.Sprintf("Error retrieving the logging routes: %s", err))
 		return

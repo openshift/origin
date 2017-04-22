@@ -1,10 +1,10 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -15,10 +15,10 @@ type FakeProjects struct {
 	Fake *Fake
 }
 
-var projectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
+var projectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "projects"}
 
-func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(projectsResource, name), &projectapi.Project{})
+func (c *FakeProjects) Get(name string, options metav1.GetOptions) (*projectapi.Project, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(projectsResource, name), &projectapi.Project{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func (c *FakeProjects) Get(name string) (*projectapi.Project, error) {
 	return obj.(*projectapi.Project), err
 }
 
-func (c *FakeProjects) List(opts kapi.ListOptions) (*projectapi.ProjectList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(projectsResource, opts), &projectapi.ProjectList{})
+func (c *FakeProjects) List(opts metav1.ListOptions) (*projectapi.ProjectList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(projectsResource, opts), &projectapi.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *FakeProjects) List(opts kapi.ListOptions) (*projectapi.ProjectList, err
 }
 
 func (c *FakeProjects) Create(inObj *projectapi.Project) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(projectsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(projectsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *FakeProjects) Create(inObj *projectapi.Project) (*projectapi.Project, e
 }
 
 func (c *FakeProjects) Update(inObj *projectapi.Project) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(projectsResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(projectsResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (c *FakeProjects) Update(inObj *projectapi.Project) (*projectapi.Project, e
 }
 
 func (c *FakeProjects) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(projectsResource, name), &projectapi.Project{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(projectsResource, name), &projectapi.Project{})
 	return err
 }
 
-func (c *FakeProjects) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewRootWatchAction(projectsResource, opts))
+func (c *FakeProjects) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(projectsResource, opts))
 }

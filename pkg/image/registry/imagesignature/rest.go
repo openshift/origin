@@ -3,11 +3,11 @@ package imagesignature
 import (
 	"errors"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -28,7 +28,7 @@ func (r *REST) New() runtime.Object {
 	return &imageapi.ImageSignature{}
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
@@ -40,7 +40,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierrors.NewBadRequest(err.Error())
 	}
 
-	image, err := r.imageClient.Get(imageName)
+	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +65,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	return &image.Signatures[byName], nil
 }
 
-func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
 	imageName, _, err := imageapi.SplitImageSignatureName(name)
 	if err != nil {
 		return nil, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
 
-	image, err := r.imageClient.Get(imageName)
+	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -89,5 +89,5 @@ func (r *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
 		return nil, err
 	}
 
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, nil
+	return &metav1.Status{Status: metav1.StatusSuccess}, nil
 }

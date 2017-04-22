@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	routeapi "github.com/openshift/origin/pkg/route/api"
@@ -112,7 +112,7 @@ func TestHostAdmit(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "allow",
 			},
@@ -220,7 +220,7 @@ func TestWildcardHostDeny(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      tc.name,
 				Namespace: "deny",
 			},
@@ -246,10 +246,10 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 
-	oldest := unversioned.Time{Time: time.Now()}
+	oldest := metav1.Time{Time: time.Now()}
 
 	ownerRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: oldest,
 			Name:              "first",
 			Namespace:         "owner",
@@ -266,7 +266,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	}
 
 	tests := []struct {
-		createdAt unversioned.Time
+		createdAt metav1.Time
 		name      string
 		namespace string
 		host      string
@@ -298,14 +298,14 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "RouteNotAdmitted",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(2 * time.Hour)},
 			name:      "diffnamespace",
 			namespace: "notowner",
 			host:      "www.namespace.test",
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(2 * time.Hour)},
 			name:      "diffnamespace2",
 			namespace: "notowner",
 			host:      "www.namespace.test",
@@ -313,7 +313,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(2 * time.Hour)},
 			name:      "diffnamespacewildcard",
 			namespace: "notowner",
 			host:      "www.namespace.test",
@@ -321,7 +321,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(2 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(2 * time.Hour)},
 			name:      "diffns2",
 			namespace: "fortytwo",
 			host:      "www.namespace.test",
@@ -329,7 +329,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(3 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(3 * time.Hour)},
 			name:      "host2diffns2",
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
@@ -337,7 +337,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(3 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(3 * time.Hour)},
 			name:      "host2diffns3",
 			namespace: "fortytwo",
 			host:      "api.namespace.test",
@@ -345,13 +345,13 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 			reason:    "HostAlreadyClaimed",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(4 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(4 * time.Hour)},
 			name:      "ownernshost",
 			namespace: "owner",
 			host:      "api.namespace.test",
 		},
 		{
-			createdAt: unversioned.Time{Time: oldest.Add(4 * time.Hour)},
+			createdAt: metav1.Time{Time: oldest.Add(4 * time.Hour)},
 			name:      "ownernswildcardhost",
 			namespace: "owner",
 			host:      "wild.namespace.test",
@@ -414,7 +414,7 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &routeapi.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				CreationTimestamp: tc.createdAt,
 				Name:              tc.name,
 				Namespace:         tc.namespace,
@@ -443,8 +443,8 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	}
 
 	wildcardRoute := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: unversioned.Time{Time: oldest.Add(time.Hour)},
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: oldest.Add(time.Hour)},
 			Name:              "wildcard-owner",
 			Namespace:         "owner",
 		},
@@ -467,8 +467,8 @@ func TestWildcardSubDomainOwnership(t *testing.T) {
 	// bounce all the routes from the namespace "owner" and claim
 	// ownership of the subdomain for the namespace "bouncer".
 	bouncer := &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{
-			CreationTimestamp: unversioned.Time{Time: oldest.Add(-1 * time.Hour)},
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: oldest.Add(-1 * time.Hour)},
 			Name:              "hosted",
 			Namespace:         "bouncer",
 		},
@@ -499,10 +499,10 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
-	oldest := unversioned.Time{Time: time.Now()}
+	oldest := metav1.Time{Time: time.Now()}
 
-	makeTime := func(d time.Duration) unversioned.Time {
-		return unversioned.Time{Time: oldest.Add(d)}
+	makeTime := func(d time.Duration) metav1.Time {
+		return metav1.Time{Time: oldest.Add(d)}
 	}
 
 	routes := []*routeapi.Route{
@@ -569,13 +569,13 @@ func TestValidRouteAdmissionFuzzing(t *testing.T) {
 	}
 }
 
-func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp unversioned.Time) *routeapi.Route {
+func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp metav1.Time) *routeapi.Route {
 	policy := routeapi.WildcardPolicyNone
 	if wildcard {
 		policy = routeapi.WildcardPolicySubdomain
 	}
 	return &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
 		Spec: routeapi.RouteSpec{
 			Host:           host,
 			Path:           path,
@@ -591,10 +591,10 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, RouteAdmissionFunc(admitAll), true, false, recorder)
 
-	oldest := unversioned.Time{Time: time.Now()}
+	oldest := metav1.Time{Time: time.Now()}
 
-	makeTime := func(d time.Duration) unversioned.Time {
-		return unversioned.Time{Time: oldest.Add(d)}
+	makeTime := func(d time.Duration) metav1.Time {
+		return metav1.Time{Time: oldest.Add(d)}
 	}
 
 	routes := []struct {
@@ -770,13 +770,13 @@ func TestInvalidRouteAdmissionFuzzing(t *testing.T) {
 
 func TestStatusWildcardPolicyNoOp(t *testing.T) {
 	now := nowFn()
-	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
 			Host:           "wild.test.local",
 			WildcardPolicy: routeapi.WildcardPolicySubdomain,
@@ -808,13 +808,13 @@ func TestStatusWildcardPolicyNoOp(t *testing.T) {
 
 func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	now := nowFn()
-	touched := unversioned.Time{Time: now.Add(-time.Minute)}
+	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
 	c := testclient.NewSimpleFake()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, false, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
-		ObjectMeta: kapi.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
+		ObjectMeta: metav1.ObjectMeta{Name: "wild", Namespace: "thing", UID: types.UID("uid8")},
 		Spec: routeapi.RouteSpec{
 			Host:           "wild.test.local",
 			WildcardPolicy: "nono",
@@ -852,10 +852,10 @@ func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 	uniqueHostPlugin := NewUniqueHost(p, HostForRoute, true, recorder)
 	admitter := NewHostAdmitter(uniqueHostPlugin, RouteAdmissionFunc(admitAll), true, true, recorder)
 
-	oldest := unversioned.Time{Time: time.Now()}
+	oldest := metav1.Time{Time: time.Now()}
 
-	makeTime := func(d time.Duration) unversioned.Time {
-		return unversioned.Time{Time: oldest.Add(d)}
+	makeTime := func(d time.Duration) metav1.Time {
+		return metav1.Time{Time: oldest.Add(d)}
 	}
 
 	routes := []struct {

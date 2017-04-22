@@ -4,6 +4,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -39,7 +41,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("busybox")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
@@ -65,7 +67,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("centos")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
@@ -97,7 +99,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("scratch")
+			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
 

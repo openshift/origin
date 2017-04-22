@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // AddObjectsToTemplate adds the objects to the template using the target versions to choose the conversion destination
-func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVersions ...unversioned.GroupVersion) error {
+func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVersions ...schema.GroupVersion) error {
 	for i := range objects {
 		obj := objects[i]
 		if obj == nil {
@@ -22,7 +22,7 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 			return err
 		}
 
-		var targetVersion *unversioned.GroupVersion
+		var targetVersion *schema.GroupVersion
 		for j := range targetVersions {
 			possibleVersion := targetVersions[j]
 			if kind.Group == possibleVersion.Group {

@@ -2,6 +2,7 @@ package client
 
 import (
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ClusterNetworkingInterface has methods to work with ClusterNetwork resources
@@ -11,7 +12,7 @@ type ClusterNetworkingInterface interface {
 
 // ClusterNetworkInterface exposes methods on clusterNetwork resources.
 type ClusterNetworkInterface interface {
-	Get(name string) (*sdnapi.ClusterNetwork, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.ClusterNetwork, error)
 	Create(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
 	Update(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
 }
@@ -29,7 +30,7 @@ func newClusterNetwork(c *Client) *clusterNetwork {
 }
 
 // Get returns information about a particular network
-func (c *clusterNetwork) Get(networkName string) (result *sdnapi.ClusterNetwork, err error) {
+func (c *clusterNetwork) Get(networkName string, options metav1.GetOptions) (result *sdnapi.ClusterNetwork, err error) {
 	result = &sdnapi.ClusterNetwork{}
 	err = c.r.Get().Resource("clusterNetworks").Name(networkName).Do().Into(result)
 	return

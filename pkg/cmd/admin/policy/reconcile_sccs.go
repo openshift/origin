@@ -8,12 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -128,7 +129,7 @@ func (o *ReconcileSCCOptions) Validate() error {
 	if o.SCCClient == nil {
 		return errors.New("a SCC client is required")
 	}
-	if _, err := o.NSClient.Get(o.InfraNamespace); err != nil {
+	if _, err := o.NSClient.Get(o.InfraNamespace, metav1.GetOptions{}); err != nil {
 		return fmt.Errorf("%s is not a valid namespace", o.InfraNamespace)
 	}
 	return nil
@@ -175,7 +176,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() ([]*kapi.SecurityContextConstraints,
 
 	for i := range bootstrapSCCs {
 		expectedSCC := &bootstrapSCCs[i]
-		actualSCC, err := o.SCCClient.Get(expectedSCC.Name)
+		actualSCC, err := o.SCCClient.Get(expectedSCC.Name, metav1.GetOptions{})
 		// if not found it needs to be created
 		if kapierrors.IsNotFound(err) {
 			changedSCCs = append(changedSCCs, expectedSCC)
@@ -196,7 +197,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() ([]*kapi.SecurityContextConstraints,
 // ReplaceChangedSCCs persists the changed SCCs.
 func (o *ReconcileSCCOptions) ReplaceChangedSCCs(changedSCCs []*kapi.SecurityContextConstraints) error {
 	for i := range changedSCCs {
-		_, err := o.SCCClient.Get(changedSCCs[i].Name)
+		_, err := o.SCCClient.Get(changedSCCs[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			return err
 		}

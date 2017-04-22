@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IngressAdmissionConfig is the configuration for the the ingress
@@ -10,7 +10,7 @@ import (
 // *NOTE* This has security implications in the router when handling
 // ingress objects
 type IngressAdmissionConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// AllowHostnameChanges when false or unset openshift does not
 	// allow changing or adding hostnames to ingress objects. If set

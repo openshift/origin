@@ -1,9 +1,12 @@
 package user
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/user/api"
 )
@@ -11,13 +14,13 @@ import (
 // Registry is an interface implemented by things that know how to store User objects.
 type Registry interface {
 	// ListUsers obtains a list of users having labels which match selector.
-	ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.UserList, error)
+	ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error)
 	// GetUser returns a specific user
-	GetUser(ctx kapi.Context, name string) (*api.User, error)
+	GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error)
 	// CreateUser creates a user
-	CreateUser(ctx kapi.Context, user *api.User) (*api.User, error)
+	CreateUser(ctx apirequest.Context, user *api.User) (*api.User, error)
 	// UpdateUser updates an existing user
-	UpdateUser(ctx kapi.Context, user *api.User) (*api.User, error)
+	UpdateUser(ctx apirequest.Context, user *api.User) (*api.User, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -26,8 +29,8 @@ type Storage interface {
 	rest.Lister
 	rest.Getter
 
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -41,7 +44,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.UserList, error) {
+func (s *storage) ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -49,15 +52,15 @@ func (s *storage) ListUsers(ctx kapi.Context, options *kapi.ListOptions) (*api.U
 	return obj.(*api.UserList), nil
 }
 
-func (s *storage) GetUser(ctx kapi.Context, name string) (*api.User, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.User), nil
 }
 
-func (s *storage) CreateUser(ctx kapi.Context, user *api.User) (*api.User, error) {
+func (s *storage) CreateUser(ctx apirequest.Context, user *api.User) (*api.User, error) {
 	obj, err := s.Create(ctx, user)
 	if err != nil {
 		return nil, err
@@ -65,7 +68,7 @@ func (s *storage) CreateUser(ctx kapi.Context, user *api.User) (*api.User, error
 	return obj.(*api.User), nil
 }
 
-func (s *storage) UpdateUser(ctx kapi.Context, user *api.User) (*api.User, error) {
+func (s *storage) UpdateUser(ctx apirequest.Context, user *api.User) (*api.User, error) {
 	obj, _, err := s.Update(ctx, user.Name, rest.DefaultUpdatedObjectInfo(user, kapi.Scheme))
 	if err != nil {
 		return nil, err

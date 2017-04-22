@@ -3,9 +3,9 @@ package integration
 import (
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -51,7 +51,7 @@ func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorNonAdmin(t *testing.T) 
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node selector, regular user", kclientset, oclient, "", map[string]string{"hostname": "foo"}, true)
 }
 
-func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig) (*client.Client, *kclientset.Clientset) {
+func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig) (*client.Client, kclientset.Interface) {
 	testutil.RequireEtcd(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -181,7 +181,7 @@ func testPodNodeConstraintsDeployment(nodeName string, nodeSelector map[string]s
 	d.Spec.Replicas = 1
 	d.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	d.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	d.Spec.Selector = &unversioned.LabelSelector{
+	d.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	return d
@@ -194,7 +194,7 @@ func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]s
 	rs.Spec.Template = kapi.PodTemplateSpec{}
 	rs.Spec.Template.Labels = map[string]string{"foo": "bar"}
 	rs.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	rs.Spec.Selector = &unversioned.LabelSelector{
+	rs.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	return rs

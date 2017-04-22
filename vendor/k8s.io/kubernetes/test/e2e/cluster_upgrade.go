@@ -17,214 +17,242 @@ limitations under the License.
 package e2e
 
 import (
-	"fmt"
-	"path"
-	"strings"
-
-	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/client-go/discovery"
+	"k8s.io/kubernetes/pkg/util/version"
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/upgrades"
 
 	. "github.com/onsi/ginkgo"
 )
 
-// TODO(mikedanese): Add setup, validate, and teardown for:
-//  - secrets
-//  - volumes
-//  - persistent volumes
+var upgradeTests = []upgrades.Test{
+	&upgrades.ServiceUpgradeTest{},
+	&upgrades.SecretUpgradeTest{},
+	&upgrades.StatefulSetUpgradeTest{},
+	&upgrades.DeploymentUpgradeTest{},
+	&upgrades.JobUpgradeTest{},
+	&upgrades.ConfigMapUpgradeTest{},
+	// Disabling until can be debugged, causing upgrade jobs to timeout
+	// &upgrades.HPAUpgradeTest{},
+	&upgrades.PersistentVolumeUpgradeTest{},
+	&upgrades.DaemonSetUpgradeTest{},
+	&upgrades.IngressUpgradeTest{},
+	&upgrades.AppArmorUpgradeTest{},
+}
+
 var _ = framework.KubeDescribe("Upgrade [Feature:Upgrade]", func() {
 	f := framework.NewDefaultFramework("cluster-upgrade")
 
+	// Create the frameworks here because we can only create them
+	// in a "Describe".
+	testFrameworks := map[string]*framework.Framework{}
+	for _, t := range upgradeTests {
+		testFrameworks[t.Name()] = framework.NewDefaultFramework(t.Name())
+	}
+
 	framework.KubeDescribe("master upgrade", func() {
-		It("should maintain responsive services [Feature:MasterUpgrade]", func() {
+		It("should maintain a functioning cluster [Feature:MasterUpgrade]", func() {
+			upgCtx, err := getUpgradeContext(f.ClientSet.Discovery(), framework.TestContext.UpgradeTarget)
+			framework.ExpectNoError(err)
+
 			cm := chaosmonkey.New(func() {
-				v, err := realVersion(framework.TestContext.UpgradeTarget)
-				framework.ExpectNoError(err)
-				framework.ExpectNoError(framework.MasterUpgrade(v))
-				framework.ExpectNoError(checkMasterVersion(f.ClientSet, v))
+				target := upgCtx.Versions[1].Version.String()
+				framework.ExpectNoError(framework.MasterUpgrade(target))
+				framework.ExpectNoError(framework.CheckMasterVersion(f.ClientSet, target))
 			})
-			cm.Register(func(sem *chaosmonkey.Semaphore) {
-				// Close over f.
-				testServiceRemainsUp(f, sem)
-			})
+			for _, t := range upgradeTests {
+				cma := chaosMonkeyAdapter{
+					test:        t,
+					framework:   testFrameworks[t.Name()],
+					upgradeType: upgrades.MasterUpgrade,
+					upgCtx:      *upgCtx,
+				}
+				cm.Register(cma.Test)
+			}
+
 			cm.Do()
 		})
 	})
 
 	framework.KubeDescribe("node upgrade", func() {
 		It("should maintain a functioning cluster [Feature:NodeUpgrade]", func() {
-			cm := chaosmonkey.New(func() {
-				v, err := realVersion(framework.TestContext.UpgradeTarget)
-				framework.ExpectNoError(err)
-				framework.ExpectNoError(framework.NodeUpgrade(f, v, framework.TestContext.UpgradeImage))
-				framework.ExpectNoError(checkNodesVersions(f.ClientSet, v))
-			})
-			cm.Register(func(sem *chaosmonkey.Semaphore) {
-				// Close over f.
-				testServiceUpBeforeAndAfter(f, sem)
-			})
-			cm.Do()
-		})
+			upgCtx, err := getUpgradeContext(f.ClientSet.Discovery(), framework.TestContext.UpgradeTarget)
+			framework.ExpectNoError(err)
 
-		It("should maintain responsive services [Feature:ExperimentalNodeUpgrade]", func() {
 			cm := chaosmonkey.New(func() {
-				v, err := realVersion(framework.TestContext.UpgradeTarget)
-				framework.ExpectNoError(err)
-				framework.ExpectNoError(framework.NodeUpgrade(f, v, framework.TestContext.UpgradeImage))
-				framework.ExpectNoError(checkNodesVersions(f.ClientSet, v))
+				target := upgCtx.Versions[1].Version.String()
+				framework.ExpectNoError(framework.NodeUpgrade(f, target, framework.TestContext.UpgradeImage))
+				framework.ExpectNoError(framework.CheckNodesVersions(f.ClientSet, target))
 			})
-			cm.Register(func(sem *chaosmonkey.Semaphore) {
-				// Close over f.
-				testServiceRemainsUp(f, sem)
-			})
+			for _, t := range upgradeTests {
+				cma := chaosMonkeyAdapter{
+					test:        t,
+					framework:   testFrameworks[t.Name()],
+					upgradeType: upgrades.NodeUpgrade,
+					upgCtx:      *upgCtx,
+				}
+				cm.Register(cma.Test)
+			}
 			cm.Do()
 		})
 	})
 
 	framework.KubeDescribe("cluster upgrade", func() {
 		It("should maintain a functioning cluster [Feature:ClusterUpgrade]", func() {
-			cm := chaosmonkey.New(func() {
-				v, err := realVersion(framework.TestContext.UpgradeTarget)
-				framework.ExpectNoError(err)
-				framework.ExpectNoError(framework.MasterUpgrade(v))
-				framework.ExpectNoError(checkMasterVersion(f.ClientSet, v))
-				framework.ExpectNoError(framework.NodeUpgrade(f, v, framework.TestContext.UpgradeImage))
-				framework.ExpectNoError(checkNodesVersions(f.ClientSet, v))
-			})
-			cm.Register(func(sem *chaosmonkey.Semaphore) {
-				// Close over f.
-				testServiceUpBeforeAndAfter(f, sem)
-			})
-			cm.Do()
-		})
+			upgCtx, err := getUpgradeContext(f.ClientSet.Discovery(), framework.TestContext.UpgradeTarget)
+			framework.ExpectNoError(err)
 
-		It("should maintain responsive services [Feature:ExperimentalClusterUpgrade]", func() {
 			cm := chaosmonkey.New(func() {
-				v, err := realVersion(framework.TestContext.UpgradeTarget)
-				framework.ExpectNoError(err)
-				framework.ExpectNoError(framework.MasterUpgrade(v))
-				framework.ExpectNoError(checkMasterVersion(f.ClientSet, v))
-				framework.ExpectNoError(framework.NodeUpgrade(f, v, framework.TestContext.UpgradeImage))
-				framework.ExpectNoError(checkNodesVersions(f.ClientSet, v))
+				target := upgCtx.Versions[1].Version.String()
+				framework.ExpectNoError(framework.MasterUpgrade(target))
+				framework.ExpectNoError(framework.CheckMasterVersion(f.ClientSet, target))
+				framework.ExpectNoError(framework.NodeUpgrade(f, target, framework.TestContext.UpgradeImage))
+				framework.ExpectNoError(framework.CheckNodesVersions(f.ClientSet, target))
 			})
-			cm.Register(func(sem *chaosmonkey.Semaphore) {
-				// Close over f.
-				testServiceRemainsUp(f, sem)
-			})
+			for _, t := range upgradeTests {
+				cma := chaosMonkeyAdapter{
+					test:        t,
+					framework:   testFrameworks[t.Name()],
+					upgradeType: upgrades.ClusterUpgrade,
+					upgCtx:      *upgCtx,
+				}
+				cm.Register(cma.Test)
+			}
 			cm.Do()
 		})
 	})
 })
 
-// realVersion turns a version constant s into a version string deployable on
-// GKE.  See hack/get-build.sh for more information.
-func realVersion(s string) (string, error) {
-	framework.Logf(fmt.Sprintf("Getting real version for %q", s))
-	v, _, err := framework.RunCmd(path.Join(framework.TestContext.RepoRoot, "hack/get-build.sh"), "-v", s)
-	if err != nil {
-		return v, err
+var _ = framework.KubeDescribe("Downgrade [Feature:Downgrade]", func() {
+	f := framework.NewDefaultFramework("cluster-downgrade")
+
+	// Create the frameworks here because we can only create them
+	// in a "Describe".
+	testFrameworks := map[string]*framework.Framework{}
+	for _, t := range upgradeTests {
+		testFrameworks[t.Name()] = framework.NewDefaultFramework(t.Name())
 	}
-	framework.Logf("Version for %q is %q", s, v)
-	return strings.TrimPrefix(strings.TrimSpace(v), "v"), nil
-}
 
-func testServiceUpBeforeAndAfter(f *framework.Framework, sem *chaosmonkey.Semaphore) {
-	testService(f, sem, false)
-}
+	framework.KubeDescribe("cluster downgrade", func() {
+		It("should maintain a functioning cluster [Feature:ClusterDowngrade]", func() {
+			upgCtx, err := getUpgradeContext(f.ClientSet.Discovery(), framework.TestContext.UpgradeTarget)
+			framework.ExpectNoError(err)
 
-func testServiceRemainsUp(f *framework.Framework, sem *chaosmonkey.Semaphore) {
-	testService(f, sem, true)
-}
-
-// testService is a helper for testServiceUpBeforeAndAfter and testServiceRemainsUp with a flag for testDuringDisruption
-//
-// TODO(ihmccreery) remove this abstraction once testServiceUpBeforeAndAfter is no longer needed, because node upgrades
-// maintain a responsive service.
-func testService(f *framework.Framework, sem *chaosmonkey.Semaphore, testDuringDisruption bool) {
-	// Setup
-	serviceName := "service-test"
-
-	jig := NewServiceTestJig(f.ClientSet, serviceName)
-	// nodeIP := pickNodeIP(jig.Client) // for later
-
-	By("creating a TCP service " + serviceName + " with type=LoadBalancer in namespace " + f.Namespace.Name)
-	// TODO it's weird that we have to do this and then wait WaitForLoadBalancer which changes
-	// tcpService.
-	tcpService := jig.CreateTCPServiceOrFail(f.Namespace.Name, func(s *api.Service) {
-		s.Spec.Type = api.ServiceTypeLoadBalancer
+			cm := chaosmonkey.New(func() {
+				// Yes this really is a downgrade. And nodes must downgrade first.
+				target := upgCtx.Versions[1].Version.String()
+				framework.ExpectNoError(framework.NodeUpgrade(f, target, framework.TestContext.UpgradeImage))
+				framework.ExpectNoError(framework.CheckNodesVersions(f.ClientSet, target))
+				framework.ExpectNoError(framework.MasterUpgrade(target))
+				framework.ExpectNoError(framework.CheckMasterVersion(f.ClientSet, target))
+			})
+			for _, t := range upgradeTests {
+				cma := chaosMonkeyAdapter{
+					test:        t,
+					framework:   testFrameworks[t.Name()],
+					upgradeType: upgrades.ClusterUpgrade,
+					upgCtx:      *upgCtx,
+				}
+				cm.Register(cma.Test)
+			}
+			cm.Do()
+		})
 	})
-	tcpService = jig.WaitForLoadBalancerOrFail(f.Namespace.Name, tcpService.Name, loadBalancerCreateTimeoutDefault)
-	jig.SanityCheckService(tcpService, api.ServiceTypeLoadBalancer)
+})
 
-	// Get info to hit it with
-	tcpIngressIP := getIngressPoint(&tcpService.Status.LoadBalancer.Ingress[0])
-	svcPort := int(tcpService.Spec.Ports[0].Port)
+var _ = framework.KubeDescribe("etcd Upgrade [Feature:EtcdUpgrade]", func() {
+	f := framework.NewDefaultFramework("etc-upgrade")
 
-	By("creating pod to be part of service " + serviceName)
-	// TODO newRCTemplate only allows for the creation of one replica... that probably won't
-	// work so well.
-	jig.RunOrFail(f.Namespace.Name, nil)
+	// Create the frameworks here because we can only create them
+	// in a "Describe".
+	testFrameworks := map[string]*framework.Framework{}
+	for _, t := range upgradeTests {
+		testFrameworks[t.Name()] = framework.NewDefaultFramework(t.Name())
+	}
 
-	// Hit it once before considering ourselves ready
-	By("hitting the pod through the service's LoadBalancer")
-	jig.TestReachableHTTP(tcpIngressIP, svcPort, loadBalancerLagTimeoutDefault)
+	framework.KubeDescribe("etcd upgrade", func() {
+		It("should maintain a functioning cluster", func() {
+			upgCtx, err := getUpgradeContext(f.ClientSet.Discovery(), "")
+			framework.ExpectNoError(err)
 
+			cm := chaosmonkey.New(func() {
+				framework.ExpectNoError(framework.EtcdUpgrade(framework.TestContext.EtcdUpgradeStorage, framework.TestContext.EtcdUpgradeVersion))
+				// TODO(mml): verify the etcd version
+			})
+			for _, t := range upgradeTests {
+				cma := chaosMonkeyAdapter{
+					test:        t,
+					framework:   testFrameworks[t.Name()],
+					upgradeType: upgrades.EtcdUpgrade,
+					upgCtx:      *upgCtx,
+				}
+				cm.Register(cma.Test)
+			}
+
+			cm.Do()
+		})
+	})
+})
+
+type chaosMonkeyAdapter struct {
+	test        upgrades.Test
+	framework   *framework.Framework
+	upgradeType upgrades.UpgradeType
+	upgCtx      upgrades.UpgradeContext
+}
+
+func (cma *chaosMonkeyAdapter) Test(sem *chaosmonkey.Semaphore) {
+	if skippable, ok := cma.test.(upgrades.Skippable); ok && skippable.Skip(cma.upgCtx) {
+		By("skipping test " + cma.test.Name())
+		sem.Ready()
+		return
+	}
+
+	cma.test.Setup(cma.framework)
+	defer cma.test.Teardown(cma.framework)
 	sem.Ready()
-
-	if testDuringDisruption {
-		// Continuous validation
-		wait.Until(func() {
-			By("hitting the pod through the service's LoadBalancer")
-			jig.TestReachableHTTP(tcpIngressIP, svcPort, framework.Poll)
-		}, framework.Poll, sem.StopCh)
-	} else {
-		// Block until chaosmonkey is done
-		By("waiting for upgrade to finish without checking if service remains up")
-		<-sem.StopCh
-	}
-
-	// Sanity check and hit it once more
-	By("hitting the pod through the service's LoadBalancer")
-	jig.TestReachableHTTP(tcpIngressIP, svcPort, loadBalancerLagTimeoutDefault)
-	jig.SanityCheckService(tcpService, api.ServiceTypeLoadBalancer)
+	cma.test.Test(cma.framework, sem.StopCh, cma.upgradeType)
 }
 
-func checkMasterVersion(c clientset.Interface, want string) error {
-	framework.Logf("Checking master version")
-	v, err := c.Discovery().ServerVersion()
+func getUpgradeContext(c discovery.DiscoveryInterface, upgradeTarget string) (*upgrades.UpgradeContext, error) {
+	current, err := c.ServerVersion()
 	if err != nil {
-		return fmt.Errorf("checkMasterVersion() couldn't get the master version: %v", err)
+		return nil, err
 	}
-	// We do prefix trimming and then matching because:
-	// want looks like:  0.19.3-815-g50e67d4
-	// got  looks like: v0.19.3-815-g50e67d4034e858-dirty
-	got := strings.TrimPrefix(v.GitVersion, "v")
-	if !strings.HasPrefix(got, want) {
-		return fmt.Errorf("master had kube-apiserver version %s which does not start with %s",
-			got, want)
-	}
-	framework.Logf("Master is at version %s", want)
-	return nil
-}
 
-func checkNodesVersions(cs clientset.Interface, want string) error {
-	l := framework.GetReadySchedulableNodesOrDie(cs)
-	for _, n := range l.Items {
-		// We do prefix trimming and then matching because:
-		// want   looks like:  0.19.3-815-g50e67d4
-		// kv/kvp look  like: v0.19.3-815-g50e67d4034e858-dirty
-		kv, kpv := strings.TrimPrefix(n.Status.NodeInfo.KubeletVersion, "v"),
-			strings.TrimPrefix(n.Status.NodeInfo.KubeProxyVersion, "v")
-		if !strings.HasPrefix(kv, want) {
-			return fmt.Errorf("node %s had kubelet version %s which does not start with %s",
-				n.ObjectMeta.Name, kv, want)
-		}
-		if !strings.HasPrefix(kpv, want) {
-			return fmt.Errorf("node %s had kube-proxy version %s which does not start with %s",
-				n.ObjectMeta.Name, kpv, want)
-		}
+	curVer, err := version.ParseSemantic(current.String())
+	if err != nil {
+		return nil, err
 	}
-	return nil
+
+	upgCtx := &upgrades.UpgradeContext{
+		Versions: []upgrades.VersionContext{
+			{
+				Version:   *curVer,
+				NodeImage: framework.TestContext.NodeOSDistro,
+			},
+		},
+	}
+
+	if len(upgradeTarget) == 0 {
+		return upgCtx, nil
+	}
+
+	next, err := framework.RealVersion(upgradeTarget)
+	if err != nil {
+		return nil, err
+	}
+
+	nextVer, err := version.ParseSemantic(next)
+	if err != nil {
+		return nil, err
+	}
+
+	upgCtx.Versions = append(upgCtx.Versions, upgrades.VersionContext{
+		Version:   *nextVer,
+		NodeImage: framework.TestContext.UpgradeImage,
+	})
+
+	return upgCtx, nil
 }

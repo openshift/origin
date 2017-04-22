@@ -1,9 +1,9 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -15,10 +15,10 @@ type FakeRoles struct {
 	Namespace string
 }
 
-var rolesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "roles"}
+var rolesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "roles"}
 
-func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
+func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationapi.Role, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
 	if obj == nil {
 		return nil, err
 	}
@@ -26,8 +26,8 @@ func (c *FakeRoles) Get(name string) (*authorizationapi.Role, error) {
 	return obj.(*authorizationapi.Role), err
 }
 
-func (c *FakeRoles) List(opts kapi.ListOptions) (*authorizationapi.RoleList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
+func (c *FakeRoles) List(opts metav1.ListOptions) (*authorizationapi.RoleList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func (c *FakeRoles) List(opts kapi.ListOptions) (*authorizationapi.RoleList, err
 }
 
 func (c *FakeRoles) Create(inObj *authorizationapi.Role) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(rolesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(rolesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *FakeRoles) Create(inObj *authorizationapi.Role) (*authorizationapi.Role
 }
 
 func (c *FakeRoles) Update(inObj *authorizationapi.Role) (*authorizationapi.Role, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(rolesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(rolesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -54,6 +54,6 @@ func (c *FakeRoles) Update(inObj *authorizationapi.Role) (*authorizationapi.Role
 }
 
 func (c *FakeRoles) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
 	return err
 }

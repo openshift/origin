@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	oscc "github.com/openshift/origin/pkg/security/scc"
@@ -22,7 +24,14 @@ func validPodTemplateSpec() kapi.PodTemplateSpec {
 			Volumes: []kapi.Volume{
 				{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
 			},
-			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			Containers: []kapi.Container{
+				{
+					Name:                     "ctr",
+					Image:                    "image",
+					ImagePullPolicy:          "IfNotPresent",
+					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+				},
+			},
 			RestartPolicy: kapi.RestartPolicyAlways,
 			NodeSelector: map[string]string{
 				"key": "value",
@@ -31,6 +40,7 @@ func validPodTemplateSpec() kapi.PodTemplateSpec {
 			DNSPolicy:             kapi.DNSClusterFirst,
 			ActiveDeadlineSeconds: &activeDeadlineSeconds,
 			ServiceAccountName:    "acct",
+			SchedulerName:         kapi.DefaultSchedulerName,
 		},
 	}
 }
@@ -66,30 +76,36 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 			Spec: securityapi.PodSecurityPolicySelfSubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
-						Containers:         []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+						Containers: []kapi.Container{
+							{
+								Name:                     "ctr",
+								Image:                    "image",
+								ImagePullPolicy:          "IfNotPresent",
+								TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+							},
+						},
 						RestartPolicy:      kapi.RestartPolicyAlways,
 						SecurityContext:    &kapi.PodSecurityContext{},
 						DNSPolicy:          kapi.DNSClusterFirst,
 						ServiceAccountName: "default",
+						SchedulerName:      kapi.DefaultSchedulerName,
 					},
 				},
 			},
 		}
 
-		cache := &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
 
 		for _, scc := range testcase.sccs {
-			if err := cache.Add(scc); err != nil {
+			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)
 			}
 		}
 
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(cache), csf}
-		ctx := kapi.WithUser(kapi.WithNamespace(kapi.NewContext(), kapi.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
+		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
 		obj, err := storage.Create(ctx, reviewRequest)
 		if err != nil {
 			t.Errorf("%s - Unexpected error", testName)

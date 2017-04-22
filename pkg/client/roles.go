@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,8 +14,8 @@ type RolesNamespacer interface {
 
 // RoleInterface exposes methods on Role resources.
 type RoleInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.RoleList, error)
-	Get(name string) (*authorizationapi.Role, error)
+	List(opts metav1.ListOptions) (*authorizationapi.RoleList, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.Role, error)
 	Create(role *authorizationapi.Role) (*authorizationapi.Role, error)
 	Update(role *authorizationapi.Role) (*authorizationapi.Role, error)
 	Delete(name string) error
@@ -35,16 +36,16 @@ func newRoles(c *Client, namespace string) *roles {
 }
 
 // List returns a list of roles that match the label and field selectors.
-func (c *roles) List(opts kapi.ListOptions) (result *authorizationapi.RoleList, err error) {
+func (c *roles) List(opts metav1.ListOptions) (result *authorizationapi.RoleList, err error) {
 	result = &authorizationapi.RoleList{}
 	err = c.r.Get().Namespace(c.ns).Resource("roles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 // Get returns information about a particular role and error if one occurs.
-func (c *roles) Get(name string) (result *authorizationapi.Role, err error) {
+func (c *roles) Get(name string, options metav1.GetOptions) (result *authorizationapi.Role, err error) {
 	result = &authorizationapi.Role{}
-	err = c.r.Get().Namespace(c.ns).Resource("roles").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("roles").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

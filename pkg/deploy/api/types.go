@@ -1,9 +1,9 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // These constants represent defaults used in the deployment process.
@@ -126,8 +126,8 @@ const (
 // state of the DeploymentConfig. Each change to the DeploymentConfig which should result in
 // a new deployment results in an increment of LatestVersion.
 type DeploymentConfig struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec represents a desired deployment state and how to deploy to it.
 	Spec DeploymentConfigSpec
@@ -446,9 +446,9 @@ type DeploymentCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status kapi.ConditionStatus
 	// The last time this condition was updated.
-	LastUpdateTime unversioned.Time
+	LastUpdateTime metav1.Time
 	// The last time the condition transitioned from one status to another.
-	LastTransitionTime unversioned.Time
+	LastTransitionTime metav1.Time
 	// The reason for the condition's last transition.
 	Reason string
 	// A human readable message indicating details about the transition.
@@ -457,8 +457,8 @@ type DeploymentCondition struct {
 
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of deployment configs
 	Items []DeploymentConfig
@@ -466,7 +466,7 @@ type DeploymentConfigList struct {
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Name of the deployment config that will be rolled back.
 	Name string
 	// UpdatedAnnotations is a set of new annotations that will be added in the deployment config.
@@ -493,7 +493,7 @@ type DeploymentConfigRollbackSpec struct {
 
 // DeploymentRequest is a request to a deployment config for a new deployment.
 type DeploymentRequest struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// Name of the deployment config for requesting a new deployment.
 	Name string
 	// Latest will update the deployment config with the latest state from all triggers.
@@ -505,12 +505,12 @@ type DeploymentRequest struct {
 
 // DeploymentLog represents the logs for a deployment
 type DeploymentLog struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 }
 
 // DeploymentLogOptions is the REST options for a deployment log
 type DeploymentLogOptions struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// Container for which to return logs
 	Container string
@@ -528,7 +528,7 @@ type DeploymentLogOptions struct {
 	// precedes the time a pod was started, only logs since the pod start will be returned.
 	// If this value is in the future, no logs will be returned.
 	// Only one of sinceSeconds or sinceTime may be specified.
-	SinceTime *unversioned.Time
+	SinceTime *metav1.Time
 	// If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
 	// of log output.
 	Timestamps bool

@@ -2,12 +2,12 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/route/clientset/internalclientset/typed/route/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeRoute struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeRoute) Routes(namespace string) internalversion.RouteResourceInterface {
@@ -16,7 +16,7 @@ func (c *FakeRoute) Routes(namespace string) internalversion.RouteResourceInterf
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeRoute) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeRoute) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	groupscmd "github.com/openshift/origin/pkg/cmd/admin/groups"
@@ -40,7 +41,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	}
 
 	// make sure we don't get back system groups
-	firstValerie, err := clusterAdminClient.Users().Get("valerie")
+	firstValerie, err := clusterAdminClient.Users().Get("valerie", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,7 +51,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 
 	// make sure that user/~ returns groups for unbacked users
 	expectedClusterAdminGroups := []string{"system:cluster-admins"}
-	clusterAdminUser, err := clusterAdminClient.Users().Get("~")
+	clusterAdminUser, err := clusterAdminClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -66,7 +67,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	}
 
 	// make sure that user/~ doesn't get back system groups when it merges
-	secondValerie, err := valerieOpenshiftClient.Users().Get("~")
+	secondValerie, err := valerieOpenshiftClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,7 +75,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Errorf("expected %v, got %v", secondValerie.Groups, valerieGroups)
 	}
 
-	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	_, err = valerieOpenshiftClient.Projects().Get("empty", metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -99,7 +100,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	}
 
 	// make sure that user groups are respected for policy
-	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	_, err = valerieOpenshiftClient.Projects().Get("empty", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -136,7 +137,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	_, err = valerieOpenshiftClient.Projects().Get("empty", metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -161,7 +162,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	}
 
 	// make sure that user groups are respected for policy
-	_, err = valerieOpenshiftClient.Projects().Get("empty")
+	_, err = valerieOpenshiftClient.Projects().Get("empty", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -171,7 +172,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = victorOpenshiftClient.Projects().Get("empty")
+	_, err = victorOpenshiftClient.Projects().Get("empty", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestGroupCommands(t *testing.T) {
 	if err := newGroup.AddGroup(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err := clusterAdminClient.Groups().Get("group1")
+	group1, err := clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -217,7 +218,7 @@ func TestGroupCommands(t *testing.T) {
 	if err := modifyUsers.AddUsers(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err = clusterAdminClient.Groups().Get("group1")
+	group1, err = clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -228,7 +229,7 @@ func TestGroupCommands(t *testing.T) {
 	if err := modifyUsers.RemoveUsers(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err = clusterAdminClient.Groups().Get("group1")
+	group1, err = clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -5,10 +5,10 @@
 package api
 
 import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -35,9 +35,11 @@ func DeepCopy_api_AppliedClusterResourceQuota(in interface{}, out interface{}, c
 	{
 		in := in.(*AppliedClusterResourceQuota)
 		out := out.(*AppliedClusterResourceQuota)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -53,8 +55,7 @@ func DeepCopy_api_AppliedClusterResourceQuotaList(in interface{}, out interface{
 	{
 		in := in.(*AppliedClusterResourceQuotaList)
 		out := out.(*AppliedClusterResourceQuotaList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]AppliedClusterResourceQuota, len(*in))
@@ -63,8 +64,6 @@ func DeepCopy_api_AppliedClusterResourceQuotaList(in interface{}, out interface{
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -74,9 +73,11 @@ func DeepCopy_api_ClusterResourceQuota(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*ClusterResourceQuota)
 		out := out.(*ClusterResourceQuota)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -92,8 +93,7 @@ func DeepCopy_api_ClusterResourceQuotaList(in interface{}, out interface{}, c *c
 	{
 		in := in.(*ClusterResourceQuotaList)
 		out := out.(*ClusterResourceQuotaList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ClusterResourceQuota, len(*in))
@@ -102,8 +102,6 @@ func DeepCopy_api_ClusterResourceQuotaList(in interface{}, out interface{}, c *c
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -113,14 +111,14 @@ func DeepCopy_api_ClusterResourceQuotaSelector(in interface{}, out interface{}, 
 	{
 		in := in.(*ClusterResourceQuotaSelector)
 		out := out.(*ClusterResourceQuotaSelector)
+		*out = *in
 		if in.LabelSelector != nil {
 			in, out := &in.LabelSelector, &out.LabelSelector
-			*out = new(unversioned.LabelSelector)
-			if err := unversioned.DeepCopy_unversioned_LabelSelector(*in, *out, c); err != nil {
+			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
+			} else {
+				*out = newVal.(*v1.LabelSelector)
 			}
-		} else {
-			out.LabelSelector = nil
 		}
 		if in.AnnotationSelector != nil {
 			in, out := &in.AnnotationSelector, &out.AnnotationSelector
@@ -128,8 +126,6 @@ func DeepCopy_api_ClusterResourceQuotaSelector(in interface{}, out interface{}, 
 			for key, val := range *in {
 				(*out)[key] = val
 			}
-		} else {
-			out.AnnotationSelector = nil
 		}
 		return nil
 	}
@@ -139,6 +135,7 @@ func DeepCopy_api_ClusterResourceQuotaSpec(in interface{}, out interface{}, c *c
 	{
 		in := in.(*ClusterResourceQuotaSpec)
 		out := out.(*ClusterResourceQuotaSpec)
+		*out = *in
 		if err := DeepCopy_api_ClusterResourceQuotaSelector(&in.Selector, &out.Selector, c); err != nil {
 			return err
 		}
@@ -153,6 +150,7 @@ func DeepCopy_api_ClusterResourceQuotaStatus(in interface{}, out interface{}, c 
 	{
 		in := in.(*ClusterResourceQuotaStatus)
 		out := out.(*ClusterResourceQuotaStatus)
+		*out = *in
 		if err := pkg_api.DeepCopy_api_ResourceQuotaStatus(&in.Total, &out.Total, c); err != nil {
 			return err
 		}
@@ -165,11 +163,7 @@ func DeepCopy_api_ResourceQuotasStatusByNamespace(in interface{}, out interface{
 	{
 		in := in.(*ResourceQuotasStatusByNamespace)
 		out := out.(*ResourceQuotasStatusByNamespace)
-		if newVal, err := c.DeepCopy(&in.orderedMap); err != nil {
-			return err
-		} else {
-			out.orderedMap = *newVal.(*orderedMap)
-		}
+		*out = in.DeepCopy()
 		return nil
 	}
 }

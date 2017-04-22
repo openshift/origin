@@ -2,10 +2,11 @@ package v1
 
 import (
 	v1 "github.com/openshift/origin/pkg/quota/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/quota/clientset/release_v3_6/scheme"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // ClusterResourceQuotasGetter has a method to return a ClusterResourceQuotaInterface.
@@ -19,18 +20,18 @@ type ClusterResourceQuotaInterface interface {
 	Create(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
 	Update(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
 	UpdateStatus(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
-	Delete(name string, options *api_v1.DeleteOptions) error
-	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
-	Get(name string) (*v1.ClusterResourceQuota, error)
-	List(opts api_v1.ListOptions) (*v1.ClusterResourceQuotaList, error)
-	Watch(opts api_v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.ClusterResourceQuota, err error)
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Get(name string, options meta_v1.GetOptions) (*v1.ClusterResourceQuota, error)
+	List(opts meta_v1.ListOptions) (*v1.ClusterResourceQuotaList, error)
+	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterResourceQuota, err error)
 	ClusterResourceQuotaExpansion
 }
 
 // clusterResourceQuotas implements ClusterResourceQuotaInterface
 type clusterResourceQuotas struct {
-	client restclient.Interface
+	client rest.Interface
 }
 
 // newClusterResourceQuotas returns a ClusterResourceQuotas
@@ -63,6 +64,9 @@ func (c *clusterResourceQuotas) Update(clusterResourceQuota *v1.ClusterResourceQ
 	return
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+
 func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *v1.ClusterResourceQuota) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
 	err = c.client.Put().
@@ -76,7 +80,7 @@ func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *v1.ClusterRes
 }
 
 // Delete takes name of the clusterResourceQuota and deletes it. Returns an error if one occurs.
-func (c *clusterResourceQuotas) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *clusterResourceQuotas) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("clusterresourcequotas").
 		Name(name).
@@ -86,48 +90,49 @@ func (c *clusterResourceQuotas) Delete(name string, options *api_v1.DeleteOption
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterResourceQuotas) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
+func (c *clusterResourceQuotas) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Resource("clusterresourcequotas").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the clusterResourceQuota, and returns the corresponding clusterResourceQuota object, and an error if there is any.
-func (c *clusterResourceQuotas) Get(name string) (result *v1.ClusterResourceQuota, err error) {
+func (c *clusterResourceQuotas) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ClusterResourceQuotas that match those selectors.
-func (c *clusterResourceQuotas) List(opts api_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
+func (c *clusterResourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
 	result = &v1.ClusterResourceQuotaList{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested clusterResourceQuotas.
-func (c *clusterResourceQuotas) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *clusterResourceQuotas) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Resource("clusterresourcequotas").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched clusterResourceQuota.
-func (c *clusterResourceQuotas) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.ClusterResourceQuota, err error) {
+func (c *clusterResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
 	err = c.client.Patch(pt).
 		Resource("clusterresourcequotas").

@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -35,7 +37,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 
 	g.JustBeforeEach(func() {
 		g.By("waiting for the builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().ServiceAccounts(oc.Namespace()))
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -49,7 +51,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPostCommitHookFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePostCommitHookFailed))
@@ -68,7 +70,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
@@ -87,7 +89,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
@@ -106,7 +108,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPullBuilderImageFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePullBuilderImageFailed))
@@ -125,7 +127,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonPushImageToRegistryFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePushImageToRegistryFailed))
@@ -144,7 +146,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonAssembleFailed))
 			o.Expect(build.Status.Message).To(o.Equal(messageAssembleFailed))
@@ -163,7 +165,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(reasonFetchRuntimeArtifacts))
 			o.Expect(build.Status.Message).To(o.Equal(messageFetchRuntimeArtifacts))
@@ -182,7 +184,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			br.AssertFailure()
 			br.DumpLogs()
 
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonGenericBuildFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageGenericBuildFailed))

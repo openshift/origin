@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/project/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -35,9 +35,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Project_To_api_Project(in *Project, out *api.Project, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ProjectSpec_To_api_ProjectSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -52,9 +50,7 @@ func Convert_v1_Project_To_api_Project(in *Project, out *api.Project, s conversi
 }
 
 func autoConvert_api_Project_To_v1_Project(in *api.Project, out *Project, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ProjectSpec_To_v1_ProjectSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -70,17 +66,7 @@ func Convert_api_Project_To_v1_Project(in *api.Project, out *Project, s conversi
 
 func autoConvert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *api.ProjectList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]api.Project, len(*in))
-		for i := range *in {
-			if err := Convert_v1_Project_To_api_Project(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]api.Project)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -90,16 +76,10 @@ func Convert_v1_ProjectList_To_api_ProjectList(in *ProjectList, out *api.Project
 
 func autoConvert_api_ProjectList_To_v1_ProjectList(in *api.ProjectList, out *ProjectList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]Project, len(*in))
-		for i := range *in {
-			if err := Convert_api_Project_To_v1_Project(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
+	if in.Items == nil {
+		out.Items = make([]Project, 0)
 	} else {
-		out.Items = nil
+		out.Items = *(*[]Project)(unsafe.Pointer(&in.Items))
 	}
 	return nil
 }
@@ -109,9 +89,7 @@ func Convert_api_ProjectList_To_v1_ProjectList(in *api.ProjectList, out *Project
 }
 
 func autoConvert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *api.ProjectRequest, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	return nil
@@ -122,9 +100,7 @@ func Convert_v1_ProjectRequest_To_api_ProjectRequest(in *ProjectRequest, out *ap
 }
 
 func autoConvert_api_ProjectRequest_To_v1_ProjectRequest(in *api.ProjectRequest, out *ProjectRequest, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.DisplayName = in.DisplayName
 	out.Description = in.Description
 	return nil

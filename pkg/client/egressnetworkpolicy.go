@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -14,12 +15,12 @@ type EgressNetworkPoliciesNamespacer interface {
 
 // EgressNetworkPolicyInterface exposes methods on egressNetworkPolicy resources.
 type EgressNetworkPolicyInterface interface {
-	List(opts kapi.ListOptions) (*sdnapi.EgressNetworkPolicyList, error)
-	Get(name string) (*sdnapi.EgressNetworkPolicy, error)
+	List(opts metav1.ListOptions) (*sdnapi.EgressNetworkPolicyList, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error)
 	Create(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Update(sub *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // egressNetworkPolicy implements EgressNetworkPolicyInterface interface
@@ -37,7 +38,7 @@ func newEgressNetworkPolicy(c *Client, namespace string) *egressNetworkPolicy {
 }
 
 // List returns a list of EgressNetworkPolicy that match the label and field selectors.
-func (c *egressNetworkPolicy) List(opts kapi.ListOptions) (result *sdnapi.EgressNetworkPolicyList, err error) {
+func (c *egressNetworkPolicy) List(opts metav1.ListOptions) (result *sdnapi.EgressNetworkPolicyList, err error) {
 	result = &sdnapi.EgressNetworkPolicyList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -49,9 +50,9 @@ func (c *egressNetworkPolicy) List(opts kapi.ListOptions) (result *sdnapi.Egress
 }
 
 // Get returns information about a particular firewall
-func (c *egressNetworkPolicy) Get(name string) (result *sdnapi.EgressNetworkPolicy, err error) {
+func (c *egressNetworkPolicy) Get(name string, options metav1.GetOptions) (result *sdnapi.EgressNetworkPolicy, err error) {
 	result = &sdnapi.EgressNetworkPolicy{}
-	err = c.r.Get().Namespace(c.ns).Resource("egressNetworkPolicies").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("egressNetworkPolicies").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -75,7 +76,7 @@ func (c *egressNetworkPolicy) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested EgressNetworkPolicies
-func (c *egressNetworkPolicy) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *egressNetworkPolicy) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

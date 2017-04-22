@@ -8,12 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -59,7 +58,7 @@ type DockerComposeOptions struct {
 	AsTemplate string
 
 	PrintObject    func(runtime.Object) error
-	OutputVersions []unversioned.GroupVersion
+	OutputVersions []schema.GroupVersion
 
 	Namespace string
 	Client    client.TemplateConfigsNamespacer
@@ -108,13 +107,13 @@ func NewCmdDockerCompose(fullName string, f *clientcmd.Factory, in io.Reader, ou
 func (o *DockerComposeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	version, _ := cmd.Flags().GetString("output-version")
 	for _, v := range strings.Split(version, ",") {
-		gv, err := unversioned.ParseGroupVersion(v)
+		gv, err := schema.ParseGroupVersion(v)
 		if err != nil {
 			return fmt.Errorf("provided output-version %q is not valid: %v", v, err)
 		}
 		o.OutputVersions = append(o.OutputVersions, gv)
 	}
-	o.OutputVersions = append(o.OutputVersions, registered.EnabledVersions()...)
+	o.OutputVersions = append(o.OutputVersions, kapi.Registry.EnabledVersions()...)
 
 	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
 	o.Action.Bulk.Op = configcmd.Create

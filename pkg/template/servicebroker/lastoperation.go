@@ -6,8 +6,10 @@ import (
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 func (b *Broker) LastOperation(instanceID string, operation api.Operation) *api.Response {
@@ -15,7 +17,7 @@ func (b *Broker) LastOperation(instanceID string, operation api.Operation) *api.
 		return api.BadRequest(errors.New("invalid operation"))
 	}
 
-	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID)
+	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return api.BadRequest(err)
@@ -23,7 +25,7 @@ func (b *Broker) LastOperation(instanceID string, operation api.Operation) *api.
 		return api.InternalServerError(err)
 	}
 
-	templateInstance, err := b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name)
+	templateInstance, err := b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
 	if err != nil {
 		return api.InternalServerError(err)
 	}
