@@ -2,8 +2,10 @@ package flagtypes
 
 import (
 	"flag"
+	"strconv"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/spf13/pflag"
 )
 
@@ -13,11 +15,13 @@ func GLog(flags *pflag.FlagSet) {
 	if flag := from.Lookup("v"); flag != nil {
 		level := flag.Value.(*glog.Level)
 		levelPtr := (*int32)(level)
-		flags.Int32Var(levelPtr, "loglevel", 0, "Set the level of log output (0-10)")
+		defVal, _ := strconv.ParseInt(util.Env("OPENSHIFT_LOGLEVEL", "0"), 10, 32)
+		flags.Int32Var(levelPtr, "loglevel", int32(defVal), "Set the level of log output (0-10)")
 	}
 	if flag := from.Lookup("vmodule"); flag != nil {
 		value := flag.Value
 		flags.Var(pflagValue{value}, "logspec", "Set per module logging with file|pattern=LEVEL,...")
+		flags.Lookup("logspec").DefValue = util.Env("OPENSHIFT_LOGSPEC", "")
 	}
 }
 
