@@ -232,3 +232,23 @@ func TestScriptProxyConfig(t *testing.T) {
 		t.Errorf("Expected HTTPS Proxy path to be /secure, got: %v", resultedProxyConf.HTTPSProxy.Path)
 	}
 }
+
+func TestBuildLabels(t *testing.T) {
+	 build =&api.Build{}
+	 build.Spec.Output.ImageLabels = []api.ImageLabel{}
+
+	 ImageLabel = api.ImageLabel{
+	 	Name: "name",
+	 	Value: "value", 
+	 } 
+
+    build.Spec.Output.ImageLabels =append(build.Spec.Output.ImageLabels,ImageLabel)
+
+    lable :=make(map[string]string)
+
+    lable =buildLabels(build)
+
+    if _,ok :=lable["name"];!ok{
+    	t.Error("buildlabels is err.")
+    }
+}
