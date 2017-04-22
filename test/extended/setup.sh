@@ -342,6 +342,9 @@ readonly EXCLUDED_TESTS=(
 
 	# this tests dns federation configuration via configmap, which we don't support yet
 	"DNS config map"
+
+  # this test requires garbage collection enabled, should be re-enabled post-1.6 rebase.
+  "Kubectl rolling-update"
 )
 
 readonly SERIAL_TESTS=(
