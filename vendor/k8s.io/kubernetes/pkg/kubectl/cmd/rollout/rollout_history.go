@@ -89,9 +89,7 @@ func RunHistory(f cmdutil.Factory, cmd *cobra.Command, out io.Writer, args []str
 		Flatten().
 		Do()
 	err = r.Err()
-	if err != nil {
-		return err
-	}
+	cmdutil.CheckErr(err)
 
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {

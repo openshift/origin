@@ -117,9 +117,7 @@ func (o *ResumeConfig) CompleteResume(f cmdutil.Factory, cmd *cobra.Command, out
 		Flatten().
 		Do()
 	err = r.Err()
-	if err != nil {
-		return err
-	}
+	cmdutil.CheckErr(err)
 
 	err = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
