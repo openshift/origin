@@ -118,12 +118,12 @@ func GetDockercfgFile(path string) string {
 func readDockercfg(filePath string) (cfg credentialprovider.DockerConfig, err error) {
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return
+		return nil, err
 	}
 	if err := json.Unmarshal(content, &cfg); err != nil {
 		return nil, err
 	}
-	return
+	return cfg, nil
 }
 
 // readDockerConfigJson reads the contents of a .docker/config.json file into a map
@@ -131,12 +131,12 @@ func readDockercfg(filePath string) (cfg credentialprovider.DockerConfig, err er
 func readDockerConfigJson(filePath string) (cfg credentialprovider.DockerConfig, err error) {
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return
+		return nil, err
 	}
 	var config credentialprovider.DockerConfigJson
 	if err = json.Unmarshal(content, &config); err != nil {
-		return
+		return nil, err
 	}
 	cfg = config.Auths
-	return
+	return config, nil
 }
