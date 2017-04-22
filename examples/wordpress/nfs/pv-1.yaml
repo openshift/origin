@@ -10,5 +10,5 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Recycle
   nfs:
-    server: localhost
-    path: /home/data/pv0001
+    server: 192.168.180.31
+    path: /home/oc/pv0001
