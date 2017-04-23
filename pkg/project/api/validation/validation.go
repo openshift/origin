@@ -14,6 +14,9 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
+// ImmutableProjectFieldError is used to determine if a field.Error was caused by changing an immutable project field
+const ImmutableProjectFieldError = "field is immutable, try updating the namespace"
+
 func ValidateProjectName(name string, prefix bool) []string {
 	if reasons := path.ValidatePathSegmentName(name, prefix); len(reasons) != 0 {
 		return reasons
@@ -61,14 +64,14 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status"), oldProject.Spec.Finalizers, "field is immutable"))
 	}
 
-	// TODO this restriction exists because our authorizer/admission cannot properly express and restrict mutation on the field level.
+	// This restriction exists because our authorizer/admission cannot properly express and restrict mutation on the field level.
 	for name, value := range newProject.Annotations {
 		if name == oapi.OpenShiftDisplayName || name == oapi.OpenShiftDescription {
 			continue
 		}
 
 		if value != oldProject.Annotations[name] {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "annotations").Key(name), value, "field is immutable, try updating the namespace"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "annotations").Key(name), value, ImmutableProjectFieldError))
 		}
 	}
 	// check for deletions
@@ -77,18 +80,18 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 			continue
 		}
 		if _, inNew := newProject.Annotations[name]; !inNew {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "annotations").Key(name), value, "field is immutable, try updating the namespace"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "annotations").Key(name), value, ImmutableProjectFieldError))
 		}
 	}
 
 	for name, value := range newProject.Labels {
 		if value != oldProject.Labels[name] {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "labels").Key(name), value, "field is immutable, , try updating the namespace"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "labels").Key(name), value, ImmutableProjectFieldError))
 		}
 	}
 	for name, value := range oldProject.Labels {
 		if _, inNew := newProject.Labels[name]; !inNew {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "labels").Key(name), value, "field is immutable, try updating the namespace"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "labels").Key(name), value, ImmutableProjectFieldError))
 		}
 	}
 

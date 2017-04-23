@@ -16,7 +16,7 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/natefinch/lumberjack.v2"
+	lumberjack "gopkg.in/natefinch/lumberjack.v2" // goimports will remove this if the alias is not set
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/meta"
@@ -774,7 +774,7 @@ func (c *MasterConfig) GetRestStorage() map[unversioned.GroupVersion]map[string]
 	}
 	deployConfigRollbackStorage := deployrollback.NewREST(configClient, kclient, c.ExternalVersionCodec)
 
-	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectStorage := projectproxy.NewREST(c.PrivilegedLoopbackKubernetesClientset.Core().Namespaces(), c.PrivilegedLoopbackClientConfig, c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.Options.ProjectConfig.ProjectRequestTemplate)
 	if err != nil {
