@@ -307,30 +307,31 @@ func TestRepositoryBucketAdd(t *testing.T) {
 				generated[4]),
 		},
 	} {
-		b := repositoryBucket{
-			clock: clock,
-			list:  tc.entries,
-		}
-		b.Add(tc.ttl, tc.repos...)
+		t.Run(tc.name, func(t *testing.T) {
+			b := repositoryBucket{
+				clock: clock,
+				list:  tc.entries,
+			}
+			b.Add(tc.ttl, tc.repos...)
 
-		if len(b.list) != len(tc.expectedEntries) {
-			t.Errorf("[%s] got unexpected number of entries in bucket: %d != %d", tc.name, len(b.list), len(tc.expectedEntries))
-		}
-		for i := 0; i < len(b.list); i++ {
-			if i >= len(tc.expectedEntries) {
-				t.Errorf("[%s] index=%d got unexpected entry: %#+v", tc.name, i, b.list[i])
-				continue
+			if len(b.list) != len(tc.expectedEntries) {
+				t.Errorf("got unexpected number of entries in bucket: %d != %d", len(b.list), len(tc.expectedEntries))
 			}
-			a, b := b.list[i], tc.expectedEntries[i]
-			if !bucketEntriesEqual(a, b) {
-				t.Errorf("[%s] index=%d got unexpected entry: %#+v != %#+v", tc.name, i, a, b)
+			for i := 0; i < len(b.list); i++ {
+				if i >= len(tc.expectedEntries) {
+					t.Fatalf("index=%d got unexpected entry: %#+v", i, b.list[i])
+				}
+				a, b := b.list[i], tc.expectedEntries[i]
+				if !bucketEntriesEqual(a, b) {
+					t.Errorf("index=%d got unexpected entry: %#+v != %#+v", i, a, b)
+				}
 			}
-		}
-		for i := len(b.list); i < len(tc.expectedEntries); i++ {
-			if i >= len(tc.expectedEntries) {
-				t.Errorf("[%s] index=%d missing expected entry %#+v", tc.name, i, tc.expectedEntries[i])
+			for i := len(b.list); i < len(tc.expectedEntries); i++ {
+				if i >= len(tc.expectedEntries) {
+					t.Errorf("index=%d missing expected entry %#+v", i, tc.expectedEntries[i])
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -532,30 +533,32 @@ func TestRepositoryBucketRemove(t *testing.T) {
 			},
 		},
 	} {
-		b := repositoryBucket{
-			clock: clock,
-			list:  tc.entries,
-		}
-		b.Remove(tc.repos...)
+		t.Run(tc.name, func(t *testing.T) {
+			b := repositoryBucket{
+				clock: clock,
+				list:  tc.entries,
+			}
+			b.Remove(tc.repos...)
 
-		if len(b.list) != len(tc.expectedEntries) {
-			t.Errorf("[%s] got unexpected number of entries in bucket: %d != %d", tc.name, len(b.list), len(tc.expectedEntries))
-		}
-		for i := 0; i < len(b.list); i++ {
-			if i >= len(tc.expectedEntries) {
-				t.Errorf("[%s] index=%d got unexpected entry: %#+v", tc.name, i, b.list[i])
-				continue
+			if len(b.list) != len(tc.expectedEntries) {
+				t.Errorf("[%s] got unexpected number of entries in bucket: %d != %d", tc.name, len(b.list), len(tc.expectedEntries))
 			}
-			a, b := b.list[i], tc.expectedEntries[i]
-			if !bucketEntriesEqual(a, b) {
-				t.Errorf("[%s] index=%d got unexpected entry: %#+v != %#+v", tc.name, i, a, b)
+			for i := 0; i < len(b.list); i++ {
+				if i >= len(tc.expectedEntries) {
+					t.Errorf("[%s] index=%d got unexpected entry: %#+v", tc.name, i, b.list[i])
+					continue
+				}
+				a, b := b.list[i], tc.expectedEntries[i]
+				if !bucketEntriesEqual(a, b) {
+					t.Errorf("[%s] index=%d got unexpected entry: %#+v != %#+v", tc.name, i, a, b)
+				}
 			}
-		}
-		for i := len(b.list); i < len(tc.expectedEntries); i++ {
-			if i >= len(tc.expectedEntries) {
-				t.Errorf("[%s] index=%d missing expected entry %#+v", tc.name, i, tc.expectedEntries[i])
+			for i := len(b.list); i < len(tc.expectedEntries); i++ {
+				if i >= len(tc.expectedEntries) {
+					t.Errorf("[%s] index=%d missing expected entry %#+v", tc.name, i, tc.expectedEntries[i])
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -599,15 +602,17 @@ func TestRepositoryBucketCopy(t *testing.T) {
 			expectedRepos: []string{"a", "b"},
 		},
 	} {
-		b := repositoryBucket{
-			clock: clock,
-			list:  tc.entries,
-		}
-		result := b.Copy()
+		t.Run(tc.name, func(t *testing.T) {
+			b := repositoryBucket{
+				clock: clock,
+				list:  tc.entries,
+			}
+			result := b.Copy()
 
-		if !reflect.DeepEqual(result, tc.expectedRepos) {
-			t.Errorf("[%s] got unexpected repo list: %s", tc.name, diff.ObjectGoPrintDiff(result, tc.expectedRepos))
-		}
+			if !reflect.DeepEqual(result, tc.expectedRepos) {
+				t.Errorf("[%s] got unexpected repo list: %s", tc.name, diff.ObjectGoPrintDiff(result, tc.expectedRepos))
+			}
+		})
 	}
 }
 

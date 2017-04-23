@@ -191,26 +191,28 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 			},
 		},
 	} {
-		repositories, search := identifyCandidateRepositories(tc.is, tc.localRegistry, tc.primary)
+		t.Run(tc.name, func(t *testing.T) {
+			repositories, search := identifyCandidateRepositories(tc.is, tc.localRegistry, tc.primary)
 
-		if !reflect.DeepEqual(repositories, tc.expectedRepositories) {
-			if len(repositories) != 0 || len(tc.expectedRepositories) != 0 {
-				t.Errorf("[%s] got unexpected repositories: %s", tc.name, diff.ObjectGoPrintDiff(repositories, tc.expectedRepositories))
+			if !reflect.DeepEqual(repositories, tc.expectedRepositories) {
+				if len(repositories) != 0 || len(tc.expectedRepositories) != 0 {
+					t.Errorf("[%s] got unexpected repositories: %s", tc.name, diff.ObjectGoPrintDiff(repositories, tc.expectedRepositories))
+				}
 			}
-		}
 
-		for repo, spec := range search {
-			if expSpec, exists := tc.expectedSearch[repo]; !exists {
-				t.Errorf("[%s] got unexpected repository among results: %q: %#+v", tc.name, repo, spec)
-			} else if !reflect.DeepEqual(spec, expSpec) {
-				t.Errorf("[%s] got unexpected pull spec for repo %q: %s", tc.name, repo, diff.ObjectGoPrintDiff(spec, expSpec))
+			for repo, spec := range search {
+				if expSpec, exists := tc.expectedSearch[repo]; !exists {
+					t.Errorf("[%s] got unexpected repository among results: %q: %#+v", tc.name, repo, spec)
+				} else if !reflect.DeepEqual(spec, expSpec) {
+					t.Errorf("[%s] got unexpected pull spec for repo %q: %s", tc.name, repo, diff.ObjectGoPrintDiff(spec, expSpec))
+				}
 			}
-		}
-		for expRepo, expSpec := range tc.expectedSearch {
-			if _, exists := tc.expectedSearch[expRepo]; !exists {
-				t.Errorf("[%s] missing expected repository among results: %q: %#+v", tc.name, expRepo, expSpec)
+			for expRepo, expSpec := range tc.expectedSearch {
+				if _, exists := tc.expectedSearch[expRepo]; !exists {
+					t.Errorf("[%s] missing expected repository among results: %q: %#+v", tc.name, expRepo, expSpec)
+				}
 			}
-		}
+		})
 	}
 }
 
