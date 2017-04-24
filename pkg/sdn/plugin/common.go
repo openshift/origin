@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
@@ -170,4 +173,50 @@ func RunNamespacedPodEventQueue(client kcache.Getter, namespace string, closeCha
 			eventQueue.Pop(process, &kapi.Pod{})
 		}
 	}
+}
+
+// RegisterSharedInformerEventHandlers registers addOrUpdateFunc and delFunc event handlers with
+// kubernetes shared informers for the given resource name.
+func RegisterSharedInformerEventHandlers(kubeInformers kinternalinformers.SharedInformerFactory,
+	addOrUpdateFunc func(interface{}, interface{}, watch.EventType),
+	delFunc func(interface{}), resourceName ResourceName) {
+
+	var expectedObjType interface{}
+	var informer kcache.SharedIndexInformer
+
+	internalVersion := kubeInformers.Core().InternalVersion()
+
+	switch resourceName {
+	case Nodes:
+		informer = internalVersion.Nodes().Informer()
+		expectedObjType = &kapi.Node{}
+	default:
+		glog.Errorf("Unknown resource name: %s", resourceName)
+		return
+	}
+
+	informer.AddEventHandler(kcache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			addOrUpdateFunc(obj, nil, watch.Added)
+		},
+		UpdateFunc: func(old, cur interface{}) {
+			addOrUpdateFunc(cur, old, watch.Modified)
+		},
+		DeleteFunc: func(obj interface{}) {
+			if reflect.TypeOf(expectedObjType) != reflect.TypeOf(obj) {
+				tombstone, ok := obj.(kcache.DeletedFinalStateUnknown)
+				if !ok {
+					glog.Errorf("Couldn't get object from tombstone: %+v", obj)
+					return
+				}
+
+				obj = tombstone.Obj
+				if reflect.TypeOf(expectedObjType) != reflect.TypeOf(obj) {
+					glog.Errorf("Tombstone contained object that is not a %s: %+v", resourceName, obj)
+					return
+				}
+			}
+			delFunc(obj)
+		},
+	})
 }
