@@ -266,7 +266,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 				rc, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Get("deployment-test-1", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(rc.Spec.Replicas).Should(o.BeEquivalentTo(0))
+				o.Expect(*rc.Spec.Replicas).Should(o.BeEquivalentTo(0))
 				o.Expect(rc.Status.Replicas).Should(o.BeEquivalentTo(0))
 				return false, nil
 			})
@@ -282,11 +282,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 				rolloutCompleteWithLogs := make(chan struct{})
 				out := ""
 				go func(rolloutNumber int) {
+					defer g.GinkgoRecover()
+					defer close(rolloutCompleteWithLogs)
 					var err error
-					defer func() {
-						close(rolloutCompleteWithLogs)
-						g.GinkgoRecover()
-					}()
 					out, err = waitForDeployerToComplete(oc, fmt.Sprintf("deployment-test-%d", rolloutNumber), deploymentRunTimeout)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}(i + 2) // we already did 2 rollouts previously.

@@ -354,7 +354,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 // rollout and then wait till the deployer pod finish. Then scrubs the deployer logs and
 // return it.
 func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duration) (string, error) {
-	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.Everything().String()})
+	watcher, err := oc.InternalKubeClient().Core().ReplicationControllers(oc.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.Everything().String()})
 	if err != nil {
 		return "", err
 	}
