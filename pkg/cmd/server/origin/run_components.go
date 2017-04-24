@@ -216,15 +216,19 @@ func (c *MasterConfig) RunDNSServer() {
 		return
 	}
 
+	services, err := dns.NewCachedServiceAccessor(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services())
+	if err != nil {
+		glog.Fatalf("Could not start DNS: failed to add ClusterIP index: %v", err)
+	}
+
 	go func() {
-		services := dns.NewCachedServiceAccessor(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services())
 		s := dns.NewServer(
 			config,
 			services,
 			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Endpoints().Lister(),
 			"apiserver",
 		)
-		err := s.ListenAndServe()
+		err = s.ListenAndServe()
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 

@@ -511,6 +511,11 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	oc.Run(kc, embeddedAssetConfig)
 
+	// start DNS before the informers are started because it adds a ClusterIP index.
+	if oc.Options.DNSConfig != nil {
+		oc.RunDNSServer()
+	}
+
 	// start up the informers that we're trying to use in the API server
 	oc.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 	oc.Informers.Start(utilwait.NeverStop)
@@ -518,10 +523,6 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 
 	if standaloneAssetConfig != nil {
 		standaloneAssetConfig.Run()
-	}
-
-	if oc.Options.DNSConfig != nil {
-		oc.RunDNSServer()
 	}
 
 	oc.RunProjectAuthorizationCache()

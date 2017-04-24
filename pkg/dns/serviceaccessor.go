@@ -32,12 +32,22 @@ var _ ServiceAccessor = &cachedServiceAccessor{}
 
 // NewCachedServiceAccessor returns a service accessor that can answer queries about services.
 // It uses a backing cache to make ClusterIP lookups efficient.
-func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) ServiceAccessor {
-	serviceInformer.Informer().AddIndexers(cache.Indexers{
+func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) (ServiceAccessor, error) {
+	if _, found := serviceInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
+		err := serviceInformer.Informer().AddIndexers(cache.Indexers{
+			"namespace": cache.MetaNamespaceIndexFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := serviceInformer.Informer().AddIndexers(cache.Indexers{
 		"clusterIP": indexServiceByClusterIP, // for reverse lookups
-		"namespace": cache.MetaNamespaceIndexFunc,
 	})
-	return &cachedServiceAccessor{store: serviceInformer.Informer().GetIndexer()}
+	if err != nil {
+		return nil, err
+	}
+	return &cachedServiceAccessor{store: serviceInformer.Informer().GetIndexer()}, nil
 }
 
 // ServiceByClusterIP returns the first service that matches the provided clusterIP value.
