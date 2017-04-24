@@ -122,9 +122,20 @@ func getResourceHandler(scope RequestScope, getter getterFunc) restful.RouteFunc
 }
 
 // GetResource returns a function that handles retrieving a single resource from a rest.Storage object.
-func GetResource(r rest.Getter, e rest.Exporter, scope RequestScope) restful.RouteFunction {
+func GetResource(r rest.Getter, e rest.Exporter, scope RequestScope, admit admission.Interface) restful.RouteFunction {
 	return getResourceHandler(scope,
 		func(ctx api.Context, name string, req *restful.Request) (runtime.Object, error) {
+
+			if admit != nil && admit.Handles(admission.Get) {
+				namespace, _ := api.NamespaceFrom(ctx)
+				userInfo, _ := api.UserFrom(ctx)
+				err := admit.Admit(admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Get, userInfo))
+				if err != nil {
+					// scope.err(err, res.ResponseWriter, req.Request)
+					return nil, err
+				}
+			}
+
 			// For performance tracking purposes.
 			trace := util.NewTrace("Get " + req.Request.URL.Path)
 			defer trace.LogIfLong(500 * time.Millisecond)
@@ -149,9 +160,20 @@ func GetResource(r rest.Getter, e rest.Exporter, scope RequestScope) restful.Rou
 }
 
 // GetResourceWithOptions returns a function that handles retrieving a single resource from a rest.Storage object.
-func GetResourceWithOptions(r rest.GetterWithOptions, scope RequestScope) restful.RouteFunction {
+func GetResourceWithOptions(r rest.GetterWithOptions, scope RequestScope, admit admission.Interface) restful.RouteFunction {
 	return getResourceHandler(scope,
 		func(ctx api.Context, name string, req *restful.Request) (runtime.Object, error) {
+
+			if admit != nil && admit.Handles(admission.Get) {
+				namespace, _ := api.NamespaceFrom(ctx)
+				userInfo, _ := api.UserFrom(ctx)
+				err := admit.Admit(admission.NewAttributesRecord(nil, nil, scope.Kind, namespace, name, scope.Resource, scope.Subresource, admission.Get, userInfo))
+				if err != nil {
+					// scope.err(err, res.ResponseWriter, req.Request)
+					return nil, err
+				}
+			}
+
 			opts, subpath, subpathKey := r.NewGetOptions()
 			if err := getRequestOptions(req, scope, opts, subpath, subpathKey); err != nil {
 				return nil, err

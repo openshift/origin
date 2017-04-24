@@ -526,9 +526,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		case "GET": // Get a resource.
 			var handler restful.RouteFunction
 			if isGetterWithOptions {
-				handler = GetResourceWithOptions(getterWithOptions, reqScope)
+				handler = GetResourceWithOptions(getterWithOptions, reqScope, admit)
 			} else {
-				handler = GetResource(getter, exporter, reqScope)
+				handler = GetResource(getter, exporter, reqScope, admit)
 			}
 			handler = metrics.InstrumentRouteFunc(action.Verb, resource, handler)
 			doc := "read the specified " + kind
