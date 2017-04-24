@@ -912,10 +912,10 @@ func init() {
 					Verbs:     sets.NewString("update"),
 					Resources: sets.NewString("statefulsets/status"),
 				},
-				// StatefulSetController.podClient
+				// StatefulSetController.podControl
 				{
 					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("get", "create", "delete", "update"),
+					Verbs:     sets.NewString("get", "create", "delete", "update", "patch"),
 					Resources: sets.NewString("pods"),
 				},
 				// StatefulSetController.petClient (PVC)
