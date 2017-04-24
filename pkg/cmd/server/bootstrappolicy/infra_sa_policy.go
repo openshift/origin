@@ -706,7 +706,7 @@ func init() {
 				},
 				// DaemonSetsController.podControl (RealPodControl)
 				{
-					Verbs:     sets.NewString("create", "delete"),
+					Verbs:     sets.NewString("create", "delete", "patch"),
 					Resources: sets.NewString("pods"),
 				},
 				{
