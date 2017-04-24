@@ -22,6 +22,7 @@ import (
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
+	srvconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
@@ -62,6 +63,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	client.AddReactor("get", "images", registrytest.GetFakeImageGetHandler(t, *testImage))
 
 	ctx := context.Background()
+	ctx = WithConfiguration(ctx, &srvconfig.Configuration{})
 	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
 	app := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
