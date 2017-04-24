@@ -682,12 +682,18 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for endpoint controller: %v", err)
 		}
 
+		garbageCollectorControllerConfig, garbageCollectorControllerClient, _, _, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGarbageCollectorControllerServiceAccountName)
+		if err != nil {
+			glog.Fatalf("Could not get client for garbage collector controller: %v", err)
+		}
+
 		// no special order
 		kc.RunNodeController()
 		kc.RunScheduler()
 		kc.RunReplicationController(rcClient)
 		kc.RunReplicaSetController(rsClient)
 		kc.RunDeploymentController(deploymentClient)
+		kc.RunGarbageCollectorController(garbageCollectorControllerClient, garbageCollectorControllerConfig)
 
 		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
 
