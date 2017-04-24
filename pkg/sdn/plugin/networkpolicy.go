@@ -16,9 +16,11 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -35,6 +37,8 @@ type networkPolicyPlugin struct {
 	lock        sync.Mutex
 	namespaces  map[uint32]*npNamespace
 	kNamespaces map[string]kapi.Namespace
+
+	kubeInformers kinternalinformers.SharedInformerFactory
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -73,6 +77,7 @@ func (np *networkPolicyPlugin) Name() string {
 
 func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.node = node
+	np.kubeInformers = node.kubeInformers
 	np.vnids = newNodeVNIDMap(np, node.osClient)
 	if err := np.vnids.Start(); err != nil {
 		return err
@@ -95,7 +100,7 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 		return err
 	}
 
-	go utilwait.Forever(np.watchNamespaces, 0)
+	np.watchNamespaces()
 	go utilwait.Forever(np.watchNetworkPolicies, 0)
 	return nil
 }
@@ -536,50 +541,59 @@ func namespaceIsIsolated(ns *kapi.Namespace) bool {
 }
 
 func (np *networkPolicyPlugin) watchNamespaces() {
-	RunEventQueue(np.node.kClient.Core().RESTClient(), Namespaces, func(delta cache.Delta) error {
-		ns := delta.Object.(*kapi.Namespace)
+	RegisterSharedInformerEventHandlers(np.kubeInformers,
+		np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, Namespaces)
+}
 
-		glog.V(5).Infof("Watch %s event for Namespace %q", delta.Type, ns.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			// Don't grab the lock yet since this may block
-			vnid, err := np.vnids.WaitAndGetVNID(ns.Name)
-			if err != nil {
-				return err
-			}
+func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
+	ns := obj.(*kapi.Namespace)
+	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+	// Don't grab the lock yet since this may block
+	vnid, err := np.vnids.WaitAndGetVNID(ns.Name)
+	if err != nil {
+		glog.Error(err)
+		return
+	}
 
-			np.lock.Lock()
-			defer np.lock.Unlock()
-			np.kNamespaces[ns.Name] = *ns
-			if npns, exists := np.namespaces[vnid]; exists {
-				npns.isolated = namespaceIsIsolated(ns)
-				np.syncNamespace(npns)
-			}
-			// else the NetNamespace doesn't exist yet, but we will initialize
-			// npns.isolated from the kapi.Namespace when it's created
+	np.lock.Lock()
+	defer np.lock.Unlock()
+	np.kNamespaces[ns.Name] = *ns
+	if npns, exists := np.namespaces[vnid]; exists {
+		npns.isolated = namespaceIsIsolated(ns)
+		np.syncNamespace(npns)
+	}
+	// else the NetNamespace doesn't exist yet, but we will initialize
+	// npns.isolated from the kapi.Namespace when it's created
 
-		case cache.Deleted:
-			np.lock.Lock()
-			defer np.lock.Unlock()
-			delete(np.kNamespaces, ns.Name)
+	np.refreshNetworkPolicies()
+}
 
-			// We don't need to np.syncNamespace() because if the NetNamespace
-			// still existed, it will be deleted as part of deleting the Namespace.
-		}
+func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
+	ns := obj.(*kapi.Namespace)
+	glog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
+	np.lock.Lock()
+	defer np.lock.Unlock()
+	delete(np.kNamespaces, ns.Name)
 
-		for _, npns := range np.namespaces {
-			changed := false
-			for _, npp := range npns.policies {
-				if npp.watchesNamespaces {
-					if np.updateNetworkPolicy(npns, &npp.policy) {
-						changed = true
-					}
+	// We don't need to np.syncNamespace() because if the NetNamespace
+	// still existed, it will be deleted as part of deleting the Namespace.
+
+	np.refreshNetworkPolicies()
+}
+
+func (np *networkPolicyPlugin) refreshNetworkPolicies() {
+	for _, npns := range np.namespaces {
+		changed := false
+		for _, npp := range npns.policies {
+			if npp.watchesNamespaces {
+				if np.updateNetworkPolicy(npns, &npp.policy) {
+					changed = true
+					break
 				}
 			}
-			if changed {
-				np.syncNamespace(npns)
-			}
 		}
-		return nil
-	})
+		if changed {
+			np.syncNamespace(npns)
+		}
+	}
 }
