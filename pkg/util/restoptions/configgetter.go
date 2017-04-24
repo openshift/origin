@@ -38,6 +38,9 @@ type configRESTOptionsGetter struct {
 	defaultCacheSize int
 	cacheSizes       map[schema.GroupResource]int
 	quorumResources  map[schema.GroupResource]struct{}
+
+	deleteCollectionWorkers int
+	enableGarbageCollection bool
 }
 
 // NewConfigGetter returns a restoptions.Getter implemented using information from the provided master config.
@@ -79,14 +82,16 @@ func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig
 	}
 
 	return &configRESTOptionsGetter{
-		masterOptions:         masterOptions,
-		cacheEnabled:          apiserverOptions.Etcd.EnableWatchCache,
-		defaultCacheSize:      1000,
-		cacheSizes:            cacheSizes,
-		restOptionsMap:        map[schema.GroupResource]generic.RESTOptions{},
-		defaultResourceConfig: defaultResourceConfig,
-		quorumResources:       quorumResources,
-		storageFactory:        storageFactory,
+		masterOptions:           masterOptions,
+		cacheEnabled:            apiserverOptions.Etcd.EnableWatchCache,
+		defaultCacheSize:        1000,
+		cacheSizes:              cacheSizes,
+		restOptionsMap:          map[schema.GroupResource]generic.RESTOptions{},
+		defaultResourceConfig:   defaultResourceConfig,
+		quorumResources:         quorumResources,
+		storageFactory:          storageFactory,
+		deleteCollectionWorkers: apiserverOptions.Etcd.DeleteCollectionWorkers,
+		enableGarbageCollection: apiserverOptions.Etcd.EnableGarbageCollection,
 	}, nil
 }
 
@@ -139,8 +144,8 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 	resourceOptions := generic.RESTOptions{
 		StorageConfig:           config,
 		Decorator:               decorator,
-		DeleteCollectionWorkers: 1,     // TODO(rebase): use upstream value here from Etcd options?
-		EnableGarbageCollection: false, // TODO(rebase): use upstream value here from Etcd options?
+		DeleteCollectionWorkers: g.deleteCollectionWorkers,
+		EnableGarbageCollection: g.enableGarbageCollection,
 		ResourcePrefix:          g.storageFactory.ResourcePrefix(resource),
 	}
 	g.restOptionsMap[resource] = resourceOptions
