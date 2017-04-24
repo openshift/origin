@@ -87,6 +87,9 @@ const (
 
 	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 	NodeBootstrapRoleName                = "system:node-bootstrapper"
+
+	InfraGarbageCollectorControllerServiceAccountName = "garbage-collector-controller"
+	GarbageCollectorControllerRoleName                = "system:garbage-collector-controller"
 )
 
 type InfraServiceAccounts struct {
@@ -1112,6 +1115,26 @@ func init() {
 					APIGroups: []string{certificates.GroupName},
 					Verbs:     sets.NewString("create", "get"),
 					Resources: sets.NewString("certificatesigningrequests"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraGarbageCollectorControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: GarbageCollectorControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// Ability to delete resources and remove ownerRefs
+				{
+					APIGroups: []string{"*"},
+					Verbs:     sets.NewString("get", "list", "watch", "patch", "update", "delete"),
+					Resources: sets.NewString("*"),
 				},
 			},
 		},

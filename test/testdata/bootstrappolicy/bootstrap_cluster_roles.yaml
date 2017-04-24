@@ -3131,6 +3131,26 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
+    name: system:garbage-collector-controller
+  rules:
+  - apiGroups:
+    - '*'
+    attributeRestrictions: null
+    resources:
+    - '*'
+    verbs:
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
     name: system:gc-controller
   rules:
   - apiGroups:
