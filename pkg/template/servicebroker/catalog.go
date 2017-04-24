@@ -108,14 +108,17 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 }
 
 func (b *Broker) Catalog() *api.Response {
-	templates, err := b.lister.List()
-	if err != nil {
-		return api.InternalServerError(err)
-	}
+	var services []*api.Service
 
-	services := make([]*api.Service, len(templates))
-	for i, template := range templates {
-		services[i] = serviceFromTemplate(template)
+	for namespace := range b.templateNamespaces {
+		templates, err := b.lister.ListByNamespace(namespace)
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+
+		for _, template := range templates {
+			services = append(services, serviceFromTemplate(template))
+		}
 	}
 
 	return api.NewResponse(http.StatusOK, &api.CatalogResponse{Services: services}, nil)

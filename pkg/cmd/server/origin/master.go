@@ -506,7 +506,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 	// TODO(sttts): use upstream version route
 	initVersionRoute(apiContainer.Container, "/version/openshift")
 
-	if c.Options.EnableTemplateServiceBroker {
+	if c.Options.TemplateServiceBrokerConfig != nil {
 		openservicebrokerserver.Route(
 			apiContainer.Container,
 			templateapi.ServiceBrokerRoot,
@@ -515,7 +515,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 				c.PrivilegedLoopbackOpenShiftClient,
 				c.PrivilegedLoopbackKubernetesClientsetInternal.Core(),
 				c.Informers,
-				c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace,
+				c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
 			),
 		)
 	}
@@ -906,7 +906,7 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 		"routes/status": routeStatusStorage,
 	}
 
-	if c.Options.EnableTemplateServiceBroker {
+	if c.Options.TemplateServiceBrokerConfig != nil {
 		templateInstanceStorage, err := templateinstanceetcd.NewREST(c.RESTOptionsGetter, c.PrivilegedLoopbackOpenShiftClient)
 		checkStorageErr(err)
 		brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.RESTOptionsGetter)
