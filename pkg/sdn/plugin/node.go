@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 )
@@ -72,10 +73,12 @@ type OsdnNode struct {
 	kubeletCniPlugin knetwork.NetworkPlugin
 
 	clearLbr0IptablesRule bool
+
+	kubeInformers kinternalinformers.SharedInformerFactory
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32, kubeInformers kinternalinformers.SharedInformerFactory) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
@@ -139,6 +142,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
+		kubeInformers:      kubeInformers,
 	}
 
 	if err := plugin.dockerPreCNICleanup(); err != nil {
