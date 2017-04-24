@@ -141,7 +141,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		}
 	}
 
-	server.Etcd.EnableGarbageCollection = false              // disabled until we add the controller. MUST be in synced with the value in CMServer
+	server.Etcd.EnableGarbageCollection = true
 	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(post-1.6.1-rebase): enable etcd3 as upstream
 	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
 	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
@@ -307,9 +307,9 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	// Adjust defaults
 	cmserver.ClusterSigningCertFile = ""
 	cmserver.ClusterSigningKeyFile = ""
-	cmserver.Address = ""                   // no healthz endpoint
-	cmserver.Port = 0                       // no healthz endpoint
-	cmserver.EnableGarbageCollector = false // disabled until we add the controller
+	cmserver.Address = "" // no healthz endpoint
+	cmserver.Port = 0     // no healthz endpoint
+	cmserver.EnableGarbageCollector = true
 	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
 
