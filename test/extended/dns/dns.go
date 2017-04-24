@@ -163,11 +163,11 @@ func PodSucceeded(event watch.Event) (bool, error) {
 		return false, errors.NewNotFound(schema.GroupResource{Resource: "pods"}, "")
 	}
 	switch t := event.Object.(type) {
-	case *api.Pod:
+	case *kapiv1.Pod:
 		switch t.Status.Phase {
-		case api.PodSucceeded:
+		case kapiv1.PodSucceeded:
 			return true, nil
-		case api.PodFailed:
+		case kapiv1.PodFailed:
 			return false, fmt.Errorf("pod failed: %#v", t)
 		}
 	}
