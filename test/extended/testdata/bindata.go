@@ -126,6 +126,7 @@
 // test/extended/testdata/sti-environment-build-app/Gemfile
 // test/extended/testdata/sti-environment-build-app/config.ru
 // test/extended/testdata/test-auth-build.yaml
+// test/extended/testdata/test-bc-with-pr-ref.yaml
 // test/extended/testdata/test-build-app/Dockerfile
 // test/extended/testdata/test-build-app/Gemfile
 // test/extended/testdata/test-build-app/config.ru
@@ -6721,6 +6722,44 @@ func testExtendedTestdataTestAuthBuildYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-auth-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTestBcWithPrRefYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  creationTimestamp: null
+  name: bc-with-pr-ref
+spec:
+  resources: {}
+  source:
+    git:
+      uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
+      ref: refs/pull/1/head
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: wildfly:latest
+        namespace: openshift
+    type: Source
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataTestBcWithPrRefYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestBcWithPrRefYaml, nil
+}
+
+func testExtendedTestdataTestBcWithPrRefYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestBcWithPrRefYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-bc-with-pr-ref.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19044,6 +19083,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
 	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
+	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
 	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
 	"test/extended/testdata/test-build-app/Gemfile": testExtendedTestdataTestBuildAppGemfile,
 	"test/extended/testdata/test-build-app/config.ru": testExtendedTestdataTestBuildAppConfigRu,
@@ -19416,6 +19456,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"config.ru": &bintree{testExtendedTestdataStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
 				}},
 				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
+				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},
 				"test-build-app": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataTestBuildAppDockerfile, map[string]*bintree{}},
 					"Gemfile": &bintree{testExtendedTestdataTestBuildAppGemfile, map[string]*bintree{}},
