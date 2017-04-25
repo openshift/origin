@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ce8cfce742a49bad504c3d2fa00286abc5df1f32
+%global commit 000f4f6a342116206c68bb0801d9a02c0cd60252
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.46 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ce8cfce
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.47 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=000f4f6
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.47
+Version:        3.6.48
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,29 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue Apr 25 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.48-1
+- bump(github.com/openshift/origin-web-console):
+  dd6bb1c5e3bdcb8710abcb22c81e036d0826dba7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  29e01c2fa776510aa9088e44866cd2b3bfe0b9dc (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  caf3dcb7d3f73a67a8d88c70eb8f1d6f1e2beebf (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5968a9200ba59d70f8f453adb4ed2eb57fbe601f (dmcphers+openshiftbot@redhat.com)
+- deploy: move reasons from util to types (mfojtik@redhat.com)
+- Loop until backend metrics reaches threshold (ccoleman@redhat.com)
+- Moved test output from /tmp to under _output (skuznets@redhat.com)
+- deploy: use CancelledRolloutReason in failed progress condition when
+  cancelled (mfojtik@redhat.com)
+- handle setting triggers on BCs with no default ICT (bparees@redhat.com)
+- Upgrade golang-1.7 to 1.7.5 (ffranz@redhat.com)
+- allow GIT_SSL_NO_VERIFY to be set on build pods via build defaulter
+  (bparees@redhat.com)
+- Check multiple GVKs in AddObjectsToTemplate (andy.goldstein@gmail.com)
+- Prefer legacy kinds (andy.goldstein@gmail.com)
+- Hide storage-admin role by default (jliggitt@redhat.com)
+- Add prometheus metrics for dockerregistry (agladkov@redhat.com)
+
 * Mon Apr 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.47-1
 - Update logging in our deployment controllers (mkargaki@redhat.com)
 
