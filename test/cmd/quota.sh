@@ -19,7 +19,7 @@ os::cmd::expect_success 'oc create clusterquota for-deads --project-label-select
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads"
 os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads -n foo --as deads' "secrets.*9"
 
-os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part must match the regex"
+os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector="openshift.#$%/requester=deads"' "prefix part a DNS-1123 subdomain must consist of lower case alphanumeric characters"
 os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --project-annotation-selector=openshift.io/requester=deads,openshift.io/novalue' "Malformed annotation selector"
 os::cmd::expect_success 'oc create clusterquota for-deads-by-annotation --project-annotation-selector=openshift.io/requester=deads --hard=secrets=50'
 os::cmd::expect_success 'oc create clusterquota for-deads-email-by-annotation --project-annotation-selector=openshift.io/requester=deads@deads.io --hard=secrets=50'
