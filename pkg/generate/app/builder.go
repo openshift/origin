@@ -16,7 +16,7 @@ const s2iScriptsLabel = "io.openshift.s2i.scripts-url"
 // IsBuilderImage checks whether the provided Docker image is
 // a builder image or not
 func IsBuilderImage(image *imageapi.DockerImage) bool {
-	if image.Config == nil {
+	if image == nil || image.Config == nil {
 		return false
 	}
 	// Has the scripts annotation
@@ -37,6 +37,9 @@ func IsBuilderImage(image *imageapi.DockerImage) bool {
 // IsBuilderStreamTag checks whether the provided image stream tag is
 // a builder image or not
 func IsBuilderStreamTag(stream *imageapi.ImageStream, tag string) bool {
+	if stream == nil {
+		return false
+	}
 	// Has the tag annotation
 	if tag, ok := stream.Spec.Tags[tag]; ok {
 		tags := tag.Annotations["tags"]
@@ -62,7 +65,7 @@ func IsBuilderMatch(match *ComponentMatch) bool {
 // isGeneratorJobImage checks whether the provided Docker image is
 // installable
 func isGeneratorJobImage(image *imageapi.DockerImage) bool {
-	if image.Config == nil {
+	if image == nil || image.Config == nil {
 		return false
 	}
 	// Has the job annotation
@@ -75,6 +78,9 @@ func isGeneratorJobImage(image *imageapi.DockerImage) bool {
 // isGeneratorJobImageStreamTag checks whether the provided image stream tag is
 // installable
 func isGeneratorJobImageStreamTag(stream *imageapi.ImageStream, tag string) bool {
+	if stream == nil {
+		return false
+	}
 	// Has the job annotation
 	if tag, ok := stream.Spec.Tags[tag]; ok {
 		if tag.Annotations[labelGenerateJob] == "true" {
