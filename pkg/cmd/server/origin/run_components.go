@@ -572,5 +572,5 @@ func (c *MasterConfig) RunUnidlingController() {
 }
 
 func (c *MasterConfig) RunTemplateController() {
-	go templatecontroller.NewTemplateInstanceController(c.PrivilegedLoopbackClientConfig).Run(utilwait.NeverStop)
+	go templatecontroller.NewTemplateInstanceController(&c.PrivilegedLoopbackClientConfig).Run(utilwait.NeverStop)
 }
