@@ -93,6 +93,14 @@ func TestClone(t *testing.T) {
 	}
 }
 
+func TestFetch(t *testing.T) {
+	r := &repository{git: makeExecFunc("", nil)}
+	err := r.Fetch("/test/dir", "https://test/url/to/repository", "refs/pull/1/head")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
 func TestCheckout(t *testing.T) {
 	r := &repository{git: makeExecFunc("", nil)}
 	err := r.Checkout("/test/dir", "branch2")
