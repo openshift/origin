@@ -1,8 +1,12 @@
 package validation
 
 import (
+	"bytes"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"strings"
 
@@ -111,8 +115,116 @@ func ValidateRouteStatusUpdate(route *routeapi.Route, older *routeapi.Route) fie
 	return allErrs
 }
 
+type blockVerifierFunc func(block *pem.Block) (*pem.Block, error)
+
+func publicKeyBlockVerifier(block *pem.Block) (*pem.Block, error) {
+	key, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	block = &pem.Block{
+		Type: "PUBLIC KEY",
+	}
+	if block.Bytes, err = x509.MarshalPKIXPublicKey(key); err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func certificateBlockVerifier(block *pem.Block) (*pem.Block, error) {
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	block = &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Raw,
+	}
+	return block, nil
+}
+
+func privateKeyBlockVerifier(block *pem.Block) (*pem.Block, error) {
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			key, err = x509.ParseECPrivateKey(block.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("block %s is not valid", block.Type)
+			}
+		}
+	}
+	switch t := key.(type) {
+	case *rsa.PrivateKey:
+		block = &pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(t),
+		}
+	case *ecdsa.PrivateKey:
+		block = &pem.Block{
+			Type: "ECDSA PRIVATE KEY",
+		}
+		if block.Bytes, err = x509.MarshalECPrivateKey(t); err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("block private key %T is not valid", key)
+	}
+	return block, nil
+}
+
+func ignoreBlockVerifier(block *pem.Block) (*pem.Block, error) {
+	return nil, nil
+}
+
+var knownBlockDecoders = map[string]blockVerifierFunc{
+	"RSA PRIVATE KEY":   privateKeyBlockVerifier,
+	"ECDSA PRIVATE KEY": privateKeyBlockVerifier,
+	"PRIVATE KEY":       privateKeyBlockVerifier,
+	"PUBLIC KEY":        publicKeyBlockVerifier,
+	// Potential "in the wild" PEM encoded blocks that can be normalized
+	"RSA PUBLIC KEY":   publicKeyBlockVerifier,
+	"DSA PUBLIC KEY":   publicKeyBlockVerifier,
+	"ECDSA PUBLIC KEY": publicKeyBlockVerifier,
+	"CERTIFICATE":      certificateBlockVerifier,
+	// Blocks that should be dropped
+	"EC PARAMETERS": ignoreBlockVerifier,
+}
+
+// sanitizePEM takes a block of data that should be encoded in PEM and returns only
+// the parts of it that parse and serialize as valid recognized certs in valid PEM blocks.
+// We perform this transformation to eliminate potentially incorrect / invalid PEM contents
+// to prevent OpenSSL or other non Golang tools from receiving unsanitized input.
+func sanitizePEM(data []byte) ([]byte, error) {
+	var block *pem.Block
+	buf := &bytes.Buffer{}
+	for len(data) > 0 {
+		block, data = pem.Decode(data)
+		if block == nil {
+			return buf.Bytes(), nil
+		}
+		fn, ok := knownBlockDecoders[block.Type]
+		if !ok {
+			return nil, fmt.Errorf("unrecognized PEM block %s", block.Type)
+		}
+		newBlock, err := fn(block)
+		if err != nil {
+			return nil, err
+		}
+		if newBlock == nil {
+			continue
+		}
+		if err := pem.Encode(buf, newBlock); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+
 // ExtendedValidateRoute performs an extended validation on the route
-// including checking that the TLS config is valid.
+// including checking that the TLS config is valid. It also sanitizes
+// the contents of valid certificates by removing any data that
+// is not recognizable PEM blocks on the incoming route.
 func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 	tlsConfig := route.Spec.TLS
 	result := field.ErrorList{}
@@ -142,6 +254,11 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 			for _, cert := range certs {
 				certPool.AddCert(cert)
 			}
+			if data, err := sanitizePEM([]byte(tlsConfig.CACertificate)); err != nil {
+				result = append(result, field.Invalid(tlsFieldPath.Child("caCertificate"), "redacted ca certificate data", err.Error()))
+			} else {
+				tlsConfig.CACertificate = string(data)
+			}
 		}
 
 		verifyOptions = &x509.VerifyOptions{
@@ -154,6 +271,12 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 	if len(tlsConfig.Certificate) > 0 {
 		if _, err := validateCertificatePEM(tlsConfig.Certificate, verifyOptions); err != nil {
 			result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted certificate data", err.Error()))
+		} else {
+			if data, err := sanitizePEM([]byte(tlsConfig.Certificate)); err != nil {
+				result = append(result, field.Invalid(tlsFieldPath.Child("certificate"), "redacted certificate data", err.Error()))
+			} else {
+				tlsConfig.Certificate = string(data)
+			}
 		}
 
 		certKeyBytes := []byte{}
@@ -168,10 +291,24 @@ func ExtendedValidateRoute(route *routeapi.Route) field.ErrorList {
 		}
 	}
 
+	if len(tlsConfig.Key) > 0 {
+		if data, err := sanitizePEM([]byte(tlsConfig.Key)); err != nil {
+			result = append(result, field.Invalid(tlsFieldPath.Child("key"), "redacted key data", err.Error()))
+		} else {
+			tlsConfig.Key = string(data)
+		}
+	}
+
 	if len(tlsConfig.DestinationCACertificate) > 0 {
 		if _, err := cmdutil.CertificatesFromPEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
 			errmsg := fmt.Sprintf("failed to parse destination CA certificate: %v", err)
 			result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", errmsg))
+		} else {
+			if data, err := sanitizePEM([]byte(tlsConfig.DestinationCACertificate)); err != nil {
+				result = append(result, field.Invalid(tlsFieldPath.Child("destinationCACertificate"), "redacted destination ca certificate data", err.Error()))
+			} else {
+				tlsConfig.DestinationCACertificate = string(data)
+			}
 		}
 	}
 
