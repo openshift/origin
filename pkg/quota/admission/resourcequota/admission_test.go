@@ -55,7 +55,7 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 		},
 	}
 
-	err := plugin.Admit(admission.NewAttributesRecord(newIS, nil, imageapi.LegacyKind("ImageStream").WithVersion("version"), newIS.Namespace, newIS.Name, kapi.Resource("imageStreams").WithVersion("version"), "", admission.Create, nil))
+	err := plugin.Admit(admission.NewAttributesRecord(newIS, nil, imageapi.Kind("ImageStream").WithVersion("version"), newIS.Namespace, newIS.Name, kapi.Resource("imageStreams").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Fatalf("Expected an error exceeding quota")
 	}
