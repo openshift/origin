@@ -49,13 +49,16 @@ func (s *DeploymentConfigStatusViewer) Status(namespace, name string, desiredRev
 
 	if config.Generation <= config.Status.ObservedGeneration {
 		switch {
-		case cond != nil && cond.Reason == deployutil.NewRcAvailableReason:
+		case cond != nil && cond.Reason == deployapi.NewRcAvailableReason:
 			return fmt.Sprintf("%s\n", cond.Message), true, nil
 
-		case cond != nil && cond.Reason == deployutil.TimedOutReason:
+		case cond != nil && cond.Reason == deployapi.TimedOutReason:
 			return "", true, errors.New(cond.Message)
 
-		case cond != nil && cond.Reason == deployutil.PausedDeployReason:
+		case cond != nil && cond.Reason == deployapi.CancelledRolloutReason:
+			return "", true, errors.New(cond.Message)
+
+		case cond != nil && cond.Reason == deployapi.PausedConfigReason:
 			return "", true, fmt.Errorf("Deployment config %q is paused. Resume to continue watching the status of the rollout.\n", config.Name)
 
 		case config.Status.UpdatedReplicas < config.Spec.Replicas:

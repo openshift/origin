@@ -889,7 +889,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				}
 				conditions = dc.Status.Conditions
 				cond := deployutil.GetDeploymentCondition(dc.Status, deployapi.DeploymentProgressing)
-				return cond != nil && cond.Reason == deployutil.NewReplicationControllerReason, nil
+				return cond != nil && cond.Reason == deployapi.NewReplicationControllerReason, nil
 			})
 			if err == wait.ErrWaitTimeout {
 				err = fmt.Errorf("deployment config %q never updated its conditions: %#v", name, conditions)
