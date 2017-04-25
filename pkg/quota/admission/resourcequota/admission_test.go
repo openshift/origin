@@ -41,7 +41,7 @@ func TestOriginQuotaAdmissionIsErrorQuotaExceeded(t *testing.T) {
 	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
 	informerFactory := shared.NewInformerFactory(internalKubeInformerFactory, externalKubeInformerFactory, internalKubeClient, osClient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
 	plugin := NewOriginResourceQuota().(*originQuotaAdmission)
-	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistry(informerFactory.ImageStreams(), osClient))
+	plugin.SetOriginQuotaRegistry(quota.NewOriginQuotaRegistryForAdmission(informerFactory.ImageStreams(), osClient))
 	plugin.SetInternalKubeClientSet(internalKubeClient)
 	plugin.SetInternalKubeInformerFactory(internalKubeInformerFactory)
 	if err := plugin.Validate(); err != nil {
