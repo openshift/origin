@@ -116,22 +116,13 @@ type BuildTriggerCause struct {
 // GenericWebHookCause holds information about a generic WebHook that
 // triggered a build.
 type GenericWebHookCause struct {
-	// revision is an optional field that stores the git source revision
-	// information of the generic webhook trigger when it is available.
-	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,1,opt,name=revision"`
-
-	// secret is the obfuscated webhook secret that triggered a build.
-	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonWebHookCause"`
 }
 
 // GitHubWebHookCause has information about a GitHub webhook that triggered a
 // build.
 type GitHubWebHookCause struct {
-	// revision is the git revision information of the trigger.
-	Revision *SourceRevision `json:"revision,omitempty" protobuf:"bytes,1,opt,name=revision"`
-
-	// secret is the obfuscated webhook secret that triggered a build.
-	Secret string `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonWebHookCause"`
 }
 
 // CommonWebHookCause factors out the identical format of these webhook
@@ -148,13 +139,13 @@ type CommonWebHookCause struct {
 // GitLabWebHookCause has information about a GitLab webhook that triggered a
 // build.
 type GitLabWebHookCause struct {
-	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonSpec"`
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonWebHookCause"`
 }
 
 // BitbucketWebHookCause has information about a Bitbucket webhook that triggered a
 // build.
 type BitbucketWebHookCause struct {
-	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonSpec"`
+	CommonWebHookCause `json:",inline" protobuf:"bytes,1,opt,name=commonWebHookCause"`
 }
 
 // ImageChangeCause contains information about the image that triggered a

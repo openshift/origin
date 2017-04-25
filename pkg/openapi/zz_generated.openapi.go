@@ -12725,13 +12725,13 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 				Properties: map[string]spec.Schema{
 					"revision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "revision is an optional field that stores the git source revision information of the generic webhook trigger when it is available.",
+							Description: "Revision is the git source revision information of the trigger.",
 							Ref:         spec.MustCreateRef("#/definitions/v1.SourceRevision"),
 						},
 					},
 					"secret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "secret is the obfuscated webhook secret that triggered a build.",
+							Description: "Secret is the obfuscated webhook secret that triggered a build.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -12838,13 +12838,13 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 				Properties: map[string]spec.Schema{
 					"revision": {
 						SchemaProps: spec.SchemaProps{
-							Description: "revision is the git revision information of the trigger.",
+							Description: "Revision is the git source revision information of the trigger.",
 							Ref:         spec.MustCreateRef("#/definitions/v1.SourceRevision"),
 						},
 					},
 					"secret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "secret is the obfuscated webhook secret that triggered a build.",
+							Description: "Secret is the obfuscated webhook secret that triggered a build.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

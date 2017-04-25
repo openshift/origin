@@ -880,16 +880,9 @@ func DeepCopy_api_GenericWebHookCause(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*GenericWebHookCause)
 		out := out.(*GenericWebHookCause)
-		if in.Revision != nil {
-			in, out := &in.Revision, &out.Revision
-			*out = new(SourceRevision)
-			if err := DeepCopy_api_SourceRevision(*in, *out, c); err != nil {
-				return err
-			}
-		} else {
-			out.Revision = nil
+		if err := DeepCopy_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
+			return err
 		}
-		out.Secret = in.Secret
 		return nil
 	}
 }
@@ -948,16 +941,9 @@ func DeepCopy_api_GitHubWebHookCause(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*GitHubWebHookCause)
 		out := out.(*GitHubWebHookCause)
-		if in.Revision != nil {
-			in, out := &in.Revision, &out.Revision
-			*out = new(SourceRevision)
-			if err := DeepCopy_api_SourceRevision(*in, *out, c); err != nil {
-				return err
-			}
-		} else {
-			out.Revision = nil
+		if err := DeepCopy_api_CommonWebHookCause(&in.CommonWebHookCause, &out.CommonWebHookCause, c); err != nil {
+			return err
 		}
-		out.Secret = in.Secret
 		return nil
 	}
 }

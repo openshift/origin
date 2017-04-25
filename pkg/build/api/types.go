@@ -195,22 +195,13 @@ type BuildTriggerCause struct {
 // GenericWebHookCause holds information about a generic WebHook that
 // triggered a build.
 type GenericWebHookCause struct {
-	// Revision is an optional field that stores the git source revision
-	// information of the generic webhook trigger when it is available.
-	Revision *SourceRevision
-
-	// Secret is the obfuscated webhook secret that triggered a build.
-	Secret string
+	CommonWebHookCause
 }
 
 // GitHubWebHookCause has information about a GitHub webhook that triggered a
 // build.
 type GitHubWebHookCause struct {
-	// Revision is the git source revision information of the trigger.
-	Revision *SourceRevision
-
-	// Secret is the obfuscated webhook secret that triggered a build.
-	Secret string
+	CommonWebHookCause
 }
 
 // CommonWebHookCause factors out the identical format of these webhook
