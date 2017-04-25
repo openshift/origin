@@ -209,12 +209,15 @@ func canTrigger(
 		// change is an image change. Look at the deserialized config's
 		// triggers and compare with the present trigger. Initial deployments
 		// should always trigger - there is no previous config to use for the
-		// comparison.
-		if config.Status.LatestVersion > 0 && !triggeredByDifferentImage(*t.ImageChangeParams, *decoded) {
+		// comparison. Also configs with new/updated triggers should always trigger.
+		if config.Status.LatestVersion == 0 || hasUpdatedTriggers(*config, *decoded) || triggeredByDifferentImage(*t.ImageChangeParams, *decoded) {
+			canTriggerByImageChange = true
+		}
+
+		if !canTriggerByImageChange {
 			continue
 		}
 
-		canTriggerByImageChange = true
 		causes = append(causes, deployapi.DeploymentCause{
 			Type: deployapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{
@@ -272,6 +275,31 @@ func decodeFromLatestDeployment(config *deployapi.DeploymentConfig, rn kcoreclie
 	return decoded, nil
 }
 
+// hasUpdatedTriggers checks if there is an diffence between previous deployment config
+// trigger configuration and current one.
+func hasUpdatedTriggers(current, previous deployapi.DeploymentConfig) bool {
+	for _, ct := range current.Spec.Triggers {
+		found := false
+		if ct.Type != deployapi.DeploymentTriggerOnImageChange {
+			continue
+		}
+		for _, pt := range previous.Spec.Triggers {
+			if pt.Type != deployapi.DeploymentTriggerOnImageChange {
+				continue
+			}
+			if found = ct.ImageChangeParams.From.Namespace == pt.ImageChangeParams.From.Namespace &&
+				ct.ImageChangeParams.From.Name == pt.ImageChangeParams.From.Name; found {
+				break
+			}
+		}
+		if !found {
+			glog.V(4).Infof("Deployment config %s/%s current version contains new trigger %#v", current.Namespace, current.Name, ct)
+			return true
+		}
+	}
+	return false
+}
+
 // triggeredByDifferentImage compares the provided image change parameters with those found in the
 // previous deployment config (the one we decoded from the annotations of its latest deployment)
 // and returns whether the two deployment configs have been triggered by a different image change.
@@ -287,7 +315,7 @@ func triggeredByDifferentImage(ictParams deployapi.DeploymentTriggerImageChangeP
 		}
 
 		if t.ImageChangeParams.LastTriggeredImage != ictParams.LastTriggeredImage {
-			glog.V(4).Infof("Deployment config %q triggered by different image: %s -> %s", previous.Name, t.ImageChangeParams.LastTriggeredImage, ictParams.LastTriggeredImage)
+			glog.V(4).Infof("Deployment config %s/%s triggered by different image: %s -> %s", previous.Namespace, previous.Name, t.ImageChangeParams.LastTriggeredImage, ictParams.LastTriggeredImage)
 			return true
 		}
 		return false

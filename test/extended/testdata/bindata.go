@@ -34,6 +34,7 @@
 // test/extended/testdata/deployments/deployment-image-resolution.yaml
 // test/extended/testdata/deployments/deployment-min-ready-seconds.yaml
 // test/extended/testdata/deployments/deployment-simple.yaml
+// test/extended/testdata/deployments/deployment-trigger.yaml
 // test/extended/testdata/deployments/deployment-with-ref-env.yaml
 // test/extended/testdata/deployments/failing-pre-hook.yaml
 // test/extended/testdata/deployments/generation-test.yaml
@@ -1570,6 +1571,55 @@ func testExtendedTestdataDeploymentsDeploymentSimpleYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-simple.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsDeploymentTriggerYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: example
+    name: example
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: example
+      spec:
+        containers:
+        - imagePullPolicy: Always
+          name: test
+          command:
+          - /bin/sleep
+          - "100"
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - test
+        from:
+          kind: ImageStreamTag
+          name: test:v1
+      type: ImageChange
+`)
+
+func testExtendedTestdataDeploymentsDeploymentTriggerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsDeploymentTriggerYaml, nil
+}
+
+func testExtendedTestdataDeploymentsDeploymentTriggerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsDeploymentTriggerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/deployment-trigger.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19007,6 +19057,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/deployment-image-resolution.yaml": testExtendedTestdataDeploymentsDeploymentImageResolutionYaml,
 	"test/extended/testdata/deployments/deployment-min-ready-seconds.yaml": testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml,
 	"test/extended/testdata/deployments/deployment-simple.yaml": testExtendedTestdataDeploymentsDeploymentSimpleYaml,
+	"test/extended/testdata/deployments/deployment-trigger.yaml": testExtendedTestdataDeploymentsDeploymentTriggerYaml,
 	"test/extended/testdata/deployments/deployment-with-ref-env.yaml": testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml,
 	"test/extended/testdata/deployments/failing-pre-hook.yaml": testExtendedTestdataDeploymentsFailingPreHookYaml,
 	"test/extended/testdata/deployments/generation-test.yaml": testExtendedTestdataDeploymentsGenerationTestYaml,
@@ -19321,6 +19372,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"deployment-image-resolution.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentImageResolutionYaml, map[string]*bintree{}},
 					"deployment-min-ready-seconds.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentMinReadySecondsYaml, map[string]*bintree{}},
 					"deployment-simple.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentSimpleYaml, map[string]*bintree{}},
+					"deployment-trigger.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentTriggerYaml, map[string]*bintree{}},
 					"deployment-with-ref-env.yaml": &bintree{testExtendedTestdataDeploymentsDeploymentWithRefEnvYaml, map[string]*bintree{}},
 					"failing-pre-hook.yaml": &bintree{testExtendedTestdataDeploymentsFailingPreHookYaml, map[string]*bintree{}},
 					"generation-test.yaml": &bintree{testExtendedTestdataDeploymentsGenerationTestYaml, map[string]*bintree{}},
