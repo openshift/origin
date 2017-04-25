@@ -47,6 +47,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
+		imageChangeTriggerFixture       = exutil.FixturePath("testdata", "deployments", "deployment-trigger.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -305,6 +306,56 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
+		})
+	})
+
+	g.Describe("when changing image change trigger [Conformance]", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "example", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should successfully trigger from an updated image", func() {
+			_, name, err := createFixture(oc, imageChangeTriggerFixture)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForSyncedConfig(oc, name, deploymentRunTimeout)).NotTo(o.HaveOccurred())
+
+			g.By("tagging the busybox:latest as test:v1 image")
+			_, err = oc.Run("tag").Args("docker.io/busybox:latest", "test:v1").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			expectLatestVersion := func(version int) {
+				dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				latestVersion := dc.Status.LatestVersion
+				err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+					dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+					latestVersion = dc.Status.LatestVersion
+					return latestVersion == int64(version), nil
+				})
+				if err == wait.ErrWaitTimeout {
+					err = fmt.Errorf("expected latestVersion: %d, got: %d", version, latestVersion)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+			}
+
+			g.By("ensuring the deployment config latest version is 1 and rollout completed")
+			expectLatestVersion(1)
+
+			g.By("updating the image change trigger to point to test:v2 image")
+			_, err = oc.Run("set").Args("triggers", "dc/"+name, "--remove-all").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			_, err = oc.Run("set").Args("triggers", "dc/"+name, "--from-image", "test:v2", "--auto", "-c", "test").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForSyncedConfig(oc, name, deploymentRunTimeout)).NotTo(o.HaveOccurred())
+
+			g.By("tagging the busybox:1.25 as test:v2 image")
+			_, err = oc.Run("tag").Args("docker.io/busybox:1.25", "test:v2").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("ensuring the deployment config latest version is 2 and rollout completed")
+			expectLatestVersion(2)
 		})
 	})
 
