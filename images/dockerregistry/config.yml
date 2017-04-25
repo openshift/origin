@@ -35,3 +35,8 @@ middleware:
         blobrepositorycachettl: 10m
   storage:
     - name: openshift
+openshift:
+  version: 1.0
+  metrics:
+    enabled: false
+    secret: TopSecretToken

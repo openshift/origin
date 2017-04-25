@@ -312,7 +312,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 
 	// In case of docker login, hits endpoint /v2
-	if len(bearerToken) > 0 {
+	if len(bearerToken) > 0 && !isMetricsBearerToken(ctx, bearerToken) {
 		user, userid, err := verifyOpenShiftUser(ctx, osClient)
 		if err != nil {
 			return nil, ac.wrapErr(ctx, err)
@@ -391,6 +391,16 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if err := verifyImageSignatureAccess(ctx, namespace, name, osClient); err != nil {
 					return nil, ac.wrapErr(ctx, err)
 				}
+			}
+
+		case "metrics":
+			switch access.Action {
+			case "get":
+				if !isMetricsBearerToken(ctx, bearerToken) {
+					return nil, ac.wrapErr(ctx, ErrOpenShiftAccessDenied)
+				}
+			default:
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 
 		case "admin":
@@ -534,4 +544,12 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 		return ErrOpenShiftAccessDenied
 	}
 	return nil
+}
+
+func isMetricsBearerToken(ctx context.Context, token string) bool {
+	config := ConfigurationFrom(ctx)
+	if config.Metrics.Enabled {
+		return config.Metrics.Secret == token
+	}
+	return false
 }

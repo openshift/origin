@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/api/v1"
 )
 
-func init() {
+func installApiGroup() {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  api.GroupName,

@@ -55,6 +55,10 @@ func TestEnvDefaults(t *testing.T) {
 				Name:  "VAR2",
 				Value: "VALUE2",
 			},
+			{
+				Name:  "GIT_SSL_NO_VERIFY",
+				Value: "true",
+			},
 		},
 	}
 
@@ -91,6 +95,20 @@ func TestEnvDefaults(t *testing.T) {
 	if !var2found {
 		t.Errorf("VAR2 not found")
 	}
+
+	gitSSL := false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "VAR1" || ev.Name == "VAR2" {
+			t.Errorf("non whitelisted key %v found", ev.Name)
+		}
+		if ev.Name == "GIT_SSL_NO_VERIFY" {
+			gitSSL = true
+		}
+	}
+	if !gitSSL {
+		t.Errorf("GIT_SSL_NO_VERIFY key not found")
+	}
+
 }
 
 func TestIncrementalDefaults(t *testing.T) {

@@ -124,6 +124,7 @@ readonly -f os::util::environment::update_path_var
 #  - 1: the path under the root temporary directory for OpenShift where these subdirectories should be made
 # Returns:
 #  - export BASETMPDIR
+#  - export BASEOUTDIR
 #  - export LOG_DIR
 #  - export VOLUME_DIR
 #  - export ARTIFACT_DIR
@@ -135,13 +136,16 @@ function os::util::environment::setup_tmpdir_vars() {
 
     BASETMPDIR="${TMPDIR:-/tmp}/openshift/${sub_dir}"
     export BASETMPDIR
-    LOG_DIR="${LOG_DIR:-${BASETMPDIR}/logs}"
-    export LOG_DIR
     VOLUME_DIR="${BASETMPDIR}/volumes"
     export VOLUME_DIR
-    ARTIFACT_DIR="${ARTIFACT_DIR:-${BASETMPDIR}/artifacts}"
+
+    BASEOUTDIR="${OS_ROOT}/_output/scripts/${sub_dir}"
+    export BASEOUTDIR
+    LOG_DIR="${LOG_DIR:-${BASEOUTDIR}/logs}"
+    export LOG_DIR
+    ARTIFACT_DIR="${ARTIFACT_DIR:-${BASEOUTDIR}/artifacts}"
     export ARTIFACT_DIR
-    FAKE_HOME_DIR="${BASETMPDIR}/openshift.local.home"
+    FAKE_HOME_DIR="${BASEOUTDIR}/openshift.local.home"
     export FAKE_HOME_DIR
 
     mkdir -p "${LOG_DIR}" "${VOLUME_DIR}" "${ARTIFACT_DIR}" "${FAKE_HOME_DIR}"

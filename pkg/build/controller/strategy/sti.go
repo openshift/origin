@@ -11,6 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
@@ -49,7 +50,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 
 	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
-		mergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv)
+		util.MergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv, true)
 	}
 
 	// check if can run container as root

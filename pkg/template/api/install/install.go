@@ -43,6 +43,8 @@ func init() {
 	if err := enableVersions(externalVersions); err != nil {
 		panic(err)
 	}
+
+	installApiGroup()
 }
 
 // TODO: enableVersions should be centralized rather than spread in each API
