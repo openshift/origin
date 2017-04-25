@@ -701,6 +701,9 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
     - statefulsets
     verbs:
     - create
@@ -1139,6 +1142,9 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
+    - deployments/status
     - statefulsets
     verbs:
     - create
@@ -1452,6 +1458,8 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - deployments
+    - deployments/scale
     - statefulsets
     verbs:
     - get
