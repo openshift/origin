@@ -20,6 +20,6 @@ os::cmd::expect_success 'oc new-app node -o yaml | oc set env -f - MYVAR=value -
 os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o yaml' 'apiVersion: v1'
 os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o json' '"apiVersion": "v1"'
 os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o wide' 'node'
-os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o name' 'deploymentconfig/node'
+os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value -o name' 'deploymentconfigs/node'
 echo "resource printer: ok"
 os::test::junit::declare_suite_end
