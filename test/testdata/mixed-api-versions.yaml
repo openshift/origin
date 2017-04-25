@@ -21,26 +21,6 @@ items:
       kind: Service
       name: test
 
-- apiVersion: extensions/v1beta1
-  kind: Job
-  metadata:
-    annotations:
-      description: v1beta1 Job - used to test v1beta1 negotiation of group k8s objects
-    name: v1beta1-job
-  spec:
-    selector:
-      matchLabels:
-        run: v1beta1-job
-    template:
-      metadata:
-        labels:
-          run: v1beta1-job
-      spec:
-        containers:
-        - image: openshift/hello-openshift
-          name: hello-container
-        restartPolicy: Never
-
 - apiVersion: batch/v1
   kind: Job
   metadata:

@@ -81,7 +81,6 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 			if err := printer.PrintObj(info.Object, out); err != nil {
 				return nil
 			}
-			return nil
 		}
 		return nil
 	}
