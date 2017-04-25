@@ -191,8 +191,12 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 	// some test suites assume they can schedule to all nodes
 	switch {
-	case isPackage("/kubernetes/test/e2e/scheduler_predicates.go"), isPackage("/kubernetes/test/e2e/rescheduler.go"),
-		isPackage("/kubernetes/test/e2e/kubelet.go"), isPackage("/kubernetes/test/e2e/common/networking.go"):
+	case isPackage("/kubernetes/test/e2e/scheduler_predicates.go"),
+		isPackage("/kubernetes/test/e2e/rescheduler.go"),
+		isPackage("/kubernetes/test/e2e/kubelet.go"),
+		isPackage("/kubernetes/test/e2e/common/networking.go"),
+		isPackage("/kubernetes/test/e2e/daemon_set.go"),
+		isPackage("/kubernetes/test/e2e/statefulset.go"):
 		allowAllNodeScheduling(c, ns.Name)
 	}
 
