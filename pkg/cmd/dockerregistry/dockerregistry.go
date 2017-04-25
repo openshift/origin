@@ -125,6 +125,9 @@ func Execute(configFile io.Reader) {
 
 	// Registry extensions endpoint provides prometheus metrics.
 	if extraConfig.Metrics.Enabled {
+		if len(extraConfig.Metrics.Secret) == 0 {
+			context.GetLogger(app).Fatalf("openshift.metrics.secret field cannot be empty when metrics are enabled")
+		}
 		server.RegisterMetricHandler(app)
 	}
 
