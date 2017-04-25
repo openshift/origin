@@ -187,7 +187,7 @@ func TestValidateEmptyContext(t *testing.T) {
 
 func TestValidateEmptyClusterInfo(t *testing.T) {
 	config := clientcmdapi.NewConfig()
-	config.Clusters["empty"] = &clientcmdapi.Cluster{}
+	config.Clusters["empty"] = clientcmdapi.NewCluster()
 	test := configValidationTest{
 		config:                 config,
 		expectedErrorSubstring: []string{"cluster has no server defined"},
