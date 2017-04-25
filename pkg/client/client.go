@@ -9,6 +9,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/errors"
+	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/discovery"
 
@@ -310,6 +311,8 @@ func (c *Client) PodSecurityPolicySubjectReviews(namespace string) PodSecurityPo
 // Client is an OpenShift client object
 type Client struct {
 	*restclient.RESTClient
+
+	config *restclient.Config
 }
 
 // New creates an OpenShift client for the given config. This client works with builds, deployments,
@@ -325,7 +328,27 @@ func New(c *restclient.Config) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{client}, nil
+	return &Client{RESTClient: client, config: &config}, nil
+}
+
+// ForGroupVersion returns a copy of the client but without any openshift legacy
+// defaulting.
+// NOTE: This client should be only used in transition period when the legacy API is
+// locked for new types, but the clientsets are not provided.
+// To get the legacy client back, you can pass a 'nil' as the group version.
+func (c *Client) ForGroupVersion(gv *unversioned.GroupVersion) *Client {
+	if gv == nil {
+		return c
+	}
+	newConfig := *c.config
+	newConfig.APIPath = "/apis"
+	newConfig.GroupVersion = gv
+	newClient, err := restclient.RESTClientFor(&newConfig)
+
+	if err != nil {
+		panic(fmt.Sprintf("unable to initialize REST client for group version %#v", gv))
+	}
+	return &Client{RESTClient: newClient, config: &newConfig}
 }
 
 // DiscoveryClient returns a discovery client.
