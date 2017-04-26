@@ -631,11 +631,6 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
-	routeAllocator := c.RouteAllocator()
-
-	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator)
-	checkStorageErr(err)
-
 	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
 	netNamespaceStorage, err := netnamespaceetcd.NewREST(c.RESTOptionsGetter)
@@ -720,6 +715,10 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importTransport, insecureImportTransport, importerDockerClientFn, c.Options.ImagePolicyConfig.AllowedRegistriesForImport, c.RegistryNameFn, c.ImageStreamImportSARClient().SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+
+	routeAllocator := c.RouteAllocator()
+	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator, subjectAccessReviewRegistry)
+	checkStorageErr(err)
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{

@@ -11,6 +11,7 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	routetypes "github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"
 	_ "github.com/openshift/origin/pkg/route/api/install"
@@ -34,9 +35,20 @@ func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 	return a.Hostname
 }
 
+type testSAR struct {
+	allow bool
+	err   error
+	sar   *authorizationapi.SubjectAccessReview
+}
+
+func (t *testSAR) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+	t.sar = subjectAccessReview
+	return &authorizationapi.SubjectAccessReviewResponse{Allowed: t.allow}, t.err
+}
+
 func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
-	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), allocator)
+	storage, _, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), allocator, &testSAR{allow: true})
 	if err != nil {
 		t.Fatal(err)
 	}

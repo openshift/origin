@@ -1113,7 +1113,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 				},
 			},
 			change:         func(route *api.Route) { route.Spec.Host = "" },
-			expectedErrors: 1,
+			expectedErrors: 0, // now controlled by rbac
 		},
 		{
 			route: &api.Route{
@@ -1131,7 +1131,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 				},
 			},
 			change:         func(route *api.Route) { route.Spec.Host = "other" },
-			expectedErrors: 1,
+			expectedErrors: 0, // now controlled by rbac
 		},
 		{
 			route: &api.Route{

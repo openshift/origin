@@ -11,7 +11,6 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/validation"
-	kval "k8s.io/kubernetes/pkg/api/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -21,7 +20,7 @@ import (
 // ValidateRoute tests if required fields in the route are set.
 func ValidateRoute(route *routeapi.Route) field.ErrorList {
 	//ensure meta is set properly
-	result := kval.ValidateObjectMeta(&route.ObjectMeta, true, oapi.GetNameValidationFunc(kval.ValidatePodName), field.NewPath("metadata"))
+	result := validation.ValidateObjectMeta(&route.ObjectMeta, true, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
 
 	specPath := field.NewPath("spec")
 
@@ -94,7 +93,6 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 func ValidateRouteUpdate(route *routeapi.Route, older *routeapi.Route) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&route.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))
-	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))...)
 	allErrs = append(allErrs, validation.ValidateImmutableField(route.Spec.WildcardPolicy, older.Spec.WildcardPolicy, field.NewPath("spec", "wildcardPolicy"))...)
 	allErrs = append(allErrs, ValidateRoute(route)...)
 	return allErrs
