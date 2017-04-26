@@ -193,6 +193,9 @@ func RegisterSharedInformerEventHandlers(kubeInformers kinternalinformers.Shared
 	case Namespaces:
 		informer = internalVersion.Namespaces().Informer()
 		expectedObjType = &kapi.Namespace{}
+	case Services:
+		informer = internalVersion.Services().Informer()
+		expectedObjType = &kapi.Service{}
 	default:
 		glog.Errorf("Unknown resource name: %s", resourceName)
 		return
