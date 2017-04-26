@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 var (
@@ -157,12 +158,25 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 			return err
 		}
 		if len(userOrSA) > 0 || len(o.Groups) > 0 {
-			response, err = o.pspSubjectReview(userOrSA, podTemplateSpec)
+			unversionedObj, err := o.pspSubjectReview(userOrSA, podTemplateSpec)
+			if err != nil {
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			}
+			versionedObj := &securityapiv1.PodSecurityPolicySubjectReview{}
+			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+				return err
+			}
+			response = versionedObj
 		} else {
-			response, err = o.pspSelfSubjectReview(podTemplateSpec)
-		}
-		if err != nil {
-			return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			unversionedObj, err := o.pspSelfSubjectReview(podTemplateSpec)
+			if err != nil {
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			}
+			versionedObj := &securityapiv1.PodSecurityPolicySelfSubjectReview{}
+			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+				return err
+			}
+			response = versionedObj
 		}
 		if err := o.printer.print(info, response, o.out); err != nil {
 			allErrs = append(allErrs, err)
@@ -253,6 +267,14 @@ func getAllowedBy(obj runtime.Object) (string, error) {
 			value = review.Status.AllowedBy.Name
 		}
 	case *securityapi.PodSecurityPolicySubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	case *securityapiv1.PodSecurityPolicySubjectReview:
 		if review.Status.AllowedBy != nil {
 			value = review.Status.AllowedBy.Name
 		}

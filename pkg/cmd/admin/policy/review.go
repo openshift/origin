@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 var (
@@ -154,11 +155,11 @@ func (o *sccReviewOptions) Run(args []string) error {
 				ServiceAccountNames: o.shortServiceAccountNames,
 			},
 		}
-		response, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
+		unversionedObj, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
 		}
-		if err = o.printer.print(info, response, o.out); err != nil {
+		if err = o.printer.print(info, unversionedObj, o.out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 		return nil
@@ -204,7 +205,11 @@ type sccReviewOutputPrinter struct {
 var _ sccReviewPrinter = &sccReviewOutputPrinter{}
 
 func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
-	return s.ResourcePrinter.PrintObj(obj, out)
+	versionedObj := &securityapiv1.PodSecurityPolicyReview{}
+	if err := kapi.Scheme.Convert(obj, versionedObj, nil); err != nil {
+		return err
+	}
+	return s.ResourcePrinter.PrintObj(versionedObj, out)
 }
 
 type sccReviewHumanReadablePrinter struct {
