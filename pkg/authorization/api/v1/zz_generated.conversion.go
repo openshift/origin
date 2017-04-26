@@ -499,7 +499,7 @@ func autoConvert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in 
 	}
 	out.User = in.User
 	// INFO: in.GroupsSlice opted out of conversion generation
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -509,11 +509,7 @@ func autoConvert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in 
 	}
 	out.User = in.User
 	// INFO: in.Groups opted out of conversion generation
-	if in.Scopes == nil {
-		out.Scopes = make(OptionalScopes, 0)
-	} else {
-		out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
-	}
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -972,25 +968,13 @@ func Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *api.Sel
 }
 
 func autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
-}
-
-func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	return autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	if in.Scopes == nil {
-		out.Scopes = make(OptionalScopes, 0)
-	} else {
-		out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
-	}
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
-}
-
-func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	return autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_v1_ServiceAccountReference_To_api_ServiceAccountReference(in *ServiceAccountReference, out *api.ServiceAccountReference, s conversion.Scope) error {
@@ -1047,7 +1031,7 @@ func autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAc
 	}
 	out.User = in.User
 	// INFO: in.GroupsSlice opted out of conversion generation
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -1057,11 +1041,7 @@ func autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *api.Subje
 	}
 	out.User = in.User
 	// INFO: in.Groups opted out of conversion generation
-	if in.Scopes == nil {
-		out.Scopes = make(OptionalScopes, 0)
-	} else {
-		out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
-	}
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
