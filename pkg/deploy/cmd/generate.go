@@ -5,10 +5,10 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api/v1"
 )
 
 var basic = kubectl.BasicReplicationController{}
@@ -30,7 +30,7 @@ func (BasicDeploymentConfigController) Generate(genericParams map[string]interfa
 			ObjectMeta: t.ObjectMeta,
 			Spec: deployapi.DeploymentConfigSpec{
 				Selector: t.Spec.Selector,
-				Replicas: t.Spec.Replicas,
+				Replicas: *t.Spec.Replicas, // the generator never leaves this nil
 				Template: t.Spec.Template,
 			},
 		}
