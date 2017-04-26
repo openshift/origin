@@ -1406,18 +1406,25 @@ func CreateExecPodOnNode(client kcoreclient.CoreV1Interface, ns, nodeName, name 
 	return created.Name
 }
 
+// CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
+// the specified reason and message template.
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
-	events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
-	o.ExpectWithOffset(1, events).NotTo(o.BeNil(), "Build event list should not be nil")
-
-	found := false
-	for _, event := range events.Items {
-		framework.Logf("Found event %#v", event)
-		if reason == event.Reason {
-			found = true
-			o.ExpectWithOffset(1, event.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
+	var expectedEvent *kapiv1.Event
+	err := wait.PollImmediate(framework.Poll, 1*time.Minute, func() (bool, error) {
+		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
+		if err != nil {
+			return false, err
 		}
-	}
-	o.ExpectWithOffset(1, found).To(o.BeTrue(), "Did not find a %q event on build %s/%s", reason, build.Namespace, build.Name)
+		for _, event := range events.Items {
+			framework.Logf("Found event %#v", event)
+			if reason == event.Reason {
+				expectedEvent = &event
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
+	o.ExpectWithOffset(1, expectedEvent).NotTo(o.BeNil(), "Did not find a %q event on build %s/%s", reason, build.Namespace, build.Name)
+	o.ExpectWithOffset(1, expectedEvent.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
 }
