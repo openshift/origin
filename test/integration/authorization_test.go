@@ -379,7 +379,10 @@ var globalClusterReaderUsers = sets.NewString("system:serviceaccount:openshift-i
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
 
 // this list includes any other users who can get DeploymentConfigs
-var globalDeploymentConfigGetterUsers = sets.NewString("system:serviceaccount:openshift-infra:unidling-controller")
+var globalDeploymentConfigGetterUsers = sets.NewString(
+	"system:serviceaccount:openshift-infra:unidling-controller",
+	"system:serviceaccount:openshift-infra:garbage-collector-controller",
+)
 
 type resourceAccessReviewTest struct {
 	description     string
