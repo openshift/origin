@@ -158,6 +158,7 @@ type SelfSubjectRulesReviewSpec struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SubjectRulesReview, means "use the scopes on this request".
 	// Nil for a regular SubjectRulesReview, means the same as empty.
+	// +k8s:conversion-gen=false
 	Scopes []string
 }
 
@@ -249,6 +250,7 @@ type SubjectAccessReview struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
+	// +k8s:conversion-gen=false
 	Scopes []string
 }
 
@@ -274,6 +276,7 @@ type LocalSubjectAccessReview struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
+	// +k8s:conversion-gen=false
 	Scopes []string
 }
 
