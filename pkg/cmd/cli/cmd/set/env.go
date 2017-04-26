@@ -329,7 +329,7 @@ func RunEnv(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobr
 	}
 
 	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(false)).
+	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
