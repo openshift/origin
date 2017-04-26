@@ -84,6 +84,9 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	if err != nil {
 		return nil, err
 	}
+	// given 25 groups with one-ish version each, discovery needs to make 50 requests
+	// double it just so we don't end up here again for a while.  This config is only used for discovery.
+	cfg.Burst = 100
 
 	// at this point we've negotiated and can get the client
 	oclient, err := client.New(cfg)
