@@ -61,7 +61,7 @@ func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, 
 	pm.mtu = mtu
 	pm.podHandler = pm
 	pm.ovs = ovs
-	return pm 
+	return pm
 }
 
 // Creates a new basic podManager; used by testcases
@@ -128,7 +128,7 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 // Start the CNI server and start processing requests from it
 func (m *podManager) Start(socketPath string, host knetwork.Host, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
 	m.host = host
-	m.hostportHandler = kubehostport.NewHostportHandler()
+	m.hostportSyncer = kubehostport.NewHostportSyncer()
 
 	var err error
 	if m.ipamConfig, err = getIPAMConfig(clusterNetwork, localSubnetCIDR); err != nil {
