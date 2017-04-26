@@ -3,6 +3,7 @@ package sti
 import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/build"
+	"github.com/openshift/source-to-image/pkg/docker"
 	"github.com/openshift/source-to-image/pkg/util"
 )
 
@@ -21,8 +22,8 @@ type Usage struct {
 }
 
 // NewUsage creates a new instance of the default Usage implementation
-func NewUsage(config *api.Config) (*Usage, error) {
-	b, err := New(config, util.NewFileSystem(), build.Overrides{})
+func NewUsage(client docker.Client, config *api.Config) (*Usage, error) {
+	b, err := New(client, config, util.NewFileSystem(), build.Overrides{})
 	if err != nil {
 		return nil, err
 	}

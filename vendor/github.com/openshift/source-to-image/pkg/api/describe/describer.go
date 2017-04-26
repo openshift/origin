@@ -15,7 +15,7 @@ import (
 )
 
 // Config returns the Config object in nice readable, tabbed format.
-func Config(config *api.Config) string {
+func Config(client docker.Client, config *api.Config) string {
 	out, err := tabbedString(func(out io.Writer) error {
 		if len(config.DisplayName) > 0 {
 			fmt.Fprintf(out, "Application Name:\t%s\n", config.DisplayName)
@@ -23,7 +23,7 @@ func Config(config *api.Config) string {
 		if len(config.Description) > 0 {
 			fmt.Fprintf(out, "Description:\t%s\n", config.Description)
 		}
-		describeBuilderImage(config, config.BuilderImage, out)
+		describeBuilderImage(client, config, config.BuilderImage, out)
 		describeRuntimeImage(config, out)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
 		if len(config.Ref) > 0 {
@@ -97,7 +97,7 @@ func Config(config *api.Config) string {
 	return out
 }
 
-func describeBuilderImage(config *api.Config, image string, out io.Writer) {
+func describeBuilderImage(client docker.Client, config *api.Config, image string, out io.Writer) {
 	c := &api.Config{
 		DockerConfig:       config.DockerConfig,
 		PullAuthentication: config.PullAuthentication,
@@ -106,7 +106,7 @@ func describeBuilderImage(config *api.Config, image string, out io.Writer) {
 		Tag:                config.Tag,
 		IncrementalAuthentication: config.IncrementalAuthentication,
 	}
-	pr, err := docker.GetBuilderImage(c)
+	pr, err := docker.GetBuilderImage(client, c)
 	if err == nil {
 		build.GenerateConfigFromLabels(c, pr)
 		if len(c.DisplayName) > 0 {

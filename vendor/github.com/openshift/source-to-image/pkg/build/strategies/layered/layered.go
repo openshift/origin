@@ -41,17 +41,13 @@ type Layered struct {
 }
 
 // New creates a Layered builder.
-func New(config *api.Config, fs util.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
+func New(client docker.Client, config *api.Config, fs util.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := docker.New(config.DockerConfig, config.PullAuthentication)
-	if err != nil {
-		return nil, err
-	}
-
+	d := docker.New(client, config.PullAuthentication)
 	tarHandler := tar.New(fs)
 	tarHandler.SetExclusionPattern(excludePattern)
 
