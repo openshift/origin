@@ -1,17 +1,17 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/intstr"
 )
 
 // +genclient=true
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec is the desired behavior of the route
 	Spec RouteSpec
@@ -115,13 +115,13 @@ type RouteIngressCondition struct {
 	Message string
 	// RFC 3339 date and time at which the object was acknowledged by the router.
 	// This may be before the router exposes the route
-	LastTransitionTime *unversioned.Time
+	LastTransitionTime *metav1.Time
 }
 
 // RouteList is a collection of Routes.
 type RouteList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of routes
 	Items []Route

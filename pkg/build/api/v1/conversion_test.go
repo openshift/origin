@@ -3,9 +3,10 @@ package v1_test
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion/queryparams"
 	knewer "k8s.io/kubernetes/pkg/api"
 	kolder "k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/conversion/queryparams"
 
 	newer "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
@@ -56,7 +57,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 func TestV1APIBuildConfigConversion(t *testing.T) {
 	buildConfigs := []*older.BuildConfig{
 		{
-			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
 				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
@@ -96,7 +97,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
 				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
@@ -136,7 +137,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: older.BuildConfigSpec{
 				CommonSpec: older.CommonSpec{
 					Source: older.BuildSource{
@@ -227,7 +228,7 @@ func TestV1APIBuildConfigConversion(t *testing.T) {
 func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 	buildConfigs := []*newer.BuildConfig{
 		{
-			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
 				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
@@ -243,7 +244,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
 				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
@@ -259,7 +260,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 			},
 		},
 		{
-			ObjectMeta: knewer.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 			Spec: newer.BuildConfigSpec{
 				CommonSpec: newer.CommonSpec{
 					Source: newer.BuildSource{},
@@ -289,7 +290,7 @@ func TestAPIV1NoSourceBuildConfigConversion(t *testing.T) {
 
 func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 	buildConfig := older.BuildConfig{
-		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: older.BuildConfigSpec{
 			CommonSpec: older.CommonSpec{
 				Strategy: older.BuildStrategy{
@@ -334,7 +335,7 @@ func TestInvalidImageChangeTriggerRemoval(t *testing.T) {
 
 func TestImageChangeTriggerNilImageChangePointer(t *testing.T) {
 	buildConfig := older.BuildConfig{
-		ObjectMeta: kolder.ObjectMeta{Name: "config-id", Namespace: "namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "config-id", Namespace: "namespace"},
 		Spec: older.BuildConfigSpec{
 			CommonSpec: older.CommonSpec{
 				Strategy: older.BuildStrategy{

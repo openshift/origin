@@ -1,15 +1,15 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // +genclient=true
 
 // PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.
 type PodSecurityPolicySubjectReview struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// Spec defines specification for the PodSecurityPolicySubjectReview.
 	Spec PodSecurityPolicySubjectReviewSpec
@@ -51,7 +51,7 @@ type PodSecurityPolicySubjectReviewStatus struct {
 
 // PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec.
 type PodSecurityPolicySelfSubjectReview struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// Spec defines specification the PodSecurityPolicySelfSubjectReview.
 	Spec PodSecurityPolicySelfSubjectReviewSpec
@@ -68,7 +68,7 @@ type PodSecurityPolicySelfSubjectReviewSpec struct {
 
 // PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.
 type PodSecurityPolicyReview struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	// Spec is the PodSecurityPolicy to check.
 	Spec PodSecurityPolicyReviewSpec

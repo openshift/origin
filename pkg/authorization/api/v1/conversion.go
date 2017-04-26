@@ -3,9 +3,9 @@ package v1
 import (
 	"sort"
 
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/extension"
@@ -19,6 +19,7 @@ func Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccess
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
+	out.Scopes = []string(in.Scopes)
 	return nil
 }
 
@@ -28,6 +29,25 @@ func Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.Subject
 	}
 
 	out.GroupsSlice = in.Groups.List()
+	out.Scopes = OptionalScopes(in.Scopes)
+	return nil
+}
+
+func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *newer.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if err := autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s); err != nil {
+		return err
+	}
+
+	out.Scopes = []string(in.Scopes)
+	return nil
+}
+
+func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *newer.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
+	if err := autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s); err != nil {
+		return err
+	}
+
+	out.Scopes = OptionalScopes(in.Scopes)
 	return nil
 }
 
@@ -37,6 +57,7 @@ func Convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *Loc
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
+	out.Scopes = []string(in.Scopes)
 	return nil
 }
 
@@ -46,6 +67,7 @@ func Convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in *new
 	}
 
 	out.GroupsSlice = in.Groups.List()
+	out.Scopes = OptionalScopes(in.Scopes)
 	return nil
 }
 

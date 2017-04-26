@@ -13,8 +13,9 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	kapi "k8s.io/kubernetes/pkg/api"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	build "github.com/openshift/origin/pkg/build/api"
 	buildv1 "github.com/openshift/origin/pkg/build/api/v1"
@@ -32,25 +33,26 @@ var expectedIndex = []string{
 	"/apis/apps.openshift.io/v1",
 	"/apis/apps/v1beta1",
 	"/apis/authentication.k8s.io",
+	"/apis/authentication.k8s.io/v1",
 	"/apis/authentication.k8s.io/v1beta1",
 	"/apis/authorization.k8s.io",
+	"/apis/authorization.k8s.io/v1",
 	"/apis/authorization.k8s.io/v1beta1",
 	"/apis/authorization.openshift.io",
 	"/apis/authorization.openshift.io/v1",
 	"/apis/autoscaling",
 	"/apis/autoscaling/v1",
+	"/apis/autoscaling/v2alpha1",
 	"/apis/batch",
 	"/apis/batch/v1",
 	"/apis/batch/v2alpha1",
 	"/apis/build.openshift.io",
 	"/apis/build.openshift.io/v1",
 	"/apis/certificates.k8s.io",
-	"/apis/certificates.k8s.io/v1alpha1",
+	"/apis/certificates.k8s.io/v1beta1",
 	"/apis/extensions",
 	"/apis/extensions/v1beta1",
 	"/apis/image.openshift.io",
-	"/apis/image.openshift.io/1.0",
-	"/apis/image.openshift.io/pre012",
 	"/apis/image.openshift.io/v1",
 	"/apis/network.openshift.io",
 	"/apis/network.openshift.io/v1",
@@ -62,11 +64,16 @@ var expectedIndex = []string{
 	"/apis/project.openshift.io/v1",
 	"/apis/quota.openshift.io",
 	"/apis/quota.openshift.io/v1",
+	"/apis/rbac.authorization.k8s.io",
+	"/apis/rbac.authorization.k8s.io/v1beta1",
 	"/apis/route.openshift.io",
 	"/apis/route.openshift.io/v1",
 	"/apis/security.openshift.io",
 	"/apis/security.openshift.io/v1",
+	"/apis/settings.k8s.io",
+	"/apis/settings.k8s.io/v1alpha1",
 	"/apis/storage.k8s.io",
+	"/apis/storage.k8s.io/v1",
 	"/apis/storage.k8s.io/v1beta1",
 	"/apis/template.openshift.io",
 	"/apis/template.openshift.io/v1",
@@ -78,6 +85,7 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/bootstrap-controller",
 	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/extensions/third-party-resources",
+	"/healthz/poststarthook/rbac/bootstrap-roles",
 	"/healthz/ready",
 	"/metrics",
 	"/oapi",
@@ -272,7 +280,7 @@ func TestApiGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer kclientset.Namespaces().Delete(ns, &kapi.DeleteOptions{})
+	defer kclientset.Core().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 
 	t.Logf("GETting builds")
 	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
@@ -341,7 +349,7 @@ func anonymousHttpTransport(clusterAdminKubeConfig string) (*http.Transport, err
 
 func testBuild() *build.Build {
 	return &build.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
 		Spec: build.BuildSpec{

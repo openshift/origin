@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	knet "k8s.io/kubernetes/pkg/util/net"
+	knet "k8s.io/apimachinery/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util"

@@ -6,11 +6,11 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/route/api"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -46,9 +46,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Route_To_api_Route(in *Route, out *api.Route, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_RouteSpec_To_api_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -63,9 +61,7 @@ func Convert_v1_Route_To_api_Route(in *Route, out *api.Route, s conversion.Scope
 }
 
 func autoConvert_api_Route_To_v1_Route(in *api.Route, out *Route, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_RouteSpec_To_v1_RouteSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -110,7 +106,7 @@ func autoConvert_v1_RouteIngressCondition_To_api_RouteIngressCondition(in *Route
 	out.Status = pkg_api.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -123,7 +119,7 @@ func autoConvert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *api.R
 	out.Status = api_v1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*unversioned.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -133,17 +129,7 @@ func Convert_api_RouteIngressCondition_To_v1_RouteIngressCondition(in *api.Route
 
 func autoConvert_v1_RouteList_To_api_RouteList(in *RouteList, out *api.RouteList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]api.Route, len(*in))
-		for i := range *in {
-			if err := Convert_v1_Route_To_api_Route(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]api.Route)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -153,16 +139,10 @@ func Convert_v1_RouteList_To_api_RouteList(in *RouteList, out *api.RouteList, s 
 
 func autoConvert_api_RouteList_To_v1_RouteList(in *api.RouteList, out *RouteList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]Route, len(*in))
-		for i := range *in {
-			if err := Convert_api_Route_To_v1_Route(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
+	if in.Items == nil {
+		out.Items = make([]Route, 0)
 	} else {
-		out.Items = nil
+		out.Items = *(*[]Route)(unsafe.Pointer(&in.Items))
 	}
 	return nil
 }
@@ -233,7 +213,11 @@ func Convert_v1_RouteStatus_To_api_RouteStatus(in *RouteStatus, out *api.RouteSt
 }
 
 func autoConvert_api_RouteStatus_To_v1_RouteStatus(in *api.RouteStatus, out *RouteStatus, s conversion.Scope) error {
-	out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
+	if in.Ingress == nil {
+		out.Ingress = make([]RouteIngress, 0)
+	} else {
+		out.Ingress = *(*[]RouteIngress)(unsafe.Pointer(&in.Ingress))
+	}
 	return nil
 }
 

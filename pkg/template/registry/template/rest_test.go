@@ -3,10 +3,10 @@ package template
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	template "github.com/openshift/origin/pkg/template/api"
 
@@ -22,7 +22,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 		t.Errorf("Expected type error.")
 	}
 
-	if _, err := registered.RESTMapper().KindFor(template.LegacyResource("processedtemplates").WithVersion("")); err != nil {
+	if _, err := kapi.Registry.RESTMapper().KindFor(template.LegacyResource("processedtemplates").WithVersion("")); err != nil {
 		t.Errorf("no processed templates: %v", err)
 	}
 }
@@ -30,7 +30,7 @@ func TestNewRESTInvalidType(t *testing.T) {
 func TestNewRESTDefaultsName(t *testing.T) {
 	storage := NewREST()
 	obj, err := storage.Create(nil, &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 	})
@@ -46,7 +46,7 @@ func TestNewRESTDefaultsName(t *testing.T) {
 func TestNewRESTInvalidParameter(t *testing.T) {
 	storage := NewREST()
 	_, err := storage.Create(nil, &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		Parameters: []template.Parameter{
@@ -71,14 +71,14 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		ObjectLabels: testLabels,
 	}
 	templateObjects := []runtime.Object{
 		&kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-service",
 			},
 			Spec: kapi.ServiceSpec{
@@ -92,8 +92,8 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, registered.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestNewRESTTemplateLabels(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -145,14 +145,14 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 	storage := NewREST()
 	// because of encoding changes, we to round-trip ourselves
 	templateToCreate := &template.Template{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
 		ObjectLabels: testLabels,
 	}
 	templateObjects := []runtime.Object{
 		&kapi.Service{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-service",
 			},
 			Spec: kapi.ServiceSpec{
@@ -166,8 +166,8 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 			},
 		},
 	}
-	template.AddObjectsToTemplate(templateToCreate, templateObjects, registered.GroupOrDie(kapi.GroupName).GroupVersions[0])
-	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
+	template.AddObjectsToTemplate(templateToCreate, templateObjects, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0])
+	originalBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), templateToCreate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestNewRESTTemplateLabelsList(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
+	bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions[0]), obj)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -3,11 +3,13 @@ package integration
 import (
 	"testing"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apiserver/pkg/storage/names"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/labels"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -177,12 +179,12 @@ func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	_, oclient, _ := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}); err != nil {
 		t.Errorf("uenxpected error: %v", err)
 	}
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
-		ObjectMeta: kapi.ObjectMeta{Name: "bar"},
+		ObjectMeta: metav1.ObjectMeta{Name: "bar"},
 	}); !apierrors.IsForbidden(err) {
 		t.Errorf("missing error: %v", err)
 	}
@@ -195,7 +197,7 @@ func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientCo
 			t.Fatalf("Error getting client for user %s: %v", user, err)
 		}
 		projectRequest := &projectapi.ProjectRequest{}
-		projectRequest.Name = kapi.SimpleNameGenerator.GenerateName("test-projectreq")
+		projectRequest.Name = names.SimpleNameGenerator.GenerateName("test-projectreq")
 		_, err = oclient.ProjectRequests().Create(projectRequest)
 		if err != nil && expectSuccess {
 			t.Errorf("%s: unexpected error for user %s: %v", errorPrefix, user, err)

@@ -11,13 +11,14 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -85,7 +86,7 @@ type BackendsOptions struct {
 
 	ShortOutput   bool
 	Mapper        meta.RESTMapper
-	OutputVersion unversioned.GroupVersion
+	OutputVersion schema.GroupVersion
 
 	PrintTable  bool
 	PrintObject func(runtime.Object) error
@@ -133,16 +134,6 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 // Complete takes command line information to fill out BackendOptions or returns an error.
 func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
-	if err != nil {
-		return err
-	}
-
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	o.OutputVersion, err = kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
 	if err != nil {
 		return err
 	}
@@ -215,10 +206,17 @@ func (o *BackendsOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
-		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
-		if err != nil {
-			return err
+		var object runtime.Object
+		if len(infos) == 1 && singleItemImplied {
+			object = infos[0].Object
+		} else {
+			var items []runtime.Object
+			for i := range infos {
+				items = append(items, infos[i].Object)
+			}
+			object = &kapi.List{Items: items}
 		}
+
 		return o.PrintObject(object)
 	}
 
@@ -238,7 +236,7 @@ func (o *BackendsOptions) Run() error {
 
 		glog.V(4).Infof("Calculated patch %s", patch.Patch)
 
-		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, kapi.StrategicMergePatchType, patch.Patch)
+		obj, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch)
 		if err != nil {
 			handlePodUpdateError(o.Err, err, "altered")
 			failed = true

@@ -3,8 +3,9 @@ package strategy
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
@@ -42,7 +43,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapi.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),

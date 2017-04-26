@@ -8,12 +8,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/kubectl"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -52,7 +53,7 @@ type ResourceOptions struct {
 	ToKey         string
 
 	OverlappingResources []sets.String
-	DefaultExcludes      []unversioned.GroupResource
+	DefaultExcludes      []schema.GroupResource
 
 	Builder   *resource.Builder
 	SaveFn    MigrateActionFunc
@@ -64,6 +65,7 @@ type ResourceOptions struct {
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringVarP(&o.Output, "output", "o", o.Output, "Output the modified objects instead of saving them, valid values are 'yaml' or 'json'")
+	kcmdutil.AddNoHeadersFlags(c)
 	c.Flags().StringSliceVar(&o.Include, "include", o.Include, "Resource types to migrate. Passing --filename will override this flag.")
 	c.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", true, "Migrate objects in all namespaces. Defaults to true.")
 	c.Flags().BoolVar(&o.Confirm, "confirm", false, "If true, all requested objects will be migrated. Defaults to false.")
@@ -79,7 +81,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
 	switch {
 	case len(o.Output) > 0:
-		printer, _, err := kubectl.GetPrinter(o.Output, "", false, true)
+		printer, _, err := f.PrinterForCommand(c)
 		if err != nil {
 			return err
 		}
@@ -440,7 +442,7 @@ func (t *migrateTracker) try(info *resource.Info) (attemptResult, error) {
 			}
 			if canRetry(err) {
 				if t.retries > 0 {
-					if glog.V(1) && err != ErrRecalculate {
+					if bool(glog.V(1)) && err != ErrRecalculate {
 						t.report("retry:", info, err)
 					}
 					result, err := t.try(info)

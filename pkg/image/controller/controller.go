@@ -5,8 +5,9 @@ import (
 
 	"github.com/golang/glog"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/api"
@@ -133,7 +134,7 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 	}
 
 	isi := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       stream.Namespace,
 			ResourceVersion: stream.ResourceVersion,
@@ -172,7 +173,7 @@ func (c *ImportController) Next(stream *api.ImageStream, notifier Notifier) erro
 }
 
 func (c *ImportController) NextTimedByName(namespace, name string) error {
-	stream, err := c.streams.ImageStreams(namespace).Get(name)
+	stream, err := c.streams.ImageStreams(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if apierrs.IsNotFound(err) {
 			return ErrNotImportable

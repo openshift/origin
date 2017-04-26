@@ -7,14 +7,15 @@ import (
 	"io/ioutil"
 	"os"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 // SecretOptions Structure holding state for processing secret linking and
@@ -169,7 +170,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 				hasNotFound = true
 				if allowNonExisting {
 					obj = &kapi.Secret{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name: secretName,
 						},
 					}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -12,7 +13,7 @@ type ImageStreamSecretsNamespacer interface {
 // ImageStreamSecretInterface exposes methods on ImageStreamSecret resources.
 type ImageStreamSecretInterface interface {
 	// Secrets retrieves the secrets for a named image stream with the provided list options.
-	Secrets(name string, options kapi.ListOptions) (*kapi.SecretList, error)
+	Secrets(name string, options metav1.ListOptions) (*kapi.SecretList, error)
 }
 
 // imageStreamSecrets implements ImageStreamSecretsNamespacer interface
@@ -30,7 +31,7 @@ func newImageStreamSecrets(c *Client, namespace string) *imageStreamSecrets {
 }
 
 // GetSecrets returns a list of secrets for the named image stream
-func (c *imageStreamSecrets) Secrets(name string, options kapi.ListOptions) (result *kapi.SecretList, err error) {
+func (c *imageStreamSecrets) Secrets(name string, options metav1.ListOptions) (result *kapi.SecretList, err error) {
 	result = &kapi.SecretList{}
 	err = c.r.Get().
 		Namespace(c.ns).

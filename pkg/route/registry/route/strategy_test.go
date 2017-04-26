@@ -4,8 +4,10 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/route/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/types"
 )
 
 type testAllocator struct {
@@ -19,7 +21,7 @@ func (t testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
 }
 
 func TestEmptyHostDefaulting(t *testing.T) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	strategy := NewStrategy(testAllocator{})
 
 	hostlessCreatedRoute := &api.Route{}
@@ -29,7 +31,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	}
 
 	persistedRoute := &api.Route{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       "foo",
 			Name:            "myroute",
 			UID:             types.UID("abc"),
@@ -49,7 +51,7 @@ func TestEmptyHostDefaulting(t *testing.T) {
 }
 
 func TestHostWithWildcardPolicies(t *testing.T) {
-	ctx := kapi.NewContext()
+	ctx := apirequest.NewContext()
 	strategy := NewStrategy(testAllocator{})
 
 	tests := []struct {
@@ -93,7 +95,7 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 
 	for _, tc := range tests {
 		route := &api.Route{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace:       "wildcard",
 				Name:            tc.name,
 				UID:             types.UID("wild"),

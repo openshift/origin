@@ -17,15 +17,12 @@ limitations under the License.
 package etcd
 
 import (
-	"path"
-
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
-	"k8s.io/kubernetes/pkg/registry/generic"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/registry/securitycontextconstraints"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for security context constraints against etcd
@@ -33,42 +30,32 @@ type REST struct {
 	*registry.Store
 }
 
-const Prefix = "/securitycontextconstraints"
-
-// NewStorage returns a RESTStorage object that will work against security context constraints objects.
-func NewStorage(opts generic.RESTOptions) *REST {
-
-	newListFunc := func() runtime.Object { return &api.SecurityContextConstraintsList{} }
-
-	storageInterface, _ := opts.Decorator(
-		opts.StorageConfig,
-		cachesize.GetWatchCacheSizeByResource(cachesize.SecurityContextConstraints),
-		&api.SecurityContextConstraints{},
-		Prefix,
-		securitycontextconstraints.Strategy,
-		newListFunc,
-		storage.NoTriggerPublisher,
-	)
-
+// NewREST returns a RESTStorage object that will work against security context constraints objects.
+func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &registry.Store{
+		Copier:      api.Scheme,
 		NewFunc:     func() runtime.Object { return &api.SecurityContextConstraints{} },
-		NewListFunc: newListFunc,
-		KeyRootFunc: func(ctx api.Context) string {
-			return Prefix
-		},
-		KeyFunc: func(ctx api.Context, name string) (string, error) {
-			return path.Join(Prefix, name), nil
-		},
+		NewListFunc: func() runtime.Object { return &api.SecurityContextConstraintsList{} },
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*api.SecurityContextConstraints).Name, nil
 		},
 		PredicateFunc:     securitycontextconstraints.Matcher,
 		QualifiedResource: api.Resource("securitycontextconstraints"),
+		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("securitycontextconstraints"),
 
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,
+		DeleteStrategy:      securitycontextconstraints.Strategy,
 		ReturnDeletedObject: true,
-		Storage:             storageInterface,
+	}
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: securitycontextconstraints.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
+		panic(err) // TODO: Propagate error up
 	}
 	return &REST{store}
+}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"scc"}
 }

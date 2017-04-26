@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -96,7 +96,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	}
 	o.c, o.t = oc, oc
 
-	resource := unversioned.GroupResource{}
+	resource := schema.GroupResource{}
 	mapper, _ := f.Object()
 	resource, o.name, err = osutil.ResolveResource(imageapi.Resource("imagestreamtags"), args[0], mapper)
 	if err != nil {
@@ -114,7 +114,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	// Setup namespace
 	if o.allNamespaces {
 		// TODO: Handle different uses of build-chain; user and admin
-		projectList, err := oc.Projects().List(kapi.ListOptions{})
+		projectList, err := oc.Projects().List(metav1.ListOptions{})
 		if err != nil {
 			return err
 		}

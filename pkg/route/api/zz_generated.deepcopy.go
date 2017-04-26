@@ -5,10 +5,9 @@
 package api
 
 import (
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -37,9 +36,11 @@ func DeepCopy_api_Route(in interface{}, out interface{}, c *conversion.Cloner) e
 	{
 		in := in.(*Route)
 		out := out.(*Route)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
 		if err := DeepCopy_api_RouteSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -55,8 +56,7 @@ func DeepCopy_api_RouteIngress(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*RouteIngress)
 		out := out.(*RouteIngress)
-		out.Host = in.Host
-		out.RouterName = in.RouterName
+		*out = *in
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
 			*out = make([]RouteIngressCondition, len(*in))
@@ -65,11 +65,7 @@ func DeepCopy_api_RouteIngress(in interface{}, out interface{}, c *conversion.Cl
 					return err
 				}
 			}
-		} else {
-			out.Conditions = nil
 		}
-		out.WildcardPolicy = in.WildcardPolicy
-		out.RouterCanonicalHostname = in.RouterCanonicalHostname
 		return nil
 	}
 }
@@ -78,16 +74,11 @@ func DeepCopy_api_RouteIngressCondition(in interface{}, out interface{}, c *conv
 	{
 		in := in.(*RouteIngressCondition)
 		out := out.(*RouteIngressCondition)
-		out.Type = in.Type
-		out.Status = in.Status
-		out.Reason = in.Reason
-		out.Message = in.Message
+		*out = *in
 		if in.LastTransitionTime != nil {
 			in, out := &in.LastTransitionTime, &out.LastTransitionTime
-			*out = new(unversioned.Time)
+			*out = new(v1.Time)
 			**out = (*in).DeepCopy()
-		} else {
-			out.LastTransitionTime = nil
 		}
 		return nil
 	}
@@ -97,8 +88,7 @@ func DeepCopy_api_RouteList(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*RouteList)
 		out := out.(*RouteList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Route, len(*in))
@@ -107,8 +97,6 @@ func DeepCopy_api_RouteList(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -118,7 +106,7 @@ func DeepCopy_api_RoutePort(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*RoutePort)
 		out := out.(*RoutePort)
-		out.TargetPort = in.TargetPort
+		*out = *in
 		return nil
 	}
 }
@@ -127,8 +115,7 @@ func DeepCopy_api_RouteSpec(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*RouteSpec)
 		out := out.(*RouteSpec)
-		out.Host = in.Host
-		out.Path = in.Path
+		*out = *in
 		if err := DeepCopy_api_RouteTargetReference(&in.To, &out.To, c); err != nil {
 			return err
 		}
@@ -140,24 +127,17 @@ func DeepCopy_api_RouteSpec(in interface{}, out interface{}, c *conversion.Clone
 					return err
 				}
 			}
-		} else {
-			out.AlternateBackends = nil
 		}
 		if in.Port != nil {
 			in, out := &in.Port, &out.Port
 			*out = new(RoutePort)
 			**out = **in
-		} else {
-			out.Port = nil
 		}
 		if in.TLS != nil {
 			in, out := &in.TLS, &out.TLS
 			*out = new(TLSConfig)
 			**out = **in
-		} else {
-			out.TLS = nil
 		}
-		out.WildcardPolicy = in.WildcardPolicy
 		return nil
 	}
 }
@@ -166,6 +146,7 @@ func DeepCopy_api_RouteStatus(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*RouteStatus)
 		out := out.(*RouteStatus)
+		*out = *in
 		if in.Ingress != nil {
 			in, out := &in.Ingress, &out.Ingress
 			*out = make([]RouteIngress, len(*in))
@@ -174,8 +155,6 @@ func DeepCopy_api_RouteStatus(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.Ingress = nil
 		}
 		return nil
 	}
@@ -185,14 +164,11 @@ func DeepCopy_api_RouteTargetReference(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*RouteTargetReference)
 		out := out.(*RouteTargetReference)
-		out.Kind = in.Kind
-		out.Name = in.Name
+		*out = *in
 		if in.Weight != nil {
 			in, out := &in.Weight, &out.Weight
 			*out = new(int32)
 			**out = **in
-		} else {
-			out.Weight = nil
 		}
 		return nil
 	}
@@ -202,8 +178,7 @@ func DeepCopy_api_RouterShard(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*RouterShard)
 		out := out.(*RouterShard)
-		out.ShardName = in.ShardName
-		out.DNSSuffix = in.DNSSuffix
+		*out = *in
 		return nil
 	}
 }
@@ -212,12 +187,7 @@ func DeepCopy_api_TLSConfig(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*TLSConfig)
 		out := out.(*TLSConfig)
-		out.Termination = in.Termination
-		out.Certificate = in.Certificate
-		out.Key = in.Key
-		out.CACertificate = in.CACertificate
-		out.DestinationCACertificate = in.DestinationCACertificate
-		out.InsecureEdgeTerminationPolicy = in.InsecureEdgeTerminationPolicy
+		*out = *in
 		return nil
 	}
 }

@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )

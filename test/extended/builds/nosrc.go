@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -31,7 +33,7 @@ var _ = g.Describe("[builds] build with empty source", func() {
 			br.AssertSuccess()
 
 			g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Spec.Source.Dockerfile).To(o.BeNil())
 			o.Expect(build.Spec.Source.Git).To(o.BeNil())

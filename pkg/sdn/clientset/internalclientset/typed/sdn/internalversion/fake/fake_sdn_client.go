@@ -2,12 +2,12 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/sdn/clientset/internalclientset/typed/sdn/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeSdn struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeSdn) ClusterNetworks(namespace string) internalversion.ClusterNetworkInterface {
@@ -16,7 +16,7 @@ func (c *FakeSdn) ClusterNetworks(namespace string) internalversion.ClusterNetwo
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeSdn) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeSdn) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

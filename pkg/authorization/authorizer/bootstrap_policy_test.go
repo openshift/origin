@@ -3,12 +3,12 @@ package authorizer
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/uuid"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 
@@ -525,7 +525,7 @@ func TestAdminGetAllowedKindInAdze(t *testing.T) {
 func newMalletPolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.PolicyName,
 				Namespace: "mallet",
 			},
@@ -535,13 +535,13 @@ func newMalletPolicies() []authorizationapi.Policy {
 func newMalletBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.ClusterPolicyBindingName,
 				Namespace: "mallet",
 			},
 			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"projectAdmins": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "projectAdmins",
 						Namespace: "mallet",
 					},
@@ -551,7 +551,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Matthew"}},
 				},
 				"viewers": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "viewers",
 						Namespace: "mallet",
 					},
@@ -561,7 +561,7 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 					Subjects: []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "Victor"}},
 				},
 				"editors": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "editors",
 						Namespace: "mallet",
 					},
@@ -577,13 +577,13 @@ func newMalletBindings() []authorizationapi.PolicyBinding {
 func newInvalidExtensionPolicies() []authorizationapi.Policy {
 	return []authorizationapi.Policy{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      authorizationapi.PolicyName,
 				Namespace: "mallet",
 			},
 			Roles: map[string]*authorizationapi.Role{
 				"badExtension": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "failure",
 						Namespace: "mallet",
 					},
@@ -607,13 +607,13 @@ func newInvalidExtensionPolicies() []authorizationapi.Policy {
 func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
 	return []authorizationapi.PolicyBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "mallet",
 				Namespace: "mallet",
 			},
 			RoleBindings: map[string]*authorizationapi.RoleBinding{
 				"borked": {
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "borked",
 						Namespace: "mallet",
 					},
@@ -630,12 +630,12 @@ func newInvalidExtensionBindings() []authorizationapi.PolicyBinding {
 
 func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
 	policy := &authorizationapi.ClusterPolicy{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              authorizationapi.PolicyName,
-			CreationTimestamp: unversioned.Now(),
+			CreationTimestamp: metav1.Now(),
 			UID:               uuid.NewUUID(),
 		},
-		LastModified: unversioned.Now(),
+		LastModified: metav1.Now(),
 		Roles:        make(map[string]*authorizationapi.ClusterRole),
 	}
 
@@ -649,12 +649,12 @@ func GetBootstrapPolicy() *authorizationapi.ClusterPolicy {
 
 func GetBootstrapPolicyBinding() *authorizationapi.ClusterPolicyBinding {
 	policyBinding := &authorizationapi.ClusterPolicyBinding{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              ":Default",
-			CreationTimestamp: unversioned.Now(),
+			CreationTimestamp: metav1.Now(),
 			UID:               uuid.NewUUID(),
 		},
-		LastModified: unversioned.Now(),
+		LastModified: metav1.Now(),
 		RoleBindings: make(map[string]*authorizationapi.ClusterRoleBinding),
 	}
 

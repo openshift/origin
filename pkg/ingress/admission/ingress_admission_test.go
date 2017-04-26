@@ -3,8 +3,8 @@ package admission
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/ingress/admission/api"
@@ -78,7 +78,7 @@ func TestAdmission(t *testing.T) {
 	for _, test := range tests {
 		if len(test.newHost) > 0 {
 			newIngress = &kextensions.Ingress{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: kextensions.IngressSpec{
 					Rules: []kextensions.IngressRule{
 						{
@@ -90,7 +90,7 @@ func TestAdmission(t *testing.T) {
 		} else {
 			//Used to test deleting a hostname
 			newIngress = &kextensions.Ingress{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 			}
 		}
 		handler := NewIngressAdmission(test.config)
@@ -98,7 +98,7 @@ func TestAdmission(t *testing.T) {
 		if len(test.oldHost) > 0 {
 			//Provides the previous state of an ingress object
 			oldIngress = &kextensions.Ingress{
-				ObjectMeta: kapi.ObjectMeta{Name: "test"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: kextensions.IngressSpec{
 					Rules: []kextensions.IngressRule{
 						{

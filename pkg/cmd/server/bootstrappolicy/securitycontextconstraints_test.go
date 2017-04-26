@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
 func TestBootstrappedConstraints(t *testing.T) {

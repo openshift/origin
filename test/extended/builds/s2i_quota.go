@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -54,7 +56,7 @@ var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 			o.Expect(buildLog).To(o.ContainSubstring("PERIOD=100000"))
 			o.Expect(buildLog).To(o.ContainSubstring("QUOTA=6000"))
 
-			events, err := oc.KubeClient().Core().Events(oc.Namespace()).Search(br.Build)
+			events, err := oc.KubeClient().Core().Events(oc.Namespace()).Search(kapi.Scheme, br.Build)
 			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
 			o.Expect(events).NotTo(o.BeNil(), "Build event list should not be nil")
 

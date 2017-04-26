@@ -13,8 +13,10 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
@@ -39,7 +41,7 @@ func loadFixture(oc *exutil.CLI, filename string) {
 
 func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]string) {
 
-	buildList, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+	buildList, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// Ensure that expected start-build environment variables were injected
@@ -71,13 +73,13 @@ func assertEnvVars(oc *exutil.CLI, buildPrefix string, varsToFind map[string]str
 }
 
 // Stands up a simple pod which can be used for exec commands
-func initExecPod(oc *exutil.CLI) *kapi.Pod {
+func initExecPod(oc *exutil.CLI) *kapiv1.Pod {
 	// Create a running pod in which we can execute our commands
 	oc.Run("run").Args("centos", "--image", "centos:7", "--command", "--", "sleep", "1800").Execute()
 
-	var targetPod *kapi.Pod
+	var targetPod *kapiv1.Pod
 	err := wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{})
+		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
 		o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 		for _, p := range pods.Items {
 			if strings.HasPrefix(p.Name, "centos") && !strings.Contains(p.Name, "deploy") && p.Status.Phase == "Running" {
@@ -158,7 +160,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for jenkins deployment")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
+		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "jenkins", oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		j = jenkins.NewRef(oc)
@@ -218,9 +220,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -265,9 +267,9 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend, frontend-prod deployments as signs that the build has finished")
-			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err := exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "frontend-prod", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -323,7 +325,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			// we leverage some of the openshift utilities for waiting for the deployment before we poll
 			// jenkins for the successful job completion
 			g.By("waiting for frontend deployments as signs that the build has finished")
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "frontend", oc)
+			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), "frontend", oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
@@ -339,7 +341,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.It("jenkins-plugin test trigger build DSL", func() {
 
-			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsBefore, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			data, err := j.BuildDSLJob(oc.Namespace(),
@@ -355,12 +357,12 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			err = wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
-				buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+				buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				return (len(buildsAfter.Items) != len(buildsBefore.Items)), nil
 			})
 
-			buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(kapi.ListOptions{})
+			buildsAfter, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(len(buildsAfter.Items)).To(o.Equal(len(buildsBefore.Items) + 1))
 

@@ -5,9 +5,10 @@
 package v1
 
 import (
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -31,14 +32,15 @@ func DeepCopy_v1_Project(in interface{}, out interface{}, c *conversion.Cloner) 
 	{
 		in := in.(*Project)
 		out := out.(*Project)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
 		if err := DeepCopy_v1_ProjectSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		out.Status = in.Status
 		return nil
 	}
 }
@@ -47,8 +49,7 @@ func DeepCopy_v1_ProjectList(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ProjectList)
 		out := out.(*ProjectList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]Project, len(*in))
@@ -57,8 +58,6 @@ func DeepCopy_v1_ProjectList(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -68,12 +67,12 @@ func DeepCopy_v1_ProjectRequest(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ProjectRequest)
 		out := out.(*ProjectRequest)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.DisplayName = in.DisplayName
-		out.Description = in.Description
 		return nil
 	}
 }
@@ -82,14 +81,11 @@ func DeepCopy_v1_ProjectSpec(in interface{}, out interface{}, c *conversion.Clon
 	{
 		in := in.(*ProjectSpec)
 		out := out.(*ProjectSpec)
+		*out = *in
 		if in.Finalizers != nil {
 			in, out := &in.Finalizers, &out.Finalizers
 			*out = make([]api_v1.FinalizerName, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Finalizers = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -99,7 +95,7 @@ func DeepCopy_v1_ProjectStatus(in interface{}, out interface{}, c *conversion.Cl
 	{
 		in := in.(*ProjectStatus)
 		out := out.(*ProjectStatus)
-		out.Phase = in.Phase
+		*out = *in
 		return nil
 	}
 }

@@ -19,7 +19,10 @@ limitations under the License.
 package install
 
 import (
-	"k8s.io/kubernetes/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
@@ -29,6 +32,11 @@ import (
 )
 
 func init() {
+	Install(api.GroupFactoryRegistry, api.Registry, api.Scheme)
+}
+
+// Install registers the API group and adds types to a scheme
+func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  batch.GroupName,
@@ -40,7 +48,7 @@ func init() {
 			v1.SchemeGroupVersion.Version:       v1.AddToScheme,
 			v2alpha1.SchemeGroupVersion.Version: v2alpha1.AddToScheme,
 		},
-	).Announce().RegisterAndEnable(); err != nil {
+	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
 	}
 }

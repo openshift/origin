@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -17,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T) {
@@ -55,24 +55,24 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
+	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.Templates(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(kapi.ListOptions{}); err != nil {
+	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreams(kapi.NamespaceDefault).List(kapi.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreams(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
 	if _, err := valerieOpenshiftClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreamTags(kapi.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieOpenshiftClient.ImageStreamTags(metav1.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -97,7 +97,7 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 
 	// after the policy is deleted, we must wait for it to be cleared from the policy cache
 	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(kapi.ListOptions{})
+		_, err := client.ClusterPolicies().List(metav1.ListOptions{})
 		if err == nil {
 			return false, nil
 		}
@@ -110,13 +110,16 @@ func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
 		t.Errorf("timeout: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterConfig)
+	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	if err := admin.OverwriteBootstrapPolicy(optsGetter, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := client.ClusterPolicies().List(kapi.ListOptions{}); err != nil {
+	if _, err := client.ClusterPolicies().List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

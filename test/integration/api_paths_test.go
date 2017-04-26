@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -42,7 +42,7 @@ func TestRootAPIPaths(t *testing.T) {
 		t.Fatalf("unexpected error issuing GET to root path: %v", err)
 	}
 
-	var broadcastRootPaths unversioned.RootPaths
+	var broadcastRootPaths metav1.RootPaths
 	if err := json.NewDecoder(rootResponse.Body).Decode(&broadcastRootPaths); err != nil {
 		t.Fatalf("unexpected error decoding root path response: %v", err)
 	}

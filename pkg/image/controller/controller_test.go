@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -90,8 +90,8 @@ func TestControllerStart(t *testing.T) {
 	}{
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -99,8 +99,8 @@ func TestControllerStart(t *testing.T) {
 		},
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -111,7 +111,7 @@ func TestControllerStart(t *testing.T) {
 		},
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: "a random error"},
 					Name:        "test",
 					Namespace:   "other",
@@ -125,7 +125,7 @@ func TestControllerStart(t *testing.T) {
 		// references are ignored
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -138,7 +138,7 @@ func TestControllerStart(t *testing.T) {
 		},
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -154,7 +154,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -168,7 +168,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -183,7 +183,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 				Spec: api.ImageStreamSpec{
 					Tags: map[string]api.TagReference{
 						"latest": {
@@ -200,8 +200,8 @@ func TestControllerStart(t *testing.T) {
 		// spec tag with generation with status condition error and equal generation will not be imported
 		{
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -228,8 +228,8 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -256,8 +256,8 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: unversioned.Now().UTC().Format(time.RFC3339)},
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
@@ -278,7 +278,7 @@ func TestControllerStart(t *testing.T) {
 		{
 			run: true,
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "other",
 				},
@@ -333,7 +333,7 @@ func TestScheduledImport(t *testing.T) {
 
 	one := int64(1)
 	stream := &api.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test", Namespace: "other", UID: "1", ResourceVersion: "1",
 			Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: "done"},
 			Generation:  1,
@@ -354,14 +354,14 @@ func TestScheduledImport(t *testing.T) {
 		},
 	}
 	successfulImport := &api.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{Name: "test", Namespace: "other"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
 		Spec: api.ImageStreamImportSpec{
 			Import: true,
 			Images: []api.ImageImportSpec{{From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"}}},
 		},
 		Status: api.ImageStreamImportStatus{
 			Images: []api.ImageImportStatus{{
-				Status: unversioned.Status{Status: unversioned.StatusSuccess},
+				Status: metav1.Status{Status: metav1.StatusSuccess},
 				Image:  &api.Image{},
 			}},
 		},
@@ -396,7 +396,7 @@ func TestScheduledImport(t *testing.T) {
 
 	// encountering a not found error for image streams should drop the controller
 	fake = &client.Fake{}
-	fake.AddReactor("*", "*", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("*", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewNotFound(api.Resource("imagestreams"), "test")
 	})
 	b.controller.streams = fake

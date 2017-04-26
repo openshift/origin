@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"k8s.io/kubernetes/pkg/client/cache"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/cache"
 )
 
 // EventQueue is an enhanced DeltaFIFO that provides reliable Deleted deltas

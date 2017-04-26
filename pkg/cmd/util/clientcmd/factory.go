@@ -10,19 +10,21 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -65,7 +67,7 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := kcmdutil.PrinterForCommand(cmd)
+	printer, generic, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return nil
 	}
@@ -83,20 +85,13 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 		return nil
 	}
 
-	clientConfig, err := f.ClientConfig()
+	printAsList := len(infos) != 1
+	object, err := resource.AsVersionedObject(infos, printAsList, schema.GroupVersion{}, api.Codecs.LegacyCodec())
 	if err != nil {
 		return err
 	}
-	outputVersion, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-	if err != nil {
-		return err
-	}
-	object, err := resource.AsVersionedObject(infos, len(infos) != 1, outputVersion, api.Codecs.LegacyCodec(outputVersion))
-	if err != nil {
-		return err
-	}
-	return printer.PrintObj(object, out)
 
+	return printer.PrintObj(object, out)
 }
 
 // FlagBinder represents an interface that allows to bind extra flags into commands.
@@ -186,14 +181,14 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 		}
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(t)
-		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName)
+		deployment, err := kc.Core().ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			return fallback, err
 		}
 
 		fallback = deployment.Spec.Template
 
-		pods, err := kc.Core().Pods(deployment.Namespace).List(api.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector)})
+		pods, err := kc.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
 		if err != nil {
 			return fallback, err
 		}
@@ -232,7 +227,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 }
 
 func (f *Factory) PodForResource(resource string, timeout time.Duration) (string, error) {
-	sortBy := func(pods []*api.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
+	sortBy := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return "", err
@@ -251,12 +246,12 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		rc, err := kc.Core().ReplicationControllers(namespace).Get(name)
+		rc, err := kc.Core().ReplicationControllers(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
 		selector := labels.SelectorFromSet(rc.Spec.Selector)
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -266,7 +261,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		dc, err := oc.DeploymentConfigs(namespace).Get(name)
+		dc, err := oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -281,15 +276,15 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		ds, err := kc.Extensions().DaemonSets(namespace).Get(name)
+		ds, err := kc.Extensions().DaemonSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(ds.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(ds.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -299,15 +294,15 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		d, err := kc.Extensions().Deployments(namespace).Get(name)
+		d, err := kc.Extensions().Deployments(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(d.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(d.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -317,15 +312,15 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name)
+		rs, err := kc.Extensions().ReplicaSets(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
-		selector, err := unversioned.LabelSelectorAsSelector(rs.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(rs.Spec.Selector)
 		if err != nil {
 			return "", err
 		}
-		pod, _, err := kcmdutil.GetFirstPod(kc, namespace, selector, timeout, sortBy)
+		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), namespace, selector, timeout, sortBy)
 		if err != nil {
 			return "", err
 		}
@@ -336,7 +331,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		// TODO/REBASE kc.Extensions() doesn't exist any more. Is this ok?
-		job, err := kc.Batch().Jobs(namespace).Get(name)
+		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -346,7 +341,7 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		if err != nil {
 			return "", err
 		}
-		job, err := kc.Batch().Jobs(namespace).Get(name)
+		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}
@@ -356,8 +351,8 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 	}
 }
 
-func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*api.Pod) sort.Interface) (string, error) {
-	selector, err := unversioned.LabelSelectorAsSelector(job.Spec.Selector)
+func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duration, sortBy func(pods []*v1.Pod) sort.Interface) (string, error) {
+	selector, err := metav1.LabelSelectorAsSelector(job.Spec.Selector)
 	if err != nil {
 		return "", err
 	}
@@ -374,18 +369,18 @@ func podNameForJob(job *batch.Job, kc kclientset.Interface, timeout time.Duratio
 // represented.
 // TODO: add a field to APIResources for "virtual" (or that points to the canonical resource).
 // TODO: fallback to the scheme when discovery is not possible.
-func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]unversioned.GroupResource, error) {
-	set := make(map[unversioned.GroupResource]struct{})
+func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper) ([]schema.GroupResource, error) {
+	set := make(map[schema.GroupResource]struct{})
 	all, err := d.ServerResources()
 	if err != nil {
 		return nil, err
 	}
-	for apiVersion, v := range all {
-		gv, err := unversioned.ParseGroupVersion(apiVersion)
+	for _, serverResource := range all {
+		gv, err := schema.ParseGroupVersion(serverResource.GroupVersion)
 		if err != nil {
 			continue
 		}
-		for _, r := range v.APIResources {
+		for _, r := range serverResource.APIResources {
 			// ignore subresources
 			if strings.Contains(r.Name, "/") {
 				continue
@@ -393,14 +388,14 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 			// because discovery info doesn't tell us whether the object is virtual or not, perform a lookup
 			// by the kind for resource (which should be the canonical resource) and then verify that the reverse
 			// lookup (KindsFor) does not error.
-			if mapping, err := m.RESTMapping(unversioned.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
+			if mapping, err := m.RESTMapping(schema.GroupKind{Group: gv.Group, Kind: r.Kind}, gv.Version); err == nil {
 				if _, err := m.KindsFor(mapping.GroupVersionKind.GroupVersion().WithResource(mapping.Resource)); err == nil {
-					set[unversioned.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}] = struct{}{}
+					set[schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}] = struct{}{}
 				}
 			}
 		}
 	}
-	var groupResources []unversioned.GroupResource
+	var groupResources []schema.GroupResource
 	for k := range set {
 		groupResources = append(groupResources, k)
 	}
@@ -408,7 +403,7 @@ func FindAllCanonicalResources(d discovery.DiscoveryInterface, m meta.RESTMapper
 	return groupResources, nil
 }
 
-type groupResourcesByName []unversioned.GroupResource
+type groupResourcesByName []schema.GroupResource
 
 func (g groupResourcesByName) Len() int { return len(g) }
 func (g groupResourcesByName) Less(i, j int) bool {

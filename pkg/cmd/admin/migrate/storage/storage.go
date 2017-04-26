@@ -7,12 +7,12 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -67,7 +67,7 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 			ErrOut: errout,
 
 			Include: []string{"*"},
-			DefaultExcludes: []unversioned.GroupResource{
+			DefaultExcludes: []schema.GroupResource{
 				// openshift resources:
 				{Resource: "appliedclusterresourcequotas"},
 				{Resource: "imagestreamimages"}, {Resource: "imagestreamtags"}, {Resource: "imagestreammappings"}, {Resource: "imagestreamimports"},
@@ -87,6 +87,10 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 				{Resource: "replicationcontrollerdummies.extensions"},
 				{Resource: "podtemplates"},
 				{Resource: "selfsubjectaccessreviews", Group: "authorization.k8s.io"}, {Resource: "localsubjectaccessreviews", Group: "authorization.k8s.io"},
+
+				// skip kube RBAC resources for now because no one will have rights to update them yet
+				{Resource: "roles", Group: "rbac.authorization.k8s.io"}, {Resource: "rolebindings", Group: "rbac.authorization.k8s.io"},
+				{Resource: "clusterroles", Group: "rbac.authorization.k8s.io"}, {Resource: "clusterrolebindings", Group: "rbac.authorization.k8s.io"},
 			},
 			// Resources known to share the same storage
 			OverlappingResources: []sets.String{

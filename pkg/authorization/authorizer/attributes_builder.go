@@ -4,16 +4,16 @@ import (
 	"errors"
 	"net/http"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/authorizer"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type openshiftAuthorizationAttributeBuilder struct {
-	contextMapper kapi.RequestContextMapper
+	contextMapper apirequest.RequestContextMapper
 	infoFactory   RequestInfoFactory
 }
 
-func NewAuthorizationAttributeBuilder(contextMapper kapi.RequestContextMapper, infoFactory RequestInfoFactory) AuthorizationAttributeBuilder {
+func NewAuthorizationAttributeBuilder(contextMapper apirequest.RequestContextMapper, infoFactory RequestInfoFactory) AuthorizationAttributeBuilder {
 	return &openshiftAuthorizationAttributeBuilder{contextMapper, infoFactory}
 }
 
@@ -24,7 +24,7 @@ func (a *openshiftAuthorizationAttributeBuilder) GetAttributes(req *http.Request
 		return nil, errors.New("no context found for request")
 	}
 
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, errors.New("no user found on context")
 	}

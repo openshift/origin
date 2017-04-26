@@ -24,16 +24,15 @@ import (
 	"testing"
 
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/kubernetes/pkg/cloudprovider"
-	"k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/rand"
 )
 
 func configFromEnv() (cfg VSphereConfig, ok bool) {
 	var InsecureFlag bool
 	var err error
 	cfg.Global.VCenterIP = os.Getenv("VSPHERE_VCENTER")
-	cfg.Global.VCenterPort = os.Getenv("VSPHERE_VCENTER_PORT")
 	cfg.Global.User = os.Getenv("VSPHERE_USER")
 	cfg.Global.Password = os.Getenv("VSPHERE_PASSWORD")
 	cfg.Global.Datacenter = os.Getenv("VSPHERE_DATACENTER")
@@ -81,10 +80,6 @@ vm-uuid = 1234
 		t.Errorf("incorrect vcenter ip: %s", cfg.Global.VCenterIP)
 	}
 
-	if cfg.Global.VCenterPort != "443" {
-		t.Errorf("incorrect vcenter port: %s", cfg.Global.VCenterPort)
-	}
-
 	if cfg.Global.Datacenter != "us-west" {
 		t.Errorf("incorrect datacenter: %s", cfg.Global.Datacenter)
 	}
@@ -123,7 +118,7 @@ func TestVSphereLogin(t *testing.T) {
 	defer cancel()
 
 	// Create vSphere client
-	err = vSphereLogin(vs, ctx)
+	err = vSphereLogin(ctx, vs)
 	if err != nil {
 		t.Errorf("Failed to create vSpere client: %s", err)
 	}
@@ -161,13 +156,13 @@ func TestInstances(t *testing.T) {
 		t.Fatalf("Instances() returned false")
 	}
 
-	srvs, err := i.List("*")
+	srvs, err := vs.list("*")
 	if err != nil {
-		t.Fatalf("Instances.List() failed: %s", err)
+		t.Fatalf("list() failed: %s", err)
 	}
 
 	if len(srvs) == 0 {
-		t.Fatalf("Instances.List() returned zero servers")
+		t.Fatalf("list() returned zero servers")
 	}
 	t.Logf("Found servers (%d): %s\n", len(srvs), srvs)
 
@@ -220,17 +215,12 @@ func TestVolumes(t *testing.T) {
 		t.Fatalf("Failed to construct/authenticate vSphere: %s", err)
 	}
 
-	i, ok := vs.Instances()
-	if !ok {
-		t.Fatalf("Instances() returned false")
-	}
-
-	srvs, err := i.List("*")
+	srvs, err := vs.list("*")
 	if err != nil {
-		t.Fatalf("Instances.List() failed: %s", err)
+		t.Fatalf("list() failed: %s", err)
 	}
 	if len(srvs) == 0 {
-		t.Fatalf("Instances.List() returned zero servers")
+		t.Fatalf("list() returned zero servers")
 	}
 
 	volumeOptions := &VolumeOptions{

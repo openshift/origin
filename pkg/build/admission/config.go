@@ -3,7 +3,7 @@ package admission
 import (
 	"github.com/golang/glog"
 
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"

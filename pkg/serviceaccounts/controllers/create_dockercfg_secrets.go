@@ -9,22 +9,23 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/registry/core/secret"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
-	"k8s.io/kubernetes/pkg/watch"
 
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
@@ -69,10 +70,10 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	var serviceAccountCache cache.Store
 	serviceAccountCache, e.serviceAccountController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return e.client.Core().ServiceAccounts(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return e.client.Core().ServiceAccounts(api.NamespaceAll).Watch(options)
 			},
 		},
@@ -97,12 +98,12 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 	tokenSecretSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
 	e.secretCache, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = tokenSecretSelector
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = tokenSecretSelector.String()
 				return e.client.Core().Secrets(api.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = tokenSecretSelector
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = tokenSecretSelector.String()
 				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
 			},
 		},
@@ -129,9 +130,9 @@ type DockercfgController struct {
 	dockerURLsIntialized chan struct{}
 
 	serviceAccountCache      MutationCache
-	serviceAccountController *cache.Controller
+	serviceAccountController cache.Controller
 	secretCache              cache.Store
-	secretController         *cache.Controller
+	secretController         cache.Controller
 
 	queue workqueue.RateLimitingInterface
 
@@ -190,7 +191,7 @@ func (e *DockercfgController) handleTokenSecretDelete(obj interface{}) {
 
 func (e *DockercfgController) enqueueServiceAccountForToken(tokenSecret *api.Secret) {
 	serviceAccount := &api.ServiceAccount{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      tokenSecret.Annotations[api.ServiceAccountNameKey],
 			Namespace: tokenSecret.Namespace,
 			UID:       types.UID(tokenSecret.Annotations[api.ServiceAccountUIDKey]),
@@ -443,7 +444,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *api.ServiceAccou
 
 	// Try to create the named pending token
 	tokenSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      pendingTokenName,
 			Namespace: serviceAccount.Namespace,
 			Annotations: map[string]string{
@@ -480,7 +481,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *api.Service
 	}
 
 	dockercfgSecret := &api.Secret{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      secret.Strategy.GenerateName(osautil.GetDockercfgSecretNamePrefix(serviceAccount)),
 			Namespace: tokenSecret.Namespace,
 			Annotations: map[string]string{

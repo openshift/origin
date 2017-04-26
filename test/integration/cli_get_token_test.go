@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
@@ -40,7 +42,7 @@ func TestCLIGetToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	user, err := osClient.Users().Get("~")
+	user, err := osClient.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

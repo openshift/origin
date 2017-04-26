@@ -49,7 +49,7 @@ for type in "${endpoint_types[@]}"; do
         oc get --raw "/swaggerapi/${type}/${endpoint}" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
         os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
-        printf '\n' >> "${generated_file}"
+        os::util::sed '$a\' "${generated_file}" # add eof newline if it is missing
     done
 done
 
@@ -58,8 +58,8 @@ generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
 oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
-os::util::sed -r 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
-printf '\n' >> "${generated_file}"
+os::util::sed -E 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
+os::util::sed '$a\' "${generated_file}" # add eof newline if it is missing
 
 # Copy all protobuf generated specs into the api/protobuf-spec directory
 proto_spec_out_dir="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/protobuf-spec"

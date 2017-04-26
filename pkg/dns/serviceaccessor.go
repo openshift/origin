@@ -2,15 +2,16 @@ package dns
 
 import (
 	"fmt"
-	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/watch"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 )
 
 // ServiceAccessor is the interface used by the ServiceResolver to access
@@ -29,26 +30,24 @@ type cachedServiceAccessor struct {
 // cachedServiceAccessor implements ServiceAccessor
 var _ ServiceAccessor = &cachedServiceAccessor{}
 
-func NewCachedServiceAccessorAndStore() (ServiceAccessor, cache.Store) {
-	store := cache.NewIndexer(cache.MetaNamespaceKeyFunc, map[string]cache.IndexFunc{
-		"clusterIP": indexServiceByClusterIP, // for reverse lookups
-		"namespace": cache.MetaNamespaceIndexFunc,
-	})
-	return &cachedServiceAccessor{store: store}, store
-}
-
 // NewCachedServiceAccessor returns a service accessor that can answer queries about services.
 // It uses a backing cache to make ClusterIP lookups efficient.
-func NewCachedServiceAccessor(client cache.Getter, stopCh <-chan struct{}) ServiceAccessor {
-	accessor, store := NewCachedServiceAccessorAndStore()
-	lw := cache.NewListWatchFromClient(client, "services", api.NamespaceAll, fields.Everything())
-	reflector := cache.NewReflector(lw, &api.Service{}, store, 30*time.Minute)
-	if stopCh != nil {
-		reflector.RunUntil(stopCh)
-	} else {
-		reflector.Run()
+func NewCachedServiceAccessor(serviceInformer kcoreinformers.ServiceInformer) (ServiceAccessor, error) {
+	if _, found := serviceInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
+		err := serviceInformer.Informer().AddIndexers(cache.Indexers{
+			"namespace": cache.MetaNamespaceIndexFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
-	return accessor
+	err := serviceInformer.Informer().AddIndexers(cache.Indexers{
+		"clusterIP": indexServiceByClusterIP, // for reverse lookups
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &cachedServiceAccessor{store: serviceInformer.Informer().GetIndexer()}, nil
 }
 
 // ServiceByClusterIP returns the first service that matches the provided clusterIP value.
@@ -82,8 +81,8 @@ type cachedServiceNamespacer struct {
 
 var _ kcoreclient.ServiceInterface = cachedServiceNamespacer{}
 
-func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
-	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace, Name: name}})
+func (a cachedServiceNamespacer) Get(name string, options metav1.GetOptions) (*api.Service, error) {
+	item, ok, err := a.accessor.store.Get(&api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace, Name: name}})
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +92,11 @@ func (a cachedServiceNamespacer) Get(name string) (*api.Service, error) {
 	return item.(*api.Service), nil
 }
 
-func (a cachedServiceNamespacer) List(options api.ListOptions) (*api.ServiceList, error) {
-	if !options.LabelSelector.Empty() {
+func (a cachedServiceNamespacer) List(options metav1.ListOptions) (*api.ServiceList, error) {
+	if len(options.LabelSelector) > 0 {
 		return nil, fmt.Errorf("label selection on the cache is not currently implemented")
 	}
-	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: api.ObjectMeta{Namespace: a.namespace}})
+	items, err := a.accessor.store.Index("namespace", &api.Service{ObjectMeta: metav1.ObjectMeta{Namespace: a.namespace}})
 	if err != nil {
 		return nil, err
 	}
@@ -120,74 +119,18 @@ func (a cachedServiceNamespacer) Update(srv *api.Service) (*api.Service, error) 
 func (a cachedServiceNamespacer) UpdateStatus(srv *api.Service) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Delete(name string, options *api.DeleteOptions) error {
+func (a cachedServiceNamespacer) Delete(name string, options *metav1.DeleteOptions) error {
 	return fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
+func (a cachedServiceNamespacer) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
 	return fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
+func (a cachedServiceNamespacer) Watch(options metav1.ListOptions) (watch.Interface, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (a cachedServiceNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Service, error) {
+func (a cachedServiceNamespacer) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*api.Service, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
 	return nil
-}
-
-// cachedEndpointsAccessor provides a cache of services that can answer queries
-// about service lookups efficiently.
-type cachedEndpointsAccessor struct {
-	store cache.Store
-}
-
-func NewCachedEndpointsAccessorAndStore() (kcoreclient.EndpointsGetter, cache.Store) {
-	store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-	return &cachedEndpointsAccessor{store: store}, store
-}
-
-func (a *cachedEndpointsAccessor) Endpoints(namespace string) kcoreclient.EndpointsInterface {
-	return cachedEndpointsNamespacer{accessor: a, namespace: namespace}
-}
-
-// TODO: needs to be unified with Registry interfaces once that work is done.
-type cachedEndpointsNamespacer struct {
-	accessor  *cachedEndpointsAccessor
-	namespace string
-}
-
-var _ kcoreclient.EndpointsInterface = cachedEndpointsNamespacer{}
-
-func (a cachedEndpointsNamespacer) Get(name string) (*api.Endpoints, error) {
-	item, ok, err := a.accessor.store.Get(&api.Endpoints{ObjectMeta: api.ObjectMeta{Namespace: a.namespace, Name: name}})
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, errors.NewNotFound(api.Resource("endpoints"), name)
-	}
-	return item.(*api.Endpoints), nil
-}
-
-func (a cachedEndpointsNamespacer) List(options api.ListOptions) (*api.EndpointsList, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) Create(srv *api.Endpoints) (*api.Endpoints, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) Update(srv *api.Endpoints) (*api.Endpoints, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) Delete(name string, options *api.DeleteOptions) error {
-	return fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) DeleteCollection(options *api.DeleteOptions, listOptions api.ListOptions) error {
-	return fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) Watch(options api.ListOptions) (watch.Interface, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-func (a cachedEndpointsNamespacer) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (*api.Endpoints, error) {
-	return nil, fmt.Errorf("not implemented")
 }

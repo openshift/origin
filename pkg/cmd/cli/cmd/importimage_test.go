@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -49,7 +49,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import from .spec.dockerImageRepository": {
 			name: "testis",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -63,7 +63,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import from .spec.dockerImageRepository non-existing tag": {
 			name: "testis:nonexisting",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -75,7 +75,7 @@ func TestCreateImageImport(t *testing.T) {
 			name: "testis",
 			all:  true,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -91,7 +91,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:  true,
 			err:  "different import spec",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -104,7 +104,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:     true,
 			confirm: true,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -118,7 +118,7 @@ func TestCreateImageImport(t *testing.T) {
 			name: "testis",
 			all:  true,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"latest": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"}},
@@ -141,7 +141,7 @@ func TestCreateImageImport(t *testing.T) {
 			name: "testis",
 			all:  true,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
@@ -171,7 +171,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:      true,
 			insecure: newBool(true),
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"latest": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:latest"}},
@@ -197,7 +197,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:  true,
 			err:  "does not have tags pointing to external docker images",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"latest": {From: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "otheris:latest"}},
@@ -209,13 +209,13 @@ func TestCreateImageImport(t *testing.T) {
 			name: "testis",
 			err:  "does not have valid docker images",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 			},
 		},
 		"import latest tag": {
 			name: "testis:latest",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testis",
 					Namespace: "other",
 				},
@@ -233,7 +233,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import existing tag": {
 			name: "testis:existing",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testis",
 					Namespace: "other",
 				},
@@ -252,7 +252,7 @@ func TestCreateImageImport(t *testing.T) {
 			name: "testis:latest",
 			err:  "does not exist on the image stream",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testis",
 					Namespace: "other",
 				},
@@ -266,7 +266,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import tag from .spec.tags": {
 			name: "testis:mytag",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testis",
 					Namespace: "other",
 				},
@@ -286,7 +286,7 @@ func TestCreateImageImport(t *testing.T) {
 		"import tag from .spec.tags with Kind != DockerImage": {
 			name: "testis:mytag",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testis",
 					Namespace: "other",
 				},
@@ -303,7 +303,7 @@ func TestCreateImageImport(t *testing.T) {
 		"use insecure annotation": {
 			name: "testis",
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
@@ -323,7 +323,7 @@ func TestCreateImageImport(t *testing.T) {
 			name:     "testis",
 			insecure: newBool(false),
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:        "testis",
 					Namespace:   "other",
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
@@ -343,7 +343,7 @@ func TestCreateImageImport(t *testing.T) {
 			name:            "testis:mytag",
 			referencePolicy: localReferencePolicy,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"mytag": {
@@ -363,7 +363,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:             true,
 			referencePolicy: localReferencePolicy,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					Tags: map[string]imageapi.TagReference{
 						"mytag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"}},
@@ -389,7 +389,7 @@ func TestCreateImageImport(t *testing.T) {
 			all:             true,
 			referencePolicy: localReferencePolicy,
 			stream: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{Name: "testis", Namespace: "other"},
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "repo.com/somens/someimage",
 					Tags: make(map[string]imageapi.TagReference),
@@ -461,7 +461,7 @@ func TestWasError(t *testing.T) {
 			isi: &imageapi.ImageStreamImport{
 				Status: imageapi.ImageStreamImportStatus{
 					Images: []imageapi.ImageImportStatus{
-						{Status: unversioned.Status{Status: unversioned.StatusFailure}},
+						{Status: metav1.Status{Status: metav1.StatusFailure}},
 					},
 				},
 			},
@@ -471,7 +471,7 @@ func TestWasError(t *testing.T) {
 			isi: &imageapi.ImageStreamImport{
 				Status: imageapi.ImageStreamImportStatus{
 					Repository: &imageapi.RepositoryImportStatus{
-						Status: unversioned.Status{Status: unversioned.StatusFailure},
+						Status: metav1.Status{Status: metav1.StatusFailure},
 					},
 				},
 			},

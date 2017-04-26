@@ -5,14 +5,15 @@ import (
 
 	"github.com/golang/glog"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // DockercfgTokenDeletedControllerOptions contains options for the DockercfgTokenDeletedController
@@ -31,12 +32,12 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
 	_, e.secretController = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options api.ListOptions) (runtime.Object, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector}
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String()}
 				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
 			},
-			WatchFunc: func(options api.ListOptions) (watch.Interface, error) {
-				opts := api.ListOptions{FieldSelector: dockercfgSelector, ResourceVersion: options.ResourceVersion}
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String(), ResourceVersion: options.ResourceVersion}
 				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
 			},
 		},
@@ -57,7 +58,7 @@ type DockercfgTokenDeletedController struct {
 
 	client kclientset.Interface
 
-	secretController *cache.Controller
+	secretController cache.Controller
 }
 
 // Runs controller loops and returns immediately
@@ -104,7 +105,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *api.Secret) ([]*api.Secret, error) {
 	dockercfgSecrets := []*api.Secret{}
 
-	options := api.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg))}
+	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg)).String()}
 	potentialSecrets, err := e.client.Core().Secrets(tokenSecret.Namespace).List(options)
 	if err != nil {
 		return nil, err

@@ -20,35 +20,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	staging "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/util/sets"
 	clientreporestclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/federation/client/clientset_generated/federation_release_1_5"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/release_1_5"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/typed/dynamic"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/metrics"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/wait"
 	testutils "k8s.io/kubernetes/test/utils"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -60,15 +57,15 @@ const (
 type Framework struct {
 	BaseName string
 
-	// ClientSet uses internal objects, you should use ClientSet_1_5 where possible.
-	ClientSet internalclientset.Interface
+	// ClientSet uses internal objects, you should use ClientSet where possible.
+	ClientSet clientset.Interface
 
-	ClientSet_1_5 *release_1_5.Clientset
-	StagingClient *staging.Clientset
-	ClientPool    dynamic.ClientPool
+	InternalClientset *internalclientset.Clientset
+	StagingClient     *staging.Clientset
+	ClientPool        dynamic.ClientPool
 
-	Namespace                *api.Namespace   // Every test has at least one namespace
-	namespacesToDelete       []*api.Namespace // Some tests have more than one.
+	Namespace                *v1.Namespace   // Every test has at least one namespace
+	namespacesToDelete       []*v1.Namespace // Some tests have more than one.
 	NamespaceDeletionTimeout time.Duration
 
 	gatherer *containerResourceGatherer
@@ -87,14 +84,7 @@ type Framework struct {
 	cleanupHandle CleanupActionHandle
 
 	// configuration for framework's client
-	options FrameworkOptions
-
-	// will this framework exercise a federated cluster as well
-	federated bool
-
-	// Federation specific params. These are set only if federated = true.
-	FederationClientset_1_5 *federation_release_1_5.Clientset
-	FederationNamespace     *v1.Namespace
+	Options FrameworkOptions
 }
 
 type TestDataSummary interface {
@@ -105,7 +95,7 @@ type TestDataSummary interface {
 type FrameworkOptions struct {
 	ClientQPS    float32
 	ClientBurst  int
-	GroupVersion *unversioned.GroupVersion
+	GroupVersion *schema.GroupVersion
 }
 
 // NewFramework makes a new framework and sets up a BeforeEach/AfterEach for
@@ -118,23 +108,11 @@ func NewDefaultFramework(baseName string) *Framework {
 	return NewFramework(baseName, options, nil)
 }
 
-func NewDefaultFederatedFramework(baseName string) *Framework {
-	f := NewDefaultFramework(baseName)
-	f.federated = true
-	return f
-}
-
-func NewDefaultGroupVersionFramework(baseName string, groupVersion unversioned.GroupVersion) *Framework {
-	f := NewDefaultFramework(baseName)
-	f.options.GroupVersion = &groupVersion
-	return f
-}
-
-func NewFramework(baseName string, options FrameworkOptions, client internalclientset.Interface) *Framework {
+func NewFramework(baseName string, options FrameworkOptions, client clientset.Interface) *Framework {
 	f := &Framework{
 		BaseName:                 baseName,
 		AddonResourceConstraints: make(map[string]ResourceConstraint),
-		options:                  options,
+		Options:                  options,
 		ClientSet:                client,
 	}
 
@@ -185,41 +163,22 @@ func (f *Framework) BeforeEach() {
 		By("Creating a kubernetes client")
 		config, err := LoadConfig()
 		Expect(err).NotTo(HaveOccurred())
-		config.QPS = f.options.ClientQPS
-		config.Burst = f.options.ClientBurst
-		if f.options.GroupVersion != nil {
-			config.GroupVersion = f.options.GroupVersion
+		config.QPS = f.Options.ClientQPS
+		config.Burst = f.Options.ClientBurst
+		if f.Options.GroupVersion != nil {
+			config.GroupVersion = f.Options.GroupVersion
 		}
 		if TestContext.KubeAPIContentType != "" {
 			config.ContentType = TestContext.KubeAPIContentType
 		}
-		f.ClientSet, err = internalclientset.NewForConfig(config)
+		f.ClientSet, err = clientset.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
-		f.ClientSet_1_5, err = release_1_5.NewForConfig(config)
+		f.InternalClientset, err = internalclientset.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
 		clientRepoConfig := getClientRepoConfig(config)
 		f.StagingClient, err = staging.NewForConfig(clientRepoConfig)
 		Expect(err).NotTo(HaveOccurred())
-		f.ClientPool = dynamic.NewClientPool(config, registered.RESTMapper(), dynamic.LegacyAPIPathResolverFunc)
-	}
-
-	if f.federated {
-		if f.FederationClientset_1_5 == nil {
-			By("Creating a release 1.4 federation Clientset")
-			var err error
-			f.FederationClientset_1_5, err = LoadFederationClientset_1_5()
-			Expect(err).NotTo(HaveOccurred())
-		}
-		By("Waiting for federation-apiserver to be ready")
-		err := WaitForFederationApiserverReady(f.FederationClientset_1_5)
-		Expect(err).NotTo(HaveOccurred())
-		By("federation-apiserver is ready")
-
-		By("Creating a federation namespace")
-		ns, err := f.createFederationNamespace(f.BaseName)
-		Expect(err).NotTo(HaveOccurred())
-		f.FederationNamespace = ns
-		By(fmt.Sprintf("Created federation namespace %s", ns.Name))
+		f.ClientPool = dynamic.NewClientPool(config, api.Registry.RESTMapper(), dynamic.LegacyAPIPathResolverFunc)
 	}
 
 	By("Building a namespace api object")
@@ -262,45 +221,6 @@ func (f *Framework) BeforeEach() {
 	}
 }
 
-func (f *Framework) deleteFederationNs() {
-	if !f.federated {
-		// Nothing to do if this is not a federation setup.
-		return
-	}
-	ns := f.FederationNamespace
-	By(fmt.Sprintf("Destroying federation namespace %q for this suite.", ns.Name))
-	timeout := 5 * time.Minute
-	if f.NamespaceDeletionTimeout != 0 {
-		timeout = f.NamespaceDeletionTimeout
-	}
-
-	clientset := f.FederationClientset_1_5
-	// First delete the namespace from federation apiserver.
-	// Also delete the corresponding namespaces from underlying clusters.
-	orphanDependents := false
-	if err := clientset.Core().Namespaces().Delete(ns.Name, &v1.DeleteOptions{OrphanDependents: &orphanDependents}); err != nil {
-		Failf("Error while deleting federation namespace %s: %s", ns.Name, err)
-	}
-	// Verify that it got deleted.
-	err := wait.PollImmediate(5*time.Second, timeout, func() (bool, error) {
-		if _, err := clientset.Core().Namespaces().Get(ns.Name); err != nil {
-			if apierrs.IsNotFound(err) {
-				return true, nil
-			}
-			Logf("Error while waiting for namespace to be terminated: %v", err)
-			return false, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		if !apierrs.IsNotFound(err) {
-			Failf("Couldn't delete ns %q: %s", ns.Name, err)
-		} else {
-			Logf("Namespace %v was already deleted", ns.Name)
-		}
-	}
-}
-
 // AfterEach deletes the namespace, after reading its events.
 func (f *Framework) AfterEach() {
 	RemoveCleanupAction(f.cleanupHandle)
@@ -320,15 +240,13 @@ func (f *Framework) AfterEach() {
 					timeout = f.NamespaceDeletionTimeout
 				}
 				if err := deleteNS(f.ClientSet, f.ClientPool, ns.Name, timeout); err != nil {
-					if !apierrs.IsNotFound(err) {
+					if !apierrors.IsNotFound(err) {
 						nsDeletionErrors[ns.Name] = err
 					} else {
 						Logf("Namespace %v was already deleted", ns.Name)
 					}
 				}
 			}
-			// Delete the federation namespace.
-			f.deleteFederationNs()
 		} else {
 			if TestContext.DeleteNamespace {
 				Logf("Found DeleteNamespace=false, skipping namespace deletion!")
@@ -340,7 +258,6 @@ func (f *Framework) AfterEach() {
 
 		// Paranoia-- prevent reuse!
 		f.Namespace = nil
-		f.FederationNamespace = nil
 		f.ClientSet = nil
 		f.namespacesToDelete = nil
 
@@ -354,40 +271,20 @@ func (f *Framework) AfterEach() {
 		}
 	}()
 
-	if f.federated {
-		defer func() {
-			if f.FederationClientset_1_5 == nil {
-				Logf("Warning: framework is marked federated, but has no federation 1.4 clientset")
-				return
-			}
-			if err := f.FederationClientset_1_5.Federation().Clusters().DeleteCollection(nil, v1.ListOptions{}); err != nil {
-				Logf("Error: failed to delete Clusters: %+v", err)
-			}
-		}()
-	}
-
 	// Print events if the test failed.
 	if CurrentGinkgoTestDescription().Failed && TestContext.DumpLogsOnFailure {
 		// Pass both unversioned client and and versioned clientset, till we have removed all uses of the unversioned client.
-		DumpAllNamespaceInfo(f.ClientSet, f.ClientSet_1_5, f.Namespace.Name)
+		DumpAllNamespaceInfo(f.ClientSet, f.Namespace.Name)
 		By(fmt.Sprintf("Dumping a list of prepulled images on each node"))
-		LogContainersInPodsWithLabels(f.ClientSet, api.NamespaceSystem, ImagePullerLabels, "image-puller", Logf)
-		if f.federated {
-			// Dump federation events in federation namespace.
-			DumpEventsInNamespace(func(opts v1.ListOptions, ns string) (*v1.EventList, error) {
-				return f.FederationClientset_1_5.Core().Events(ns).List(opts)
-			}, f.FederationNamespace.Name)
-			// Print logs of federation control plane pods (federation-apiserver and federation-controller-manager)
-			LogPodsWithLabels(f.ClientSet, "federation", map[string]string{"app": "federated-cluster"}, Logf)
-			// Print logs of kube-dns pod
-			LogPodsWithLabels(f.ClientSet, "kube-system", map[string]string{"k8s-app": "kube-dns"}, Logf)
-		}
+		LogContainersInPodsWithLabels(f.ClientSet, metav1.NamespaceSystem, ImagePullerLabels, "image-puller", Logf)
 	}
 
 	summaries := make([]TestDataSummary, 0)
 	if TestContext.GatherKubeSystemResourceUsageData != "false" && TestContext.GatherKubeSystemResourceUsageData != "none" && f.gatherer != nil {
 		By("Collecting resource usage data")
-		summaries = append(summaries, f.gatherer.stopAndSummarize([]int{90, 99, 100}, f.AddonResourceConstraints))
+		summary, resourceViolationError := f.gatherer.stopAndSummarize([]int{90, 99, 100}, f.AddonResourceConstraints)
+		defer ExpectNoError(resourceViolationError)
+		summaries = append(summaries, summary)
 	}
 
 	if TestContext.GatherLogsSizes {
@@ -439,7 +336,7 @@ func (f *Framework) AfterEach() {
 	}
 }
 
-func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (*api.Namespace, error) {
+func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (*v1.Namespace, error) {
 	createTestingNS := TestContext.CreateTestingNS
 	if createTestingNS == nil {
 		createTestingNS = CreateTestingNS
@@ -454,29 +351,6 @@ func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (
 	return ns, err
 }
 
-func (f *Framework) createFederationNamespace(baseName string) (*v1.Namespace, error) {
-	clientset := f.FederationClientset_1_5
-	namespaceObj := &v1.Namespace{
-		ObjectMeta: v1.ObjectMeta{
-			GenerateName: fmt.Sprintf("e2e-tests-%v-", baseName),
-		},
-	}
-	// Be robust about making the namespace creation call.
-	var got *v1.Namespace
-	if err := wait.PollImmediate(Poll, SingleCallTimeout, func() (bool, error) {
-		var err error
-		got, err = clientset.Core().Namespaces().Create(namespaceObj)
-		if err != nil {
-			Logf("Unexpected error while creating namespace: %v", err)
-			return false, nil
-		}
-		return true, nil
-	}); err != nil {
-		return nil, err
-	}
-	return got, nil
-}
-
 // WaitForPodTerminated waits for the pod to be terminated with the given reason.
 func (f *Framework) WaitForPodTerminated(podName, reason string) error {
 	return waitForPodTerminatedInNamespace(f.ClientSet, podName, reason, f.Namespace.Name)
@@ -489,32 +363,32 @@ func (f *Framework) WaitForPodRunning(podName string) error {
 
 // WaitForPodReady waits for the pod to flip to ready in the namespace.
 func (f *Framework) WaitForPodReady(podName string) error {
-	return waitTimeoutForPodReadyInNamespace(f.ClientSet, podName, f.Namespace.Name, "", PodStartTimeout)
+	return waitTimeoutForPodReadyInNamespace(f.ClientSet, podName, f.Namespace.Name, PodStartTimeout)
 }
 
 // WaitForPodRunningSlow waits for the pod to run in the namespace.
 // It has a longer timeout then WaitForPodRunning (util.slowPodStartTimeout).
 func (f *Framework) WaitForPodRunningSlow(podName string) error {
-	return waitForPodRunningInNamespaceSlow(f.ClientSet, podName, f.Namespace.Name, "")
+	return waitForPodRunningInNamespaceSlow(f.ClientSet, podName, f.Namespace.Name)
 }
 
 // WaitForPodNoLongerRunning waits for the pod to no longer be running in the namespace, for either
 // success or failure.
 func (f *Framework) WaitForPodNoLongerRunning(podName string) error {
-	return WaitForPodNoLongerRunningInNamespace(f.ClientSet, podName, f.Namespace.Name, "")
+	return WaitForPodNoLongerRunningInNamespace(f.ClientSet, podName, f.Namespace.Name)
 }
 
 // TestContainerOutput runs the given pod in the given namespace and waits
 // for all of the containers in the podSpec to move into the 'Success' status, and tests
 // the specified container log against the given expected output using a substring matcher.
-func (f *Framework) TestContainerOutput(scenarioName string, pod *api.Pod, containerIndex int, expectedOutput []string) {
+func (f *Framework) TestContainerOutput(scenarioName string, pod *v1.Pod, containerIndex int, expectedOutput []string) {
 	f.testContainerOutputMatcher(scenarioName, pod, containerIndex, expectedOutput, ContainSubstring)
 }
 
 // TestContainerOutputRegexp runs the given pod in the given namespace and waits
 // for all of the containers in the podSpec to move into the 'Success' status, and tests
 // the specified container log against the given expected output using a regexp matcher.
-func (f *Framework) TestContainerOutputRegexp(scenarioName string, pod *api.Pod, containerIndex int, expectedOutput []string) {
+func (f *Framework) TestContainerOutputRegexp(scenarioName string, pod *v1.Pod, containerIndex int, expectedOutput []string) {
 	f.testContainerOutputMatcher(scenarioName, pod, containerIndex, expectedOutput, MatchRegexp)
 }
 
@@ -524,13 +398,13 @@ func (f *Framework) WaitForAnEndpoint(serviceName string) error {
 	for {
 		// TODO: Endpoints client should take a field selector so we
 		// don't have to list everything.
-		list, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).List(api.ListOptions{})
+		list, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).List(metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
 		rv := list.ResourceVersion
 
-		isOK := func(e *api.Endpoints) bool {
+		isOK := func(e *v1.Endpoints) bool {
 			return e.Name == serviceName && len(e.Subsets) > 0 && len(e.Subsets[0].Addresses) > 0
 		}
 		for i := range list.Items {
@@ -539,8 +413,8 @@ func (f *Framework) WaitForAnEndpoint(serviceName string) error {
 			}
 		}
 
-		options := api.ListOptions{
-			FieldSelector:   fields.Set{"metadata.name": serviceName}.AsSelector(),
+		options := metav1.ListOptions{
+			FieldSelector:   fields.Set{"metadata.name": serviceName}.AsSelector().String(),
 			ResourceVersion: rv,
 		}
 		w, err := f.ClientSet.Core().Endpoints(f.Namespace.Name).Watch(options)
@@ -555,7 +429,7 @@ func (f *Framework) WaitForAnEndpoint(serviceName string) error {
 				// reget and re-watch
 				break
 			}
-			if e, ok := val.Object.(*api.Endpoints); ok {
+			if e, ok := val.Object.(*v1.Endpoints); ok {
 				if isOK(e) {
 					return nil
 				}
@@ -604,7 +478,7 @@ func (f *Framework) CheckFileSizeViaContainer(podName, containerName, path strin
 }
 
 // CreateServiceForSimpleAppWithPods is a convenience wrapper to create a service and its matching pods all at once.
-func (f *Framework) CreateServiceForSimpleAppWithPods(contPort int, svcPort int, appName string, podSpec func(n api.Node) api.PodSpec, count int, block bool) (error, *api.Service) {
+func (f *Framework) CreateServiceForSimpleAppWithPods(contPort int, svcPort int, appName string, podSpec func(n v1.Node) v1.PodSpec, count int, block bool) (error, *v1.Service) {
 	var err error = nil
 	theService := f.CreateServiceForSimpleApp(contPort, svcPort, appName)
 	f.CreatePodsPerNodeForSimpleApp(appName, podSpec, count)
@@ -615,7 +489,7 @@ func (f *Framework) CreateServiceForSimpleAppWithPods(contPort int, svcPort int,
 }
 
 // CreateServiceForSimpleApp returns a service that selects/exposes pods (send -1 ports if no exposure needed) with an app label.
-func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName string) *api.Service {
+func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName string) *v1.Service {
 	if appName == "" {
 		panic(fmt.Sprintf("no app name provided"))
 	}
@@ -625,11 +499,11 @@ func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName str
 	}
 
 	// For convenience, user sending ports are optional.
-	portsFunc := func() []api.ServicePort {
+	portsFunc := func() []v1.ServicePort {
 		if contPort < 1 || svcPort < 1 {
 			return nil
 		} else {
-			return []api.ServicePort{{
+			return []v1.ServicePort{{
 				Protocol:   "TCP",
 				Port:       int32(svcPort),
 				TargetPort: intstr.FromInt(contPort),
@@ -637,14 +511,14 @@ func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName str
 		}
 	}
 	Logf("Creating a service-for-%v for selecting app=%v-pod", appName, appName)
-	service, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(&api.Service{
-		ObjectMeta: api.ObjectMeta{
+	service, err := f.ClientSet.Core().Services(f.Namespace.Name).Create(&v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "service-for-" + appName,
 			Labels: map[string]string{
 				"app": appName + "-service",
 			},
 		},
-		Spec: api.ServiceSpec{
+		Spec: v1.ServiceSpec{
 			Ports:    portsFunc(),
 			Selector: serviceSelector,
 		},
@@ -654,7 +528,7 @@ func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName str
 }
 
 // CreatePodsPerNodeForSimpleApp Creates pods w/ labels.  Useful for tests which make a bunch of pods w/o any networking.
-func (f *Framework) CreatePodsPerNodeForSimpleApp(appName string, podSpec func(n api.Node) api.PodSpec, maxCount int) map[string]string {
+func (f *Framework) CreatePodsPerNodeForSimpleApp(appName string, podSpec func(n v1.Node) v1.PodSpec, maxCount int) map[string]string {
 	nodes := GetReadySchedulableNodesOrDie(f.ClientSet)
 	labels := map[string]string{
 		"app": appName + "-pod",
@@ -663,8 +537,8 @@ func (f *Framework) CreatePodsPerNodeForSimpleApp(appName string, podSpec func(n
 		// one per node, but no more than maxCount.
 		if i <= maxCount {
 			Logf("%v/%v : Creating container with label app=%v-pod", i, maxCount, appName)
-			_, err := f.ClientSet.Core().Pods(f.Namespace.Name).Create(&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			_, err := f.ClientSet.Core().Pods(f.Namespace.Name).Create(&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   fmt.Sprintf(appName+"-pod-%v", i),
 					Labels: labels,
 				},
@@ -707,7 +581,7 @@ type KubeConfig struct {
 	Users []KubeUser `yaml:"users"`
 }
 
-func (kc *KubeConfig) findUser(name string) *KubeUser {
+func (kc *KubeConfig) FindUser(name string) *KubeUser {
 	for _, user := range kc.Users {
 		if user.Name == name {
 			return &user
@@ -716,63 +590,13 @@ func (kc *KubeConfig) findUser(name string) *KubeUser {
 	return nil
 }
 
-func (kc *KubeConfig) findCluster(name string) *KubeCluster {
+func (kc *KubeConfig) FindCluster(name string) *KubeCluster {
 	for _, cluster := range kc.Clusters {
 		if cluster.Name == name {
 			return &cluster
 		}
 	}
 	return nil
-}
-
-type E2EContext struct {
-	// Raw context name,
-	RawName string `yaml:"rawName"`
-	// A valid dns subdomain which can be used as the name of kubernetes resources.
-	Name    string       `yaml:"name"`
-	Cluster *KubeCluster `yaml:"cluster"`
-	User    *KubeUser    `yaml:"user"`
-}
-
-func (f *Framework) GetUnderlyingFederatedContexts() []E2EContext {
-	if !f.federated {
-		Failf("getUnderlyingFederatedContexts called on non-federated framework")
-	}
-
-	kubeconfig := KubeConfig{}
-	configBytes, err := ioutil.ReadFile(TestContext.KubeConfig)
-	ExpectNoError(err)
-	err = yaml.Unmarshal(configBytes, &kubeconfig)
-	ExpectNoError(err)
-
-	e2eContexts := []E2EContext{}
-	for _, context := range kubeconfig.Contexts {
-		if strings.HasPrefix(context.Name, "federation") && context.Name != "federation-cluster" {
-
-			user := kubeconfig.findUser(context.Context.User)
-			if user == nil {
-				Failf("Could not find user for context %+v", context)
-			}
-
-			cluster := kubeconfig.findCluster(context.Context.Cluster)
-			if cluster == nil {
-				Failf("Could not find cluster for context %+v", context)
-			}
-
-			dnsSubdomainName, err := GetValidDNSSubdomainName(context.Name)
-			if err != nil {
-				Failf("Could not convert context name %s to a valid dns subdomain name, error: %s", context.Name, err)
-			}
-			e2eContexts = append(e2eContexts, E2EContext{
-				RawName: context.Name,
-				Name:    dnsSubdomainName,
-				Cluster: cluster,
-				User:    user,
-			})
-		}
-	}
-
-	return e2eContexts
 }
 
 func kubectlExecWithRetry(namespace string, podName, containerName string, args ...string) ([]byte, []byte, error) {
@@ -834,38 +658,38 @@ type PodStateVerification struct {
 	Selectors map[string]string
 
 	// Required: The phases which are valid for your pod.
-	ValidPhases []api.PodPhase
+	ValidPhases []v1.PodPhase
 
 	// Optional: only pods passing this function will pass the filter
 	// Verify a pod.
 	// As an optimization, in addition to specfying filter (boolean),
 	// this function allows specifying an error as well.
 	// The error indicates that the polling of the pod spectrum should stop.
-	Verify func(api.Pod) (bool, error)
+	Verify func(v1.Pod) (bool, error)
 
 	// Optional: only pods with this name will pass the filter.
 	PodName string
 }
 
 type ClusterVerification struct {
-	client    internalclientset.Interface
-	namespace *api.Namespace // pointer rather than string, since ns isn't created until before each.
+	client    clientset.Interface
+	namespace *v1.Namespace // pointer rather than string, since ns isn't created until before each.
 	podState  PodStateVerification
 }
 
-func (f *Framework) NewClusterVerification(filter PodStateVerification) *ClusterVerification {
+func (f *Framework) NewClusterVerification(namespace *v1.Namespace, filter PodStateVerification) *ClusterVerification {
 	return &ClusterVerification{
 		f.ClientSet,
-		f.Namespace,
+		namespace,
 		filter,
 	}
 }
 
-func passesPodNameFilter(pod api.Pod, name string) bool {
+func passesPodNameFilter(pod v1.Pod, name string) bool {
 	return name == "" || strings.Contains(pod.Name, name)
 }
 
-func passesVerifyFilter(pod api.Pod, verify func(p api.Pod) (bool, error)) (bool, error) {
+func passesVerifyFilter(pod v1.Pod, verify func(p v1.Pod) (bool, error)) (bool, error) {
 	if verify == nil {
 		return true, nil
 	} else {
@@ -879,7 +703,7 @@ func passesVerifyFilter(pod api.Pod, verify func(p api.Pod) (bool, error)) (bool
 	}
 }
 
-func passesPhasesFilter(pod api.Pod, validPhases []api.PodPhase) bool {
+func passesPhasesFilter(pod v1.Pod, validPhases []v1.PodPhase) bool {
 	passesPhaseFilter := false
 	for _, phase := range validPhases {
 		if pod.Status.Phase == phase {
@@ -890,18 +714,18 @@ func passesPhasesFilter(pod api.Pod, validPhases []api.PodPhase) bool {
 }
 
 // filterLabels returns a list of pods which have labels.
-func filterLabels(selectors map[string]string, cli internalclientset.Interface, ns string) (*api.PodList, error) {
+func filterLabels(selectors map[string]string, cli clientset.Interface, ns string) (*v1.PodList, error) {
 	var err error
 	var selector labels.Selector
-	var pl *api.PodList
+	var pl *v1.PodList
 	// List pods based on selectors.  This might be a tiny optimization rather then filtering
 	// everything manually.
 	if len(selectors) > 0 {
 		selector = labels.SelectorFromSet(labels.Set(selectors))
-		options := api.ListOptions{LabelSelector: selector}
+		options := metav1.ListOptions{LabelSelector: selector.String()}
 		pl, err = cli.Core().Pods(ns).List(options)
 	} else {
-		pl, err = cli.Core().Pods(ns).List(api.ListOptions{})
+		pl, err = cli.Core().Pods(ns).List(metav1.ListOptions{})
 	}
 	return pl, err
 }
@@ -909,20 +733,20 @@ func filterLabels(selectors map[string]string, cli internalclientset.Interface, 
 // filter filters pods which pass a filter.  It can be used to compose
 // the more useful abstractions like ForEach, WaitFor, and so on, which
 // can be used directly by tests.
-func (p *PodStateVerification) filter(c internalclientset.Interface, namespace *api.Namespace) ([]api.Pod, error) {
+func (p *PodStateVerification) filter(c clientset.Interface, namespace *v1.Namespace) ([]v1.Pod, error) {
 	if len(p.ValidPhases) == 0 || namespace == nil {
 		panic(fmt.Errorf("Need to specify a valid pod phases (%v) and namespace (%v). ", p.ValidPhases, namespace))
 	}
 
 	ns := namespace.Name
-	pl, err := filterLabels(p.Selectors, c, ns) // Build an api.PodList to operate against.
+	pl, err := filterLabels(p.Selectors, c, ns) // Build an v1.PodList to operate against.
 	Logf("Selector matched %v pods for %v", len(pl.Items), p.Selectors)
 	if len(pl.Items) == 0 || err != nil {
 		return pl.Items, err
 	}
 
 	unfilteredPods := pl.Items
-	filteredPods := []api.Pod{}
+	filteredPods := []v1.Pod{}
 ReturnPodsSoFar:
 	// Next: Pod must match at least one of the states that the user specified
 	for _, pod := range unfilteredPods {
@@ -943,8 +767,8 @@ ReturnPodsSoFar:
 
 // WaitFor waits for some minimum number of pods to be verified, according to the PodStateVerification
 // definition.
-func (cl *ClusterVerification) WaitFor(atLeast int, timeout time.Duration) ([]api.Pod, error) {
-	pods := []api.Pod{}
+func (cl *ClusterVerification) WaitFor(atLeast int, timeout time.Duration) ([]v1.Pod, error) {
+	pods := []v1.Pod{}
 	var returnedErr error
 
 	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
@@ -983,7 +807,7 @@ func (cl *ClusterVerification) WaitForOrFail(atLeast int, timeout time.Duration)
 //
 // For example, if you require at least 5 pods to be running before your test will pass,
 // its smart to first call "clusterVerification.WaitFor(5)" before you call clusterVerification.ForEach.
-func (cl *ClusterVerification) ForEach(podFunc func(api.Pod)) error {
+func (cl *ClusterVerification) ForEach(podFunc func(v1.Pod)) error {
 	pods, err := cl.podState.filter(cl.client, cl.namespace)
 	if err == nil {
 		if len(pods) == 0 {

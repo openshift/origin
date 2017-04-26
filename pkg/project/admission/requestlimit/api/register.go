@@ -1,10 +1,8 @@
 package api
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/watch/versioned"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -13,8 +11,8 @@ const (
 )
 
 var (
-	SchemeGroupVersion       = unversioned.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
-	LegacySchemeGroupVersion = unversioned.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
+	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
+	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
 
 	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
@@ -34,17 +32,8 @@ func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&ProjectRequestLimitConfig{},
-	}
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		append(types,
-			&unversioned.Status{}, // TODO: revisit in 1.6 when Status is actually registered as unversioned
-			&kapi.ListOptions{},
-			&kapi.DeleteOptions{},
-			&kapi.ExportOptions{},
-		)...,
+		&ProjectRequestLimitConfig{},
 	)
-	versioned.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }

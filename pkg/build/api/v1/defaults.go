@@ -1,6 +1,6 @@
 package v1
 
-import "k8s.io/kubernetes/pkg/runtime"
+import "k8s.io/apimachinery/pkg/runtime"
 
 func SetDefaults_BuildConfigSpec(config *BuildConfigSpec) {
 	if len(config.RunPolicy) == 0 {

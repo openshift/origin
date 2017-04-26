@@ -7,10 +7,9 @@ import (
 	"io"
 	"reflect"
 
-	"k8s.io/client-go/pkg/util/sets"
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/admission"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/ingress/admission/api"
@@ -21,7 +20,7 @@ const (
 )
 
 func init() {
-	kadmission.RegisterPlugin(IngressAdmission, func(clien clientset.Interface, config io.Reader) (kadmission.Interface, error) {
+	admission.RegisterPlugin(IngressAdmission, func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
@@ -31,13 +30,13 @@ func init() {
 }
 
 type ingressAdmission struct {
-	*kadmission.Handler
+	*admission.Handler
 	config *api.IngressAdmissionConfig
 }
 
 func NewIngressAdmission(config *api.IngressAdmissionConfig) *ingressAdmission {
 	return &ingressAdmission{
-		Handler: kadmission.NewHandler(kadmission.Create, kadmission.Update),
+		Handler: admission.NewHandler(admission.Create, admission.Update),
 		config:  config,
 	}
 }
@@ -61,8 +60,8 @@ func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
 	return config, nil
 }
 
-func (r *ingressAdmission) Admit(a kadmission.Attributes) error {
-	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") && a.GetOperation() == kadmission.Update {
+func (r *ingressAdmission) Admit(a admission.Attributes) error {
+	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") && a.GetOperation() == admission.Update {
 		if r.config == nil || r.config.AllowHostnameChanges == false {
 			oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
 			if !ok {

@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -26,11 +27,11 @@ func (this *MockPolicyClient) Policies(namespace string) client.PolicyLister {
 
 type MockPolicyGetter struct{}
 
-func (this MockPolicyGetter) List(options kapi.ListOptions) (*authorizationapi.PolicyList, error) {
+func (this MockPolicyGetter) List(options metav1.ListOptions) (*authorizationapi.PolicyList, error) {
 	return &authorizationapi.PolicyList{}, nil
 }
 
-func (this MockPolicyGetter) Get(name string) (*authorizationapi.Policy, error) {
+func (this MockPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
 	return &authorizationapi.Policy{}, nil
 }
 
@@ -41,11 +42,11 @@ func (this *MockPolicyClient) ClusterPolicies() client.ClusterPolicyLister {
 
 type MockClusterPolicyGetter struct{}
 
-func (this MockClusterPolicyGetter) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (this MockClusterPolicyGetter) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	return &authorizationapi.ClusterPolicyList{}, nil
 }
 
-func (this MockClusterPolicyGetter) Get(name string) (*authorizationapi.ClusterPolicy, error) {
+func (this MockClusterPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	return &authorizationapi.ClusterPolicy{}, nil
 }
 
@@ -56,11 +57,11 @@ func (this *MockPolicyClient) PolicyBindings(namespace string) client.PolicyBind
 
 type MockPolicyBindingGetter struct{}
 
-func (this MockPolicyBindingGetter) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (this MockPolicyBindingGetter) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	return &authorizationapi.PolicyBindingList{}, nil
 }
 
-func (this MockPolicyBindingGetter) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (this MockPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	return &authorizationapi.PolicyBinding{}, nil
 }
 
@@ -71,11 +72,11 @@ func (this *MockPolicyClient) ClusterPolicyBindings() client.ClusterPolicyBindin
 
 type MockClusterPolicyBindingGetter struct{}
 
-func (this MockClusterPolicyBindingGetter) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (this MockClusterPolicyBindingGetter) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	return &authorizationapi.ClusterPolicyBindingList{}, nil
 }
 
-func (this MockClusterPolicyBindingGetter) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (this MockClusterPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	return &authorizationapi.ClusterPolicyBinding{}, nil
 }
 
@@ -161,13 +162,13 @@ func TestSyncNamespace(t *testing.T) {
 	namespaceList := kapi.NamespaceList{
 		Items: []kapi.Namespace{
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "foo", ResourceVersion: "1"},
+				ObjectMeta: metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "bar", ResourceVersion: "2"},
+				ObjectMeta: metav1.ObjectMeta{Name: "bar", ResourceVersion: "2"},
 			},
 			{
-				ObjectMeta: kapi.ObjectMeta{Name: "car", ResourceVersion: "3"},
+				ObjectMeta: metav1.ObjectMeta{Name: "car", ResourceVersion: "3"},
 			},
 		},
 	}

@@ -1,11 +1,14 @@
 package appliedclusterresourcequota
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	ocache "github.com/openshift/origin/pkg/client/cache"
@@ -17,10 +20,10 @@ import (
 type AppliedClusterResourceQuotaREST struct {
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
 	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
-	namespaceLister *cache.IndexerToNamespaceLister
+	namespaceLister kcorelisters.NamespaceLister
 }
 
-func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister *cache.IndexerToNamespaceLister) *AppliedClusterResourceQuotaREST {
+func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
 	return &AppliedClusterResourceQuotaREST{
 		quotaMapper:     quotaMapper,
 		quotaLister:     quotaLister,
@@ -28,12 +31,15 @@ func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *oc
 	}
 }
 
+var _ rest.Getter = &AppliedClusterResourceQuotaREST{}
+var _ rest.Lister = &AppliedClusterResourceQuotaREST{}
+
 func (r *AppliedClusterResourceQuotaREST) New() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuota{}
 }
 
-func (r *AppliedClusterResourceQuotaREST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+func (r *AppliedClusterResourceQuotaREST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")
 	}
@@ -56,15 +62,15 @@ func (r *AppliedClusterResourceQuotaREST) NewList() runtime.Object {
 	return &quotaapi.AppliedClusterResourceQuotaList{}
 }
 
-func (r *AppliedClusterResourceQuotaREST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	namespace, ok := kapi.NamespaceFrom(ctx)
+func (r *AppliedClusterResourceQuotaREST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("namespace is required")
 	}
 
 	// TODO max resource version?  watch?
 	list := &quotaapi.AppliedClusterResourceQuotaList{}
-	matcher := clusterresourcequotaregistry.Matcher(oapi.ListOptionsToSelectors(options))
+	matcher := clusterresourcequotaregistry.Matcher(oapi.InternalListOptionsToSelectors(options))
 	quotaNames, _ := r.quotaMapper.GetClusterQuotasFor(namespace)
 
 	for _, name := range quotaNames {
