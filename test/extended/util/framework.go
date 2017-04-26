@@ -522,7 +522,7 @@ func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
 	result.BuildAttempt = true
 	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
-	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", result.BuildName, *result)
+	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n with error: %v\n", result.BuildName, *result, err)
 	return nil
 }
 
@@ -555,18 +555,25 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
 		list, err := c.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "error listing builds: %v", err)
 			return false, err
 		}
 		for i := range list.Items {
 			if name == list.Items[i].Name && (isOK(&list.Items[i]) || isCanceled(&list.Items[i])) {
 				return true, nil
 			}
-			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
+			if name != list.Items[i].Name {
+				return false, fmt.Errorf("While listing builds named %s, found unexpected build %#v", name, list.Items[i])
+			}
+			if isFailed(&list.Items[i]) {
 				return false, fmt.Errorf("The build %q status is %q", name, list.Items[i].Status.Phase)
 			}
 		}
 		return false, nil
 	})
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "WaitForABuild returning with error: %v", err)
+	}
 	if err == wait.ErrWaitTimeout {
 		return fmt.Errorf("Timed out waiting for build %q to complete", name)
 	}
