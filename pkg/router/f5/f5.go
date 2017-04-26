@@ -54,6 +54,13 @@ type passthroughRoute struct {
 	poolname string
 }
 
+// reencryptRoute represents a reencrypt route for the F5 router's internal state
+// similar to the passthrough route
+type reencryptRoute struct {
+	hostname string
+	poolname string
+}
+
 // f5LTM represents an F5 BIG-IP instance.
 type f5LTM struct {
 	// f5LTMCfg contains the configuration parameters for an F5 BIG-IP instance.
@@ -70,6 +77,9 @@ type f5LTM struct {
 
 	// passthroughRoutes maps routename to passthroughroute{hostname, poolname}.
 	passthroughRoutes map[string]passthroughRoute
+
+	// reencryptRoutes maps routename to passthroughroute{hostname, poolname}.
+	reencryptRoutes map[string]reencryptRoute
 }
 
 // f5LTMCfg holds configuration for connecting to and issuing iControl
@@ -134,6 +144,14 @@ const (
 	// https_policy is the name of the local traffic policy associated with the
 	// vservers for secure (TLS/SSL, HTTPS) routes.
 	httpsPolicyName = "openshift_secure_routes"
+
+	// reencryptRoutesDataGroupName is the name of the datagroup that will be used
+	// by our iRule for routing SSL-passthrough routes (see below).
+	reencryptRoutesDataGroupName = "ssl_reencrypt_route_dg"
+
+	// reencryptHostsDataGroupName is the name of the datagroup that will be used
+	// by our iRule for routing SSL-passthrough routes (see below).
+	reencryptHostsDataGroupName = "ssl_reencrypt_servername_dg"
 
 	// passthroughRoutesDataGroupName is the name of the datagroup that will be used
 	// by our iRule for routing SSL-passthrough routes (see below).
@@ -240,10 +258,15 @@ when CLIENT_DATA {
 
           if { [info exists tls_servername] } {
             set servername_lower [string tolower $tls_servername]
+            SSL::disable serverside
             if { [class match $servername_lower equals ssl_passthrough_servername_dg] } {
               pool [class match -value $servername_lower equals ssl_passthrough_servername_dg]
               SSL::disable
               HTTP::disable
+            }
+            else if { [class match $servername_lower equals ssl_reencrypt_servername_dg] } {
+              pool [class match -value $servername_lower equals ssl_reencrypt_servername_dg]
+              SSL::enable serverside
             }
           }
         }
@@ -955,6 +978,16 @@ func (f5 *f5LTM) Initialize() error {
 		return err
 	}
 
+	err = f5.ensureDatagroupExists(reencryptRoutesDataGroupName)
+	if err != nil {
+		return err
+	}
+
+	err = f5.ensureDatagroupExists(reencryptHostsDataGroupName)
+	if err != nil {
+		return err
+	}
+
 	err = f5.ensureDatagroupExists(passthroughRoutesDataGroupName)
 	if err != nil {
 		return err
@@ -1431,6 +1464,119 @@ func (f5 *f5LTM) AddSecureRoute(routename, poolname, hostname,
 	return f5.addRoute(httpsPolicyName, routename, poolname, hostname, pathname)
 }
 
+// getReencryptRoutes returns f5.reencryptRoutes, first initializing it from
+// F5 if it is zero.
+func (f5 *f5LTM) getReencryptRoutes() (map[string]reencryptRoute, error) {
+	routes := f5.reencryptRoutes
+	if routes != nil {
+		return routes, nil
+	}
+
+	hostsUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/data-group/internal/%s",
+		f5.host, reencryptHostsDataGroupName)
+
+	hostsRes := f5Datagroup{}
+
+	err := f5.get(hostsUrl, &hostsRes)
+	if err != nil {
+		return nil, err
+	}
+
+	routesUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/data-group/internal/%s",
+		f5.host, reencryptRoutesDataGroupName)
+
+	routesRes := f5Datagroup{}
+
+	err = f5.get(routesUrl, &routesRes)
+	if err != nil {
+		return nil, err
+	}
+
+	hosts := map[string]string{}
+
+	for _, hostRecord := range hostsRes.Records {
+		hosts[hostRecord.Key] = hostRecord.Value
+	}
+
+	f5.reencryptRoutes = map[string]reencryptRoute{}
+
+	for _, routeRecord := range routesRes.Records {
+		routename := routeRecord.Key
+		hostname := routeRecord.Value
+
+		poolname, foundPoolname := hosts[hostname]
+		if !foundPoolname {
+			glog.Warningf("%s datagroup maps route %s to hostname %s,"+
+				" but %s datagroup does not have an entry for that hostname"+
+				" to map it to a pool.  Dropping route %s from datagroup %s...",
+				reencryptRoutesDataGroupName, routename, hostname,
+				reencryptHostsDataGroupName,
+				routename, reencryptRoutesDataGroupName)
+			continue
+		}
+
+		f5.reencryptRoutes[routename] = reencryptRoute{
+			hostname: hostname,
+			poolname: poolname,
+		}
+	}
+
+	return f5.reencryptRoutes, nil
+}
+
+// updateReencryptRoutes updates the data-groups for reencrypt routes using
+// the internal object's state.
+func (f5 *f5LTM) updateReencryptRoutes() error {
+	routes, err := f5.getReencryptRoutes()
+	if err != nil {
+		return err
+	}
+
+	// It would be *super* great if we could use CRUD operations on data-groups as
+	// we do on pools, rules, and profiles, but we cannot: each data-group is
+	// represented in JSON as an array, so we must PATCH the array in its
+	// entirety.
+
+	hostsRecords := []f5DatagroupRecord{}
+	routesRecords := []f5DatagroupRecord{}
+	for routename, route := range routes {
+		hostsRecords = append(hostsRecords,
+			f5DatagroupRecord{Key: route.hostname, Value: route.poolname})
+		routesRecords = append(routesRecords,
+			f5DatagroupRecord{Key: routename, Value: route.hostname})
+	}
+
+	hostsDatagroupUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/data-group/internal/%s",
+		f5.host, reencryptHostsDataGroupName)
+
+	hostsDatagroupPayload := f5Datagroup{
+		Records: hostsRecords,
+	}
+
+	err = f5.patch(hostsDatagroupUrl, hostsDatagroupPayload, nil)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Infof("Datagroup %s updated.", reencryptHostsDataGroupName)
+
+	routesDatagroupUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/data-group/internal/%s",
+		f5.host, reencryptRoutesDataGroupName)
+
+	routesDatagroupPayload := f5Datagroup{
+		Records: routesRecords,
+	}
+
+	err = f5.patch(routesDatagroupUrl, routesDatagroupPayload, nil)
+	if err != nil {
+		return err
+	}
+
+	glog.V(4).Infof("Datagroup %s updated.", reencryptRoutesDataGroupName)
+
+	return nil
+}
+
 // getPassthroughRoutes returns f5.passthroughRoutes, first initializing it from
 // F5 if it is zero.
 func (f5 *f5LTM) getPassthroughRoutes() (map[string]passthroughRoute, error) {
@@ -1542,6 +1688,20 @@ func (f5 *f5LTM) updatePassthroughRoutes() error {
 	glog.V(4).Infof("Datagroup %s updated.", passthroughRoutesDataGroupName)
 
 	return nil
+}
+
+// AddReencryptRoute adds the required data-group records for the specified
+// reeencrypt route to F5 BIG-IP, so that requests to the specified hostname
+// will be routed to the specified pool through the iRule
+func (f5 *f5LTM) AddReencryptRoute(routename, poolname, hostname string) error {
+	routes, err := f5.getReencryptRoutes()
+	if err != nil {
+		return err
+	}
+
+	routes[routename] = reencryptRoute{hostname: hostname, poolname: poolname}
+
+	return f5.updateReencryptRoutes()
 }
 
 // AddPassthroughRoute adds the required data-group records for the specified
