@@ -214,3 +214,8 @@ func (f *FakeDocker) BuildImage(opts BuildImageOptions) error {
 func (f *FakeDocker) GetLabels(name string) (map[string]string, error) {
 	return f.Labels, f.LabelsError
 }
+
+// CheckReachable returns if the Docker daemon is reachable from s2i
+func (f *FakeDocker) CheckReachable() error {
+	return nil
+}

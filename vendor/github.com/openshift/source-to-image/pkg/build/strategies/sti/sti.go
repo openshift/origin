@@ -86,22 +86,16 @@ type STI struct {
 // If the layeredBuilder parameter is specified, then the builder provided will
 // be used for the case that the base Docker image does not have 'tar' or 'bash'
 // installed.
-func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*STI, error) {
+func New(client dockerpkg.Client, config *api.Config, fs util.FileSystem, overrides build.Overrides) (*STI, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err
 	}
 
-	docker, err := dockerpkg.New(config.DockerConfig, config.PullAuthentication)
-	if err != nil {
-		return nil, err
-	}
+	docker := dockerpkg.New(client, config.PullAuthentication)
 	var incrementalDocker dockerpkg.Docker
 	if config.Incremental {
-		incrementalDocker, err = dockerpkg.New(config.DockerConfig, config.IncrementalAuthentication)
-		if err != nil {
-			return nil, err
-		}
+		incrementalDocker = dockerpkg.New(client, config.IncrementalAuthentication)
 	}
 
 	inst := scripts.NewInstaller(
@@ -133,10 +127,7 @@ func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*ST
 	}
 
 	if len(config.RuntimeImage) > 0 {
-		builder.runtimeDocker, err = dockerpkg.New(config.DockerConfig, config.RuntimeAuthentication)
-		if err != nil {
-			return nil, err
-		}
+		builder.runtimeDocker = dockerpkg.New(client, config.RuntimeAuthentication)
 
 		builder.runtimeInstaller = scripts.NewInstaller(
 			config.RuntimeImage,
@@ -166,7 +157,7 @@ func New(config *api.Config, fs util.FileSystem, overrides build.Overrides) (*ST
 	}
 	builder.garbage = build.NewDefaultCleaner(builder.fs, builder.docker)
 
-	builder.layered, err = layered.New(config, builder.fs, builder, overrides)
+	builder.layered, err = layered.New(client, config, builder.fs, builder, overrides)
 	if err != nil {
 		return nil, err
 	}

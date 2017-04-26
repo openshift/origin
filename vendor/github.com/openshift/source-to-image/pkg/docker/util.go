@@ -290,12 +290,8 @@ func extractUser(userSpec string) string {
 }
 
 // CheckReachable returns if the Docker daemon is reachable from s2i
-func CheckReachable(config *api.Config) error {
-	d, err := New(config.DockerConfig, config.PullAuthentication)
-	if err != nil {
-		return err
-	}
-	_, err = d.Version()
+func (d *stiDocker) CheckReachable() error {
+	_, err := d.Version()
 	return err
 }
 
@@ -317,24 +313,16 @@ func pullAndCheck(image string, docker Docker, pullPolicy api.PullPolicy, config
 // make the Docker image specified as BuilderImage available locally. It
 // returns information about the base image, containing metadata necessary for
 // choosing the right STI build strategy.
-func GetBuilderImage(config *api.Config) (*PullResult, error) {
-	d, err := New(config.DockerConfig, config.PullAuthentication)
-	if err != nil {
-		return nil, err
-	}
-
+func GetBuilderImage(client Client, config *api.Config) (*PullResult, error) {
+	d := New(client, config.PullAuthentication)
 	return pullAndCheck(config.BuilderImage, d, config.BuilderPullPolicy, config)
 }
 
 // GetRebuildImage obtains the metadata information for the image specified in
 // a s2i rebuild operation. Assumptions are made that the build is available
 // locally since it should have been previously built.
-func GetRebuildImage(config *api.Config) (*PullResult, error) {
-	d, err := New(config.DockerConfig, config.PullAuthentication)
-	if err != nil {
-		return nil, err
-	}
-
+func GetRebuildImage(client Client, config *api.Config) (*PullResult, error) {
+	d := New(client, config.PullAuthentication)
 	return pullAndCheck(config.Tag, d, config.BuilderPullPolicy, config)
 }
 

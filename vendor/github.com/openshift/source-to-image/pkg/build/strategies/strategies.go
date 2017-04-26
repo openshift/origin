@@ -14,20 +14,20 @@ import (
 
 // GetStrategy decides what build strategy will be used for the STI build.
 // TODO: deprecated, use Strategy() instead
-func GetStrategy(config *api.Config) (build.Builder, api.BuildInfo, error) {
-	return Strategy(config, build.Overrides{})
+func GetStrategy(client docker.Client, config *api.Config) (build.Builder, api.BuildInfo, error) {
+	return Strategy(client, config, build.Overrides{})
 }
 
 // Strategy creates the appropriate build strategy for the provided config, using
 // the overrides provided. Not all strategies support all overrides.
-func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, api.BuildInfo, error) {
+func Strategy(client docker.Client, config *api.Config, overrides build.Overrides) (build.Builder, api.BuildInfo, error) {
 	var builder build.Builder
 	var buildInfo api.BuildInfo
 
 	fs := util.NewFileSystem()
 
 	startTime := time.Now()
-	image, err := docker.GetBuilderImage(config)
+	image, err := docker.GetBuilderImage(client, config)
 	buildInfo.Stages = api.RecordStageAndStepInfo(buildInfo.Stages, api.StagePullImages, api.StepPullBuilderImage, startTime, time.Now())
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
@@ -41,7 +41,7 @@ func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, api
 	// if we're blocking onbuild, just do a normal s2i build flow
 	// which won't do a docker build and invoke the onbuild commands
 	if image.OnBuild && !config.BlockOnBuild {
-		builder, err = onbuild.New(config, fs, overrides)
+		builder, err = onbuild.New(client, config, fs, overrides)
 		if err != nil {
 			buildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonGenericS2IBuildFailed,
@@ -52,7 +52,7 @@ func Strategy(config *api.Config, overrides build.Overrides) (build.Builder, api
 		return builder, buildInfo, nil
 	}
 
-	builder, err = sti.New(config, fs, overrides)
+	builder, err = sti.New(client, config, fs, overrides)
 	if err != nil {
 		buildInfo.FailureReason = utilstatus.NewFailureReason(
 			utilstatus.ReasonGenericS2IBuildFailed,

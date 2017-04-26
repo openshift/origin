@@ -2,7 +2,10 @@ package util
 
 import (
 	"bufio"
+	"fmt"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -33,4 +36,35 @@ func ReadEnvironmentFile(path string) (map[string]string, error) {
 	}
 
 	return result, scanner.Err()
+}
+
+// StripProxyCredentials attempts to strip sensitive information from proxy
+// environment variables.
+func StripProxyCredentials(env []string) []string {
+	// case insensitively match all key=value variables containing the word "proxy"
+	proxyRegex := regexp.MustCompile("(?i).*proxy.*")
+	newEnv := make([]string, len(env))
+	copy(newEnv, env)
+	for i, entry := range newEnv {
+		parts := strings.SplitN(entry, "=", 2)
+		if !proxyRegex.MatchString(parts[0]) {
+			continue
+		}
+		newVal, _ := StripURLCredentials(parts[1])
+		newEnv[i] = fmt.Sprintf("%s=%s", parts[0], newVal)
+	}
+	return newEnv
+}
+
+// StripURLCredentials removes the user:password section of
+// a url if present.  If not present or the value is unparseable,
+// the value is returned unchanged.
+func StripURLCredentials(input string) (string, error) {
+	u, err := url.Parse(input)
+	if err != nil {
+		return input, err
+	}
+	// wipe out the user info from the url.
+	u.User = nil
+	return u.String(), nil
 }
