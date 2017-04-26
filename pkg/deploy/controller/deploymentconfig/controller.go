@@ -6,17 +6,17 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
@@ -62,17 +62,16 @@ type DeploymentConfigController struct {
 
 	// dcStore provides a local cache for deployment configs.
 	dcStore oscache.StoreToDeploymentConfigLister
-	// rcStore provides a local cache for replication controllers.
-	rcStore cache.StoreToReplicationControllerLister
-	// podStore provides a local cache for pods.
-	podStore cache.StoreToPodLister
-
 	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
 	dcStoreSynced func() bool
-	// rcStoreSynced makes sure the rc store is synced before reconcling any deployment config.
-	rcStoreSynced func() bool
-	// podStoreSynced makes sure the pod store is synced before reconcling any deployment config.
-	podStoreSynced func() bool
+	// rcLister can list/get replication controllers from a shared informer's cache
+	rcLister kcorelisters.ReplicationControllerLister
+	// rcListerSynced makes sure the rc shared informer is synced before reconcling any deployment config.
+	rcListerSynced func() bool
+	// podLister can list/get pods from a shared informer's cache
+	podLister kcorelisters.PodLister
+	// podListerSynced makes sure the pod shared informer is synced before reconcling any deployment config.
+	podListerSynced func() bool
 
 	// codec is used to build deployments from configs.
 	codec runtime.Codec
@@ -91,7 +90,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 
 	// Find all deployments owned by the deployment config.
 	selector := deployutil.ConfigSelector(config.Name)
-	existingDeployments, err := c.rcStore.ReplicationControllers(config.Namespace).List(selector)
+	existingDeployments, err := c.rcLister.ReplicationControllers(config.Namespace).List(selector)
 	if err != nil {
 		return err
 	}
@@ -123,7 +122,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			// Retry faster on conflicts
 			var updatedDeployment *kapi.ReplicationController
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 				if kapierrors.IsNotFound(err) {
 					return nil
 				}
@@ -240,7 +239,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 		if newReplicaCount != oldReplicaCount {
 			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 				// refresh the replication controller version
-				rc, err := c.rcStore.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+				rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
 				if err != nil {
 					return err
 				}
@@ -309,7 +308,7 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []*kapi.ReplicationController, additional ...deployapi.DeploymentCondition) (deployapi.DeploymentConfigStatus, error) {
 	selector := labels.Set(config.Spec.Selector).AsSelector()
 	// TODO: Replace with using rc.status.availableReplicas that comes with the next rebase.
-	pods, err := c.podStore.Pods(config.Namespace).List(selector)
+	pods, err := c.podLister.Pods(config.Namespace).List(selector)
 	if err != nil {
 		return config.Status, err
 	}

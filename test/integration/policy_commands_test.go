@@ -4,11 +4,12 @@ import (
 	"io/ioutil"
 	"testing"
 
-	testutil "github.com/openshift/origin/test/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -48,7 +49,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	viewers, err := haroldClient.RoleBindings(projectName).Get("view")
+	viewers, err := haroldClient.RoleBindings(projectName).Get("view", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,7 +71,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	viewers, err = haroldClient.RoleBindings(projectName).Get("view")
+	viewers, err = haroldClient.RoleBindings(projectName).Get("view", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,7 +93,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	viewers, err = haroldClient.RoleBindings(projectName).Get("view")
+	viewers, err = haroldClient.RoleBindings(projectName).Get("view", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

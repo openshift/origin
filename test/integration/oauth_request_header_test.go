@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
@@ -280,7 +281,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", k, err)
 			continue
 		}
-		user, err := userClient.Users().Get("~")
+		user, err := userClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", k, err)
 			continue

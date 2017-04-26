@@ -2,15 +2,16 @@ package reaper
 
 import (
 	"github.com/golang/glog"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 
 	"github.com/openshift/origin/pkg/client"
 )
 
 // reapClusterBindings removes the subject from cluster-level role bindings
 func reapClusterBindings(removedSubject kapi.ObjectReference, c client.ClusterRoleBindingsInterface) error {
-	clusterBindings, err := c.ClusterRoleBindings().List(kapi.ListOptions{})
+	clusterBindings, err := c.ClusterRoleBindings().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -34,7 +35,7 @@ func reapClusterBindings(removedSubject kapi.ObjectReference, c client.ClusterRo
 
 // reapNamespacedBindings removes the subject from namespaced role bindings
 func reapNamespacedBindings(removedSubject kapi.ObjectReference, c client.RoleBindingsNamespacer) error {
-	namespacedBindings, err := c.RoleBindings(kapi.NamespaceAll).List(kapi.ListOptions{})
+	namespacedBindings, err := c.RoleBindings(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

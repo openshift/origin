@@ -31,20 +31,21 @@ import (
 	rktapi "github.com/coreos/rkt/api/v1alpha"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kubetypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/errors"
+	utiltesting "k8s.io/client-go/util/testing"
+	"k8s.io/kubernetes/pkg/api/v1"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	containertesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	kubetesting "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/lifecycle"
 	"k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/kubenet"
-	"k8s.io/kubernetes/pkg/kubelet/network/mock_network"
+	nettest "k8s.io/kubernetes/pkg/kubelet/network/testing"
 	"k8s.io/kubernetes/pkg/kubelet/types"
-	kubetypes "k8s.io/kubernetes/pkg/types"
-	"k8s.io/kubernetes/pkg/util/errors"
 	utilexec "k8s.io/kubernetes/pkg/util/exec"
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 )
 
 func mustMarshalPodManifest(man *appcschema.PodManifest) []byte {
@@ -582,15 +583,15 @@ func TestGetPodStatus(t *testing.T) {
 	defer ctrl.Finish()
 	fr := newFakeRktInterface()
 	fs := newFakeSystemd()
-	fnp := mock_network.NewMockNetworkPlugin(ctrl)
+	fnp := nettest.NewMockNetworkPlugin(ctrl)
 	fos := &containertesting.FakeOS{}
-	frh := &fakeRuntimeHelper{}
+	frh := &containertesting.FakeRuntimeHelper{}
 	r := &Runtime{
 		apisvc:        fr,
 		systemd:       fs,
 		runtimeHelper: frh,
 		os:            fos,
-		networkPlugin: fnp,
+		network:       network.NewPluginManager(fnp),
 	}
 
 	ns := func(seconds int64) int64 {
@@ -825,6 +826,8 @@ func TestGetPodStatus(t *testing.T) {
 			} else {
 				fnp.EXPECT().GetPodNetworkStatus("default", "guestbook", kubecontainer.ContainerID{ID: "42"}).
 					Return(nil, fmt.Errorf("no such network"))
+				// Plugin name only requested again in error case
+				fnp.EXPECT().Name().Return(tt.networkPluginName)
 			}
 		}
 
@@ -844,7 +847,11 @@ func generateCapRetainIsolator(t *testing.T, caps ...string) appctypes.Isolator 
 	if err != nil {
 		t.Fatalf("Error generating cap retain isolator: %v", err)
 	}
-	return retain.AsIsolator()
+	isolator, err := retain.AsIsolator()
+	if err != nil {
+		t.Fatalf("Error generating cap retain isolator: %v", err)
+	}
+	return *isolator
 }
 
 func generateCapRevokeIsolator(t *testing.T, caps ...string) appctypes.Isolator {
@@ -852,7 +859,11 @@ func generateCapRevokeIsolator(t *testing.T, caps ...string) appctypes.Isolator 
 	if err != nil {
 		t.Fatalf("Error generating cap revoke isolator: %v", err)
 	}
-	return revoke.AsIsolator()
+	isolator, err := revoke.AsIsolator()
+	if err != nil {
+		t.Fatalf("Error generating cap revoke isolator: %v", err)
+	}
+	return *isolator
 }
 
 func generateCPUIsolator(t *testing.T, request, limit string) appctypes.Isolator {
@@ -967,19 +978,19 @@ func TestSetApp(t *testing.T) {
 	fsgid := int64(3)
 
 	tests := []struct {
-		container        *api.Container
+		container        *v1.Container
 		mountPoints      []appctypes.MountPoint
 		containerPorts   []appctypes.Port
 		envs             []kubecontainer.EnvVar
-		ctx              *api.SecurityContext
-		podCtx           *api.PodSecurityContext
+		ctx              *v1.SecurityContext
+		podCtx           *v1.PodSecurityContext
 		supplementalGids []int64
 		expect           *appctypes.App
 		err              error
 	}{
 		// Nothing should change, but the "User" and "Group" should be filled.
 		{
-			container:        &api.Container{},
+			container:        &v1.Container{},
 			mountPoints:      []appctypes.MountPoint{},
 			containerPorts:   []appctypes.Port{},
 			envs:             []kubecontainer.EnvVar{},
@@ -992,11 +1003,11 @@ func TestSetApp(t *testing.T) {
 
 		// error verifying non-root.
 		{
-			container:      &api.Container{},
+			container:      &v1.Container{},
 			mountPoints:    []appctypes.MountPoint{},
 			containerPorts: []appctypes.Port{},
 			envs:           []kubecontainer.EnvVar{},
-			ctx: &api.SecurityContext{
+			ctx: &v1.SecurityContext{
 				RunAsNonRoot: &runAsNonRootTrue,
 				RunAsUser:    &rootUser,
 			},
@@ -1008,7 +1019,7 @@ func TestSetApp(t *testing.T) {
 
 		// app's args should be changed.
 		{
-			container: &api.Container{
+			container: &v1.Container{
 				Args: []string{"foo"},
 			},
 			mountPoints:      []appctypes.MountPoint{},
@@ -1044,12 +1055,12 @@ func TestSetApp(t *testing.T) {
 
 		// app should be changed.
 		{
-			container: &api.Container{
+			container: &v1.Container{
 				Command:    []string{"/bin/bar", "$(env-bar)"},
 				WorkingDir: tmpDir,
-				Resources: api.ResourceRequirements{
-					Limits:   api.ResourceList{"cpu": resource.MustParse("50m"), "memory": resource.MustParse("50M")},
-					Requests: api.ResourceList{"cpu": resource.MustParse("5m"), "memory": resource.MustParse("5M")},
+				Resources: v1.ResourceRequirements{
+					Limits:   v1.ResourceList{"cpu": resource.MustParse("50m"), "memory": resource.MustParse("50M")},
+					Requests: v1.ResourceList{"cpu": resource.MustParse("5m"), "memory": resource.MustParse("5M")},
 				},
 			},
 			mountPoints: []appctypes.MountPoint{
@@ -1061,15 +1072,15 @@ func TestSetApp(t *testing.T) {
 			envs: []kubecontainer.EnvVar{
 				{Name: "env-bar", Value: "foo"},
 			},
-			ctx: &api.SecurityContext{
-				Capabilities: &api.Capabilities{
-					Add:  []api.Capability{"CAP_SYS_CHROOT", "CAP_SYS_BOOT"},
-					Drop: []api.Capability{"CAP_SETUID", "CAP_SETGID"},
+			ctx: &v1.SecurityContext{
+				Capabilities: &v1.Capabilities{
+					Add:  []v1.Capability{"CAP_SYS_CHROOT", "CAP_SYS_BOOT"},
+					Drop: []v1.Capability{"CAP_SETUID", "CAP_SETGID"},
 				},
 				RunAsUser:    &nonRootUser,
 				RunAsNonRoot: &runAsNonRootTrue,
 			},
-			podCtx: &api.PodSecurityContext{
+			podCtx: &v1.PodSecurityContext{
 				SupplementalGroups: []int64{1, 2},
 				FSGroup:            &fsgid,
 			},
@@ -1103,14 +1114,14 @@ func TestSetApp(t *testing.T) {
 
 		// app should be changed. (env, mounts, ports, are overrided).
 		{
-			container: &api.Container{
+			container: &v1.Container{
 				Name:       "hello-world",
 				Command:    []string{"/bin/hello", "$(env-foo)"},
 				Args:       []string{"hello", "world", "$(env-bar)"},
 				WorkingDir: tmpDir,
-				Resources: api.ResourceRequirements{
-					Limits:   api.ResourceList{"cpu": resource.MustParse("50m")},
-					Requests: api.ResourceList{"memory": resource.MustParse("5M")},
+				Resources: v1.ResourceRequirements{
+					Limits:   v1.ResourceList{"cpu": resource.MustParse("50m")},
+					Requests: v1.ResourceList{"memory": resource.MustParse("5M")},
 				},
 			},
 			mountPoints: []appctypes.MountPoint{
@@ -1123,15 +1134,15 @@ func TestSetApp(t *testing.T) {
 				{Name: "env-foo", Value: "foo"},
 				{Name: "env-bar", Value: "bar"},
 			},
-			ctx: &api.SecurityContext{
-				Capabilities: &api.Capabilities{
-					Add:  []api.Capability{"CAP_SYS_CHROOT", "CAP_SYS_BOOT"},
-					Drop: []api.Capability{"CAP_SETUID", "CAP_SETGID"},
+			ctx: &v1.SecurityContext{
+				Capabilities: &v1.Capabilities{
+					Add:  []v1.Capability{"CAP_SYS_CHROOT", "CAP_SYS_BOOT"},
+					Drop: []v1.Capability{"CAP_SETUID", "CAP_SETGID"},
 				},
 				RunAsUser:    &nonRootUser,
 				RunAsNonRoot: &runAsNonRootTrue,
 			},
-			podCtx: &api.PodSecurityContext{
+			podCtx: &v1.PodSecurityContext{
 				SupplementalGroups: []int64{1, 2},
 				FSGroup:            &fsgid,
 			},
@@ -1188,7 +1199,7 @@ func TestGenerateRunCommand(t *testing.T) {
 
 	tests := []struct {
 		networkPlugin network.NetworkPlugin
-		pod           *api.Pod
+		pod           *v1.Pod
 		uuid          string
 		netnsName     string
 
@@ -1202,12 +1213,12 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #0, returns error.
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1221,12 +1232,12 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #1, returns no dns, with private-net.
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1240,15 +1251,14 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #2, returns no dns, with host-net.
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					SecurityContext: &api.PodSecurityContext{
-						HostNetwork: true,
-					},
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					HostNetwork: true,
+
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1262,15 +1272,14 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #3, returns dns, dns searches, with private-net.
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					SecurityContext: &api.PodSecurityContext{
-						HostNetwork: false,
-					},
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					HostNetwork: false,
+
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1284,15 +1293,14 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #4, returns no dns, dns searches, with host-network.
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					SecurityContext: &api.PodSecurityContext{
-						HostNetwork: true,
-					},
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					HostNetwork: true,
+
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1306,12 +1314,12 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #5, with no-op plugin, returns --net=rkt.kubernetes.io, with dns and dns search.
 		{
 			&network.NoopNetworkPlugin{},
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{{Name: "container-foo"}},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{{Name: "container-foo"}},
 				},
 			},
 			"rkt-uuid-foo",
@@ -1325,14 +1333,14 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #6, if all containers are privileged, the result should have 'insecure-options=all-run'
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
-						{Name: "container-foo", SecurityContext: &api.SecurityContext{Privileged: &boolTrue}},
-						{Name: "container-bar", SecurityContext: &api.SecurityContext{Privileged: &boolTrue}},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{Name: "container-foo", SecurityContext: &v1.SecurityContext{Privileged: &boolTrue}},
+						{Name: "container-bar", SecurityContext: &v1.SecurityContext{Privileged: &boolTrue}},
 					},
 				},
 			},
@@ -1347,14 +1355,14 @@ func TestGenerateRunCommand(t *testing.T) {
 		// Case #7, if not all containers are privileged, the result should not have 'insecure-options=all-run'
 		{
 			kubenet.NewPlugin("/tmp"),
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-name-foo",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
-						{Name: "container-foo", SecurityContext: &api.SecurityContext{Privileged: &boolTrue}},
-						{Name: "container-bar", SecurityContext: &api.SecurityContext{Privileged: &boolFalse}},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{Name: "container-foo", SecurityContext: &v1.SecurityContext{Privileged: &boolTrue}},
+						{Name: "container-bar", SecurityContext: &v1.SecurityContext{Privileged: &boolFalse}},
 					},
 				},
 			},
@@ -1382,8 +1390,13 @@ func TestGenerateRunCommand(t *testing.T) {
 
 	for i, tt := range tests {
 		testCaseHint := fmt.Sprintf("test case #%d", i)
-		rkt.networkPlugin = tt.networkPlugin
-		rkt.runtimeHelper = &fakeRuntimeHelper{tt.dnsServers, tt.dnsSearches, tt.hostName, "", tt.err}
+		rkt.network = network.NewPluginManager(tt.networkPlugin)
+		rkt.runtimeHelper = &containertesting.FakeRuntimeHelper{
+			DNSServers:  tt.dnsServers,
+			DNSSearches: tt.dnsSearches,
+			HostName:    tt.hostName,
+			Err:         tt.err,
+		}
 		rkt.execer = &utilexec.FakeExec{CommandScript: []utilexec.FakeCommandAction{func(cmd string, args ...string) utilexec.Cmd {
 			return utilexec.InitFakeCmd(&utilexec.FakeCmd{}, cmd, args...)
 		}}}
@@ -1409,7 +1422,7 @@ func TestLifeCycleHooks(t *testing.T) {
 	}
 
 	tests := []struct {
-		pod           *api.Pod
+		pod           *v1.Pod
 		runtimePod    *kubecontainer.Pod
 		postStartRuns []string
 		preStopRuns   []string
@@ -1417,14 +1430,14 @@ func TestLifeCycleHooks(t *testing.T) {
 	}{
 		{
 			// Case 0, container without any hooks.
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
 					UID:       "uid-1",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{Name: "container-name-1"},
 					},
 				},
@@ -1440,43 +1453,43 @@ func TestLifeCycleHooks(t *testing.T) {
 		},
 		{
 			// Case 1, containers with post-start and pre-stop hooks.
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
 					UID:       "uid-1",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{
 							Name: "container-name-1",
-							Lifecycle: &api.Lifecycle{
-								PostStart: &api.Handler{
-									Exec: &api.ExecAction{},
+							Lifecycle: &v1.Lifecycle{
+								PostStart: &v1.Handler{
+									Exec: &v1.ExecAction{},
 								},
 							},
 						},
 						{
 							Name: "container-name-2",
-							Lifecycle: &api.Lifecycle{
-								PostStart: &api.Handler{
-									HTTPGet: &api.HTTPGetAction{},
+							Lifecycle: &v1.Lifecycle{
+								PostStart: &v1.Handler{
+									HTTPGet: &v1.HTTPGetAction{},
 								},
 							},
 						},
 						{
 							Name: "container-name-3",
-							Lifecycle: &api.Lifecycle{
-								PreStop: &api.Handler{
-									Exec: &api.ExecAction{},
+							Lifecycle: &v1.Lifecycle{
+								PreStop: &v1.Handler{
+									Exec: &v1.ExecAction{},
 								},
 							},
 						},
 						{
 							Name: "container-name-4",
-							Lifecycle: &api.Lifecycle{
-								PreStop: &api.Handler{
-									HTTPGet: &api.HTTPGetAction{},
+							Lifecycle: &v1.Lifecycle{
+								PreStop: &v1.Handler{
+									HTTPGet: &v1.HTTPGetAction{},
 								},
 							},
 						},
@@ -1515,19 +1528,19 @@ func TestLifeCycleHooks(t *testing.T) {
 		},
 		{
 			// Case 2, one container with invalid hooks.
-			&api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			&v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
 					UID:       "uid-1",
 				},
-				Spec: api.PodSpec{
-					Containers: []api.Container{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
 						{
 							Name: "container-name-1",
-							Lifecycle: &api.Lifecycle{
-								PostStart: &api.Handler{},
-								PreStop:   &api.Handler{},
+							Lifecycle: &v1.Lifecycle{
+								PostStart: &v1.Handler{},
+								PreStop:   &v1.Handler{},
 							},
 						},
 					},
@@ -1543,7 +1556,7 @@ func TestLifeCycleHooks(t *testing.T) {
 			},
 			[]string{},
 			[]string{},
-			errors.NewAggregate([]error{fmt.Errorf("Invalid handler: %v", &api.Handler{})}),
+			errors.NewAggregate([]error{fmt.Errorf("Invalid handler: %v", &v1.Handler{})}),
 		},
 	}
 
@@ -1618,7 +1631,7 @@ func TestGarbageCollect(t *testing.T) {
 
 	tests := []struct {
 		gcPolicy             kubecontainer.ContainerGCPolicy
-		apiPods              []*api.Pod
+		apiPods              []*v1.Pod
 		pods                 []*rktapi.Pod
 		serviceFilesOnDisk   []string
 		expectedCommands     []string
@@ -1634,11 +1647,11 @@ func TestGarbageCollect(t *testing.T) {
 				MinAge:        0,
 				MaxContainers: 0,
 			},
-			[]*api.Pod{
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-1"}},
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-2"}},
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-3"}},
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-4"}},
+			[]*v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-1"}},
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-2"}},
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-3"}},
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-4"}},
 			},
 			[]*rktapi.Pod{
 				{
@@ -1718,10 +1731,10 @@ func TestGarbageCollect(t *testing.T) {
 				MinAge:        0,
 				MaxContainers: 1,
 			},
-			[]*api.Pod{
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-0"}},
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-1"}},
-				{ObjectMeta: api.ObjectMeta{UID: "pod-uid-2"}},
+			[]*v1.Pod{
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-0"}},
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-1"}},
+				{ObjectMeta: metav1.ObjectMeta{UID: "pod-uid-2"}},
 			},
 			[]*rktapi.Pod{
 				{
@@ -1817,7 +1830,7 @@ func TestGarbageCollect(t *testing.T) {
 		ctrl.Finish()
 		fakeOS.Removes = []string{}
 		fs.resetFailedUnits = []string{}
-		getter.pods = make(map[kubetypes.UID]*api.Pod)
+		getter.pods = make(map[kubetypes.UID]*v1.Pod)
 	}
 }
 
@@ -1836,13 +1849,13 @@ func TestMakePodManifestAnnotations(t *testing.T) {
 	r := &Runtime{apisvc: fr, systemd: fs}
 
 	testCases := []struct {
-		in     *api.Pod
+		in     *v1.Pod
 		out    *appcschema.PodManifest
 		outerr error
 	}{
 		{
-			in: &api.Pod{
-				ObjectMeta: api.ObjectMeta{
+			in: &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
 					UID:       "uid-1",
 					Name:      "name-1",
 					Namespace: "namespace-1",
@@ -1889,7 +1902,7 @@ func TestMakePodManifestAnnotations(t *testing.T) {
 	for i, testCase := range testCases {
 		hint := fmt.Sprintf("case #%d", i)
 
-		result, err := r.makePodManifest(testCase.in, "", []api.Secret{})
+		result, err := r.makePodManifest(testCase.in, "", []v1.Secret{})
 		assert.Equal(t, testCase.outerr, err, hint)
 		if err == nil {
 			sort.Sort(annotationsByName(result.Annotations))
@@ -1953,5 +1966,33 @@ func TestPreparePodArgs(t *testing.T) {
 		r.config.Stage1Image = testCase.stage1Config
 		cmd := r.preparePodArgs(&testCase.manifest, "file")
 		assert.Equal(t, testCase.cmd, cmd, fmt.Sprintf("Test case #%d", i))
+	}
+}
+
+func TestConstructSyslogIdentifier(t *testing.T) {
+	testCases := []struct {
+		podName         string
+		podGenerateName string
+		identifier      string
+	}{
+		{
+			"prometheus-node-exporter-rv90m",
+			"prometheus-node-exporter-",
+			"prometheus-node-exporter",
+		},
+		{
+			"simplepod",
+			"",
+			"simplepod",
+		},
+		{
+			"p",
+			"",
+			"p",
+		},
+	}
+	for i, testCase := range testCases {
+		identifier := constructSyslogIdentifier(testCase.podGenerateName, testCase.podName)
+		assert.Equal(t, testCase.identifier, identifier, fmt.Sprintf("Test case #%d", i))
 	}
 }

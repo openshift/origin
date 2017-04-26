@@ -8,12 +8,14 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 	"k8s.io/kubernetes/pkg/capabilities"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/yaml"
 
 	"github.com/openshift/origin/pkg/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -32,7 +34,7 @@ import (
 
 type mockService struct{}
 
-func (mockService) ListServices(kapi.Context) (*kapi.ServiceList, error) {
+func (mockService) ListServices(apirequest.Context) (*kapi.ServiceList, error) {
 	return &kapi.ServiceList{}, nil
 }
 
@@ -177,13 +179,13 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 		if namespaceRequired {
-			objectMeta, objectMetaErr := kapi.ObjectMetaFor(obj)
+			objectMeta, objectMetaErr := metav1.ObjectMetaFor(obj)
 			if objectMetaErr != nil {
 				t.Errorf("Expected no error, Got %v", objectMetaErr)
 				return
 			}
 
-			objectMeta.Namespace = kapi.NamespaceDefault
+			objectMeta.Namespace = metav1.NamespaceDefault
 		}
 	}
 

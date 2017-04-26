@@ -3,6 +3,7 @@ package top
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -19,7 +20,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -42,7 +43,7 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1"}},
 					},
 				},
@@ -50,7 +51,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -73,7 +74,7 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 				},
@@ -81,7 +82,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -105,7 +106,7 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1", LayerSize: 1024},
 							{Name: "layer2", LayerSize: 512},
@@ -116,7 +117,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -140,11 +141,11 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
@@ -155,7 +156,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -182,7 +183,7 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 						DockerImageConfig: "raw image config",
 						DockerImageMetadata: imageapi.DockerImage{
@@ -190,7 +191,7 @@ func TestImageStreamsTop(t *testing.T) {
 						},
 					},
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
@@ -205,7 +206,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {
@@ -232,11 +233,11 @@ func TestImageStreamsTop(t *testing.T) {
 			images: &imageapi.ImageList{
 				Items: []imageapi.Image{
 					{
-						ObjectMeta:        kapi.ObjectMeta{Name: "image1"},
+						ObjectMeta:        metav1.ObjectMeta{Name: "image1"},
 						DockerImageLayers: []imageapi.ImageLayer{{Name: "layer1", LayerSize: int64(1024)}},
 					},
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1", LayerSize: int64(1024)},
 							{Name: "layer2", LayerSize: int64(128)},
@@ -247,7 +248,7 @@ func TestImageStreamsTop(t *testing.T) {
 			streams: &imageapi.ImageStreamList{
 				Items: []imageapi.ImageStream{
 					{
-						ObjectMeta: kapi.ObjectMeta{Name: "stream1", Namespace: "ns1"},
+						ObjectMeta: metav1.ObjectMeta{Name: "stream1", Namespace: "ns1"},
 						Status: imageapi.ImageStreamStatus{
 							Tags: map[string]imageapi.TagEventList{
 								"tag1": {

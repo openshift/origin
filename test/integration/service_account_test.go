@@ -8,15 +8,16 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/retry"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/wait"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
@@ -30,7 +31,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	defer testutil.DumpEtcdOnFailure(t)
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
-	saUsername := serviceaccount.MakeUsername(saNamespace, saName)
+	saUsername := apiserverserviceaccount.MakeUsername(saNamespace, saName)
 
 	// Start one OpenShift master as "cluster1" to play the external kube server
 	_, cluster1AdminConfigFile, err := testserver.StartTestMaster()
@@ -72,7 +73,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	}
 
 	// Make sure the service account doesn't have access
-	failNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-fail"}}
+	failNS := &api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-fail"}}
 	if _, err := cluster1SAKubeClient.Namespaces().Create(failNS); !errors.IsForbidden(err) {
 		t.Fatalf("expected forbidden error, got %v", err)
 	}
@@ -92,7 +93,7 @@ func TestServiceAccountAuthorization(t *testing.T) {
 
 	// Make sure the service account now has access
 	// This tests authentication using the etcd-based token getter
-	passNS := &api.Namespace{ObjectMeta: api.ObjectMeta{Name: "test-pass"}}
+	passNS := &api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-pass"}}
 	if _, err := cluster1SAKubeClient.Namespaces().Create(passNS); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -124,7 +125,7 @@ func writeClientConfigToKubeConfig(config restclient.Config, path string) error 
 	return nil
 }
 
-func waitForServiceAccountToken(client *kclientset.Clientset, ns, name string, attempts int, interval time.Duration) (string, error) {
+func waitForServiceAccountToken(client kclientset.Interface, ns, name string, attempts int, interval time.Duration) (string, error) {
 	for i := 0; i <= attempts; i++ {
 		time.Sleep(interval)
 		token, err := getServiceAccountToken(client, ns, name)
@@ -138,14 +139,14 @@ func waitForServiceAccountToken(client *kclientset.Clientset, ns, name string, a
 	return "", nil
 }
 
-func getServiceAccountToken(client *kclientset.Clientset, ns, name string) (string, error) {
-	secrets, err := client.Core().Secrets(ns).List(api.ListOptions{})
+func getServiceAccountToken(client kclientset.Interface, ns, name string) (string, error) {
+	secrets, err := client.Core().Secrets(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
 	for _, secret := range secrets.Items {
 		if secret.Type == api.SecretTypeServiceAccountToken && secret.Annotations[api.ServiceAccountNameKey] == name {
-			sa, err := client.Core().ServiceAccounts(ns).Get(name)
+			sa, err := client.Core().ServiceAccounts(ns).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return "", err
 			}
@@ -196,7 +197,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	}
 }
 
-func waitForServiceAccountPullSecret(client *kclientset.Clientset, ns, name string, attempts int, interval time.Duration) (string, error) {
+func waitForServiceAccountPullSecret(client kclientset.Interface, ns, name string, attempts int, interval time.Duration) (string, error) {
 	for i := 0; i <= attempts; i++ {
 		time.Sleep(interval)
 		token, err := getServiceAccountPullSecret(client, ns, name)
@@ -210,8 +211,8 @@ func waitForServiceAccountPullSecret(client *kclientset.Clientset, ns, name stri
 	return "", nil
 }
 
-func getServiceAccountPullSecret(client *kclientset.Clientset, ns, name string) (string, error) {
-	secrets, err := client.Core().Secrets(ns).List(api.ListOptions{})
+func getServiceAccountPullSecret(client kclientset.Interface, ns, name string) (string, error) {
+	secrets, err := client.Core().Secrets(ns).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -267,7 +268,7 @@ func TestEnforcingServiceAccount(t *testing.T) {
 	pod.Spec.Volumes = []api.Volume{secretVolume}
 
 	err = wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := clusterAdminKubeClient.Pods(api.NamespaceDefault).Create(pod); err != nil {
+		if _, err := clusterAdminKubeClient.Core().Pods(api.NamespaceDefault).Create(pod); err != nil {
 			// The SA admission controller cache seems to take forever to update.  This check comes after the limit check, so until we get it sorted out
 			// check if we're getting this particular error
 			if strings.Contains(err.Error(), "no API token found for service account") {
@@ -284,10 +285,10 @@ func TestEnforcingServiceAccount(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
+	clusterAdminKubeClient.Core().Pods(api.NamespaceDefault).Delete(pod.Name, nil)
 
 	err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		sa, err := clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName)
+		sa, err := clusterAdminKubeClient.Core().ServiceAccounts(api.NamespaceDefault).Get(bootstrappolicy.DeployerServiceAccountName, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -295,7 +296,7 @@ func TestEnforcingServiceAccount(t *testing.T) {
 			sa.Annotations = map[string]string{}
 		}
 		sa.Annotations[serviceaccountadmission.EnforceMountableSecretsAnnotation] = "true"
-		_, err = clusterAdminKubeClient.ServiceAccounts(api.NamespaceDefault).Update(sa)
+		_, err = clusterAdminKubeClient.Core().ServiceAccounts(api.NamespaceDefault).Update(sa)
 		return err
 	})
 	if err != nil {
@@ -306,8 +307,8 @@ func TestEnforcingServiceAccount(t *testing.T) {
 	pod.Spec.ServiceAccountName = bootstrappolicy.DeployerServiceAccountName
 
 	err = wait.Poll(100*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := clusterAdminKubeClient.Pods(api.NamespaceDefault).Create(pod); err == nil || !strings.Contains(err.Error(), expectedMessage) {
-			clusterAdminKubeClient.Pods(api.NamespaceDefault).Delete(pod.Name, nil)
+		if _, err := clusterAdminKubeClient.Core().Pods(api.NamespaceDefault).Create(pod); err == nil || !strings.Contains(err.Error(), expectedMessage) {
+			clusterAdminKubeClient.Core().Pods(api.NamespaceDefault).Delete(pod.Name, nil)
 			return false, nil
 		}
 

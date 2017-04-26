@@ -3,11 +3,12 @@ package openshift
 import (
 	"fmt"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/client"
@@ -85,7 +86,7 @@ func (h *Helper) SetupPersistentStorage(osclient client.Interface, kclient kclie
 		return err
 	}
 
-	_, err = kclient.Batch().Jobs(pvSetupNamespace).Get(pvSetupJobName)
+	_, err = kclient.Batch().Jobs(pvSetupNamespace).Get(pvSetupJobName, metav1.GetOptions{})
 	if err == nil {
 		// Job exists, it should run to completion
 		return nil
@@ -104,7 +105,7 @@ func (h *Helper) SetupPersistentStorage(osclient client.Interface, kclient kclie
 
 func (h *Helper) ensurePVInstallerSA(osclient client.Interface, kclient kclientset.Interface) error {
 	createSA := false
-	sa, err := kclient.Core().ServiceAccounts(pvSetupNamespace).Get(pvInstallerSA)
+	sa, err := kclient.Core().ServiceAccounts(pvSetupNamespace).Get(pvInstallerSA, metav1.GetOptions{})
 	if err != nil {
 		if !kerrors.IsNotFound(err) {
 			return errors.NewError("error retrieving installer service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(h.OriginLog())

@@ -1,9 +1,9 @@
 package clientcmd
 
 import (
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 )
 
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
@@ -24,9 +24,9 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 		return defaultMapper
 	}
 
-	availableResources := []unversioned.GroupVersionResource{}
-	for groupVersionString, resourceList := range apiResources {
-		currVersion, err := unversioned.ParseGroupVersion(groupVersionString)
+	availableResources := []schema.GroupVersionResource{}
+	for _, resourceList := range apiResources {
+		currVersion, err := schema.ParseGroupVersion(resourceList.GroupVersion)
 		if err != nil {
 			return defaultMapper
 		}
@@ -49,32 +49,32 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 	return ShortcutExpander{All: availableAll, RESTMapper: delegate}
 }
 
-func (e ShortcutExpander) KindFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionKind, error) {
+func (e ShortcutExpander) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	return e.RESTMapper.KindFor(expandResourceShortcut(resource))
 }
 
-func (e ShortcutExpander) KindsFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionKind, error) {
+func (e ShortcutExpander) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
 	return e.RESTMapper.KindsFor(expandResourceShortcut(resource))
 }
 
-func (e ShortcutExpander) ResourcesFor(resource unversioned.GroupVersionResource) ([]unversioned.GroupVersionResource, error) {
+func (e ShortcutExpander) ResourcesFor(resource schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
 	return e.RESTMapper.ResourcesFor(expandResourceShortcut(resource))
 }
 
-func (e ShortcutExpander) ResourceFor(resource unversioned.GroupVersionResource) (unversioned.GroupVersionResource, error) {
+func (e ShortcutExpander) ResourceFor(resource schema.GroupVersionResource) (schema.GroupVersionResource, error) {
 	return e.RESTMapper.ResourceFor(expandResourceShortcut(resource))
 }
 
 func (e ShortcutExpander) ResourceSingularizer(resource string) (string, error) {
-	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
+	return e.RESTMapper.ResourceSingularizer(expandResourceShortcut(schema.GroupVersionResource{Resource: resource}).Resource)
 }
 
-func (e ShortcutExpander) RESTMapping(gk unversioned.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+func (e ShortcutExpander) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	return e.RESTMapper.RESTMapping(gk, versions...)
 }
 
-func (e ShortcutExpander) RESTMappings(gk unversioned.GroupKind) ([]*meta.RESTMapping, error) {
-	return e.RESTMapper.RESTMappings(gk)
+func (e ShortcutExpander) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
+	return e.RESTMapper.RESTMappings(gk, versions...)
 }
 
 // userResources are the resource names that apply to the primary, user facing resources used by
@@ -99,7 +99,7 @@ func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
 	if res, ok := aliases[resource]; ok {
 		return res, true
 	}
-	return e.RESTMapper.AliasesForResource(expandResourceShortcut(unversioned.GroupVersionResource{Resource: resource}).Resource)
+	return e.RESTMapper.AliasesForResource(expandResourceShortcut(schema.GroupVersionResource{Resource: resource}).Resource)
 }
 
 // shortForms is the list of short names to their expanded names
@@ -118,7 +118,7 @@ var shortForms = map[string]string{
 // expandResourceShortcut will return the expanded version of resource
 // (something that a pkg/api/meta.RESTMapper can understand), if it is
 // indeed a shortcut. Otherwise, will return resource unmodified.
-func expandResourceShortcut(resource unversioned.GroupVersionResource) unversioned.GroupVersionResource {
+func expandResourceShortcut(resource schema.GroupVersionResource) schema.GroupVersionResource {
 	if expanded, ok := shortForms[resource.Resource]; ok {
 		resource.Resource = expanded
 		return resource

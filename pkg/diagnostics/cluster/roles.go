@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -95,7 +96,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 	}
 
 	for _, changedClusterRole := range changedClusterRoles {
-		actualClusterRole, err := d.ClusterRolesClient.ClusterRoles().Get(changedClusterRole.Name)
+		actualClusterRole, err := d.ClusterRolesClient.ClusterRoles().Get(changedClusterRole.Name, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			r.Error("CRD1002", nil, fmt.Sprintf(clusterRoleMissing, changedClusterRole.Name))
 			continue

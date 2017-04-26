@@ -9,23 +9,23 @@ import (
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	unidlingutil "github.com/openshift/origin/pkg/unidling/util"
 
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/typed/deploy/internalversion"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/cache"
+	kextapi "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kextclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/types"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/workqueue"
 
 	"github.com/golang/glog"
 )
@@ -64,7 +64,7 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 }
 
 type UnidlingController struct {
-	controller          *cache.Controller
+	controller          cache.Controller
 	scaleNamespacer     kextclient.ScalesGetter
 	endpointsNamespacer kcoreclient.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
@@ -95,13 +95,13 @@ func NewUnidlingController(scaleNS kextclient.ScalesGetter, endptsNS kcoreclient
 	_, controller := cache.NewInformer(
 		&cache.ListWatch{
 			// No need to list -- we only care about new events
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fieldSelector
-				return evtNS.Events(kapi.NamespaceAll).List(options)
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = fieldSelector.String()
+				return evtNS.Events(metav1.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fieldSelector
-				return evtNS.Events(kapi.NamespaceAll).Watch(options)
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = fieldSelector.String()
+				return evtNS.Events(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&kapi.Event{},
@@ -259,7 +259,7 @@ func (c *UnidlingController) awaitRequest() bool {
 // so it will return false).
 func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired time.Time) (bool, error) {
 	// fetch the endpoints associated with the service in question
-	targetEndpoints, err := c.endpointsNamespacer.Endpoints(info.Namespace).Get(info.Name)
+	targetEndpoints, err := c.endpointsNamespacer.Endpoints(info.Namespace).Get(info.Name, metav1.GetOptions{})
 	if err != nil {
 		return true, fmt.Errorf("unable to retrieve endpoints: %v", err)
 	}
@@ -282,7 +282,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		return false, nil
 	}
 
-	// TODO: ew, this is unversioned.  Such is life when working with annotations.
+	// TODO: ew, this is metav1.  Such is life when working with annotations.
 	var targetScalables []unidlingapi.RecordedScaleReference
 	if targetScalablesStr, hasTargetScalables := targetEndpoints.Annotations[unidlingapi.UnidleTargetAnnotation]; hasTargetScalables {
 		if err = json.Unmarshal([]byte(targetScalablesStr), &targetScalables); err != nil {
@@ -328,7 +328,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 
 		scale.Spec.Replicas = scalableRef.Replicas
 
-		updater := unidlingutil.NewScaleUpdater(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
+		updater := unidlingutil.NewScaleUpdater(kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...), info.Namespace, c.dcNamespacer, c.rcNamespacer)
 		if err = scaleAnnotater.UpdateObjectScale(updater, info.Namespace, scalableRef.CrossGroupObjectReference, obj, scale); err != nil {
 			if errors.IsNotFound(err) {
 				utilruntime.HandleError(fmt.Errorf("%s %q does not exist, removing from list of scalables while unidling service %s/%s: %v", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name, err))

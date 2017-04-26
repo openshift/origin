@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
@@ -218,7 +218,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	// we found a fully-defined context
 	project := context.Namespace
 	if project == "" {
-		project = kapi.NamespaceDefault // k8s fills this in anyway if missing from the context
+		project = metav1.NamespaceDefault // k8s fills this in anyway if missing from the context
 	}
 	msgText := contextDesc
 	if isDefaultContext {
@@ -231,7 +231,7 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
-		if projects, projerr := osClient.Projects().List(kapi.ListOptions{}); projerr != nil {
+		if projects, projerr := osClient.Projects().List(metav1.ListOptions{}); projerr != nil {
 			err = projerr
 		} else { // success!
 			list := []string{}

@@ -1,9 +1,9 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -18,10 +18,10 @@ type FakeImages struct {
 
 var _ client.ImageInterface = &FakeImages{}
 
-var imagesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "images"}
+var imagesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "images"}
 
-func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
-	obj, err := c.Fake.Invokes(core.NewRootGetAction(imagesResource, name), &imageapi.Image{})
+func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Image, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(imagesResource, name), &imageapi.Image{})
 	if obj == nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func (c *FakeImages) Get(name string) (*imageapi.Image, error) {
 	return obj.(*imageapi.Image), err
 }
 
-func (c *FakeImages) List(opts kapi.ListOptions) (*imageapi.ImageList, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
+func (c *FakeImages) List(opts metav1.ListOptions) (*imageapi.ImageList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (c *FakeImages) List(opts kapi.ListOptions) (*imageapi.ImageList, error) {
 }
 
 func (c *FakeImages) Create(inObj *imageapi.Image) (*imageapi.Image, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(imagesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(imagesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (c *FakeImages) Create(inObj *imageapi.Image) (*imageapi.Image, error) {
 }
 
 func (c *FakeImages) Update(inObj *imageapi.Image) (*imageapi.Image, error) {
-	obj, err := c.Fake.Invokes(core.NewRootUpdateAction(imagesResource, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(imagesResource, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -57,6 +57,6 @@ func (c *FakeImages) Update(inObj *imageapi.Image) (*imageapi.Image, error) {
 }
 
 func (c *FakeImages) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewRootDeleteAction(imagesResource, name), &imageapi.Image{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(imagesResource, name), &imageapi.Image{})
 	return err
 }

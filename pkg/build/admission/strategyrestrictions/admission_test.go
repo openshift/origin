@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/user"
+	clientgotesting "k8s.io/client-go/testing"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -22,8 +22,8 @@ import (
 func TestBuildAdmission(t *testing.T) {
 	tests := []struct {
 		name             string
-		kind             unversioned.GroupKind
-		resource         unversioned.GroupResource
+		kind             schema.GroupKind
+		resource         schema.GroupResource
 		subResource      string
 		object           runtime.Object
 		oldObject        runtime.Object
@@ -186,7 +186,7 @@ func TestBuildAdmission(t *testing.T) {
 
 type fakeObject struct{}
 
-func (*fakeObject) GetObjectKind() unversioned.ObjectKind { return nil }
+func (*fakeObject) GetObjectKind() schema.ObjectKind { return nil }
 
 func fakeUser() user.Info {
 	return &user.DefaultInfo{
@@ -198,8 +198,8 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 	emptyResponse := &authorizationapi.SubjectAccessReviewResponse{}
 
 	fake := &testclient.Fake{}
-	fake.AddReactor("create", "localsubjectaccessreviews", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		review, ok := action.(core.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
+	fake.AddReactor("create", "localsubjectaccessreviews", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		review, ok := action.(clientgotesting.CreateAction).GetObject().(*authorizationapi.LocalSubjectAccessReview)
 		if !ok {
 			return true, emptyResponse, fmt.Errorf("unexpected object received: %#v", review)
 		}
@@ -209,10 +209,10 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 		}
 		return true, reviewResponse, nil
 	})
-	fake.AddReactor("get", "buildconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("get", "buildconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, obj, nil
 	})
-	fake.AddReactor("get", "builds", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("get", "builds", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, obj, nil
 	})
 
@@ -221,7 +221,7 @@ func fakeClient(expectedResource string, reviewResponse *authorizationapi.Subjec
 
 func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-build",
 		},
 		Spec: buildapi.BuildSpec{
@@ -234,7 +234,7 @@ func testBuild(strategy buildapi.BuildStrategy) *buildapi.Build {
 
 func testBuildConfig(strategy buildapi.BuildStrategy) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-buildconfig",
 		},
 		Spec: buildapi.BuildConfigSpec{
@@ -254,7 +254,7 @@ func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessRev
 
 func testBuildRequest(name string) runtime.Object {
 	return &buildapi.BuildRequest{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}

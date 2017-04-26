@@ -8,14 +8,15 @@ import (
 	"github.com/golang/glog"
 	gocontext "golang.org/x/net/context"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -79,7 +80,7 @@ func (r *REST) New() runtime.Object {
 	return &api.ImageStreamImport{}
 }
 
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	isi, ok := obj.(*api.ImageStreamImport)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamImport: %#v", obj))
@@ -95,7 +96,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	// In case the user is allowed to create them, do not validate the ImageStreamImport
 	// registry location against the registry whitelist, but instead allow to create any
 	// image from any registry.
-	user, ok := kapi.UserFrom(ctx)
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("unable to get user from context")
 	}
@@ -133,20 +134,20 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 	}
 
-	namespace, ok := kapi.NamespaceFrom(ctx)
+	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewBadRequest("a namespace must be specified to import images")
 	}
 
 	if r.clientFn != nil {
 		if client := r.clientFn(); client != nil {
-			ctx = kapi.WithValue(ctx, importer.ContextKeyV1RegistryClient, client)
+			ctx = apirequest.WithValue(ctx, importer.ContextKeyV1RegistryClient, client)
 		}
 	}
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapi.Secret, error) {
-		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, kapi.ListOptions{})
+		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -164,13 +165,13 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if err := credentials.Err(); err != nil {
 		for i, image := range isi.Status.Images {
 			switch image.Status.Reason {
-			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
 				isi.Status.Images[i].Status.Message = fmt.Sprintf("Unable to load secrets for this image: %v; (%s)", err, image.Status.Message)
 			}
 		}
 		if r := isi.Status.Repository; r != nil {
 			switch r.Status.Reason {
-			case unversioned.StatusReasonUnauthorized, unversioned.StatusReasonForbidden:
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
 				r.Status.Message = fmt.Sprintf("Unable to load secrets for this repository: %v; (%s)", err, r.Status.Message)
 			}
 		}
@@ -184,7 +185,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	}
 
 	create := false
-	stream, err := r.streams.GetImageStream(ctx, isi.Name)
+	stream, err := r.streams.GetImageStream(ctx, isi.Name, &metav1.GetOptions{})
 	if err != nil {
 		if !kapierrors.IsNotFound(err) {
 			return nil, err
@@ -195,7 +196,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		}
 		create = true
 		stream = &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:       isi.Name,
 				Namespace:  namespace,
 				Generation: 0,
@@ -215,7 +216,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	if stream.Annotations == nil {
 		stream.Annotations = make(map[string]string)
 	}
-	now := unversioned.Now()
+	now := metav1.Now()
 	_, hasAnnotation := stream.Annotations[api.DockerImageRepositoryCheckAnnotation]
 	nextGeneration := stream.Generation + 1
 
@@ -344,7 +345,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 }
 
 // recordLimitExceededStatus adds the limit err to any new tag.
-func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.ImageStream, err error, now unversioned.Time, nextGeneration int64) {
+func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.ImageStream, err error, now metav1.Time, nextGeneration int64) {
 	for tag := range newStream.Status.Tags {
 		if _, ok := originalStream.Status.Tags[tag]; !ok {
 			api.SetTagConditions(originalStream, tag, newImportFailedCondition(err, nextGeneration, now))
@@ -352,8 +353,8 @@ func recordLimitExceededStatus(originalStream *api.ImageStream, newStream *api.I
 	}
 }
 
-func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, tag string, nextGeneration int64, now unversioned.Time) bool {
-	if status.Image != nil && status.Status.Status == unversioned.StatusSuccess {
+func checkImportFailure(status api.ImageImportStatus, stream *api.ImageStream, tag string, nextGeneration int64, now metav1.Time) bool {
+	if status.Image != nil && status.Status.Status == metav1.StatusSuccess {
 		return false
 	}
 	message := status.Status.Message
@@ -420,8 +421,8 @@ func ensureSpecTag(stream *api.ImageStream, tag, from string, importPolicy api.T
 // same image), and a failure to persist the image will be summarized before we update the stream. If an image was imported by this
 // operation, it *replaces* the imported image (from the remote repository) with the updated image.
 func (r *REST) importSuccessful(
-	ctx kapi.Context,
-	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now unversioned.Time,
+	ctx apirequest.Context,
+	image *api.Image, stream *api.ImageStream, tag string, from string, nextGeneration int64, now metav1.Time,
 	importPolicy api.TagImportPolicy, referencePolicy api.TagReferencePolicy,
 	importedImages map[string]error, updatedImages map[string]*api.Image,
 ) (*api.Image, bool) {
@@ -506,7 +507,7 @@ func clearManifests(isi *api.ImageStreamImport) {
 	}
 }
 
-func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.TagEventCondition {
+func newImportFailedCondition(err error, gen int64, now metav1.Time) api.TagEventCondition {
 	c := api.TagEventCondition{
 		Type:       api.ImportSuccess,
 		Status:     kapi.ConditionFalse,
@@ -522,6 +523,6 @@ func newImportFailedCondition(err error, gen int64, now unversioned.Time) api.Ta
 	return c
 }
 
-func invalidStatus(kind, position string, errs ...*field.Error) unversioned.Status {
+func invalidStatus(kind, position string, errs ...*field.Error) metav1.Status {
 	return kapierrors.NewInvalid(api.Kind(kind), position, errs).ErrStatus
 }

@@ -4,208 +4,212 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/fake"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 func TestResolveResource(t *testing.T) {
-	mapper := clientcmd.ShortcutExpander{RESTMapper: kcmdutil.ShortcutExpander{RESTMapper: registered.RESTMapper()}}
+	dc := fake.NewSimpleClientset().Discovery()
+	mapper, err := kcmdutil.NewShortcutExpander(kapi.Registry.RESTMapper(), dc)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 
 	tests := []struct {
 		name             string
-		defaultResource  unversioned.GroupResource
+		defaultResource  schema.GroupResource
 		resourceString   string
-		expectedResource unversioned.GroupResource
+		expectedResource schema.GroupResource
 		expectedName     string
 		expectedErr      bool
 	}{
 		{
 			name:             "invalid case #1",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "a/b/c",
-			expectedResource: unversioned.GroupResource{},
+			expectedResource: schema.GroupResource{},
 			expectedName:     "",
 			expectedErr:      true,
 		},
 		{
 			name:             "invalid case #2",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "foo/bar",
-			expectedResource: unversioned.GroupResource{},
+			expectedResource: schema.GroupResource{},
 			expectedName:     "",
 			expectedErr:      true,
 		},
 		{
 			name:             "empty resource string case #1",
-			defaultResource:  unversioned.GroupResource{Resource: ""},
+			defaultResource:  schema.GroupResource{Resource: ""},
 			resourceString:   "",
-			expectedResource: unversioned.GroupResource{Resource: ""},
+			expectedResource: schema.GroupResource{Resource: ""},
 			expectedName:     "",
 			expectedErr:      false,
 		},
 		{
 			name:             "empty resource string case #2",
-			defaultResource:  unversioned.GroupResource{Resource: ""},
+			defaultResource:  schema.GroupResource{Resource: ""},
 			resourceString:   "bar",
-			expectedResource: unversioned.GroupResource{Resource: ""},
+			expectedResource: schema.GroupResource{Resource: ""},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "empty resource string case #3",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "bar",
-			expectedResource: unversioned.GroupResource{Resource: "foo"},
+			expectedResource: schema.GroupResource{Resource: "foo"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) short name",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "rc/bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) long name, case insensitive #1",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "replicationcontroller/bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) long name, case insensitive #2",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "replicationcontrollers/bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) long name, case insensitive #3",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "ReplicationControllers/bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) long name, case insensitive #4",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "ReplicationControllers/bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(KUBE) long name, case insensitive #5",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "ReplicationControllers/Bar",
-			expectedResource: unversioned.GroupResource{Resource: "replicationcontrollers"},
+			expectedResource: schema.GroupResource{Resource: "replicationcontrollers"},
 			expectedName:     "Bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) short name",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "bc/bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) long name, case insensitive #1",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "buildconfig/bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) long name, case insensitive #2",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "buildconfigs/bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) long name, case insensitive #3",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "BuildConfigs/bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) long name, case insensitive #4",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "BuildConfigs/bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "bar",
 			expectedErr:      false,
 		},
 		{
 			name:             "(ORIGIN) long name, case insensitive #5",
-			defaultResource:  unversioned.GroupResource{Resource: "foo"},
+			defaultResource:  schema.GroupResource{Resource: "foo"},
 			resourceString:   "BuildConfigs/Bar",
-			expectedResource: unversioned.GroupResource{Resource: "buildconfigs"},
+			expectedResource: schema.GroupResource{Resource: "buildconfigs"},
 			expectedName:     "Bar",
 			expectedErr:      false,
 		},
 
 		{
 			name:             "singular, implicit api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "job/myjob",
-			expectedResource: unversioned.GroupResource{Group: "extensions", Resource: "jobs"},
+			expectedResource: schema.GroupResource{Group: "batch", Resource: "jobs"},
 			expectedName:     "myjob",
 			expectedErr:      false,
 		},
 		{
 			name:             "singular, explicit extensions api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "job.extensions/myjob",
-			expectedResource: unversioned.GroupResource{Group: "extensions", Resource: "jobs"},
-			expectedName:     "myjob",
-			expectedErr:      false,
+			expectedResource: schema.GroupResource{},
+			expectedName:     "",
+			expectedErr:      true,
 		},
 		{
 			name:             "singular, explicit batch api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "job.batch/myjob",
-			expectedResource: unversioned.GroupResource{Group: "batch", Resource: "jobs"},
+			expectedResource: schema.GroupResource{Group: "batch", Resource: "jobs"},
 			expectedName:     "myjob",
 			expectedErr:      false,
 		},
 		{
 			name:             "shortname, implicit api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa/myhpa",
-			expectedResource: unversioned.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
+			expectedResource: schema.GroupResource{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 			expectedName:     "myhpa",
 			expectedErr:      false,
 		},
 		{
 			name:             "shortname, explicit extensions api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa.extensions/myhpa",
-			expectedResource: unversioned.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
-			expectedName:     "myhpa",
-			expectedErr:      false,
+			expectedResource: schema.GroupResource{},
+			expectedName:     "",
+			expectedErr:      true,
 		},
 		{
 			name:             "shortname, explicit autoscaling api group",
-			defaultResource:  unversioned.GroupResource{},
+			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa.autoscaling/myhpa",
-			expectedResource: unversioned.GroupResource{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
+			expectedResource: schema.GroupResource{Group: "autoscaling", Resource: "horizontalpodautoscalers"},
 			expectedName:     "myhpa",
 			expectedErr:      false,
 		},

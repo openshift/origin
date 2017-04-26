@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/user/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeUsers implements UserResourceInterface
@@ -16,11 +16,11 @@ type FakeUsers struct {
 	ns   string
 }
 
-var usersResource = unversioned.GroupVersionResource{Group: "user.openshift.io", Version: "v1", Resource: "users"}
+var usersResource = schema.GroupVersionResource{Group: "user.openshift.io", Version: "v1", Resource: "users"}
 
 func (c *FakeUsers) Create(user *v1.User) (result *v1.User, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(usersResource, c.ns, user), &v1.User{})
+		Invokes(testing.NewCreateAction(usersResource, c.ns, user), &v1.User{})
 
 	if obj == nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (c *FakeUsers) Create(user *v1.User) (result *v1.User, err error) {
 
 func (c *FakeUsers) Update(user *v1.User) (result *v1.User, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(usersResource, c.ns, user), &v1.User{})
+		Invokes(testing.NewUpdateAction(usersResource, c.ns, user), &v1.User{})
 
 	if obj == nil {
 		return nil, err
@@ -38,23 +38,23 @@ func (c *FakeUsers) Update(user *v1.User) (result *v1.User, err error) {
 	return obj.(*v1.User), err
 }
 
-func (c *FakeUsers) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeUsers) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(usersResource, c.ns, name), &v1.User{})
+		Invokes(testing.NewDeleteAction(usersResource, c.ns, name), &v1.User{})
 
 	return err
 }
 
-func (c *FakeUsers) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
-	action := core.NewDeleteCollectionAction(usersResource, c.ns, listOptions)
+func (c *FakeUsers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(usersResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.UserList{})
 	return err
 }
 
-func (c *FakeUsers) Get(name string) (result *v1.User, err error) {
+func (c *FakeUsers) Get(name string, options meta_v1.GetOptions) (result *v1.User, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(usersResource, c.ns, name), &v1.User{})
+		Invokes(testing.NewGetAction(usersResource, c.ns, name), &v1.User{})
 
 	if obj == nil {
 		return nil, err
@@ -62,15 +62,15 @@ func (c *FakeUsers) Get(name string) (result *v1.User, err error) {
 	return obj.(*v1.User), err
 }
 
-func (c *FakeUsers) List(opts api_v1.ListOptions) (result *v1.UserList, err error) {
+func (c *FakeUsers) List(opts meta_v1.ListOptions) (result *v1.UserList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(usersResource, c.ns, opts), &v1.UserList{})
+		Invokes(testing.NewListAction(usersResource, c.ns, opts), &v1.UserList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -84,16 +84,16 @@ func (c *FakeUsers) List(opts api_v1.ListOptions) (result *v1.UserList, err erro
 }
 
 // Watch returns a watch.Interface that watches the requested users.
-func (c *FakeUsers) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeUsers) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(usersResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(usersResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched user.
-func (c *FakeUsers) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.User, err error) {
+func (c *FakeUsers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.User, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(usersResource, c.ns, name, data, subresources...), &v1.User{})
+		Invokes(testing.NewPatchSubresourceAction(usersResource, c.ns, name, data, subresources...), &v1.User{})
 
 	if obj == nil {
 		return nil, err

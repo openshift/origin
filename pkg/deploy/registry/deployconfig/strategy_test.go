@@ -4,15 +4,16 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
 )
 
 func TestDeploymentConfigStrategy(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
 		t.Errorf("DeploymentConfig is namespace scoped")
 	}
@@ -20,7 +21,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 		t.Errorf("DeploymentConfig should not allow create on update")
 	}
 	deploymentConfig := &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec:       deploytest.OkDeploymentConfigSpec(),
 	}
 	Strategy.PrepareForCreate(ctx, deploymentConfig)
@@ -29,7 +30,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 		t.Errorf("Unexpected error validating %v", errs)
 	}
 	updatedDeploymentConfig := &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "bar", Namespace: "default", Generation: 1},
+		ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: "default", Generation: 1},
 		Spec:       deploytest.OkDeploymentConfigSpec(),
 	}
 	errs = Strategy.ValidateUpdate(ctx, updatedDeploymentConfig, deploymentConfig)
@@ -52,7 +53,7 @@ func TestDeploymentConfigStrategy(t *testing.T) {
 
 // TestPrepareForUpdate exercises various client updates.
 func TestPrepareForUpdate(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	tests := []struct {
 		name string
 
@@ -85,7 +86,7 @@ func TestPrepareForUpdate(t *testing.T) {
 // prevDeployment is the old object tested for both old and new client updates.
 func prevDeployment() *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo", Namespace: "default", Generation: 4, Annotations: make(map[string]string)},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default", Generation: 4, Annotations: make(map[string]string)},
 		Spec:       deploytest.OkDeploymentConfigSpec(),
 		Status:     deploytest.OkDeploymentConfigStatus(1),
 	}

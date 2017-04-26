@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/sdn/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/sdn/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // ClusterNetworksGetter has a method to return a ClusterNetworkInterface.
@@ -17,18 +19,18 @@ type ClusterNetworksGetter interface {
 type ClusterNetworkInterface interface {
 	Create(*api.ClusterNetwork) (*api.ClusterNetwork, error)
 	Update(*api.ClusterNetwork) (*api.ClusterNetwork, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.ClusterNetwork, error)
-	List(opts pkg_api.ListOptions) (*api.ClusterNetworkList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.ClusterNetwork, error)
+	List(opts v1.ListOptions) (*api.ClusterNetworkList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error)
 	ClusterNetworkExpansion
 }
 
 // clusterNetworks implements ClusterNetworkInterface
 type clusterNetworks struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -66,7 +68,7 @@ func (c *clusterNetworks) Update(clusterNetwork *api.ClusterNetwork) (result *ap
 }
 
 // Delete takes name of the clusterNetwork and deletes it. Returns an error if one occurs.
-func (c *clusterNetworks) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *clusterNetworks) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -77,52 +79,53 @@ func (c *clusterNetworks) Delete(name string, options *pkg_api.DeleteOptions) er
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterNetworks) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *clusterNetworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("clusternetworks").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the clusterNetwork, and returns the corresponding clusterNetwork object, and an error if there is any.
-func (c *clusterNetworks) Get(name string) (result *api.ClusterNetwork, err error) {
+func (c *clusterNetworks) Get(name string, options v1.GetOptions) (result *api.ClusterNetwork, err error) {
 	result = &api.ClusterNetwork{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("clusternetworks").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
-func (c *clusterNetworks) List(opts pkg_api.ListOptions) (result *api.ClusterNetworkList, err error) {
+func (c *clusterNetworks) List(opts v1.ListOptions) (result *api.ClusterNetworkList, err error) {
 	result = &api.ClusterNetworkList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("clusternetworks").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested clusterNetworks.
-func (c *clusterNetworks) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *clusterNetworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("clusternetworks").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched clusterNetwork.
-func (c *clusterNetworks) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
+func (c *clusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
 	result = &api.ClusterNetwork{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

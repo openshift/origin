@@ -4,13 +4,15 @@ import (
 	"errors"
 	"strings"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/user/api"
@@ -27,6 +29,7 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against users
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.User{} },
 		NewListFunc:       func() runtime.Object { return &api.UserList{} },
 		PredicateFunc:     user.Matcher,
@@ -36,10 +39,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		UpdateStrategy: user.Strategy,
 	}
 
-	// TODO this will be uncommented after 1.6 rebase:
-	// options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
-	// if err := store.CompleteWithOptions(options); err != nil {
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
@@ -47,10 +48,10 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 }
 
 // Get retrieves the item from etcd.
-func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	// "~" means the currently authenticated user
 	if name == "~" {
-		user, ok := kapi.UserFrom(ctx)
+		user, ok := apirequest.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
 			return nil, kerrs.NewForbidden(api.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
@@ -63,10 +64,10 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
-			return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
 
-		obj, err := r.Store.Get(ctx, name)
+		obj, err := r.Store.Get(ctx, name, options)
 		if err == nil {
 			return obj, nil
 		}
@@ -75,12 +76,12 @@ func (r *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 			return nil, err
 		}
 
-		return &api.User{ObjectMeta: kapi.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+		return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 	}
 
 	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
 	}
 
-	return r.Store.Get(ctx, name)
+	return r.Store.Get(ctx, name, options)
 }

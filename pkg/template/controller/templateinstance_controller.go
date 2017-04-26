@@ -3,17 +3,16 @@ package controller
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	watch "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/meta/metatypes"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authclient "github.com/openshift/origin/pkg/auth/client"
@@ -26,20 +25,19 @@ import (
 )
 
 type TemplateInstanceController struct {
-	restconfig     restclient.Config
+	restconfig     rest.Config
 	templateclient internalversiontemplate.TemplateInterface
-	controller     cache.ControllerInterface
+	controller     cache.Controller
 }
 
-func NewTemplateInstanceController(restconfig restclient.Config) *TemplateInstanceController {
+func NewTemplateInstanceController(restconfig rest.Config) *TemplateInstanceController {
 	c := TemplateInstanceController{restconfig: restconfig, templateclient: templateclientset.NewForConfigOrDie(&restconfig).Template()}
-
 	_, c.controller = cache.NewInformer(
 		&cache.ListWatch{
-			ListFunc: func(options kapi.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				return c.templateclient.TemplateInstances(kapi.NamespaceAll).List(options)
 			},
-			WatchFunc: func(options kapi.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				return c.templateclient.TemplateInstances(kapi.NamespaceAll).Watch(options)
 			},
 		},
@@ -78,7 +76,7 @@ func (c *TemplateInstanceController) handle(templateInstance *templateapi.Templa
 			{
 				Type:               templateapi.TemplateInstanceReady,
 				Status:             kapi.ConditionTrue,
-				LastTransitionTime: unversioned.Now(),
+				LastTransitionTime: metav1.Now(),
 				Reason:             "Created",
 			},
 		}
@@ -88,7 +86,7 @@ func (c *TemplateInstanceController) handle(templateInstance *templateapi.Templa
 			{
 				Type:               templateapi.TemplateInstanceInstantiateFailure,
 				Status:             kapi.ConditionTrue,
-				LastTransitionTime: unversioned.Now(),
+				LastTransitionTime: metav1.Now(),
 				Reason:             "Failed",
 				Message:            err.Error(),
 			},
@@ -120,7 +118,7 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 		return err
 	}
 
-	secret, err := impersonatedKC.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name)
+	secret, err := impersonatedKC.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -156,7 +154,7 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 	for _, obj := range template.Objects {
 		meta, _ := meta.Accessor(obj)
 		ref := meta.GetOwnerReferences()
-		ref = append(ref, metatypes.OwnerReference{
+		ref = append(ref, metav1.OwnerReference{
 			APIVersion: templateapiv1.SchemeGroupVersion.String(),
 			Kind:       "TemplateInstance",
 			Name:       templateInstance.Name,

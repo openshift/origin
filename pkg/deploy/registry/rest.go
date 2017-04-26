@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/deploy/api"
@@ -27,7 +27,7 @@ var (
 // other error state occurred. The last observed deployment state is returned.
 func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, observed *kapi.ReplicationController, timeout time.Duration) (*kapi.ReplicationController, bool, error) {
 	fieldSelector := fields.Set{"metadata.name": observed.Name}.AsSelector()
-	options := kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: observed.ResourceVersion}
+	options := metav1.ListOptions{FieldSelector: fieldSelector.String(), ResourceVersion: observed.ResourceVersion}
 	w, err := rn.ReplicationControllers(observed.Namespace).Watch(options)
 	if err != nil {
 		return observed, false, err
@@ -39,8 +39,8 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 			// When we send too old resource version in observed replication controller to
 			// watcher, restart the watch with latest available controller.
 			switch t := e.Object.(type) {
-			case *unversioned.Status:
-				if t.Reason == unversioned.StatusReasonGone {
+			case *metav1.Status:
+				if t.Reason == metav1.StatusReasonGone {
 					glog.V(5).Infof("encountered error while watching for replication controller: %v (retrying)", t)
 					return false, ErrTooOldResourceVersion
 				}
@@ -62,7 +62,7 @@ func WaitForRunningDeployment(rn kcoreclient.ReplicationControllersGetter, obser
 		}
 	}); err != nil {
 		if err == ErrTooOldResourceVersion {
-			latestRC, err := rn.ReplicationControllers(observed.Namespace).Get(observed.Name)
+			latestRC, err := rn.ReplicationControllers(observed.Namespace).Get(observed.Name, metav1.GetOptions{})
 			if err != nil {
 				return observed, false, err
 			}

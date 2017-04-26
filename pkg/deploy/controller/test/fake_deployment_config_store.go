@@ -1,7 +1,7 @@
 package test
 
 import (
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/deploy/api"
 )

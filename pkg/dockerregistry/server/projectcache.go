@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/cache"
 )
 
 // projectObjectListStore represents a cache of objects indexed by a project name.

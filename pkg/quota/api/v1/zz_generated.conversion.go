@@ -6,10 +6,10 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/quota/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -39,9 +39,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(in *AppliedClusterResourceQuota, out *api.AppliedClusterResourceQuota, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -56,9 +54,7 @@ func Convert_v1_AppliedClusterResourceQuota_To_api_AppliedClusterResourceQuota(i
 }
 
 func autoConvert_api_AppliedClusterResourceQuota_To_v1_AppliedClusterResourceQuota(in *api.AppliedClusterResourceQuota, out *AppliedClusterResourceQuota, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -103,7 +99,7 @@ func autoConvert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourc
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]AppliedClusterResourceQuota, 0)
 	}
 	return nil
 }
@@ -113,9 +109,7 @@ func Convert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourceQuo
 }
 
 func autoConvert_v1_ClusterResourceQuota_To_api_ClusterResourceQuota(in *ClusterResourceQuota, out *api.ClusterResourceQuota, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_ClusterResourceQuotaSpec_To_api_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -130,9 +124,7 @@ func Convert_v1_ClusterResourceQuota_To_api_ClusterResourceQuota(in *ClusterReso
 }
 
 func autoConvert_api_ClusterResourceQuota_To_v1_ClusterResourceQuota(in *api.ClusterResourceQuota, out *ClusterResourceQuota, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_ClusterResourceQuotaSpec_To_v1_ClusterResourceQuotaSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -177,7 +169,7 @@ func autoConvert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(in 
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]ClusterResourceQuota, 0)
 	}
 	return nil
 }
@@ -187,7 +179,7 @@ func Convert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(in *api
 }
 
 func autoConvert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector(in *ClusterResourceQuotaSelector, out *api.ClusterResourceQuotaSelector, s conversion.Scope) error {
-	out.LabelSelector = (*unversioned.LabelSelector)(unsafe.Pointer(in.LabelSelector))
+	out.LabelSelector = (*meta_v1.LabelSelector)(unsafe.Pointer(in.LabelSelector))
 	out.AnnotationSelector = *(*map[string]string)(unsafe.Pointer(&in.AnnotationSelector))
 	return nil
 }
@@ -197,7 +189,7 @@ func Convert_v1_ClusterResourceQuotaSelector_To_api_ClusterResourceQuotaSelector
 }
 
 func autoConvert_api_ClusterResourceQuotaSelector_To_v1_ClusterResourceQuotaSelector(in *api.ClusterResourceQuotaSelector, out *ClusterResourceQuotaSelector, s conversion.Scope) error {
-	out.LabelSelector = (*unversioned.LabelSelector)(unsafe.Pointer(in.LabelSelector))
+	out.LabelSelector = (*meta_v1.LabelSelector)(unsafe.Pointer(in.LabelSelector))
 	out.AnnotationSelector = *(*map[string]string)(unsafe.Pointer(&in.AnnotationSelector))
 	return nil
 }

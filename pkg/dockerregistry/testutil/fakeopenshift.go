@@ -3,13 +3,13 @@ package testutil
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-
 	"github.com/docker/distribution/context"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -46,7 +46,7 @@ func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake) {
 func (os *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, error) {
 	_, ok := os.imagesStorage[image.Name]
 	if ok {
-		return nil, errors.NewAlreadyExists(unversioned.GroupResource{
+		return nil, errors.NewAlreadyExists(schema.GroupResource{
 			Group:    "",
 			Resource: "images",
 		}, image.Name)
@@ -60,7 +60,7 @@ func (os *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, er
 func (os *FakeOpenShift) GetImage(name string) (*imageapi.Image, error) {
 	image, ok := os.imagesStorage[name]
 	if !ok {
-		return nil, errors.NewNotFound(unversioned.GroupResource{
+		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    "",
 			Resource: "images",
 		}, name)
@@ -73,7 +73,7 @@ func (os *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.ImageS
 
 	_, ok := os.imageStreamsStorage[ref]
 	if ok {
-		return nil, errors.NewAlreadyExists(unversioned.GroupResource{
+		return nil, errors.NewAlreadyExists(schema.GroupResource{
 			Group:    "",
 			Resource: "imagestreams",
 		}, is.Name)
@@ -91,7 +91,7 @@ func (os *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.Image
 
 	is, ok := os.imageStreamsStorage[ref]
 	if !ok {
-		return nil, errors.NewNotFound(unversioned.GroupResource{
+		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    "",
 			Resource: "imagestreams",
 		}, repo)
@@ -123,7 +123,7 @@ func (os *FakeOpenShift) CreateImageStreamMapping(group string, ism *imageapi.Im
 	return ism, nil
 }
 
-func (os *FakeOpenShift) getName(action core.Action) string {
+func (os *FakeOpenShift) getName(action clientgotesting.Action) string {
 	if getnamer, ok := action.(interface {
 		GetName() string
 	}); ok {
@@ -150,17 +150,17 @@ func (os *FakeOpenShift) log(msg string, f func() (bool, runtime.Object, error))
 	return ok, obj, err
 }
 
-func (os *FakeOpenShift) todo(action core.Action) (bool, runtime.Object, error) {
+func (os *FakeOpenShift) todo(action clientgotesting.Action) (bool, runtime.Object, error) {
 	return true, nil, fmt.Errorf("no reaction implemented for %v", action)
 }
 
-func (os *FakeOpenShift) images(action core.Action) (bool, runtime.Object, error) {
+func (os *FakeOpenShift) images(action clientgotesting.Action) (bool, runtime.Object, error) {
 	return os.log(
 		fmt.Sprintf("(*FakeOpenShift).images: %s %s",
 			action.GetVerb(), os.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
-			case core.GetActionImpl:
+			case clientgotesting.GetActionImpl:
 				image, err := os.GetImage(action.Name)
 				return true, image, err
 			}
@@ -169,19 +169,19 @@ func (os *FakeOpenShift) images(action core.Action) (bool, runtime.Object, error
 	)
 }
 
-func (os *FakeOpenShift) imageStreams(action core.Action) (bool, runtime.Object, error) {
+func (os *FakeOpenShift) imageStreams(action clientgotesting.Action) (bool, runtime.Object, error) {
 	return os.log(
 		fmt.Sprintf("(*FakeOpenShift).imageStreams: %s %s/%s",
 			action.GetVerb(), action.GetNamespace(), os.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
-			case core.CreateActionImpl:
+			case clientgotesting.CreateActionImpl:
 				is, err := os.CreateImageStream(
 					action.GetNamespace(),
 					action.Object.(*imageapi.ImageStream),
 				)
 				return true, is, err
-			case core.GetActionImpl:
+			case clientgotesting.GetActionImpl:
 				is, err := os.GetImageStream(
 					action.GetNamespace(),
 					action.GetName(),
@@ -193,13 +193,13 @@ func (os *FakeOpenShift) imageStreams(action core.Action) (bool, runtime.Object,
 	)
 }
 
-func (os *FakeOpenShift) imageStreamMappings(action core.Action) (bool, runtime.Object, error) {
+func (os *FakeOpenShift) imageStreamMappings(action clientgotesting.Action) (bool, runtime.Object, error) {
 	return os.log(
 		fmt.Sprintf("(*FakeOpenShift).imageStreamMappings: %s %s/%s",
 			action.GetVerb(), action.GetNamespace(), os.getName(action)),
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
-			case core.CreateActionImpl:
+			case clientgotesting.CreateActionImpl:
 				ism, err := os.CreateImageStreamMapping(
 					action.GetNamespace(),
 					action.Object.(*imageapi.ImageStreamMapping),
@@ -260,7 +260,7 @@ func RegisterImage(os *FakeOpenShift, image *imageapi.Image, namespace, name, ta
 	}
 
 	_, err = os.CreateImageStreamMapping(namespace, &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Image: *image,

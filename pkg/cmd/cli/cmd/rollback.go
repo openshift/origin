@@ -7,15 +7,15 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kubectl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	latest "github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
 	describe "github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -68,7 +68,7 @@ func NewCmdRollback(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 		Long:    rollbackLong,
 		Example: fmt.Sprintf(rollbackExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := opts.Complete(f, args, out); err != nil {
+			if err := opts.Complete(f, cmd, args, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -116,11 +116,13 @@ type RollbackOptions struct {
 	// resource.Builder is stateful and isn't safe to reuse (e.g. across
 	// resource types).
 	getBuilder func() *resource.Builder
+	// printer is used for output
+	printer kprinters.ResourcePrinter
 }
 
 // Complete turns a partially defined RollbackActions into a solvent structure
 // which can be validated and used for a rollback.
-func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
 	// Extract basic flags.
 	if len(args) == 1 {
 		o.TargetName = args[0]
@@ -145,6 +147,14 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, args []string, out io.W
 	o.kc = kClient
 
 	o.out = out
+
+	if len(o.Format) > 0 {
+		o.printer, _, err = f.PrinterForCommand(cmd)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -174,6 +184,9 @@ func (o *RollbackOptions) Validate() error {
 			return fmt.Errorf("getBuilder must return a resource.Builder")
 		}
 	}
+	if len(o.Format) > 0 && o.printer == nil {
+		return fmt.Errorf("printer must not be nil when output is set")
+	}
 	return nil
 }
 
@@ -192,7 +205,7 @@ func (o *RollbackOptions) Run() error {
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
 		dcName := deployutil.DeploymentConfigNameFor(r)
-		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName)
+		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -247,7 +260,7 @@ func (o *RollbackOptions) Run() error {
 	// If this is a dry run, print and exit.
 	if o.DryRun {
 		describer := describe.NewDeploymentConfigDescriber(o.oc, o.kc, newConfig)
-		description, err := describer.Describe(newConfig.Namespace, newConfig.Name, kubectl.DescriberSettings{})
+		description, err := describer.Describe(newConfig.Namespace, newConfig.Name, kprinters.DescriberSettings{})
 		if err != nil {
 			return err
 		}
@@ -258,12 +271,7 @@ func (o *RollbackOptions) Run() error {
 
 	// If an output format is specified, print and exit.
 	if len(o.Format) > 0 {
-		printer, _, err := kubectl.GetPrinter(o.Format, o.Template, false, true)
-		if err != nil {
-			return err
-		}
-		versionedPrinter := kubectl.NewVersionedPrinter(printer, kapi.Scheme, latest.Version)
-		versionedPrinter.PrintObj(newConfig, o.out)
+		o.printer.PrintObj(newConfig, o.out)
 		return nil
 	}
 
@@ -334,7 +342,7 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // version will be returned.
 func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name)})
+	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return nil, err
 	}

@@ -9,10 +9,11 @@ import (
 	etcdclient "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	etcdutil "k8s.io/kubernetes/pkg/storage/etcd/util"
-	"k8s.io/kubernetes/pkg/types"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
@@ -37,7 +38,7 @@ func makeIdentityInfo(providerName, providerUserName string, extra map[string]st
 
 func makeUser(name string, identities ...string) *api.User {
 	return &api.User{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Identities: identities,
@@ -45,7 +46,7 @@ func makeUser(name string, identities ...string) *api.User {
 }
 func makeIdentity(providerName, providerUserName string) *api.Identity {
 	return &api.Identity{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 		},
 		ProviderName:     providerName,
@@ -60,7 +61,7 @@ func makeIdentityWithUserReference(providerName, providerUserName string, userNa
 }
 func makeMapping(user, identity string) *api.UserIdentityMapping {
 	return &api.UserIdentityMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: identity},
+		ObjectMeta: metav1.ObjectMeta{Name: identity},
 		User:       kapi.ObjectReference{Name: user},
 		Identity:   kapi.ObjectReference{Name: identity},
 	}
@@ -79,7 +80,10 @@ func TestUserInitialization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterConfig)
+	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	userStorage, err := useretcd.NewREST(optsGetter)
 	if err != nil {
@@ -438,7 +442,7 @@ func TestUserInitialization(t *testing.T) {
 		}
 		if testcase.UpdateUser != nil {
 			if testcase.UpdateUser.ResourceVersion == "" {
-				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name)
+				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name, metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Could not get user to update: %v", k, err)
 					continue
@@ -478,7 +482,7 @@ func TestUserInitialization(t *testing.T) {
 					return
 				}
 
-				user, err := clusterAdminClient.Users().Get(userInfo.GetName())
+				user, err := clusterAdminClient.Users().Get(userInfo.GetName(), metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Error getting user: %v", k, err)
 				}

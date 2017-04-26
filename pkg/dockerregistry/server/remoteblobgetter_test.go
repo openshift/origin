@@ -6,8 +6,8 @@ import (
 
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/diff"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -83,7 +83,7 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 		{
 			name: "search secondary results in insecure image stream",
 			is: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
 				},
 				Spec: imageapi.ImageStreamSpec{
@@ -114,7 +114,7 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 		{
 			name: "empty secondary search",
 			is: &imageapi.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
 				},
 				Spec: imageapi.ImageStreamSpec{

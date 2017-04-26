@@ -7,8 +7,8 @@ import (
 	// it causes all the admission plugins to be registered, giving us a full listing.
 	_ "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
-	"k8s.io/kubernetes/pkg/admission"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/admission"
 
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -37,11 +37,8 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 	"NamespaceExists",  // superseded by NamespaceLifecycle
 	"InitialResources", // do we want this? https://github.com/kubernetes/kubernetes/blob/master/docs/proposals/initial-resources.md
 
-	// "PersistentVolumeLabel", // do we want this? disable by default
-
-	// "ImagePolicyWebhook", // disable by default
-
-	"",
+	"PodPreset",                // alpha in kube 1.6, not on by default
+	"DefaultTolerationSeconds", // alpha, not on by default
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {

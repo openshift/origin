@@ -8,13 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
-	kctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/watch"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
@@ -165,7 +165,7 @@ func (o *ImportImageOptions) Run() error {
 
 		// optimization, use the image stream returned by the call
 		d := describe.ImageStreamDescriber{Interface: o.osClient}
-		info, err := d.Describe(o.Namespace, stream.Name, kctl.DescriberSettings{})
+		info, err := d.Describe(o.Namespace, stream.Name, kprinters.DescriberSettings{})
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func (o *ImportImageOptions) Run() error {
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
 	d := describe.ImageStreamDescriber{Interface: o.osClient}
-	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kctl.DescriberSettings{})
+	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kprinters.DescriberSettings{})
 	if err != nil {
 		return err
 	}
@@ -221,11 +221,11 @@ func (o *ImportImageOptions) Run() error {
 
 func wasError(isi *imageapi.ImageStreamImport) bool {
 	for _, image := range isi.Status.Images {
-		if image.Status.Status == unversioned.StatusFailure {
+		if image.Status.Status == metav1.StatusFailure {
 			return true
 		}
 	}
-	if isi.Status.Repository != nil && isi.Status.Repository.Status.Status == unversioned.StatusFailure {
+	if isi.Status.Repository != nil && isi.Status.Repository.Status.Status == metav1.StatusFailure {
 		return true
 	}
 	return false
@@ -241,7 +241,7 @@ func (e importError) Error() string {
 }
 
 func (o *ImportImageOptions) waitForImport(resourceVersion string) (*imageapi.ImageStream, error) {
-	streamWatch, err := o.isClient.Watch(kapi.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", o.Name), ResourceVersion: resourceVersion})
+	streamWatch, err := o.isClient.Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", o.Name).String(), ResourceVersion: resourceVersion})
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func (o *ImportImageOptions) waitForImport(resourceVersion string) (*imageapi.Im
 
 func (o *ImportImageOptions) createImageImport() (*imageapi.ImageStream, *imageapi.ImageStreamImport, error) {
 	var isi *imageapi.ImageStreamImport
-	stream, err := o.isClient.Get(o.Name)
+	stream, err := o.isClient.Get(o.Name, metav1.GetOptions{})
 	// no stream, try creating one
 	if err != nil {
 		if !errors.IsNotFound(err) {
@@ -438,13 +438,13 @@ func (o *ImportImageOptions) newImageStream() (*imageapi.ImageStream, *imageapi.
 	// this is only for the legacy path that we need to create the IS.
 	if o.All {
 		stream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 			Spec:       imageapi.ImageStreamSpec{DockerImageRepository: from},
 		}
 		isi = o.newImageStreamImportAll(stream, from)
 	} else {
 		stream = &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{Name: o.Name},
+			ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 			Spec: imageapi.ImageStreamSpec{
 				Tags: map[string]imageapi.TagReference{
 					tag: {
@@ -479,7 +479,7 @@ func (o *ImportImageOptions) getReferencePolicy() imageapi.TagReferencePolicy {
 
 func (o *ImportImageOptions) newImageStreamImport(stream *imageapi.ImageStream) (*imageapi.ImageStreamImport, bool) {
 	isi := &imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       o.Namespace,
 			ResourceVersion: stream.ResourceVersion,

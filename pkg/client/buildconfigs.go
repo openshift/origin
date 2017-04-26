@@ -5,8 +5,9 @@ import (
 	"io"
 	"net/url"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -22,12 +23,12 @@ type BuildConfigsNamespacer interface {
 
 // BuildConfigInterface exposes methods on BuildConfig resources
 type BuildConfigInterface interface {
-	List(opts kapi.ListOptions) (*buildapi.BuildConfigList, error)
-	Get(name string) (*buildapi.BuildConfig, error)
+	List(opts metav1.ListOptions) (*buildapi.BuildConfigList, error)
+	Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error)
 	Create(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Update(config *buildapi.BuildConfig) (*buildapi.BuildConfig, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 
 	Instantiate(request *buildapi.BuildRequest) (result *buildapi.Build, err error)
 	InstantiateBinary(request *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error)
@@ -50,7 +51,7 @@ func newBuildConfigs(c *Client, namespace string) *buildConfigs {
 }
 
 // List returns a list of buildconfigs that match the label and field selectors.
-func (c *buildConfigs) List(opts kapi.ListOptions) (result *buildapi.BuildConfigList, err error) {
+func (c *buildConfigs) List(opts metav1.ListOptions) (result *buildapi.BuildConfigList, err error) {
 	result = &buildapi.BuildConfigList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -62,9 +63,9 @@ func (c *buildConfigs) List(opts kapi.ListOptions) (result *buildapi.BuildConfig
 }
 
 // Get returns information about a particular buildconfig and error if one occurs.
-func (c *buildConfigs) Get(name string) (result *buildapi.BuildConfig, err error) {
+func (c *buildConfigs) Get(name string, options metav1.GetOptions) (result *buildapi.BuildConfig, err error) {
 	result = &buildapi.BuildConfig{}
-	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("buildConfigs").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -105,7 +106,7 @@ func (c *buildConfigs) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested buildConfigs.
-func (c *buildConfigs) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *buildConfigs) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

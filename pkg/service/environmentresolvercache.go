@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/api"
 )
 
@@ -21,7 +22,7 @@ type serviceEntry struct {
 }
 
 // ResolverCacheFunc is used for resolving names to services
-type ResolverCacheFunc func(name string) (*api.Service, error)
+type ResolverCacheFunc func(name string, options metav1.GetOptions) (*api.Service, error)
 
 // ServiceResolverCache is a cache used for resolving names to services
 type ServiceResolverCache struct {
@@ -53,7 +54,7 @@ func (c *ServiceResolverCache) get(name string) (host, port string, ok bool) {
 	if entry, found := c.cache[name]; found {
 		return entry.host, entry.port, true
 	}
-	service, err := c.fill(name)
+	service, err := c.fill(name, metav1.GetOptions{})
 	if err != nil {
 		return
 	}

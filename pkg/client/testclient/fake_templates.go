@@ -1,10 +1,10 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -16,10 +16,10 @@ type FakeTemplates struct {
 	Namespace string
 }
 
-var templatesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
+var templatesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
 
-func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})
+func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateapi.Template, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})
 	if obj == nil {
 		return nil, err
 	}
@@ -27,8 +27,8 @@ func (c *FakeTemplates) Get(name string) (*templateapi.Template, error) {
 	return obj.(*templateapi.Template), err
 }
 
-func (c *FakeTemplates) List(opts kapi.ListOptions) (*templateapi.TemplateList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
+func (c *FakeTemplates) List(opts metav1.ListOptions) (*templateapi.TemplateList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *FakeTemplates) List(opts kapi.ListOptions) (*templateapi.TemplateList, 
 }
 
 func (c *FakeTemplates) Create(inObj *templateapi.Template) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(templatesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(templatesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *FakeTemplates) Create(inObj *templateapi.Template) (*templateapi.Templa
 }
 
 func (c *FakeTemplates) Update(inObj *templateapi.Template) (*templateapi.Template, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(templatesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(templatesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -55,10 +55,10 @@ func (c *FakeTemplates) Update(inObj *templateapi.Template) (*templateapi.Templa
 }
 
 func (c *FakeTemplates) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(templatesResource, c.Namespace, name), &templateapi.Template{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(templatesResource, c.Namespace, name), &templateapi.Template{})
 	return err
 }
 
-func (c *FakeTemplates) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(templatesResource, c.Namespace, opts))
+func (c *FakeTemplates) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(templatesResource, c.Namespace, opts))
 }

@@ -3,15 +3,15 @@ package admission
 import (
 	"testing"
 
-	kadmission "k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kadmission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authentication/user"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/cache"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	testingcore "k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-
-	oscache "github.com/openshift/origin/pkg/client/cache"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 // scc exec is a pass through to *constraint, so we only need to test that
@@ -19,7 +19,7 @@ import (
 func TestExecAdmit(t *testing.T) {
 	goodPod := func() *kapi.Pod {
 		return &kapi.Pod{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 			},
 			Spec: kapi.PodSpec{
@@ -86,16 +86,16 @@ func TestExecAdmit(t *testing.T) {
 
 	for k, v := range testCases {
 		tc := clientsetfake.NewSimpleClientset(v.pod)
-		tc.PrependReactor("get", "pods", func(action testingcore.Action) (handled bool, ret runtime.Object, err error) {
+		tc.PrependReactor("get", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, v.pod, nil
 		})
 
 		// create the admission plugin
-		p := NewSCCExecRestrictions(tc)
-		p.constraintAdmission.sccLister = &oscache.IndexerToSecurityContextConstraintsLister{
-			Indexer: cache.NewIndexer(cache.MetaNamespaceKeyFunc,
-				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}),
-		}
+		p := NewSCCExecRestrictions()
+		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		cache := kcorelisters.NewSecurityContextConstraintsLister(indexer)
+		p.constraintAdmission.sccLister = cache
+		p.SetInternalKubeClientSet(tc)
 
 		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, &user.DefaultInfo{})
 		err := p.Admit(attrs)

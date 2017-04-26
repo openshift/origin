@@ -17,15 +17,17 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	ksets "k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
-	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
+	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
-	ksets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/ip"
@@ -192,7 +194,7 @@ func (m *podManager) ipamDel(id string) error {
 	return nil
 }
 
-func setupPodBandwidth(oc *ovsController, pod *kapi.Pod, hostVeth string) error {
+func setupPodBandwidth(ovs *ovsController, pod *kapi.Pod, hostVeth string) error {
 	ingressVal, egressVal, err := kbandwidth.ExtractPodBandwidthResources(pod.Annotations)
 	if err != nil {
 		return fmt.Errorf("failed to parse pod bandwidth: %v", err)
@@ -215,7 +217,7 @@ func setupPodBandwidth(oc *ovsController, pod *kapi.Pod, hostVeth string) error 
 		egressBPS = egressVal.Value()
 	}
 
-	return oc.SetPodBandwidth(hostVeth, ingressBPS, egressBPS)
+	return ovs.SetPodBandwidth(hostVeth, ingressBPS, egressBPS)
 }
 
 func vnidToString(vnid uint32) string {
@@ -311,7 +313,7 @@ func (m *podManager) ipamGarbageCollection() {
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -336,15 +338,19 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	defer func() {
 		if !success {
 			m.ipamDel(req.ContainerId)
-			if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
+			if err := m.hostportSyncer.SyncHostports(TUN, m.getRunningPods()); err != nil {
 				glog.Warningf("failed syncing hostports: %v", err)
 			}
 		}
 	}()
 
 	// Open any hostports the pod wants
-	newPod := &kubehostport.ActivePod{Pod: pod, IP: podIP}
-	if err := m.hostportHandler.OpenPodHostportsAndSync(newPod, TUN, m.getRunningPods()); err != nil {
+	var v1Pod kapiv1.Pod
+	if err := kapiv1.Convert_api_Pod_To_v1_Pod(pod, &v1Pod, nil); err != nil {
+		return nil, nil, err
+	}
+	podPortMapping := hostport.ConstructPodPortMapping(&v1Pod, podIP)
+	if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, TUN, m.getRunningPods()); err != nil {
 		return nil, nil, err
 	}
 
@@ -392,17 +398,17 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	ofport, err := m.oc.SetUpPod(hostVethName, podIP.String(), contVethMac, vnid)
+	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
-	if err := setupPodBandwidth(m.oc, pod, hostVethName); err != nil {
+	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
 		return nil, nil, err
 	}
 
 	m.policy.RefVNID(vnid)
 	success = true
-	return ipamResult, &runningPod{activePod: newPod, vnid: vnid, ofport: ofport}, nil
+	return ipamResult, &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: ofport}, nil
 }
 
 func (m *podManager) getContainerNetnsPath(id string) (string, error) {
@@ -426,7 +432,7 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		req.Netns = netns
 	}
 
-	pod, err := m.kClient.Pods(req.PodNamespace).Get(req.PodName)
+	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return 0, err
 	}
@@ -440,10 +446,10 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		return 0, err
 	}
 
-	if err := m.oc.UpdatePod(hostVethName, podIP, contVethMac, vnid); err != nil {
+	if err := m.ovs.UpdatePod(hostVethName, podIP, contVethMac, vnid); err != nil {
 		return 0, err
 	}
-	if err := setupPodBandwidth(m.oc, pod, hostVethName); err != nil {
+	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
 		return 0, err
 	}
 
@@ -468,7 +474,7 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 			return err
 		}
 
-		if err := m.oc.TearDownPod(hostVethName, podIP); err != nil {
+		if err := m.ovs.TearDownPod(hostVethName, podIP); err != nil {
 			errList = append(errList, err)
 		}
 		if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
@@ -480,7 +486,7 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		errList = append(errList, err)
 	}
 
-	if err := m.hostportHandler.SyncHostports(TUN, m.getRunningPods()); err != nil {
+	if err := m.hostportSyncer.SyncHostports(TUN, m.getRunningPods()); err != nil {
 		errList = append(errList, err)
 	}
 

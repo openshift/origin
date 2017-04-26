@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
 )
@@ -14,12 +15,12 @@ type GroupsInterface interface {
 
 // GroupInterface exposes methods on group resources.
 type GroupInterface interface {
-	List(opts kapi.ListOptions) (*userapi.GroupList, error)
-	Get(name string) (*userapi.Group, error)
+	List(opts metav1.ListOptions) (*userapi.GroupList, error)
+	Get(name string, options metav1.GetOptions) (*userapi.Group, error)
 	Create(group *userapi.Group) (*userapi.Group, error)
 	Update(group *userapi.Group) (*userapi.Group, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // groups implements GroupInterface interface
@@ -35,7 +36,7 @@ func newGroups(c *Client) *groups {
 }
 
 // List returns a list of groups that match the label and field selectors.
-func (c *groups) List(opts kapi.ListOptions) (result *userapi.GroupList, err error) {
+func (c *groups) List(opts metav1.ListOptions) (result *userapi.GroupList, err error) {
 	result = &userapi.GroupList{}
 	err = c.r.Get().
 		Resource("groups").
@@ -46,9 +47,9 @@ func (c *groups) List(opts kapi.ListOptions) (result *userapi.GroupList, err err
 }
 
 // Get returns information about a particular group or an error
-func (c *groups) Get(name string) (result *userapi.Group, err error) {
+func (c *groups) Get(name string, options metav1.GetOptions) (result *userapi.Group, err error) {
 	result = &userapi.Group{}
-	err = c.r.Get().Resource("groups").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("groups").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -72,7 +73,7 @@ func (c *groups) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested groups.
-func (c *groups) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *groups) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("groups").
