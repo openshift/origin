@@ -3,8 +3,8 @@ package api
 import (
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/golang/glog"
 )
@@ -82,7 +82,7 @@ func HasTriggerType(triggerType BuildTriggerType, bc *BuildConfig) bool {
 }
 
 // RecordStageAndStepInfo records details about each build stage and step
-func RecordStageAndStepInfo(stages []StageInfo, stageName StageName, stepName StepName, startTime unversioned.Time, endTime unversioned.Time) []StageInfo {
+func RecordStageAndStepInfo(stages []StageInfo, stageName StageName, stepName StepName, startTime metav1.Time, endTime metav1.Time) []StageInfo {
 	// If the stage already exists in the slice, update the DurationMilliseconds, and append the new step.
 	for stageKey, stageVal := range stages {
 		if stageVal.Name == stageName {
@@ -124,7 +124,7 @@ func RecordStageAndStepInfo(stages []StageInfo, stageName StageName, stepName St
 func AppendStageAndStepInfo(stages []StageInfo, stagesToMerge []StageInfo) []StageInfo {
 	for _, stage := range stagesToMerge {
 		for _, step := range stage.Steps {
-			stages = RecordStageAndStepInfo(stages, stage.Name, step.Name, step.StartTime, unversioned.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+			stages = RecordStageAndStepInfo(stages, stage.Name, step.Name, step.StartTime, metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
 		}
 	}
 	return stages

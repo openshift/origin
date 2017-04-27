@@ -301,7 +301,7 @@ type StageInfo struct {
 
 	// StartTime is a timestamp representing the server time when this Stage started.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTime unversioned.Time
+	StartTime metav1.Time
 
 	// DurationMilliseconds identifies how long the stage took
 	// to complete in milliseconds.
@@ -343,7 +343,7 @@ type StepInfo struct {
 
 	// StartTime is a timestamp representing the server time when this Step started.
 	// it is represented in RFC3339 form and is in UTC.
-	StartTime unversioned.Time
+	StartTime metav1.Time
 
 	// DurationMilliseconds identifies how long the step took
 	// to complete in milliseconds.
