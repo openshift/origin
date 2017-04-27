@@ -99,20 +99,32 @@ func (s *GenericAPIServer) RunPostStartHooks() {
 	s.postStartHooksCalled = true
 
 	context := PostStartHookContext{LoopbackClientConfig: s.LoopbackClientConfig}
-	// we need to wait until our loopback client has enough rights to actually loopback
-	// the core APIs cannot be disabled, so we'll use that as a proxy for the information instead
-	// of attempting a SAR (which can be disabled, though that would be a very bad idea)
-	// TODO remove once openshift starts using the kube loopback connection.
-	err := wait.PollImmediate(30*time.Millisecond, 30*time.Second, func() (bool, error) {
-		client := coreclient.NewForConfigOrDie(s.LoopbackClientConfig)
-		// we can have other errors in our level, like etcd not being up. Treat them all the same
-		if _, err := client.Namespaces().List(metav1.ListOptions{}); err != nil {
-			return false, nil
+
+	// only wait for namespace in a real kube master setup. In unit tests, we don't have the namespace resource
+	// and therefore the wait loop would fail.
+	isKubeMaster := false
+	for _, ws := range s.HandlerContainer.RegisteredWebServices() {
+		if ws.RootPath() == "/api/v1" {
+			isKubeMaster = true
 		}
-		return true, nil
-	})
-	if err != nil {
-		glog.Fatalf("LoopbackClient was unable to list namespaces: %v", err)
+	}
+	if isKubeMaster {
+		// we need to wait until our loopback client has enough rights to actually loopback
+		// the core APIs cannot be disabled, so we'll use that as a proxy for the information instead
+		// of attempting a SAR (which can be disabled, though that would be a very bad idea)
+		// TODO remove once openshift starts using the kube loopback connection.
+		err := wait.PollImmediate(30*time.Millisecond, 30*time.Second, func() (bool, error) {
+			client := coreclient.NewForConfigOrDie(s.LoopbackClientConfig)
+			// we can have other errors in our level, like etcd not being up. Treat them all the same
+			if _, err := client.Namespaces().List(metav1.ListOptions{}); err != nil {
+				fmt.Printf("loopback error: %v\n", err)
+				return false, nil
+			}
+			return true, nil
+		})
+		if err != nil {
+			glog.Fatalf("LoopbackClient was unable to list namespaces: %v", err)
+		}
 	}
 
 	for hookName, hookEntry := range s.postStartHooks {
