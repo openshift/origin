@@ -8,21 +8,22 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/serviceaccount"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 var (
@@ -110,19 +111,11 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 	o.RESTClientFactory = f.ClientForMapping
 
 	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
-		clientConfig, err := f.ClientConfig()
+		printer, _, err := f.PrinterForCommand(cmd)
 		if err != nil {
 			return err
 		}
-		version, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-		if err != nil {
-			return err
-		}
-		p, _, err := kcmdutil.PrinterForCommand(cmd)
-		if err != nil {
-			return err
-		}
-		o.printer = &sccReviewOutputPrinter{kubectl.NewVersionedPrinter(p, kapi.Scheme, version)}
+		o.printer = &sccReviewOutputPrinter{printer}
 	} else {
 		o.printer = &sccReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
@@ -162,11 +155,11 @@ func (o *sccReviewOptions) Run(args []string) error {
 				ServiceAccountNames: o.shortServiceAccountNames,
 			},
 		}
-		response, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
+		unversionedObj, err := o.client.PodSecurityPolicyReviews(o.namespace).Create(review)
 		if err != nil {
 			return fmt.Errorf("unable to compute Pod Security Policy Review for %q: %v", objectName, err)
 		}
-		if err = o.printer.print(info, response, o.out); err != nil {
+		if err = o.printer.print(info, unversionedObj, o.out); err != nil {
 			allErrs = append(allErrs, err)
 		}
 		return nil
@@ -206,13 +199,17 @@ type sccReviewPrinter interface {
 }
 
 type sccReviewOutputPrinter struct {
-	kubectl.ResourcePrinter
+	kprinters.ResourcePrinter
 }
 
 var _ sccReviewPrinter = &sccReviewOutputPrinter{}
 
 func (s *sccReviewOutputPrinter) print(unused *resource.Info, obj runtime.Object, out io.Writer) error {
-	return s.ResourcePrinter.PrintObj(obj, out)
+	versionedObj := &securityapiv1.PodSecurityPolicyReview{}
+	if err := kapi.Scheme.Convert(obj, versionedObj, nil); err != nil {
+		return err
+	}
+	return s.ResourcePrinter.PrintObj(versionedObj, out)
 }
 
 type sccReviewHumanReadablePrinter struct {

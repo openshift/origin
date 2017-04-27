@@ -19,11 +19,12 @@ package master
 import (
 	"encoding/json"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
 )
 
 type ClientCARegistrationHook struct {
@@ -53,7 +54,7 @@ func (h ClientCARegistrationHook) PostStartHook(hookContext genericapiserver.Pos
 
 // writeClientCAs is here for unit testing with a fake client
 func (h ClientCARegistrationHook) writeClientCAs(client coreclient.CoreInterface) {
-	if _, err := client.Namespaces().Create(&api.Namespace{ObjectMeta: api.ObjectMeta{Name: api.NamespaceSystem}}); err != nil && !apierrors.IsAlreadyExists(err) {
+	if _, err := client.Namespaces().Create(&api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: metav1.NamespaceSystem}}); err != nil && !apierrors.IsAlreadyExists(err) {
 		utilruntime.HandleError(err)
 		return
 	}
@@ -105,10 +106,10 @@ func jsonSerializeStringSlice(in []string) (string, error) {
 }
 
 func writeConfigMap(client coreclient.ConfigMapsGetter, name string, data map[string]string) error {
-	existing, err := client.ConfigMaps(api.NamespaceSystem).Get(name)
+	existing, err := client.ConfigMaps(metav1.NamespaceSystem).Get(name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		_, err := client.ConfigMaps(api.NamespaceSystem).Create(&api.ConfigMap{
-			ObjectMeta: api.ObjectMeta{Namespace: api.NamespaceSystem, Name: name},
+		_, err := client.ConfigMaps(metav1.NamespaceSystem).Create(&api.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceSystem, Name: name},
 			Data:       data,
 		})
 		return err
@@ -118,6 +119,6 @@ func writeConfigMap(client coreclient.ConfigMapsGetter, name string, data map[st
 	}
 
 	existing.Data = data
-	_, err = client.ConfigMaps(api.NamespaceSystem).Update(existing)
+	_, err = client.ConfigMaps(metav1.NamespaceSystem).Update(existing)
 	return err
 }

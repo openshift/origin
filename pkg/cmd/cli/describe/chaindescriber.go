@@ -9,9 +9,9 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/gonum/graph/path"
-	kapi "k8s.io/kubernetes/pkg/api"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
@@ -201,7 +201,7 @@ func (d *ChainDescriber) humanReadableOutput(g osgraph.Graph, f osgraph.Namer, r
 	}
 
 	var singleNamespace bool
-	if len(d.namespaces) == 1 && !d.namespaces.Has(kapi.NamespaceAll) {
+	if len(d.namespaces) == 1 && !d.namespaces.Has(metav1.NamespaceAll) {
 		singleNamespace = true
 	}
 	depth := map[graph.Node]int{

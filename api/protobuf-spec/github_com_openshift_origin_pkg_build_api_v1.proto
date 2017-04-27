@@ -5,10 +5,12 @@ syntax = 'proto2';
 
 package github.com.openshift.origin.pkg.build.api.v1;
 
-import "k8s.io/kubernetes/pkg/api/unversioned/generated.proto";
+import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/generated.proto";
+import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
+import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
-import "k8s.io/kubernetes/pkg/runtime/generated.proto";
-import "k8s.io/kubernetes/pkg/util/intstr/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -16,7 +18,7 @@ option go_package = "v1";
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request
 message BinaryBuildRequestOptions {
   // metadata for BinaryBuildRequestOptions.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // asFile determines if the binary should be created as a file within the source rather than extracted as an archive
   optional string asFile = 2;
@@ -62,7 +64,7 @@ message BitbucketWebHookCause {
 // the status of the execution and a reference to the Pod which executed the build.
 message Build {
   // Standard object's metadata.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec is all the inputs used to execute the build.
   optional BuildSpec spec = 2;
@@ -76,7 +78,7 @@ message Build {
 // Each build created by a build configuration is numbered and refers back to its parent configuration. Multiple builds can be triggered at once. Builds that do not have "output" set can be used to test code or run a verification build.
 message BuildConfig {
   // metadata for BuildConfig.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // spec holds all the input necessary to produce a new build, and the conditions when
   // to trigger them.
@@ -89,7 +91,7 @@ message BuildConfig {
 // BuildConfigList is a collection of BuildConfigs.
 message BuildConfigList {
   // metadata for BuildConfigList.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of build configs
   repeated BuildConfig items = 2;
@@ -120,7 +122,7 @@ message BuildConfigStatus {
 // BuildList is a collection of Builds.
 message BuildList {
   // metadata for BuildList.
-  optional k8s.io.kubernetes.pkg.api.unversioned.ListMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // items is a list of builds
   repeated Build items = 2;
@@ -152,7 +154,7 @@ message BuildLogOptions {
   // precedes the time a pod was started, only logs since the pod start will be returned.
   // If this value is in the future, no logs will be returned.
   // Only one of sinceSeconds or sinceTime may be specified.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time sinceTime = 5;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time sinceTime = 5;
 
   // timestamps, If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line
   // of log output. Defaults to false.
@@ -289,7 +291,7 @@ message BuildPostCommitSpec {
 // BuildRequest is the resource used to pass parameters to build generator
 message BuildRequest {
   // metadata for BuildRequest.
-  optional k8s.io.kubernetes.pkg.api.v1.ObjectMeta metadata = 1;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // revision is the information from the source for a specific repo snapshot.
   optional SourceRevision revision = 2;
@@ -395,13 +397,13 @@ message BuildStatus {
   // startTimestamp is a timestamp representing the server time when this Build started
   // running in a Pod.
   // It is represented in RFC3339 form and is in UTC.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time startTimestamp = 5;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time startTimestamp = 5;
 
   // completionTimestamp is a timestamp representing the server time when this Build was
   // finished, whether that build failed or succeeded.  It reflects the time at which
   // the Pod running the Build terminated.
   // It is represented in RFC3339 form and is in UTC.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time completionTimestamp = 6;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time completionTimestamp = 6;
 
   // duration contains time.Duration object describing build time.
   optional int64 duration = 7;

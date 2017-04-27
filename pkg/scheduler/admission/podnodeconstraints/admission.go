@@ -7,14 +7,13 @@ import (
 
 	"github.com/golang/glog"
 
-	admission "k8s.io/kubernetes/pkg/admission"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/auth/authorizer"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/meta"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -24,12 +23,12 @@ import (
 
 // kindsToIgnore is a list of kinds that contain a PodSpec that
 // we choose not to handle in this plugin
-var kindsToIgnore = []unversioned.GroupKind{
+var kindsToIgnore = []schema.GroupKind{
 	extensions.Kind("DaemonSet"),
 }
 
 func init() {
-	admission.RegisterPlugin("PodNodeConstraints", func(c clientset.Interface, config io.Reader) (admission.Interface, error) {
+	admission.RegisterPlugin("PodNodeConstraints", func(config io.Reader) (admission.Interface, error) {
 		pluginConfig, err := readConfig(config)
 		if err != nil {
 			return nil, err
@@ -63,7 +62,7 @@ type podNodeConstraints struct {
 	authorizer             authorizer.Authorizer
 }
 
-func shouldCheckResource(resource unversioned.GroupResource, kind unversioned.GroupKind) (bool, error) {
+func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (bool, error) {
 	expectedKind, shouldCheck := meta.HasPodSpec(resource)
 	if !shouldCheck {
 		return false, nil

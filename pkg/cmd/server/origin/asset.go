@@ -12,6 +12,14 @@ import (
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/server"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kversion "k8s.io/kubernetes/pkg/version"
+
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/assets"
@@ -20,15 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oversion "github.com/openshift/origin/pkg/version"
-
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	"k8s.io/kubernetes/pkg/util/sets"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
-	kversion "k8s.io/kubernetes/pkg/version"
 )
 
 // WithAssets decorates a handler by serving static assets for the subpath of
@@ -175,9 +174,9 @@ func (c *AssetConfig) addHandlers(handler http.Handler) (http.Handler, error) {
 	originResources := sets.NewString()
 	k8sResources := sets.NewString()
 
-	versions := []unversioned.GroupVersion{}
-	versions = append(versions, registered.GroupOrDie(api.GroupName).GroupVersions...)
-	versions = append(versions, registered.GroupOrDie(kapi.GroupName).GroupVersions...)
+	versions := []schema.GroupVersion{}
+	versions = append(versions, kapi.Registry.GroupOrDie(api.GroupName).GroupVersions...)
+	versions = append(versions, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions...)
 	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
 	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
 	for _, version := range versions {
@@ -211,12 +210,12 @@ func (c *AssetConfig) addHandlers(handler http.Handler) (http.Handler, error) {
 	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
 		APIGroupAddr:          masterURL.Host,
-		APIGroupPrefix:        genericapiserver.APIGroupPrefix,
+		APIGroupPrefix:        server.APIGroupPrefix,
 		MasterAddr:            masterURL.Host,
 		MasterPrefix:          api.Prefix,
 		MasterResources:       originResources.List(),
 		KubernetesAddr:        masterURL.Host,
-		KubernetesPrefix:      genericapiserver.DefaultLegacyAPIPrefix,
+		KubernetesPrefix:      server.DefaultLegacyAPIPrefix,
 		KubernetesResources:   k8sResources.List(),
 		OAuthAuthorizeURI:     OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthTokenURI:         OpenShiftOAuthTokenURL(masterURL.String()),

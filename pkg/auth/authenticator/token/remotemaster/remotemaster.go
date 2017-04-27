@@ -1,8 +1,9 @@
 package remotemaster
 
 import (
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -35,7 +36,7 @@ func (a *Authenticator) AuthenticateToken(value string) (user.Info, bool, error)
 		return nil, false, err
 	}
 
-	u, err := c.Users().Get("~")
+	u, err := c.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

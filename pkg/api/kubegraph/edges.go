@@ -5,11 +5,11 @@ import (
 
 	"github.com/gonum/graph"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -130,7 +130,7 @@ func AddMountedSecretEdges(g osgraph.Graph, podSpec *kubegraph.PodSpecNode) {
 	containerNode := osgraph.GetTopLevelContainerNode(g, podSpec)
 	containerObj := g.GraphDescriber.Object(containerNode)
 
-	meta, err := kapi.ObjectMetaFor(containerObj.(runtime.Object))
+	meta, err := metav1.ObjectMetaFor(containerObj.(runtime.Object))
 	if err != nil {
 		// this should never happen.  it means that a podSpec is owned by a top level container that is not a runtime.Object
 		panic(err)
@@ -184,7 +184,7 @@ func AddRequestedServiceAccountEdges(g osgraph.Graph, podSpecNode *kubegraph.Pod
 	containerNode := osgraph.GetTopLevelContainerNode(g, podSpecNode)
 	containerObj := g.GraphDescriber.Object(containerNode)
 
-	meta, err := kapi.ObjectMetaFor(containerObj.(runtime.Object))
+	meta, err := metav1.ObjectMetaFor(containerObj.(runtime.Object))
 	if err != nil {
 		panic(err)
 	}
@@ -215,29 +215,30 @@ func AddHPAScaleRefEdges(g osgraph.Graph) {
 	for _, node := range g.NodesByKind(kubegraph.HorizontalPodAutoscalerNodeKind) {
 		hpaNode := node.(*kubegraph.HorizontalPodAutoscalerNode)
 
-		syntheticMeta := kapi.ObjectMeta{
+		syntheticMeta := metav1.ObjectMeta{
 			Name:      hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Name,
 			Namespace: hpaNode.HorizontalPodAutoscaler.Namespace,
 		}
 
-		var groupVersionResource unversioned.GroupVersionResource
+		var groupVersionResource schema.GroupVersionResource
 		resource := strings.ToLower(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.Kind)
-		if groupVersion, err := unversioned.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
+		if groupVersion, err := schema.ParseGroupVersion(hpaNode.HorizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion); err == nil {
 			groupVersionResource = groupVersion.WithResource(resource)
 		} else {
-			groupVersionResource = unversioned.GroupVersionResource{Resource: resource}
+			groupVersionResource = schema.GroupVersionResource{Resource: resource}
 		}
 
-		groupVersionResource, err := registered.RESTMapper().ResourceFor(groupVersionResource)
+		groupVersionResource, err := kapi.Registry.RESTMapper().ResourceFor(groupVersionResource)
 		if err != nil {
 			continue
 		}
 
 		var syntheticNode graph.Node
-		switch groupVersionResource.GroupResource() {
-		case kapi.Resource("replicationcontrollers"):
+		r := groupVersionResource.GroupResource()
+		switch {
+		case r == kapi.Resource("replicationcontrollers"):
 			syntheticNode = kubegraph.FindOrCreateSyntheticReplicationControllerNode(g, &kapi.ReplicationController{ObjectMeta: syntheticMeta})
-		case deployapi.Resource("deploymentconfigs"):
+		case deployapi.IsResourceOrLegacy("deploymentconfigs", r):
 			syntheticNode = deploygraph.FindOrCreateSyntheticDeploymentConfigNode(g, &deployapi.DeploymentConfig{ObjectMeta: syntheticMeta})
 		default:
 			continue

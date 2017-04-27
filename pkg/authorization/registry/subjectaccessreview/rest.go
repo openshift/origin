@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/runtime"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
@@ -31,7 +31,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new ResourceAccessReview instance to r.registry.
-func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	subjectAccessReview, ok := obj.(*authorizationapi.SubjectAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a subjectAccessReview: %#v", obj))
@@ -40,7 +40,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 		return nil, kapierrors.NewInvalid(authorizationapi.Kind(subjectAccessReview.Kind), "", errs)
 	}
 
-	requestingUser, ok := kapi.UserFrom(ctx)
+	requestingUser, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kapierrors.NewInternalError(errors.New("missing user on request"))
 	}
@@ -48,7 +48,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	// if a namespace is present on the request, then the namespace on the on the SAR is overwritten.
 	// This is to support backwards compatibility.  To have gotten here in this state, it means that
 	// the authorizer decided that a user could run an SAR against this namespace
-	if namespace := kapi.NamespaceValue(ctx); len(namespace) > 0 {
+	if namespace := apirequest.NamespaceValue(ctx); len(namespace) > 0 {
 		subjectAccessReview.Action.Namespace = namespace
 
 	} else if err := r.isAllowed(requestingUser, subjectAccessReview); err != nil {
@@ -60,7 +60,7 @@ func (r *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 	var userToCheck *user.DefaultInfo
 	if (len(subjectAccessReview.User) == 0) && (len(subjectAccessReview.Groups) == 0) {
 		// if no user or group was specified, use the info from the context
-		ctxUser, exists := kapi.UserFrom(ctx)
+		ctxUser, exists := apirequest.UserFrom(ctx)
 		if !exists {
 			return nil, kapierrors.NewBadRequest("user missing from context")
 		}

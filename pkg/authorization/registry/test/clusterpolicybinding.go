@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/watch"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -27,23 +29,27 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 	return &ClusterPolicyBindingRegistry{bindingMap, err}
 }
 
-func (r *ClusterPolicyBindingRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return r.ListClusterPolicyBindings(kapi.NewContext(), &options)
+func (r *ClusterPolicyBindingRegistry) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	var internalOptions metainternal.ListOptions
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internalOptions, nil); err != nil {
+		return nil, err
+	}
+	return r.ListClusterPolicyBindings(apirequest.NewContext(), &internalOptions)
 }
-func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	return r.GetClusterPolicyBinding(kapi.NewContext(), name)
+func (r *ClusterPolicyBindingRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.GetClusterPolicyBinding(apirequest.NewContext(), name, &options)
 }
 
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.
-func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	list := make([]authorizationapi.ClusterPolicyBinding, 0)
 
-	if namespace == kapi.NamespaceAll {
+	if namespace == metav1.NamespaceAll {
 		for _, curr := range r.clusterPolicyBindings {
 			for _, binding := range curr {
 				list = append(list, binding)
@@ -65,12 +71,12 @@ func (r *ClusterPolicyBindingRegistry) ListClusterPolicyBindings(ctx kapi.Contex
 }
 
 // GetClusterPolicyBinding retrieves a specific policyBinding.
-func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx kapi.Context, id string) (*authorizationapi.ClusterPolicyBinding, error) {
+func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return nil, errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -85,16 +91,16 @@ func (r *ClusterPolicyBindingRegistry) GetClusterPolicyBinding(ctx kapi.Context,
 }
 
 // CreateClusterPolicyBinding creates a new policyBinding.
-func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
+func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing != nil {
+	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing != nil {
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
@@ -104,16 +110,16 @@ func (r *ClusterPolicyBindingRegistry) CreateClusterPolicyBinding(ctx kapi.Conte
 }
 
 // UpdateClusterPolicyBinding updates a policyBinding.
-func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
+func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name); existing == nil {
+	if existing, _ := r.GetClusterPolicyBinding(ctx, policyBinding.Name, &metav1.GetOptions{}); existing == nil {
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicybinding"), policyBinding.Name)
 	}
 
@@ -123,12 +129,12 @@ func (r *ClusterPolicyBindingRegistry) UpdateClusterPolicyBinding(ctx kapi.Conte
 }
 
 // DeleteClusterPolicyBinding deletes a policyBinding.
-func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx kapi.Context, id string) error {
+func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx apirequest.Context, id string) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -141,7 +147,7 @@ func (r *ClusterPolicyBindingRegistry) DeleteClusterPolicyBinding(ctx kapi.Conte
 	return nil
 }
 
-func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyBindingRegistry) WatchClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

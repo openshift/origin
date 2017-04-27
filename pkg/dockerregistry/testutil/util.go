@@ -21,10 +21,11 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -219,10 +220,10 @@ const SampleImageManifestSchema1 = `{
 
 // GetFakeImageGetHandler returns a reaction function for use with fake os client returning one of given image
 // objects if found.
-func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) core.ReactionFunc {
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) clientgotesting.ReactionFunc {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case core.GetAction:
+		case clientgotesting.GetAction:
 			for _, is := range imgs {
 				if a.GetName() == is.Name {
 					t.Logf("images get handler: returning image %s", is.Name)
@@ -241,10 +242,10 @@ func GetFakeImageGetHandler(t *testing.T, imgs ...imageapi.Image) core.ReactionF
 // GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with core.Fake client
 // that handles Get request on image stream resource. Matching is from given image stream list will be
 // returned if found. Additionally, a shared image stream may be requested.
-func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) core.ReactionFunc {
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) clientgotesting.ReactionFunc {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case core.GetAction:
+		case clientgotesting.GetAction:
 			for _, is := range iss {
 				if is.Namespace == a.GetNamespace() && a.GetName() == is.Name {
 					t.Logf("imagestream get handler: returning image stream %s/%s", is.Namespace, is.Name)
@@ -263,7 +264,7 @@ func GetFakeImageStreamGetHandler(t *testing.T, iss ...imageapi.ImageStream) cor
 // TestNewImageStreamObject returns a new image stream object filled with given values.
 func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageReference string) *imageapi.ImageStream {
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -284,10 +285,10 @@ func TestNewImageStreamObject(namespace, name, tag, imageName, dockerImageRefere
 
 // GetFakeImageStreamImageGetHandler returns a reaction function for use
 // with fake os client returning one of given imagestream image objects if found.
-func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, imgs ...imageapi.Image) core.ReactionFunc {
-	return func(action core.Action) (handled bool, ret runtime.Object, err error) {
+func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, imgs ...imageapi.Image) clientgotesting.ReactionFunc {
+	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		switch a := action.(type) {
-		case core.GetAction:
+		case clientgotesting.GetAction:
 			for _, is := range imgs {
 				name, imageID, err := imageapi.ParseImageStreamImageName(a.GetName())
 				if err != nil {
@@ -301,7 +302,7 @@ func GetFakeImageStreamImageGetHandler(t *testing.T, iss *imageapi.ImageStream, 
 				t.Logf("imagestreamimage get handler: returning image %s", is.Name)
 
 				isi := imageapi.ImageStreamImage{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Namespace:         is.Namespace,
 						Name:              imageapi.MakeImageStreamImageName(name, imageID),
 						CreationTimestamp: is.ObjectMeta.CreationTimestamp,

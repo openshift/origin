@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // NEVER TOUCH ANYTHING IN THIS FILE!

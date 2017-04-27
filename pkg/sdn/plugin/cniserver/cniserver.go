@@ -13,8 +13,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 // *** The CNIServer is PRIVATE API between OpenShift SDN components and may be

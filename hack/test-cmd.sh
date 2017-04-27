@@ -226,7 +226,7 @@ for test in "${tests[@]}"; do
   os::cmd::expect_success "oc project ${CLUSTER_ADMIN_CONTEXT}"
   os::cmd::expect_success "oc new-project '${namespace}'"
   # wait for the project cache to catch up and correctly list us in the new project
-  os::cmd::try_until_text "oc get projects -o name" "project/${namespace}"
+  os::cmd::try_until_text "oc get projects -o name" "projects/${namespace}"
   os::test::junit::declare_suite_end
 
   if ! ${test}; then

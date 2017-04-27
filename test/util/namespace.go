@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/cmd/util"
 )
@@ -31,14 +32,14 @@ func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = clusterAdminKubeClient.Namespaces().Create(&kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{Name: name},
+	_, err = clusterAdminKubeClient.Core().Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 	})
 	return err
 }
 
-func DeleteAndWaitForNamespaceTermination(c *kclientset.Clientset, name string) error {
-	w, err := c.Core().Namespaces().Watch(kapi.ListOptions{})
+func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) error {
+	w, err := c.Core().Namespaces().Watch(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

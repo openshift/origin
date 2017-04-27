@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 func testKeyFunc(obj interface{}) (string, error) {
@@ -238,7 +238,7 @@ func TestEventQueueDeltaCompressor(t *testing.T) {
 func TestEventQueueDeltaCompressorDeletedFinalStateUnknown(t *testing.T) {
 	deletedObj := cache.DeletedFinalStateUnknown{
 		Key: "namespace1/obj1",
-		Obj: &api.ObjectMeta{Name: "obj1", Namespace: "namespace1"},
+		Obj: &metav1.ObjectMeta{Name: "obj1", Namespace: "namespace1"},
 	}
 	initial := cache.Deltas{
 		{
@@ -270,7 +270,7 @@ func TestEventQueueDeltaCompressorDeletedFinalStateUnknown2(t *testing.T) {
 			Type: cache.Deleted,
 			Object: cache.DeletedFinalStateUnknown{
 				Key: "namespace1/obj1",
-				Obj: &api.ObjectMeta{Name: "obj1", Namespace: "namespace1"},
+				Obj: &metav1.ObjectMeta{Name: "obj1", Namespace: "namespace1"},
 			},
 		},
 	}
@@ -602,8 +602,8 @@ func TestEventQueueUncompressed(t *testing.T) {
 func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
 	queue := NewEventQueue(DeletionHandlingMetaNamespaceKeyFunc)
 
-	obj1 := &api.ObjectMeta{Name: "obj1", Namespace: "namespace1"}
-	obj2 := &api.ObjectMeta{Name: "obj2", Namespace: "namespace1"}
+	obj1 := &metav1.ObjectMeta{Name: "obj1", Namespace: "namespace1"}
+	obj2 := &metav1.ObjectMeta{Name: "obj2", Namespace: "namespace1"}
 
 	// Make sure objects are in knownObjects but not in the delta queue,
 	// to ensure we get DeletedFinalStateUnknown delta objects
@@ -642,18 +642,18 @@ func TestEventQueueDeletedFinalStateUnknown(t *testing.T) {
 	// This should create two DeletedFinalStateUnknown objects
 	queue.Replace([]interface{}{}, "123")
 
-	// Now test that we only get api.ObjectMeta objects since we passed that
+	// Now test that we only get metav1.ObjectMeta objects since we passed that
 	// as the expected type
 	called = false
 	if _, err := queue.Pop(func(delta cache.Delta) error {
 		called = true
-		if _, ok := delta.Object.(*api.ObjectMeta); !ok {
+		if _, ok := delta.Object.(*metav1.ObjectMeta); !ok {
 			// Capture error that Pop() logs the error but doesn't return
 			processErr = fmt.Errorf("unexpected item type %T", delta.Object)
 			return processErr
 		}
 		return nil
-	}, &api.ObjectMeta{}); err != nil {
+	}, &metav1.ObjectMeta{}); err != nil {
 		t.Fatalf(fmt.Sprintf("%v", err))
 	}
 	if !called {

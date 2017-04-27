@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -16,11 +17,11 @@ import (
 func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) client.Interface {
 	fake := &testclient.Fake{}
 
-	fake.AddReactor("list", "imagestreams", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	fake.AddReactor("list", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, imageStreams, nil
 	})
-	fake.AddReactor("get", "imagestreamimages", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		return true, images[action.(core.GetAction).GetName()], nil
+	fake.AddReactor("get", "imagestreamimages", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, images[action.(clientgotesting.GetAction).GetName()], nil
 	})
 
 	return fake
@@ -423,7 +424,7 @@ func fakeImageStreams(descs ...*fakeImageStreamDesc) (*imageapi.ImageStreamList,
 
 func fakeImageStream(desc *fakeImageStreamDesc) (*imageapi.ImageStream, map[string]*imageapi.ImageStreamImage) {
 	stream := &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      desc.name,
 			Namespace: "namespace",
 		},
@@ -482,7 +483,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			name: "image stream",
 			match: &ComponentMatch{
 				ImageStream: &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},
@@ -497,7 +498,7 @@ func TestInputImageFromMatch(t *testing.T) {
 			name: "image stream with tag",
 			match: &ComponentMatch{
 				ImageStream: &imageapi.ImageStream{
-					ObjectMeta: kapi.ObjectMeta{
+					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testimage",
 						Namespace: "myns",
 					},

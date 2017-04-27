@@ -2,12 +2,12 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/image/clientset/internalclientset/typed/image/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeImage struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeImage) Images() internalversion.ImageResourceInterface {
@@ -16,7 +16,7 @@ func (c *FakeImage) Images() internalversion.ImageResourceInterface {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeImage) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeImage) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

@@ -61,7 +61,7 @@ func TestClientSet_v1_3(t *testing.T) {
 		if _, err := c.Builds(namespace).Create(build); err != nil {
 			t.Fatal(err)
 		}
-		result, err := c.Builds(namespace).List(kapiv1.ListOptions{})
+		result, err := c.Builds(namespace).List(kmetav1.ListOptions{})
 		if err != nil {
 			t.Fatal(err)
 		}

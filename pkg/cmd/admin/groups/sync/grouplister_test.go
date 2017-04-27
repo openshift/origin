@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -24,7 +24,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 	}{
 		"good": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -35,7 +35,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no url annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -43,7 +43,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no uid annotation": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -51,13 +51,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"no match: different port": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -68,13 +68,13 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 		},
 		"blacklist": {
 			startingGroups: []runtime.Object{
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				&userapi.Group{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				&userapi.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -111,7 +111,7 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 
 func TestListAllOpenShiftGroupsListErr(t *testing.T) {
 	listFailClient := testclient.NewSimpleFake()
-	listFailClient.PrependReactor("list", "groups", func(action core.Action) (bool, runtime.Object, error) {
+	listFailClient.PrependReactor("list", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
@@ -139,7 +139,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 	}{
 		"good": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -151,7 +151,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no url annotation": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -160,7 +160,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no uid annotation": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
 					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
 			},
@@ -169,7 +169,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"no match: different port": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port2",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
@@ -181,13 +181,13 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		},
 		"blacklist": {
 			startingGroups: []*userapi.Group{
-				{ObjectMeta: kapi.ObjectMeta{Name: "alpha",
+				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "alpha-uid",
 					},
 					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
-				{ObjectMeta: kapi.ObjectMeta{Name: "beta",
+				{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
 						ldaputil.LDAPURLAnnotation: "test-host:port",
 						ldaputil.LDAPUIDAnnotation: "beta-uid",
@@ -202,12 +202,12 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 
 	for name, testCase := range testCases {
 		fakeClient := testclient.NewSimpleFake()
-		fakeClient.PrependReactor("get", "groups", func(action core.Action) (bool, runtime.Object, error) {
+		fakeClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 			groups := map[string]*userapi.Group{}
 			for _, group := range testCase.startingGroups {
 				groups[group.Name] = group
 			}
-			if group, exists := groups[action.(core.GetAction).GetName()]; exists {
+			if group, exists := groups[action.(clientgotesting.GetAction).GetName()]; exists {
 				return true, group, nil
 			}
 			return false, nil, nil
@@ -235,7 +235,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 
 func TestListOpenShiftGroupsListErr(t *testing.T) {
 	listFailClient := testclient.NewSimpleFake()
-	listFailClient.PrependReactor("get", "groups", func(action core.Action) (bool, runtime.Object, error) {
+	listFailClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 

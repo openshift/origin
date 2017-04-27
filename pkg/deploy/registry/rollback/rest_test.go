@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -31,7 +32,7 @@ var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -44,7 +45,7 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -57,16 +58,16 @@ func TestCreateInvalid(t *testing.T) {
 
 func TestCreateOk(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
 	kc := &fake.Clientset{}
-	kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -88,11 +89,11 @@ func TestCreateOk(t *testing.T) {
 
 func TestCreateRollbackToLatest(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
 
-	_, err := NewREST(oc, &fake.Clientset{}, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := NewREST(oc, &fake.Clientset{}, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
@@ -109,11 +110,11 @@ func TestCreateRollbackToLatest(t *testing.T) {
 
 func TestCreateGeneratorError(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
 	kc := &fake.Clientset{}
-	kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
 		return true, deployment, nil
 	})
@@ -125,7 +126,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
 
-	_, err := rest.Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	_, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -139,16 +140,16 @@ func TestCreateGeneratorError(t *testing.T) {
 
 func TestCreateMissingDeployment(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
 	kc := &fake.Clientset{}
-	kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
 		return true, nil, kerrors.NewNotFound(kapi.Resource("replicationController"), deployment.Name)
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -166,18 +167,18 @@ func TestCreateMissingDeployment(t *testing.T) {
 
 func TestCreateInvalidDeployment(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
 	kc := &fake.Clientset{}
-	kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		// invalidate the encoded config
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentEncodedConfigAnnotation] = ""
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
@@ -195,17 +196,17 @@ func TestCreateInvalidDeployment(t *testing.T) {
 
 func TestCreateMissingDeploymentConfig(t *testing.T) {
 	oc := &testclient.Fake{}
-	oc.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		dc := deploytest.OkDeploymentConfig(2)
 		return true, nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), dc.Name)
 	})
 	kc := &fake.Clientset{}
-	kc.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kc.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
 		return true, deployment, nil
 	})
 
-	obj, err := NewREST(oc, kc, codec).Create(kapi.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
+	obj, err := NewREST(oc, kc, codec).Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{
 		Name: "config",
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,

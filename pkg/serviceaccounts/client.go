@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -18,7 +20,7 @@ type TokenRetriever interface {
 
 // ClientLookupTokenRetriever uses its client to look up a service account token
 type ClientLookupTokenRetriever struct {
-	Client kclientset.Interface
+	Client kclientsetinternal.Interface
 }
 
 // GetToken returns a token for the named service account or an error if none existed after a timeout
@@ -30,7 +32,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		}
 
 		// Get the service account
-		serviceAccount, err := s.Client.Core().ServiceAccounts(namespace).Get(name)
+		serviceAccount, err := s.Client.Core().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}
@@ -38,7 +40,7 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 		// Get the secrets
 		// TODO: JTL: create one directly once we have that ability
 		for _, secretRef := range serviceAccount.Secrets {
-			secret, err2 := s.Client.Core().Secrets(namespace).Get(secretRef.Name)
+			secret, err2 := s.Client.Core().Secrets(namespace).Get(secretRef.Name, metav1.GetOptions{})
 			if err2 != nil {
 				// Tolerate fetch errors on a particular secret
 				continue
@@ -55,7 +57,12 @@ func (s *ClientLookupTokenRetriever) GetToken(namespace, name string) (string, e
 
 // Clients returns an OpenShift and Kubernetes client with the credentials of the named service account
 // TODO: change return types to client.Interface/kclientset.Interface to allow auto-reloading credentials
-func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace, name string) (*restclient.Config, *client.Client, *kclientset.Clientset, error) {
+func Clients(
+	config restclient.Config,
+	tokenRetriever TokenRetriever,
+	namespace,
+	name string,
+) (*restclient.Config, *client.Client, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
 	// Clear existing auth info
 	config.Username = ""
 	config.Password = ""
@@ -82,23 +89,28 @@ func Clients(config restclient.Config, tokenRetriever TokenRetriever, namespace,
 	// TODO: refetch the token if the client encounters 401 errors
 	token, err := tokenRetriever.GetToken(namespace, name)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	config.BearerToken = token
 
 	config.UserAgent = openshiftUserAgent
 	c, err := client.New(&config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	config.UserAgent = kubeUserAgent
-	kcset, err := kclientset.NewForConfig(&config)
+	internalKubeClientset, err := kclientsetinternal.NewForConfig(&config)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return &config, c, kcset, nil
+	externalKubeClientset, err := kclientsetexternal.NewForConfig(&config)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return &config, c, internalKubeClientset, externalKubeClientset, nil
 }
 
 // IsValidServiceAccountToken returns true if the given secret contains a service account token valid for the given service account

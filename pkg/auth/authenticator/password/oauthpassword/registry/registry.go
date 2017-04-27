@@ -5,8 +5,9 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	oclient "github.com/openshift/origin/pkg/oauth/client"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	restclient "k8s.io/client-go/rest"
 )
 
 type OAuthAccessTokenSource interface {
@@ -38,7 +39,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	if err != nil {
 		return nil, false, err
 	}
-	u, err := client.Users().Get("~")
+	u, err := client.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

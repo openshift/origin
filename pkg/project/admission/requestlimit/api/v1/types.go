@@ -1,14 +1,14 @@
 package v1
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ProjectRequestLimitConfig is the configuration for the project request limit plug-in
 // It contains an ordered list of limits based on user label selectors. Selectors will
 // be checked in order and the first one that applies will be used as the limit.
 type ProjectRequestLimitConfig struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
 	// Limits are the project request limits
 	Limits []ProjectLimitBySelector `json:"limits",description:"project request limits"`

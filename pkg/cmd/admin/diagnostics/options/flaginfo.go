@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/pflag"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 )
 
 // FlagInfos serve as a customizable intermediary between the command flags and

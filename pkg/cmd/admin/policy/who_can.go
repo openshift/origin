@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -26,7 +26,7 @@ type whoCanOptions struct {
 	client           *client.Client
 
 	verb         string
-	resource     unversioned.GroupVersionResource
+	resource     schema.GroupVersionResource
 	resourceName string
 }
 
@@ -75,9 +75,9 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
 	return nil
 }
 
-func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVersionResource {
-	fullySpecifiedGVR, groupResource := unversioned.ParseResourceArg(strings.ToLower(resourceArg))
-	gvr := unversioned.GroupVersionResource{}
+func resourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersionResource {
+	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(strings.ToLower(resourceArg))
+	gvr := schema.GroupVersionResource{}
 	if fullySpecifiedGVR != nil {
 		gvr, _ = mapper.ResourceFor(*fullySpecifiedGVR)
 	}
@@ -85,7 +85,7 @@ func resourceFor(mapper meta.RESTMapper, resourceArg string) unversioned.GroupVe
 		var err error
 		gvr, err = mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {
-			return unversioned.GroupVersionResource{Resource: resourceArg}
+			return schema.GroupVersionResource{Resource: resourceArg}
 		}
 	}
 
@@ -112,7 +112,7 @@ func (o *whoCanOptions) run() error {
 		return err
 	}
 
-	if resourceAccessReviewResponse.Namespace == kapi.NamespaceAll {
+	if resourceAccessReviewResponse.Namespace == metav1.NamespaceAll {
 		fmt.Printf("Namespace: <all>\n")
 	} else {
 		fmt.Printf("Namespace: %s\n", resourceAccessReviewResponse.Namespace)

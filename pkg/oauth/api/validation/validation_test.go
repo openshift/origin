@@ -3,8 +3,9 @@ package validation
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/oauth/api"
 )
@@ -88,7 +89,7 @@ func TestValidateRedirectURI(t *testing.T) {
 
 func TestValidateClientAuthorization(t *testing.T) {
 	errs := ValidateClientAuthorization(&oapi.OAuthClientAuthorization{
-		ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+		ObjectMeta: metav1.ObjectMeta{Name: "myusername:myclientname"},
 		ClientName: "myclientname",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -113,7 +114,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"invalid name": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "anotheruser:anotherclient"},
+				ObjectMeta: metav1.ObjectMeta{Name: "anotheruser:anotherclient"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -123,7 +124,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"disallowed namespace": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname", Namespace: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "myusername:myclientname", Namespace: "foo"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -133,7 +134,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"no scope handler": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ObjectMeta: metav1.ObjectMeta{Name: "myusername:myclientname"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -144,7 +145,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 		},
 		"bad scope": {
 			A: oapi.OAuthClientAuthorization{
-				ObjectMeta: api.ObjectMeta{Name: "myusername:myclientname"},
+				ObjectMeta: metav1.ObjectMeta{Name: "myusername:myclientname"},
 				ClientName: "myclientname",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -173,7 +174,7 @@ func TestValidateClientAuthorization(t *testing.T) {
 
 func TestValidateClient(t *testing.T) {
 	errs := ValidateClient(&oapi.OAuthClient{
-		ObjectMeta: api.ObjectMeta{Name: "client-name"},
+		ObjectMeta: metav1.ObjectMeta{Name: "client-name"},
 	})
 	if len(errs) != 0 {
 		t.Errorf("expected success: %v", errs)
@@ -190,13 +191,13 @@ func TestValidateClient(t *testing.T) {
 			F:      "metadata.name",
 		},
 		"disallowed namespace": {
-			Client: oapi.OAuthClient{ObjectMeta: api.ObjectMeta{Name: "name", Namespace: "foo"}},
+			Client: oapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: "name", Namespace: "foo"}},
 			T:      field.ErrorTypeForbidden,
 			F:      "metadata.namespace",
 		},
 		"literal must have value": {
 			Client: oapi.OAuthClient{
-				ObjectMeta:        api.ObjectMeta{Name: "client-name"},
+				ObjectMeta:        metav1.ObjectMeta{Name: "client-name"},
 				ScopeRestrictions: []oapi.ScopeRestriction{{ExactValues: []string{""}}},
 			},
 			T: field.ErrorTypeInvalid,
@@ -204,7 +205,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		"must have role names": {
 			Client: oapi.OAuthClient{
-				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ObjectMeta: metav1.ObjectMeta{Name: "client-name"},
 				ScopeRestrictions: []oapi.ScopeRestriction{
 					{
 						ClusterRole: &oapi.ClusterRoleScopeRestriction{Namespaces: []string{"b"}},
@@ -216,7 +217,7 @@ func TestValidateClient(t *testing.T) {
 		},
 		"must have namespaces": {
 			Client: oapi.OAuthClient{
-				ObjectMeta: api.ObjectMeta{Name: "client-name"},
+				ObjectMeta: metav1.ObjectMeta{Name: "client-name"},
 				ScopeRestrictions: []oapi.ScopeRestriction{
 					{
 						ClusterRole: &oapi.ClusterRoleScopeRestriction{RoleNames: []string{"a"}},
@@ -246,7 +247,7 @@ func TestValidateClient(t *testing.T) {
 
 func TestValidateAccessTokens(t *testing.T) {
 	errs := ValidateAccessToken(&oapi.OAuthAccessToken{
-		ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+		ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -271,7 +272,7 @@ func TestValidateAccessTokens(t *testing.T) {
 		},
 		"disallowed namespace": {
 			Token: oapi.OAuthAccessToken{
-				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength", Namespace: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -281,7 +282,7 @@ func TestValidateAccessTokens(t *testing.T) {
 		},
 		"no scope handler": {
 			Token: oapi.OAuthAccessToken{
-				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -292,7 +293,7 @@ func TestValidateAccessTokens(t *testing.T) {
 		},
 		"bad scope": {
 			Token: oapi.OAuthAccessToken{
-				ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -321,7 +322,7 @@ func TestValidateAccessTokens(t *testing.T) {
 
 func TestValidateAuthorizeTokens(t *testing.T) {
 	errs := ValidateAuthorizeToken(&oapi.OAuthAuthorizeToken{
-		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+		ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -347,7 +348,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"zero-length client name": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
 			},
@@ -356,7 +357,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"zero-length user name": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserUID:    "myuseruid",
 			},
@@ -365,7 +366,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"zero-length user uid": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 			},
@@ -374,7 +375,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"disallowed namespace": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", Namespace: "foo"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", Namespace: "foo"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -384,7 +385,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"no scope handler": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -395,7 +396,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"bad scope": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -406,7 +407,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 		},
 		"illegal character": {
 			Token: oapi.OAuthAuthorizeToken{
-				ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
+				ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength"},
 				ClientName: "myclient",
 				UserName:   "myusername",
 				UserUID:    "myuseruid",
@@ -435,7 +436,7 @@ func TestValidateAuthorizeTokens(t *testing.T) {
 
 func TestValidateAccessTokensUpdate(t *testing.T) {
 	valid := &oapi.OAuthAccessToken{
-		ObjectMeta: api.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "accessTokenNameWithMinimumLength", ResourceVersion: "1"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",
@@ -490,7 +491,7 @@ func TestValidateAccessTokensUpdate(t *testing.T) {
 
 func TestValidateAuthorizeTokensUpdate(t *testing.T) {
 	valid := &oapi.OAuthAuthorizeToken{
-		ObjectMeta: api.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", ResourceVersion: "1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "authorizeTokenNameWithMinimumLength", ResourceVersion: "1"},
 		ClientName: "myclient",
 		UserName:   "myusername",
 		UserUID:    "myuseruid",

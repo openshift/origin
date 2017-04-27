@@ -9,10 +9,11 @@ import (
 	"regexp"
 	"time"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -95,7 +96,7 @@ func (d *ClusterRouter) CanRun() (bool, error) {
 		return false, errors.New("must have kube and os client")
 	}
 	can, err := userCan(d.OsClient, authorizationapi.Action{
-		Namespace:    kapi.NamespaceDefault,
+		Namespace:    metav1.NamespaceDefault,
 		Verb:         "get",
 		Group:        deployapi.GroupName,
 		Resource:     "deploymentconfigs",
@@ -124,7 +125,7 @@ func (d *ClusterRouter) Check() types.DiagnosticResult {
 }
 
 func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.DeploymentConfig {
-	dc, err := d.OsClient.DeploymentConfigs(kapi.NamespaceDefault).Get(routerName)
+	dc, err := d.OsClient.DeploymentConfigs(metav1.NamespaceDefault).Get(routerName, metav1.GetOptions{})
 	if err != nil && reflect.TypeOf(err) == reflect.TypeOf(&kerrs.StatusError{}) {
 		r.Warn("DClu2001", err, fmt.Sprintf(clGetRtNone, routerName))
 		return nil
@@ -137,7 +138,7 @@ func (d *ClusterRouter) getRouterDC(r types.DiagnosticResult) *deployapi.Deploym
 }
 
 func (d *ClusterRouter) getRouterPods(dc *deployapi.DeploymentConfig, r types.DiagnosticResult) *kapi.PodList {
-	pods, err := d.KubeClient.Core().Pods(kapi.NamespaceDefault).List(kapi.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector)})
+	pods, err := d.KubeClient.Core().Pods(metav1.NamespaceDefault).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(dc.Spec.Selector).String()})
 	if err != nil {
 		r.Error("DClu2004", err, fmt.Sprintf("Finding pods for '%s' DeploymentConfig failed. This should never happen. Error: (%[2]T) %[2]v", routerName, err))
 		return nil

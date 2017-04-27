@@ -2,16 +2,16 @@ package localsubjectaccessreview
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 type Registry interface {
-	CreateLocalSubjectAccessReview(ctx kapi.Context, subjectAccessReview *api.LocalSubjectAccessReview) (*api.SubjectAccessReviewResponse, error)
+	CreateLocalSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *api.LocalSubjectAccessReview) (*api.SubjectAccessReviewResponse, error)
 }
 
 type Storage interface {
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
 }
 
 type storage struct {
@@ -22,7 +22,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) CreateLocalSubjectAccessReview(ctx kapi.Context, subjectAccessReview *api.LocalSubjectAccessReview) (*api.SubjectAccessReviewResponse, error) {
+func (s *storage) CreateLocalSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *api.LocalSubjectAccessReview) (*api.SubjectAccessReviewResponse, error) {
 	obj, err := s.Create(ctx, subjectAccessReview)
 	if err != nil {
 		return nil, err

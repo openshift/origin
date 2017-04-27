@@ -3,11 +3,11 @@ package plugin
 import (
 	"fmt"
 
+	utilsets "k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/container"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
-	utilsets "k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/golang/glog"
 )
@@ -41,8 +41,8 @@ func (node *OsdnNode) Capabilities() utilsets.Int {
 	return utilsets.NewInt(knetwork.NET_PLUGIN_CAPABILITY_SHAPING)
 }
 
-func (node *OsdnNode) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID) error {
-	return node.kubeletCniPlugin.SetUpPod(namespace, name, id)
+func (node *OsdnNode) SetUpPod(namespace string, name string, id kubeletTypes.ContainerID, annotations map[string]string) error {
+	return node.kubeletCniPlugin.SetUpPod(namespace, name, id, annotations)
 }
 
 func (node *OsdnNode) TearDownPod(namespace string, name string, id kubeletTypes.ContainerID) error {

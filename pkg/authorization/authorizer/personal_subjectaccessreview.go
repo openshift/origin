@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apiserver/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -74,7 +74,7 @@ func isPersonalAccessReviewFromRequest(req *http.Request, requestInfo *request.R
 	}
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-	defaultGVK := unversioned.GroupVersionKind{Version: requestInfo.APIVersion, Group: requestInfo.APIGroup}
+	defaultGVK := schema.GroupVersionKind{Version: requestInfo.APIVersion, Group: requestInfo.APIGroup}
 	switch strings.ToLower(requestInfo.Resource) {
 	case "subjectaccessreviews":
 		defaultGVK.Kind = "SubjectAccessReview"

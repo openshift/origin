@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	kmeta "k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 )
@@ -28,7 +29,7 @@ func AddObjectLabelsWithFlags(obj runtime.Object, labels labels.Set, flags int) 
 	accessor, err := kmeta.Accessor(obj)
 
 	if err != nil {
-		if _, ok := obj.(*runtime.Unstructured); !ok {
+		if _, ok := obj.(*unstructured.Unstructured); !ok {
 			// error out if it's not possible to get an accessor and it's also not an unstructured object
 			return err
 		}
@@ -56,7 +57,7 @@ func AddObjectLabelsWithFlags(obj runtime.Object, labels labels.Set, flags int) 
 
 	// handle unstructured object
 	// TODO: allow meta.Accessor to handle runtime.Unstructured
-	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+	if unstruct, ok := obj.(*unstructured.Unstructured); ok && unstruct.Object != nil {
 		// the presence of "metadata" is sufficient for us to apply the rules for Kube-like
 		// objects.
 		// TODO: add swagger detection to allow this to happen more effectively
@@ -111,7 +112,7 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 	accessor, err := kmeta.Accessor(obj)
 
 	if err != nil {
-		if _, ok := obj.(*runtime.Unstructured); !ok {
+		if _, ok := obj.(*unstructured.Unstructured); !ok {
 			// error out if it's not possible to get an accessor and it's also not an unstructured object
 			return err
 		}
@@ -136,7 +137,7 @@ func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) err
 
 	// handle unstructured object
 	// TODO: allow meta.Accessor to handle runtime.Unstructured
-	if unstruct, ok := obj.(*runtime.Unstructured); ok && unstruct.Object != nil {
+	if unstruct, ok := obj.(*unstructured.Unstructured); ok && unstruct.Object != nil {
 		// the presence of "metadata" is sufficient for us to apply the rules for Kube-like
 		// objects.
 		// TODO: add swagger detection to allow this to happen more effectively

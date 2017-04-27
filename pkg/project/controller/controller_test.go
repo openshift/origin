@@ -3,9 +3,10 @@ package controller
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/project/api"
@@ -19,9 +20,9 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		KubeClient: mockKubeClient,
 		Client:     mockOriginClient,
 	}
-	now := unversioned.Now()
+	now := metav1.Now()
 	testNamespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test",
 			ResourceVersion:   "1",
 			DeletionTimestamp: &now,
@@ -39,23 +40,23 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	}
 
 	// TODO: we will expect a finalize namespace call after rebase
-	expectedActionSet := []core.Action{
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", kapi.ListOptions{}),
-		core.NewListAction(unversioned.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindingrestrictions"}, "", kapi.ListOptions{}),
+	expectedActionSet := []clientgotesting.Action{
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "buildconfigs"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policies"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "imagestreams"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "policybindings"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindings"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "roles"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "routes"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "templates"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "builds"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "deploymentconfig"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "egressnetworkpolicy"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "rolebindingrestrictions"}, "", metav1.ListOptions{}),
 	}
-	kubeActionSet := []core.Action{}
-	originActionSet := []core.Action{}
+	kubeActionSet := []clientgotesting.Action{}
+	originActionSet := []clientgotesting.Action{}
 	for i := range mockKubeClient.Actions() {
 		kubeActionSet = append(kubeActionSet, mockKubeClient.Actions()[i])
 	}
@@ -76,7 +77,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 		Client:     mockOriginClient,
 	}
 	testNamespace := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:            "test",
 			ResourceVersion: "1",
 		},
@@ -91,8 +92,8 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}
-	kubeActionSet := []core.Action{}
-	originActionSet := []core.Action{}
+	kubeActionSet := []clientgotesting.Action{}
+	originActionSet := []clientgotesting.Action{}
 	for i := range mockKubeClient.Actions() {
 		kubeActionSet = append(kubeActionSet, mockKubeClient.Actions()[i])
 	}

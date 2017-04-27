@@ -3,7 +3,7 @@ package util
 import (
 	"strings"
 
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // errMessageString is a part of error message copied from quotaAdmission.Admit() method in

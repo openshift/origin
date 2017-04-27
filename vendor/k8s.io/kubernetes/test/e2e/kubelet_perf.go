@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/stats"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	testutils "k8s.io/kubernetes/test/utils"
 
@@ -70,11 +70,12 @@ func runResourceTrackingTest(f *framework.Framework, podsPerNode int, nodeNames 
 
 	// TODO: Use a more realistic workload
 	Expect(framework.RunRC(testutils.RCConfig{
-		Client:    f.ClientSet,
-		Name:      rcName,
-		Namespace: f.Namespace.Name,
-		Image:     framework.GetPauseImageName(f.ClientSet),
-		Replicas:  totalPods,
+		Client:         f.ClientSet,
+		InternalClient: f.InternalClientset,
+		Name:           rcName,
+		Namespace:      f.Namespace.Name,
+		Image:          framework.GetPauseImageName(f.ClientSet),
+		Replicas:       totalPods,
 	})).NotTo(HaveOccurred())
 
 	// Log once and flush the stats.
@@ -116,7 +117,7 @@ func runResourceTrackingTest(f *framework.Framework, podsPerNode int, nodeNames 
 	verifyCPULimits(expectedCPU, cpuSummary)
 
 	By("Deleting the RC")
-	framework.DeleteRCAndPods(f.ClientSet, f.Namespace.Name, rcName)
+	framework.DeleteRCAndPods(f.ClientSet, f.InternalClientset, f.Namespace.Name, rcName)
 }
 
 func verifyMemoryLimits(c clientset.Interface, expected framework.ResourceUsagePerContainer, actual framework.ResourceUsagePerNode) {
@@ -200,7 +201,7 @@ var _ = framework.KubeDescribe("Kubelet [Serial] [Slow]", func() {
 		// Wait until image prepull pod has completed so that they wouldn't
 		// affect the runtime cpu usage. Fail the test if prepulling cannot
 		// finish in time.
-		if err := framework.WaitForPodsSuccess(f.ClientSet, api.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingLongTimeout); err != nil {
+		if err := framework.WaitForPodsSuccess(f.ClientSet, metav1.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingLongTimeout); err != nil {
 			framework.Failf("Image puller didn't complete in %v, not running resource usage test since the metrics might be adultrated", imagePrePullingLongTimeout)
 		}
 		nodes := framework.GetReadySchedulableNodesOrDie(f.ClientSet)
@@ -255,7 +256,7 @@ var _ = framework.KubeDescribe("Kubelet [Serial] [Slow]", func() {
 				},
 				podsPerNode: 100,
 				memLimits: framework.ResourceUsagePerContainer{
-					stats.SystemContainerKubelet: &framework.ContainerResourceUsage{MemoryRSSInBytes: 100 * 1024 * 1024},
+					stats.SystemContainerKubelet: &framework.ContainerResourceUsage{MemoryRSSInBytes: 120 * 1024 * 1024},
 					stats.SystemContainerRuntime: &framework.ContainerResourceUsage{MemoryRSSInBytes: 300 * 1024 * 1024},
 				},
 			},

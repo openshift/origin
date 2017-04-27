@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -27,7 +28,7 @@ func TestExtensionAPIServerConfigMap(t *testing.T) {
 
 	var configmap *kapi.ConfigMap
 	err = utilwait.PollImmediate(50*time.Millisecond, 10*time.Second, func() (bool, error) {
-		configmap, err = clusterAdminKubeClient.Core().ConfigMaps(kapi.NamespaceSystem).Get("extension-apiserver-authentication")
+		configmap, err = clusterAdminKubeClient.Core().ConfigMaps(metav1.NamespaceSystem).Get("extension-apiserver-authentication", metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		}

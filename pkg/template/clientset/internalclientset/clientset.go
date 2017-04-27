@@ -1,28 +1,27 @@
 package internalclientset
 
 import (
-	"github.com/golang/glog"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	discovery "k8s.io/kubernetes/pkg/client/typed/discovery"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	_ "k8s.io/kubernetes/plugin/pkg/client/auth"
+	glog "github.com/golang/glog"
+	templateinternalversion "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
+	discovery "k8s.io/client-go/discovery"
+	rest "k8s.io/client-go/rest"
+	flowcontrol "k8s.io/client-go/util/flowcontrol"
 )
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	Template() internalversiontemplate.TemplateInterface
+	Template() templateinternalversion.TemplateInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*internalversiontemplate.TemplateClient
+	*templateinternalversion.TemplateClient
 }
 
 // Template retrieves the TemplateClient
-func (c *Clientset) Template() internalversiontemplate.TemplateInterface {
+func (c *Clientset) Template() templateinternalversion.TemplateInterface {
 	if c == nil {
 		return nil
 	}
@@ -31,45 +30,48 @@ func (c *Clientset) Template() internalversiontemplate.TemplateInterface {
 
 // Discovery retrieves the DiscoveryClient
 func (c *Clientset) Discovery() discovery.DiscoveryInterface {
+	if c == nil {
+		return nil
+	}
 	return c.DiscoveryClient
 }
 
 // NewForConfig creates a new Clientset for the given config.
-func NewForConfig(c *restclient.Config) (*Clientset, error) {
+func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
 	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
 		configShallowCopy.RateLimiter = flowcontrol.NewTokenBucketRateLimiter(configShallowCopy.QPS, configShallowCopy.Burst)
 	}
-	var clientset Clientset
+	var cs Clientset
 	var err error
-	clientset.TemplateClient, err = internalversiontemplate.NewForConfig(&configShallowCopy)
+	cs.TemplateClient, err = templateinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
 
-	clientset.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
+	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
 		glog.Errorf("failed to create the DiscoveryClient: %v", err)
 		return nil, err
 	}
-	return &clientset, nil
+	return &cs, nil
 }
 
 // NewForConfigOrDie creates a new Clientset for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *restclient.Config) *Clientset {
-	var clientset Clientset
-	clientset.TemplateClient = internalversiontemplate.NewForConfigOrDie(c)
+func NewForConfigOrDie(c *rest.Config) *Clientset {
+	var cs Clientset
+	cs.TemplateClient = templateinternalversion.NewForConfigOrDie(c)
 
-	clientset.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
-	return &clientset
+	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
+	return &cs
 }
 
 // New creates a new Clientset for the given RESTClient.
-func New(c restclient.Interface) *Clientset {
-	var clientset Clientset
-	clientset.TemplateClient = internalversiontemplate.New(c)
+func New(c rest.Interface) *Clientset {
+	var cs Clientset
+	cs.TemplateClient = templateinternalversion.New(c)
 
-	clientset.DiscoveryClient = discovery.NewDiscoveryClient(c)
-	return &clientset
+	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
+	return &cs
 }

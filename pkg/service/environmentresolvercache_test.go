@@ -3,16 +3,17 @@ package service
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 )
 
 func TestServiceResolverCacheEmpty(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset(&kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: kapi.ServiceSpec{
 			Ports: []kapi.ServicePort{{Port: 80}},
@@ -40,7 +41,7 @@ type fakeRetriever struct {
 	err     error
 }
 
-func (r fakeRetriever) Get(name string) (*kapi.Service, error) {
+func (r fakeRetriever) Get(name string, options metav1.GetOptions) (*kapi.Service, error) {
 	return r.service, r.err
 }
 

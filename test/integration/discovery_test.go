@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
@@ -31,7 +31,7 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	}
 
 	for _, resource := range resources {
-		gv, err := unversioned.ParseGroupVersion(resource.GroupVersion)
+		gv, err := schema.ParseGroupVersion(resource.GroupVersion)
 		if err != nil {
 			continue
 		}
@@ -45,16 +45,24 @@ func TestDiscoveryGroupVersions(t *testing.T) {
 	expectedGroupVersions := sets.NewString()
 	for group, versions := range configapi.KubeAPIGroupsToAllowedVersions {
 		for _, version := range versions {
-			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
+			expectedGroupVersions.Insert(schema.GroupVersion{Group: group, Version: version}.String())
 		}
 	}
 	for group, versions := range configapi.OriginAPIGroupsToAllowedVersions {
 		for _, version := range versions {
-			expectedGroupVersions.Insert(unversioned.GroupVersion{Group: group, Version: version}.String())
+			expectedGroupVersions.Insert(schema.GroupVersion{Group: group, Version: version}.String())
 		}
 	}
 
-	discoveredGroupVersions := sets.StringKeySet(resources)
+	discoveredGroupVersions := sets.NewString()
+	for _, resource := range resources {
+		gv, err := schema.ParseGroupVersion(resource.GroupVersion)
+		if err != nil {
+			t.Errorf("Error parsing gv %q: %v", resource.GroupVersion, err)
+			continue
+		}
+		discoveredGroupVersions.Insert(gv.String())
+	}
 	if !reflect.DeepEqual(discoveredGroupVersions, expectedGroupVersions) {
 		t.Fatalf("Expected %#v, got %#v", expectedGroupVersions.List(), discoveredGroupVersions.List())
 	}

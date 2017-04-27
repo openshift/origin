@@ -6,12 +6,12 @@ import (
 
 	"github.com/gonum/graph"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kapps "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -43,7 +43,7 @@ func TestNamespaceEdgeMatching(t *testing.T) {
 		p := &kapps.StatefulSet{}
 		p.Namespace = namespace
 		p.Name = "the-statefulset"
-		p.Spec.Selector = &unversioned.LabelSelector{
+		p.Spec.Selector = &metav1.LabelSelector{
 			MatchLabels: map[string]string{"a": "1"},
 		}
 		kubegraph.EnsureStatefulSetNode(g, p)
@@ -80,7 +80,7 @@ func namespaceFor(node graph.Node) (string, error) {
 	obj := node.(objectifier).Object()
 	switch t := obj.(type) {
 	case runtime.Object:
-		meta, err := kapi.ObjectMetaFor(t)
+		meta, err := metav1.ObjectMetaFor(t)
 		if err != nil {
 			return "", err
 		}

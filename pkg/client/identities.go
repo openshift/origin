@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	userapi "github.com/openshift/origin/pkg/user/api"
@@ -13,8 +14,8 @@ type IdentitiesInterface interface {
 
 // IdentityInterface exposes methods on identity resources.
 type IdentityInterface interface {
-	List(opts kapi.ListOptions) (*userapi.IdentityList, error)
-	Get(name string) (*userapi.Identity, error)
+	List(opts metav1.ListOptions) (*userapi.IdentityList, error)
+	Get(name string, options metav1.GetOptions) (*userapi.Identity, error)
 	Create(identity *userapi.Identity) (*userapi.Identity, error)
 	Update(identity *userapi.Identity) (*userapi.Identity, error)
 	Delete(name string) error
@@ -33,7 +34,7 @@ func newIdentities(c *Client) *identities {
 }
 
 // List returns a list of identities that match the label and field selectors.
-func (c *identities) List(opts kapi.ListOptions) (result *userapi.IdentityList, err error) {
+func (c *identities) List(opts metav1.ListOptions) (result *userapi.IdentityList, err error) {
 	result = &userapi.IdentityList{}
 	err = c.r.Get().
 		Resource("identities").
@@ -44,9 +45,9 @@ func (c *identities) List(opts kapi.ListOptions) (result *userapi.IdentityList, 
 }
 
 // Get returns information about a particular identity or an error
-func (c *identities) Get(name string) (result *userapi.Identity, err error) {
+func (c *identities) Get(name string, options metav1.GetOptions) (result *userapi.Identity, err error) {
 	result = &userapi.Identity{}
-	err = c.r.Get().Resource("identities").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("identities").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
