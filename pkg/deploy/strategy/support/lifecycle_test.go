@@ -11,16 +11,16 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
@@ -31,19 +31,19 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func nowFunc() *unversioned.Time {
-	return &unversioned.Time{Time: time.Now().Add(-5 * time.Second)}
+func nowFunc() *metav1.Time {
+	return &metav1.Time{Time: time.Now().Add(-5 * time.Second)}
 }
 
 func newTestClient(config *deployapi.DeploymentConfig) *fake.Clientset {
 	client := &fake.Clientset{}
 	// when creating a lifecycle pod, we query the deployer pod for the start time to
 	// calculate the active deadline seconds for the lifecycle pod.
-	client.AddReactor("get", "pods", func(a core.Action) (handled bool, ret runtime.Object, err error) {
-		action := a.(core.GetAction)
+	client.AddReactor("get", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		action := a.(clientgotesting.GetAction)
 		if strings.HasPrefix(action.GetName(), config.Name) && strings.HasSuffix(action.GetName(), "-deploy") {
 			return true, &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "deployer",
 				},
 				Status: kapi.PodStatus{
@@ -66,7 +66,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 	dc := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(dc, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	client := newTestClient(dc)
-	client.AddReactor("create", "pods", func(a core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.New("could not create the pod")
 	})
 	executor := &hookExecutor{
@@ -95,15 +95,15 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	podCreated := make(chan struct{})
 
 	var createdPod *kapi.Pod
-	client.AddReactor("create", "pods", func(a core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		defer close(podCreated)
-		action := a.(core.CreateAction)
+		action := a.(clientgotesting.CreateAction)
 		object := action.GetObject()
 		createdPod = object.(*kapi.Pod)
 		return true, createdPod, nil
 	})
 	podsWatch := watch.NewFake()
-	client.AddWatchReactor("pods", core.DefaultWatchReactor(podsWatch, nil))
+	client.AddWatchReactor("pods", clientgotesting.DefaultWatchReactor(podsWatch, nil))
 
 	podLogs := &bytes.Buffer{}
 	// Simulate creation of the lifecycle pod
@@ -163,15 +163,15 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	podCreated := make(chan struct{})
 
 	var createdPod *kapi.Pod
-	client.AddReactor("create", "pods", func(a core.Action) (handled bool, ret runtime.Object, err error) {
+	client.AddReactor("create", "pods", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		defer close(podCreated)
-		action := a.(core.CreateAction)
+		action := a.(clientgotesting.CreateAction)
 		object := action.GetObject()
 		createdPod = object.(*kapi.Pod)
 		return true, createdPod, nil
 	})
 	podsWatch := watch.NewFake()
-	client.AddWatchReactor("pods", core.DefaultWatchReactor(podsWatch, nil))
+	client.AddWatchReactor("pods", clientgotesting.DefaultWatchReactor(podsWatch, nil))
 
 	go func() {
 		<-podCreated
@@ -200,7 +200,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 
 func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -229,7 +229,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 	gracePeriod := int64(10)
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -265,7 +265,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -340,7 +340,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -398,7 +398,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -463,7 +463,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 				},
 			},
 			expected: &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: namer.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
@@ -537,7 +537,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 		},
 	}
 	deployerPod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "deployer",
 		},
 		Status: kapi.PodStatus{
@@ -617,7 +617,7 @@ func TestAcceptAvailablePods_scenarios(t *testing.T) {
 				status = kapi.ConditionFalse
 			}
 			pod := &kapi.Pod{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: podName,
 				},
 				Status: kapi.PodStatus{
@@ -670,7 +670,7 @@ func TestAcceptAvailablePods_scenarios(t *testing.T) {
 
 func deployment(name, namespace string, strategyLabels, strategyAnnotations map[string]string) (*deployapi.DeploymentConfig, *kapi.ReplicationController) {
 	config := &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
@@ -740,7 +740,7 @@ func deployment(name, namespace string, strategyLabels, strategyAnnotations map[
 						},
 					},
 				},
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"a": "b"},
 				},
 			},

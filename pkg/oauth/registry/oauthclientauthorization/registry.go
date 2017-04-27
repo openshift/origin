@@ -1,8 +1,11 @@
 package oauthclientauthorization
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	"github.com/openshift/origin/pkg/oauth/api"
 )
@@ -12,15 +15,15 @@ type Registry interface {
 	// ClientAuthorizationName returns the name of the OAuthClientAuthorization for the given user name and client name
 	ClientAuthorizationName(userName, clientName string) string
 	// ListClientAuthorizations obtains a list of client auths that match a selector.
-	ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error)
+	ListClientAuthorizations(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientAuthorizationList, error)
 	// GetClientAuthorization retrieves a specific client auth.
-	GetClientAuthorization(ctx kapi.Context, name string) (*api.OAuthClientAuthorization, error)
+	GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error)
 	// CreateClientAuthorization creates a new client auth.
-	CreateClientAuthorization(ctx kapi.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error)
+	CreateClientAuthorization(ctx apirequest.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error)
 	// UpdateClientAuthorization updates a client auth.
-	UpdateClientAuthorization(ctx kapi.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error)
+	UpdateClientAuthorization(ctx apirequest.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error)
 	// DeleteClientAuthorization deletes a client auth.
-	DeleteClientAuthorization(ctx kapi.Context, name string) error
+	DeleteClientAuthorization(ctx apirequest.Context, name string) error
 }
 
 // storage puts strong typing around storage calls
@@ -38,7 +41,7 @@ func (s *storage) ClientAuthorizationName(userName, clientName string) string {
 	return userName + ":" + clientName
 }
 
-func (s *storage) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListOptions) (*api.OAuthClientAuthorizationList, error) {
+func (s *storage) ListClientAuthorizations(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientAuthorizationList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -46,15 +49,15 @@ func (s *storage) ListClientAuthorizations(ctx kapi.Context, options *kapi.ListO
 	return obj.(*api.OAuthClientAuthorizationList), nil
 }
 
-func (s *storage) GetClientAuthorization(ctx kapi.Context, name string) (*api.OAuthClientAuthorization, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.OAuthClientAuthorization), nil
 }
 
-func (s *storage) CreateClientAuthorization(ctx kapi.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
+func (s *storage) CreateClientAuthorization(ctx apirequest.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	obj, err := s.Create(ctx, client)
 	if err != nil {
 		return nil, err
@@ -62,7 +65,7 @@ func (s *storage) CreateClientAuthorization(ctx kapi.Context, client *api.OAuthC
 	return obj.(*api.OAuthClientAuthorization), nil
 }
 
-func (s *storage) UpdateClientAuthorization(ctx kapi.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
+func (s *storage) UpdateClientAuthorization(ctx apirequest.Context, client *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
 	obj, _, err := s.Update(ctx, client.Name, rest.DefaultUpdatedObjectInfo(client, kapi.Scheme))
 	if err != nil {
 		return nil, err
@@ -70,8 +73,8 @@ func (s *storage) UpdateClientAuthorization(ctx kapi.Context, client *api.OAuthC
 	return obj.(*api.OAuthClientAuthorization), nil
 }
 
-func (s *storage) DeleteClientAuthorization(ctx kapi.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+func (s *storage) DeleteClientAuthorization(ctx apirequest.Context, name string) error {
+	_, _, err := s.Delete(ctx, name, nil)
 	if err != nil {
 		return err
 	}

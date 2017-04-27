@@ -1,9 +1,12 @@
 package clusterpolicybinding
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/watch"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -12,25 +15,25 @@ import (
 // Registry is an interface for things that know how to store ClusterPolicyBindings.
 type Registry interface {
 	// ListClusterPolicyBindings obtains list of policyBindings that match a selector.
-	ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	ListClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	// GetClusterPolicyBinding retrieves a specific policyBinding.
-	GetClusterPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicyBinding, error)
+	GetClusterPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error)
 	// CreateClusterPolicyBinding creates a new policyBinding.
-	CreateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error
+	CreateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error
 	// UpdateClusterPolicyBinding updates a policyBinding.
-	UpdateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error
+	UpdateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error
 	// DeleteClusterPolicyBinding deletes a policyBinding.
-	DeleteClusterPolicyBinding(ctx kapi.Context, name string) error
+	DeleteClusterPolicyBinding(ctx apirequest.Context, name string) error
 }
 
 type WatchingRegistry interface {
 	Registry
 	// WatchClusterPolicyBindings watches policyBindings.
-	WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error)
+	WatchClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
 }
 
 type ReadOnlyClusterPolicyInterface interface {
-	List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
+	List(options metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error)
 	Get(name string) (*authorizationapi.ClusterPolicyBinding, error)
 }
 
@@ -50,7 +53,7 @@ func NewRegistry(s Storage) WatchingRegistry {
 	return &storage{s}
 }
 
-func (s *storage) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (s *storage) ListClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -59,30 +62,30 @@ func (s *storage) ListClusterPolicyBindings(ctx kapi.Context, options *kapi.List
 	return obj.(*authorizationapi.ClusterPolicyBindingList), nil
 }
 
-func (s *storage) CreateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
+func (s *storage) CreateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
 	_, err := s.Create(ctx, policyBinding)
 	return err
 }
 
-func (s *storage) UpdateClusterPolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
+func (s *storage) UpdateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
 	_, _, err := s.Update(ctx, policyBinding.Name, rest.DefaultUpdatedObjectInfo(policyBinding, kapi.Scheme))
 	return err
 }
 
-func (s *storage) WatchClusterPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *storage) WatchClusterPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return s.Watch(ctx, options)
 }
 
-func (s *storage) GetClusterPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetClusterPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*authorizationapi.ClusterPolicyBinding), nil
 }
 
-func (s *storage) DeleteClusterPolicyBinding(ctx kapi.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+func (s *storage) DeleteClusterPolicyBinding(ctx apirequest.Context, name string) error {
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }
 
@@ -94,25 +97,25 @@ func NewSimulatedRegistry(clusterRegistry Registry) policybinding.Registry {
 	return &simulatedStorage{clusterRegistry}
 }
 
-func (s *simulatedStorage) ListPolicyBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (s *simulatedStorage) ListPolicyBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	ret, err := s.clusterRegistry.ListClusterPolicyBindings(ctx, options)
 	return authorizationapi.ToPolicyBindingList(ret), err
 }
 
-func (s *simulatedStorage) CreatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (s *simulatedStorage) CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	return s.clusterRegistry.CreateClusterPolicyBinding(ctx, authorizationapi.ToClusterPolicyBinding(policyBinding))
 }
 
-func (s *simulatedStorage) UpdatePolicyBinding(ctx kapi.Context, policyBinding *authorizationapi.PolicyBinding) error {
+func (s *simulatedStorage) UpdatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
 	return s.clusterRegistry.UpdateClusterPolicyBinding(ctx, authorizationapi.ToClusterPolicyBinding(policyBinding))
 }
 
-func (s *simulatedStorage) GetPolicyBinding(ctx kapi.Context, name string) (*authorizationapi.PolicyBinding, error) {
-	ret, err := s.clusterRegistry.GetClusterPolicyBinding(ctx, name)
+func (s *simulatedStorage) GetPolicyBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+	ret, err := s.clusterRegistry.GetClusterPolicyBinding(ctx, name, options)
 	return authorizationapi.ToPolicyBinding(ret), err
 }
 
-func (s *simulatedStorage) DeletePolicyBinding(ctx kapi.Context, name string) error {
+func (s *simulatedStorage) DeletePolicyBinding(ctx apirequest.Context, name string) error {
 	return s.clusterRegistry.DeleteClusterPolicyBinding(ctx, name)
 }
 
@@ -120,10 +123,26 @@ type ReadOnlyClusterPolicyBinding struct {
 	Registry
 }
 
-func (s ReadOnlyClusterPolicyBinding) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return s.ListClusterPolicyBindings(kapi.WithNamespace(kapi.NewContext(), ""), &options)
+func (s ReadOnlyClusterPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	optint := metainternal.ListOptions{}
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+		return nil, err
+	}
+	return s.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &optint)
 }
 
-func (s ReadOnlyClusterPolicyBinding) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	return s.GetClusterPolicyBinding(kapi.WithNamespace(kapi.NewContext(), ""), name)
+func (s ReadOnlyClusterPolicyBinding) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return s.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
+}
+
+type ReadOnlyClusterPolicyBindingClientShim struct {
+	ReadOnlyClusterPolicyBinding
+}
+
+func (r *ReadOnlyClusterPolicyBindingClientShim) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+	return r.ReadOnlyClusterPolicyBinding.List(options)
+}
+
+func (r *ReadOnlyClusterPolicyBindingClientShim) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.ReadOnlyClusterPolicyBinding.Get(name, &options)
 }

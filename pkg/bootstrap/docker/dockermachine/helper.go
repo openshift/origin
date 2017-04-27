@@ -15,7 +15,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/bootstrap/docker/localcmd"
-	"k8s.io/kubernetes/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/net"
 )
 
 const (

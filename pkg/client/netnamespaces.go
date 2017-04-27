@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -14,12 +15,12 @@ type NetNamespacesInterface interface {
 
 // NetNamespaceInterface exposes methods on NetNamespace resources.
 type NetNamespaceInterface interface {
-	List(opts kapi.ListOptions) (*sdnapi.NetNamespaceList, error)
-	Get(name string) (*sdnapi.NetNamespace, error)
+	List(opts metav1.ListOptions) (*sdnapi.NetNamespaceList, error)
+	Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error)
 	Create(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
 	Update(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // netNamespace implements NetNamespaceInterface interface
@@ -35,7 +36,7 @@ func newNetNamespace(c *Client) *netNamespace {
 }
 
 // List returns a list of NetNamespaces that match the label and field selectors.
-func (c *netNamespace) List(opts kapi.ListOptions) (result *sdnapi.NetNamespaceList, err error) {
+func (c *netNamespace) List(opts metav1.ListOptions) (result *sdnapi.NetNamespaceList, err error) {
 	result = &sdnapi.NetNamespaceList{}
 	err = c.r.Get().
 		Resource("netNamespaces").
@@ -46,7 +47,7 @@ func (c *netNamespace) List(opts kapi.ListOptions) (result *sdnapi.NetNamespaceL
 }
 
 // Get returns information about a particular NetNamespace or an error
-func (c *netNamespace) Get(netname string) (result *sdnapi.NetNamespace, err error) {
+func (c *netNamespace) Get(netname string, options metav1.GetOptions) (result *sdnapi.NetNamespace, err error) {
 	result = &sdnapi.NetNamespace{}
 	err = c.r.Get().Resource("netNamespaces").Name(netname).Do().Into(result)
 	return
@@ -72,7 +73,7 @@ func (c *netNamespace) Delete(name string) error {
 }
 
 // Watch returns a watch.Interface that watches the requested NetNamespaces
-func (c *netNamespace) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *netNamespace) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("netNamespaces").

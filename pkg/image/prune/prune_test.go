@@ -14,13 +14,13 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest/fake"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -63,7 +63,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 	image := imageWithLayers(id, ref, nil, layer1, layer2, layer3, layer4, layer5)
 
 	if ageInMinutes >= 0 {
-		image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		image.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return image
@@ -71,7 +71,7 @@ func agedImage(id, ref string, ageInMinutes int64) imageapi.Image {
 
 func sizedImage(id, ref string, size int64, configName *string) imageapi.Image {
 	image := imageWithLayers(id, ref, configName, layer1, layer2, layer3, layer4, layer5)
-	image.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1) * time.Minute))
+	image.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1) * time.Minute))
 	image.DockerImageMetadata.Size = size
 
 	return image
@@ -83,7 +83,7 @@ func image(id, ref string) imageapi.Image {
 
 func imageWithLayers(id, ref string, configName *string, layers ...string) imageapi.Image {
 	image := imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: id,
 			Annotations: map[string]string{
 				imageapi.ManagedByOpenShiftAnnotation: "true",
@@ -132,7 +132,7 @@ func pod(namespace, name string, phase kapi.PodPhase, containerImages ...string)
 
 func agedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, containerImages ...string) kapi.Pod {
 	pod := kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -143,7 +143,7 @@ func agedPod(namespace, name string, phase kapi.PodPhase, ageInMinutes int64, co
 	}
 
 	if ageInMinutes >= 0 {
-		pod.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		pod.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return pod
@@ -174,7 +174,7 @@ func stream(registry, namespace, name string, tags map[string]imageapi.TagEventL
 
 func agedStream(registry, namespace, name string, ageInMinutes int64, tags map[string]imageapi.TagEventList) imageapi.ImageStream {
 	stream := imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -185,7 +185,7 @@ func agedStream(registry, namespace, name string, ageInMinutes int64, tags map[s
 	}
 
 	if ageInMinutes >= 0 {
-		stream.CreationTimestamp = unversioned.NewTime(unversioned.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
+		stream.CreationTimestamp = metav1.NewTime(metav1.Now().Add(time.Duration(-1*ageInMinutes) * time.Minute))
 	}
 
 	return stream
@@ -233,7 +233,7 @@ func rcList(rcs ...kapi.ReplicationController) kapi.ReplicationControllerList {
 
 func rc(namespace, name string, containerImages ...string) kapi.ReplicationController {
 	return kapi.ReplicationController{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -253,7 +253,7 @@ func dcList(dcs ...deployapi.DeploymentConfig) deployapi.DeploymentConfigList {
 
 func dc(namespace, name string, containerImages ...string) deployapi.DeploymentConfig {
 	return deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -273,7 +273,7 @@ func bcList(bcs ...buildapi.BuildConfig) buildapi.BuildConfigList {
 
 func bc(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.BuildConfig {
 	return buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -291,7 +291,7 @@ func buildList(builds ...buildapi.Build) buildapi.BuildList {
 
 func build(namespace, name, strategyType, fromKind, fromNamespace, fromName string) buildapi.Build {
 	return buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
@@ -974,11 +974,11 @@ func TestImageDeleter(t *testing.T) {
 
 	for name, test := range tests {
 		imageClient := testclient.Fake{}
-		imageClient.AddReactor("delete", "images", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		imageClient.AddReactor("delete", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
 		imageDeleter := NewImageDeleter(imageClient.Images())
-		err := imageDeleter.DeleteImage(&imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000002"}})
+		err := imageDeleter.DeleteImage(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000002"}})
 		if test.imageDeletionError != nil {
 			if e, a := test.imageDeletionError, err; e != a {
 				t.Errorf("%s: err: expected %v, got %v", name, e, a)
@@ -1285,8 +1285,8 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 
 func TestImageIsPrunable(t *testing.T) {
 	g := graph.New()
-	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: kapi.ObjectMeta{Name: "myImage"}})
-	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "myStream"}})
+	imageNode := imagegraph.EnsureImageNode(g, &imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "myImage"}})
+	streamNode := imagegraph.EnsureImageStreamNode(g, &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "myStream"}})
 	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
 	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
 

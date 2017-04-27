@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"strings"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/conversion"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -208,7 +209,7 @@ func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter
 }
 
 // escalatingScopeResources are resources that are considered escalating for scope evaluation
-var escalatingScopeResources = []unversioned.GroupResource{
+var escalatingScopeResources = []schema.GroupResource{
 	{Group: kapi.GroupName, Resource: "secrets"},
 
 	{Group: imageapi.GroupName, Resource: "imagestreams/secrets"},
@@ -329,7 +330,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter cli
 		return nil, err
 	}
 
-	policy, err := clusterPolicyGetter.Get("default")
+	policy, err := clusterPolicyGetter.Get("default", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -22,17 +22,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/record"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8stypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	core "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	"k8s.io/kubernetes/pkg/kubelet/volumemanager/cache"
-	"k8s.io/kubernetes/pkg/runtime"
-	k8stypes "k8s.io/kubernetes/pkg/types"
 	"k8s.io/kubernetes/pkg/util/mount"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetesting "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util/operationexecutor"
@@ -60,7 +61,7 @@ func Test_Run_Positive_DoNothing(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount*/)
+	oex := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
@@ -97,7 +98,7 @@ func Test_Run_Positive_VolumeAttachAndMount(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
+	oex := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
@@ -111,17 +112,17 @@ func Test_Run_Positive_VolumeAttachAndMount(t *testing.T) {
 		&mount.FakeMounter{},
 		volumePluginMgr,
 		kubeletPodsDir)
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
 			UID:  "pod1uid",
 		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
 				{
 					Name: "volume-name",
-					VolumeSource: api.VolumeSource{
-						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+					VolumeSource: v1.VolumeSource{
+						GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 							PDName: "fake-device1",
 						},
 					},
@@ -168,7 +169,7 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabled(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
+	oex := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
 	reconciler := NewReconciler(
 		kubeClient,
 		true, /* controllerAttachDetachEnabled */
@@ -182,17 +183,17 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabled(t *testing.T) {
 		&mount.FakeMounter{},
 		volumePluginMgr,
 		kubeletPodsDir)
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
 			UID:  "pod1uid",
 		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
 				{
 					Name: "volume-name",
-					VolumeSource: api.VolumeSource{
-						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+					VolumeSource: v1.VolumeSource{
+						GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 							PDName: "fake-device1",
 						},
 					},
@@ -205,7 +206,7 @@ func Test_Run_Positive_VolumeMountControllerAttachEnabled(t *testing.T) {
 	podName := volumehelper.GetUniquePodName(pod)
 	generatedVolumeName, err := dsw.AddPodToVolume(
 		podName, pod, volumeSpec, volumeSpec.Name(), "" /* volumeGidValue */)
-	dsw.MarkVolumesReportedInUse([]api.UniqueVolumeName{generatedVolumeName})
+	dsw.MarkVolumesReportedInUse([]v1.UniqueVolumeName{generatedVolumeName})
 
 	// Assert
 	if err != nil {
@@ -240,7 +241,7 @@ func Test_Run_Positive_VolumeAttachMountUnmountDetach(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
+	oex := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
 	reconciler := NewReconciler(
 		kubeClient,
 		false, /* controllerAttachDetachEnabled */
@@ -254,17 +255,17 @@ func Test_Run_Positive_VolumeAttachMountUnmountDetach(t *testing.T) {
 		&mount.FakeMounter{},
 		volumePluginMgr,
 		kubeletPodsDir)
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
 			UID:  "pod1uid",
 		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
 				{
 					Name: "volume-name",
-					VolumeSource: api.VolumeSource{
-						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+					VolumeSource: v1.VolumeSource{
+						GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 							PDName: "fake-device1",
 						},
 					},
@@ -323,7 +324,7 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 	asw := cache.NewActualStateOfWorld(nodeName, volumePluginMgr)
 	kubeClient := createTestClient()
 	fakeRecorder := &record.FakeRecorder{}
-	oex := operationexecutor.NewOperationExecutor(kubeClient, volumePluginMgr, fakeRecorder, false)
+	oex := operationexecutor.NewOperationExecutor(operationexecutor.NewOperationGenerator(kubeClient, volumePluginMgr, fakeRecorder, false /* checkNodeCapabilitiesBeforeMount */))
 	reconciler := NewReconciler(
 		kubeClient,
 		true, /* controllerAttachDetachEnabled */
@@ -337,17 +338,17 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 		&mount.FakeMounter{},
 		volumePluginMgr,
 		kubeletPodsDir)
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pod1",
 			UID:  "pod1uid",
 		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
 				{
 					Name: "volume-name",
-					VolumeSource: api.VolumeSource{
-						GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+					VolumeSource: v1.VolumeSource{
+						GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 							PDName: "fake-device1",
 						},
 					},
@@ -369,7 +370,7 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 	// Act
 	runReconciler(reconciler)
 
-	dsw.MarkVolumesReportedInUse([]api.UniqueVolumeName{generatedVolumeName})
+	dsw.MarkVolumesReportedInUse([]v1.UniqueVolumeName{generatedVolumeName})
 	waitForMount(t, fakePlugin, generatedVolumeName, asw)
 
 	// Assert
@@ -396,7 +397,7 @@ func Test_Run_Positive_VolumeUnmountControllerAttachEnabled(t *testing.T) {
 func waitForMount(
 	t *testing.T,
 	fakePlugin *volumetesting.FakeVolumePlugin,
-	volumeName api.UniqueVolumeName,
+	volumeName v1.UniqueVolumeName,
 	asw cache.ActualStateOfWorld) {
 	err := retryWithExponentialBackOff(
 		time.Duration(5*time.Millisecond),
@@ -420,7 +421,7 @@ func waitForMount(
 func waitForDetach(
 	t *testing.T,
 	fakePlugin *volumetesting.FakeVolumePlugin,
-	volumeName api.UniqueVolumeName,
+	volumeName v1.UniqueVolumeName,
 	asw cache.ActualStateOfWorld) {
 	err := retryWithExponentialBackOff(
 		time.Duration(5*time.Millisecond),
@@ -452,16 +453,16 @@ func createTestClient() *fake.Clientset {
 	fakeClient := &fake.Clientset{}
 	fakeClient.AddReactor("get", "nodes",
 		func(action core.Action) (bool, runtime.Object, error) {
-			return true, &api.Node{
-				ObjectMeta: api.ObjectMeta{Name: string(nodeName)},
-				Status: api.NodeStatus{
-					VolumesAttached: []api.AttachedVolume{
+			return true, &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{Name: string(nodeName)},
+				Status: v1.NodeStatus{
+					VolumesAttached: []v1.AttachedVolume{
 						{
 							Name:       "fake-plugin/volume-name",
 							DevicePath: "fake/path",
 						},
 					}},
-				Spec: api.NodeSpec{ExternalID: string(nodeName)},
+				Spec: v1.NodeSpec{ExternalID: string(nodeName)},
 			}, nil
 		})
 	fakeClient.AddReactor("*", "*", func(action core.Action) (bool, runtime.Object, error) {

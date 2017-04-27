@@ -1,8 +1,8 @@
 package validation
 
 import (
-	unversionedvalidation "k8s.io/kubernetes/pkg/api/unversioned/validation"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 )

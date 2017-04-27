@@ -7,7 +7,7 @@ import (
 	"mime"
 	"net/http"
 
-	"k8s.io/client-go/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/golang/glog"

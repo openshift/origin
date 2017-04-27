@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -113,7 +114,7 @@ func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationControl
 	// If the deployment is failed we need to remove its deployer pods, too.
 	if deployutil.IsFailedDeployment(deployment) {
 		dpSelector := deployutil.DeployerPodSelector(deployment.Name)
-		deployers, err := p.pods.Pods(deployment.Namespace).List(kapi.ListOptions{LabelSelector: dpSelector})
+		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
 		if err != nil {
 			glog.Warning("Cannot list deployer pods for %q: %v\n", deployment.Name, err)
 		} else {

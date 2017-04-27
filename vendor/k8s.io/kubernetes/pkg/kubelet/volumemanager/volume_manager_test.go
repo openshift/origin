@@ -23,18 +23,22 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/record"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/record"
+	utiltesting "k8s.io/client-go/util/testing"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	"k8s.io/kubernetes/pkg/kubelet/config"
 	containertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
 	"k8s.io/kubernetes/pkg/kubelet/pod"
 	kubepod "k8s.io/kubernetes/pkg/kubelet/pod"
 	podtest "k8s.io/kubernetes/pkg/kubelet/pod/testing"
+	"k8s.io/kubernetes/pkg/kubelet/secret"
+	"k8s.io/kubernetes/pkg/kubelet/status"
+	statustest "k8s.io/kubernetes/pkg/kubelet/status/testing"
 	"k8s.io/kubernetes/pkg/util/mount"
-	"k8s.io/kubernetes/pkg/util/sets"
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util/types"
@@ -51,7 +55,7 @@ func TestGetMountedVolumesForPodAndGetVolumesInUse(t *testing.T) {
 		t.Fatalf("can't make a temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
-	podManager := kubepod.NewBasicPodManager(podtest.NewFakeMirrorClient())
+	podManager := kubepod.NewBasicPodManager(podtest.NewFakeMirrorClient(), secret.NewFakeManager())
 
 	node, pod, pv, claim := createObjects()
 	kubeClient := fake.NewSimpleClientset(node, pod, pv, claim)
@@ -64,11 +68,11 @@ func TestGetMountedVolumesForPodAndGetVolumesInUse(t *testing.T) {
 	stopCh := runVolumeManager(manager)
 	defer close(stopCh)
 
-	podManager.SetPods([]*api.Pod{pod})
+	podManager.SetPods([]*v1.Pod{pod})
 
 	// Fake node status update
 	go simulateVolumeInUseUpdate(
-		api.UniqueVolumeName(node.Status.VolumesAttached[0].Name),
+		v1.UniqueVolumeName(node.Status.VolumesAttached[0].Name),
 		stopCh,
 		manager)
 
@@ -83,7 +87,7 @@ func TestGetMountedVolumesForPodAndGetVolumesInUse(t *testing.T) {
 		t.Errorf("Expected %v to be mounted to pod but got %v", expectedMounted, actualMounted)
 	}
 
-	expectedInUse := []api.UniqueVolumeName{api.UniqueVolumeName(node.Status.VolumesAttached[0].Name)}
+	expectedInUse := []v1.UniqueVolumeName{v1.UniqueVolumeName(node.Status.VolumesAttached[0].Name)}
 	actualInUse := manager.GetVolumesInUse()
 	if !reflect.DeepEqual(expectedInUse, actualInUse) {
 		t.Errorf("Expected %v to be in use but got %v", expectedInUse, actualInUse)
@@ -96,7 +100,7 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 		t.Fatalf("can't make a temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
-	podManager := kubepod.NewBasicPodManager(podtest.NewFakeMirrorClient())
+	podManager := kubepod.NewBasicPodManager(podtest.NewFakeMirrorClient(), secret.NewFakeManager())
 
 	node, pod, _, claim := createObjects()
 
@@ -125,20 +129,20 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		pv := &api.PersistentVolume{
-			ObjectMeta: api.ObjectMeta{
+		pv := &v1.PersistentVolume{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "pvA",
 				Annotations: map[string]string{
 					volumehelper.VolumeGidAnnotationKey: tc.gidAnnotation,
 				},
 			},
-			Spec: api.PersistentVolumeSpec{
-				PersistentVolumeSource: api.PersistentVolumeSource{
-					GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+			Spec: v1.PersistentVolumeSpec{
+				PersistentVolumeSource: v1.PersistentVolumeSource{
+					GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 						PDName: "fake-device",
 					},
 				},
-				ClaimRef: &api.ObjectReference{
+				ClaimRef: &v1.ObjectReference{
 					Name: claim.ObjectMeta.Name,
 				},
 			},
@@ -156,11 +160,11 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 			close(stopCh)
 		}()
 
-		podManager.SetPods([]*api.Pod{pod})
+		podManager.SetPods([]*v1.Pod{pod})
 
 		// Fake node status update
 		go simulateVolumeInUseUpdate(
-			api.UniqueVolumeName(node.Status.VolumesAttached[0].Name),
+			v1.UniqueVolumeName(node.Status.VolumesAttached[0].Name),
 			stopCh,
 			manager)
 
@@ -180,16 +184,18 @@ func TestGetExtraSupplementalGroupsForPod(t *testing.T) {
 func newTestVolumeManager(
 	tmpDir string,
 	podManager pod.Manager,
-	kubeClient internalclientset.Interface) (VolumeManager, error) {
+	kubeClient clientset.Interface) (VolumeManager, error) {
 	plug := &volumetest.FakeVolumePlugin{PluginName: "fake", Host: nil}
 	fakeRecorder := &record.FakeRecorder{}
 	plugMgr := &volume.VolumePluginMgr{}
 	plugMgr.InitPlugins([]volume.VolumePlugin{plug}, volumetest.NewFakeVolumeHost(tmpDir, kubeClient, nil))
+	statusManager := status.NewManager(kubeClient, podManager, &statustest.FakePodDeletionSafetyProvider{})
 
 	vm, err := NewVolumeManager(
 		true,
 		testHostname,
 		podManager,
+		statusManager,
 		kubeClient,
 		plugMgr,
 		&containertest.FakeRuntime{},
@@ -204,72 +210,72 @@ func newTestVolumeManager(
 
 // createObjects returns objects for making a fake clientset. The pv is
 // already attached to the node and bound to the claim used by the pod.
-func createObjects() (*api.Node, *api.Pod, *api.PersistentVolume, *api.PersistentVolumeClaim) {
-	node := &api.Node{
-		ObjectMeta: api.ObjectMeta{Name: testHostname},
-		Status: api.NodeStatus{
-			VolumesAttached: []api.AttachedVolume{
+func createObjects() (*v1.Node, *v1.Pod, *v1.PersistentVolume, *v1.PersistentVolumeClaim) {
+	node := &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{Name: testHostname},
+		Status: v1.NodeStatus{
+			VolumesAttached: []v1.AttachedVolume{
 				{
 					Name:       "fake/pvA",
 					DevicePath: "fake/path",
 				},
 			}},
-		Spec: api.NodeSpec{ExternalID: testHostname},
+		Spec: v1.NodeSpec{ExternalID: testHostname},
 	}
-	pod := &api.Pod{
-		ObjectMeta: api.ObjectMeta{
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "abc",
 			Namespace: "nsA",
 			UID:       "1234",
 		},
-		Spec: api.PodSpec{
-			Volumes: []api.Volume{
+		Spec: v1.PodSpec{
+			Volumes: []v1.Volume{
 				{
 					Name: "vol1",
-					VolumeSource: api.VolumeSource{
-						PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
 							ClaimName: "claimA",
 						},
 					},
 				},
 			},
-			SecurityContext: &api.PodSecurityContext{
+			SecurityContext: &v1.PodSecurityContext{
 				SupplementalGroups: []int64{555},
 			},
 		},
 	}
-	pv := &api.PersistentVolume{
-		ObjectMeta: api.ObjectMeta{
+	pv := &v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "pvA",
 		},
-		Spec: api.PersistentVolumeSpec{
-			PersistentVolumeSource: api.PersistentVolumeSource{
-				GCEPersistentDisk: &api.GCEPersistentDiskVolumeSource{
+		Spec: v1.PersistentVolumeSpec{
+			PersistentVolumeSource: v1.PersistentVolumeSource{
+				GCEPersistentDisk: &v1.GCEPersistentDiskVolumeSource{
 					PDName: "fake-device",
 				},
 			},
-			ClaimRef: &api.ObjectReference{
+			ClaimRef: &v1.ObjectReference{
 				Name: "claimA",
 			},
 		},
 	}
-	claim := &api.PersistentVolumeClaim{
-		ObjectMeta: api.ObjectMeta{
+	claim := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "claimA",
 			Namespace: "nsA",
 		},
-		Spec: api.PersistentVolumeClaimSpec{
+		Spec: v1.PersistentVolumeClaimSpec{
 			VolumeName: "pvA",
 		},
-		Status: api.PersistentVolumeClaimStatus{
-			Phase: api.ClaimBound,
+		Status: v1.PersistentVolumeClaimStatus{
+			Phase: v1.ClaimBound,
 		},
 	}
 	return node, pod, pv, claim
 }
 
 func simulateVolumeInUseUpdate(
-	volumeName api.UniqueVolumeName,
+	volumeName v1.UniqueVolumeName,
 	stopCh <-chan struct{},
 	volumeManager VolumeManager) {
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -278,7 +284,7 @@ func simulateVolumeInUseUpdate(
 		select {
 		case <-ticker.C:
 			volumeManager.MarkVolumesAsReportedInUse(
-				[]api.UniqueVolumeName{volumeName})
+				[]v1.UniqueVolumeName{volumeName})
 		case <-stopCh:
 			return
 		}

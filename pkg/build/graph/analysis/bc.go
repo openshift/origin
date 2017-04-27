@@ -8,7 +8,7 @@ import (
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/topo"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -321,7 +321,7 @@ func getImageStreamImageSuggestion(imageID string, imageStream *imageapi.ImageSt
 		// so we will check if the image stream has been updated "recently";
 		// in case it is a slow link to the remote repo, see if if the check annotation occurred within the last 5 minutes; if so, consider that as potentially "in progress"
 		compareTime := checkTime.Add(5 * time.Minute)
-		currentTime, _ := time.Parse(time.RFC3339, unversioned.Now().UTC().Format(time.RFC3339))
+		currentTime, _ := time.Parse(time.RFC3339, metav1.Now().UTC().Format(time.RFC3339))
 		if compareTime.Before(currentTime) {
 			return osgraph.Suggestion(fmt.Sprintf("`oc import-image %s --from=` where `--from` specifies an image with hexadecimal ID %s", imageStream.GetName(), imageID))
 		}

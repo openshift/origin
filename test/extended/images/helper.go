@@ -14,6 +14,8 @@ import (
 
 	dockerclient "github.com/fsouza/go-dockerclient"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -71,7 +73,7 @@ func BuildAndPushImageOfSizeWithBuilder(
 		istName += ":" + tag
 	}
 
-	bc, err := oc.Client().BuildConfigs(namespace).Get(name)
+	bc, err := oc.Client().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err == nil {
 		if bc.Spec.CommonSpec.Output.To.Kind != "ImageStreamTag" {
 			return fmt.Errorf("Unexpected kind of buildspec's output (%s != %s)", bc.Spec.CommonSpec.Output.To.Kind, "ImageStreamTag")
@@ -240,7 +242,7 @@ func BuildAndPushImageOfSizeWithDocker(
 
 // GetDockerRegistryURL returns a cluster URL of internal docker registry if available.
 func GetDockerRegistryURL(oc *exutil.CLI) (string, error) {
-	svc, err := oc.AdminKubeClient().Core().Services("default").Get("docker-registry")
+	svc, err := oc.AdminKubeClient().Core().Services("default").Get("docker-registry", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

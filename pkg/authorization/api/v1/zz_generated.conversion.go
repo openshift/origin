@@ -6,11 +6,11 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -138,9 +138,7 @@ func Convert_api_Action_To_v1_Action(in *api.Action, out *Action, s conversion.S
 }
 
 func autoConvert_v1_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *api.ClusterPolicy, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := Convert_v1_NamedClusterRoles_To_api_ClusterRolesByName(&in.Roles, &out.Roles, s); err != nil {
 		return err
@@ -149,9 +147,7 @@ func autoConvert_v1_ClusterPolicy_To_api_ClusterPolicy(in *ClusterPolicy, out *a
 }
 
 func autoConvert_api_ClusterPolicy_To_v1_ClusterPolicy(in *api.ClusterPolicy, out *ClusterPolicy, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := Convert_api_ClusterRolesByName_To_v1_NamedClusterRoles(&in.Roles, &out.Roles, s); err != nil {
 		return err
@@ -164,9 +160,7 @@ func Convert_api_ClusterPolicy_To_v1_ClusterPolicy(in *api.ClusterPolicy, out *C
 }
 
 func autoConvert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *ClusterPolicyBinding, out *api.ClusterPolicyBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
@@ -178,9 +172,7 @@ func autoConvert_v1_ClusterPolicyBinding_To_api_ClusterPolicyBinding(in *Cluster
 }
 
 func autoConvert_api_ClusterPolicyBinding_To_v1_ClusterPolicyBinding(in *api.ClusterPolicyBinding, out *ClusterPolicyBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
@@ -226,7 +218,7 @@ func autoConvert_api_ClusterPolicyBindingList_To_v1_ClusterPolicyBindingList(in 
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]ClusterPolicyBinding, 0)
 	}
 	return nil
 }
@@ -266,7 +258,7 @@ func autoConvert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *api.ClusterPo
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]ClusterPolicy, 0)
 	}
 	return nil
 }
@@ -276,9 +268,7 @@ func Convert_api_ClusterPolicyList_To_v1_ClusterPolicyList(in *api.ClusterPolicy
 }
 
 func autoConvert_v1_ClusterRole_To_api_ClusterRole(in *ClusterRole, out *api.ClusterRole, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]api.PolicyRule, len(*in))
@@ -298,9 +288,7 @@ func Convert_v1_ClusterRole_To_api_ClusterRole(in *ClusterRole, out *api.Cluster
 }
 
 func autoConvert_api_ClusterRole_To_v1_ClusterRole(in *api.ClusterRole, out *ClusterRole, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]PolicyRule, len(*in))
@@ -310,7 +298,7 @@ func autoConvert_api_ClusterRole_To_v1_ClusterRole(in *api.ClusterRole, out *Clu
 			}
 		}
 	} else {
-		out.Rules = nil
+		out.Rules = make([]PolicyRule, 0)
 	}
 	return nil
 }
@@ -320,9 +308,7 @@ func Convert_api_ClusterRole_To_v1_ClusterRole(in *api.ClusterRole, out *Cluster
 }
 
 func autoConvert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRoleBinding, out *api.ClusterRoleBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	// INFO: in.UserNames opted out of conversion generation
 	// INFO: in.GroupNames opted out of conversion generation
 	if in.Subjects != nil {
@@ -343,9 +329,7 @@ func autoConvert_v1_ClusterRoleBinding_To_api_ClusterRoleBinding(in *ClusterRole
 }
 
 func autoConvert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *api.ClusterRoleBinding, out *ClusterRoleBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
 		*out = make([]api_v1.ObjectReference, len(*in))
@@ -355,7 +339,7 @@ func autoConvert_api_ClusterRoleBinding_To_v1_ClusterRoleBinding(in *api.Cluster
 			}
 		}
 	} else {
-		out.Subjects = nil
+		out.Subjects = make([]api_v1.ObjectReference, 0)
 	}
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
@@ -394,7 +378,7 @@ func autoConvert_api_ClusterRoleBindingList_To_v1_ClusterRoleBindingList(in *api
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]ClusterRoleBinding, 0)
 	}
 	return nil
 }
@@ -434,7 +418,7 @@ func autoConvert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleLi
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]ClusterRole, 0)
 	}
 	return nil
 }
@@ -445,7 +429,7 @@ func Convert_api_ClusterRoleList_To_v1_ClusterRoleList(in *api.ClusterRoleList, 
 
 func autoConvert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, out *api.GroupRestriction, s conversion.Scope) error {
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]meta_v1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
@@ -454,8 +438,16 @@ func Convert_v1_GroupRestriction_To_api_GroupRestriction(in *GroupRestriction, o
 }
 
 func autoConvert_api_GroupRestriction_To_v1_GroupRestriction(in *api.GroupRestriction, out *GroupRestriction, s conversion.Scope) error {
-	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	if in.Groups == nil {
+		out.Groups = make([]string, 0)
+	} else {
+		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	}
+	if in.Selectors == nil {
+		out.Selectors = make([]meta_v1.LabelSelector, 0)
+	} else {
+		out.Selectors = *(*[]meta_v1.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	}
 	return nil
 }
 
@@ -507,7 +499,7 @@ func autoConvert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in 
 	}
 	out.User = in.User
 	// INFO: in.GroupsSlice opted out of conversion generation
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -517,14 +509,12 @@ func autoConvert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in 
 	}
 	out.User = in.User
 	// INFO: in.Groups opted out of conversion generation
-	out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
 func autoConvert_v1_Policy_To_api_Policy(in *Policy, out *api.Policy, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := Convert_v1_NamedRoles_To_api_RolesByName(&in.Roles, &out.Roles, s); err != nil {
 		return err
@@ -533,9 +523,7 @@ func autoConvert_v1_Policy_To_api_Policy(in *Policy, out *api.Policy, s conversi
 }
 
 func autoConvert_api_Policy_To_v1_Policy(in *api.Policy, out *Policy, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := Convert_api_RolesByName_To_v1_NamedRoles(&in.Roles, &out.Roles, s); err != nil {
 		return err
@@ -548,9 +536,7 @@ func Convert_api_Policy_To_v1_Policy(in *api.Policy, out *Policy, s conversion.S
 }
 
 func autoConvert_v1_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *api.PolicyBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
@@ -562,9 +548,7 @@ func autoConvert_v1_PolicyBinding_To_api_PolicyBinding(in *PolicyBinding, out *a
 }
 
 func autoConvert_api_PolicyBinding_To_v1_PolicyBinding(in *api.PolicyBinding, out *PolicyBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.LastModified = in.LastModified
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.PolicyRef, &out.PolicyRef, s); err != nil {
 		return err
@@ -610,7 +594,7 @@ func autoConvert_api_PolicyBindingList_To_v1_PolicyBindingList(in *api.PolicyBin
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]PolicyBinding, 0)
 	}
 	return nil
 }
@@ -650,7 +634,7 @@ func autoConvert_api_PolicyList_To_v1_PolicyList(in *api.PolicyList, out *Policy
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]Policy, 0)
 	}
 	return nil
 }
@@ -660,25 +644,29 @@ func Convert_api_PolicyList_To_v1_PolicyList(in *api.PolicyList, out *PolicyList
 }
 
 func autoConvert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *api.PolicyRule, s conversion.Scope) error {
-	// WARNING: in.Verbs requires manual conversion: inconvertible types ([]string vs k8s.io/kubernetes/pkg/util/sets.String)
+	// WARNING: in.Verbs requires manual conversion: inconvertible types ([]string vs k8s.io/apimachinery/pkg/util/sets.String)
 	if err := runtime.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 	out.APIGroups = *(*[]string)(unsafe.Pointer(&in.APIGroups))
-	// WARNING: in.Resources requires manual conversion: inconvertible types ([]string vs k8s.io/kubernetes/pkg/util/sets.String)
-	// WARNING: in.ResourceNames requires manual conversion: inconvertible types ([]string vs k8s.io/kubernetes/pkg/util/sets.String)
+	// WARNING: in.Resources requires manual conversion: inconvertible types ([]string vs k8s.io/apimachinery/pkg/util/sets.String)
+	// WARNING: in.ResourceNames requires manual conversion: inconvertible types ([]string vs k8s.io/apimachinery/pkg/util/sets.String)
 	// WARNING: in.NonResourceURLsSlice requires manual conversion: does not exist in peer-type
 	return nil
 }
 
 func autoConvert_api_PolicyRule_To_v1_PolicyRule(in *api.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	// WARNING: in.Verbs requires manual conversion: inconvertible types (k8s.io/kubernetes/pkg/util/sets.String vs []string)
+	// WARNING: in.Verbs requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/util/sets.String vs []string)
 	if err := runtime.Convert_runtime_Object_To_runtime_RawExtension(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
-	out.APIGroups = *(*[]string)(unsafe.Pointer(&in.APIGroups))
-	// WARNING: in.Resources requires manual conversion: inconvertible types (k8s.io/kubernetes/pkg/util/sets.String vs []string)
-	// WARNING: in.ResourceNames requires manual conversion: inconvertible types (k8s.io/kubernetes/pkg/util/sets.String vs []string)
+	if in.APIGroups == nil {
+		out.APIGroups = make([]string, 0)
+	} else {
+		out.APIGroups = *(*[]string)(unsafe.Pointer(&in.APIGroups))
+	}
+	// WARNING: in.Resources requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/util/sets.String vs []string)
+	// WARNING: in.ResourceNames requires manual conversion: inconvertible types (k8s.io/apimachinery/pkg/util/sets.String vs []string)
 	// WARNING: in.NonResourceURLs requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -722,9 +710,7 @@ func autoConvert_api_ResourceAccessReviewResponse_To_v1_ResourceAccessReviewResp
 }
 
 func autoConvert_v1_Role_To_api_Role(in *Role, out *api.Role, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]api.PolicyRule, len(*in))
@@ -744,9 +730,7 @@ func Convert_v1_Role_To_api_Role(in *Role, out *api.Role, s conversion.Scope) er
 }
 
 func autoConvert_api_Role_To_v1_Role(in *api.Role, out *Role, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]PolicyRule, len(*in))
@@ -756,7 +740,7 @@ func autoConvert_api_Role_To_v1_Role(in *api.Role, out *Role, s conversion.Scope
 			}
 		}
 	} else {
-		out.Rules = nil
+		out.Rules = make([]PolicyRule, 0)
 	}
 	return nil
 }
@@ -766,9 +750,7 @@ func Convert_api_Role_To_v1_Role(in *api.Role, out *Role, s conversion.Scope) er
 }
 
 func autoConvert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *api.RoleBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	// INFO: in.UserNames opted out of conversion generation
 	// INFO: in.GroupNames opted out of conversion generation
 	if in.Subjects != nil {
@@ -789,9 +771,7 @@ func autoConvert_v1_RoleBinding_To_api_RoleBinding(in *RoleBinding, out *api.Rol
 }
 
 func autoConvert_api_RoleBinding_To_v1_RoleBinding(in *api.RoleBinding, out *RoleBinding, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Subjects != nil {
 		in, out := &in.Subjects, &out.Subjects
 		*out = make([]api_v1.ObjectReference, len(*in))
@@ -801,7 +781,7 @@ func autoConvert_api_RoleBinding_To_v1_RoleBinding(in *api.RoleBinding, out *Rol
 			}
 		}
 	} else {
-		out.Subjects = nil
+		out.Subjects = make([]api_v1.ObjectReference, 0)
 	}
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.RoleRef, &out.RoleRef, s); err != nil {
 		return err
@@ -840,7 +820,7 @@ func autoConvert_api_RoleBindingList_To_v1_RoleBindingList(in *api.RoleBindingLi
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]RoleBinding, 0)
 	}
 	return nil
 }
@@ -850,9 +830,7 @@ func Convert_api_RoleBindingList_To_v1_RoleBindingList(in *api.RoleBindingList, 
 }
 
 func autoConvert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(in *RoleBindingRestriction, out *api.RoleBindingRestriction, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_RoleBindingRestrictionSpec_To_api_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -864,9 +842,7 @@ func Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(in *RoleBin
 }
 
 func autoConvert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(in *api.RoleBindingRestriction, out *RoleBindingRestriction, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_RoleBindingRestrictionSpec_To_v1_RoleBindingRestrictionSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -879,17 +855,7 @@ func Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(in *api.Rol
 
 func autoConvert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList(in *RoleBindingRestrictionList, out *api.RoleBindingRestrictionList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]api.RoleBindingRestriction, len(*in))
-		for i := range *in {
-			if err := Convert_v1_RoleBindingRestriction_To_api_RoleBindingRestriction(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]api.RoleBindingRestriction)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -899,16 +865,10 @@ func Convert_v1_RoleBindingRestrictionList_To_api_RoleBindingRestrictionList(in 
 
 func autoConvert_api_RoleBindingRestrictionList_To_v1_RoleBindingRestrictionList(in *api.RoleBindingRestrictionList, out *RoleBindingRestrictionList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]RoleBindingRestriction, len(*in))
-		for i := range *in {
-			if err := Convert_api_RoleBindingRestriction_To_v1_RoleBindingRestriction(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
+	if in.Items == nil {
+		out.Items = make([]RoleBindingRestriction, 0)
 	} else {
-		out.Items = nil
+		out.Items = *(*[]RoleBindingRestriction)(unsafe.Pointer(&in.Items))
 	}
 	return nil
 }
@@ -970,7 +930,7 @@ func autoConvert_api_RoleList_To_v1_RoleList(in *api.RoleList, out *RoleList, s 
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]Role, 0)
 	}
 	return nil
 }
@@ -1008,21 +968,13 @@ func Convert_api_SelfSubjectRulesReview_To_v1_SelfSubjectRulesReview(in *api.Sel
 }
 
 func autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
-}
-
-func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *api.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	return autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
-}
-
-func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *api.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	return autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s)
 }
 
 func autoConvert_v1_ServiceAccountReference_To_api_ServiceAccountReference(in *ServiceAccountReference, out *api.ServiceAccountReference, s conversion.Scope) error {
@@ -1056,8 +1008,16 @@ func Convert_v1_ServiceAccountRestriction_To_api_ServiceAccountRestriction(in *S
 }
 
 func autoConvert_api_ServiceAccountRestriction_To_v1_ServiceAccountRestriction(in *api.ServiceAccountRestriction, out *ServiceAccountRestriction, s conversion.Scope) error {
-	out.ServiceAccounts = *(*[]ServiceAccountReference)(unsafe.Pointer(&in.ServiceAccounts))
-	out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
+	if in.ServiceAccounts == nil {
+		out.ServiceAccounts = make([]ServiceAccountReference, 0)
+	} else {
+		out.ServiceAccounts = *(*[]ServiceAccountReference)(unsafe.Pointer(&in.ServiceAccounts))
+	}
+	if in.Namespaces == nil {
+		out.Namespaces = make([]string, 0)
+	} else {
+		out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
+	}
 	return nil
 }
 
@@ -1071,7 +1031,7 @@ func autoConvert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAc
 	}
 	out.User = in.User
 	// INFO: in.GroupsSlice opted out of conversion generation
-	out.Scopes = *(*[]string)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -1081,7 +1041,7 @@ func autoConvert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *api.Subje
 	}
 	out.User = in.User
 	// INFO: in.Groups opted out of conversion generation
-	out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
+	// INFO: in.Scopes opted out of conversion generation
 	return nil
 }
 
@@ -1150,8 +1110,16 @@ func Convert_v1_SubjectRulesReviewSpec_To_api_SubjectRulesReviewSpec(in *Subject
 
 func autoConvert_api_SubjectRulesReviewSpec_To_v1_SubjectRulesReviewSpec(in *api.SubjectRulesReviewSpec, out *SubjectRulesReviewSpec, s conversion.Scope) error {
 	out.User = in.User
-	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
+	if in.Groups == nil {
+		out.Groups = make([]string, 0)
+	} else {
+		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	}
+	if in.Scopes == nil {
+		out.Scopes = make(OptionalScopes, 0)
+	} else {
+		out.Scopes = *(*OptionalScopes)(unsafe.Pointer(&in.Scopes))
+	}
 	return nil
 }
 
@@ -1189,7 +1157,7 @@ func autoConvert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in 
 			}
 		}
 	} else {
-		out.Rules = nil
+		out.Rules = make([]PolicyRule, 0)
 	}
 	out.EvaluationError = in.EvaluationError
 	return nil
@@ -1202,7 +1170,7 @@ func Convert_api_SubjectRulesReviewStatus_To_v1_SubjectRulesReviewStatus(in *api
 func autoConvert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out *api.UserRestriction, s conversion.Scope) error {
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	out.Selectors = *(*[]meta_v1.LabelSelector)(unsafe.Pointer(&in.Selectors))
 	return nil
 }
 
@@ -1211,9 +1179,21 @@ func Convert_v1_UserRestriction_To_api_UserRestriction(in *UserRestriction, out 
 }
 
 func autoConvert_api_UserRestriction_To_v1_UserRestriction(in *api.UserRestriction, out *UserRestriction, s conversion.Scope) error {
-	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
-	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	out.Selectors = *(*[]unversioned.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	if in.Users == nil {
+		out.Users = make([]string, 0)
+	} else {
+		out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
+	}
+	if in.Groups == nil {
+		out.Groups = make([]string, 0)
+	} else {
+		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	}
+	if in.Selectors == nil {
+		out.Selectors = make([]meta_v1.LabelSelector, 0)
+	} else {
+		out.Selectors = *(*[]meta_v1.LabelSelector)(unsafe.Pointer(&in.Selectors))
+	}
 	return nil
 }
 

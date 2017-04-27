@@ -7,7 +7,7 @@ import (
 
 	"github.com/RangelReale/osin"
 
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 const (

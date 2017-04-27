@@ -2,12 +2,12 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeTemplate struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeTemplate) BrokerTemplateInstances() internalversion.BrokerTemplateInstanceInterface {
@@ -24,7 +24,7 @@ func (c *FakeTemplate) TemplateInstances(namespace string) internalversion.Templ
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeTemplate) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeTemplate) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

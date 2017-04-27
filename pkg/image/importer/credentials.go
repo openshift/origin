@@ -10,6 +10,7 @@ import (
 	"github.com/docker/distribution/registry/client/auth"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
@@ -138,8 +139,16 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 		}
 	}
 
+	secretsv1 := make([]kapiv1.Secret, len(s.secrets))
+	for i, secret := range s.secrets {
+		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+	}
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
-	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
+	keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, emptyKeyring)
 	if err != nil {
 		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
 		s.err = err

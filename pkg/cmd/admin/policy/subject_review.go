@@ -8,19 +8,20 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/serviceaccount"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 var (
@@ -112,19 +113,11 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	o.RESTClientFactory = f.ClientForMapping
 
 	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
-		clientConfig, err := f.ClientConfig()
+		printer, _, err := f.PrinterForCommand(cmd)
 		if err != nil {
 			return err
 		}
-		version, err := kcmdutil.OutputVersion(cmd, clientConfig.GroupVersion)
-		if err != nil {
-			return err
-		}
-		p, _, err := kcmdutil.PrinterForCommand(cmd)
-		if err != nil {
-			return err
-		}
-		o.printer = &sccSubjectReviewOutputPrinter{kubectl.NewVersionedPrinter(p, kapi.Scheme, version)}
+		o.printer = &sccSubjectReviewOutputPrinter{printer}
 	} else {
 		o.printer = &sccSubjectReviewHumanReadablePrinter{noHeaders: kcmdutil.GetFlagBool(cmd, "no-headers")}
 	}
@@ -165,12 +158,25 @@ func (o *sccSubjectReviewOptions) Run(args []string) error {
 			return err
 		}
 		if len(userOrSA) > 0 || len(o.Groups) > 0 {
-			response, err = o.pspSubjectReview(userOrSA, podTemplateSpec)
+			unversionedObj, err := o.pspSubjectReview(userOrSA, podTemplateSpec)
+			if err != nil {
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			}
+			versionedObj := &securityapiv1.PodSecurityPolicySubjectReview{}
+			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+				return err
+			}
+			response = versionedObj
 		} else {
-			response, err = o.pspSelfSubjectReview(podTemplateSpec)
-		}
-		if err != nil {
-			return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			unversionedObj, err := o.pspSelfSubjectReview(podTemplateSpec)
+			if err != nil {
+				return fmt.Errorf("unable to compute Pod Security Policy Subject Review for %q: %v", objectName, err)
+			}
+			versionedObj := &securityapiv1.PodSecurityPolicySelfSubjectReview{}
+			if err := kapi.Scheme.Convert(unversionedObj, versionedObj, nil); err != nil {
+				return err
+			}
+			response = versionedObj
 		}
 		if err := o.printer.print(info, response, o.out); err != nil {
 			allErrs = append(allErrs, err)
@@ -206,7 +212,7 @@ type sccSubjectReviewPrinter interface {
 }
 
 type sccSubjectReviewOutputPrinter struct {
-	kubectl.ResourcePrinter
+	kprinters.ResourcePrinter
 }
 
 var _ sccSubjectReviewPrinter = &sccSubjectReviewOutputPrinter{}
@@ -261,6 +267,14 @@ func getAllowedBy(obj runtime.Object) (string, error) {
 			value = review.Status.AllowedBy.Name
 		}
 	case *securityapi.PodSecurityPolicySubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+		if review.Status.AllowedBy != nil {
+			value = review.Status.AllowedBy.Name
+		}
+	case *securityapiv1.PodSecurityPolicySubjectReview:
 		if review.Status.AllowedBy != nil {
 			value = review.Status.AllowedBy.Name
 		}

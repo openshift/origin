@@ -5,9 +5,9 @@
 package api
 
 import (
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -38,21 +38,17 @@ func DeepCopy_api_ClusterRoleScopeRestriction(in interface{}, out interface{}, c
 	{
 		in := in.(*ClusterRoleScopeRestriction)
 		out := out.(*ClusterRoleScopeRestriction)
+		*out = *in
 		if in.RoleNames != nil {
 			in, out := &in.RoleNames, &out.RoleNames
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.RoleNames = nil
 		}
 		if in.Namespaces != nil {
 			in, out := &in.Namespaces, &out.Namespaces
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Namespaces = nil
 		}
-		out.AllowEscalation = in.AllowEscalation
 		return nil
 	}
 }
@@ -61,24 +57,17 @@ func DeepCopy_api_OAuthAccessToken(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*OAuthAccessToken)
 		out := out.(*OAuthAccessToken)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.ClientName = in.ClientName
-		out.ExpiresIn = in.ExpiresIn
 		if in.Scopes != nil {
 			in, out := &in.Scopes, &out.Scopes
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Scopes = nil
 		}
-		out.RedirectURI = in.RedirectURI
-		out.UserName = in.UserName
-		out.UserUID = in.UserUID
-		out.AuthorizeToken = in.AuthorizeToken
-		out.RefreshToken = in.RefreshToken
 		return nil
 	}
 }
@@ -87,8 +76,7 @@ func DeepCopy_api_OAuthAccessTokenList(in interface{}, out interface{}, c *conve
 	{
 		in := in.(*OAuthAccessTokenList)
 		out := out.(*OAuthAccessTokenList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]OAuthAccessToken, len(*in))
@@ -97,8 +85,6 @@ func DeepCopy_api_OAuthAccessTokenList(in interface{}, out interface{}, c *conve
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -108,25 +94,17 @@ func DeepCopy_api_OAuthAuthorizeToken(in interface{}, out interface{}, c *conver
 	{
 		in := in.(*OAuthAuthorizeToken)
 		out := out.(*OAuthAuthorizeToken)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.ClientName = in.ClientName
-		out.ExpiresIn = in.ExpiresIn
 		if in.Scopes != nil {
 			in, out := &in.Scopes, &out.Scopes
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Scopes = nil
 		}
-		out.RedirectURI = in.RedirectURI
-		out.State = in.State
-		out.UserName = in.UserName
-		out.UserUID = in.UserUID
-		out.CodeChallenge = in.CodeChallenge
-		out.CodeChallengeMethod = in.CodeChallengeMethod
 		return nil
 	}
 }
@@ -135,8 +113,7 @@ func DeepCopy_api_OAuthAuthorizeTokenList(in interface{}, out interface{}, c *co
 	{
 		in := in.(*OAuthAuthorizeTokenList)
 		out := out.(*OAuthAuthorizeTokenList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]OAuthAuthorizeToken, len(*in))
@@ -145,8 +122,6 @@ func DeepCopy_api_OAuthAuthorizeTokenList(in interface{}, out interface{}, c *co
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -156,27 +131,22 @@ func DeepCopy_api_OAuthClient(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*OAuthClient)
 		out := out.(*OAuthClient)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Secret = in.Secret
 		if in.AdditionalSecrets != nil {
 			in, out := &in.AdditionalSecrets, &out.AdditionalSecrets
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.AdditionalSecrets = nil
 		}
-		out.RespondWithChallenges = in.RespondWithChallenges
 		if in.RedirectURIs != nil {
 			in, out := &in.RedirectURIs, &out.RedirectURIs
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.RedirectURIs = nil
 		}
-		out.GrantMethod = in.GrantMethod
 		if in.ScopeRestrictions != nil {
 			in, out := &in.ScopeRestrictions, &out.ScopeRestrictions
 			*out = make([]ScopeRestriction, len(*in))
@@ -185,8 +155,6 @@ func DeepCopy_api_OAuthClient(in interface{}, out interface{}, c *conversion.Clo
 					return err
 				}
 			}
-		} else {
-			out.ScopeRestrictions = nil
 		}
 		return nil
 	}
@@ -196,19 +164,16 @@ func DeepCopy_api_OAuthClientAuthorization(in interface{}, out interface{}, c *c
 	{
 		in := in.(*OAuthClientAuthorization)
 		out := out.(*OAuthClientAuthorization)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.ClientName = in.ClientName
-		out.UserName = in.UserName
-		out.UserUID = in.UserUID
 		if in.Scopes != nil {
 			in, out := &in.Scopes, &out.Scopes
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Scopes = nil
 		}
 		return nil
 	}
@@ -218,8 +183,7 @@ func DeepCopy_api_OAuthClientAuthorizationList(in interface{}, out interface{}, 
 	{
 		in := in.(*OAuthClientAuthorizationList)
 		out := out.(*OAuthClientAuthorizationList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]OAuthClientAuthorization, len(*in))
@@ -228,8 +192,6 @@ func DeepCopy_api_OAuthClientAuthorizationList(in interface{}, out interface{}, 
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -239,8 +201,7 @@ func DeepCopy_api_OAuthClientList(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*OAuthClientList)
 		out := out.(*OAuthClientList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]OAuthClient, len(*in))
@@ -249,8 +210,6 @@ func DeepCopy_api_OAuthClientList(in interface{}, out interface{}, c *conversion
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -260,11 +219,12 @@ func DeepCopy_api_OAuthRedirectReference(in interface{}, out interface{}, c *con
 	{
 		in := in.(*OAuthRedirectReference)
 		out := out.(*OAuthRedirectReference)
-		out.TypeMeta = in.TypeMeta
-		if err := pkg_api.DeepCopy_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
 		}
-		out.Reference = in.Reference
 		return nil
 	}
 }
@@ -273,9 +233,7 @@ func DeepCopy_api_RedirectReference(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*RedirectReference)
 		out := out.(*RedirectReference)
-		out.Group = in.Group
-		out.Kind = in.Kind
-		out.Name = in.Name
+		*out = *in
 		return nil
 	}
 }
@@ -284,12 +242,11 @@ func DeepCopy_api_ScopeRestriction(in interface{}, out interface{}, c *conversio
 	{
 		in := in.(*ScopeRestriction)
 		out := out.(*ScopeRestriction)
+		*out = *in
 		if in.ExactValues != nil {
 			in, out := &in.ExactValues, &out.ExactValues
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.ExactValues = nil
 		}
 		if in.ClusterRole != nil {
 			in, out := &in.ClusterRole, &out.ClusterRole
@@ -297,8 +254,6 @@ func DeepCopy_api_ScopeRestriction(in interface{}, out interface{}, c *conversio
 			if err := DeepCopy_api_ClusterRoleScopeRestriction(*in, *out, c); err != nil {
 				return err
 			}
-		} else {
-			out.ClusterRole = nil
 		}
 		return nil
 	}

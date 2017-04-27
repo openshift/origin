@@ -118,7 +118,7 @@ func TestNewRequestFromForm(t *testing.T) {
 			t.Fatal(err)
 		}
 		forms := GetElementsByTagName(root, "form")
-		req, err := NewRequestFromForm(forms[0], tc.CurrentURL)
+		req, err := NewRequestFromForm(forms[0], tc.CurrentURL, nil)
 		if err != nil {
 			t.Errorf("%d: %v", i, err)
 			continue

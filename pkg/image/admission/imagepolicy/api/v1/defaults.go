@@ -1,8 +1,8 @@
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"reflect"
 	"testing"
@@ -21,7 +21,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "other-ref",
-							Created:              unversioned.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 9, 4, 13, 52, 0, 0, time.UTC),
 							Image:                "other-image",
 						},
 					},
@@ -30,7 +30,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "latest-ref",
-							Created:              unversioned.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 9, 4, 13, 53, 0, 0, time.UTC),
 							Image:                "latest-image",
 						},
 					},
@@ -39,7 +39,7 @@ func TestSortStatusTags(t *testing.T) {
 					Items: []TagEvent{
 						{
 							DockerImageReference: "third-ref",
-							Created:              unversioned.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 9, 4, 13, 54, 0, 0, time.UTC),
 							Image:                "third-image",
 						},
 					},

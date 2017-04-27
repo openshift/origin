@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -13,8 +14,8 @@ type ClusterRolesInterface interface {
 
 // ClusterRoleInterface exposes methods on ClusterRoles resources
 type ClusterRoleInterface interface {
-	List(opts kapi.ListOptions) (*authorizationapi.ClusterRoleList, error)
-	Get(name string) (*authorizationapi.ClusterRole, error)
+	List(opts metav1.ListOptions) (*authorizationapi.ClusterRoleList, error)
+	Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterRole, error)
 	Create(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
 	Update(role *authorizationapi.ClusterRole) (*authorizationapi.ClusterRole, error)
 	Delete(name string) error
@@ -32,16 +33,16 @@ func newClusterRoles(c *Client) *clusterRoles {
 }
 
 // List returns a list of clusterRoles that match the label and field selectors.
-func (c *clusterRoles) List(opts kapi.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
+func (c *clusterRoles) List(opts metav1.ListOptions) (result *authorizationapi.ClusterRoleList, err error) {
 	result = &authorizationapi.ClusterRoleList{}
 	err = c.r.Get().Resource("clusterRoles").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 // Get returns information about a particular role and error if one occurs.
-func (c *clusterRoles) Get(name string) (result *authorizationapi.ClusterRole, err error) {
+func (c *clusterRoles) Get(name string, options metav1.GetOptions) (result *authorizationapi.ClusterRole, err error) {
 	result = &authorizationapi.ClusterRole{}
-	err = c.r.Get().Resource("clusterRoles").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("clusterRoles").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

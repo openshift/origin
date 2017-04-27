@@ -3,14 +3,16 @@ package route
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/route"
 	"github.com/openshift/origin/pkg/route/api"
@@ -22,7 +24,7 @@ const HostGeneratedAnnotationKey = "openshift.io/host.generated"
 
 type routeStrategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 	route.RouteAllocator
 }
 
@@ -31,7 +33,7 @@ type routeStrategy struct {
 func NewStrategy(allocator route.RouteAllocator) routeStrategy {
 	return routeStrategy{
 		kapi.Scheme,
-		kapi.SimpleNameGenerator,
+		names.SimpleNameGenerator,
 		allocator,
 	}
 }
@@ -40,7 +42,7 @@ func (routeStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func (s routeStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s routeStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	route := obj.(*api.Route)
 	route.Status = api.RouteStatus{}
 	err := s.allocateHost(route)
@@ -50,7 +52,7 @@ func (s routeStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
 	}
 }
 
-func (s routeStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (s routeStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	route := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	route.Status = oldRoute.Status
@@ -86,7 +88,7 @@ func (s routeStrategy) allocateHost(route *api.Route) error {
 	return nil
 }
 
-func (routeStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (routeStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	route := obj.(*api.Route)
 	return validation.ValidateRoute(route)
 }
@@ -99,7 +101,7 @@ func (routeStrategy) AllowCreateOnUpdate() bool {
 func (routeStrategy) Canonicalize(obj runtime.Object) {
 }
 
-func (routeStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (routeStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	oldRoute := old.(*api.Route)
 	objRoute := obj.(*api.Route)
 	return validation.ValidateRouteUpdate(objRoute, oldRoute)
@@ -115,13 +117,13 @@ type routeStatusStrategy struct {
 
 var StatusStrategy = routeStatusStrategy{NewStrategy(nil)}
 
-func (routeStatusStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {
+func (routeStatusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newRoute := obj.(*api.Route)
 	oldRoute := old.(*api.Route)
 	newRoute.Spec = oldRoute.Spec
 }
 
-func (routeStatusStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (routeStatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRouteStatusUpdate(obj.(*api.Route), old.(*api.Route))
 }
 

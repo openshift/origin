@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/kubernetes/pkg/kubectl"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/sets"
-
 	"github.com/spf13/cobra"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -44,7 +44,7 @@ type NewGroupOptions struct {
 	Users []string
 
 	Out     io.Writer
-	Printer kubectl.ResourcePrinterFunc
+	Printer kprinters.ResourcePrinterFunc
 }
 
 func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
@@ -86,11 +86,7 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.GroupClient = osClient.Groups()
 
-	outputFormat := kcmdutil.GetFlagString(cmd, "output")
-	templateFile := kcmdutil.GetFlagString(cmd, "template")
-	noHeaders := kcmdutil.GetFlagBool(cmd, "no-headers")
-	allowMissingTemplateKeys := kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys")
-	printer, _, err := kubectl.GetPrinter(outputFormat, templateFile, noHeaders, allowMissingTemplateKeys)
+	printer, _, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return err
 	}

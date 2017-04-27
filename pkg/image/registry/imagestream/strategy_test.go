@@ -8,15 +8,17 @@ import (
 	"strings"
 	"testing"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/auth/user"
 	kquota "k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
@@ -65,9 +67,9 @@ type fakeSubjectAccessReviewRegistry struct {
 
 var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
 
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx kapi.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	f.request = subjectAccessReview
-	f.requestNamespace = kapi.NamespaceValue(ctx)
+	f.requestNamespace = apirequest.NamespaceValue(ctx)
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
@@ -79,7 +81,7 @@ func TestDockerImageRepository(t *testing.T) {
 	}{
 		"DockerImageRepository set on stream": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somerepo",
 				},
 				Spec: api.ImageStreamSpec{
@@ -90,7 +92,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"DockerImageRepository set on stream with default registry": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "somerepo",
 				},
@@ -103,7 +105,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"default namespace": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "somerepo",
 				},
 			},
@@ -112,7 +114,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"nondefault namespace": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "somerepo",
 					Namespace: "somens",
 				},
@@ -122,7 +124,7 @@ func TestDockerImageRepository(t *testing.T) {
 		},
 		"missing default registry": {
 			stream: &api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "somerepo",
 					Namespace: "somens",
 				},
@@ -290,7 +292,7 @@ func TestTagVerifier(t *testing.T) {
 		}
 
 		stream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "namespace",
 				Name:      "stream",
 			},
@@ -372,7 +374,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "no limit",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -394,7 +396,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "below limit",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -417,7 +419,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed images",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -449,7 +451,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed tags",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -475,7 +477,7 @@ func TestLimitVerifier(t *testing.T) {
 		{
 			name: "exceed images and tags",
 			is: api.ImageStream{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
 					Name:      "is",
 				},
@@ -525,7 +527,7 @@ func TestLimitVerifier(t *testing.T) {
 			defaultRegistry: &fakeDefaultRegistry{},
 		}
 
-		ctx := kapi.WithUser(kapi.NewDefaultContext(), &fakeUser{})
+		ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
 		err := s.Validate(ctx, &tc.is)
 		if e, a := tc.expected, err; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", tc.name, diff.ObjectReflectDiff(e, a))
@@ -534,7 +536,7 @@ func TestLimitVerifier(t *testing.T) {
 		// Update must fail the exact same way
 		tc.is.ResourceVersion = "1"
 		old := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace:       "test",
 				Name:            "is",
 				ResourceVersion: "1",
@@ -551,7 +553,7 @@ type fakeImageStreamGetter struct {
 	stream *api.ImageStream
 }
 
-func (f *fakeImageStreamGetter) Get(ctx kapi.Context, name string) (runtime.Object, error) {
+func (f *fakeImageStreamGetter) Get(ctx apirequest.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
 	return f.stream, nil
 }
 
@@ -1045,7 +1047,7 @@ func TestTagsChanged(t *testing.T) {
 
 	for testName, test := range tests {
 		stream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "stream",
 			},
 			Spec: api.ImageStreamSpec{
@@ -1063,7 +1065,7 @@ func TestTagsChanged(t *testing.T) {
 			previousTagHistory, _ = obj.(map[string]api.TagEventList)
 		}
 		previousStream := &api.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "stream",
 			},
 			Spec: api.ImageStreamSpec{

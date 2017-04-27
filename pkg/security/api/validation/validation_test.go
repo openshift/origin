@@ -14,7 +14,14 @@ func validPodSpec() kapi.PodSpec {
 		Volumes: []kapi.Volume{
 			{Name: "vol", VolumeSource: kapi.VolumeSource{EmptyDir: &kapi.EmptyDirVolumeSource{}}},
 		},
-		Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+		Containers: []kapi.Container{
+			{
+				Name:                     "ctr",
+				Image:                    "image",
+				ImagePullPolicy:          "IfNotPresent",
+				TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+			},
+		},
 		RestartPolicy: kapi.RestartPolicyAlways,
 		NodeSelector: map[string]string{
 			"key": "value",
@@ -23,12 +30,13 @@ func validPodSpec() kapi.PodSpec {
 		DNSPolicy:             kapi.DNSClusterFirst,
 		ActiveDeadlineSeconds: &activeDeadlineSeconds,
 		ServiceAccountName:    "acct",
+		SchedulerName:         kapi.DefaultSchedulerName,
 	}
 }
 
 func invalidPodSpec() kapi.PodSpec {
 	return kapi.PodSpec{
-		Containers:    []kapi.Container{{}},
+		Containers:    []kapi.Container{{TerminationMessagePolicy: kapi.TerminationMessageReadFile}},
 		RestartPolicy: kapi.RestartPolicyAlways,
 		DNSPolicy:     kapi.DNSClusterFirst,
 	}
@@ -143,7 +151,7 @@ func TestValidatePodSecurityPolicyReview(t *testing.T) {
 				},
 			},
 		},
-		`spec.serviceAccountNames[0]: Invalid value: "my bad sa": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`: {
+		`spec.serviceAccountNames[0]: Invalid value: "my bad sa": a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')`: {
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: validPodSpec(),
@@ -151,7 +159,7 @@ func TestValidatePodSecurityPolicyReview(t *testing.T) {
 				ServiceAccountNames: []string{"my bad sa"},
 			},
 		},
-		`spec.serviceAccountNames[1]: Invalid value: "my bad sa": must match the regex [a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)* (e.g. 'example.com')`: {
+		`spec.serviceAccountNames[1]: Invalid value: "my bad sa": a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')`: {
 			Spec: securityapi.PodSecurityPolicyReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: validPodSpec(),

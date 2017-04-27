@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/server/httplog"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/httplog"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -22,7 +23,7 @@ type GroupCache interface {
 }
 
 // ImpersonationFilter checks for impersonation rules against the current user.
-func ImpersonationFilter(handler http.Handler, a kauthorizer.Authorizer, groupCache GroupCache, contextMapper kapi.RequestContextMapper) http.Handler {
+func ImpersonationFilter(handler http.Handler, a kauthorizer.Authorizer, groupCache GroupCache, contextMapper apirequest.RequestContextMapper) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		requestedUser := req.Header.Get(authenticationapi.ImpersonateUserHeader)
 		if len(requestedUser) == 0 {
@@ -41,7 +42,7 @@ func ImpersonationFilter(handler http.Handler, a kauthorizer.Authorizer, groupCa
 			Forbidden("context not found", nil, w, req)
 			return
 		}
-		oldUser, ok := kapi.UserFrom(ctx)
+		oldUser, ok := apirequest.UserFrom(ctx)
 		if !ok {
 			Forbidden("user not found", nil, w, req)
 			return
@@ -139,7 +140,7 @@ func ImpersonationFilter(handler http.Handler, a kauthorizer.Authorizer, groupCa
 			Groups: groups,
 			Extra:  extra,
 		}
-		contextMapper.Update(req, kapi.WithUser(ctx, newUser))
+		contextMapper.Update(req, apirequest.WithUser(ctx, newUser))
 
 		httplog.LogOf(req, w).Addf("%v is acting as %v", oldUser, newUser)
 

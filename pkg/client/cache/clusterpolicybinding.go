@@ -1,9 +1,9 @@
 package cache
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -24,10 +24,14 @@ func (i *InformerToClusterPolicyBindingLister) ClusterPolicyBindings() client.Cl
 	return i
 }
 
-func (i *InformerToClusterPolicyBindingLister) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
+func (i *InformerToClusterPolicyBindingLister) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
 	clusterPolicyBindingList := &authorizationapi.ClusterPolicyBindingList{}
 	returnedList := i.GetIndexer().List()
-	matcher := clusterpolicybindingregistry.Matcher(oapi.ListOptionsToSelectors(&options))
+	labelSel, fieldSel, err := oapi.ListOptionsToSelectors(&options)
+	if err != nil {
+		return nil, err
+	}
+	matcher := clusterpolicybindingregistry.Matcher(labelSel, fieldSel)
 	for i := range returnedList {
 		clusterPolicyBinding := returnedList[i].(*authorizationapi.ClusterPolicyBinding)
 		if matches, err := matcher.Matches(clusterPolicyBinding); err == nil && matches {
@@ -37,8 +41,8 @@ func (i *InformerToClusterPolicyBindingLister) List(options kapi.ListOptions) (*
 	return clusterPolicyBindingList, nil
 }
 
-func (i *InformerToClusterPolicyBindingLister) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
-	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: kapi.ObjectMeta{Name: name}}
+func (i *InformerToClusterPolicyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+	keyObj := &authorizationapi.ClusterPolicyBinding{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	key, _ := cache.DeletionHandlingMetaNamespaceKeyFunc(keyObj)
 
 	item, exists, getErr := i.GetIndexer().GetByKey(key)

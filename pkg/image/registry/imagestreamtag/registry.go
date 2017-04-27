@@ -1,17 +1,17 @@
 package imagestreamtag
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/origin/pkg/image/api"
 )
 
 // Registry is an interface for things that know how to store ImageStreamTag objects.
 type Registry interface {
-	GetImageStreamTag(ctx kapi.Context, nameAndTag string) (*api.ImageStreamTag, error)
-	DeleteImageStreamTag(ctx kapi.Context, nameAndTag string) (*unversioned.Status, error)
+	GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error)
+	DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -31,18 +31,18 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetImageStreamTag(ctx kapi.Context, nameAndTag string) (*api.ImageStreamTag, error) {
-	obj, err := s.Get(ctx, nameAndTag)
+func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error) {
+	obj, err := s.Get(ctx, nameAndTag, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*api.ImageStreamTag), nil
 }
 
-func (s *storage) DeleteImageStreamTag(ctx kapi.Context, nameAndTag string) (*unversioned.Status, error) {
+func (s *storage) DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error) {
 	obj, err := s.Delete(ctx, nameAndTag)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*unversioned.Status), err
+	return obj.(*metav1.Status), err
 }

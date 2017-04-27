@@ -6,10 +6,11 @@ import (
 	"reflect"
 	"strings"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
-	"k8s.io/kubernetes/third_party/forked/golang/netutil"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/third_party/forked/golang/netutil"
+	restclient "k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"
@@ -62,7 +63,7 @@ func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userInfo, err := client.Users().Get("~")
+	userInfo, err := client.Users().Get("~", metav1.GetOptions{})
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {

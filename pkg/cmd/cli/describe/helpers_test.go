@@ -8,8 +8,8 @@ import (
 	"time"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 func TestFormatImageStreamTags(t *testing.T) {
@@ -56,12 +56,12 @@ func TestFormatImageStreamTags(t *testing.T) {
 				imageapi.DefaultImageTag: {
 					Items: []imageapi.TagEvent{
 						{
-							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 							DockerImageReference: "registry:5000/foo/bar@sha256:4bd26aef1ce78b4f05ede83496276f11e3343441574ca1ce89dffd146c708c16",
 							Image:                "sha256:4bd26aef1ce78b4f05ede83496276f11e3343441574ca1ce89dffd146c708c16",
 						},
 						{
-							Created:              unversioned.Date(2015, 3, 23, 7, 15, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 23, 7, 15, 0, 0, time.UTC),
 							DockerImageReference: "registry:5000/foo/bar@sha256:062b80555a5dd7f5d58e78b266785a399277ff8c3e402ce5fa5d8571788e6bad",
 							Image:                "sha256:062b80555a5dd7f5d58e78b266785a399277ff8c3e402ce5fa5d8571788e6bad",
 						},
@@ -70,7 +70,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 				"spec1": {
 					Items: []imageapi.TagEvent{
 						{
-							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 							DockerImageReference: "registry:5000/foo/bar@sha256:4bd26aef1ce78b4f05ede83496276f11e3343441574ca1ce89dffd146c708c16",
 							Image:                "sha256:4bd26aef1ce78b4f05ede83496276f11e3343441574ca1ce89dffd146c708c16",
 						},
@@ -79,7 +79,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 				"spec2": {
 					Items: []imageapi.TagEvent{
 						{
-							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 							DockerImageReference: "mysql:latest",
 							Image:                "sha256:e52c6534db85036dabac5e71ff14e720db94def2d90f986f3548425ea27b3719",
 						},
@@ -96,7 +96,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 					},
 					Items: []imageapi.TagEvent{
 						{
-							Created:              unversioned.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Created:              metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
 							DockerImageReference: "mysql:latest",
 							Image:                "sha256:e52c6534db85036dabac5e71ff14e720db94def2d90f986f3548425ea27b3719",
 							Generation:           2,

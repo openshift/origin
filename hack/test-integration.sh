@@ -13,6 +13,9 @@ function cleanup() {
 	out=$?
 	set +e
 
+	# this is a domain socket. CI falls over it.
+	rm -f "${BASETMPDIR}/dockershim.sock"
+
 	echo "Complete"
 	exit $out
 }

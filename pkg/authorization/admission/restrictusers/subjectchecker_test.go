@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
@@ -52,7 +52,7 @@ func TestSubjectCheckers(t *testing.T) {
 			Name: "system group",
 		}
 		group = userapi.Group{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:   "group",
 				Labels: map[string]string{"baz": "quux"},
 			},
@@ -60,18 +60,18 @@ func TestSubjectCheckers(t *testing.T) {
 		}
 		objects = []runtime.Object{
 			&userapi.User{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:   "Alice",
 					Labels: map[string]string{"foo": "bar"},
 				},
 			},
 			&userapi.User{
-				ObjectMeta: kapi.ObjectMeta{Name: "Bob"},
+				ObjectMeta: metav1.ObjectMeta{Name: "Bob"},
 				Groups:     []string{"group"},
 			},
 			&group,
 			&kapi.ServiceAccount{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 					Name:      "serviceaccount",
 					Labels:    map[string]string{"xyzzy": "thud"},
@@ -146,7 +146,7 @@ func TestSubjectCheckers(t *testing.T) {
 			checker: mustNewSubjectChecker(t,
 				&authorizationapi.RoleBindingRestrictionSpec{
 					UserRestriction: &authorizationapi.UserRestriction{
-						Selectors: []unversioned.LabelSelector{
+						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"foo": "bar"}},
 						},
 					},
@@ -159,7 +159,7 @@ func TestSubjectCheckers(t *testing.T) {
 			checker: mustNewSubjectChecker(t,
 				&authorizationapi.RoleBindingRestrictionSpec{
 					UserRestriction: &authorizationapi.UserRestriction{
-						Selectors: []unversioned.LabelSelector{
+						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"foo": "bar"}},
 						},
 					},
@@ -183,7 +183,7 @@ func TestSubjectCheckers(t *testing.T) {
 			checker: mustNewSubjectChecker(t,
 				&authorizationapi.RoleBindingRestrictionSpec{
 					GroupRestriction: &authorizationapi.GroupRestriction{
-						Selectors: []unversioned.LabelSelector{
+						Selectors: []metav1.LabelSelector{
 							{MatchLabels: map[string]string{"baz": "quux"}},
 						},
 					},
@@ -340,8 +340,8 @@ func TestSubjectCheckers(t *testing.T) {
 		},
 	}
 
-	kclient := fake.NewSimpleClientset(objects...)
-	oclient := otestclient.NewSimpleFake(objects...)
+	kclient := fake.NewSimpleClientset(otestclient.UpstreamObjects(objects)...)
+	oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(objects)...)
 	groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
 	groupCache.Run()
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race

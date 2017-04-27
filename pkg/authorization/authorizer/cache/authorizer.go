@@ -8,9 +8,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/hashicorp/golang-lru"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kauthorizer "k8s.io/kubernetes/pkg/auth/authorizer"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )

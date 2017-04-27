@@ -4,8 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 )
@@ -21,8 +22,8 @@ func TestGetBuild(t *testing.T) {
 		if resultVersion.Version != version {
 			t.Errorf("unexpected version: %s", resultVersion)
 		}
-		if !reflect.DeepEqual(build.AsBuild(), resultBuild) {
-			t.Errorf("%s: did not get expected build: %#v", version, resultBuild)
+		if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: did not get expected build: %s", version, diff.ObjectDiff(e, a))
 		}
 	}
 }
@@ -31,7 +32,7 @@ func TestSetBuild(t *testing.T) {
 	build := u.Build().WithSourceStrategy()
 	for _, version := range []string{"v1"} {
 		pod := u.Pod().WithEnvVar("BUILD", "foo")
-		groupVersion, err := unversioned.ParseGroupVersion(version)
+		groupVersion, err := schema.ParseGroupVersion(version)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -40,8 +41,8 @@ func TestSetBuild(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		resultBuild := pod.GetBuild(t)
-		if !reflect.DeepEqual(build.AsBuild(), resultBuild) {
-			t.Errorf("%s: did not get expected build: %#v", version, resultBuild)
+		if e, a := build.AsBuild(), resultBuild; !reflect.DeepEqual(e, a) {
+			t.Errorf("%s: did not get expected build: %s", version, diff.ObjectDiff(e, a))
 		}
 	}
 }

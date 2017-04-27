@@ -5,15 +5,15 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestKnownAPIGroups(t *testing.T) {
 	unexposedGroups := sets.NewString("authorization.k8s.io", "componentconfig", "metrics", "policy", "federation", "authentication.k8s.io", "rbac.authorization.k8s.io")
 
 	enabledGroups := sets.NewString()
-	for _, enabledVersion := range registered.EnabledVersions() {
+	for _, enabledVersion := range kapi.Registry.EnabledVersions() {
 		enabledGroups.Insert(enabledVersion.Group)
 	}
 
@@ -29,7 +29,7 @@ func TestAllowedAPIVersions(t *testing.T) {
 	// Make sure all versions we know about match registered versions
 	for group, versions := range KubeAPIGroupsToAllowedVersions {
 		enabled := sets.NewString()
-		for _, enabledVersion := range registered.EnabledVersionsForGroup(group) {
+		for _, enabledVersion := range kapi.Registry.EnabledVersionsForGroup(group) {
 			enabled.Insert(enabledVersion.Version)
 		}
 		expected := sets.NewString(versions...)

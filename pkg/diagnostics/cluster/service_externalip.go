@@ -6,7 +6,7 @@ import (
 	"net"
 	"strings"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	hostdiag "github.com/openshift/origin/pkg/diagnostics/host"
@@ -59,7 +59,7 @@ func (d *ServiceExternalIPs) Check() types.DiagnosticResult {
 			return r
 		}
 	}
-	services, err := d.KclusterClient.Core().Services("").List(kapi.ListOptions{})
+	services, err := d.KclusterClient.Core().Services("").List(metav1.ListOptions{})
 	if err != nil {
 		r.Error("DH2005", err, fmt.Sprintf("Error while listing cluster services: (%[1]T) %[1]v", err))
 		return r

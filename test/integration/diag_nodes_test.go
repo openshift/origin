@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierror "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	clusterdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	diagtype "github.com/openshift/origin/pkg/diagnostics/types"
@@ -27,7 +28,7 @@ func TestDiagNodeConditions(t *testing.T) {
 	}
 	nodeDiag := clusterdiags.NodeDefinitions{KubeClient: client}
 	err = wait.Poll(200*time.Millisecond, 5*time.Second, func() (bool, error) {
-		if _, err := client.Core().Nodes().Get(nodeConfig.NodeName); kapierror.IsNotFound(err) {
+		if _, err := client.Core().Nodes().Get(nodeConfig.NodeName, metav1.GetOptions{}); kapierror.IsNotFound(err) {
 			return false, nil
 		}
 		return true, err
@@ -46,7 +47,7 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Make the node unschedulable and verify diagnostics notices
 	err = wait.Poll(200*time.Millisecond, time.Second, func() (bool, error) {
-		node, err := client.Core().Nodes().Get(nodeConfig.NodeName)
+		node, err := client.Core().Nodes().Get(nodeConfig.NodeName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -78,7 +79,7 @@ func TestDiagNodeConditions(t *testing.T) {
 
 	// Next create a node and leave it in NotReady state. Should get a warning
 	// about that, plus the previous error as there are still no nodes available.
-	_, err = client.Core().Nodes().Create(&kapi.Node{ObjectMeta: kapi.ObjectMeta{Name: "test-node"}})
+	_, err = client.Core().Nodes().Create(&kapi.Node{ObjectMeta: metav1.ObjectMeta{Name: "test-node"}})
 	if err != nil {
 		t.Fatalf("expected no errors creating a node: %#v", err)
 	}

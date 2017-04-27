@@ -13,7 +13,7 @@ INPUT_DIRS=$(
   grep -v 'pkg\/security\/api' | \
   sort -u | \
   sed "s,^,${PREFIX}," | \
-  paste -sd,
+  paste -sd, -
 )
 
 genlisters \

@@ -11,19 +11,18 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	kclient "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/fields"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 	"k8s.io/kubernetes/pkg/util/term"
-	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -303,15 +302,6 @@ func (o DebugOptions) Validate() error {
 	return nil
 }
 
-// SingleObject returns a ListOptions for watching a single object.
-// TODO: move to pkg/api/helpers.go upstream.
-func SingleObject(meta kapi.ObjectMeta) kapi.ListOptions {
-	return kapi.ListOptions{
-		FieldSelector:   fields.OneTermEqualSelector("metadata.name", meta.Name),
-		ResourceVersion: meta.ResourceVersion,
-	}
-}
-
 // Debug creates and runs a debugging pod.
 func (o *DebugOptions) Debug() error {
 	pod, originalCommand := o.transformPodForDebug(o.Annotations)
@@ -343,7 +333,7 @@ func (o *DebugOptions) Debug() error {
 				stderr = os.Stderr
 			}
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
-			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0)); err != nil {
+			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
@@ -353,7 +343,7 @@ func (o *DebugOptions) Debug() error {
 
 	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
-		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(SingleObject(pod.ObjectMeta))
+		w, err := o.Attach.PodClient.Pods(pod.Namespace).Watch(metav1.SingleObject(pod.ObjectMeta))
 		if err != nil {
 			return err
 		}
@@ -369,7 +359,7 @@ func (o *DebugOptions) Debug() error {
 			return fmt.Errorf(msg)
 			// switch to logging output
 		case err == kclient.ErrPodCompleted, err == kclient.ErrContainerTerminated, !o.Attach.Stdin:
-			_, err := kcmd.LogsOptions{
+			return kcmd.LogsOptions{
 				Object: pod,
 				Options: &kapi.PodLogOptions{
 					Container: o.Attach.ContainerName,
@@ -379,7 +369,6 @@ func (o *DebugOptions) Debug() error {
 
 				LogsForObject: o.LogsForObject,
 			}.RunLogs()
-			return err
 		case err != nil:
 			return err
 		default:
@@ -415,7 +404,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
 	}
 
-	dc, err := o.Client.DeploymentConfigs(o.Attach.Pod.Namespace).Get(dcname)
+	dc, err := o.Client.DeploymentConfigs(o.Attach.Pod.Namespace).Get(dcname, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +443,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 // reasons.
 func (o *DebugOptions) getContainerImageViaImageStreamImport(container *kapi.Container) (*imageapi.Image, error) {
 	isi := &imageapi.ImageStreamImport{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "oc-debug",
 		},
 		Spec: imageapi.ImageStreamImportSpec{
@@ -594,7 +583,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*kap
 
 	pod.Status = kapi.PodStatus{}
 	pod.UID = ""
-	pod.CreationTimestamp = unversioned.Time{}
+	pod.CreationTimestamp = metav1.Time{}
 	pod.SelfLink = ""
 
 	return pod, originalCommand
@@ -612,7 +601,7 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// only continue if the pod has the right annotations
-	existing, err := o.Attach.PodClient.Pods(namespace).Get(name)
+	existing, err := o.Attach.PodClient.Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -621,7 +610,7 @@ func (o *DebugOptions) createPod(pod *kapi.Pod) (*kapi.Pod, error) {
 	}
 
 	// delete the existing pod
-	if err := o.Attach.PodClient.Pods(namespace).Delete(name, kapi.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
+	if err := o.Attach.PodClient.Pods(namespace).Delete(name, metav1.NewDeleteOptions(0)); err != nil && !kapierrors.IsNotFound(err) {
 		return nil, fmt.Errorf("unable to delete existing debug pod %q: %v", name, err)
 	}
 	return o.Attach.PodClient.Pods(namespace).Create(pod)

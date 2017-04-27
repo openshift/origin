@@ -2,9 +2,11 @@ package internalversion
 
 import (
 	api "github.com/openshift/origin/pkg/route/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/route/clientset/internalclientset/scheme"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // RoutesGetter has a method to return a RouteResourceInterface.
@@ -17,18 +19,19 @@ type RoutesGetter interface {
 type RouteResourceInterface interface {
 	Create(*api.Route) (*api.Route, error)
 	Update(*api.Route) (*api.Route, error)
-	Delete(name string, options *pkg_api.DeleteOptions) error
-	DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error
-	Get(name string) (*api.Route, error)
-	List(opts pkg_api.ListOptions) (*api.RouteList, error)
-	Watch(opts pkg_api.ListOptions) (watch.Interface, error)
-	Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Route, err error)
+	UpdateStatus(*api.Route) (*api.Route, error)
+	Delete(name string, options *v1.DeleteOptions) error
+	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
+	Get(name string, options v1.GetOptions) (*api.Route, error)
+	List(opts v1.ListOptions) (*api.RouteList, error)
+	Watch(opts v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Route, err error)
 	RouteResourceExpansion
 }
 
 // routes implements RouteResourceInterface
 type routes struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -65,8 +68,24 @@ func (c *routes) Update(route *api.Route) (result *api.Route, err error) {
 	return
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+
+func (c *routes) UpdateStatus(route *api.Route) (result *api.Route, err error) {
+	result = &api.Route{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("routes").
+		Name(route.Name).
+		SubResource("status").
+		Body(route).
+		Do().
+		Into(result)
+	return
+}
+
 // Delete takes name of the route and deletes it. Returns an error if one occurs.
-func (c *routes) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *routes) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
@@ -77,52 +96,53 @@ func (c *routes) Delete(name string, options *pkg_api.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *routes) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
+func (c *routes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
-		VersionedParams(&listOptions, pkg_api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the route, and returns the corresponding route object, and an error if there is any.
-func (c *routes) Get(name string) (result *api.Route, err error) {
+func (c *routes) Get(name string, options v1.GetOptions) (result *api.Route, err error) {
 	result = &api.Route{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Routes that match those selectors.
-func (c *routes) List(opts pkg_api.ListOptions) (result *api.RouteList, err error) {
+func (c *routes) List(opts v1.ListOptions) (result *api.RouteList, err error) {
 	result = &api.RouteList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *routes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("routes").
-		VersionedParams(&opts, pkg_api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched route.
-func (c *routes) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Route, err error) {
+func (c *routes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Route, err error) {
 	result = &api.Route{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

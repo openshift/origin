@@ -7,12 +7,12 @@ import (
 	"io"
 	"net/url"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
@@ -314,13 +314,13 @@ func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapi.C
 }
 
 func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclientset.Interface) error {
-	_, projectErr := oClient.Projects().Get(currentProject)
+	_, projectErr := oClient.Projects().Get(currentProject, metav1.GetOptions{})
 	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}
 
 	// at this point we know the error is a not found or forbidden, but we'll test namespaces just in case we're running on kube
-	if _, err := kClient.Core().Namespaces().Get(currentProject); err == nil {
+	if _, err := kClient.Core().Namespaces().Get(currentProject, metav1.GetOptions{}); err == nil {
 		return nil
 	}
 
@@ -329,7 +329,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 }
 
 func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Project, error) {
-	projects, err := oClient.Projects().List(kapi.ListOptions{})
+	projects, err := oClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
 	}
@@ -338,7 +338,7 @@ func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Pr
 		return nil, err
 	}
 
-	namespaces, err := kClient.Core().Namespaces().List(kapi.ListOptions{})
+	namespaces, err := kClient.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
