@@ -475,6 +475,7 @@ os::cmd::expect_success_and_text 'oc create serviceaccount my-sa-name' 'servicea
 os::cmd::expect_success 'oc get sa my-sa-name'
 
 # extract token and ensure it links us back to the service account
+os::cmd::try_until_success 'oc sa get-token my-sa-name'
 os::cmd::expect_success_and_text 'oc get user/~ --token="$( oc sa get-token my-sa-name )"' 'system:serviceaccount:.+:my-sa-name'
 
 # add a new token and ensure it links us back to the service account
