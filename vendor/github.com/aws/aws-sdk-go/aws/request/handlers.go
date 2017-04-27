@@ -18,6 +18,7 @@ type Handlers struct {
 	UnmarshalError   HandlerList
 	Retry            HandlerList
 	AfterRetry       HandlerList
+	Complete         HandlerList
 }
 
 // Copy returns of this handler's lists.
@@ -33,6 +34,7 @@ func (h *Handlers) Copy() Handlers {
 		UnmarshalMeta:    h.UnmarshalMeta.copy(),
 		Retry:            h.Retry.copy(),
 		AfterRetry:       h.AfterRetry.copy(),
+		Complete:         h.Complete.copy(),
 	}
 }
 
@@ -48,11 +50,31 @@ func (h *Handlers) Clear() {
 	h.ValidateResponse.Clear()
 	h.Retry.Clear()
 	h.AfterRetry.Clear()
+	h.Complete.Clear()
+}
+
+// A HandlerListRunItem represents an entry in the HandlerList which
+// is being run.
+type HandlerListRunItem struct {
+	Index   int
+	Handler NamedHandler
+	Request *Request
 }
 
 // A HandlerList manages zero or more handlers in a list.
 type HandlerList struct {
 	list []NamedHandler
+
+	// Called after each request handler in the list is called. If set
+	// and the func returns true the HandlerList will continue to iterate
+	// over the request handlers. If false is returned the HandlerList
+	// will stop iterating.
+	//
+	// Should be used if extra logic to be performed between each handler
+	// in the list. This can be used to terminate a list's iteration
+	// based on a condition such as error like, HandlerListStopOnError.
+	// Or for logging like HandlerListLogItem.
+	AfterEachFn func(item HandlerListRunItem) bool
 }
 
 // A NamedHandler is a struct that contains a name and function callback.
@@ -63,8 +85,10 @@ type NamedHandler struct {
 
 // copy creates a copy of the handler list.
 func (l *HandlerList) copy() HandlerList {
-	var n HandlerList
-	n.list = append([]NamedHandler{}, l.list...)
+	n := HandlerList{
+		AfterEachFn: l.AfterEachFn,
+	}
+	n.list = append(make([]NamedHandler, 0, len(l.list)), l.list...)
 	return n
 }
 
@@ -111,8 +135,44 @@ func (l *HandlerList) Remove(n NamedHandler) {
 
 // Run executes all handlers in the list with a given request object.
 func (l *HandlerList) Run(r *Request) {
-	for _, f := range l.list {
-		f.Fn(r)
+	for i, h := range l.list {
+		h.Fn(r)
+		item := HandlerListRunItem{
+			Index: i, Handler: h, Request: r,
+		}
+		if l.AfterEachFn != nil && !l.AfterEachFn(item) {
+			return
+		}
+	}
+}
+
+// HandlerListLogItem logs the request handler and the state of the
+// request's Error value. Always returns true to continue iterating
+// request handlers in a HandlerList.
+func HandlerListLogItem(item HandlerListRunItem) bool {
+	if item.Request.Config.Logger == nil {
+		return true
+	}
+	item.Request.Config.Logger.Log("DEBUG: RequestHandler",
+		item.Index, item.Handler.Name, item.Request.Error)
+
+	return true
+}
+
+// HandlerListStopOnError returns false to stop the HandlerList iterating
+// over request handlers if Request.Error is not nil. True otherwise
+// to continue iterating.
+func HandlerListStopOnError(item HandlerListRunItem) bool {
+	return item.Request.Error == nil
+}
+
+// WithAppendUserAgent will add a string to the user agent prefixed with a
+// single white space.
+func WithAppendUserAgent(s string) Option {
+	return func(r *Request) {
+		r.Handlers.Build.PushBack(func(r2 *Request) {
+			AddToUserAgent(r, s)
+		})
 	}
 }
 
