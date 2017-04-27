@@ -5,9 +5,9 @@
 package v1
 
 import (
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -35,7 +35,7 @@ func DeepCopy_v1_PodSecurityPolicyReview(in interface{}, out interface{}, c *con
 	{
 		in := in.(*PodSecurityPolicyReview)
 		out := out.(*PodSecurityPolicyReview)
-		out.TypeMeta = in.TypeMeta
+		*out = *in
 		if err := DeepCopy_v1_PodSecurityPolicyReviewSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
@@ -50,6 +50,7 @@ func DeepCopy_v1_PodSecurityPolicyReviewSpec(in interface{}, out interface{}, c 
 	{
 		in := in.(*PodSecurityPolicyReviewSpec)
 		out := out.(*PodSecurityPolicyReviewSpec)
+		*out = *in
 		if err := api_v1.DeepCopy_v1_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
 		}
@@ -57,8 +58,6 @@ func DeepCopy_v1_PodSecurityPolicyReviewSpec(in interface{}, out interface{}, c 
 			in, out := &in.ServiceAccountNames, &out.ServiceAccountNames
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.ServiceAccountNames = nil
 		}
 		return nil
 	}
@@ -68,6 +67,7 @@ func DeepCopy_v1_PodSecurityPolicyReviewStatus(in interface{}, out interface{}, 
 	{
 		in := in.(*PodSecurityPolicyReviewStatus)
 		out := out.(*PodSecurityPolicyReviewStatus)
+		*out = *in
 		if in.AllowedServiceAccounts != nil {
 			in, out := &in.AllowedServiceAccounts, &out.AllowedServiceAccounts
 			*out = make([]ServiceAccountPodSecurityPolicyReviewStatus, len(*in))
@@ -76,8 +76,6 @@ func DeepCopy_v1_PodSecurityPolicyReviewStatus(in interface{}, out interface{}, 
 					return err
 				}
 			}
-		} else {
-			out.AllowedServiceAccounts = nil
 		}
 		return nil
 	}
@@ -87,7 +85,7 @@ func DeepCopy_v1_PodSecurityPolicySelfSubjectReview(in interface{}, out interfac
 	{
 		in := in.(*PodSecurityPolicySelfSubjectReview)
 		out := out.(*PodSecurityPolicySelfSubjectReview)
-		out.TypeMeta = in.TypeMeta
+		*out = *in
 		if err := DeepCopy_v1_PodSecurityPolicySelfSubjectReviewSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
@@ -102,6 +100,7 @@ func DeepCopy_v1_PodSecurityPolicySelfSubjectReviewSpec(in interface{}, out inte
 	{
 		in := in.(*PodSecurityPolicySelfSubjectReviewSpec)
 		out := out.(*PodSecurityPolicySelfSubjectReviewSpec)
+		*out = *in
 		if err := api_v1.DeepCopy_v1_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
 		}
@@ -113,7 +112,7 @@ func DeepCopy_v1_PodSecurityPolicySubjectReview(in interface{}, out interface{},
 	{
 		in := in.(*PodSecurityPolicySubjectReview)
 		out := out.(*PodSecurityPolicySubjectReview)
-		out.TypeMeta = in.TypeMeta
+		*out = *in
 		if err := DeepCopy_v1_PodSecurityPolicySubjectReviewSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
@@ -128,16 +127,14 @@ func DeepCopy_v1_PodSecurityPolicySubjectReviewSpec(in interface{}, out interfac
 	{
 		in := in.(*PodSecurityPolicySubjectReviewSpec)
 		out := out.(*PodSecurityPolicySubjectReviewSpec)
+		*out = *in
 		if err := api_v1.DeepCopy_v1_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
 		}
-		out.User = in.User
 		if in.Groups != nil {
 			in, out := &in.Groups, &out.Groups
 			*out = make([]string, len(*in))
 			copy(*out, *in)
-		} else {
-			out.Groups = nil
 		}
 		return nil
 	}
@@ -147,14 +144,12 @@ func DeepCopy_v1_PodSecurityPolicySubjectReviewStatus(in interface{}, out interf
 	{
 		in := in.(*PodSecurityPolicySubjectReviewStatus)
 		out := out.(*PodSecurityPolicySubjectReviewStatus)
+		*out = *in
 		if in.AllowedBy != nil {
 			in, out := &in.AllowedBy, &out.AllowedBy
 			*out = new(api_v1.ObjectReference)
 			**out = **in
-		} else {
-			out.AllowedBy = nil
 		}
-		out.Reason = in.Reason
 		if err := api_v1.DeepCopy_v1_PodTemplateSpec(&in.Template, &out.Template, c); err != nil {
 			return err
 		}
@@ -166,10 +161,10 @@ func DeepCopy_v1_ServiceAccountPodSecurityPolicyReviewStatus(in interface{}, out
 	{
 		in := in.(*ServiceAccountPodSecurityPolicyReviewStatus)
 		out := out.(*ServiceAccountPodSecurityPolicyReviewStatus)
+		*out = *in
 		if err := DeepCopy_v1_PodSecurityPolicySubjectReviewStatus(&in.PodSecurityPolicySubjectReviewStatus, &out.PodSecurityPolicySubjectReviewStatus, c); err != nil {
 			return err
 		}
-		out.Name = in.Name
 		return nil
 	}
 }

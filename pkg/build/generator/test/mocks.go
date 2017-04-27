@@ -3,10 +3,11 @@ package test
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -36,9 +37,9 @@ func MockBuilderSecrets() []*kapi.Secret {
 	var secrets []*kapi.Secret
 	for name, conf := range SampleDockerConfigs {
 		secrets = append(secrets, &kapi.Secret{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
-				Namespace: kapi.NamespaceDefault,
+				Namespace: metav1.NamespaceDefault,
 			},
 			Type: kapi.SecretTypeDockercfg,
 			Data: map[string][]byte{".dockercfg": conf},
@@ -60,9 +61,9 @@ func MockBuilderServiceAccount(secrets []*kapi.Secret) kcoreclient.ServiceAccoun
 		fakeObjects = append(fakeObjects, secret)
 	}
 	fakeObjects = append(fakeObjects, &kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      bootstrappolicy.BuilderServiceAccountName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Secrets: secretRefs,
 	})
@@ -71,9 +72,9 @@ func MockBuilderServiceAccount(secrets []*kapi.Secret) kcoreclient.ServiceAccoun
 
 func MockBuildConfig(source buildapi.BuildSource, strategy buildapi.BuildStrategy, output buildapi.BuildOutput) *buildapi.BuildConfig {
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-build-config",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				"testbclabel": "testbcvalue",
 			},
@@ -184,7 +185,7 @@ func MockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 	}
 
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: repoName,
 		},
 		Status: imageapi.ImageStreamStatus{
@@ -196,7 +197,7 @@ func MockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 
 func MockImage(name, dockerSpec string) *imageapi.Image {
 	return &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		DockerImageReference: dockerSpec,

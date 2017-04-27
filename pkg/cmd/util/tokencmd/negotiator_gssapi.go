@@ -13,7 +13,7 @@ import (
 	"github.com/apcera/gssapi"
 	"github.com/golang/glog"
 
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
 func GSSAPIEnabled() bool {

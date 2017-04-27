@@ -4,11 +4,12 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -19,9 +20,9 @@ import (
 )
 
 var (
-	usersResource                     = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "users"}
-	securityContextContraintsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
-	oAuthClientAuthorizationsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
+	usersResource                     = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+	securityContextContraintsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
+	oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
 )
 
 func TestUserReaper(t *testing.T) {
@@ -36,7 +37,7 @@ func TestUserReaper(t *testing.T) {
 			user:    "bob",
 			objects: []runtime.Object{},
 			expected: []interface{}{
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -44,28 +45,28 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-no-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				},
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "bob", Kind: "User"}},
 				},
 				&authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-mismatched-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-mismatched-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "bob"}, {Name: "bob", Kind: "Group"}, {Name: "bob", Kind: "Other"}},
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject"},
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: clusterRoleBindingsResource}, Object: &authorizationapi.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -73,28 +74,28 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				},
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "bob", Kind: "User"}},
 				},
 				&authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-mismatched-subject", Namespace: "ns3"},
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-mismatched-subject", Namespace: "ns3"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{{Name: "bob"}, {Name: "bob", Kind: "Group"}, {Name: "bob", Kind: "Other"}},
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
-					ObjectMeta: kapi.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: roleBindingsResource, Namespace: "ns2"}, Object: &authorizationapi.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "binding-one-subject", Namespace: "ns2"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
 					Subjects:   []kapi.ObjectReference{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -102,25 +103,25 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-no-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
 					Users:      []string{},
 				},
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{"bob"},
 				},
 				&kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-mismatched-subjects"},
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-mismatched-subjects"},
 					Users:      []string{"bob2"},
 					Groups:     []string{"bob"},
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &kapi.SecurityContextConstraints{
-					ObjectMeta: kapi.ObjectMeta{Name: "scc-one-subject"},
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &kapi.SecurityContextConstraints{
+					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -128,25 +129,25 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&authenticationapi.Identity{
-					ObjectMeta: kapi.ObjectMeta{Name: "identity-no-user"},
+					ObjectMeta: metav1.ObjectMeta{Name: "identity-no-user"},
 					User:       kapi.ObjectReference{},
 				},
 				&authenticationapi.Identity{
-					ObjectMeta: kapi.ObjectMeta{Name: "identity-matching-user"},
+					ObjectMeta: metav1.ObjectMeta{Name: "identity-matching-user"},
 					User:       kapi.ObjectReference{Name: "bob"},
 				},
 				&authenticationapi.Identity{
-					ObjectMeta: kapi.ObjectMeta{Name: "identity-different-uid"},
+					ObjectMeta: metav1.ObjectMeta{Name: "identity-different-uid"},
 					User:       kapi.ObjectReference{Name: "bob", UID: "123"},
 				},
 				&authenticationapi.Identity{
-					ObjectMeta: kapi.ObjectMeta{Name: "identity-different-user"},
+					ObjectMeta: metav1.ObjectMeta{Name: "identity-different-user"},
 					User:       kapi.ObjectReference{Name: "bob2"},
 				},
 			},
 			expected: []interface{}{
 				// Make sure identities are not messed with, only the user is removed
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -154,32 +155,32 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-no-users"},
+					ObjectMeta: metav1.ObjectMeta{Name: "group-no-users"},
 					Users:      []string{},
 				},
 				&authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-one-user"},
+					ObjectMeta: metav1.ObjectMeta{Name: "group-one-user"},
 					Users:      []string{"bob"},
 				},
 				&authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-multiple-users"},
+					ObjectMeta: metav1.ObjectMeta{Name: "group-multiple-users"},
 					Users:      []string{"bob2", "bob", "steve"},
 				},
 				&authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-mismatched-users"},
+					ObjectMeta: metav1.ObjectMeta{Name: "group-mismatched-users"},
 					Users:      []string{"bob2", "steve"},
 				},
 			},
 			expected: []interface{}{
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-one-user"},
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
+					ObjectMeta: metav1.ObjectMeta{Name: "group-one-user"},
 					Users:      []string{},
 				}},
-				core.UpdateActionImpl{ActionImpl: core.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
-					ObjectMeta: kapi.ObjectMeta{Name: "group-multiple-users"},
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: groupsResource}, Object: &authenticationapi.Group{
+					ObjectMeta: metav1.ObjectMeta{Name: "group-multiple-users"},
 					Users:      []string{"bob2", "steve"},
 				}},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 		{
@@ -187,39 +188,39 @@ func TestUserReaper(t *testing.T) {
 			user: "bob",
 			objects: []runtime.Object{
 				&oauthapi.OAuthClientAuthorization{
-					ObjectMeta: kapi.ObjectMeta{Name: "other-user"},
+					ObjectMeta: metav1.ObjectMeta{Name: "other-user"},
 					UserName:   "alice",
 					UserUID:    "123",
 				},
 				&oauthapi.OAuthClientAuthorization{
-					ObjectMeta: kapi.ObjectMeta{Name: "bob-authorization-1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "bob-authorization-1"},
 					UserName:   "bob",
 					UserUID:    "234",
 				},
 				&oauthapi.OAuthClientAuthorization{
-					ObjectMeta: kapi.ObjectMeta{Name: "bob-authorization-2"},
+					ObjectMeta: metav1.ObjectMeta{Name: "bob-authorization-2"},
 					UserName:   "bob",
 					UserUID:    "345",
 				},
 			},
 			expected: []interface{}{
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-1"},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-2"},
-				core.DeleteActionImpl{ActionImpl: core.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-1"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: oAuthClientAuthorizationsResource}, Name: "bob-authorization-2"},
+				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		tc := testclient.NewSimpleFake(test.objects...)
-		ktc := fake.NewSimpleClientset(test.objects...)
+		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
+		ktc := fake.NewSimpleClientset(testclient.UpstreamObjects(test.objects)...)
 
 		actual := []interface{}{}
-		oreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}
-		kreactor := func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		kreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actual = append(actual, action)
 			return false, nil, nil
 		}

@@ -3,10 +3,11 @@ package test
 import (
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
@@ -21,7 +22,7 @@ const (
 
 func OkDeploymentConfig(version int64) *deployapi.DeploymentConfig {
 	return &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "config",
 			Namespace: kapi.NamespaceDefault,
 		},
@@ -149,21 +150,24 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 							Value: "VAL1",
 						},
 					},
-					ImagePullPolicy:        kapi.PullIfNotPresent,
-					TerminationMessagePath: "/dev/termination-log",
+					ImagePullPolicy:          kapi.PullIfNotPresent,
+					TerminationMessagePath:   "/dev/termination-log",
+					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 				},
 				{
-					Name:                   "container2",
-					Image:                  "registry:8080/repo1:ref2",
-					ImagePullPolicy:        kapi.PullIfNotPresent,
-					TerminationMessagePath: "/dev/termination-log",
+					Name:                     "container2",
+					Image:                    "registry:8080/repo1:ref2",
+					ImagePullPolicy:          kapi.PullIfNotPresent,
+					TerminationMessagePath:   "/dev/termination-log",
+					TerminationMessagePolicy: kapi.TerminationMessageReadFile,
 				},
 			},
 			RestartPolicy:                 kapi.RestartPolicyAlways,
 			DNSPolicy:                     kapi.DNSClusterFirst,
 			TerminationGracePeriodSeconds: &one,
+			SchedulerName:                 kapi.DefaultSchedulerName,
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Labels: OkSelector(),
 		},
 	}
@@ -235,7 +239,7 @@ func TestDeploymentConfig(config *deployapi.DeploymentConfig) *deployapi.Deploym
 func OkHPAForDeploymentConfig(config *deployapi.DeploymentConfig, min, max int) *autoscaling.HorizontalPodAutoscaler {
 	newMin := int32(min)
 	return &autoscaling.HorizontalPodAutoscaler{
-		ObjectMeta: kapi.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: config.Name, Namespace: config.Namespace},
 		Spec: autoscaling.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscaling.CrossVersionObjectReference{
 				Name: config.Name,
@@ -257,7 +261,7 @@ func OkStreamForConfig(config *deployapi.DeploymentConfig) *imageapi.ImageStream
 		name, tag, _ := imageapi.SplitImageStreamTag(ref.Name)
 
 		return &imageapi.ImageStream{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: ref.Namespace,
 			},

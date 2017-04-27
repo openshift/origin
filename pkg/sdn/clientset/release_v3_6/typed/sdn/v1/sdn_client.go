@@ -1,22 +1,20 @@
 package v1
 
 import (
-	fmt "fmt"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	registered "k8s.io/kubernetes/pkg/apimachinery/registered"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	serializer "k8s.io/kubernetes/pkg/runtime/serializer"
+	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	"github.com/openshift/origin/pkg/sdn/clientset/release_v3_6/scheme"
+	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	rest "k8s.io/client-go/rest"
 )
 
 type SdnV1Interface interface {
-	RESTClient() restclient.Interface
+	RESTClient() rest.Interface
 	ClusterNetworksGetter
 }
 
-// SdnV1Client is used to interact with features provided by the k8s.io/kubernetes/pkg/apimachinery/registered.Group group.
+// SdnV1Client is used to interact with features provided by the network.openshift.io group.
 type SdnV1Client struct {
-	restClient restclient.Interface
+	restClient rest.Interface
 }
 
 func (c *SdnV1Client) ClusterNetworks(namespace string) ClusterNetworkInterface {
@@ -24,12 +22,12 @@ func (c *SdnV1Client) ClusterNetworks(namespace string) ClusterNetworkInterface 
 }
 
 // NewForConfig creates a new SdnV1Client for the given config.
-func NewForConfig(c *restclient.Config) (*SdnV1Client, error) {
+func NewForConfig(c *rest.Config) (*SdnV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
 	}
-	client, err := restclient.RESTClientFor(&config)
+	client, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +36,7 @@ func NewForConfig(c *restclient.Config) (*SdnV1Client, error) {
 
 // NewForConfigOrDie creates a new SdnV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *restclient.Config) *SdnV1Client {
+func NewForConfigOrDie(c *rest.Config) *SdnV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -47,34 +45,26 @@ func NewForConfigOrDie(c *restclient.Config) *SdnV1Client {
 }
 
 // New creates a new SdnV1Client for the given RESTClient.
-func New(c restclient.Interface) *SdnV1Client {
+func New(c rest.Interface) *SdnV1Client {
 	return &SdnV1Client{c}
 }
 
-func setConfigDefaults(config *restclient.Config) error {
-	gv, err := unversioned.ParseGroupVersion("network.openshift.io/v1")
-	if err != nil {
-		return err
-	}
-	// if network.openshift.io/v1 is not enabled, return an error
-	if !registered.IsEnabledVersion(gv) {
-		return fmt.Errorf("network.openshift.io/v1 is not enabled")
-	}
+func setConfigDefaults(config *rest.Config) error {
+	gv := v1.SchemeGroupVersion
+	config.GroupVersion = &gv
 	config.APIPath = "/apis"
-	if config.UserAgent == "" {
-		config.UserAgent = restclient.DefaultKubernetesUserAgent()
-	}
-	copyGroupVersion := gv
-	config.GroupVersion = &copyGroupVersion
+	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
 
-	config.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: api.Codecs}
+	if config.UserAgent == "" {
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
+	}
 
 	return nil
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SdnV1Client) RESTClient() restclient.Interface {
+func (c *SdnV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

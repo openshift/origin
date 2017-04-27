@@ -18,18 +18,19 @@ package flocker
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	utiltesting "k8s.io/kubernetes/pkg/util/testing"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utiltesting "k8s.io/client-go/util/testing"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/volume"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func newTestableProvisioner(assert *assert.Assertions, options volume.VolumeOptions) volume.Provisioner {
+func newTestableProvisioner(assert *assert.Assertions, options volume.VolumeOptions) (string, volume.Provisioner) {
 	tmpDir, err := utiltesting.MkTmpdir("flockervolumeTest")
 	assert.NoError(err, fmt.Sprintf("can't make a temp dir: %v", err))
 
@@ -41,24 +42,25 @@ func newTestableProvisioner(assert *assert.Assertions, options volume.VolumeOpti
 
 	provisioner, err := plug.(*flockerPlugin).newProvisionerInternal(options, &fakeFlockerUtil{})
 
-	return provisioner
+	return tmpDir, provisioner
 }
 
 func TestProvision(t *testing.T) {
 	assert := assert.New(t)
 
-	pvc := volumetest.CreateTestPVC("3Gi", []api.PersistentVolumeAccessMode{api.ReadWriteOnce})
+	pvc := volumetest.CreateTestPVC("3Gi", []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce})
 	options := volume.VolumeOptions{
 		PVC: pvc,
-		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+		PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
 	}
 
-	provisioner := newTestableProvisioner(assert, options)
+	dir, provisioner := newTestableProvisioner(assert, options)
+	defer os.RemoveAll(dir)
 
 	persistentSpec, err := provisioner.Provision()
 	assert.NoError(err, "Provision() failed: ", err)
 
-	cap := persistentSpec.Spec.Capacity[api.ResourceStorage]
+	cap := persistentSpec.Spec.Capacity[v1.ResourceStorage]
 
 	assert.Equal(int64(3*1024*1024*1024), cap.Value())
 
@@ -75,25 +77,26 @@ func TestProvision(t *testing.T) {
 	// parameters are not supported
 	options = volume.VolumeOptions{
 		PVC: pvc,
-		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+		PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
 		Parameters: map[string]string{
 			"not-supported-params": "test123",
 		},
 	}
 
-	provisioner = newTestableProvisioner(assert, options)
+	dir, provisioner = newTestableProvisioner(assert, options)
+	defer os.RemoveAll(dir)
 	persistentSpec, err = provisioner.Provision()
 	assert.Error(err, "Provision() did not fail with Parameters specified")
 
 	// selectors are not supported
-	pvc.Spec.Selector = &unversioned.LabelSelector{MatchLabels: map[string]string{"key": "value"}}
+	pvc.Spec.Selector = &metav1.LabelSelector{MatchLabels: map[string]string{"key": "value"}}
 	options = volume.VolumeOptions{
 		PVC: pvc,
-		PersistentVolumeReclaimPolicy: api.PersistentVolumeReclaimDelete,
+		PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimDelete,
 	}
 
-	provisioner = newTestableProvisioner(assert, options)
+	dir, provisioner = newTestableProvisioner(assert, options)
+	defer os.RemoveAll(dir)
 	persistentSpec, err = provisioner.Provision()
 	assert.Error(err, "Provision() did not fail with Selector specified")
-
 }

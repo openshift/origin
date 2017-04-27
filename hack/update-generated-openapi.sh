@@ -13,7 +13,10 @@ INPUT_DIRS=(
     grep --color=never -rl '+k8s:openapi-gen=' vendor/k8s.io/kubernetes | \
     xargs -n1 dirname | \
     sed "s,^vendor/,," | \
-    sort -u
+    sort -u | \
+    sed '/^k8s\.io\/kubernetes$/d' | \
+    sed '/^k8s\.io\/kubernetes\/staging$/d' | \
+    sed 's,k8s\.io/kubernetes/staging/src/,,'
   )
 
   # origin apis

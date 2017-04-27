@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/tools/rebasehelpers/util"
 )

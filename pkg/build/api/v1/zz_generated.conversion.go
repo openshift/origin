@@ -6,11 +6,11 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/build/api"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	time "time"
 	unsafe "unsafe"
 )
@@ -125,9 +125,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *BinaryBuildRequestOptions, out *api.BinaryBuildRequestOptions, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.AsFile = in.AsFile
 	out.Commit = in.Commit
 	out.Message = in.Message
@@ -143,9 +141,7 @@ func Convert_v1_BinaryBuildRequestOptions_To_api_BinaryBuildRequestOptions(in *B
 }
 
 func autoConvert_api_BinaryBuildRequestOptions_To_v1_BinaryBuildRequestOptions(in *api.BinaryBuildRequestOptions, out *BinaryBuildRequestOptions, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.AsFile = in.AsFile
 	out.Commit = in.Commit
 	out.Message = in.Message
@@ -201,9 +197,7 @@ func Convert_api_BitbucketWebHookCause_To_v1_BitbucketWebHookCause(in *api.Bitbu
 }
 
 func autoConvert_v1_Build_To_api_Build(in *Build, out *api.Build, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_BuildSpec_To_api_BuildSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -218,9 +212,7 @@ func Convert_v1_Build_To_api_Build(in *Build, out *api.Build, s conversion.Scope
 }
 
 func autoConvert_api_Build_To_v1_Build(in *api.Build, out *Build, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_BuildSpec_To_v1_BuildSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -235,9 +227,7 @@ func Convert_api_Build_To_v1_Build(in *api.Build, out *Build, s conversion.Scope
 }
 
 func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *api.BuildConfig, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1_BuildConfigSpec_To_api_BuildConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -248,9 +238,7 @@ func autoConvert_v1_BuildConfig_To_api_BuildConfig(in *BuildConfig, out *api.Bui
 }
 
 func autoConvert_api_BuildConfig_To_v1_BuildConfig(in *api.BuildConfig, out *BuildConfig, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_api_BuildConfigSpec_To_v1_BuildConfigSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -295,7 +283,7 @@ func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *api.BuildConfigLi
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]BuildConfig, 0)
 	}
 	return nil
 }
@@ -337,7 +325,7 @@ func autoConvert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *api.BuildConfigSp
 			}
 		}
 	} else {
-		out.Triggers = nil
+		out.Triggers = make([]BuildTriggerPolicy, 0)
 	}
 	out.RunPolicy = BuildRunPolicy(in.RunPolicy)
 	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
@@ -399,7 +387,7 @@ func autoConvert_api_BuildList_To_v1_BuildList(in *api.BuildList, out *BuildList
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]Build, 0)
 	}
 	return nil
 }
@@ -429,7 +417,7 @@ func autoConvert_v1_BuildLogOptions_To_api_BuildLogOptions(in *BuildLogOptions, 
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*unversioned.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -447,7 +435,7 @@ func autoConvert_api_BuildLogOptions_To_v1_BuildLogOptions(in *api.BuildLogOptio
 	out.Follow = in.Follow
 	out.Previous = in.Previous
 	out.SinceSeconds = (*int64)(unsafe.Pointer(in.SinceSeconds))
-	out.SinceTime = (*unversioned.Time)(unsafe.Pointer(in.SinceTime))
+	out.SinceTime = (*meta_v1.Time)(unsafe.Pointer(in.SinceTime))
 	out.Timestamps = in.Timestamps
 	out.TailLines = (*int64)(unsafe.Pointer(in.TailLines))
 	out.LimitBytes = (*int64)(unsafe.Pointer(in.LimitBytes))
@@ -533,9 +521,7 @@ func Convert_api_BuildPostCommitSpec_To_v1_BuildPostCommitSpec(in *api.BuildPost
 }
 
 func autoConvert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *api.BuildRequest, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(api.SourceRevision)
@@ -604,9 +590,7 @@ func Convert_v1_BuildRequest_To_api_BuildRequest(in *BuildRequest, out *api.Buil
 }
 
 func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *api.BuildRequest, out *BuildRequest, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
 		*out = new(SourceRevision)
@@ -656,7 +640,7 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *api.BuildRequest, out *
 			}
 		}
 	} else {
-		out.TriggeredBy = nil
+		out.TriggeredBy = make([]BuildTriggerCause, 0)
 	}
 	if in.DockerStrategyOptions != nil {
 		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
@@ -792,7 +776,7 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *api.BuildSpec, out *BuildSpec
 			}
 		}
 	} else {
-		out.TriggeredBy = nil
+		out.TriggeredBy = make([]BuildTriggerCause, 0)
 	}
 	return nil
 }
@@ -806,8 +790,8 @@ func autoConvert_v1_BuildStatus_To_api_BuildStatus(in *BuildStatus, out *api.Bui
 	out.Cancelled = in.Cancelled
 	out.Reason = api.StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*unversioned.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*unversioned.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
@@ -835,8 +819,8 @@ func autoConvert_api_BuildStatus_To_v1_BuildStatus(in *api.BuildStatus, out *Bui
 	out.Cancelled = in.Cancelled
 	out.Reason = StatusReason(in.Reason)
 	out.Message = in.Message
-	out.StartTimestamp = (*unversioned.Time)(unsafe.Pointer(in.StartTimestamp))
-	out.CompletionTimestamp = (*unversioned.Time)(unsafe.Pointer(in.CompletionTimestamp))
+	out.StartTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.StartTimestamp))
+	out.CompletionTimestamp = (*meta_v1.Time)(unsafe.Pointer(in.CompletionTimestamp))
 	out.Duration = time.Duration(in.Duration)
 	out.OutputDockerImageReference = in.OutputDockerImageReference
 	if in.Config != nil {
@@ -1831,7 +1815,11 @@ func autoConvert_api_ImageSource_To_v1_ImageSource(in *api.ImageSource, out *Ima
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
-	out.Paths = *(*[]ImageSourcePath)(unsafe.Pointer(&in.Paths))
+	if in.Paths == nil {
+		out.Paths = make([]ImageSourcePath, 0)
+	} else {
+		out.Paths = *(*[]ImageSourcePath)(unsafe.Pointer(&in.Paths))
+	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(api_v1.LocalObjectReference)

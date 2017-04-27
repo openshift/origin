@@ -16,11 +16,11 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/util/flowcontrol"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/util/flowcontrol"
 
 	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/image/api"
@@ -185,7 +185,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 				copied.DockerImageReference = ref.MostSpecific().Exact()
 				image.Tag = tag.Name
 				image.Image = &copied
-				image.Status.Status = unversioned.StatusSuccess
+				image.Status.Status = metav1.StatusSuccess
 			}
 		}
 		for _, digest := range repo.Digests {
@@ -205,7 +205,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 				ref.Tag, ref.ID = "", copied.Name
 				copied.DockerImageReference = ref.MostSpecific().Exact()
 				image.Image = &copied
-				image.Status.Status = unversioned.StatusSuccess
+				image.Status.Status = metav1.StatusSuccess
 			}
 		}
 	}
@@ -278,7 +278,7 @@ func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retrie
 	status.AdditionalTags = additional
 
 	failures := 0
-	status.Status.Status = unversioned.StatusSuccess
+	status.Status.Status = metav1.StatusSuccess
 	status.Images = make([]api.ImageImportStatus, len(repo.Tags))
 	for i, tag := range repo.Tags {
 		status.Images[i].Tag = tag.Name
@@ -287,7 +287,7 @@ func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retrie
 			status.Images[i].Status = imageImportStatus(tag.Err, "", "repository")
 			continue
 		}
-		status.Images[i].Status.Status = unversioned.StatusSuccess
+		status.Images[i].Status.Status = metav1.StatusSuccess
 
 		copied := *tag.Image
 		ref.Tag, ref.ID = tag.Name, copied.Name
@@ -295,8 +295,8 @@ func (i *ImageStreamImporter) importFromRepository(ctx gocontext.Context, retrie
 		status.Images[i].Image = &copied
 	}
 	if failures > 0 {
-		status.Status.Status = unversioned.StatusFailure
-		status.Status.Reason = unversioned.StatusReason("ImportFailed")
+		status.Status.Status = metav1.StatusFailure
+		status.Status.Reason = metav1.StatusReason("ImportFailed")
 		switch failures {
 		case 1:
 			status.Status.Message = "one of the images from this repository failed to import"
@@ -701,7 +701,7 @@ type manifestKey struct {
 	value string
 }
 
-func imageImportStatus(err error, kind, position string) unversioned.Status {
+func imageImportStatus(err error, kind, position string) metav1.Status {
 	switch t := err.(type) {
 	case kapierrors.APIStatus:
 		return t.Status()
@@ -717,6 +717,6 @@ func setImageImportStatus(images *api.ImageStreamImport, i int, tag string, err 
 	images.Status.Images[i].Status = imageImportStatus(err, "", "")
 }
 
-func invalidStatus(position string, errs ...*field.Error) unversioned.Status {
+func invalidStatus(position string, errs ...*field.Error) metav1.Status {
 	return kapierrors.NewInvalid(api.LegacyKind(""), position, errs).ErrStatus
 }

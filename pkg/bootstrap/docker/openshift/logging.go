@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/client"
@@ -22,7 +23,7 @@ const (
 )
 
 func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string) error {
-	template, err := client.Templates(templateNamespace).Get(templateName)
+	template, err := client.Templates(templateNamespace).Get(templateName, metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve template %q from namespace %q", templateName, templateNamespace).WithCause(err)
 	}
@@ -56,7 +57,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace)
+	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the logging namespace already exists and we won't initialize it
 		return nil
@@ -91,7 +92,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Label all nodes with default fluentd label
-	nodeList, err := kubeClient.Core().Nodes().List(kapi.ListOptions{})
+	nodeList, err := kubeClient.Core().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve nodes").WithCause(err).WithDetails(h.OriginLog())
 	}

@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	newer "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/v1"
@@ -22,7 +23,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		},
 	}
 	i := &newer.Image{
-		ObjectMeta: kapi.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 
 		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", LayerSize: 10}},
 		DockerImageMetadata:  *d,

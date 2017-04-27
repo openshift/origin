@@ -22,11 +22,12 @@ import (
 	"strings"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
-	"k8s.io/kubernetes/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 func TestCreatePodSecurityContextNonmutating(t *testing.T) {
@@ -42,7 +43,7 @@ func TestCreatePodSecurityContextNonmutating(t *testing.T) {
 	// Create an SCC with strategies that will populate a blank psc
 	createSCC := func() *api.SecurityContextConstraints {
 		return &api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
 			SeccompProfiles:          []string{"foo"},
@@ -117,7 +118,7 @@ func TestCreateContainerSecurityContextNonmutating(t *testing.T) {
 	createSCC := func() *api.SecurityContextConstraints {
 		var uid int64 = 1
 		return &api.SecurityContextConstraints{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "scc-sa",
 			},
 			DefaultAddCapabilities:   []api.Capability{"foo"},
@@ -624,7 +625,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	var notPriv bool = false
 	defaultPod := func() *api.Pod {
 		return &api.Pod{
-			ObjectMeta: api.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
 			Spec: api.PodSpec{
@@ -883,7 +884,7 @@ func TestGenerateContainerSecurityContextReadOnlyRootFS(t *testing.T) {
 
 func defaultSCC() *api.SecurityContextConstraints {
 	return &api.SecurityContextConstraints{
-		ObjectMeta: api.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        "scc-sa",
 			Annotations: map[string]string{},
 		},
@@ -905,7 +906,7 @@ func defaultSCC() *api.SecurityContextConstraints {
 func defaultPod() *api.Pod {
 	var notPriv bool = false
 	return &api.Pod{
-		ObjectMeta: api.ObjectMeta{Annotations: map[string]string{}},
+		ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{}},
 		Spec: api.PodSpec{
 			SecurityContext: &api.PodSecurityContext{
 			// fill in for test cases

@@ -58,6 +58,12 @@ function ensure-node-config() {
        --signer-key="${master_config_path}/ca.key" \
        --signer-serial="${master_config_path}/ca.serial.txt"
     ) 200>"${config_path}"/.openshift-generate-node-config.lock
+
+    cat >> "${node_config_file}" <<EOF
+kubeletArguments:
+  cgroups-per-qos: ["false"]
+  enforce-node-allocatable: [""]
+EOF
   fi
 
   # ensure the configuration is readable outside of the container

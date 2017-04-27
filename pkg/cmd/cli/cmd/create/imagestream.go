@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -67,7 +67,7 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 
 func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	o.IS = &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{},
+		ObjectMeta: metav1.ObjectMeta{},
 		Spec:       imageapi.ImageStreamSpec{},
 	}
 

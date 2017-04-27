@@ -3,8 +3,8 @@ package testclient
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -20,12 +20,12 @@ type FakeImageStreamImages struct {
 
 var _ client.ImageStreamImageInterface = &FakeImageStreamImages{}
 
-var imageStreamImagesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimages"}
+var imageStreamImagesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimages"}
 
 func (c *FakeImageStreamImages) Get(repo, imageID string) (*imageapi.ImageStreamImage, error) {
 	name := fmt.Sprintf("%s@%s", repo, imageID)
 
-	obj, err := c.Fake.Invokes(core.NewGetAction(imageStreamImagesResource, c.Namespace, name), &imageapi.ImageStreamImage{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(imageStreamImagesResource, c.Namespace, name), &imageapi.ImageStreamImage{})
 	if obj == nil {
 		return nil, err
 	}

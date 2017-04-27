@@ -4,10 +4,9 @@ import (
 	"net/http"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apiserver/request"
-	"k8s.io/kubernetes/pkg/auth/user"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/user"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestUpstreamInfoResolver(t *testing.T) {
@@ -31,7 +30,7 @@ func TestUpstreamInfoResolver(t *testing.T) {
 	}
 
 	for k, tc := range testcases {
-		resolver := &request.RequestInfoFactory{
+		resolver := &apirequest.RequestInfoFactory{
 			APIPrefixes:          sets.NewString("api", "osapi", "oapi", "apis"),
 			GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi"),
 		}
@@ -53,8 +52,8 @@ func TestUpstreamInfoResolver(t *testing.T) {
 
 func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 	testcases := map[string]struct {
-		RequestInfo request.RequestInfo
-		Context     kapi.Context
+		RequestInfo apirequest.RequestInfo
+		Context     apirequest.Context
 		Host        string
 		Headers     http.Header
 
@@ -62,39 +61,39 @@ func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 		ExpectedSubresource string
 	}{
 		"non-resource": {
-			RequestInfo:  request.RequestInfo{IsResourceRequest: false, Verb: "GET"},
+			RequestInfo:  apirequest.RequestInfo{IsResourceRequest: false, Verb: "GET"},
 			ExpectedVerb: "GET",
 		},
 
 		"non-proxy": {
-			RequestInfo:         request.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "logs"},
+			RequestInfo:         apirequest.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "logs"},
 			ExpectedVerb:        "get",
 			ExpectedSubresource: "logs",
 		},
 
 		"unsafe proxy subresource": {
-			RequestInfo:         request.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
+			RequestInfo:         apirequest.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			ExpectedVerb:        "get",
 			ExpectedSubresource: "unsafeproxy",
 		},
 		"unsafe proxy verb": {
-			RequestInfo:  request.RequestInfo{IsResourceRequest: true, Verb: "proxy", Resource: "nodes"},
+			RequestInfo:  apirequest.RequestInfo{IsResourceRequest: true, Verb: "proxy", Resource: "nodes"},
 			ExpectedVerb: "unsafeproxy",
 		},
 		"unsafe proxy verb anonymous": {
-			Context:      kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}),
-			RequestInfo:  request.RequestInfo{IsResourceRequest: true, Verb: "proxy", Resource: "nodes"},
+			Context:      apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "system:anonymous", Groups: []string{"system:unauthenticated"}}),
+			RequestInfo:  apirequest.RequestInfo{IsResourceRequest: true, Verb: "proxy", Resource: "nodes"},
 			ExpectedVerb: "unsafeproxy",
 		},
 
 		"proxy subresource authenticated": {
-			Context:             kapi.WithUser(kapi.NewContext(), &user.DefaultInfo{Name: "bob", Groups: []string{"system:authenticated"}}),
-			RequestInfo:         request.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
+			Context:             apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{Name: "bob", Groups: []string{"system:authenticated"}}),
+			RequestInfo:         apirequest.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			ExpectedVerb:        "get",
 			ExpectedSubresource: "proxy",
 		},
 		"proxy subresource custom header": {
-			RequestInfo:         request.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
+			RequestInfo:         apirequest.RequestInfo{IsResourceRequest: true, Verb: "get", Resource: "pods", Subresource: "proxy"},
 			Headers:             http.Header{"X-Csrf-Token": []string{"1"}},
 			ExpectedVerb:        "get",
 			ExpectedSubresource: "proxy",
@@ -128,20 +127,20 @@ func TestBrowserSafeRequestInfoResolver(t *testing.T) {
 }
 
 type testContextMapper struct {
-	context kapi.Context
+	context apirequest.Context
 }
 
-func (t *testContextMapper) Get(req *http.Request) (kapi.Context, bool) {
+func (t *testContextMapper) Get(req *http.Request) (apirequest.Context, bool) {
 	return t.context, t.context != nil
 }
-func (t *testContextMapper) Update(req *http.Request, ctx kapi.Context) error {
+func (t *testContextMapper) Update(req *http.Request, ctx apirequest.Context) error {
 	return nil
 }
 
 type testInfoFactory struct {
-	info *request.RequestInfo
+	info *apirequest.RequestInfo
 }
 
-func (t *testInfoFactory) NewRequestInfo(req *http.Request) (*request.RequestInfo, error) {
+func (t *testInfoFactory) NewRequestInfo(req *http.Request) (*apirequest.RequestInfo, error) {
 	return t.info, nil
 }

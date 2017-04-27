@@ -1,8 +1,9 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/watch"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -17,9 +18,9 @@ type ProjectInterface interface {
 	Create(p *projectapi.Project) (*projectapi.Project, error)
 	Update(p *projectapi.Project) (*projectapi.Project, error)
 	Delete(name string) error
-	Get(name string) (*projectapi.Project, error)
-	List(opts kapi.ListOptions) (*projectapi.ProjectList, error)
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Get(name string, options metav1.GetOptions) (*projectapi.Project, error)
+	List(opts metav1.ListOptions) (*projectapi.ProjectList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 type projects struct {
@@ -34,14 +35,14 @@ func newProjects(c *Client) *projects {
 }
 
 // Get returns information about a particular project or an error
-func (c *projects) Get(name string) (result *projectapi.Project, err error) {
+func (c *projects) Get(name string, options metav1.GetOptions) (result *projectapi.Project, err error) {
 	result = &projectapi.Project{}
-	err = c.r.Get().Resource("projects").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("projects").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 // List returns all projects matching the label selector
-func (c *projects) List(opts kapi.ListOptions) (result *projectapi.ProjectList, err error) {
+func (c *projects) List(opts metav1.ListOptions) (result *projectapi.ProjectList, err error) {
 	result = &projectapi.ProjectList{}
 	err = c.r.Get().
 		Resource("projects").
@@ -72,7 +73,7 @@ func (c *projects) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested namespaces.
-func (c *projects) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *projects) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Resource("projects").

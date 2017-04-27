@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	"golang.org/x/net/context"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	"github.com/openshift/origin/pkg/openservicebroker/api"
 )
 
 type Client interface {

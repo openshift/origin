@@ -1,6 +1,6 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import "k8s.io/apimachinery/pkg/fields"
 
 func ClusterResourceQuotaToSelectableFields(quota *ClusterResourceQuota) fields.Set {
 	return fields.Set{

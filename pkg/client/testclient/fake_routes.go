@@ -1,10 +1,10 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/watch"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/watch"
+	clientgotesting "k8s.io/client-go/testing"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -16,10 +16,10 @@ type FakeRoutes struct {
 	Namespace string
 }
 
-var routesResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
+var routesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
 
-func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(routesResource, c.Namespace, name), &routeapi.Route{})
+func (c *FakeRoutes) Get(name string, options metav1.GetOptions) (*routeapi.Route, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(routesResource, c.Namespace, name), &routeapi.Route{})
 	if obj == nil {
 		return nil, err
 	}
@@ -27,8 +27,8 @@ func (c *FakeRoutes) Get(name string) (*routeapi.Route, error) {
 	return obj.(*routeapi.Route), err
 }
 
-func (c *FakeRoutes) List(opts kapi.ListOptions) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(routesResource, c.Namespace, opts), &routeapi.RouteList{})
+func (c *FakeRoutes) List(opts metav1.ListOptions) (*routeapi.RouteList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(routesResource, c.Namespace, opts), &routeapi.RouteList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *FakeRoutes) List(opts kapi.ListOptions) (*routeapi.RouteList, error) {
 }
 
 func (c *FakeRoutes) Create(inObj *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(core.NewCreateAction(routesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(routesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *FakeRoutes) Create(inObj *routeapi.Route) (*routeapi.Route, error) {
 }
 
 func (c *FakeRoutes) Update(inObj *routeapi.Route) (*routeapi.Route, error) {
-	obj, err := c.Fake.Invokes(core.NewUpdateAction(routesResource, c.Namespace, inObj), inObj)
+	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(routesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *FakeRoutes) Update(inObj *routeapi.Route) (*routeapi.Route, error) {
 }
 
 func (c *FakeRoutes) UpdateStatus(inObj *routeapi.Route) (*routeapi.Route, error) {
-	action := core.NewUpdateAction(routesResource, c.Namespace, inObj)
+	action := clientgotesting.NewUpdateAction(routesResource, c.Namespace, inObj)
 	action.Subresource = "status"
 	obj, err := c.Fake.Invokes(action, inObj)
 	if obj == nil {
@@ -66,10 +66,10 @@ func (c *FakeRoutes) UpdateStatus(inObj *routeapi.Route) (*routeapi.Route, error
 }
 
 func (c *FakeRoutes) Delete(name string) error {
-	_, err := c.Fake.Invokes(core.NewDeleteAction(routesResource, c.Namespace, name), &routeapi.Route{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(routesResource, c.Namespace, name), &routeapi.Route{})
 	return err
 }
 
-func (c *FakeRoutes) Watch(opts kapi.ListOptions) (watch.Interface, error) {
-	return c.Fake.InvokesWatch(core.NewWatchAction(routesResource, c.Namespace, opts))
+func (c *FakeRoutes) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(routesResource, c.Namespace, opts))
 }

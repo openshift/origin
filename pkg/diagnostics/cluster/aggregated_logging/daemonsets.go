@@ -3,9 +3,10 @@ package aggregated_logging
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/labels"
 )
 
 const daemonSetNoLabeledNodes = `
@@ -50,16 +51,16 @@ var loggingInfraFluentdSelector = labels.Set{loggingInfraKey: "fluentd"}
 
 func checkDaemonSets(r diagnosticReporter, adapter daemonsetAdapter, project string) {
 	r.Debug("AGL0400", fmt.Sprintf("Checking DaemonSets in project '%s'...", project))
-	dsList, err := adapter.daemonsets(project, kapi.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector()})
+	dsList, err := adapter.daemonsets(project, metav1.ListOptions{LabelSelector: loggingInfraFluentdSelector.AsSelector().String()})
 	if err != nil {
 		r.Error("AGL0405", err, fmt.Sprintf("There was an error while trying to retrieve the logging DaemonSets in project '%s' which is most likely transient: %s", project, err))
 		return
 	}
 	if len(dsList.Items) == 0 {
-		r.Error("AGL0407", err, fmt.Sprintf(daemonSetNotFound, project, loggingInfraFluentdSelector.AsSelector()))
+		r.Error("AGL0407", err, fmt.Sprintf(daemonSetNotFound, project, loggingInfraFluentdSelector.AsSelector().String()))
 		return
 	}
-	nodeList, err := adapter.nodes(kapi.ListOptions{})
+	nodeList, err := adapter.nodes(metav1.ListOptions{})
 	if err != nil {
 		r.Error("AGL0410", err, fmt.Sprintf("There was an error while trying to retrieve the list of Nodes which is most likely transient: %s", err))
 		return
@@ -96,7 +97,7 @@ func checkDaemonSetPods(r diagnosticReporter, adapter daemonsetAdapter, ds kapis
 	}
 	podSelector := labels.Set(ds.Spec.Selector.MatchLabels).AsSelector()
 	r.Debug("AGL0435", fmt.Sprintf("Checking for running pods for DaemonSet '%s' with matchLabels '%s'", ds.ObjectMeta.Name, podSelector))
-	podList, err := adapter.pods(project, kapi.ListOptions{LabelSelector: podSelector})
+	podList, err := adapter.pods(project, metav1.ListOptions{LabelSelector: podSelector.String()})
 	if err != nil {
 		r.Error("AGL0438", err, fmt.Sprintf("There was an error retrieving pods matched to DaemonSet '%s' that is most likely transient: %s", ds.ObjectMeta.Name, err))
 		return

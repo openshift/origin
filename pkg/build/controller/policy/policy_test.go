@@ -7,8 +7,9 @@ import (
 	"errors"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 )
 
 type fakeBuildClient struct {
@@ -20,7 +21,7 @@ func newTestClient(builds []buildapi.Build) *fakeBuildClient {
 	return &fakeBuildClient{builds: &buildapi.BuildList{Items: builds}}
 }
 
-func (f *fakeBuildClient) List(namespace string, opts kapi.ListOptions) (*buildapi.BuildList, error) {
+func (f *fakeBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
 	return f.builds, nil
 }
 
@@ -45,7 +46,7 @@ func addBuild(name, bcName string, phase buildapi.BuildPhase, policy buildapi.Bu
 	parts := strings.Split(name, "-")
 	return buildapi.Build{
 		Spec: buildapi.BuildSpec{},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "test",
 			Labels: map[string]string{
@@ -107,7 +108,7 @@ func TestHandleCompleteSerial(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", kapi.ListOptions{})
+	resultBuilds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -134,7 +135,7 @@ func TestHandleCompleteParallel(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", kapi.ListOptions{})
+	resultBuilds, err := client.List("test", metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

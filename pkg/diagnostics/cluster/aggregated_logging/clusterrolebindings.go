@@ -3,8 +3,8 @@ package aggregated_logging
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 const clusterReaderRoleBindingName = "cluster-readers"

@@ -2,11 +2,12 @@ package fake
 
 import (
 	api "github.com/openshift/origin/pkg/authorization/api"
-	pkg_api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakePolicies implements PolicyInterface
@@ -15,11 +16,11 @@ type FakePolicies struct {
 	ns   string
 }
 
-var policiesResource = unversioned.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "policies"}
+var policiesResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "policies"}
 
 func (c *FakePolicies) Create(policy *api.Policy) (result *api.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewCreateAction(policiesResource, c.ns, policy), &api.Policy{})
+		Invokes(testing.NewCreateAction(policiesResource, c.ns, policy), &api.Policy{})
 
 	if obj == nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *FakePolicies) Create(policy *api.Policy) (result *api.Policy, err error
 
 func (c *FakePolicies) Update(policy *api.Policy) (result *api.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewUpdateAction(policiesResource, c.ns, policy), &api.Policy{})
+		Invokes(testing.NewUpdateAction(policiesResource, c.ns, policy), &api.Policy{})
 
 	if obj == nil {
 		return nil, err
@@ -37,23 +38,23 @@ func (c *FakePolicies) Update(policy *api.Policy) (result *api.Policy, err error
 	return obj.(*api.Policy), err
 }
 
-func (c *FakePolicies) Delete(name string, options *pkg_api.DeleteOptions) error {
+func (c *FakePolicies) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewDeleteAction(policiesResource, c.ns, name), &api.Policy{})
+		Invokes(testing.NewDeleteAction(policiesResource, c.ns, name), &api.Policy{})
 
 	return err
 }
 
-func (c *FakePolicies) DeleteCollection(options *pkg_api.DeleteOptions, listOptions pkg_api.ListOptions) error {
-	action := core.NewDeleteCollectionAction(policiesResource, c.ns, listOptions)
+func (c *FakePolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(policiesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &api.PolicyList{})
 	return err
 }
 
-func (c *FakePolicies) Get(name string) (result *api.Policy, err error) {
+func (c *FakePolicies) Get(name string, options v1.GetOptions) (result *api.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewGetAction(policiesResource, c.ns, name), &api.Policy{})
+		Invokes(testing.NewGetAction(policiesResource, c.ns, name), &api.Policy{})
 
 	if obj == nil {
 		return nil, err
@@ -61,15 +62,15 @@ func (c *FakePolicies) Get(name string) (result *api.Policy, err error) {
 	return obj.(*api.Policy), err
 }
 
-func (c *FakePolicies) List(opts pkg_api.ListOptions) (result *api.PolicyList, err error) {
+func (c *FakePolicies) List(opts v1.ListOptions) (result *api.PolicyList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewListAction(policiesResource, c.ns, opts), &api.PolicyList{})
+		Invokes(testing.NewListAction(policiesResource, c.ns, opts), &api.PolicyList{})
 
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -83,16 +84,16 @@ func (c *FakePolicies) List(opts pkg_api.ListOptions) (result *api.PolicyList, e
 }
 
 // Watch returns a watch.Interface that watches the requested policies.
-func (c *FakePolicies) Watch(opts pkg_api.ListOptions) (watch.Interface, error) {
+func (c *FakePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewWatchAction(policiesResource, c.ns, opts))
+		InvokesWatch(testing.NewWatchAction(policiesResource, c.ns, opts))
 
 }
 
 // Patch applies the patch and returns the patched policy.
-func (c *FakePolicies) Patch(name string, pt pkg_api.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
+func (c *FakePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewPatchSubresourceAction(policiesResource, c.ns, name, data, subresources...), &api.Policy{})
+		Invokes(testing.NewPatchSubresourceAction(policiesResource, c.ns, name, data, subresources...), &api.Policy{})
 
 	if obj == nil {
 		return nil, err

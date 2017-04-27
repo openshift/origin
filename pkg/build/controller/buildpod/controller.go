@@ -5,17 +5,21 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	v1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	clientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -43,8 +47,8 @@ type BuildPodController struct {
 
 	queue workqueue.RateLimitingInterface
 
-	buildStore oscache.StoreToBuildLister
-	podStore   cache.StoreToPodLister
+	buildStore  oscache.StoreToBuildLister
+	podInformer kcoreinformers.PodInformer
 
 	buildStoreSynced func() bool
 	podStoreSynced   func() bool
@@ -55,24 +59,24 @@ type BuildPodController struct {
 }
 
 // NewBuildPodController creates a new BuildPodController.
-func NewBuildPodController(buildInformer, podInformer cache.SharedIndexInformer, kc kclientset.Interface, oc osclient.Interface) *BuildPodController {
+func NewBuildPodController(buildInformer cache.SharedIndexInformer, podInformer kcoreinformers.PodInformer, intkc kclientset.Interface, extkc kexternalclientset.Interface, oc osclient.Interface) *BuildPodController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: kc.Core().Events("")})
+	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(extkc.Core().RESTClient()).Events("")})
 
 	buildListerUpdater := buildclient.NewOSClientBuildClient(oc)
 	c := &BuildPodController{
 		buildUpdater: buildListerUpdater,
-		secretClient: kc.Core(), // TODO: Replace with cache client
-		podClient:    kc.Core(),
+		secretClient: intkc.Core(), // TODO: Replace with cache client
+		podClient:    intkc.Core(),
+		podInformer:  podInformer,
 		queue:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		recorder:     eventBroadcaster.NewRecorder(kapi.EventSource{Component: "build-pod-controller"}),
+		recorder:     eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-pod-controller"}),
 	}
 
 	c.runPolicies = policy.GetAllRunPolicies(buildListerUpdater, buildListerUpdater)
 
 	c.buildStore.Indexer = buildInformer.GetIndexer()
-	c.podStore.Indexer = podInformer.GetIndexer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: c.updatePod,
 		DeleteFunc: c.deletePod,
 	})
@@ -82,7 +86,7 @@ func NewBuildPodController(buildInformer, podInformer cache.SharedIndexInformer,
 	})
 
 	c.buildStoreSynced = buildInformer.HasSynced
-	c.podStoreSynced = podInformer.HasSynced
+	c.podStoreSynced = podInformer.Informer().HasSynced
 
 	return c
 }
@@ -138,7 +142,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 			build.Status.Message = ""
 			nextStatus = buildapi.BuildPhasePending
 			if secret := build.Spec.Output.PushSecret; secret != nil && currentReason != buildapi.StatusReasonMissingPushSecret {
-				if _, err := bc.secretClient.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+				if _, err := bc.secretClient.Secrets(build.Namespace).Get(secret.Name, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 					build.Status.Reason = buildapi.StatusReasonMissingPushSecret
 					build.Status.Message = buildapi.StatusMessageMissingPushSecret
 					glog.V(4).Infof("Setting reason for pending build to %q due to missing secret %s/%s", build.Status.Reason, build.Namespace, secret.Name)
@@ -202,7 +206,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s%s", build.Namespace, build.Name, build.Status.Phase, nextStatus, reason)
 		build.Status.Phase = nextStatus
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := unversioned.Now()
+			now := metav1.Now()
 			build.Status.StartTimestamp = &now
 			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildStartedEventReason, fmt.Sprintf(buildapi.BuildStartedEventMessage, build.Namespace, build.Name))
 		}
@@ -327,7 +331,7 @@ func podForNotFoundKey(key podNotFoundKey) *kapi.Pod {
 }
 
 func (bc *BuildPodController) handlePodNotFound(key podNotFoundKey) {
-	_, err := bc.podStore.Pods(key.Namespace).Get(key.PodName)
+	_, err := bc.podInformer.Lister().Pods(key.Namespace).Get(key.PodName)
 	if err == nil {
 		glog.V(4).Infof("Found missing pod %s/%s\n", key.Namespace, key.PodName)
 		bc.queue.Forget(key)
@@ -343,7 +347,7 @@ func (bc *BuildPodController) handlePodNotFound(key podNotFoundKey) {
 
 	// Once the maximum number of retries has been exceeded, try retrieving it from the API server directly
 	bc.queue.Forget(key)
-	_, err = bc.podClient.Pods(key.Namespace).Get(key.PodName)
+	_, err = bc.podClient.Pods(key.Namespace).Get(key.PodName, metav1.GetOptions{})
 	if err != nil && errors.IsNotFound(err) {
 		// If the pod is still not found, handle it as a deletion event
 		err = bc.HandleBuildPodDeletion(podForNotFoundKey(key))
@@ -352,7 +356,7 @@ func (bc *BuildPodController) handlePodNotFound(key podNotFoundKey) {
 }
 
 func (bc *BuildPodController) getPodByKey(key string) (*kapi.Pod, error) {
-	obj, exists, err := bc.podStore.Indexer.GetByKey(key)
+	obj, exists, err := bc.podInformer.Informer().GetIndexer().GetByKey(key)
 	if err != nil {
 		glog.Infof("Unable to retrieve pod %q from store: %v", key, err)
 		bc.queue.AddRateLimited(key)
@@ -420,7 +424,7 @@ func (bc *BuildPodController) checkBuildPodDeletion(build *buildapi.Build) {
 		glog.V(5).Infof("checkBuildPodDeletion: ignoring build %s/%s because it is a pipeline build", build.Namespace, build.Name)
 		return
 	}
-	_, err := bc.podStore.Pods(build.Namespace).Get(buildapi.GetBuildPodName(build))
+	_, err := bc.podInformer.Lister().Pods(build.Namespace).Get(buildapi.GetBuildPodName(build))
 
 	// The only error that can currently be returned is a NotFound error, but adding a check
 	// here just in case that changes in the future

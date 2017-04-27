@@ -33,24 +33,25 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	fedclientset "k8s.io/kubernetes/federation/client/clientset_generated/federation_internalclientset"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/client/typed/discovery"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresourcedata"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/runtime/serializer/json"
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/kubernetes/pkg/printers"
 )
 
 const (
@@ -85,21 +86,24 @@ type ClientAccessFactory interface {
 	DiscoveryClientFactory
 
 	// ClientSet gives you back an internal, generated clientset
-	ClientSet() (*internalclientset.Clientset, error)
+	ClientSet() (internalclientset.Interface, error)
 	// Returns a RESTClient for accessing Kubernetes resources or an error.
 	RESTClient() (*restclient.RESTClient, error)
 	// Returns a client.Config for accessing the Kubernetes server.
 	ClientConfig() (*restclient.Config, error)
+	// BareClientConfig returns a client.Config that has NOT been negotiated. It's
+	// just directions to the server. People use this to build RESTMappers on top of
+	BareClientConfig() (*restclient.Config, error)
 
 	// TODO this should probably be removed and collapsed into whatever we want to use long term
 	// probably returning a restclient for a version and leaving contruction up to someone else
-	FederationClientSetForVersion(version *unversioned.GroupVersion) (fedclientset.Interface, error)
+	FederationClientSetForVersion(version *schema.GroupVersion) (fedclientset.Interface, error)
 	// TODO remove this should be rolled into restclient with the right version
-	FederationClientForVersion(version *unversioned.GroupVersion) (*restclient.RESTClient, error)
+	FederationClientForVersion(version *schema.GroupVersion) (*restclient.RESTClient, error)
 	// TODO remove.  This should be rolled into `ClientSet`
-	ClientSetForVersion(requiredVersion *unversioned.GroupVersion) (*internalclientset.Clientset, error)
+	ClientSetForVersion(requiredVersion *schema.GroupVersion) (internalclientset.Interface, error)
 	// TODO remove.  This should be rolled into `ClientConfig`
-	ClientConfigForVersion(requiredVersion *unversioned.GroupVersion) (*restclient.Config, error)
+	ClientConfigForVersion(requiredVersion *schema.GroupVersion) (*restclient.Config, error)
 
 	// Returns interfaces for decoding objects - if toInternal is set, decoded objects will be converted
 	// into their internal form (if possible). Eventually the internal form will be removed as an option,
@@ -127,25 +131,30 @@ type ClientAccessFactory interface {
 	FlagSet() *pflag.FlagSet
 	// Command will stringify and return all environment arguments ie. a command run by a client
 	// using the factory.
-	Command() string
+	Command(cmd *cobra.Command, showSecrets bool) string
 	// BindFlags adds any flags that are common to all kubectl sub commands.
 	BindFlags(flags *pflag.FlagSet)
 	// BindExternalFlags adds any flags defined by external projects (not part of pflags)
 	BindExternalFlags(flags *pflag.FlagSet)
 
-	DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *kubectl.PrintOptions
+	// TODO: Break the dependency on cmd here.
+	DefaultResourceFilterOptions(cmd *cobra.Command, withNamespace bool) *printers.PrintOptions
 	// DefaultResourceFilterFunc returns a collection of FilterFuncs suitable for filtering specific resource types.
 	DefaultResourceFilterFunc() kubectl.Filters
 
 	// SuggestedPodTemplateResources returns a list of resource types that declare a pod template
-	SuggestedPodTemplateResources() []unversioned.GroupResource
+	SuggestedPodTemplateResources() []schema.GroupResource
 
 	// Returns a Printer for formatting objects of the given type or an error.
-	Printer(mapping *meta.RESTMapping, options kubectl.PrintOptions) (kubectl.ResourcePrinter, error)
-	// Pauser marks the object in the info as paused ie. it will not be reconciled by its controller.
-	Pauser(info *resource.Info) (bool, error)
-	// Resumer resumes a paused object inside the info ie. it will be reconciled by its controller.
-	Resumer(info *resource.Info) (bool, error)
+	Printer(mapping *meta.RESTMapping, options printers.PrintOptions) (printers.ResourcePrinter, error)
+	// Pauser marks the object in the info as paused. Currently supported only for Deployments.
+	// Returns the patched object in bytes and any error that occured during the encoding or
+	// in case the object is already paused.
+	Pauser(info *resource.Info) ([]byte, error)
+	// Resumer resumes a paused object inside the info. Currently supported only for Deployments.
+	// Returns the patched object in bytes and any error that occured during the encoding or
+	// in case the object is already resumed.
+	Resumer(info *resource.Info) ([]byte, error)
 
 	// ResolveImage resolves the image names. For kubernetes this function is just
 	// passthrough but it allows to perform more sophisticated image name resolving for
@@ -159,9 +168,9 @@ type ClientAccessFactory interface {
 	// Generators returns the generators for the provided command
 	Generators(cmdName string) map[string]kubectl.Generator
 	// Check whether the kind of resources could be exposed
-	CanBeExposed(kind unversioned.GroupKind) error
+	CanBeExposed(kind schema.GroupKind) error
 	// Check whether the kind of resources could be autoscaled
-	CanBeAutoscaled(kind unversioned.GroupKind) error
+	CanBeAutoscaled(kind schema.GroupKind) error
 
 	// EditorEnvs returns a group of environment variables that the edit command
 	// can range over in order to determine if the user has specified an editor
@@ -186,7 +195,7 @@ type ObjectMappingFactory interface {
 	// Returns a RESTClient for working with Unstructured objects.
 	UnstructuredClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	// Returns a Describer for displaying the specified RESTMapping type or an error.
-	Describer(mapping *meta.RESTMapping) (kubectl.Describer, error)
+	Describer(mapping *meta.RESTMapping) (printers.Describer, error)
 
 	// LogsForObject returns a request for the logs associated with the provided object
 	LogsForObject(object, options runtime.Object) (*restclient.Request, error)
@@ -204,48 +213,37 @@ type ObjectMappingFactory interface {
 	// AttachablePodForObject returns the pod to which to attach given an object.
 	AttachablePodForObject(object runtime.Object) (*api.Pod, error)
 
-	// PrinterForMapping returns a printer suitable for displaying the provided resource type.
-	// Requires that printer flags have been added to cmd (see AddPrinterFlags).
-	PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (kubectl.ResourcePrinter, error)
-
 	// Returns a schema that can validate objects stored on disk.
 	Validator(validate bool, cacheDir string) (validation.Schema, error)
 	// SwaggerSchema returns the schema declaration for the provided group version kind.
-	SwaggerSchema(unversioned.GroupVersionKind) (*swagger.ApiDeclaration, error)
+	SwaggerSchema(schema.GroupVersionKind) (*swagger.ApiDeclaration, error)
 }
 
 // BuilderFactory holds the second level of factory methods.  These functions depend upon ObjectMappingFactory and ClientAccessFactory methods.
 // Generally they depend upon client mapper functions
 type BuilderFactory interface {
+	// PrinterForCommand returns the default printer for the command. It requires that certain options
+	// are declared on the command (see AddPrinterFlags). Returns a printer, true if the printer is
+	// generic (is not internal), or an error if a printer could not be found.
+	// TODO: Break the dependency on cmd here.
+	PrinterForCommand(cmd *cobra.Command) (printers.ResourcePrinter, bool, error)
+	// PrinterForMapping returns a printer suitable for displaying the provided resource type.
+	// Requires that printer flags have been added to cmd (see AddPrinterFlags).
+	PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMapping, withNamespace bool) (printers.ResourcePrinter, error)
 	// PrintObject prints an api object given command line flags to modify the output format
 	PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, obj runtime.Object, out io.Writer) error
 	// One stop shopping for a Builder
 	NewBuilder() *resource.Builder
 }
 
-func getGroupVersionKinds(gvks []unversioned.GroupVersionKind, group string) []unversioned.GroupVersionKind {
-	result := []unversioned.GroupVersionKind{}
+func getGroupVersionKinds(gvks []schema.GroupVersionKind, group string) []schema.GroupVersionKind {
+	result := []schema.GroupVersionKind{}
 	for ix := range gvks {
 		if gvks[ix].Group == group {
 			result = append(result, gvks[ix])
 		}
 	}
 	return result
-}
-
-func makeInterfacesFor(versionList []unversioned.GroupVersion) func(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
-	accessor := meta.NewAccessor()
-	return func(version unversioned.GroupVersion) (*meta.VersionInterfaces, error) {
-		for ix := range versionList {
-			if versionList[ix].String() == version.String() {
-				return &meta.VersionInterfaces{
-					ObjectConvertor:  thirdpartyresourcedata.NewThirdPartyObjectConverter(api.Scheme),
-					MetadataAccessor: accessor,
-				}, nil
-			}
-		}
-		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, versionList)
-	}
 }
 
 type factory struct {
@@ -271,21 +269,25 @@ func NewFactory(optionalClientConfig clientcmd.ClientConfig) Factory {
 
 // GetFirstPod returns a pod matching the namespace and label selector
 // and the number of all pods that match the label selector.
-func GetFirstPod(client coreclient.PodsGetter, namespace string, selector labels.Selector, timeout time.Duration, sortBy func([]*api.Pod) sort.Interface) (*api.Pod, int, error) {
-	options := api.ListOptions{LabelSelector: selector}
+func GetFirstPod(client coreclient.PodsGetter, namespace string, selector labels.Selector, timeout time.Duration, sortBy func([]*v1.Pod) sort.Interface) (*api.Pod, int, error) {
+	options := metav1.ListOptions{LabelSelector: selector.String()}
 
 	podList, err := client.Pods(namespace).List(options)
 	if err != nil {
 		return nil, 0, err
 	}
-	pods := []*api.Pod{}
+	pods := []*v1.Pod{}
 	for i := range podList.Items {
 		pod := podList.Items[i]
-		pods = append(pods, &pod)
+		externalPod := &v1.Pod{}
+		v1.Convert_api_Pod_To_v1_Pod(&pod, externalPod, nil)
+		pods = append(pods, externalPod)
 	}
 	if len(pods) > 0 {
 		sort.Sort(sortBy(pods))
-		return pods[0], len(podList.Items), nil
+		internalPod := &api.Pod{}
+		v1.Convert_v1_Pod_To_api_Pod(pods[0], internalPod, nil)
+		return internalPod, len(podList.Items), nil
 	}
 
 	// Watch until we observe a pod
@@ -489,7 +491,7 @@ func (c *clientSwaggerSchema) ValidateBytes(data []byte) error {
 	if err != nil {
 		return err
 	}
-	if ok := registered.IsEnabledVersion(gvk.GroupVersion()); !ok {
+	if ok := api.Registry.IsEnabledVersion(gvk.GroupVersion()); !ok {
 		// if we don't have this in our scheme, just skip validation because its an object we don't recognize
 		return nil
 	}

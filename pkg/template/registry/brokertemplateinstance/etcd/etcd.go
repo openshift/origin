@@ -1,12 +1,14 @@
 package etcd
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
+	rest "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for brokertemplateinstances against etcd
@@ -17,17 +19,19 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against brokertemplateinstances.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.BrokerTemplateInstance{} },
 		NewListFunc:       func() runtime.Object { return &api.BrokerTemplateInstanceList{} },
-		PredicateFunc:     brokertemplateinstance.Matcher,
+		PredicateFunc:     rest.Matcher,
 		QualifiedResource: api.Resource("brokertemplateinstances"),
 
-		CreateStrategy: brokertemplateinstance.Strategy,
-		UpdateStrategy: brokertemplateinstance.Strategy,
-		DeleteStrategy: brokertemplateinstance.Strategy,
+		CreateStrategy: rest.Strategy,
+		UpdateStrategy: rest.Strategy,
+		DeleteStrategy: rest.Strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 

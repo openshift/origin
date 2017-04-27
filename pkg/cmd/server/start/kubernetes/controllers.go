@@ -7,9 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/openshift/origin/pkg/cmd/server/cm"
+	kflag "k8s.io/apiserver/pkg/util/flag"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kflag "k8s.io/kubernetes/pkg/util/flag"
 	"k8s.io/kubernetes/pkg/util/logs"
 )
 
@@ -42,7 +43,7 @@ func NewControllersCommand(name, fullName string, out io.Writer) *cobra.Command 
 
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(kflag.WordSepNormalizeFunc)
-	controllerOptions.AddFlags(flags)
+	cm.OriginControllerManagerAddFlags(controllerOptions)(flags)
 
 	return cmd
 }

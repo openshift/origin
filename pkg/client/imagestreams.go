@@ -3,9 +3,10 @@ package client
 import (
 	"errors"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
@@ -20,12 +21,12 @@ type ImageStreamsNamespacer interface {
 
 // ImageStreamInterface exposes methods on ImageStream resources.
 type ImageStreamInterface interface {
-	List(opts kapi.ListOptions) (*imageapi.ImageStreamList, error)
-	Get(name string) (*imageapi.ImageStream, error)
+	List(opts metav1.ListOptions) (*imageapi.ImageStreamList, error)
+	Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error)
 	Create(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Update(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Delete(name string) error
-	Watch(opts kapi.ListOptions) (watch.Interface, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	UpdateStatus(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error)
 }
@@ -50,7 +51,7 @@ func newImageStreams(c *Client, namespace string) *imageStreams {
 }
 
 // List returns a list of image streams that match the label and field selectors.
-func (c *imageStreams) List(opts kapi.ListOptions) (result *imageapi.ImageStreamList, err error) {
+func (c *imageStreams) List(opts metav1.ListOptions) (result *imageapi.ImageStreamList, err error) {
 	result = &imageapi.ImageStreamList{}
 	err = c.r.Get().
 		Namespace(c.ns).
@@ -62,9 +63,9 @@ func (c *imageStreams) List(opts kapi.ListOptions) (result *imageapi.ImageStream
 }
 
 // Get returns information about a particular image stream and error if one occurs.
-func (c *imageStreams) Get(name string) (result *imageapi.ImageStream, err error) {
+func (c *imageStreams) Get(name string, options metav1.GetOptions) (result *imageapi.ImageStream, err error) {
 	result = &imageapi.ImageStream{}
-	err = c.r.Get().Namespace(c.ns).Resource("imageStreams").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageStreams").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
@@ -89,7 +90,7 @@ func (c *imageStreams) Delete(name string) (err error) {
 }
 
 // Watch returns a watch.Interface that watches the requested image streams.
-func (c *imageStreams) Watch(opts kapi.ListOptions) (watch.Interface, error) {
+func (c *imageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().
 		Prefix("watch").
 		Namespace(c.ns).

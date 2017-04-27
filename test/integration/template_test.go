@@ -6,15 +6,17 @@ import (
 	"path/filepath"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestTemplate(t *testing.T) {
@@ -24,7 +26,7 @@ func TestTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, version := range []unversioned.GroupVersion{v1.SchemeGroupVersion} {
+	for _, version := range []schema.GroupVersion{v1.SchemeGroupVersion} {
 		config, err := testutil.GetClusterAdminClientConfig(path)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -46,7 +48,7 @@ func TestTemplate(t *testing.T) {
 
 		templateObjects := []runtime.Object{
 			&v1.Service{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "${NAME}-tester",
 					Namespace: "somevalue",
 				},
@@ -65,10 +67,10 @@ func TestTemplate(t *testing.T) {
 		if len(obj.Objects) != 1 {
 			t.Fatalf("unexpected object: %#v", obj)
 		}
-		if err := runtime.DecodeList(obj.Objects, runtime.UnstructuredJSONScheme); err != nil {
+		if err := runtime.DecodeList(obj.Objects, unstructured.UnstructuredJSONScheme); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		svc := obj.Objects[0].(*runtime.Unstructured).Object
+		svc := obj.Objects[0].(*unstructured.Unstructured).Object
 		spec := svc["spec"].(map[string]interface{})
 		meta := svc["metadata"].(map[string]interface{})
 		// keep existing values

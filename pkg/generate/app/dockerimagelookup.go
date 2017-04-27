@@ -9,8 +9,8 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -210,10 +210,10 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	componentMatches := ComponentMatches{}
 	for i, image := range result.Status.Images {
 		term := result.Spec.Images[i].From.Name
-		if image.Status.Status != unversioned.StatusSuccess {
+		if image.Status.Status != metav1.StatusSuccess {
 			glog.V(4).Infof("image import failed: %#v", image)
 			switch image.Status.Reason {
-			case unversioned.StatusReasonInternalError:
+			case metav1.StatusReasonInternalError:
 				// try to find the cause of the internal error
 				if image.Status.Details != nil && len(image.Status.Details.Causes) > 0 {
 					for _, c := range image.Status.Details.Causes {
@@ -222,7 +222,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 				} else {
 					glog.Warningf("Docker registry lookup failed: %s", image.Status.Message)
 				}
-			case unversioned.StatusReasonInvalid, unversioned.StatusReasonUnauthorized, unversioned.StatusReasonNotFound:
+			case metav1.StatusReasonInvalid, metav1.StatusReasonUnauthorized, metav1.StatusReasonNotFound:
 			default:
 				errs = append(errs, fmt.Errorf("can't look up Docker image %q: %s", term, image.Status.Message))
 			}

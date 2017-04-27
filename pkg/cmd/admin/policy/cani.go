@@ -11,10 +11,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -38,7 +38,7 @@ type canIOptions struct {
 	SARClient             client.SubjectAccessReviews
 
 	Verb         string
-	Resource     unversioned.GroupVersionResource
+	Resource     schema.GroupVersionResource
 	ResourceName string
 
 	Out io.Writer
@@ -125,7 +125,7 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	o.RulesReviewClient = oclient
 	o.SARClient = oclient
 
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
 		o.Namespace, _, err = f.DefaultNamespace()
 		if err != nil {

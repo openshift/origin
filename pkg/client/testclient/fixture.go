@@ -3,10 +3,10 @@ package testclient
 import (
 	"io/ioutil"
 
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/yaml"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // ReadObjectsFromPath reads objects from the specified file for testing.
@@ -54,7 +54,7 @@ func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace strin
 	if err != nil {
 		return err
 	}
-	group, err := registered.Group(gvks[0].Group)
+	group, err := kapi.Registry.Group(gvks[0].Group)
 	if err != nil {
 		return err
 	}

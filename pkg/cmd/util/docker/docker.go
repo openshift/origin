@@ -2,6 +2,7 @@ package docker
 
 import (
 	"os"
+	"time"
 
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 
@@ -39,15 +40,14 @@ func (_ *Helper) GetClient() (client *docker.Client, endpoint string, err error)
 }
 
 // GetKubeClient returns the Kubernetes Docker client.
-func (_ *Helper) GetKubeClient() (*KubeDocker, string, error) {
+func (_ *Helper) GetKubeClient(requestTimeout, imagePullProgressDeadline time.Duration) (*KubeDocker, string, error) {
 	var endpoint string
 	if len(os.Getenv("DOCKER_HOST")) > 0 {
 		endpoint = os.Getenv("DOCKER_HOST")
 	} else {
 		endpoint = "unix:///var/run/docker.sock"
 	}
-	// TODO: set a timeout here
-	client := dockertools.ConnectToDockerOrDie(endpoint, 0)
+	client := dockertools.ConnectToDockerOrDie(endpoint, requestTimeout, imagePullProgressDeadline)
 	originClient := &KubeDocker{client}
 	return originClient, endpoint, nil
 }

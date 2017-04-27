@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	ktransport "k8s.io/kubernetes/pkg/client/transport"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktransport "k8s.io/client-go/transport"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
@@ -60,7 +60,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	result := clusterAdminClient.RESTClient.Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: kapi.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
+	result := clusterAdminClient.RESTClient.Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
 	if result.Error() != nil {
 		t.Fatal(result.Error())
 	}

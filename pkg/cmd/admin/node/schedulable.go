@@ -3,9 +3,9 @@ package node
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/kubectl"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 )
 
 type SchedulableOptions struct {
@@ -21,12 +21,12 @@ func (s *SchedulableOptions) Run() error {
 	}
 
 	errList := []error{}
-	var printer kubectl.ResourcePrinter
+	var printer kprinters.ResourcePrinter
 	unschedulable := !s.Schedulable
 	for _, node := range nodes {
 		if node.Spec.Unschedulable != unschedulable {
 			patch := fmt.Sprintf(`{"spec":{"unschedulable":%t}}`, unschedulable)
-			node, err = s.Options.KubeClient.Core().Nodes().Patch(node.Name, api.MergePatchType, []byte(patch))
+			node, err = s.Options.KubeClient.Core().Nodes().Patch(node.Name, types.MergePatchType, []byte(patch))
 			if err != nil {
 				errList = append(errList, err)
 				continue

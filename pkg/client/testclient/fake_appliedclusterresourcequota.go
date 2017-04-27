@@ -1,9 +1,9 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
@@ -13,10 +13,10 @@ type FakeAppliedClusterResourceQuotas struct {
 	Namespace string
 }
 
-var appliedClusterResourceQuotasResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "appliedclusterresourcequotas"}
+var appliedClusterResourceQuotasResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "appliedclusterresourcequotas"}
 
-func (c *FakeAppliedClusterResourceQuotas) Get(name string) (*quotaapi.AppliedClusterResourceQuota, error) {
-	obj, err := c.Fake.Invokes(core.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
+func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOptions) (*quotaapi.AppliedClusterResourceQuota, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
 	if obj == nil {
 		return nil, err
 	}
@@ -24,8 +24,8 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string) (*quotaapi.AppliedCl
 	return obj.(*quotaapi.AppliedClusterResourceQuota), err
 }
 
-func (c *FakeAppliedClusterResourceQuotas) List(opts kapi.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
-	obj, err := c.Fake.Invokes(core.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
+func (c *FakeAppliedClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

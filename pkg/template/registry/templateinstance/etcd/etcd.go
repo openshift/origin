@@ -1,13 +1,15 @@
 package etcd
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/registry/templateinstance"
+	rest "github.com/openshift/origin/pkg/template/registry/templateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
-	"k8s.io/kubernetes/pkg/registry/generic/registry"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/storage"
 )
 
 // REST implements a RESTStorage for templateinstances against etcd
@@ -17,19 +19,21 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against templateinstances.
 func NewREST(optsGetter restoptions.Getter, oc *client.Client) (*REST, error) {
-	strategy := templateinstance.NewStrategy(oc)
+	strategy := rest.NewStrategy(oc)
 
 	store := &registry.Store{
+		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.TemplateInstance{} },
 		NewListFunc:       func() runtime.Object { return &api.TemplateInstanceList{} },
-		PredicateFunc:     templateinstance.Matcher,
+		PredicateFunc:     rest.Matcher,
 		QualifiedResource: api.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
 	}
 
-	if err := restoptions.ApplyOptions(optsGetter, store, storage.NoTriggerPublisher); err != nil {
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
