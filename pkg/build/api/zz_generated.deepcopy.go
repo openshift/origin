@@ -67,6 +67,8 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SourceBuildStrategy, InType: reflect.TypeOf(&SourceBuildStrategy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SourceControlUser, InType: reflect.TypeOf(&SourceControlUser{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_SourceRevision, InType: reflect.TypeOf(&SourceRevision{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_StageInfo, InType: reflect.TypeOf(&StageInfo{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_StepInfo, InType: reflect.TypeOf(&StepInfo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_WebHookTrigger, InType: reflect.TypeOf(&WebHookTrigger{})},
 	)
 }
@@ -524,6 +526,17 @@ func DeepCopy_api_BuildStatus(in interface{}, out interface{}, c *conversion.Clo
 		}
 		if err := DeepCopy_api_BuildStatusOutput(&in.Output, &out.Output, c); err != nil {
 			return err
+		}
+		if in.Stages != nil {
+			in, out := &in.Stages, &out.Stages
+			*out = make([]StageInfo, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_StageInfo(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Stages = nil
 		}
 		return nil
 	}
@@ -1240,6 +1253,39 @@ func DeepCopy_api_SourceRevision(in interface{}, out interface{}, c *conversion.
 		} else {
 			out.Git = nil
 		}
+		return nil
+	}
+}
+
+func DeepCopy_api_StageInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*StageInfo)
+		out := out.(*StageInfo)
+		out.Name = in.Name
+		out.StartTime = in.StartTime.DeepCopy()
+		out.DurationMilliseconds = in.DurationMilliseconds
+		if in.Steps != nil {
+			in, out := &in.Steps, &out.Steps
+			*out = make([]StepInfo, len(*in))
+			for i := range *in {
+				if err := DeepCopy_api_StepInfo(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		} else {
+			out.Steps = nil
+		}
+		return nil
+	}
+}
+
+func DeepCopy_api_StepInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*StepInfo)
+		out := out.(*StepInfo)
+		out.Name = in.Name
+		out.StartTime = in.StartTime.DeepCopy()
+		out.DurationMilliseconds = in.DurationMilliseconds
 		return nil
 	}
 }

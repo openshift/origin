@@ -1,7 +1,12 @@
 package api
 
 import (
+	"time"
+
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/unversioned"
+
+	"github.com/golang/glog"
 )
 
 // BuildToPodLogOptions builds a PodLogOptions object out of a BuildLogOptions.
@@ -74,4 +79,53 @@ func FindTriggerPolicy(triggerType BuildTriggerType, config *BuildConfig) (build
 func HasTriggerType(triggerType BuildTriggerType, bc *BuildConfig) bool {
 	matches := FindTriggerPolicy(triggerType, bc)
 	return len(matches) > 0
+}
+
+// RecordStageAndStepInfo records details about each build stage and step
+func RecordStageAndStepInfo(stages []StageInfo, stageName StageName, stepName StepName, startTime unversioned.Time, endTime unversioned.Time) []StageInfo {
+	// If the stage already exists in the slice, update the DurationMilliseconds, and append the new step.
+	for stageKey, stageVal := range stages {
+		if stageVal.Name == stageName {
+			for _, step := range stages[stageKey].Steps {
+				if step.Name == stepName {
+					glog.Warningf("error recording build timing information, step %v already exists in stage %v", stepName, stageName)
+				}
+			}
+			stages[stageKey].DurationMilliseconds = endTime.Time.Sub(stages[stageKey].StartTime.Time).Nanoseconds() / int64(time.Millisecond)
+			if len(stages[stageKey].Steps) == 0 {
+				stages[stageKey].Steps = make([]StepInfo, 0)
+			}
+			stages[stageKey].Steps = append(stages[stageKey].Steps, StepInfo{
+				Name:                 stepName,
+				StartTime:            startTime,
+				DurationMilliseconds: endTime.Time.Sub(startTime.Time).Nanoseconds() / int64(time.Millisecond),
+			})
+			return stages
+		}
+	}
+
+	// If the stageName does not exist, add it to the slice along with the new step.
+	var steps []StepInfo
+	steps = append(steps, StepInfo{
+		Name:                 stepName,
+		StartTime:            startTime,
+		DurationMilliseconds: endTime.Time.Sub(startTime.Time).Nanoseconds() / int64(time.Millisecond),
+	})
+	stages = append(stages, StageInfo{
+		Name:                 stageName,
+		StartTime:            startTime,
+		DurationMilliseconds: endTime.Time.Sub(startTime.Time).Nanoseconds() / int64(time.Millisecond),
+		Steps:                steps,
+	})
+	return stages
+}
+
+// AppendStageAndStepInfo appends the step info from one stages slice into another.
+func AppendStageAndStepInfo(stages []StageInfo, stagesToMerge []StageInfo) []StageInfo {
+	for _, stage := range stagesToMerge {
+		for _, step := range stage.Steps {
+			stages = RecordStageAndStepInfo(stages, stage.Name, step.Name, step.StartTime, unversioned.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+		}
+	}
+	return stages
 }
