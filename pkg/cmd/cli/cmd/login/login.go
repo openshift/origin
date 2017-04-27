@@ -11,6 +11,7 @@ import (
 
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/api/unversioned"
+	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	kclientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/term"
@@ -192,6 +193,30 @@ func (o LoginOptions) Validate(args []string, serverFlag string) error {
 
 // RunLogin contains all the necessary functionality for the OpenShift cli login command
 func RunLogin(cmd *cobra.Command, options *LoginOptions) error {
+	contextName := kcmdutil.GetFlagString(cmd, "context")
+	if len(contextName) > 0 {
+		if _, exists := options.StartingKubeConfig.Contexts[contextName]; exists {
+			options.StartingKubeConfig.CurrentContext = contextName
+			if err := kclientcmd.ModifyConfig(options.PathOptions, *options.StartingKubeConfig, true); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	clusterName := kcmdutil.GetFlagString(cmd, "cluster")
+	if len(clusterName) > 0 {
+		for _, ctx := range options.StartingKubeConfig.Contexts {
+			if ctx.Cluster == clusterName {
+				options.StartingKubeConfig.CurrentContext = config.GetContextNickname(ctx.Namespace, ctx.Cluster, ctx.AuthInfo)
+				if err := kclientcmd.ModifyConfig(options.PathOptions, *options.StartingKubeConfig, true); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+	}
+
 	if err := options.GatherInfo(); err != nil {
 		return err
 	}
