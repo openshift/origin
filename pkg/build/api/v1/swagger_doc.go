@@ -201,6 +201,7 @@ var map_BuildStatus = map[string]string{
 	"outputDockerImageReference": "outputDockerImageReference contains a reference to the Docker image that will be built by this build. Its value is computed from Build.Spec.Output.To, and should include the registry address, so that it can be used to push and pull the image.",
 	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on.",
 	"output":                     "output describes the Docker image the build has produced.",
+	"stages":                     "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage.",
 }
 
 func (BuildStatus) SwaggerDoc() map[string]string {
@@ -530,6 +531,29 @@ var map_SourceRevision = map[string]string{
 
 func (SourceRevision) SwaggerDoc() map[string]string {
 	return map_SourceRevision
+}
+
+var map_StageInfo = map[string]string{
+	"":                     "StageInfo contains details about a build stage.",
+	"name":                 "name is a unique identifier for each build stage that occurs.",
+	"startTime":            "startTime is a timestamp representing the server time when this Stage started. It is represented in RFC3339 form and is in UTC.",
+	"durationMilliseconds": "durationMilliseconds identifies how long the stage took to complete in milliseconds. Note: the duration of a stage can exceed the sum of the duration of the steps within the stage as not all actions are accounted for in explicit build steps.",
+	"steps":                "steps contains details about each step that occurs during a build stage including start time and duration in milliseconds.",
+}
+
+func (StageInfo) SwaggerDoc() map[string]string {
+	return map_StageInfo
+}
+
+var map_StepInfo = map[string]string{
+	"":                     "StepInfo contains details about a build step.",
+	"name":                 "name is a unique identifier for each build step.",
+	"startTime":            "startTime is a timestamp representing the server time when this Step started. it is represented in RFC3339 form and is in UTC.",
+	"durationMilliseconds": "durationMilliseconds identifies how long the step took to complete in milliseconds.",
+}
+
+func (StepInfo) SwaggerDoc() map[string]string {
+	return map_StepInfo
 }
 
 var map_WebHookTrigger = map[string]string{
