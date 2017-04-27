@@ -44,6 +44,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 		readinessFixture                = exutil.FixturePath("testdata", "deployments", "readiness-test.yaml")
 		envRefDeploymentFixture         = exutil.FixturePath("testdata", "deployments", "deployment-with-ref-env.yaml")
 		ignoresDeployersFixture         = exutil.FixturePath("testdata", "deployments", "deployment-ignores-deployer.yaml")
+		deploymentHookFixture           = exutil.FixturePath("testdata", "deployments", "test-deployment-hook.yaml")
 	)
 
 	g.Describe("when run iteratively [Conformance]", func() {
@@ -304,6 +305,22 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 				o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
+		})
+	})
+
+	g.Describe("with deployment hook", func() {
+		g.AfterEach(func() {
+			failureTrap(oc, "deployment-hook", g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should run a deployment hook with command and args [Conformance]", func() {
+			out, err := oc.Run("create").Args("-f", deploymentHookFixture).Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+			out, err = oc.Run("logs").Args("-f", "dc/deployment-test").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("checking the logs for substrings")
+			o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
 		})
 	})
 

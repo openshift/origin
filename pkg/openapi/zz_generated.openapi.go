@@ -12446,7 +12446,21 @@ var OpenAPIDefinitions *common.OpenAPIDefinitions = &common.OpenAPIDefinitions{
 				Properties: map[string]spec.Schema{
 					"command": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Command is the action command and its arguments.",
+							Description: "Command represents an entrypoint array. Not executed within a shell. The docker image’s ENTRYPOINT is used if this is not provided.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"args": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Args represents an arguments to the entrypoint. The docker image’s CMD is used if this is not provided.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

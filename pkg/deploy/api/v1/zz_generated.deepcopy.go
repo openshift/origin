@@ -472,6 +472,13 @@ func DeepCopy_v1_ExecNewPodHook(in interface{}, out interface{}, c *conversion.C
 		} else {
 			out.Command = nil
 		}
+		if in.Args != nil {
+			in, out := &in.Args, &out.Args
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		} else {
+			out.Args = nil
+		}
 		if in.Env != nil {
 			in, out := &in.Env, &out.Env
 			*out = make([]api_v1.EnvVar, len(*in))

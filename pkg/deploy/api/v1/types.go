@@ -210,8 +210,12 @@ const (
 // based on the specified container which is assumed to be part of the
 // deployment template.
 type ExecNewPodHook struct {
-	// Command is the action command and its arguments.
+	// Command represents an entrypoint array. Not executed within a shell. The docker image’s ENTRYPOINT
+	// is used if this is not provided.
 	Command []string `json:"command" protobuf:"bytes,1,rep,name=command"`
+	// Args represents an arguments to the entrypoint. The docker image’s CMD is
+	// used if this is not provided.
+	Args []string `json:"args,omitempty" protobuf:"bytes,5,rep,name=args"`
 	// Env is a set of environment variables to supply to the hook pod's container.
 	Env []kapi.EnvVar `json:"env,omitempty" protobuf:"bytes,2,rep,name=env"`
 	// ContainerName is the name of a container in the deployment pod template

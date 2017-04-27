@@ -70479,8 +70479,15 @@
      "containerName"
     ],
     "properties": {
+     "args": {
+      "description": "Args represents an arguments to the entrypoint. The docker image’s CMD is used if this is not provided.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
      "command": {
-      "description": "Command is the action command and its arguments.",
+      "description": "Command represents an entrypoint array. Not executed within a shell. The docker image’s ENTRYPOINT is used if this is not provided.",
       "type": "array",
       "items": {
        "type": "string"

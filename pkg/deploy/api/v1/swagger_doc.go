@@ -216,7 +216,8 @@ func (DeploymentTriggerPolicy) SwaggerDoc() map[string]string {
 
 var map_ExecNewPodHook = map[string]string{
 	"":              "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
-	"command":       "Command is the action command and its arguments.",
+	"command":       "Command represents an entrypoint array. Not executed within a shell. The docker image’s ENTRYPOINT is used if this is not provided.",
+	"args":          "Args represents an arguments to the entrypoint. The docker image’s CMD is used if this is not provided.",
 	"env":           "Env is a set of environment variables to supply to the hook pod's container.",
 	"containerName": "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container.",
 	"volumes":       "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied.",

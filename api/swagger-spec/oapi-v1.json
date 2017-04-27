@@ -25259,6 +25259,12 @@
       },
       "description": "Command is the action command and its arguments."
      },
+     "args": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
      "env": {
       "type": "array",
       "items": {

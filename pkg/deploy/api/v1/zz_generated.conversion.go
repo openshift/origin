@@ -709,6 +709,7 @@ func Convert_api_DeploymentTriggerPolicy_To_v1_DeploymentTriggerPolicy(in *api.D
 
 func autoConvert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *api.ExecNewPodHook, s conversion.Scope) error {
 	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]pkg_api.EnvVar, len(*in))
@@ -731,6 +732,7 @@ func Convert_v1_ExecNewPodHook_To_api_ExecNewPodHook(in *ExecNewPodHook, out *ap
 
 func autoConvert_api_ExecNewPodHook_To_v1_ExecNewPodHook(in *api.ExecNewPodHook, out *ExecNewPodHook, s conversion.Scope) error {
 	out.Command = *(*[]string)(unsafe.Pointer(&in.Command))
+	out.Args = *(*[]string)(unsafe.Pointer(&in.Args))
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]api_v1.EnvVar, len(*in))

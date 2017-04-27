@@ -42,6 +42,7 @@
 // test/extended/testdata/deployments/readiness-test.yaml
 // test/extended/testdata/deployments/tag-images-deployment.yaml
 // test/extended/testdata/deployments/test-deployment-broken.yaml
+// test/extended/testdata/deployments/test-deployment-hook.yaml
 // test/extended/testdata/deployments/test-deployment-test.yaml
 // test/extended/testdata/forcepull-test.json
 // test/extended/testdata/gssapi/config/kubeconfig
@@ -1962,6 +1963,59 @@ func testExtendedTestdataDeploymentsTestDeploymentBrokenYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/deployments/test-deployment-broken.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataDeploymentsTestDeploymentHookYaml = []byte(`apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  name: deployment-test
+spec:
+  replicas: 1
+  selector:
+    name: deployment-test
+  strategy:
+    type: Rolling
+    rollingParams:
+      pre:
+        failurePolicy: Abort
+        execNewPod:
+          containerName: myapp
+          command:
+          - /bin/sh
+          - -c
+          args:
+          - echo
+          - test pre hook executed
+  template:
+    metadata:
+      labels:
+        name: deployment-test
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: "docker.io/centos:centos7"
+        imagePullPolicy: IfNotPresent
+        name: myapp
+        command:
+        - /bin/sleep
+        - "100"
+  triggers:
+  - type: ConfigChange
+`)
+
+func testExtendedTestdataDeploymentsTestDeploymentHookYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataDeploymentsTestDeploymentHookYaml, nil
+}
+
+func testExtendedTestdataDeploymentsTestDeploymentHookYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataDeploymentsTestDeploymentHookYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/deployments/test-deployment-hook.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -18994,6 +19048,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/deployments/readiness-test.yaml": testExtendedTestdataDeploymentsReadinessTestYaml,
 	"test/extended/testdata/deployments/tag-images-deployment.yaml": testExtendedTestdataDeploymentsTagImagesDeploymentYaml,
 	"test/extended/testdata/deployments/test-deployment-broken.yaml": testExtendedTestdataDeploymentsTestDeploymentBrokenYaml,
+	"test/extended/testdata/deployments/test-deployment-hook.yaml": testExtendedTestdataDeploymentsTestDeploymentHookYaml,
 	"test/extended/testdata/deployments/test-deployment-test.yaml": testExtendedTestdataDeploymentsTestDeploymentTestYaml,
 	"test/extended/testdata/forcepull-test.json": testExtendedTestdataForcepullTestJson,
 	"test/extended/testdata/gssapi/config/kubeconfig": testExtendedTestdataGssapiConfigKubeconfig,
@@ -19308,6 +19363,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"readiness-test.yaml": &bintree{testExtendedTestdataDeploymentsReadinessTestYaml, map[string]*bintree{}},
 					"tag-images-deployment.yaml": &bintree{testExtendedTestdataDeploymentsTagImagesDeploymentYaml, map[string]*bintree{}},
 					"test-deployment-broken.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentBrokenYaml, map[string]*bintree{}},
+					"test-deployment-hook.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentHookYaml, map[string]*bintree{}},
 					"test-deployment-test.yaml": &bintree{testExtendedTestdataDeploymentsTestDeploymentTestYaml, map[string]*bintree{}},
 				}},
 				"forcepull-test.json": &bintree{testExtendedTestdataForcepullTestJson, map[string]*bintree{}},
