@@ -2,6 +2,8 @@ package client
 
 import (
 	userapi "github.com/openshift/origin/pkg/user/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // UserIdentityMappingsInterface has methods to work with UserIdentityMapping resources in a namespace
@@ -11,7 +13,7 @@ type UserIdentityMappingsInterface interface {
 
 // UserIdentityMappingInterface exposes methods on UserIdentityMapping resources.
 type UserIdentityMappingInterface interface {
-	Get(string) (*userapi.UserIdentityMapping, error)
+	Get(string, metav1.GetOptions) (*userapi.UserIdentityMapping, error)
 	Create(*userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
 	Update(*userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
 	Delete(string) error
@@ -30,9 +32,9 @@ func newUserIdentityMappings(c *Client) *userIdentityMappings {
 }
 
 // Get returns information about a particular mapping or an error
-func (c *userIdentityMappings) Get(name string) (result *userapi.UserIdentityMapping, err error) {
+func (c *userIdentityMappings) Get(name string, options metav1.GetOptions) (result *userapi.UserIdentityMapping, err error) {
 	result = &userapi.UserIdentityMapping{}
-	err = c.r.Get().Resource("userIdentityMappings").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("userIdentityMappings").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

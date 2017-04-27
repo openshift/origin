@@ -74,10 +74,13 @@ var _ = g.Describe("[builds] forcePull should affect pulling builder images", fu
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
+		g.By("waiting for openshift/ruby:latest ImageStreamTag")
+		err := exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
+		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// grant access to the custom build strategy
 		g.By("granting system:build-strategy-custom")
-		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+		err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		defer func() {

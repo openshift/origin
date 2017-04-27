@@ -20,32 +20,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/testapi"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	"k8s.io/kubernetes/pkg/genericapiserver"
-	etcdstorage "k8s.io/kubernetes/pkg/storage/etcd"
-	"k8s.io/kubernetes/pkg/storage/etcd/etcdtest"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/integration/framework"
 )
 
 func TestIgnoreClusterName(t *testing.T) {
 	config := framework.NewMasterConfig()
-	prefix := config.StorageFactory.(*genericapiserver.DefaultStorageFactory).StorageConfig.Prefix
 	_, s := framework.RunAMaster(config)
 	defer s.Close()
 
-	client := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &registered.GroupOrDie(api.GroupName).GroupVersion}})
-	etcdClient := framework.NewEtcdClient()
-	etcdStorage := etcdstorage.NewEtcdStorage(etcdClient, testapi.Default.Codec(),
-		prefix+"/namespaces/", false, etcdtest.DeserializationCacheSize)
-	ctx := context.TODO()
-
-	ns := api.Namespace{
-		ObjectMeta: api.ObjectMeta{
+	client := clientset.NewForConfigOrDie(&restclient.Config{Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion}})
+	ns := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:        "test-namespace",
 			ClusterName: "cluster-name-to-ignore",
 		},
@@ -55,20 +46,8 @@ func TestIgnoreClusterName(t *testing.T) {
 	assert.Equal(t, ns.Name, nsNew.Name)
 	assert.Empty(t, nsNew.ClusterName)
 
-	nsEtcd := api.Namespace{}
-	err = etcdStorage.Get(ctx, ns.Name, &nsEtcd, false)
-	assert.Nil(t, err)
-	assert.Equal(t, ns.Name, nsEtcd.Name)
-	assert.Empty(t, nsEtcd.ClusterName)
-
 	nsNew, err = client.Core().Namespaces().Update(&ns)
 	assert.Nil(t, err)
 	assert.Equal(t, ns.Name, nsNew.Name)
 	assert.Empty(t, nsNew.ClusterName)
-
-	nsEtcd = api.Namespace{}
-	err = etcdStorage.Get(ctx, ns.Name, &nsEtcd, false)
-	assert.Nil(t, err)
-	assert.Equal(t, ns.Name, nsEtcd.Name)
-	assert.Empty(t, nsEtcd.ClusterName)
 }

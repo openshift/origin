@@ -32,7 +32,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 
 		g.JustBeforeEach(func() {
 			g.By("Waiting for builder service account")
-			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -57,12 +57,12 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the app deployment to be complete")
-				err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, oc)
+				err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), c.deploymentConfigName, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				if len(c.dbDeploymentConfigName) > 0 {
 					g.By("expecting the db deployment to be complete")
-					err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), c.dbDeploymentConfigName, oc)
+					err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), c.dbDeploymentConfigName, oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("expecting the db service is available")

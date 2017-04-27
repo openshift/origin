@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 func EnvInt(key string, defaultValue int32, minValue int32) int32 {

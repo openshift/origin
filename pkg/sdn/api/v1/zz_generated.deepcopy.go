@@ -5,9 +5,9 @@
 package v1
 
 import (
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	reflect "reflect"
 )
 
@@ -37,14 +37,12 @@ func DeepCopy_v1_ClusterNetwork(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*ClusterNetwork)
 		out := out.(*ClusterNetwork)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.Network = in.Network
-		out.HostSubnetLength = in.HostSubnetLength
-		out.ServiceNetwork = in.ServiceNetwork
-		out.PluginName = in.PluginName
 		return nil
 	}
 }
@@ -53,8 +51,7 @@ func DeepCopy_v1_ClusterNetworkList(in interface{}, out interface{}, c *conversi
 	{
 		in := in.(*ClusterNetworkList)
 		out := out.(*ClusterNetworkList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]ClusterNetwork, len(*in))
@@ -63,8 +60,6 @@ func DeepCopy_v1_ClusterNetworkList(in interface{}, out interface{}, c *conversi
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -74,9 +69,11 @@ func DeepCopy_v1_EgressNetworkPolicy(in interface{}, out interface{}, c *convers
 	{
 		in := in.(*EgressNetworkPolicy)
 		out := out.(*EgressNetworkPolicy)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
 		if err := DeepCopy_v1_EgressNetworkPolicySpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
@@ -89,8 +86,7 @@ func DeepCopy_v1_EgressNetworkPolicyList(in interface{}, out interface{}, c *con
 	{
 		in := in.(*EgressNetworkPolicyList)
 		out := out.(*EgressNetworkPolicyList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]EgressNetworkPolicy, len(*in))
@@ -99,8 +95,6 @@ func DeepCopy_v1_EgressNetworkPolicyList(in interface{}, out interface{}, c *con
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -110,8 +104,7 @@ func DeepCopy_v1_EgressNetworkPolicyPeer(in interface{}, out interface{}, c *con
 	{
 		in := in.(*EgressNetworkPolicyPeer)
 		out := out.(*EgressNetworkPolicyPeer)
-		out.CIDRSelector = in.CIDRSelector
-		out.DNSName = in.DNSName
+		*out = *in
 		return nil
 	}
 }
@@ -120,8 +113,7 @@ func DeepCopy_v1_EgressNetworkPolicyRule(in interface{}, out interface{}, c *con
 	{
 		in := in.(*EgressNetworkPolicyRule)
 		out := out.(*EgressNetworkPolicyRule)
-		out.Type = in.Type
-		out.To = in.To
+		*out = *in
 		return nil
 	}
 }
@@ -130,14 +122,11 @@ func DeepCopy_v1_EgressNetworkPolicySpec(in interface{}, out interface{}, c *con
 	{
 		in := in.(*EgressNetworkPolicySpec)
 		out := out.(*EgressNetworkPolicySpec)
+		*out = *in
 		if in.Egress != nil {
 			in, out := &in.Egress, &out.Egress
 			*out = make([]EgressNetworkPolicyRule, len(*in))
-			for i := range *in {
-				(*out)[i] = (*in)[i]
-			}
-		} else {
-			out.Egress = nil
+			copy(*out, *in)
 		}
 		return nil
 	}
@@ -147,13 +136,12 @@ func DeepCopy_v1_HostSubnet(in interface{}, out interface{}, c *conversion.Clone
 	{
 		in := in.(*HostSubnet)
 		out := out.(*HostSubnet)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.Host = in.Host
-		out.HostIP = in.HostIP
-		out.Subnet = in.Subnet
 		return nil
 	}
 }
@@ -162,8 +150,7 @@ func DeepCopy_v1_HostSubnetList(in interface{}, out interface{}, c *conversion.C
 	{
 		in := in.(*HostSubnetList)
 		out := out.(*HostSubnetList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]HostSubnet, len(*in))
@@ -172,8 +159,6 @@ func DeepCopy_v1_HostSubnetList(in interface{}, out interface{}, c *conversion.C
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}
@@ -183,12 +168,12 @@ func DeepCopy_v1_NetNamespace(in interface{}, out interface{}, c *conversion.Clo
 	{
 		in := in.(*NetNamespace)
 		out := out.(*NetNamespace)
-		out.TypeMeta = in.TypeMeta
-		if err := api_v1.DeepCopy_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, c); err != nil {
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		out.NetName = in.NetName
-		out.NetID = in.NetID
 		return nil
 	}
 }
@@ -197,8 +182,7 @@ func DeepCopy_v1_NetNamespaceList(in interface{}, out interface{}, c *conversion
 	{
 		in := in.(*NetNamespaceList)
 		out := out.(*NetNamespaceList)
-		out.TypeMeta = in.TypeMeta
-		out.ListMeta = in.ListMeta
+		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
 			*out = make([]NetNamespace, len(*in))
@@ -207,8 +191,6 @@ func DeepCopy_v1_NetNamespaceList(in interface{}, out interface{}, c *conversion
 					return err
 				}
 			}
-		} else {
-			out.Items = nil
 		}
 		return nil
 	}

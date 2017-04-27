@@ -10,12 +10,13 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
-	ktypes "k8s.io/kubernetes/pkg/types"
-	utilwait "k8s.io/kubernetes/pkg/util/wait"
 )
 
 type firewallItem struct {
@@ -29,7 +30,7 @@ type proxyFirewallItem struct {
 }
 
 type OsdnProxy struct {
-	kClient              *kclientset.Clientset
+	kClient              kclientset.Interface
 	osClient             *osclient.Client
 	networkInfo          *NetworkInfo
 	egressDNS            *EgressDNS
@@ -37,14 +38,14 @@ type OsdnProxy struct {
 
 	lock         sync.Mutex
 	firewall     map[string]*proxyFirewallItem
-	allEndpoints []kapi.Endpoints
+	allEndpoints []*kapi.Endpoints
 
 	idLock sync.Mutex
 	ids    map[string]uint32
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient *kclientset.Clientset) (*OsdnProxy, error) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (*OsdnProxy, error) {
 	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
@@ -68,7 +69,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error 
 	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
@@ -151,7 +152,12 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 	dnsFound := false
 	for _, rule := range policy.Spec.Egress {
 		if len(rule.To.CIDRSelector) > 0 {
-			_, cidr, err := net.ParseCIDR(rule.To.CIDRSelector)
+			selector := rule.To.CIDRSelector
+			if selector == "0.0.0.0/32" {
+				// ovscontroller.go already logs a warning about this
+				selector = "0.0.0.0/0"
+			}
+			_, cidr, err := net.ParseCIDR(selector)
 			if err != nil {
 				// should have been caught by validation
 				glog.Errorf("illegal CIDR value %q in EgressNetworkPolicy rule for policy: %v", rule.To.CIDRSelector, policy.UID)
@@ -225,7 +231,7 @@ func (proxy *OsdnProxy) firewallBlocksIP(namespace string, ip net.IP) bool {
 	return false
 }
 
-func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []kapi.Endpoints) {
+func (proxy *OsdnProxy) OnEndpointsUpdate(allEndpoints []*kapi.Endpoints) {
 	proxy.lock.Lock()
 	defer proxy.lock.Unlock()
 	proxy.allEndpoints = allEndpoints
@@ -238,7 +244,7 @@ func (proxy *OsdnProxy) updateEndpoints() {
 		return
 	}
 
-	filteredEndpoints := make([]kapi.Endpoints, 0, len(proxy.allEndpoints))
+	filteredEndpoints := make([]*kapi.Endpoints, 0, len(proxy.allEndpoints))
 
 EndpointLoop:
 	for _, ep := range proxy.allEndpoints {
@@ -261,7 +267,7 @@ EndpointLoop:
 }
 
 func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
-	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Could not get EgressNetworkPolicies: %v", err)
 		return
@@ -275,7 +281,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 		policy, ok := getPolicy(policyUpdates.UID, policies)
 		if !ok {
-			policies, err = proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(kapi.ListOptions{})
+			policies, err = proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 			if err != nil {
 				glog.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdates.UID, err)
 				continue

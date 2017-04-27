@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
 )

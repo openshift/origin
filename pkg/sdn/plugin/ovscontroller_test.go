@@ -9,8 +9,8 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiunversioned "k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 func setup(t *testing.T) (ovs.Interface, *ovsController, []string) {
@@ -100,10 +100,10 @@ func TestOVSHostSubnet(t *testing.T) {
 	ovsif, oc, origFlows := setup(t)
 
 	hs := osapi.HostSubnet{
-		TypeMeta: kapiunversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind: "HostSubnet",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "node2",
 		},
 		Host:   "node2",
@@ -156,10 +156,10 @@ func TestOVSService(t *testing.T) {
 	ovsif, oc, origFlows := setup(t)
 
 	svc := kapi.Service{
-		TypeMeta: kapiunversioned.TypeMeta{
+		TypeMeta: metav1.TypeMeta{
 			Kind: "Service",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "service",
 		},
 		Spec: kapi.ServiceSpec{
@@ -416,10 +416,10 @@ func TestOVSMulticast(t *testing.T) {
 }
 
 var enp1 = osapi.EgressNetworkPolicy{
-	TypeMeta: kapiunversioned.TypeMeta{
+	TypeMeta: metav1.TypeMeta{
 		Kind: "EgressNetworkPolicy",
 	},
-	ObjectMeta: kapi.ObjectMeta{
+	ObjectMeta: metav1.ObjectMeta{
 		Name: "enp1",
 	},
 	Spec: osapi.EgressNetworkPolicySpec{
@@ -447,10 +447,10 @@ var enp1 = osapi.EgressNetworkPolicy{
 }
 
 var enp2 = osapi.EgressNetworkPolicy{
-	TypeMeta: kapiunversioned.TypeMeta{
+	TypeMeta: metav1.TypeMeta{
 		Kind: "EgressNetworkPolicy",
 	},
-	ObjectMeta: kapi.ObjectMeta{
+	ObjectMeta: metav1.ObjectMeta{
 		Name: "enp2",
 	},
 	Spec: osapi.EgressNetworkPolicySpec{
@@ -470,7 +470,8 @@ var enp2 = osapi.EgressNetworkPolicy{
 			{
 				Type: osapi.EgressNetworkPolicyRuleDeny,
 				To: osapi.EgressNetworkPolicyPeer{
-					CIDRSelector: "0.0.0.0/0",
+					// "/32" is wrong but accepted for backward-compatibility
+					CIDRSelector: "0.0.0.0/32",
 				},
 			},
 		},
@@ -478,10 +479,10 @@ var enp2 = osapi.EgressNetworkPolicy{
 }
 
 var enpDenyAll = osapi.EgressNetworkPolicy{
-	TypeMeta: kapiunversioned.TypeMeta{
+	TypeMeta: metav1.TypeMeta{
 		Kind: "EgressNetworkPolicy",
 	},
-	ObjectMeta: kapi.ObjectMeta{
+	ObjectMeta: metav1.ObjectMeta{
 		Name: "enpDenyAll",
 	},
 	Spec: osapi.EgressNetworkPolicySpec{
@@ -512,7 +513,7 @@ func assertENPFlowAdditions(origFlows, newFlows []string, additions ...enpFlowAd
 				fmt.Sprintf("reg0=%d", addition.vnid),
 				fmt.Sprintf("priority=%d", len(addition.policy.Spec.Egress)-i),
 			}
-			if rule.To.CIDRSelector == "0.0.0.0/0" {
+			if rule.To.CIDRSelector == "0.0.0.0/0" || rule.To.CIDRSelector == "0.0.0.0/32" {
 				change.noMatch = []string{"nw_dst"}
 			} else {
 				change.match = append(change.match, fmt.Sprintf("nw_dst=%s", rule.To.CIDRSelector))

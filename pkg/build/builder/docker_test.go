@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/fsouza/go-dockerclient"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -294,7 +295,7 @@ func TestDockerfilePath(t *testing.T) {
 
 func TestEmptySource(t *testing.T) {
 	build := &api.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "default",
 		},
@@ -348,7 +349,7 @@ USER 1001`
 	}
 
 	build := &api.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
 			Namespace: "default",
 		},

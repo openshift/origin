@@ -6,7 +6,8 @@ import (
 
 	context "github.com/docker/distribution/context"
 
-	"k8s.io/kubernetes/pkg/client/restclient"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/client"
 )
@@ -56,7 +57,7 @@ func (t *tokenHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if _, err := osClient.Users().Get("~"); err != nil {
+	if _, err := osClient.Users().Get("~", metav1.GetOptions{}); err != nil {
 		context.GetRequestLogger(ctx).Debugf("invalid token: %v", err)
 		t.writeUnauthorized(w, req)
 		return

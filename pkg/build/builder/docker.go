@@ -13,8 +13,8 @@ import (
 	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
@@ -139,10 +139,10 @@ func (d *DockerBuilder) Build() error {
 				dockercfg.PullAuthType,
 			)
 			glog.V(0).Infof("\nPulling image %s ...", imageName)
-			startTime := unversioned.Now()
+			startTime := metav1.Now()
 			err = pullImage(d.dockerClient, imageName, pullAuthConfig)
 
-			timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullBaseImage, startTime, unversioned.Now())
+			timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullBaseImage, startTime, metav1.Now())
 
 			if err != nil {
 				d.build.Status.Phase = api.BuildPhaseFailed
@@ -155,10 +155,10 @@ func (d *DockerBuilder) Build() error {
 		}
 	}
 
-	startTime := unversioned.Now()
+	startTime := metav1.Now()
 	err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets)
 
-	timing.RecordNewStep(ctx, api.StageBuild, api.StepDockerBuild, startTime, unversioned.Now())
+	timing.RecordNewStep(ctx, api.StageBuild, api.StepDockerBuild, startTime, metav1.Now())
 
 	if err != nil {
 		d.build.Status.Phase = api.BuildPhaseFailed
@@ -169,10 +169,10 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-	startTime = unversioned.Now()
+	startTime = metav1.Now()
 	err = execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
 
-	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, unversioned.Now())
+	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, metav1.Now())
 
 	if err != nil {
 		d.build.Status.Phase = api.BuildPhaseFailed
@@ -202,10 +202,10 @@ func (d *DockerBuilder) Build() error {
 			glog.V(4).Infof("Authenticating Docker push with user %q", pushAuthConfig.Username)
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		startTime = unversioned.Now()
+		startTime = metav1.Now()
 		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
 
-		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushDockerImage, startTime, unversioned.Now())
+		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushDockerImage, startTime, metav1.Now())
 
 		if err != nil {
 			d.build.Status.Phase = api.BuildPhaseFailed

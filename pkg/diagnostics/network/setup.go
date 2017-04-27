@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
@@ -20,20 +22,20 @@ import (
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {
-	d.nsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
-	d.nsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName1 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
+	d.nsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
 
 	nsList := []string{d.nsName1, d.nsName2}
 	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
-		d.globalnsName1 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		d.globalnsName1 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName1)
-		d.globalnsName2 = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
+		d.globalnsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName2)
 	}
 
 	for _, name := range nsList {
 		// Create a new namespace for network diagnostics
-		ns := &kapi.Namespace{ObjectMeta: kapi.ObjectMeta{Name: name}}
+		ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
 		if _, err := d.KubeClient.Core().Namespaces().Create(ns); err != nil {
 			return fmt.Errorf("Creating namespace %q failed: %v", name, err)
 		}
@@ -77,7 +79,7 @@ func (d *NetworkDiagnostic) Cleanup() {
 }
 
 func (d *NetworkDiagnostic) getPodList(nsName, prefix string) (*kapi.PodList, error) {
-	podList, err := d.KubeClient.Core().Pods(nsName).List(kapi.ListOptions{})
+	podList, err := d.KubeClient.Core().Pods(nsName).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +123,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			// Create 2 pods and a service in global and non-global network diagnostic namespaces
 			var testPodName string
 			for i := 0; i < 2; i++ {
-				testPodName = kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
+				testPodName = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
 				if _, err := d.KubeClient.Core().Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
 					errList = append(errList, fmt.Errorf("Creating network diagnostic test pod '%s/%s' on node %q failed: %v", nsName, testPodName, node.Name, err))
@@ -130,7 +132,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			}
 
 			// Create network diags test service on the given node for the given namespace
-			testServiceName := kapi.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
+			testServiceName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
 			if _, err := d.KubeClient.Core().Services(nsName).Create(GetTestService(testServiceName, testPodName, node.Name)); err != nil {
 				errList = append(errList, fmt.Errorf("Creating network diagnostic test service '%s/%s' on node %q failed: %v", nsName, testServiceName, node.Name, err))
 				continue
@@ -195,7 +197,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	var netns *sdnapi.NetNamespace
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		netns, err = d.OSClient.NetNamespaces().Get(nsName)
+		netns, err = d.OSClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			// NetNamespace not created yet
 			return false, nil
@@ -215,7 +217,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	}
 
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName)
+		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

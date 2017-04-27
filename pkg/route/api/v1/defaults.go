@@ -1,6 +1,6 @@
 package v1
 
-import "k8s.io/kubernetes/pkg/runtime"
+import "k8s.io/apimachinery/pkg/runtime"
 
 // If adding or changing route defaults, updates may be required to
 // pkg/router/controller/controller.go to ensure the routes generated from

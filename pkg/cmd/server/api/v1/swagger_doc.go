@@ -169,8 +169,10 @@ func (DenyAllPasswordIdentityProvider) SwaggerDoc() map[string]string {
 }
 
 var map_DockerConfig = map[string]string{
-	"":                "DockerConfig holds Docker related configuration options.",
-	"execHandlerName": "ExecHandlerName is the name of the handler to use for executing commands in Docker containers.",
+	"":                        "DockerConfig holds Docker related configuration options.",
+	"execHandlerName":         "ExecHandlerName is the name of the handler to use for executing commands in Docker containers.",
+	"dockerShimSocket":        "DockerShimSocket is the location of the dockershim socket the kubelet uses.",
+	"dockerShimRootDirectory": "DockershimRootDirectory is the dockershim root directory.",
 }
 
 func (DockerConfig) SwaggerDoc() map[string]string {

@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -79,7 +80,7 @@ func TestByPrioritiesMixedSCCs(t *testing.T) {
 func testSCC(name string, priority int) *kapi.SecurityContextConstraints {
 	newPriority := int32(priority)
 	return &kapi.SecurityContextConstraints{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Priority: &newPriority,

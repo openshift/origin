@@ -12,7 +12,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -20,7 +21,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/cmd/server/kubernetes"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
@@ -345,7 +346,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 	}
 
-	_, kubeClientConfig, err := configapi.GetKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
+	_, kubeClientConfig, err := configapi.GetInternalKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
 	if err != nil {
 		return err
 	}
@@ -372,7 +373,7 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.RunDNS()
 	}
 
-	config.RunServiceStores(components.Enabled(ComponentProxy), components.Enabled(ComponentDNS))
+	config.InternalKubeInformers.Start(wait.NeverStop)
 
 	return nil
 }

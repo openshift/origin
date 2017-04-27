@@ -21,15 +21,16 @@ import (
 	"reflect"
 
 	"github.com/golang/glog"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/watch"
 )
 
 // ErrMatchFunc can be used to filter errors that may not be true failures.
@@ -40,13 +41,27 @@ type Result struct {
 	err     error
 	visitor Visitor
 
-	sources           []Visitor
-	singleItemImplied bool
+	sources            []Visitor
+	singleItemImplied  bool
+	targetsSingleItems bool
 
 	ignoreErrors []utilerrors.Matcher
 
 	// populated by a call to Infos
 	info []*Info
+}
+
+// withError allows a fluent style for internal result code.
+func (r *Result) withError(err error) *Result {
+	r.err = err
+	return r
+}
+
+// TargetsSingleItems returns true if any of the builder arguments pointed
+// to non-list calls (if the user explicitly asked for any object by name).
+// This includes directories, streams, URLs, and resource name tuples.
+func (r *Result) TargetsSingleItems() bool {
+	return r.targetsSingleItems
 }
 
 // IgnoreErrors will filter errors that occur when by visiting the result
@@ -150,7 +165,7 @@ func (r *Result) Object() (runtime.Object, error) {
 		version = versions.List()[0]
 	}
 	return &api.List{
-		ListMeta: unversioned.ListMeta{
+		ListMeta: metav1.ListMeta{
 			ResourceVersion: version,
 		},
 		Items: objects,
@@ -212,7 +227,7 @@ func (r *Result) Watch(resourceVersion string) (watch.Interface, error) {
 // the objects as children, or if only a single Object is present, as that object. The provided
 // version will be preferred as the conversion target, but the Object's mapping version will be
 // used if that version is not present.
-func AsVersionedObject(infos []*Info, forceList bool, version unversioned.GroupVersion, encoder runtime.Encoder) (runtime.Object, error) {
+func AsVersionedObject(infos []*Info, forceList bool, version schema.GroupVersion, encoder runtime.Encoder) (runtime.Object, error) {
 	objects, err := AsVersionedObjects(infos, version, encoder)
 	if err != nil {
 		return nil, err
@@ -223,15 +238,19 @@ func AsVersionedObject(infos []*Info, forceList bool, version unversioned.GroupV
 		object = objects[0]
 	} else {
 		object = &api.List{Items: objects}
-		converted, err := TryConvert(api.Scheme, object, version, registered.GroupOrDie(api.GroupName).GroupVersion)
+		targetVersions := []schema.GroupVersion{}
+		if !version.Empty() {
+			targetVersions = append(targetVersions, version)
+		}
+		targetVersions = append(targetVersions, api.Registry.GroupOrDie(api.GroupName).GroupVersion)
+
+		converted, err := TryConvert(api.Scheme, object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
 		object = converted
 	}
 
-	// validSpecifiedVersion resolves to true if the version passed to this function matches the
-	// version assigned to the converted object
 	actualVersion := object.GetObjectKind().GroupVersionKind()
 	if actualVersion.Version != version.Version {
 		defaultVersionInfo := ""
@@ -240,14 +259,13 @@ func AsVersionedObject(infos []*Info, forceList bool, version unversioned.GroupV
 		}
 		glog.V(1).Infof("info: the output version specified is invalid. %s\n", defaultVersionInfo)
 	}
-
 	return object, nil
 }
 
 // AsVersionedObjects converts a list of infos into versioned objects. The provided
 // version will be preferred as the conversion target, but the Object's mapping version will be
 // used if that version is not present.
-func AsVersionedObjects(infos []*Info, version unversioned.GroupVersion, encoder runtime.Encoder) ([]runtime.Object, error) {
+func AsVersionedObjects(infos []*Info, version schema.GroupVersion, encoder runtime.Encoder) ([]runtime.Object, error) {
 	objects := []runtime.Object{}
 	for _, info := range infos {
 		if info.Object == nil {
@@ -261,6 +279,7 @@ func AsVersionedObjects(infos []*Info, version unversioned.GroupVersion, encoder
 			continue
 		}
 
+		targetVersions := []schema.GroupVersion{}
 		// objects that are not part of api.Scheme must be converted to JSON
 		// TODO: convert to map[string]interface{}, attach to runtime.Unknown?
 		if !version.Empty() {
@@ -274,9 +293,11 @@ func AsVersionedObjects(infos []*Info, version unversioned.GroupVersion, encoder
 				objects = append(objects, &runtime.Unknown{Raw: data})
 				continue
 			}
+			targetVersions = append(targetVersions, version)
 		}
+		targetVersions = append(targetVersions, info.Mapping.GroupVersionKind.GroupVersion())
 
-		converted, err := TryConvert(info.Mapping.ObjectConvertor, info.Object, version, info.Mapping.GroupVersionKind.GroupVersion())
+		converted, err := TryConvert(info.Mapping.ObjectConvertor, info.Object, targetVersions...)
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +308,7 @@ func AsVersionedObjects(infos []*Info, version unversioned.GroupVersion, encoder
 
 // TryConvert attempts to convert the given object to the provided versions in order. This function assumes
 // the object is in internal version.
-func TryConvert(converter runtime.ObjectConvertor, object runtime.Object, versions ...unversioned.GroupVersion) (runtime.Object, error) {
+func TryConvert(converter runtime.ObjectConvertor, object runtime.Object, versions ...schema.GroupVersion) (runtime.Object, error) {
 	var last error
 	for _, version := range versions {
 		if version.Empty() {

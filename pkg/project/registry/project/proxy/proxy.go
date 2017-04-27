@@ -3,16 +3,18 @@ package proxy
 import (
 	"fmt"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/meta"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/watch"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -65,8 +67,9 @@ func (*REST) NewList() runtime.Object {
 var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
-func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object, error) {
-	user, ok := kapi.UserFrom(ctx)
+
+func (s *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (runtime.Object, error) {
+	user, ok := apirequest.UserFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewForbidden(projectapi.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
@@ -74,7 +77,7 @@ func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(oapi.ListOptionsToSelectors(options))
+	m := nsregistry.MatchNamespace(oapi.InternalListOptionsToSelectors(options))
 	list, err := filterList(namespaceList, m, nil)
 	if err != nil {
 		return nil, err
@@ -82,11 +85,11 @@ func (s *REST) List(ctx kapi.Context, options *kapi.ListOptions) (runtime.Object
 	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
 }
 
-func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("Context is nil")
 	}
-	userInfo, exists := kapi.UserFrom(ctx)
+	userInfo, exists := apirequest.UserFrom(ctx)
 	if !exists {
 		return nil, fmt.Errorf("no user")
 	}
@@ -108,8 +111,12 @@ func (s *REST) Watch(ctx kapi.Context, options *kapi.ListOptions) (watch.Interfa
 var _ = rest.Getter(&REST{})
 
 // Get retrieves a Project by name
-func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
-	namespace, err := s.client.Get(name)
+func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	opts := metav1.GetOptions{}
+	if options != nil {
+		opts = *options
+	}
+	namespace, err := s.client.Get(name, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +126,12 @@ func (s *REST) Get(ctx kapi.Context, name string) (runtime.Object, error) {
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
 	project, ok := obj.(*api.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
-	kapi.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
+	rest.FillObjectMetaSystemFields(ctx, &project.ObjectMeta)
 	s.createStrategy.PrepareForCreate(ctx, obj)
 	if errs := s.createStrategy.Validate(ctx, obj); len(errs) > 0 {
 		return nil, kerrors.NewInvalid(projectapi.Kind("Project"), project.Name, errs)
@@ -138,8 +145,8 @@ func (s *REST) Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, err
 
 var _ = rest.Updater(&REST{})
 
-func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	oldObj, err := s.Get(ctx, name)
+func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	oldObj, err := s.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}
@@ -170,8 +177,8 @@ func (s *REST) Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectI
 var _ = rest.Deleter(&REST{})
 
 // Delete deletes a Project specified by its name
-func (s *REST) Delete(ctx kapi.Context, name string) (runtime.Object, error) {
-	return &unversioned.Status{Status: unversioned.StatusSuccess}, s.client.Delete(name, nil)
+func (s *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, error) {
+	return &metav1.Status{Status: metav1.StatusSuccess}, s.client.Delete(name, nil)
 }
 
 // decoratorFunc can mutate the provided object prior to being returned.

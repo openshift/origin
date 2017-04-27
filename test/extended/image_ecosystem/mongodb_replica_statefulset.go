@@ -9,7 +9,7 @@ import (
 
 	exutil "github.com/openshift/origin/test/extended/util"
 	dbutil "github.com/openshift/origin/test/extended/util/db"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mongodb replication (with statefulset)", func() {
@@ -99,7 +99,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 			podNames, err = exutil.WaitForPods(
 				oc.KubeClient().Core().Pods(oc.Namespace()),
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				func(pod kapi.Pod) bool { return pod.DeletionTimestamp != nil },
+				func(pod kapiv1.Pod) bool { return pod.DeletionTimestamp != nil },
 				0,
 				2*time.Minute,
 			)

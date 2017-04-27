@@ -6,9 +6,10 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/util/diff"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
@@ -35,7 +36,7 @@ func TestImageStreamList(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
+	builds, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -45,7 +46,7 @@ func TestImageStreamList(t *testing.T) {
 }
 
 func mockImageStream() *imageapi.ImageStream {
-	return &imageapi.ImageStream{ObjectMeta: kapi.ObjectMeta{Name: "test"}}
+	return &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
 }
 
 func TestImageStreamCreate(t *testing.T) {
@@ -79,7 +80,7 @@ func TestImageStreamCreate(t *testing.T) {
 		t.Errorf("Unexpected empty image Name %v", expected)
 	}
 
-	actual, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name)
+	actual, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestImageStreamCreate(t *testing.T) {
 		t.Errorf("unexpected object: %s", diff.ObjectDiff(expected, actual))
 	}
 
-	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(kapi.ListOptions{})
+	streams, err := clusterAdminClient.ImageStreams(testutil.Namespace()).List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}
@@ -125,10 +126,10 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// create a mapping to an image that doesn't exist
 	mapping := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: stream.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "newer",
 		Image: imageapi.Image{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "image1",
 			},
 			DockerImageReference: "some/other/name",
@@ -145,7 +146,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// create an image directly
 	image := &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{Name: "image2"},
+		ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 		DockerImageMetadata: imageapi.DockerImage{
 			Config: &imageapi.DockerConfig{
 				Env: []string{"A=B"},
@@ -166,7 +167,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// verify that image stream mappings cannot mutate / overwrite the image (images are immutable)
 	mapping = &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: stream.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "newest",
 		Image:      *image,
 	}
@@ -174,7 +175,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	if err := clusterAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	image, err = clusterAdminClient.Images().Get(image.Name)
+	image, err = clusterAdminClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -183,7 +184,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	}
 
 	// ensure the correct tags are set
-	updated, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name)
+	updated, err := clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -210,7 +211,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 	// verify that image stream mappings can use the same image for different tags
 	image.ResourceVersion = ""
 	mapping = &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{Name: stream.Name},
+		ObjectMeta: metav1.ObjectMeta{Name: stream.Name},
 		Tag:        "anothertag",
 		Image:      *image,
 	}
@@ -218,7 +219,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// ensure the correct tags are set
-	updated, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name)
+	updated, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -255,7 +256,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// try an update with an incorrect resource version
 	if _, err := clusterAdminClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion + "0"},
 		Tag: &imageapi.TagReference{
 			From: &kapi.ObjectReference{
 				Kind: "ImageStreamTag",
@@ -268,7 +269,7 @@ func TestImageStreamMappingCreate(t *testing.T) {
 
 	// update and create a new tag
 	fromTag, err = clusterAdminClient.ImageStreamTags(testutil.Namespace()).Update(&imageapi.ImageStreamTag{
-		ObjectMeta: kapi.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
+		ObjectMeta: metav1.ObjectMeta{Namespace: stream.Namespace, Name: stream.Name + ":brandnew", ResourceVersion: fromTag.ResourceVersion},
 		Tag: &imageapi.TagReference{
 			From: &kapi.ObjectReference{
 				Kind: "ImageStreamTag",
@@ -322,7 +323,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 	}
 
 	image := imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: imagetest.BaseImageWith1LayerDigest,
 		},
 		DockerImageMetadata: imageapi.DockerImage{
@@ -337,7 +338,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 
 	// create a mapping to an image that doesn't exist
 	mapping := &imageapi.ImageStreamMapping{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: stream.Name,
 		},
 		Tag:   "newer",
@@ -347,7 +348,7 @@ func TestImageStreamWithoutDockerImageConfig(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	img, err := clusterAdminClient.Images().Get(image.Name)
+	img, err := clusterAdminClient.Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -410,7 +411,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -421,7 +422,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 			},
 		},
 		&kapi.ReplicationController{
-			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
 			Spec: kapi.ReplicationControllerSpec{
 				Template: &kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
@@ -440,7 +441,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name); err != nil {
+	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {
@@ -448,7 +449,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -459,7 +460,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 			},
 		},
 		&kapi.ReplicationController{
-			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
 			Spec: kapi.ReplicationControllerSpec{
 				Template: &kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
@@ -480,7 +481,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset, os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -491,7 +492,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 			},
 		},
 		&kapi.ReplicationController{
-			ObjectMeta: kapi.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
+			ObjectMeta: metav1.ObjectMeta{Name: "rc-1", Namespace: testutil.Namespace()},
 			Spec: kapi.ReplicationControllerSpec{
 				Template: &kapi.PodTemplateSpec{
 					Spec: kapi.PodSpec{
@@ -510,7 +511,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get("test2"); err != nil {
+	if stream, err = clusterAdminClient.ImageStreams(testutil.Namespace()).Get("test2", metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if tag, ok := stream.Spec.Tags["test"]; !ok || tag.From == nil || tag.From.Name != "someimage:other" {

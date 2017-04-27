@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
@@ -13,8 +14,8 @@ type AppliedClusterResourceQuotasNamespacer interface {
 
 // AppliedClusterResourceQuotaInterface exposes methods on AppliedClusterResourceQuota resources.
 type AppliedClusterResourceQuotaInterface interface {
-	List(opts kapi.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error)
-	Get(name string) (*quotaapi.AppliedClusterResourceQuota, error)
+	List(opts metav1.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error)
+	Get(name string, options metav1.GetOptions) (*quotaapi.AppliedClusterResourceQuota, error)
 }
 
 // appliedClusterResourceQuotas implements AppliedClusterResourceQuotasNamespacer interface
@@ -32,15 +33,15 @@ func newAppliedClusterResourceQuotas(c *Client, namespace string) *appliedCluste
 }
 
 // List returns a list of appliedClusterResourceQuotas that match the label and field selectors.
-func (c *appliedClusterResourceQuotas) List(opts kapi.ListOptions) (result *quotaapi.AppliedClusterResourceQuotaList, err error) {
+func (c *appliedClusterResourceQuotas) List(opts metav1.ListOptions) (result *quotaapi.AppliedClusterResourceQuotaList, err error) {
 	result = &quotaapi.AppliedClusterResourceQuotaList{}
 	err = c.r.Get().Namespace(c.ns).Resource("appliedclusterresourcequotas").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 
 // Get returns information about a particular appliedClusterResourceQuota and error if one occurs.
-func (c *appliedClusterResourceQuotas) Get(name string) (result *quotaapi.AppliedClusterResourceQuota, err error) {
+func (c *appliedClusterResourceQuotas) Get(name string, options metav1.GetOptions) (result *quotaapi.AppliedClusterResourceQuota, err error) {
 	result = &quotaapi.AppliedClusterResourceQuota{}
-	err = c.r.Get().Namespace(c.ns).Resource("appliedclusterresourcequotas").Name(name).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("appliedclusterresourcequotas").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }

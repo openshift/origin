@@ -8,7 +8,7 @@ import (
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
@@ -115,7 +115,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	}
 
 	if o.allNamespaces {
-		o.namespace = kapi.NamespaceAll
+		o.namespace = metav1.NamespaceAll
 	} else {
 		namespace, _, err := f.DefaultNamespace()
 		if err != nil {

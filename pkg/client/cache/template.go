@@ -1,8 +1,9 @@
 package cache
 
 import (
+	"k8s.io/client-go/tools/cache"
+
 	templateapi "github.com/openshift/origin/pkg/template/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 )
 
 type StoreToTemplateLister interface {

@@ -14,11 +14,12 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	knet "k8s.io/apimachinery/pkg/util/net"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/restclient"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	knet "k8s.io/kubernetes/pkg/util/net"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -144,7 +145,7 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return kcmdutil.UsageError(cmd, "--registry-url must be specified when --all is true")
 		}
 	}
-	o.Namespace = kapi.NamespaceAll
+	o.Namespace = metav1.NamespaceAll
 	if cmd.Flags().Lookup("namespace").Changed {
 		var err error
 		o.Namespace, _, err = f.DefaultNamespace()
@@ -184,46 +185,46 @@ func (o PruneImagesOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune images command.
 func (o PruneImagesOptions) Run() error {
-	allImages, err := o.OSClient.Images().List(kapi.ListOptions{})
+	allImages, err := o.OSClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allStreams, err := o.OSClient.ImageStreams(o.Namespace).List(kapi.ListOptions{})
+	allStreams, err := o.OSClient.ImageStreams(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allPods, err := o.KClient.Core().Pods(o.Namespace).List(kapi.ListOptions{})
+	allPods, err := o.KClient.Core().Pods(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(kapi.ListOptions{})
+	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allBCs, err := o.OSClient.BuildConfigs(o.Namespace).List(kapi.ListOptions{})
+	allBCs, err := o.OSClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allBuilds, err := o.OSClient.Builds(o.Namespace).List(kapi.ListOptions{})
+	allBuilds, err := o.OSClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allDCs, err := o.OSClient.DeploymentConfigs(o.Namespace).List(kapi.ListOptions{})
+	allDCs, err := o.OSClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(kapi.ListOptions{})
+	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -255,7 +256,7 @@ func (o PruneImagesOptions) Run() error {
 		RegistryClient:     o.RegistryClient,
 		RegistryURL:        o.RegistryUrlOverride,
 	}
-	if o.Namespace != kapi.NamespaceAll {
+	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
 	}
 	pruner := prune.NewPruner(options)

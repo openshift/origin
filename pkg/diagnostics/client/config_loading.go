@@ -6,7 +6,7 @@ import (
 	"os"
 
 	flag "github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/types"

@@ -12,10 +12,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/util/cert"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/util/cert"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -229,7 +229,7 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 			CertFile: clientCertInfo.CertLocation.CertFile,
 			KeyFile:  clientCertInfo.CertLocation.KeyFile,
 
-			ContextNamespace: kapi.NamespaceDefault,
+			ContextNamespace: metav1.NamespaceDefault,
 
 			KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
 			Output:         o.Output,

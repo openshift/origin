@@ -2,8 +2,10 @@ package cluster
 
 import (
 	"errors"
-	"k8s.io/kubernetes/pkg/api"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api"
 )
 
 // Used as a stub for golang's net.LookupIP to avoid actual DNS lookups in tests.
@@ -151,7 +153,7 @@ func createNode(name string, ipAddresses []string) api.Node {
 	}
 
 	status := api.NodeStatus{Addresses: addresses}
-	node := api.Node{ObjectMeta: api.ObjectMeta{Name: name}, Status: status}
+	node := api.Node{ObjectMeta: metav1.ObjectMeta{Name: name}, Status: status}
 	return node
 }
 

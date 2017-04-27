@@ -18,7 +18,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/cmd/dockerregistry"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -132,7 +132,7 @@ middleware:
 	}
 
 	stream := imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testutil.Namespace(),
 			Name:      "test",
 		},
@@ -241,7 +241,7 @@ middleware:
 	}
 
 	// test auto provisioning
-	otherStream, err := adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	otherStream, err := adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo", metav1.GetOptions{})
 	t.Logf("otherStream=%#v, err=%v", otherStream, err)
 	if err == nil {
 		t.Fatalf("expected error getting otherrepo")
@@ -257,7 +257,7 @@ middleware:
 		t.Fatal(err)
 	}
 
-	otherStream, err = adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo")
+	otherStream, err = adminClient.ImageStreams(testutil.Namespace()).Get("otherrepo", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error getting otherrepo: %s", err)
 	}

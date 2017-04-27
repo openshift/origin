@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/kubernetes/pkg/admission"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -15,19 +16,20 @@ import (
 )
 
 func init() {
-	admission.RegisterPlugin("OriginPodNodeEnvironment", func(client clientset.Interface, config io.Reader) (admission.Interface, error) {
-		return NewPodNodeEnvironment(client)
+	admission.RegisterPlugin("OriginPodNodeEnvironment", func(config io.Reader) (admission.Interface, error) {
+		return NewPodNodeEnvironment()
 	})
 }
 
 // podNodeEnvironment is an implementation of admission.Interface.
 type podNodeEnvironment struct {
 	*admission.Handler
-	client clientset.Interface
+	client kclientset.Interface
 	cache  *cache.ProjectCache
 }
 
 var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
+var _ = kadmission.WantsInternalKubeClientSet(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
@@ -74,6 +76,10 @@ func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {
 	p.cache = c
 }
 
+func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
+	q.client = c
+}
+
 func (p *podNodeEnvironment) Validate() error {
 	if p.cache == nil {
 		return fmt.Errorf("project node environment plugin needs a project cache")
@@ -81,9 +87,8 @@ func (p *podNodeEnvironment) Validate() error {
 	return nil
 }
 
-func NewPodNodeEnvironment(client clientset.Interface) (admission.Interface, error) {
+func NewPodNodeEnvironment() (admission.Interface, error) {
 	return &podNodeEnvironment{
 		Handler: admission.NewHandler(admission.Create),
-		client:  client,
 	}, nil
 }

@@ -4,10 +4,10 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/conversion"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/conversion"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	newer "github.com/openshift/origin/pkg/image/api"
@@ -32,7 +32,7 @@ func Convert_api_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Sco
 		gvString = "/" + gvString
 	}
 
-	version, err := unversioned.ParseGroupVersion(gvString)
+	version, err := schema.ParseGroupVersion(gvString)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func Convert_v1_Image_To_api_Image(in *Image, out *newer.Image, s conversion.Sco
 	}
 	if len(in.DockerImageMetadata.Raw) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
-		obj, err := api.Scheme.New(unversioned.GroupVersionKind{Version: version, Kind: "DockerImage"})
+		obj, err := api.Scheme.New(schema.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}

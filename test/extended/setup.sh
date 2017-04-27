@@ -341,7 +341,14 @@ readonly EXCLUDED_TESTS=(
 	"should check if Kubernetes master services is included in cluster-info"
 
 	# this tests dns federation configuration via configmap, which we don't support yet
-	"DNS config map"
+	"DNS configMap"
+
+	# this tests the _kube_ downgrade. we don't support that.
+	"\[Feature:Downgrade\]"
+
+	# upstream flakes:
+	"Basic StatefulSet functionality \[StatefulSetBasic\] should provide basic identity"
+	"SchedulerPredicates \[Serial\] validates resource limits of pods that are allowed to run"
 )
 
 readonly SERIAL_TESTS=(

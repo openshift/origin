@@ -3,7 +3,7 @@ package cache
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/watch"
+	"k8s.io/apimachinery/pkg/watch"
 )
 
 type cacheable struct {

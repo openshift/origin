@@ -16,7 +16,7 @@ import (
 
 	"github.com/golang/glog"
 
-	knet "k8s.io/kubernetes/pkg/util/net"
+	knet "k8s.io/apimachinery/pkg/util/net"
 )
 
 const (

@@ -18,6 +18,7 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -143,7 +144,7 @@ func getLimitRangeList(ctx context.Context, limitClient kcoreclient.LimitRangesG
 
 	context.GetLogger(ctx).Debugf("listing limit ranges in namespace %s", namespace)
 
-	lrs, err := limitClient.LimitRanges(namespace).List(kapi.ListOptions{})
+	lrs, err := limitClient.LimitRanges(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("failed to list limitranges: %v", err)
 		return nil, err

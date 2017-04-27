@@ -15,8 +15,8 @@ import (
 
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/client/transport"
-	knet "k8s.io/kubernetes/pkg/util/net"
+	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/client-go/transport"
 
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"

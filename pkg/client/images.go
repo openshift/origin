@@ -1,6 +1,7 @@
 package client
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -13,8 +14,8 @@ type ImagesInterfacer interface {
 
 // ImageInterface exposes methods on Image resources.
 type ImageInterface interface {
-	List(opts kapi.ListOptions) (*imageapi.ImageList, error)
-	Get(name string) (*imageapi.Image, error)
+	List(opts metav1.ListOptions) (*imageapi.ImageList, error)
+	Get(name string, options metav1.GetOptions) (*imageapi.Image, error)
 	Create(image *imageapi.Image) (*imageapi.Image, error)
 	Update(image *imageapi.Image) (*imageapi.Image, error)
 	Delete(name string) error
@@ -33,7 +34,7 @@ func newImages(c *Client) ImageInterface {
 }
 
 // List returns a list of images that match the label and field selectors.
-func (c *images) List(opts kapi.ListOptions) (result *imageapi.ImageList, err error) {
+func (c *images) List(opts metav1.ListOptions) (result *imageapi.ImageList, err error) {
 	result = &imageapi.ImageList{}
 	err = c.r.Get().
 		Resource("images").
@@ -44,9 +45,9 @@ func (c *images) List(opts kapi.ListOptions) (result *imageapi.ImageList, err er
 }
 
 // Get returns information about a particular image and error if one occurs.
-func (c *images) Get(name string) (result *imageapi.Image, err error) {
+func (c *images) Get(name string, options metav1.GetOptions) (result *imageapi.Image, err error) {
 	result = &imageapi.Image{}
-	err = c.r.Get().Resource("images").Name(name).Do().Into(result)
+	err = c.r.Get().Resource("images").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
 	return
 }
 

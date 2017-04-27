@@ -3,17 +3,19 @@ package util
 import (
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kextapi "k8s.io/kubernetes/pkg/apis/extensions"
+	kextapi "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
+	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/strategicpatch"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	deployclient "github.com/openshift/origin/pkg/deploy/client/clientset_generated/internalclientset/typed/core/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/typed/deploy/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
@@ -90,7 +92,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+		_, err = s.dcGetter.DeploymentConfigs(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
 	case *kapi.ReplicationController:
 		if typedObj.Annotations == nil {
 			typedObj.Annotations = make(map[string]string)
@@ -109,7 +111,7 @@ func (s scaleUpdater) Update(annotator *ScaleAnnotater, obj runtime.Object, scal
 			return err
 		}
 
-		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, kapi.StrategicMergePatchType, patchBytes)
+		_, err = s.rcGetter.ReplicationControllers(s.namespace).Patch(typedObj.Name, types.StrategicMergePatchType, patchBytes)
 	}
 	return err
 }
@@ -124,7 +126,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 	switch {
 	case ref.Kind == "DeploymentConfig" && (ref.Group == deployapi.GroupName || ref.Group == deployapi.LegacyGroupName):
 		var dc *deployapi.DeploymentConfig
-		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name)
+		dc, err = c.dcs.DeploymentConfigs(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -134,7 +136,7 @@ func (c *ScaleAnnotater) GetObjectWithScale(namespace string, ref unidlingapi.Cr
 		obj = dc
 	case ref.Kind == "ReplicationController" && ref.Group == kapi.GroupName:
 		var rc *kapi.ReplicationController
-		rc, err = c.rcs.ReplicationControllers(namespace).Get(ref.Name)
+		rc, err = c.rcs.ReplicationControllers(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, nil, err
 		}

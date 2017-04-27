@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client"
@@ -62,7 +62,7 @@ func (t *testReadOnlyPolicyBinding) PolicyBindings(namespace string) client.Poli
 }
 
 // ReadOnlyPolicyBindingInterface exposes methods on PolicyBindings resources
-func (t *testReadOnlyPolicyBinding) List(options kapi.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (t *testReadOnlyPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -80,7 +80,7 @@ func (t *testReadOnlyPolicyBinding) List(options kapi.ListOptions) (*authorizati
 	return ret, nil
 }
 
-func (t *testReadOnlyPolicyBinding) Get(name string) (*authorizationapi.PolicyBinding, error) {
+func (t *testReadOnlyPolicyBinding) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	return t.binding, nil

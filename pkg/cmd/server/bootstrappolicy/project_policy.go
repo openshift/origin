@@ -1,8 +1,9 @@
 package bootstrappolicy
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -10,7 +11,7 @@ import (
 func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authorizationapi.RoleBinding {
 	return []authorizationapi.RoleBinding{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      ImagePullerRoleBindingName,
 				Namespace: namespace,
 			},
@@ -20,7 +21,7 @@ func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authoriza
 			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: serviceaccount.MakeNamespaceGroupName(namespace)}},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      ImageBuilderRoleBindingName,
 				Namespace: namespace,
 			},
@@ -30,7 +31,7 @@ func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authoriza
 			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.ServiceAccountKind, Name: BuilderServiceAccountName}},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      DeployerRoleBindingName,
 				Namespace: namespace,
 			},

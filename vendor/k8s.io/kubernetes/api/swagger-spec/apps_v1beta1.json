@@ -9,6 +9,1249 @@
   },
   "apis": [
    {
+    "path": "/apis/apps/v1beta1/namespaces/{namespace}/deployments",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.DeploymentList",
+      "method": "GET",
+      "summary": "list or watch objects of kind Deployment",
+      "nickname": "listNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.DeploymentList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "POST",
+      "summary": "create a Deployment",
+      "nickname": "createNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Deployment",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete collection of Deployment",
+      "nickname": "deletecollectionNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/watch/namespaces/{namespace}/deployments",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of Deployment",
+      "nickname": "watchNamespacedDeploymentList",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.Deployment",
+      "method": "GET",
+      "summary": "read the specified Deployment",
+      "nickname": "readNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "export",
+        "description": "Should this value be exported.  Export strips fields that a user can not specify.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "exact",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "PUT",
+      "summary": "replace the specified Deployment",
+      "nickname": "replaceNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Deployment",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "PATCH",
+      "summary": "partially update the specified Deployment",
+      "nickname": "patchNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     },
+     {
+      "type": "v1.Status",
+      "method": "DELETE",
+      "summary": "delete a Deployment",
+      "nickname": "deleteNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.DeleteOptions",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "gracePeriodSeconds",
+        "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "orphanDependents",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.Status"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/watch/namespaces/{namespace}/deployments/{name}",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1.WatchEvent",
+      "method": "GET",
+      "summary": "watch changes to an object of kind Deployment",
+      "nickname": "watchNamespacedDeployment",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/deployments",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.DeploymentList",
+      "method": "GET",
+      "summary": "list or watch objects of kind Deployment",
+      "nickname": "listDeploymentForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.DeploymentList"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "POST",
+      "summary": "create a Deployment",
+      "nickname": "createDeploymentForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Deployment",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/watch/deployments",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1.WatchEvent",
+      "method": "GET",
+      "summary": "watch individual changes to a list of Deployment",
+      "nickname": "watchDeploymentListForAllNamespaces",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "labelSelector",
+        "description": "A selector to restrict the list of returned objects by their labels. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "fieldSelector",
+        "description": "A selector to restrict the list of returned objects by their fields. Defaults to everything.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "boolean",
+        "paramType": "query",
+        "name": "watch",
+        "description": "Watch for changes to the described resources and return them as a stream of add, update, and remove notifications. Specify resourceVersion.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "resourceVersion",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "integer",
+        "paramType": "query",
+        "name": "timeoutSeconds",
+        "description": "Timeout for the list/watch call.",
+        "required": false,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1.WatchEvent"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf",
+       "application/json;stream=watch",
+       "application/vnd.kubernetes.protobuf;stream=watch"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}/rollback",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.DeploymentRollback",
+      "method": "POST",
+      "summary": "create rollback of a DeploymentRollback",
+      "nickname": "createNamespacedDeploymentRollbackRollback",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.DeploymentRollback",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the DeploymentRollback",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.DeploymentRollback"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}/scale",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.Scale",
+      "method": "GET",
+      "summary": "read scale of the specified Scale",
+      "nickname": "readNamespacedScaleScale",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Scale",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Scale"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Scale",
+      "method": "PUT",
+      "summary": "replace scale of the specified Scale",
+      "nickname": "replaceNamespacedScaleScale",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Scale",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Scale",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Scale"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Scale",
+      "method": "PATCH",
+      "summary": "partially update scale of the specified Scale",
+      "nickname": "patchNamespacedScaleScale",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Scale",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Scale"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     }
+    ]
+   },
+   {
+    "path": "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}/status",
+    "description": "API at /apis/apps/v1beta1",
+    "operations": [
+     {
+      "type": "v1beta1.Deployment",
+      "method": "GET",
+      "summary": "read status of the specified Deployment",
+      "nickname": "readNamespacedDeploymentStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "PUT",
+      "summary": "replace status of the specified Deployment",
+      "nickname": "replaceNamespacedDeploymentStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1beta1.Deployment",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "*/*"
+      ]
+     },
+     {
+      "type": "v1beta1.Deployment",
+      "method": "PATCH",
+      "summary": "partially update status of the specified Deployment",
+      "nickname": "patchNamespacedDeploymentStatus",
+      "parameters": [
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "pretty",
+        "description": "If 'true', then the output is pretty printed.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "v1.Patch",
+        "paramType": "body",
+        "name": "body",
+        "description": "",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "namespace",
+        "description": "object name and auth scope, such as for teams and projects",
+        "required": true,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "path",
+        "name": "name",
+        "description": "name of the Deployment",
+        "required": true,
+        "allowMultiple": false
+       }
+      ],
+      "responseMessages": [
+       {
+        "code": 200,
+        "message": "OK",
+        "responseModel": "v1beta1.Deployment"
+       }
+      ],
+      "produces": [
+       "application/json",
+       "application/yaml",
+       "application/vnd.kubernetes.protobuf"
+      ],
+      "consumes": [
+       "application/json-patch+json",
+       "application/merge-patch+json",
+       "application/strategic-merge-patch+json"
+      ]
+     }
+    ]
+   },
+   {
     "path": "/apis/apps/v1beta1/namespaces/{namespace}/statefulsets",
     "description": "API at /apis/apps/v1beta1",
     "operations": [
@@ -54,7 +1297,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -141,7 +1384,7 @@
       ]
      },
      {
-      "type": "unversioned.Status",
+      "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete collection of StatefulSet",
       "nickname": "deletecollectionNamespacedStatefulSet",
@@ -182,7 +1425,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -207,7 +1450,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "unversioned.Status"
+        "responseModel": "v1.Status"
        }
       ],
       "produces": [
@@ -226,7 +1469,7 @@
     "description": "API at /apis/apps/v1beta1",
     "operations": [
      {
-      "type": "versioned.Event",
+      "type": "v1.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of StatefulSet",
       "nickname": "watchNamespacedStatefulSetList",
@@ -267,7 +1510,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -292,7 +1535,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "versioned.Event"
+        "responseModel": "v1.WatchEvent"
        }
       ],
       "produces": [
@@ -338,7 +1581,7 @@
         "type": "boolean",
         "paramType": "query",
         "name": "exact",
-        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'",
+        "description": "Should the export be exact.  Exact export maintains cluster-specific fields like 'Namespace'.",
         "required": false,
         "allowMultiple": false
        },
@@ -445,7 +1688,7 @@
         "allowMultiple": false
        },
        {
-        "type": "unversioned.Patch",
+        "type": "v1.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -488,7 +1731,7 @@
       ]
      },
      {
-      "type": "unversioned.Status",
+      "type": "v1.Status",
       "method": "DELETE",
       "summary": "delete a StatefulSet",
       "nickname": "deleteNamespacedStatefulSet",
@@ -521,7 +1764,15 @@
         "type": "boolean",
         "paramType": "query",
         "name": "orphanDependents",
-        "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list.",
+        "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both.",
+        "required": false,
+        "allowMultiple": false
+       },
+       {
+        "type": "string",
+        "paramType": "query",
+        "name": "propagationPolicy",
+        "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy.",
         "required": false,
         "allowMultiple": false
        },
@@ -546,7 +1797,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "unversioned.Status"
+        "responseModel": "v1.Status"
        }
       ],
       "produces": [
@@ -565,7 +1816,7 @@
     "description": "API at /apis/apps/v1beta1",
     "operations": [
      {
-      "type": "versioned.Event",
+      "type": "v1.WatchEvent",
       "method": "GET",
       "summary": "watch changes to an object of kind StatefulSet",
       "nickname": "watchNamespacedStatefulSet",
@@ -606,7 +1857,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -639,7 +1890,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "versioned.Event"
+        "responseModel": "v1.WatchEvent"
        }
       ],
       "produces": [
@@ -701,7 +1952,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -778,7 +2029,7 @@
     "description": "API at /apis/apps/v1beta1",
     "operations": [
      {
-      "type": "versioned.Event",
+      "type": "v1.WatchEvent",
       "method": "GET",
       "summary": "watch individual changes to a list of StatefulSet",
       "nickname": "watchStatefulSetListForAllNamespaces",
@@ -819,7 +2070,7 @@
         "type": "string",
         "paramType": "query",
         "name": "resourceVersion",
-        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history.",
+        "description": "When specified with a watch call, shows changes that occur after that particular version of a resource. Defaults to changes from the beginning of history. When specified for list: - if unset, then the result is returned from remote storage based on quorum-read flag; - if it's 0, then we simply return what we currently have in cache, no guarantee; - if set to non zero, then the result is at least as fresh as given rv.",
         "required": false,
         "allowMultiple": false
        },
@@ -836,7 +2087,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "versioned.Event"
+        "responseModel": "v1.WatchEvent"
        }
       ],
       "produces": [
@@ -973,7 +2224,7 @@
         "allowMultiple": false
        },
        {
-        "type": "unversioned.Patch",
+        "type": "v1.Patch",
         "paramType": "body",
         "name": "body",
         "description": "",
@@ -1022,7 +2273,7 @@
     "description": "API at /apis/apps/v1beta1",
     "operations": [
      {
-      "type": "unversioned.APIResourceList",
+      "type": "v1.APIResourceList",
       "method": "GET",
       "summary": "get available resources",
       "nickname": "getAPIResources",
@@ -1042,9 +2293,9 @@
    }
   ],
   "models": {
-   "v1beta1.StatefulSetList": {
-    "id": "v1beta1.StatefulSetList",
-    "description": "StatefulSetList is a collection of StatefulSets.",
+   "v1beta1.DeploymentList": {
+    "id": "v1beta1.DeploymentList",
+    "description": "DeploymentList is a list of Deployments.",
     "required": [
      "items"
     ],
@@ -1058,18 +2309,20 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "unversioned.ListMeta"
+      "$ref": "v1.ListMeta",
+      "description": "Standard list metadata."
      },
      "items": {
       "type": "array",
       "items": {
-       "$ref": "v1beta1.StatefulSet"
-      }
+       "$ref": "v1beta1.Deployment"
+      },
+      "description": "Items is the list of Deployments."
      }
     }
    },
-   "unversioned.ListMeta": {
-    "id": "unversioned.ListMeta",
+   "v1.ListMeta": {
+    "id": "v1.ListMeta",
     "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
     "properties": {
      "selfLink": {
@@ -1082,9 +2335,9 @@
      }
     }
    },
-   "v1beta1.StatefulSet": {
-    "id": "v1beta1.StatefulSet",
-    "description": "StatefulSet represents a set of pods with consistent identities. Identities are defined as:\n - Network: A single stable DNS and hostname.\n - Storage: As many VolumeClaims as requested.\nThe StatefulSet guarantees that a given network identity will always map to the same storage identity.",
+   "v1beta1.Deployment": {
+    "id": "v1beta1.Deployment",
+    "description": "Deployment enables declarative updates for Pods and ReplicaSets.",
     "properties": {
      "kind": {
       "type": "string",
@@ -1095,15 +2348,16 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
      },
      "metadata": {
-      "$ref": "v1.ObjectMeta"
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object metadata."
      },
      "spec": {
-      "$ref": "v1beta1.StatefulSetSpec",
-      "description": "Spec defines the desired identities of pods in this set."
+      "$ref": "v1beta1.DeploymentSpec",
+      "description": "Specification of the desired behavior of the Deployment."
      },
      "status": {
-      "$ref": "v1beta1.StatefulSetStatus",
-      "description": "Status is the current status of Pods in this StatefulSet. This data may be out of date by some window of time."
+      "$ref": "v1beta1.DeploymentStatus",
+      "description": "Most recently observed status of the Deployment."
      }
     }
    },
@@ -1142,12 +2396,10 @@
      },
      "creationTimestamp": {
       "type": "string",
-      "format": "date-time",
       "description": "CreationTimestamp is a timestamp representing the server time when this object was created. It is not guaranteed to be set in happens-before order across separate operations. Clients may not set this value. It is represented in RFC3339 form and is in UTC.\n\nPopulated by the system. Read-only. Null for lists. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "deletionTimestamp": {
       "type": "string",
-      "format": "date-time",
       "description": "DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This field is set by the server when a graceful deletion is requested by the user, and is not directly settable by a client. The resource is expected to be deleted (no longer visible from resource lists, and not reachable by name) after the time in this field. Once set, this value may not be unset or be set further into the future, although it may be shortened or the resource may be deleted prior to this time. For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react by sending a graceful termination signal to the containers in the pod. After that 30 seconds, the Kubelet will send a hard termination signal (SIGKILL) to the container and after cleanup, remove the pod from the API. In the presence of network partitions, this object may still exist after this timestamp, until an administrator or automated process can determine the resource is fully terminated. If not set, graceful deletion of the object has not been requested.\n\nPopulated by the system when a graceful deletion is requested. Read-only. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata"
      },
      "deletionGracePeriodSeconds": {
@@ -1212,45 +2464,64 @@
      "controller": {
       "type": "boolean",
       "description": "If true, this reference points to the managing controller."
+     },
+     "blockOwnerDeletion": {
+      "type": "boolean",
+      "description": "If true, AND if the owner has the \"foregroundDeletion\" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. Defaults to false. To set this field, a user needs \"delete\" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned."
      }
     }
    },
-   "v1beta1.StatefulSetSpec": {
-    "id": "v1beta1.StatefulSetSpec",
-    "description": "A StatefulSetSpec is the specification of a StatefulSet.",
+   "v1beta1.DeploymentSpec": {
+    "id": "v1beta1.DeploymentSpec",
+    "description": "DeploymentSpec is the specification of the desired behavior of the Deployment.",
     "required": [
-     "template",
-     "serviceName"
+     "template"
     ],
     "properties": {
      "replicas": {
       "type": "integer",
       "format": "int32",
-      "description": "Replicas is the desired number of replicas of the given Template. These are replicas in the sense that they are instantiations of the same Template, but individual replicas also have a consistent identity. If unspecified, defaults to 1."
+      "description": "Number of desired pods. This is a pointer to distinguish between explicit zero and not specified. Defaults to 1."
      },
      "selector": {
-      "$ref": "unversioned.LabelSelector",
-      "description": "Selector is a label query over pods that should match the replica count. If empty, defaulted to labels on the pod template. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors"
+      "$ref": "v1.LabelSelector",
+      "description": "Label selector for pods. Existing ReplicaSets whose pods are selected by this will be the ones affected by this deployment."
      },
      "template": {
       "$ref": "v1.PodTemplateSpec",
-      "description": "Template is the object that describes the pod that will be created if insufficient replicas are detected. Each pod stamped out by the StatefulSet will fulfill this Template, but have a unique identity from the rest of the StatefulSet."
+      "description": "Template describes the pods that will be created."
      },
-     "volumeClaimTemplates": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.PersistentVolumeClaim"
-      },
-      "description": "VolumeClaimTemplates is a list of claims that pods are allowed to reference. The StatefulSet controller is responsible for mapping network identities to claims in a way that maintains the identity of a pod. Every claim in this list must have at least one matching (by name) volumeMount in one container in the template. A claim in this list takes precedence over any volumes in the template, with the same name."
+     "strategy": {
+      "$ref": "v1beta1.DeploymentStrategy",
+      "description": "The deployment strategy to use to replace existing pods with new ones."
      },
-     "serviceName": {
-      "type": "string",
-      "description": "ServiceName is the name of the service that governs this StatefulSet. This service must exist before the StatefulSet, and is responsible for the network identity of the set. Pods get DNS/hostnames that follow the pattern: pod-specific-string.serviceName.default.svc.cluster.local where \"pod-specific-string\" is managed by the StatefulSet controller."
+     "minReadySeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)"
+     },
+     "revisionHistoryLimit": {
+      "type": "integer",
+      "format": "int32",
+      "description": "The number of old ReplicaSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified. Defaults to 2."
+     },
+     "paused": {
+      "type": "boolean",
+      "description": "Indicates that the deployment is paused."
+     },
+     "rollbackTo": {
+      "$ref": "v1beta1.RollbackConfig",
+      "description": "The config this deployment is rolling back to. Will be cleared after rollback is done."
+     },
+     "progressDeadlineSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "The maximum time in seconds for a deployment to make progress before it is considered to be failed. The deployment controller will continue to process failed deployments and a condition with a ProgressDeadlineExceeded reason will be surfaced in the deployment status. Once autoRollback is implemented, the deployment controller will automatically rollback failed deployments. Note that progress will not be estimated during the time a deployment is paused. Defaults to 600s."
      }
     }
    },
-   "unversioned.LabelSelector": {
-    "id": "unversioned.LabelSelector",
+   "v1.LabelSelector": {
+    "id": "v1.LabelSelector",
     "description": "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
     "properties": {
      "matchLabels": {
@@ -1260,14 +2531,14 @@
      "matchExpressions": {
       "type": "array",
       "items": {
-       "$ref": "unversioned.LabelSelectorRequirement"
+       "$ref": "v1.LabelSelectorRequirement"
       },
       "description": "matchExpressions is a list of label selector requirements. The requirements are ANDed."
      }
     }
    },
-   "unversioned.LabelSelectorRequirement": {
-    "id": "unversioned.LabelSelectorRequirement",
+   "v1.LabelSelectorRequirement": {
+    "id": "v1.LabelSelectorRequirement",
     "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
     "required": [
      "key",
@@ -1319,6 +2590,13 @@
       },
       "description": "List of volumes that can be mounted by containers belonging to the pod. More info: http://kubernetes.io/docs/user-guide/volumes"
      },
+     "initContainers": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Container"
+      },
+      "description": "List of initialization containers belonging to the pod. Init containers are executed in order prior to containers being started. If any init container fails, the pod is considered to have failed and is handled according to its restartPolicy. The name for an init container or normal container must be unique among all containers. Init containers may not have Lifecycle actions, Readiness probes, or Liveness probes. The resourceRequirements of an init container are taken into account during scheduling by finding the highest request/limit for each resource type, and then using the max of of that value or the sum of the normal containers. Limits are applied to init containers in a similar fashion. Init containers cannot currently be added or removed. Cannot be updated. More info: http://kubernetes.io/docs/user-guide/containers"
+     },
      "containers": {
       "type": "array",
       "items": {
@@ -1342,7 +2620,7 @@
      },
      "dnsPolicy": {
       "type": "string",
-      "description": "Set DNS policy for containers within the pod. One of 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\"."
+      "description": "Set DNS policy for containers within the pod. One of 'ClusterFirstWithHostNet', 'ClusterFirst' or 'Default'. Defaults to \"ClusterFirst\". To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly to 'ClusterFirstWithHostNet'."
      },
      "nodeSelector": {
       "type": "object",
@@ -1355,6 +2633,10 @@
      "serviceAccount": {
       "type": "string",
       "description": "DeprecatedServiceAccount is a depreciated alias for ServiceAccountName. Deprecated: Use serviceAccountName instead."
+     },
+     "automountServiceAccountToken": {
+      "type": "boolean",
+      "description": "AutomountServiceAccountToken indicates whether a service account token should be automatically mounted."
      },
      "nodeName": {
       "type": "string",
@@ -1390,6 +2672,21 @@
      "subdomain": {
       "type": "string",
       "description": "If specified, the fully qualified Pod hostname will be \"\u003chostname\u003e.\u003csubdomain\u003e.\u003cpod namespace\u003e.svc.\u003ccluster domain\u003e\". If not specified, the pod will not have a domainname at all."
+     },
+     "affinity": {
+      "$ref": "v1.Affinity",
+      "description": "If specified, the pod's scheduling constraints"
+     },
+     "schedulerName": {
+      "type": "string",
+      "description": "If specified, the pod will be dispatched by specified scheduler. If not specified, the pod will be dispatched by default scheduler."
+     },
+     "tolerations": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Toleration"
+      },
+      "description": "If specified, the pod's tolerations."
      }
     }
    },
@@ -1495,6 +2792,18 @@
      "photonPersistentDisk": {
       "$ref": "v1.PhotonPersistentDiskVolumeSource",
       "description": "PhotonPersistentDisk represents a PhotonController persistent disk attached and mounted on kubelets host machine"
+     },
+     "projected": {
+      "$ref": "v1.ProjectedVolumeSource",
+      "description": "Items for all in one resources secrets, configmaps, and downward API"
+     },
+     "portworxVolume": {
+      "$ref": "v1.PortworxVolumeSource",
+      "description": "PortworxVolume represents a portworx volume attached and mounted on kubelets host machine"
+     },
+     "scaleIO": {
+      "$ref": "v1.ScaleIOVolumeSource",
+      "description": "ScaleIO represents a ScaleIO persistent volume attached and mounted on Kubernetes nodes."
      },
      "metadata": {
       "$ref": "v1.DeprecatedDownwardAPIVolumeSource",
@@ -1611,12 +2920,16 @@
       "items": {
        "$ref": "v1.KeyToPath"
       },
-      "description": "If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error. Paths must be relative and may not contain the '..' path or start with '..'."
+      "description": "If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
      },
      "defaultMode": {
       "type": "integer",
       "format": "int32",
       "description": "Optional: mode bits to use on created files by default. Must be a value between 0 and 0777. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the Secret or it's keys must be defined"
      }
     }
    },
@@ -1698,6 +3011,13 @@
      "readOnly": {
       "type": "boolean",
       "description": "ReadOnly here will force the ReadOnly setting in VolumeMounts. Defaults to false."
+     },
+     "portals": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "iSCSI target portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260)."
      }
     }
    },
@@ -2042,12 +3362,16 @@
       "items": {
        "$ref": "v1.KeyToPath"
       },
-      "description": "If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error. Paths must be relative and may not contain the '..' path or start with '..'."
+      "description": "If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
      },
      "defaultMode": {
       "type": "integer",
       "format": "int32",
       "description": "Optional: mode bits to use on created files by default. Must be a value between 0 and 0777. Defaults to 0644. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the ConfigMap or it's keys must be defined"
      }
     }
    },
@@ -2149,6 +3473,172 @@
      }
     }
    },
+   "v1.ProjectedVolumeSource": {
+    "id": "v1.ProjectedVolumeSource",
+    "description": "Represents a projected volume source",
+    "required": [
+     "sources"
+    ],
+    "properties": {
+     "sources": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.VolumeProjection"
+      },
+      "description": "list of volume projections"
+     },
+     "defaultMode": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Mode bits to use on created files by default. Must be a value between 0 and 0777. Directories within the path are not affected by this setting. This might be in conflict with other options that affect the file mode, like fsGroup, and the result can be other mode bits set."
+     }
+    }
+   },
+   "v1.VolumeProjection": {
+    "id": "v1.VolumeProjection",
+    "description": "Projection that may be projected along with other supported volume types",
+    "properties": {
+     "secret": {
+      "$ref": "v1.SecretProjection",
+      "description": "information about the secret data to project"
+     },
+     "downwardAPI": {
+      "$ref": "v1.DownwardAPIProjection",
+      "description": "information about the downwardAPI data to project"
+     },
+     "configMap": {
+      "$ref": "v1.ConfigMapProjection",
+      "description": "information about the configMap data to project"
+     }
+    }
+   },
+   "v1.SecretProjection": {
+    "id": "v1.SecretProjection",
+    "description": "Adapts a secret into a projected volume.\n\nThe contents of the target Secret's Data field will be presented in a projected volume as files using the keys in the Data field as the file names. Note that this is identical to a secret volume source without the default mode.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.KeyToPath"
+      },
+      "description": "If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the Secret, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the Secret or its key must be defined"
+     }
+    }
+   },
+   "v1.DownwardAPIProjection": {
+    "id": "v1.DownwardAPIProjection",
+    "description": "Represents downward API info for projecting into a projected volume. Note that this is identical to a downwardAPI volume source without the default mode.",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.DownwardAPIVolumeFile"
+      },
+      "description": "Items is a list of DownwardAPIVolume file"
+     }
+    }
+   },
+   "v1.ConfigMapProjection": {
+    "id": "v1.ConfigMapProjection",
+    "description": "Adapts a ConfigMap into a projected volume.\n\nThe contents of the target ConfigMap's Data field will be presented in a projected volume as files using the keys in the Data field as the file names, unless the items element is populated with specific mappings of keys to paths. Note that this is identical to a configmap volume source without the default mode.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.KeyToPath"
+      },
+      "description": "If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value. If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present. If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional. Paths must be relative and may not contain the '..' path or start with '..'."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the ConfigMap or it's keys must be defined"
+     }
+    }
+   },
+   "v1.PortworxVolumeSource": {
+    "id": "v1.PortworxVolumeSource",
+    "description": "PortworxVolumeSource represents a Portworx volume resource.",
+    "required": [
+     "volumeID"
+    ],
+    "properties": {
+     "volumeID": {
+      "type": "string",
+      "description": "VolumeID uniquely identifies a Portworx volume"
+     },
+     "fsType": {
+      "type": "string",
+      "description": "FSType represents the filesystem type to mount Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\". Implicitly inferred to be \"ext4\" if unspecified."
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     }
+    }
+   },
+   "v1.ScaleIOVolumeSource": {
+    "id": "v1.ScaleIOVolumeSource",
+    "description": "ScaleIOVolumeSource represents a persistent ScaleIO volume",
+    "required": [
+     "gateway",
+     "system",
+     "secretRef"
+    ],
+    "properties": {
+     "gateway": {
+      "type": "string",
+      "description": "The host address of the ScaleIO API Gateway."
+     },
+     "system": {
+      "type": "string",
+      "description": "The name of the storage system as configured in ScaleIO."
+     },
+     "secretRef": {
+      "$ref": "v1.LocalObjectReference",
+      "description": "SecretRef references to the secret for ScaleIO user and other sensitive information. If this is not provided, Login operation will fail."
+     },
+     "sslEnabled": {
+      "type": "boolean",
+      "description": "Flag to enable/disable SSL communication with Gateway, default false"
+     },
+     "protectionDomain": {
+      "type": "string",
+      "description": "The name of the Protection Domain for the configured storage (defaults to \"default\")."
+     },
+     "storagePool": {
+      "type": "string",
+      "description": "The Storage Pool associated with the protection domain (defaults to \"default\")."
+     },
+     "storageMode": {
+      "type": "string",
+      "description": "Indicates whether the storage for a volume should be thick or thin (defaults to \"thin\")."
+     },
+     "volumeName": {
+      "type": "string",
+      "description": "The name of a volume already created in the ScaleIO system that is associated with this volume source."
+     },
+     "fsType": {
+      "type": "string",
+      "description": "Filesystem type to mount. Must be a filesystem type supported by the host operating system. Ex. \"ext4\", \"xfs\", \"ntfs\". Implicitly inferred to be \"ext4\" if unspecified."
+     },
+     "readOnly": {
+      "type": "boolean",
+      "description": "Defaults to false (read/write). ReadOnly here will force the ReadOnly setting in VolumeMounts."
+     }
+    }
+   },
    "v1.DeprecatedDownwardAPIVolumeSource": {
     "id": "v1.DeprecatedDownwardAPIVolumeSource",
     "description": "DeprecatedDownwardAPIVolumeSource represents a volume containing downward API info. This type is deprecated and should be replaced by use of the downwardAPI volume source.",
@@ -2233,6 +3723,13 @@
       },
       "description": "List of ports to expose from the container. Exposing a port here gives the system additional information about the network connections a container uses, but is primarily informational. Not specifying a port here DOES NOT prevent that port from being exposed. Any port which is listening on the default \"0.0.0.0\" address inside a container will be accessible from the network. Cannot be updated."
      },
+     "envFrom": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvFromSource"
+      },
+      "description": "List of sources to populate environment variables in the container. The keys defined within a source must be a C_IDENTIFIER. All invalid keys will be reported as an event when the container is starting. When a key exists in multiple sources, the value associated with the last source will take precedence. Values defined by an Env with a duplicate key will take precedence. Cannot be updated."
+     },
      "env": {
       "type": "array",
       "items": {
@@ -2265,7 +3762,11 @@
      },
      "terminationMessagePath": {
       "type": "string",
-      "description": "Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Defaults to /dev/termination-log. Cannot be updated."
+      "description": "Optional: Path at which the file to which the container's termination message will be written is mounted into the container's filesystem. Message written is intended to be brief final status, such as an assertion failure message. Will be truncated by the node if greater than 4096 bytes. The total message length across all containers will be limited to 12kb. Defaults to /dev/termination-log. Cannot be updated."
+     },
+     "terminationMessagePolicy": {
+      "type": "string",
+      "description": "Indicate how the termination message should be populated. File will use the contents of terminationMessagePath to populate the container status message on both success and failure. FallbackToLogsOnError will use the last chunk of container log output if the termination message file is empty and the container exited with an error. The log output is limited to 2048 bytes or 80 lines, whichever is smaller. Defaults to File. Cannot be updated."
      },
      "imagePullPolicy": {
       "type": "string",
@@ -2317,6 +3818,52 @@
      "hostIP": {
       "type": "string",
       "description": "What host IP to bind the external port to."
+     }
+    }
+   },
+   "v1.EnvFromSource": {
+    "id": "v1.EnvFromSource",
+    "description": "EnvFromSource represents the source of a set of ConfigMaps",
+    "properties": {
+     "prefix": {
+      "type": "string",
+      "description": "An optional identifer to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER."
+     },
+     "configMapRef": {
+      "$ref": "v1.ConfigMapEnvSource",
+      "description": "The ConfigMap to select from"
+     },
+     "secretRef": {
+      "$ref": "v1.SecretEnvSource",
+      "description": "The Secret to select from"
+     }
+    }
+   },
+   "v1.ConfigMapEnvSource": {
+    "id": "v1.ConfigMapEnvSource",
+    "description": "ConfigMapEnvSource selects a ConfigMap to populate the environment variables with.\n\nThe contents of the target ConfigMap's Data field will represent the key-value pairs as environment variables.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the ConfigMap must be defined"
+     }
+    }
+   },
+   "v1.SecretEnvSource": {
+    "id": "v1.SecretEnvSource",
+    "description": "SecretEnvSource selects a Secret to populate the environment variables with.\n\nThe contents of the target Secret's Data field will represent the key-value pairs as environment variables.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Name of the referent. More info: http://kubernetes.io/docs/user-guide/identifiers#names"
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the Secret must be defined"
      }
     }
    },
@@ -2377,6 +3924,10 @@
      "key": {
       "type": "string",
       "description": "The key to select."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the ConfigMap or it's key must be defined"
      }
     }
    },
@@ -2394,6 +3945,10 @@
      "key": {
       "type": "string",
       "description": "The key of the secret to select from.  Must be a valid secret key."
+     },
+     "optional": {
+      "type": "boolean",
+      "description": "Specify whether the Secret or it's key must be defined"
      }
     }
    },
@@ -2696,6 +4251,669 @@
      }
     }
    },
+   "v1.Affinity": {
+    "id": "v1.Affinity",
+    "description": "Affinity is a group of affinity scheduling rules.",
+    "properties": {
+     "nodeAffinity": {
+      "$ref": "v1.NodeAffinity",
+      "description": "Describes node affinity scheduling rules for the pod."
+     },
+     "podAffinity": {
+      "$ref": "v1.PodAffinity",
+      "description": "Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s))."
+     },
+     "podAntiAffinity": {
+      "$ref": "v1.PodAntiAffinity",
+      "description": "Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s))."
+     }
+    }
+   },
+   "v1.NodeAffinity": {
+    "id": "v1.NodeAffinity",
+    "description": "Node affinity is a group of node affinity scheduling rules.",
+    "properties": {
+     "requiredDuringSchedulingIgnoredDuringExecution": {
+      "$ref": "v1.NodeSelector",
+      "description": "If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system may or may not try to eventually evict the pod from its node."
+     },
+     "preferredDuringSchedulingIgnoredDuringExecution": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PreferredSchedulingTerm"
+      },
+      "description": "The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node matches the corresponding matchExpressions; the node(s) with the highest sum are the most preferred."
+     }
+    }
+   },
+   "v1.NodeSelector": {
+    "id": "v1.NodeSelector",
+    "description": "A node selector represents the union of the results of one or more label queries over a set of nodes; that is, it represents the OR of the selectors represented by the node selector terms.",
+    "required": [
+     "nodeSelectorTerms"
+    ],
+    "properties": {
+     "nodeSelectorTerms": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.NodeSelectorTerm"
+      },
+      "description": "Required. A list of node selector terms. The terms are ORed."
+     }
+    }
+   },
+   "v1.NodeSelectorTerm": {
+    "id": "v1.NodeSelectorTerm",
+    "description": "A null or empty node selector term matches no objects.",
+    "required": [
+     "matchExpressions"
+    ],
+    "properties": {
+     "matchExpressions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.NodeSelectorRequirement"
+      },
+      "description": "Required. A list of node selector requirements. The requirements are ANDed."
+     }
+    }
+   },
+   "v1.NodeSelectorRequirement": {
+    "id": "v1.NodeSelectorRequirement",
+    "description": "A node selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",
+    "required": [
+     "key",
+     "operator"
+    ],
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "The label key that the selector applies to."
+     },
+     "operator": {
+      "type": "string",
+      "description": "Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt."
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch."
+     }
+    }
+   },
+   "v1.PreferredSchedulingTerm": {
+    "id": "v1.PreferredSchedulingTerm",
+    "description": "An empty preferred scheduling term matches all objects with implicit weight 0 (i.e. it's a no-op). A null preferred scheduling term matches no objects (i.e. is also a no-op).",
+    "required": [
+     "weight",
+     "preference"
+    ],
+    "properties": {
+     "weight": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100."
+     },
+     "preference": {
+      "$ref": "v1.NodeSelectorTerm",
+      "description": "A node selector term, associated with the corresponding weight."
+     }
+    }
+   },
+   "v1.PodAffinity": {
+    "id": "v1.PodAffinity",
+    "description": "Pod affinity is a group of inter pod affinity scheduling rules.",
+    "properties": {
+     "requiredDuringSchedulingIgnoredDuringExecution": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PodAffinityTerm"
+      },
+      "description": "NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented. If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system will try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied. RequiredDuringSchedulingRequiredDuringExecution []PodAffinityTerm  `json:\"requiredDuringSchedulingRequiredDuringExecution,omitempty\"` If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied."
+     },
+     "preferredDuringSchedulingIgnoredDuringExecution": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.WeightedPodAffinityTerm"
+      },
+      "description": "The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred."
+     }
+    }
+   },
+   "v1.PodAffinityTerm": {
+    "id": "v1.PodAffinityTerm",
+    "description": "Defines a set of pods (namely those matching the labelSelector relative to the given namespace(s)) that this pod should be co-located (affinity) or not co-located (anti-affinity) with, where co-located is defined as running on a node whose value of the label with key \u003ctopologyKey\u003e tches that of any node on which a pod of the set of pods is running",
+    "properties": {
+     "labelSelector": {
+      "$ref": "v1.LabelSelector",
+      "description": "A label query over a set of resources, in this case pods."
+     },
+     "namespaces": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "namespaces specifies which namespaces the labelSelector applies to (matches against); null or empty list means \"this pod's namespace\""
+     },
+     "topologyKey": {
+      "type": "string",
+      "description": "This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. For PreferredDuringScheduling pod anti-affinity, empty topologyKey is interpreted as \"all topologies\" (\"all topologies\" here means all the topologyKeys indicated by scheduler command-line argument --failure-domains); for affinity and for RequiredDuringScheduling pod anti-affinity, empty topologyKey is not allowed."
+     }
+    }
+   },
+   "v1.WeightedPodAffinityTerm": {
+    "id": "v1.WeightedPodAffinityTerm",
+    "description": "The weights of all of the matched WeightedPodAffinityTerm fields are added per-node to find the most preferred node(s)",
+    "required": [
+     "weight",
+     "podAffinityTerm"
+    ],
+    "properties": {
+     "weight": {
+      "type": "integer",
+      "format": "int32",
+      "description": "weight associated with matching the corresponding podAffinityTerm, in the range 1-100."
+     },
+     "podAffinityTerm": {
+      "$ref": "v1.PodAffinityTerm",
+      "description": "Required. A pod affinity term, associated with the corresponding weight."
+     }
+    }
+   },
+   "v1.PodAntiAffinity": {
+    "id": "v1.PodAntiAffinity",
+    "description": "Pod anti affinity is a group of inter pod anti affinity scheduling rules.",
+    "properties": {
+     "requiredDuringSchedulingIgnoredDuringExecution": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PodAffinityTerm"
+      },
+      "description": "NOT YET IMPLEMENTED. TODO: Uncomment field once it is implemented. If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system will try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied. RequiredDuringSchedulingRequiredDuringExecution []PodAffinityTerm  `json:\"requiredDuringSchedulingRequiredDuringExecution,omitempty\"` If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied."
+     },
+     "preferredDuringSchedulingIgnoredDuringExecution": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.WeightedPodAffinityTerm"
+      },
+      "description": "The scheduler will prefer to schedule pods to nodes that satisfy the anti-affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling anti-affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred."
+     }
+    }
+   },
+   "v1.Toleration": {
+    "id": "v1.Toleration",
+    "description": "The pod this Toleration is attached to tolerates any taint that matches the triple \u003ckey,value,effect\u003e using the matching operator \u003coperator\u003e.",
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "Key is the taint key that the toleration applies to. Empty means match all taint keys. If the key is empty, operator must be Exists; this combination means to match all values and all keys."
+     },
+     "operator": {
+      "type": "string",
+      "description": "Operator represents a key's relationship to the value. Valid operators are Exists and Equal. Defaults to Equal. Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category."
+     },
+     "value": {
+      "type": "string",
+      "description": "Value is the taint value the toleration matches to. If the operator is Exists, the value should be empty, otherwise just a regular string."
+     },
+     "effect": {
+      "type": "string",
+      "description": "Effect indicates the taint effect to match. Empty means match all taint effects. When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute."
+     },
+     "tolerationSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "TolerationSeconds represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately) by the system."
+     }
+    }
+   },
+   "v1beta1.DeploymentStrategy": {
+    "id": "v1beta1.DeploymentStrategy",
+    "description": "DeploymentStrategy describes how to replace existing pods with new ones.",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of deployment. Can be \"Recreate\" or \"RollingUpdate\". Default is RollingUpdate."
+     },
+     "rollingUpdate": {
+      "$ref": "v1beta1.RollingUpdateDeployment",
+      "description": "Rolling update config params. Present only if DeploymentStrategyType = RollingUpdate."
+     }
+    }
+   },
+   "v1beta1.RollingUpdateDeployment": {
+    "id": "v1beta1.RollingUpdateDeployment",
+    "description": "Spec to control the desired behavior of rolling update.",
+    "properties": {
+     "maxUnavailable": {
+      "type": "string",
+      "description": "The maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). Absolute number is calculated from percentage by rounding down. This can not be 0 if MaxSurge is 0. Defaults to 25%. Example: when this is set to 30%, the old RC can be scaled down to 70% of desired pods immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that the total number of pods available at all times during the update is at least 70% of desired pods."
+     },
+     "maxSurge": {
+      "type": "string",
+      "description": "The maximum number of pods that can be scheduled above the desired number of pods. Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is calculated from percentage by rounding up. Defaults to 25%. Example: when this is set to 30%, the new RC can be scaled up immediately when the rolling update starts, such that the total number of old and new pods do not exceed 130% of desired pods. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of desired pods."
+     }
+    }
+   },
+   "v1beta1.RollbackConfig": {
+    "id": "v1beta1.RollbackConfig",
+    "properties": {
+     "revision": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The revision to rollback to. If set to 0, rollbck to the last revision."
+     }
+    }
+   },
+   "v1beta1.DeploymentStatus": {
+    "id": "v1beta1.DeploymentStatus",
+    "description": "DeploymentStatus is the most recently observed status of the Deployment.",
+    "properties": {
+     "observedGeneration": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The generation observed by the deployment controller."
+     },
+     "replicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of non-terminated pods targeted by this deployment (their labels match the selector)."
+     },
+     "updatedReplicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of non-terminated pods targeted by this deployment that have the desired template spec."
+     },
+     "readyReplicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of ready pods targeted by this deployment."
+     },
+     "availableReplicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of available pods (ready for at least minReadySeconds) targeted by this deployment."
+     },
+     "unavailableReplicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Total number of unavailable pods targeted by this deployment."
+     },
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "v1beta1.DeploymentCondition"
+      },
+      "description": "Represents the latest available observations of a deployment's current state."
+     }
+    }
+   },
+   "v1beta1.DeploymentCondition": {
+    "id": "v1beta1.DeploymentCondition",
+    "description": "DeploymentCondition describes the state of a deployment at a certain point.",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of deployment condition."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the condition, one of True, False, Unknown."
+     },
+     "lastUpdateTime": {
+      "type": "string",
+      "description": "The last time this condition was updated."
+     },
+     "lastTransitionTime": {
+      "type": "string",
+      "description": "Last time the condition transitioned from one status to another."
+     },
+     "reason": {
+      "type": "string",
+      "description": "The reason for the condition's last transition."
+     },
+     "message": {
+      "type": "string",
+      "description": "A human readable message indicating details about the transition."
+     }
+    }
+   },
+   "v1.Status": {
+    "id": "v1.Status",
+    "description": "Status is a return value for calls that don't return other objects.",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta",
+      "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the operation. One of: \"Success\" or \"Failure\". More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"
+     },
+     "message": {
+      "type": "string",
+      "description": "A human-readable description of the status of this operation."
+     },
+     "reason": {
+      "type": "string",
+      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it."
+     },
+     "details": {
+      "$ref": "v1.StatusDetails",
+      "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
+     },
+     "code": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Suggested HTTP return code for this status, 0 if not set."
+     }
+    }
+   },
+   "v1.StatusDetails": {
+    "id": "v1.StatusDetails",
+    "description": "StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "The name attribute of the resource associated with the status StatusReason (when there is a single name which can be described)."
+     },
+     "group": {
+      "type": "string",
+      "description": "The group attribute of the resource associated with the status StatusReason."
+     },
+     "kind": {
+      "type": "string",
+      "description": "The kind attribute of the resource associated with the status StatusReason. On some operations may differ from the requested resource Kind. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "causes": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.StatusCause"
+      },
+      "description": "The Causes array includes more details associated with the StatusReason failure. Not all StatusReasons may provide detailed causes."
+     },
+     "retryAfterSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "If specified, the time in seconds before the operation should be retried."
+     }
+    }
+   },
+   "v1.StatusCause": {
+    "id": "v1.StatusCause",
+    "description": "StatusCause provides more information about an api.Status failure, including cases when multiple errors are encountered.",
+    "properties": {
+     "reason": {
+      "type": "string",
+      "description": "A machine-readable description of the cause of the error. If this value is empty there is no information available."
+     },
+     "message": {
+      "type": "string",
+      "description": "A human-readable description of the cause of the error.  This field may be presented as-is to a reader."
+     },
+     "field": {
+      "type": "string",
+      "description": "The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed.  Fields may appear more than once in an array of causes due to fields having multiple errors. Optional.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\""
+     }
+    }
+   },
+   "v1.WatchEvent": {
+    "id": "v1.WatchEvent",
+    "required": [
+     "type",
+     "object"
+    ],
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "object": {
+      "type": "string"
+     }
+    }
+   },
+   "v1.Patch": {
+    "id": "v1.Patch",
+    "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.",
+    "properties": {}
+   },
+   "v1.DeleteOptions": {
+    "id": "v1.DeleteOptions",
+    "description": "DeleteOptions may be provided when deleting an API object.",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "gracePeriodSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately."
+     },
+     "preconditions": {
+      "$ref": "v1.Preconditions",
+      "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
+     },
+     "orphanDependents": {
+      "type": "boolean",
+      "description": "Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both."
+     },
+     "propagationPolicy": {
+      "$ref": "v1.DeletionPropagation",
+      "description": "Whether and how garbage collection will be performed. Either this field or OrphanDependents may be set, but not both. The default policy is decided by the existing finalizer set in the metadata.finalizers and the resource-specific default policy."
+     }
+    }
+   },
+   "v1.Preconditions": {
+    "id": "v1.Preconditions",
+    "description": "Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.",
+    "properties": {
+     "uid": {
+      "$ref": "types.UID",
+      "description": "Specifies the target UID."
+     }
+    }
+   },
+   "types.UID": {
+    "id": "types.UID",
+    "properties": {}
+   },
+   "v1.DeletionPropagation": {
+    "id": "v1.DeletionPropagation",
+    "properties": {}
+   },
+   "v1beta1.DeploymentRollback": {
+    "id": "v1beta1.DeploymentRollback",
+    "description": "DeploymentRollback stores the information required to rollback a deployment.",
+    "required": [
+     "name",
+     "rollbackTo"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "name": {
+      "type": "string",
+      "description": "Required: This must match the Name of a deployment."
+     },
+     "updatedAnnotations": {
+      "type": "object",
+      "description": "The annotations to be updated to a deployment"
+     },
+     "rollbackTo": {
+      "$ref": "v1beta1.RollbackConfig",
+      "description": "The config of this deployment rollback."
+     }
+    }
+   },
+   "v1beta1.Scale": {
+    "id": "v1beta1.Scale",
+    "description": "Scale represents a scaling request for a resource.",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "Standard object metadata; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata."
+     },
+     "spec": {
+      "$ref": "v1beta1.ScaleSpec",
+      "description": "defines the behavior of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status."
+     },
+     "status": {
+      "$ref": "v1beta1.ScaleStatus",
+      "description": "current status of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status. Read-only."
+     }
+    }
+   },
+   "v1beta1.ScaleSpec": {
+    "id": "v1beta1.ScaleSpec",
+    "description": "ScaleSpec describes the attributes of a scale subresource",
+    "properties": {
+     "replicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "desired number of instances for the scaled object."
+     }
+    }
+   },
+   "v1beta1.ScaleStatus": {
+    "id": "v1beta1.ScaleStatus",
+    "description": "ScaleStatus represents the current status of a scale subresource.",
+    "required": [
+     "replicas"
+    ],
+    "properties": {
+     "replicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "actual number of observed instances of the scaled object."
+     },
+     "selector": {
+      "type": "object",
+      "description": "label query over pods that should match the replicas count. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors"
+     },
+     "targetSelector": {
+      "type": "string",
+      "description": "label selector for pods that should match the replicas count. This is a serializated version of both map-based and more expressive set-based selectors. This is done to avoid introspection in the clients. The string will be in the same format as the query-param syntax. If the target type only supports map-based selectors, both this field and map-based selector field are populated. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors"
+     }
+    }
+   },
+   "v1beta1.StatefulSetList": {
+    "id": "v1beta1.StatefulSetList",
+    "description": "StatefulSetList is a collection of StatefulSets.",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1beta1.StatefulSet"
+      }
+     }
+    }
+   },
+   "v1beta1.StatefulSet": {
+    "id": "v1beta1.StatefulSet",
+    "description": "StatefulSet represents a set of pods with consistent identities. Identities are defined as:\n - Network: A single stable DNS and hostname.\n - Storage: As many VolumeClaims as requested.\nThe StatefulSet guarantees that a given network identity will always map to the same storage identity.",
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta"
+     },
+     "spec": {
+      "$ref": "v1beta1.StatefulSetSpec",
+      "description": "Spec defines the desired identities of pods in this set."
+     },
+     "status": {
+      "$ref": "v1beta1.StatefulSetStatus",
+      "description": "Status is the current status of Pods in this StatefulSet. This data may be out of date by some window of time."
+     }
+    }
+   },
+   "v1beta1.StatefulSetSpec": {
+    "id": "v1beta1.StatefulSetSpec",
+    "description": "A StatefulSetSpec is the specification of a StatefulSet.",
+    "required": [
+     "template",
+     "serviceName"
+    ],
+    "properties": {
+     "replicas": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Replicas is the desired number of replicas of the given Template. These are replicas in the sense that they are instantiations of the same Template, but individual replicas also have a consistent identity. If unspecified, defaults to 1."
+     },
+     "selector": {
+      "$ref": "v1.LabelSelector",
+      "description": "Selector is a label query over pods that should match the replica count. If empty, defaulted to labels on the pod template. More info: http://kubernetes.io/docs/user-guide/labels#label-selectors"
+     },
+     "template": {
+      "$ref": "v1.PodTemplateSpec",
+      "description": "Template is the object that describes the pod that will be created if insufficient replicas are detected. Each pod stamped out by the StatefulSet will fulfill this Template, but have a unique identity from the rest of the StatefulSet."
+     },
+     "volumeClaimTemplates": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.PersistentVolumeClaim"
+      },
+      "description": "VolumeClaimTemplates is a list of claims that pods are allowed to reference. The StatefulSet controller is responsible for mapping network identities to claims in a way that maintains the identity of a pod. Every claim in this list must have at least one matching (by name) volumeMount in one container in the template. A claim in this list takes precedence over any volumes in the template, with the same name."
+     },
+     "serviceName": {
+      "type": "string",
+      "description": "ServiceName is the name of the service that governs this StatefulSet. This service must exist before the StatefulSet, and is responsible for the network identity of the set. Pods get DNS/hostnames that follow the pattern: pod-specific-string.serviceName.default.svc.cluster.local where \"pod-specific-string\" is managed by the StatefulSet controller."
+     }
+    }
+   },
    "v1.PersistentVolumeClaim": {
     "id": "v1.PersistentVolumeClaim",
     "description": "PersistentVolumeClaim is a user's request for and claim to a persistent volume",
@@ -2734,7 +4952,7 @@
       "description": "AccessModes contains the desired access modes the volume should have. More info: http://kubernetes.io/docs/user-guide/persistent-volumes#access-modes-1"
      },
      "selector": {
-      "$ref": "unversioned.LabelSelector",
+      "$ref": "v1.LabelSelector",
       "description": "A label query over volumes to consider for binding."
      },
      "resources": {
@@ -2744,6 +4962,10 @@
      "volumeName": {
       "type": "string",
       "description": "VolumeName is the binding reference to the PersistentVolume backing this claim."
+     },
+     "storageClassName": {
+      "type": "string",
+      "description": "Name of the StorageClass required by the claim. More info: http://kubernetes.io/docs/user-guide/persistent-volumes#class-1"
      }
     }
    },
@@ -2782,7 +5004,7 @@
      "observedGeneration": {
       "type": "integer",
       "format": "int64",
-      "description": "most recent generation observed by this autoscaler."
+      "description": "most recent generation observed by this StatefulSet."
      },
      "replicas": {
       "type": "integer",
@@ -2791,156 +5013,8 @@
      }
     }
    },
-   "unversioned.Status": {
-    "id": "unversioned.Status",
-    "description": "Status is a return value for calls that don't return other objects.",
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "unversioned.ListMeta",
-      "description": "Standard list metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "status": {
-      "type": "string",
-      "description": "Status of the operation. One of: \"Success\" or \"Failure\". More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status"
-     },
-     "message": {
-      "type": "string",
-      "description": "A human-readable description of the status of this operation."
-     },
-     "reason": {
-      "type": "string",
-      "description": "A machine-readable description of why this operation is in the \"Failure\" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it."
-     },
-     "details": {
-      "$ref": "unversioned.StatusDetails",
-      "description": "Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type."
-     },
-     "code": {
-      "type": "integer",
-      "format": "int32",
-      "description": "Suggested HTTP return code for this status, 0 if not set."
-     }
-    }
-   },
-   "unversioned.StatusDetails": {
-    "id": "unversioned.StatusDetails",
-    "description": "StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.",
-    "properties": {
-     "name": {
-      "type": "string",
-      "description": "The name attribute of the resource associated with the status StatusReason (when there is a single name which can be described)."
-     },
-     "group": {
-      "type": "string",
-      "description": "The group attribute of the resource associated with the status StatusReason."
-     },
-     "kind": {
-      "type": "string",
-      "description": "The kind attribute of the resource associated with the status StatusReason. On some operations may differ from the requested resource Kind. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "causes": {
-      "type": "array",
-      "items": {
-       "$ref": "unversioned.StatusCause"
-      },
-      "description": "The Causes array includes more details associated with the StatusReason failure. Not all StatusReasons may provide detailed causes."
-     },
-     "retryAfterSeconds": {
-      "type": "integer",
-      "format": "int32",
-      "description": "If specified, the time in seconds before the operation should be retried."
-     }
-    }
-   },
-   "unversioned.StatusCause": {
-    "id": "unversioned.StatusCause",
-    "description": "StatusCause provides more information about an api.Status failure, including cases when multiple errors are encountered.",
-    "properties": {
-     "reason": {
-      "type": "string",
-      "description": "A machine-readable description of the cause of the error. If this value is empty there is no information available."
-     },
-     "message": {
-      "type": "string",
-      "description": "A human-readable description of the cause of the error.  This field may be presented as-is to a reader."
-     },
-     "field": {
-      "type": "string",
-      "description": "The field of the resource that has caused this error, as named by its JSON serialization. May include dot and postfix notation for nested attributes. Arrays are zero-indexed.  Fields may appear more than once in an array of causes due to fields having multiple errors. Optional.\n\nExamples:\n  \"name\" - the field \"name\" on the current resource\n  \"items[0].name\" - the field \"name\" on the first array entry in \"items\""
-     }
-    }
-   },
-   "versioned.Event": {
-    "id": "versioned.Event",
-    "required": [
-     "type",
-     "object"
-    ],
-    "properties": {
-     "type": {
-      "type": "string"
-     },
-     "object": {
-      "type": "string"
-     }
-    }
-   },
-   "unversioned.Patch": {
-    "id": "unversioned.Patch",
-    "description": "Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.",
-    "properties": {}
-   },
-   "v1.DeleteOptions": {
-    "id": "v1.DeleteOptions",
-    "description": "DeleteOptions may be provided when deleting an API object",
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#resources"
-     },
-     "gracePeriodSeconds": {
-      "type": "integer",
-      "format": "int64",
-      "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately."
-     },
-     "preconditions": {
-      "$ref": "v1.Preconditions",
-      "description": "Must be fulfilled before a deletion is carried out. If not possible, a 409 Conflict status will be returned."
-     },
-     "orphanDependents": {
-      "type": "boolean",
-      "description": "Should the dependent objects be orphaned. If true/false, the \"orphan\" finalizer will be added to/removed from the object's finalizers list."
-     }
-    }
-   },
-   "v1.Preconditions": {
-    "id": "v1.Preconditions",
-    "description": "Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.",
-    "properties": {
-     "uid": {
-      "$ref": "types.UID",
-      "description": "Specifies the target UID."
-     }
-    }
-   },
-   "types.UID": {
-    "id": "types.UID",
-    "properties": {}
-   },
-   "unversioned.APIResourceList": {
-    "id": "unversioned.APIResourceList",
+   "v1.APIResourceList": {
+    "id": "v1.APIResourceList",
     "description": "APIResourceList is a list of APIResource, it is used to expose the name of the resources supported in a specific group and version, and if the resource is namespaced.",
     "required": [
      "groupVersion",
@@ -2962,19 +5036,20 @@
      "resources": {
       "type": "array",
       "items": {
-       "$ref": "unversioned.APIResource"
+       "$ref": "v1.APIResource"
       },
       "description": "resources contains the name of the resources and if they are namespaced."
      }
     }
    },
-   "unversioned.APIResource": {
-    "id": "unversioned.APIResource",
+   "v1.APIResource": {
+    "id": "v1.APIResource",
     "description": "APIResource specifies the name of a resource and whether it is namespaced.",
     "required": [
      "name",
      "namespaced",
-     "kind"
+     "kind",
+     "verbs"
     ],
     "properties": {
      "name": {
@@ -2988,6 +5063,20 @@
      "kind": {
       "type": "string",
       "description": "kind is the kind for the resource (e.g. 'Foo' is the kind for a resource 'foo')"
+     },
+     "verbs": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "verbs is a list of supported kube verbs (this includes get, list, watch, create, update, patch, delete, deletecollection, and proxy)"
+     },
+     "shortNames": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "shortNames is a list of suggested short names of the resource."
      }
     }
    }

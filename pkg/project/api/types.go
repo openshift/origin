@@ -1,14 +1,14 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 // ProjectList is a list of Project objects.
 type ProjectList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []Project
 }
 
@@ -33,16 +33,16 @@ type ProjectStatus struct {
 
 // Project is a logical top-level container for a set of origin resources
 type Project struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	Spec   ProjectSpec
 	Status ProjectStatus
 }
 
 type ProjectRequest struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 	DisplayName string
 	Description string
 }

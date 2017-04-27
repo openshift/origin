@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	knet "k8s.io/kubernetes/pkg/util/net"
+	knet "k8s.io/apimachinery/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"

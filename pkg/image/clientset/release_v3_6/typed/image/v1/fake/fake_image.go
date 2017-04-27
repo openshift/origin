@@ -2,12 +2,12 @@ package fake
 
 import (
 	v1 "github.com/openshift/origin/pkg/image/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	unversioned "k8s.io/kubernetes/pkg/api/unversioned"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
-	labels "k8s.io/kubernetes/pkg/labels"
-	watch "k8s.io/kubernetes/pkg/watch"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
 // FakeImages implements ImageResourceInterface
@@ -15,11 +15,11 @@ type FakeImages struct {
 	Fake *FakeImageV1
 }
 
-var imagesResource = unversioned.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "images"}
+var imagesResource = schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "images"}
 
 func (c *FakeImages) Create(image *v1.Image) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootCreateAction(imagesResource, image), &v1.Image{})
+		Invokes(testing.NewRootCreateAction(imagesResource, image), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
@@ -28,43 +28,43 @@ func (c *FakeImages) Create(image *v1.Image) (result *v1.Image, err error) {
 
 func (c *FakeImages) Update(image *v1.Image) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootUpdateAction(imagesResource, image), &v1.Image{})
+		Invokes(testing.NewRootUpdateAction(imagesResource, image), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
 	return obj.(*v1.Image), err
 }
 
-func (c *FakeImages) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *FakeImages) Delete(name string, options *meta_v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(core.NewRootDeleteAction(imagesResource, name), &v1.Image{})
+		Invokes(testing.NewRootDeleteAction(imagesResource, name), &v1.Image{})
 	return err
 }
 
-func (c *FakeImages) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
-	action := core.NewRootDeleteCollectionAction(imagesResource, listOptions)
+func (c *FakeImages) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(imagesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1.ImageList{})
 	return err
 }
 
-func (c *FakeImages) Get(name string) (result *v1.Image, err error) {
+func (c *FakeImages) Get(name string, options meta_v1.GetOptions) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootGetAction(imagesResource, name), &v1.Image{})
+		Invokes(testing.NewRootGetAction(imagesResource, name), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}
 	return obj.(*v1.Image), err
 }
 
-func (c *FakeImages) List(opts api_v1.ListOptions) (result *v1.ImageList, err error) {
+func (c *FakeImages) List(opts meta_v1.ListOptions) (result *v1.ImageList, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootListAction(imagesResource, opts), &v1.ImageList{})
+		Invokes(testing.NewRootListAction(imagesResource, opts), &v1.ImageList{})
 	if obj == nil {
 		return nil, err
 	}
 
-	label, _, _ := core.ExtractFromListOptions(opts)
+	label, _, _ := testing.ExtractFromListOptions(opts)
 	if label == nil {
 		label = labels.Everything()
 	}
@@ -78,15 +78,15 @@ func (c *FakeImages) List(opts api_v1.ListOptions) (result *v1.ImageList, err er
 }
 
 // Watch returns a watch.Interface that watches the requested images.
-func (c *FakeImages) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeImages) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(core.NewRootWatchAction(imagesResource, opts))
+		InvokesWatch(testing.NewRootWatchAction(imagesResource, opts))
 }
 
 // Patch applies the patch and returns the patched image.
-func (c *FakeImages) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Image, err error) {
+func (c *FakeImages) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(core.NewRootPatchSubresourceAction(imagesResource, name, data, subresources...), &v1.Image{})
+		Invokes(testing.NewRootPatchSubresourceAction(imagesResource, name, data, subresources...), &v1.Image{})
 	if obj == nil {
 		return nil, err
 	}

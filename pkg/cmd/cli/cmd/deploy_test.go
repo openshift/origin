@@ -7,11 +7,12 @@ import (
 	"sort"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	tc "github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -44,16 +45,16 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 		updatedConfig := config
 
 		osClient := &tc.Fake{}
-		osClient.AddReactor("get", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		osClient.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, config, nil
 		})
-		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			updatedConfig.Status.LatestVersion++
 			return true, updatedConfig, nil
 		})
 
 		kubeClient := fake.NewSimpleClientset()
-		kubeClient.AddReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		kubeClient.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deploymentFor(config, status), nil
 		})
 
@@ -95,7 +96,7 @@ func TestCmdDeploy_latestConcurrentRejection(t *testing.T) {
 // existing deployments can't be looked up due to some fatal server error.
 func TestCmdDeploy_latestLookupError(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
-	kubeClient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kerrors.NewInternalError(fmt.Errorf("internal error"))
 	})
 
@@ -120,7 +121,7 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 
 	mkpod := func(name string) kapi.Pod {
 		return kapi.Pod{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: name,
 				Labels: map[string]string{
 					deployapi.DeployerPodForDeploymentLabel: existingDeployment.Name,
@@ -133,18 +134,18 @@ func TestCmdDeploy_retryOk(t *testing.T) {
 	}
 
 	kubeClient := fake.NewSimpleClientset()
-	kubeClient.PrependReactor("get", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, existingDeployment, nil
 	})
-	kubeClient.PrependReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		updatedDeployment = action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+	kubeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		updatedDeployment = action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		return true, updatedDeployment, nil
 	})
-	kubeClient.PrependReactor("list", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+	kubeClient.PrependReactor("list", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.PodList{Items: existingDeployerPods}, nil
 	})
-	kubeClient.PrependReactor("delete", "pods", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		deletedPods = append(deletedPods, action.(core.DeleteAction).GetName())
+	kubeClient.PrependReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		deletedPods = append(deletedPods, action.(clientgotesting.DeleteAction).GetName())
 		return true, nil, nil
 	})
 
@@ -244,12 +245,12 @@ func TestCmdDeploy_cancelOk(t *testing.T) {
 		}
 
 		kubeClient := fake.NewSimpleClientset()
-		kubeClient.PrependReactor("update", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-			updated := action.(core.UpdateAction).GetObject().(*kapi.ReplicationController)
+		kubeClient.PrependReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			updated := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 			updatedDeployments = append(updatedDeployments, *updated)
 			return true, updated, nil
 		})
-		kubeClient.PrependReactor("list", "replicationcontrollers", func(action core.Action) (handled bool, ret runtime.Object, err error) {
+		kubeClient.PrependReactor("list", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, existingDeployments, nil
 		})
 
@@ -295,8 +296,8 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 	var updated *deployapi.DeploymentConfig
 
 	osClient := &tc.Fake{}
-	osClient.AddReactor("update", "deploymentconfigs", func(action core.Action) (handled bool, ret runtime.Object, err error) {
-		updated = action.(core.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
+	osClient.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		updated = action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		return true, updated, nil
 	})
 

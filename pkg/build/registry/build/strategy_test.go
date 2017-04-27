@@ -3,13 +3,15 @@ package build
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestBuildStrategy(t *testing.T) {
-	ctx := kapi.NewDefaultContext()
+	ctx := apirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
 		t.Errorf("Build is namespace scoped")
 	}
@@ -17,7 +19,7 @@ func TestBuildStrategy(t *testing.T) {
 		t.Errorf("Build should not allow create on update")
 	}
 	build := &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{Name: "buildid", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "buildid", Namespace: "default"},
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
 				Source: buildapi.BuildSource{

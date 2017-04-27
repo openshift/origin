@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -94,7 +95,7 @@ func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, e
 		return nil, fmt.Errorf("error getting namespace: %v", err)
 	}
 
-	dc, err := osClient.DeploymentConfigs(namespace).Get(p.Name)
+	dc, err := osClient.DeploymentConfigs(namespace).Get(p.Name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %s not found", p.Name)

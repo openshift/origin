@@ -1,9 +1,9 @@
 package testclient
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/testing/core"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	clientgotesting "k8s.io/client-go/testing"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -14,19 +14,19 @@ type FakeProjectRequests struct {
 	Fake *Fake
 }
 
-var newProjectsResource = unversioned.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
+var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
 
-func (c *FakeProjectRequests) List(opts kapi.ListOptions) (*unversioned.Status, error) {
-	obj, err := c.Fake.Invokes(core.NewRootListAction(newProjectsResource, opts), &unversioned.Status{})
+func (c *FakeProjectRequests) List(opts metav1.ListOptions) (*metav1.Status, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, opts), &metav1.Status{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*unversioned.Status), err
+	return obj.(*metav1.Status), err
 }
 
 func (c *FakeProjectRequests) Create(inObj *projectapi.ProjectRequest) (*projectapi.Project, error) {
-	obj, err := c.Fake.Invokes(core.NewRootCreateAction(newProjectsResource, inObj), &projectapi.Project{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(newProjectsResource, inObj), &projectapi.Project{})
 	if obj == nil {
 		return nil, err
 	}

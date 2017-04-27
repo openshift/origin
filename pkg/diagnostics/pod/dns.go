@@ -6,7 +6,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
