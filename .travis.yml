@@ -8,7 +8,7 @@ install:
   - make install-travis
 
 script:
-  - PROTO_OPTIONAL=1 make verify
+  - OS_GOFLAGS="-p 1" travis_wait 40 make build && PROTO_OPTIONAL=1 make verify -o build
   - make verify-commits
 
 notifications:
