@@ -29,7 +29,6 @@ func NewCmdImport(fullName string, f *clientcmd.Factory, in io.Reader, out, erro
 
 	name := fmt.Sprintf("%s import", fullName)
 
-	cmd.AddCommand(NewCmdDockerCompose(name, f, in, out, errout))
 	cmd.AddCommand(NewCmdAppJSON(name, f, in, out, errout))
 	return cmd
 }
