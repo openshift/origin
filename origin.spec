@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e545b6fb328d2037f74b3256e5b4b2b7f4d9b435
+%global commit 78c2bf2ef2a75ae26018fe6c601a6688ddac9d5d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.51 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e545b6f
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.52 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=78c2bf2
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.52
+Version:        3.6.53
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,252 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Apr 27 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.53-1
+- disable image-references (deads@redhat.com)
+- Ignore two upstream e2e flakes for now (stefan.schimanski@gmail.com)
+- Fix TestBootstrapClusterRoles unit test (stefan.schimanski@gmail.com)
+- Run make-update (stefan.schimanski@gmail.com)
+- UPSTREAM: 44730: Check for terminating Pod prior to launching successor in
+  StatefulSet (stefan.schimanski@gmail.com)
+- squash: pods PATCH permission for rc controller (stefan.schimanski@gmail.com)
+- Disable cgroups-per-qos in dind (danw@redhat.com)
+- fix: build type changes (deads@redhat.com)
+- fix-test: hpa.{extensions -> autoscaling} in policy cmd test
+  (stefan.schimanski@gmail.com)
+- fix: clientconfig again, match master (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  521e60a07d38fb8421b6ee00104747e5a91c6701 (dmcphers+openshiftbot@redhat.com)
+- hack/godep-save.sh: add kube version check and fail early
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: <drop>: disable apiserver loopback loop in generic context
+  (stefan.schimanski@gmail.com)
+- sqash: fix sdn after rebase (stefan.schimanski@gmail.com)
+- TO REVERT: fix SAR serialization (deads@redhat.com)
+- skip RBAC resources for oadm migrate because of permission problems
+  (deads@redhat.com)
+- test-fix: run staging tests through vendor (stefan.schimanski@gmail.com)
+- fix: switch scc review to external objects (deads@redhat.com)
+- fix: decoder for set env (deads@redhat.com)
+- Allow a large burst for discovery to reduce oc latency (deads@redhat.com)
+- fix: deployment generator for external version (deads@redhat.com)
+- UPSTREAM: opencontainers/runc: 1124: Ignore error when starting transient
+  unit that already exists (decarr@redhat.com)
+- fix-test: GC user in TestOldLocalResourceAccessReviewEndpoint
+  (stefan.schimanski@gmail.com)
+- fix-test: add GC user to globalDeploymentConfigGetterUsers
+  (stefan.schimanski@gmail.com)
+- fix test: allow daemon set, stateful set e2e tests to schedule to all nodes
+  for gce testing (andy.goldstein@gmail.com)
+- fix: appliedclusterresourcequota to be a getter again (deads@redhat.com)
+- fix-test: test-cmd.sh (deads@redhat.com)
+- fix-test: 'oc get builds' in extended build test (andy.goldstein@gmail.com)
+- fix-test: extended deploymentconfig test issues (andy.goldstein@gmail.com)
+- fix-test: Wait for openshift/ruby:latest ImageStreamTag before running build
+  forcePull test (andy.goldstein@gmail.com)
+- Enable garbage collector controller (andy.goldstein@gmail.com)
+- fix-test: correct type cast in PodSucceeded for dns extended test
+  (stefan.schimanski@gmail.com)
+- fix-test: replace cakephp-mysql-{example -> persistent} in
+  templateservicebroker tests (stefan.schimanski@gmail.com)
+- fix: be fatal on DNS informer error and fix init order
+  (stefan.schimanski@gmail.com)
+- Fix ObjectRefernce type in unidler proxy signaler (sross@redhat.com)
+- Remove "vendored" userspace proxy (sross@redhat.com)
+- fix: oc idle: marshal versioned objects (sross@redhat.com)
+- Default CNI conf/bin dirs correctly (andy.goldstein@gmail.com)
+- fix: same eof newline on Mac and Linux (stefan.schimanski@gmail.com)
+- fix: do not build before update in Makefile (stefan.schimanski@gmail.com)
+- fix-test: use semantic equality in roundtrip tests like upstream
+  (stefan.schimanski@gmail.com)
+- rewrites: compile fixes for unit tests (stefan.schimanski@gmail.com)
+- fix: buildpod controller (stefan.schimanski@gmail.com)
+- adapt: use external kube client for events (agoldste@redhat.com)
+- fix: workaround kube issue 44448 for buildconfiginstantiate
+  (andy.goldstein@gmail.com)
+- fix-test: wait until server is healthy (and therefore rbac post start hook is
+  finished) (stefan.schimanski@gmail.com)
+- fix: return Build, not Status in build webhook New()
+  (stefan.schimanski@gmail.com)
+- fix-test: node_auth_test needs to include ?output=1 for exec and attach now
+  (andy.goldstein@gmail.com)
+- fix: DefaultClientConfig: use kube cluster defaults, which fallback to
+  localhost:8080 (andy.goldstein@gmail.com)
+- fix-test: update extended test exclude list (stefan.schimanski@gmail.com)
+- fix-test: adapt to Jobs removed from extensions (andy.goldstein@gmail.com)
+- fix: versioned objects in 'oc set env' by default (andy.goldstein@gmail.com)
+- fix: grammar in error string (stefan.schimanski@gmail.com)
+- fix-test: ignore terminating registry pods in test-cmd.sh
+  (agoldste@redhat.com)
+- fix-test: avoid 'tput: invalid terminal' in core.sh in test-cmd.sh
+  (stefan.schimanski@gmail.com)
+- hack/build-{go,images}: include gcs+oss build tags as in build-cross.sh
+  (stefan.schimanski@gmail.com)
+- fix-test: add DockerShim root dir to NodeConfig to run int tests as non-root
+  (andy.goldstein@gmail.com)
+- fix-test: add DockerShimSocket to NodeConfig to run int tests as non-root
+  (agoldste@redhat.com)
+- adapt: match upstream pkg/proxy refactors (agoldste@redhat.com)
+- fix: openapi generation script with staging dirs (agoldste@redhat.com)
+- add: teach deployment HPA describer about new HPA (sross@redhat.com)
+- fix: wait logic in WaitForServiceAccounts (agoldste@redhat.com)
+- fix-test: switch storage extensions/v1beta1 migration test from jobs to HPA
+  (agoldste@redhat.com)
+- fix-test: add watch request param support to router http mock
+  (agoldste@redhat.com)
+- fix: panic on nil field/label selectors in router ListWatchers
+  (agoldste@redhat.com)
+- REVIEW: update: etcd_storage_path_test.go, with unfinished etcd3 support
+  (agoldste@redhat.com)
+- add: disabled etcd3 testing code and liveness check (agoldste@redhat.com)
+- fix: install all kube apis and kubecompat (agoldste@redhat.com)
+- add: pkg/kubecompat/apis/extensions/v1beta1 to restore HPA in
+  extensions/v1beta1 (agoldste@redhat.com)
+- REVIEW: fix: write versioned AdmissionConfiguration for admission plugins
+  (stefan.schimanski@gmail.com)
+- add: test cases in TestClusterResourceOverridePluginWithNoLimits
+  (agoldste@redhat.com)
+- fix-test: non-existing extensions/v1beta1 in
+  TestExtensionsAPIDisabledAutoscaleBatchEnabled (stefan.schimanski@gmail.com)
+- fix-test: update expected index in TestRootRedirect
+  (stefan.schimanski@gmail.com)
+- fix: do not install Docker image types, only register
+  (stefan.schimanski@gmail.com)
+- update: bootstrap policy (agoldste@redhat.com)
+- Enforce etcd2 storage backend (stefan.schimanski@gmail.com)
+- fix-test: update list of admission controllers that are off by default
+  (agoldste@redhat.com)
+- REVIEW: adapt: convert proxy & dns to shared informers (agoldste@redhat.com)
+- add: new deployment cohabitation (stefan.schimanski@gmail.com)
+- REVIEW: refactoring: merge storage factory code paths
+  (stefan.schimanski@gmail.com)
+- fix: start controllers in background and informers after controller init
+  (agoldste@redhat.com)
+- adapt: internal+external clients in controllers (stefan.schimanski@gmail.com)
+- REVIEW: initial 1.6 port of master setup (stefan.schimanski@gmail.com)
+- move: split pkg/cmd/server/kubernetes into master and node
+  (stefan.schimanski@gmail.com)
+- REVIEW: update: known kube apigroup versions in pkg/cmd/server/api
+  (stefan.schimanski@gmail.com)
+- fix: add 'oc auth', fix apply args (agoldste@redhat.com)
+- REVIEW: adapt: pkg/cmd/cli/cmd/set printer changes (agoldste@redhat.com)
+- adapt: pkg/cmd/cli/cmd/rollout signature fixes (agoldste@redhat.com)
+- pkg/sdn/plugin: use upstream ConstructPodPortMapping
+  (andy.goldstein@gmail.com)
+- adapt: match pkg/sdn upstream refactors (agoldste@redhat.com)
+- adapt: match pkg/quota to upstream refactors (agoldste@redhat.com)
+- adapt: match pkg/quota/image upstream refactors (agoldste@redhat.com)
+- adapt: pkg/cmd/util new upstream batch and hpa apigroups
+  (stefan.schimanski@gmail.com)
+- update: pkg/cmd/util/clientcmd generator list (stefan.schimanski@gmail.com)
+- update: pkg/cmd/util/clientcmd security related restclient.Config fields
+  (stefan.schimanski@gmail.com)
+- fix-test: add SchedulerName and TerminationMessage* to container fixtures
+  (stefan.schimanski@gmail.com)
+- fix-test: upstream roundtrip framework in pkg/api/serialization_test
+  (stefan.schimanski@gmail.com)
+- fix-test: fuzzer panic in pkg/api/serialization_test
+  (stefan.schimanski@gmail.com)
+- add-test: legacy apigroup case for hpa test (stefan.schimanski@gmail.com)
+- fix-test: update HPA test example versions after extensions/v1beta1 is gone
+  (stefan.schimanski@gmail.com)
+- fix-test: misc unit tests (stefan.schimanski@gmail.com)
+- adapt: use SCC lister from kube in pkg/security (agoldste@redhat.com)
+- adapt: pkg/dns: replace kendpoints.PodHostnamesAnnotation with proper field
+  (agoldste@redhat.com)
+- REVIEW: adapt: wrap controller manager AddFlags with our controller list
+  (agoldste@redhat.com)
+- adapt: pkg/deploy informers (stefan.schimanski@gmail.com)
+- adapt: stop using a ShortcutExpander in OverwriteBootstrapPolicy
+  (agoldste@redhat.com)
+- REVIEW: adapt: remove OutputVersion helper calls in pkg/cmd/cli/cmd
+  (agoldste@redhat.com)
+- REVIEW: use version that handles internal api objects to determine effective
+  scc (agoldste@redhat.com)
+- adapt: f.PrinterForCommand instead of versioned printer (agoldste@redhat.com)
+- adapt: request timeout and image pull progress deadline for
+  docker.GetKubeClient (agoldste@redhat.com)
+- add: internal kube informers in origin shared informer factory (needed for
+  admission) (agoldste@redhat.com)
+- remove: old api/protobuf-spec files (stefan.schimanski@gmail.com)
+- remove: old clientsets (stefan.schimanski@gmail.com)
+- remove: legacy kube informers (agoldste@redhat.com)
+- adapt: upstream informers/listers for clusterquotamapping controller
+  (agoldste@redhat.com)
+- adapt: add GetOptions to non-generated client (stefan.schimanski@gmail.com)
+- adapt: shims around auth registries for pointer List/GetOptions
+  (stefan.schimanski@gmail.com)
+- adapt: v1 secrets (stefan.schimanski@gmail.com)
+- adapt: use InternalListWatch shim to translate ListOptions
+  (stefan.schimanski@gmail.com)
+- adapt: pass client to admission plugins via WantsInternalKubeClientSet
+  (stefan.schimanski@gmail.com)
+- REVIEW: adapt: pkg/cmd/util/clientcmd (agoldste@redhat.com)
+- REVIEW TODOs: adapt: pkg/cmd/cli/describe printer updates
+  (agoldste@redhat.com)
+- adapt: pkg/api/kubegraph/analysis.FindHPASpecsMissingCPUTargets
+  (stefan.schimanski@gmail.com)
+- adapt: match upstream discovery type changes (stefan.schimanski@gmail.com)
+- adapt: upstream store.CompleteWithOptions instead of ApplyOptions
+  (agoldste@redhat.com)
+- apigroups: remove double registration of meta types for internal versions
+  (stefan.schimanski@gmail.com)
+- apigroups: adapt to new 1.6 style (stefan.schimanski@gmail.com)
+- apigroups: remove meta kinds (stefan.schimanski@gmail.com)
+- adapt: event broadcasters (stefan.schimanski@gmail.com)
+- Rewrites (agoldste@redhat.com)
+- Fix hack scripts on Mac (stefan.schimanski@gmail.com)
+- UPSTREAM: 00000: make AsVersionedObjects default cleanly (deads@redhat.com)
+- UPSTREAM: <carry>: openapi test, patch in updated package name
+  (deads@redhat.com)
+- UPSTREAM: 44221: validateClusterInfo: use clientcmdapi.NewCluster()
+  (deads@redhat.com)
+- UPSTREAM: 44570: Explicit namespace from kubeconfig should override in-
+  cluster config (deads@redhat.com)
+- UPSTREAM: <carry>: add OpenShift resources to garbage collector ignore list
+  (andy.goldstein@gmail.com)
+- UPSTREAM: 44859: e2e: handle nil ReplicaSet in checkDeploymentRevision
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: 44861: NotRegisteredErr for known kinds not registered in target GV
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: <drop>: Run make-update – vendor/ changes
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: google/cadvisor: 1639: Reduce cAdvisor log spam with multiple
+  devices (decarr@redhat.com)
+- UPSTREAM: docker/engine-api: 26718: Add Logs to ContainerAttachOptions
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: 2140: Add 'ca-central-1' region for registry
+  S3 storage driver (mfojtik@redhat.com)
+- UPSTREAM: opencontainers/runc: 1216: Fix thread safety of SelinuxEnabled and
+  getSelinuxMountPoint (pmorie@redhat.com)
+- UPSTREAM: coreos/go-systemd: 190: util: conditionally build CGO functions
+  (agoldste@redhat.com)
+- UPSTREAM: revert: bedff43594597764076a13c17b30a5fa28c4ea76: docker/docker:
+  <drop>: revert: 734a79b: docker/docker: <carry>: WORD/DWORD changed
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: 2008: Honor X-Forwarded-Port and Forwarded
+  headers (miminar@redhat.com)
+- UPSTREAM: docker/distribution: 1857: Provide stat descriptor for Create
+  method during cross-repo mount (jliggitt@redhat.com)
+- UPSTREAM: docker/distribution: 1757: Export storage.CreateOptions in top-
+  level package (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Update dependencies
+  (agladkov@redhat.com)
+- UPSTREAM: coreos/etcd: <carry>: vendor grpc v1.0.4 locally
+  (agoldste@redhat.com)
+- bump(*): Kubernetes 1.6.1 (stefan.schimanski@gmail.com)
+- hack/copy-kube-artifacts.sh: add staging/*** for proto files
+  (stefan.schimanski@gmail.com)
+- hack/godep-save.sh: run godep-save twice to install test dependencies
+  (stefan.schimanski@gmail.com)
+- hack/godep-*.sh: workaround godep dependency issues
+  (stefan.schimanski@gmail.com)
+- hack/godep-*.sh: symlink staging dirs (stefan.schimanski@gmail.com)
+- hack/godep-*.sh: bump godep to v79 (stefan.schimanski@gmail.com)
+- Add backward compatibility for the old EgressNetworkPolicy "0.0.0.0/32" bug
+  (danw@redhat.com)
+
 * Thu Apr 27 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.52-1
 - add build substatus (cdaley@redhat.com)
 
