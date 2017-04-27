@@ -345,6 +345,10 @@ readonly EXCLUDED_TESTS=(
 
 	# this tests the _kube_ downgrade. we don't support that.
 	"\[Feature:Downgrade\]"
+
+	# upstream flakes:
+	"Basic StatefulSet functionality \[StatefulSetBasic\] should provide basic identity"
+	"SchedulerPredicates \[Serial\] validates resource limits of pods that are allowed to run"
 )
 
 readonly SERIAL_TESTS=(
