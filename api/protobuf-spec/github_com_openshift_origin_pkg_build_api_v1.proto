@@ -920,7 +920,7 @@ message StageInfo {
 
   // startTime is a timestamp representing the server time when this Stage started.
   // It is represented in RFC3339 form and is in UTC.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time startTime = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time startTime = 2;
 
   // durationMilliseconds identifies how long the stage took
   // to complete in milliseconds.
@@ -940,7 +940,7 @@ message StepInfo {
 
   // startTime is a timestamp representing the server time when this Step started.
   // it is represented in RFC3339 form and is in UTC.
-  optional k8s.io.kubernetes.pkg.api.unversioned.Time startTime = 2;
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time startTime = 2;
 
   // durationMilliseconds identifies how long the step took
   // to complete in milliseconds.

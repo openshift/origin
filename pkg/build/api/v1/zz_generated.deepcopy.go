@@ -459,8 +459,6 @@ func DeepCopy_v1_BuildStatus(in interface{}, out interface{}, c *conversion.Clon
 					return err
 				}
 			}
-		} else {
-			out.Stages = nil
 		}
 		return nil
 	}
@@ -1052,9 +1050,8 @@ func DeepCopy_v1_StageInfo(in interface{}, out interface{}, c *conversion.Cloner
 	{
 		in := in.(*StageInfo)
 		out := out.(*StageInfo)
-		out.Name = in.Name
+		*out = *in
 		out.StartTime = in.StartTime.DeepCopy()
-		out.DurationMilliseconds = in.DurationMilliseconds
 		if in.Steps != nil {
 			in, out := &in.Steps, &out.Steps
 			*out = make([]StepInfo, len(*in))
@@ -1063,8 +1060,6 @@ func DeepCopy_v1_StageInfo(in interface{}, out interface{}, c *conversion.Cloner
 					return err
 				}
 			}
-		} else {
-			out.Steps = nil
 		}
 		return nil
 	}
@@ -1074,9 +1069,8 @@ func DeepCopy_v1_StepInfo(in interface{}, out interface{}, c *conversion.Cloner)
 	{
 		in := in.(*StepInfo)
 		out := out.(*StepInfo)
-		out.Name = in.Name
+		*out = *in
 		out.StartTime = in.StartTime.DeepCopy()
-		out.DurationMilliseconds = in.DurationMilliseconds
 		return nil
 	}
 }
