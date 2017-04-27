@@ -39,7 +39,8 @@ var (
 	routeColumns            = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
 	deploymentConfigColumns = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns         = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
-	policyColumns           = []string{"NAME", "ROLES", "LAST MODIFIED"}
+	policyColumns           = []string{"NAME", "ROLES COUNT", "LAST MODIFIED"}
+	policyWideColumns       = []string{"ROLES"}
 	policyBindingColumns    = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
 	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
@@ -94,8 +95,8 @@ func NewHumanReadablePrinter(printOptions kctl.PrintOptions) *kctl.HumanReadable
 	p.Handler(templateColumns, printTemplate)
 	p.Handler(templateColumns, printTemplateList)
 
-	p.Handler(policyColumns, printPolicy)
-	p.Handler(policyColumns, printPolicyList)
+	p.Handler(policyColumns, policyWideColumns, printPolicy)
+	p.Handler(policyColumns, policyWideColumns, printPolicyList)
 	p.Handler(policyBindingColumns, printPolicyBinding)
 	p.Handler(policyBindingColumns, printPolicyBindingList)
 	p.Handler(roleBindingColumns, printRoleBinding)
@@ -697,11 +698,49 @@ func printPolicy(policy *authorizationapi.Policy, w io.Writer, opts kctl.PrintOp
 			return err
 		}
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%v", name, rolesString, policy.LastModified); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%d\t%v", name, len(roleNames), policy.LastModified); err != nil {
 		return err
+	}
+	if opts.Wide {
+		if _, err := fmt.Fprintf(w, "\t%s", rolesString); err != nil {
+			return err
+		}
 	}
 	if err := appendItemLabels(policy.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
 		return err
+	}
+	return nil
+}
+
+func printPolicyRoleMultilineWithIndent(w io.Writer, name string, policy *authorizationapi.Policy) error {
+	roleNamesPerLine := sets.String{}
+	//oneLineKeysNumber means How many Roles can be print per line
+	i, oneLineKeysNumber, beginIndent, endIndent := 0, 3, "", ""
+
+	for key := range policy.Roles {
+		roleNamesPerLine.Insert(key)
+		//if roleNmaesPerLine set collect oneLine keys, then Join and Fprintf
+		if i != 0 && i%oneLineKeysNumber == 0 {
+			rolesString := strings.Join(roleNamesPerLine.List(), ", ")
+			if i == oneLineKeysNumber {
+				if _, err := fmt.Fprintf(w, "%s\t%s\t%v\n", name, rolesString, policy.LastModified); err != nil {
+					return err
+				}
+			} else {
+				if _, err := fmt.Fprintf(w, "%s\t%s\t%v\n", beginIndent, rolesString, endIndent); err != nil {
+					return err
+				}
+			}
+			roleNamesPerLine = sets.String{}
+		}
+		i++
+	}
+	//deal with the rest reamin string < oneLineKeysNumber, then Join and Fprintf
+	if i < oneLineKeysNumber {
+		rolesString := strings.Join(roleNamesPerLine.List(), ", ")
+		if _, err := fmt.Fprintf(w, "%s\t%s\t%v\n", beginIndent, rolesString, endIndent); err != nil {
+			return err
+		}
 	}
 	return nil
 }
