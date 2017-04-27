@@ -5,7 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/api"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type key int
@@ -23,7 +23,7 @@ func fromContext(ctx context.Context) *[]api.StageInfo {
 }
 
 // RecordNewStep adds a new timing step to the context
-func RecordNewStep(ctx context.Context, stageName api.StageName, stepName api.StepName, startTime unversioned.Time, endTime unversioned.Time) {
+func RecordNewStep(ctx context.Context, stageName api.StageName, stepName api.StepName, startTime metav1.Time, endTime metav1.Time) {
 	stages := fromContext(ctx)
 	newStages := api.RecordStageAndStepInfo(*stages, stageName, stepName, startTime, endTime)
 	*stages = newStages

@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/source-to-image/pkg/tar"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -243,12 +243,12 @@ func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *api.G
 	if !glog.Is(5) {
 		cloneOptions = append(cloneOptions, "--quiet")
 	}
-	startTime := unversioned.Now()
+	startTime := metav1.Now()
 	if err := gitClient.CloneWithOptions(dir, gitSource.URI, cloneOptions...); err != nil {
 		return true, err
 	}
 
-	timing.RecordNewStep(ctx, api.StageFetchInputs, api.StepFetchGitSource, startTime, unversioned.Now())
+	timing.RecordNewStep(ctx, api.StageFetchInputs, api.StepFetchGitSource, startTime, metav1.Now())
 
 	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
@@ -362,12 +362,12 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 
 	if !exists || forcePull {
 		glog.V(0).Infof("Pulling image %q ...", image)
-		startTime := unversioned.Now()
+		startTime := metav1.Now()
 		if err := dockerClient.PullImage(docker.PullImageOptions{Repository: image}, dockerAuth); err != nil {
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
 
-		timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullInputImage, startTime, unversioned.Now())
+		timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullInputImage, startTime, metav1.Now())
 
 	}
 
