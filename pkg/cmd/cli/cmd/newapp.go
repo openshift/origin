@@ -17,12 +17,15 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapierrors "k8s.io/kubernetes/pkg/api/errors"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	ctl "k8s.io/kubernetes/pkg/kubectl"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/labels"
+	"k8s.io/kubernetes/pkg/registry/generic"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/util/errors"
 	"k8s.io/kubernetes/pkg/util/sets"
@@ -315,11 +318,11 @@ func (o *NewAppOptions) RunNewApp() error {
 	}
 
 	hasMissingRepo := false
-	installing := []*kapi.Pod{}
+	installing := []*kbatch.Job{}
 	indent := o.Action.DefaultIndent()
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
-		case *kapi.Pod:
+		case *kbatch.Job:
 			if t.Annotations[newcmd.GeneratedForJob] == "true" {
 				installing = append(installing, t)
 			}
@@ -364,8 +367,7 @@ func (o *NewAppOptions) RunNewApp() error {
 
 type LogsForObjectFunc func(object, options runtime.Object) (*restclient.Request, error)
 
-func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, logsForObjectFn LogsForObjectFunc) error {
-	fmt.Fprintf(config.Out, "--> Installing ...\n")
+func followInstallationPod(config *newcmd.AppConfig, pod *kapi.Pod, s kcoreclient.SecretInterface, logsForObjectFn LogsForObjectFunc) error {
 
 	// we cannot retrieve logs until the pod is out of pending
 	// TODO: move this to the server side
@@ -377,6 +379,7 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 	opts := &kcmd.LogsOptions{
 		Namespace:   pod.Namespace,
 		ResourceArg: pod.Name,
+		Object:      pod,
 		Options: &kapi.PodLogOptions{
 			Follow:    true,
 			Container: pod.Spec.Containers[0].Name,
@@ -396,10 +399,82 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 				// output the log error if one occurred
 				err = logErr
 			} else {
-				err = fmt.Errorf("installation may not have completed, see logs for %q for more information", pod.Name)
+				err = fmt.Errorf("installation pod may not have completed, see logs for %q for more information", pod.Name)
 			}
 		}
 		return err
+	}
+
+	return nil
+}
+
+func followInstallation(config *newcmd.AppConfig, input string, job *kbatch.Job, logsForObjectFn LogsForObjectFunc) error {
+	fmt.Fprintf(config.Out, "--> Installing ...\n")
+
+	// TODO: move this to the server side
+
+	jobClient := config.KubeClient.Batch().Jobs(job.Namespace)
+	podClient := config.KubeClient.Core().Pods(job.Namespace)
+	secretsClient := config.KubeClient.Core().Secrets(job.Namespace)
+
+	jobWatch, err := jobClient.Watch(kapi.ListOptions{FieldSelector: generic.ObjectMetaFieldsSet(&job.ObjectMeta, true).AsSelector()})
+	if err != nil {
+		return err
+	}
+	defer jobWatch.Stop()
+
+	podWatch, err := podClient.Watch(kapi.ListOptions{LabelSelector: labels.Set{"job-name": job.Name}.AsSelector()})
+	if err != nil {
+		return err
+	}
+	defer podWatch.Stop()
+
+	// For loop synopsis:
+	// Watch for any change in the job or any pod associated with it.
+	// If a pod appears, follow its logs to completion.
+	// If the job changes, only assess it further if there are no active pods associated with it.
+	// If there are no active pods, stop waiting only if the job is complete or failed.
+
+	timeout := make(chan bool, 1)
+	go func() {
+		time.Sleep(2 * time.Minute)
+		timeout <- true
+	}()
+
+	followingPods := make(map[string]bool) // Map to denote which pods we are following.
+	for done := false; !done; {
+		select {
+		case p, ok := <-podWatch.ResultChan():
+			if ok {
+				if pod, ok := p.Object.(*kapi.Pod); ok {
+					if !followingPods[pod.Name] {
+						followingPods[pod.Name] = true
+						err = followInstallationPod(config, pod, secretsClient, logsForObjectFn)
+					}
+				}
+			}
+		case j, ok := <-jobWatch.ResultChan():
+			if ok {
+				if job, ok := j.Object.(*kbatch.Job); ok {
+					if job.Status.Active == 0 {
+						for _, condition := range job.Status.Conditions {
+							if condition.Status == kapi.ConditionTrue {
+								if condition.Type != kbatch.JobComplete {
+									if err == nil { // If we don't have a more informative error for a given pod
+										err = fmt.Errorf("installation may not have completed, see job %q for more information", job.Name)
+									}
+								}
+								// Job Complete, we are done waiting
+								done = true
+							}
+						}
+					}
+				}
+
+			}
+		case <-timeout:
+			return fmt.Errorf("Timeout waiting for job completion; see job %q for more information", job.Name)
+		}
 	}
 
 	return nil
@@ -444,7 +519,7 @@ func installationComplete(c kcoreclient.PodInterface, name string, out io.Writer
 			}
 			return true, nil
 		case kapi.PodFailed:
-			return true, fmt.Errorf("installation of %q did not complete successfully", name)
+			return true, fmt.Errorf("installation pod %q did not complete successfully", name)
 		default:
 			return false, nil
 		}

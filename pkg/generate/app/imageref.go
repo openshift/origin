@@ -11,6 +11,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kvalidation "k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -393,7 +394,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 	return container, triggers, nil
 }
 
-func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor SecretAccessor, serviceAccountName string) (*kapi.Pod, *kapi.Secret, error) {
+func (r *ImageRef) InstallableJob(generatorInput GeneratorInput, secretAccessor SecretAccessor, serviceAccountName string) (*kbatch.Job, *kapi.Secret, error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("can't suggest a name for the provided image %q", r.Reference.Exact())
@@ -423,18 +424,16 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 
 	// give installers 4 hours to complete
 	deadline := int64(60 * 60 * 4)
-	pod := &kapi.Pod{
-		ObjectMeta: meta,
-		Spec: kapi.PodSpec{
-			RestartPolicy:         kapi.RestartPolicyNever,
-			ActiveDeadlineSeconds: &deadline,
-		},
+
+	podSpec := &kapi.PodSpec{
+		RestartPolicy:         kapi.RestartPolicyOnFailure,
+		ActiveDeadlineSeconds: &deadline,
 	}
 
 	var secret *kapi.Secret
 	if token := generatorInput.Token; token != nil {
 		if token.ServiceAccount {
-			pod.Spec.ServiceAccountName = serviceAccountName
+			podSpec.ServiceAccountName = serviceAccountName
 		}
 		if token.Env != nil {
 			containerToken, err := secretAccessor.Token()
@@ -467,7 +466,7 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 			if len(crt) > 0 {
 				secret.Data[kapi.ServiceAccountRootCAKey] = []byte(crt)
 			}
-			pod.Spec.Volumes = append(pod.Spec.Volumes, kapi.Volume{
+			podSpec.Volumes = append(podSpec.Volumes, kapi.Volume{
 				Name: "generate-token",
 				VolumeSource: kapi.VolumeSource{
 					Secret: &kapi.SecretVolumeSource{SecretName: meta.Name},
@@ -480,6 +479,19 @@ func (r *ImageRef) InstallablePod(generatorInput GeneratorInput, secretAccessor 
 		}
 	}
 
-	pod.Spec.Containers = []kapi.Container{*container}
-	return pod, secret, nil
+	podSpec.Containers = []kapi.Container{*container}
+
+	completions := int32(1)
+	job := &kbatch.Job{
+		ObjectMeta: meta,
+		Spec: kbatch.JobSpec{
+			Completions:           &completions,
+			ActiveDeadlineSeconds: &deadline,
+			Template: kapi.PodTemplateSpec{
+				Spec: *podSpec,
+			},
+		},
+	}
+
+	return job, secret, nil
 }

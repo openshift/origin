@@ -99,6 +99,7 @@
 // test/extended/testdata/ldap/ldapserver-service.json
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/newapp_installer/Dockerfile
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
@@ -5472,6 +5473,35 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/long_names/fixture.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataNewapp_installerDockerfile = []byte(`FROM openshift/origin-base
+
+RUN yum install -y centos-release-openshift-origin
+RUN yum install -y origin-clients
+
+LABEL io.openshift.generate.job="true"
+LABEL io.openshift.generate.token.as="serviceaccount"
+
+ENV GIT_COMMITTER_NAME ___user
+ENV GIT_COMMITTER_EMAIL ___user@redhat.com
+
+ENTRYPOINT [ "/usr/bin/oc", "new-app", "https://github.com/openshift/ruby-hello-world" ]
+`)
+
+func testExtendedTestdataNewapp_installerDockerfileBytes() ([]byte, error) {
+	return _testExtendedTestdataNewapp_installerDockerfile, nil
+}
+
+func testExtendedTestdataNewapp_installerDockerfile() (*asset, error) {
+	bytes, err := testExtendedTestdataNewapp_installerDockerfileBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/newapp_installer/Dockerfile", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19051,6 +19081,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/newapp_installer/Dockerfile": testExtendedTestdataNewapp_installerDockerfile,
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
@@ -19403,6 +19434,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"long_names": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
+				}},
+				"newapp_installer": &bintree{nil, map[string]*bintree{
+					"Dockerfile": &bintree{testExtendedTestdataNewapp_installerDockerfile, map[string]*bintree{}},
 				}},
 				"roles": &bintree{nil, map[string]*bintree{
 					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
