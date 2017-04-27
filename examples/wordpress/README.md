@@ -14,23 +14,8 @@ in this example, but those wishing to run a more secure cluster will want to ens
 Allow Wordpress to bind to port 80 by editing the restricted security context restraint.  Change "runAsUser" from ```MustRunAsRange``` to ```RunAsAny```.
 
 
-```
-$ oc edit scc restricted
-
-apiVersion: v1
-groups:
-- system:authenticated
-kind: SecurityContextConstraints
-metadata:
-  creationTimestamp: 2015-06-26T14:01:03Z
-  name: restricted
-  resourceVersion: "59"
-  selfLink: /api/v1/securitycontextconstraints/restricted
-  uid: c827a79d-1c0b-11e5-9166-d4bed9b39058
-runAsUser:
-  type: MustRunAsRange  <-- change to RunAsAny
-seLinuxContext:
-  type: MustRunAs
+```console
+$ oc patch scc restricted -p '{"runAsUser":{"type":"RunAsAny"}}'
 ```
 
 Changing the restricted security context as shown above allows the Wordpress container to bind to port 80.  
