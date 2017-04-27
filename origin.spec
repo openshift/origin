@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2f204e69e2ed19e69a4022c6d543d7363cf2da33
+%global commit 67b7d724890410564debca185976d1e3443e459a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.49 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2f204e6
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.50 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=67b7d72
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.50
+Version:        3.6.51
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,26 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu Apr 27 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.51-1
+- bump(github.com/openshift/origin-web-console):
+  7a3a32bd990d2f8f42b868d7b99a1186570c0260 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  373860fcf1dcea41d8036a79d7989023956b7362 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  90b035d6dc4ebb39f79e4b48476af45a058622a5 (dmcphers+openshiftbot@redhat.com)
+- Match subpaths correctly when path contains trailing slash
+  (jliggitt@redhat.com)
+- Remove experimental `oc import docker-compose` (ccoleman@redhat.com)
+- Add proper default certificate check (ichavero@redhat.com)
+- Avoid printing cert message for already loaded route (ichavero@redhat.com)
+- indicate uselessness of metrics container for haproxy (rchopra@redhat.com)
+- Replace using of cat | grep by a single grep invocation.
+  (vsemushi@redhat.com)
+- cli help changes to indicate options that are not supported for F5 (yet)
+  (rchopra@redhat.com)
+- sdn: fix initialization order to prevent crash on node startup
+  (dcbw@redhat.com)
+
 * Wed Apr 26 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.50-1
 - Upgrade golang-1.8 to 1.8.1 (ffranz@redhat.com)
 
