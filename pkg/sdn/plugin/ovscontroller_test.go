@@ -470,7 +470,8 @@ var enp2 = osapi.EgressNetworkPolicy{
 			{
 				Type: osapi.EgressNetworkPolicyRuleDeny,
 				To: osapi.EgressNetworkPolicyPeer{
-					CIDRSelector: "0.0.0.0/0",
+					// "/32" is wrong but accepted for backward-compatibility
+					CIDRSelector: "0.0.0.0/32",
 				},
 			},
 		},
@@ -512,7 +513,7 @@ func assertENPFlowAdditions(origFlows, newFlows []string, additions ...enpFlowAd
 				fmt.Sprintf("reg0=%d", addition.vnid),
 				fmt.Sprintf("priority=%d", len(addition.policy.Spec.Egress)-i),
 			}
-			if rule.To.CIDRSelector == "0.0.0.0/0" {
+			if rule.To.CIDRSelector == "0.0.0.0/0" || rule.To.CIDRSelector == "0.0.0.0/32" {
 				change.noMatch = []string{"nw_dst"}
 			} else {
 				change.match = append(change.match, fmt.Sprintf("nw_dst=%s", rule.To.CIDRSelector))
