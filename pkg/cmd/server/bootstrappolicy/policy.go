@@ -14,6 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -956,6 +957,44 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		for j := range roles[i].Rules {
 			roles[i].Rules[j].Resources = authorizationapi.NormalizeResources(roles[i].Rules[j].Resources)
 		}
+	}
+
+	originRoles := sets.NewString()
+	for i := range roles {
+		originRoles.Insert(roles[i].Name)
+	}
+
+	validConflicts := sets.NewString(
+		"admin",
+		"cluster-admin",
+		"edit",
+		"system:discovery",
+		"system:node",
+		"system:node-proxier",
+		"view",
+	)
+
+	invalidConflicts := sets.NewString()
+
+	// add non-conflicting kube rbac roles
+	rbacClusterRoles := bootstrappolicy.ClusterRoles()
+	for i := range rbacClusterRoles {
+		if originRoles.Has(rbacClusterRoles[i].Name) {
+			if !validConflicts.Has(rbacClusterRoles[i].Name) {
+				invalidConflicts.Insert(rbacClusterRoles[i].Name)
+			}
+			continue
+		}
+
+		newRole := &authorizationapi.ClusterRole{}
+		if err := kapi.Scheme.Convert(&rbacClusterRoles[i], newRole, nil); err != nil {
+			panic(err)
+		}
+		roles = append(roles, *newRole)
+	}
+
+	if invalidConflicts.Len() != 0 {
+		panic(fmt.Errorf("encountered non-whitelisted conflicting rbac roles: %#v", invalidConflicts.List()))
 	}
 
 	return roles
