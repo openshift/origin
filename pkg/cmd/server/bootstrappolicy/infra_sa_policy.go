@@ -294,7 +294,7 @@ func init() {
 				},
 				// ReplicationManager.podControl (RealPodControl)
 				{
-					Verbs:     sets.NewString("create", "delete"),
+					Verbs:     sets.NewString("create", "delete", "patch"),
 					Resources: sets.NewString("pods"),
 				},
 				// ReplicationManager.podControl.recorder
