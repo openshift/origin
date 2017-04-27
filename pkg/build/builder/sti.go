@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // builderFactory is the internal interface to decouple S2I-specific code from Origin builder code
@@ -287,12 +287,12 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	glog.V(4).Infof("Starting S2I build from %s/%s BuildConfig ...", s.build.Namespace, s.build.Name)
-	startTime := unversioned.Now()
+	startTime := metav1.Now()
 	result, err := builder.Build(config)
 
 	for _, stage := range result.BuildInfo.Stages {
 		for _, step := range stage.Steps {
-			timing.RecordNewStep(ctx, api.StageName(stage.Name), api.StepName(step.Name), unversioned.NewTime(step.StartTime), unversioned.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
+			timing.RecordNewStep(ctx, api.StageName(stage.Name), api.StepName(step.Name), metav1.NewTime(step.StartTime), metav1.NewTime(step.StartTime.Add(time.Duration(step.DurationMilliseconds)*time.Millisecond)))
 		}
 	}
 
@@ -308,10 +308,10 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	startTime = unversioned.Now()
+	startTime = metav1.Now()
 	err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
 
-	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, unversioned.Now())
+	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, metav1.Now())
 
 	if err != nil {
 		s.build.Status.Phase = api.BuildPhaseFailed
@@ -343,10 +343,10 @@ func (s *S2IBuilder) Build() error {
 			glog.V(3).Infof("No push secret provided")
 		}
 		glog.V(0).Infof("\nPushing image %s ...", pushTag)
-		startTime = unversioned.Now()
+		startTime = metav1.Now()
 		digest, err := pushImage(s.dockerClient, pushTag, pushAuthConfig)
 
-		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushImage, startTime, unversioned.Now())
+		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushImage, startTime, metav1.Now())
 
 		if err != nil {
 			s.build.Status.Phase = api.BuildPhaseFailed
