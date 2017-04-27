@@ -4,7 +4,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/rest"
 	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
 
 	"github.com/openshift/origin/pkg/image/api"
@@ -36,9 +35,7 @@ type Storage interface {
 	rest.Lister
 	rest.Getter
 	rest.Watcher
-
-	Create(ctx kapi.Context, obj runtime.Object) (runtime.Object, error)
-	Update(ctx kapi.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
+	rest.CreaterUpdater
 }
 
 // storage puts strong typing around storage calls
