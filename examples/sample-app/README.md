@@ -20,7 +20,7 @@ OpenShift no longer requires SElinux to be disabled, however OpenShift is a syst
 For more information, see these articles:
 
 * http://opensource.com/business/14/7/docker-security-selinux
-* https://docs.docker.com/articles/security/
+* https://docs.docker.com/engine/security/security/
 
 The OpenShift security model will continue to evolve and tighten going forward.
 
