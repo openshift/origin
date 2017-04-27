@@ -15,6 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/api/latest"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/template/api"
 )
@@ -110,6 +111,32 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 	openshiftRoleBindings := bootstrappolicy.GetBootstrapOpenshiftRoleBindings(o.OpenShiftSharedResourcesNamespace)
 	for i := range openshiftRoleBindings {
 		versionedObject, err := kapi.Scheme.ConvertToVersion(&openshiftRoleBindings[i], latest.Version)
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+	}
+
+	controllerClusterRoles := bootstrappolicy.GetBootstrapControllerClusterRoles()
+	for i := range controllerClusterRoles {
+		newRole := &authorizationapi.ClusterRole{}
+		if err := kapi.Scheme.Convert(&controllerClusterRoles[i], newRole, nil); err != nil {
+			return err
+		}
+		versionedObject, err := kapi.Scheme.ConvertToVersion(newRole, latest.Version)
+		if err != nil {
+			return err
+		}
+		policyTemplate.Objects = append(policyTemplate.Objects, versionedObject)
+	}
+
+	controllerClusterRoleBindings := bootstrappolicy.GetBootstrapControllerClusterRoleBindings()
+	for i := range controllerClusterRoleBindings {
+		newRoleBinding := &authorizationapi.ClusterRoleBinding{}
+		if err := kapi.Scheme.Convert(&controllerClusterRoleBindings[i], newRoleBinding, nil); err != nil {
+			return err
+		}
+		versionedObject, err := kapi.Scheme.ConvertToVersion(newRoleBinding, latest.Version)
 		if err != nil {
 			return err
 		}

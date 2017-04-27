@@ -25,7 +25,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/typed/dynamic"
+	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	utilwait "k8s.io/kubernetes/pkg/util/wait"
@@ -43,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
+	origincontroller "github.com/openshift/origin/pkg/controller"
 	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/version"
@@ -589,6 +592,16 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	// used by admission controllers
 	oc.RunServiceAccountPullSecretsControllers()
 	oc.RunSecurityAllocationController()
+
+	stop := make(<-chan struct{})
+	clientBuilder := &controller.SAControllerClientBuilder{
+		ClientConfig: restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig), // make sure not to grant any permissions from the config
+		CoreClient:   oc.PrivilegedLoopbackKubernetesClientset.Core(),                      // privileged client used to build the limited service account for each controller
+		Namespace:    bootstrappolicy.DefaultOpenShiftInfraNamespace,                       // all controllers must run in a highly privileged namespace
+	}
+	if err := origincontroller.StartControllers(clientBuilder, stop, controllerManagerOptions); err != nil {
+		return err
+	}
 
 	if kc != nil {
 		_, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)

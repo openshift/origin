@@ -23,6 +23,7 @@ type DockercfgTokenDeletedControllerOptions struct {
 }
 
 // NewDockercfgTokenDeletedController returns a new *DockercfgTokenDeletedController.
+// See pkg/cmd/server/bootstrappolicy/controller_policy.go to see what cluster roles apply to this controller.
 func NewDockercfgTokenDeletedController(cl kclientset.Interface, options DockercfgTokenDeletedControllerOptions) *DockercfgTokenDeletedController {
 	e := &DockercfgTokenDeletedController{
 		client: cl,
@@ -53,27 +54,14 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 // The DockercfgTokenDeletedController watches for service account tokens to be deleted.
 // On delete, it removes the associated dockercfg secret if it exists.
 type DockercfgTokenDeletedController struct {
-	stopChan chan struct{}
-
 	client kclientset.Interface
 
 	secretController *cache.Controller
 }
 
-// Runs controller loops and returns immediately
-func (e *DockercfgTokenDeletedController) Run() {
-	if e.stopChan == nil {
-		e.stopChan = make(chan struct{})
-		go e.secretController.Run(e.stopChan)
-	}
-}
-
-// Stop gracefully shuts down this controller
-func (e *DockercfgTokenDeletedController) Stop() {
-	if e.stopChan != nil {
-		close(e.stopChan)
-		e.stopChan = nil
-	}
+// Run should always block forever.  The caller should execute it in a different go routine.
+func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
+	e.secretController.Run(stopCh)
 }
 
 // secretDeleted reacts to a token secret being deleted by looking for a corresponding dockercfg secret and deleting it if it exists
