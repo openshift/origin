@@ -222,7 +222,7 @@ type StageInfo struct {
 
 	// startTime is a timestamp representing the server time when this Stage started.
 	// It is represented in RFC3339 form and is in UTC.
-	StartTime unversioned.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
+	StartTime metav1.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
 
 	// durationMilliseconds identifies how long the stage took
 	// to complete in milliseconds.
@@ -264,7 +264,7 @@ type StepInfo struct {
 
 	// startTime is a timestamp representing the server time when this Step started.
 	// it is represented in RFC3339 form and is in UTC.
-	StartTime unversioned.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
+	StartTime metav1.Time `json:"startTime,omitempty" protobuf:"bytes,2,opt,name=startTime"`
 
 	// durationMilliseconds identifies how long the step took
 	// to complete in milliseconds.
