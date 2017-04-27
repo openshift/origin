@@ -16,12 +16,15 @@ import (
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/client/restclient"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -78,7 +81,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	}
 
 	promptingClient, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
-		ObjectMeta:            kapi.ObjectMeta{Name: "prompting-client"},
+		ObjectMeta:            metav1.ObjectMeta{Name: "prompting-client"},
 		Secret:                "prompting-client-secret",
 		RedirectURIs:          []string{redirectURL},
 		GrantMethod:           oauthapi.GrantHandlerPrompt,
@@ -93,7 +96,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default")
+		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -112,14 +115,19 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	var oauthSecret *kapi.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(kapi.ListOptions{})
+		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
 		for i := range allSecrets.Items {
-			secret := allSecrets.Items[i]
-			if serviceaccount.IsServiceAccountToken(&secret, defaultSA) {
-				oauthSecret = &secret
+			secret := &allSecrets.Items[i]
+			secretv1 := &kapiv1.Secret{}
+			err := kapiv1.Convert_api_Secret_To_v1_Secret(secret, secretv1, nil)
+			if err != nil {
+				return false, err
+			}
+			if serviceaccount.InternalIsServiceAccountToken(secret, defaultSA) {
+				oauthSecret = secret
 				return true, nil
 			}
 		}
@@ -156,7 +164,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"scope:user:full",
 		})
 		// verify the persisted client authorization looks like we expect
-		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:" + oauthClientConfig.ClientId); err != nil {
+		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:"+oauthClientConfig.ClientId, metav1.GetOptions{}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
 			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
@@ -258,7 +266,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -294,7 +302,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	{
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -316,7 +324,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		t.Log("Testing invalid scopes")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -337,7 +345,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		t.Log("Testing allowed scopes with failed API call")
 		oauthClientConfig := &osincli.ClientConfig{
-			ClientId:     serviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
+			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
 			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
@@ -517,7 +525,7 @@ func runOAuthFlow(
 			return
 		}
 
-		_, err = whoamiClient.Builds(projectName).List(kapi.ListOptions{})
+		_, err = whoamiClient.Builds(projectName).List(metav1.ListOptions{})
 		if expectBuildSuccess && err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return
@@ -527,7 +535,7 @@ func runOAuthFlow(
 			return
 		}
 
-		user, err := whoamiClient.Users().Get("~")
+		user, err := whoamiClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return

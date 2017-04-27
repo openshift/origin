@@ -6,8 +6,8 @@ import (
 
 	"github.com/gonum/graph"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/build/api"
@@ -61,7 +61,7 @@ func namespaceFor(node graph.Node) (string, error) {
 	obj := node.(objectifier).Object()
 	switch t := obj.(type) {
 	case runtime.Object:
-		meta, err := kapi.ObjectMetaFor(t)
+		meta, err := metav1.ObjectMetaFor(t)
 		if err != nil {
 			return "", err
 		}

@@ -12,8 +12,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/labels"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -44,7 +44,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 		g.By("Getting the jenkins pod name")
 		selector, _ := labels.Parse("name=jenkins")
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: selector})
+		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: selector.String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).ToNot(o.BeZero())
 		podName = pods.Items[0].Name

@@ -9,7 +9,8 @@ import (
 	"github.com/RangelReale/osincli"
 	"golang.org/x/oauth2"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/oauth/api"
@@ -60,7 +61,10 @@ func TestOAuthStorage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter := originrest.StorageOptions(*masterOptions)
+	optsGetter, err := originrest.StorageOptions(*masterOptions)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	clientStorage, err := clientetcd.NewREST(optsGetter)
 	if err != nil {
@@ -120,8 +124,8 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	clientRegistry.CreateClient(kapi.NewContext(), &api.OAuthClient{
-		ObjectMeta:        kapi.ObjectMeta{Name: "test"},
+	clientRegistry.CreateClient(apirequest.NewContext(), &api.OAuthClient{
+		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
 		Secret:            "secret",
 		AdditionalSecrets: []string{"secret1"},
 		RedirectURIs:      []string{assertServer.URL + "/assert"},
@@ -183,7 +187,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Errorf("unexpected access token: %#v", token)
 	}
 
-	actualToken, err := accessTokenRegistry.GetAccessToken(kapi.NewContext(), token.AccessToken)
+	actualToken, err := accessTokenRegistry.GetAccessToken(apirequest.NewContext(), token.AccessToken, &metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

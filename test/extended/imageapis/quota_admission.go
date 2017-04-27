@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	kutilerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -99,7 +100,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 		err = oc.Client().ImageStreams(oc.Namespace()).Delete("first")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
-			oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+			oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 			quotaName,
 			kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")},
 			true,
@@ -121,7 +122,7 @@ var _ = g.Describe("[imageapis] openshift resource quota admission", func() {
 // a first usage refresh
 func createResourceQuota(oc *exutil.CLI, hard kapi.ResourceList) (*kapi.ResourceQuota, error) {
 	rq := &kapi.ResourceQuota{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: quotaName,
 		},
 		Spec: kapi.ResourceQuotaSpec{
@@ -130,7 +131,7 @@ func createResourceQuota(oc *exutil.CLI, hard kapi.ResourceList) (*kapi.Resource
 	}
 
 	g.By(fmt.Sprintf("creating resource quota with a limit %v", hard))
-	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Create(rq)
+	rq, err := oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Create(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -167,12 +168,12 @@ func assertQuotasEqual(a, b kapi.ResourceList) error {
 // bumpQuota modifies hard spec of quota object with the given value. It returns modified hard spec.
 func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("bump the quota to %s=%d", resourceName, value))
-	rq, err := oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName)
+	rq, err := oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Get(quotaName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	rq.Spec.Hard[resourceName] = *resource.NewQuantity(value, resource.DecimalSI)
-	_, err = oc.AdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Update(rq)
+	_, err = oc.InternalAdminKubeClient().Core().ResourceQuotas(oc.Namespace()).Update(rq)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +188,7 @@ func bumpQuota(oc *exutil.CLI, resourceName kapi.ResourceName, value int64) (kap
 func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kapi.ResourceList) (kapi.ResourceList, error) {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", name))
 	used, err := exutil.WaitForResourceQuotaSync(
-		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+		oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		expectedResources,
 		false,
@@ -203,7 +204,7 @@ func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kap
 func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", quotaName))
 	return testutil.WaitForResourceQuotaLimitSync(
-		oc.KubeClient().Core().ResourceQuotas(oc.Namespace()),
+		oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
 		quotaName,
 		hardLimit,
 		waitTimeout)
@@ -219,7 +220,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		oc.Namespace(),
 	} {
 		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminClient().ImageStreams(projectName).List(kapi.ListOptions{})
+		iss, err := oc.AdminClient().ImageStreams(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			continue
 		}

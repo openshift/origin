@@ -4,12 +4,13 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kutil "k8s.io/kubernetes/pkg/util"
-	"k8s.io/kubernetes/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -41,7 +42,7 @@ func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.
 // Stop scales a replication controller via its deployment configuration down to
 // zero replicas, waits for all of them to get deleted and then deletes both the
 // replication controller and its deployment configuration.
-func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *kapi.DeleteOptions) error {
+func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
 	// Pause the deployment configuration to prevent the new deployments from
 	// being triggered.
 	config, err := reaper.pause(namespace, name)
@@ -57,7 +58,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Determine if the deployment config controller noticed the pause.
 	if !configNotFound {
 		if err := wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name)
+			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -82,7 +83,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Clean up deployments related to the config. Even if the deployment
 	// configuration has been deleted, we want to sweep the existing replication
 	// controllers and clean them up.
-	options := kapi.ListOptions{LabelSelector: util.ConfigSelector(name)}
+	options := metav1.ListOptions{LabelSelector: util.ConfigSelector(name).String()}
 	rcList, err := reaper.kc.Core().ReplicationControllers(namespace).List(options)
 	if err != nil {
 		return err
@@ -112,7 +113,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		}
 
 		// Delete all deployer and hook pods
-		options = kapi.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name)}
+		options = metav1.ListOptions{LabelSelector: util.DeployerPodSelector(rc.Name).String()}
 		podList, err := reaper.kc.Core().Pods(rc.Namespace).List(options)
 		if err != nil {
 			return err

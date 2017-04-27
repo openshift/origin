@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/spf13/pflag"
-	"k8s.io/kubernetes/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // rshAllowedFlags is the set of flags in the rsync command that

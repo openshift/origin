@@ -3,7 +3,7 @@ package v1
 import (
 	"fmt"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
@@ -15,9 +15,9 @@ import (
 // identity provider - if a user already exists with the incoming name, the user name may have
 // a number appended to it depending on the configuration of the system.
 type User struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// FullName is the full name of user
 	FullName string `json:"fullName,omitempty" protobuf:"bytes,2,opt,name=fullName"`
@@ -33,9 +33,9 @@ type User struct {
 
 // UserList is a collection of Users
 type UserList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of users
 	Items []User `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
@@ -46,9 +46,9 @@ type UserList struct {
 // user. Information retrieved from the authentication provider is stored in the extra field
 // using a schema determined by the provider.
 type Identity struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// ProviderName is the source of identity information
 	ProviderName string `json:"providerName" protobuf:"bytes,2,opt,name=providerName"`
@@ -66,18 +66,18 @@ type Identity struct {
 
 // IdentityList is a collection of Identities
 type IdentityList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of identities
 	Items []Identity `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // UserIdentityMapping maps a user to an identity
 type UserIdentityMapping struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Identity is a reference to an identity
 	Identity kapi.ObjectReference `json:"identity,omitempty" protobuf:"bytes,2,opt,name=identity"`
@@ -96,9 +96,9 @@ func (t OptionalNames) String() string {
 
 // Group represents a referenceable set of Users
 type Group struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	kapi.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Users is the list of users in this group.
 	Users OptionalNames `json:"users" protobuf:"bytes,2,rep,name=users"`
@@ -106,9 +106,9 @@ type Group struct {
 
 // GroupList is a collection of Groups
 type GroupList struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	unversioned.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// Items is the list of groups
 	Items []Group `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 
 	"github.com/openshift/origin/pkg/generate/app"
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
@@ -355,7 +355,7 @@ func TestNewAppRunQueryActions(t *testing.T) {
 				tfVisited = true
 				match := &app.ComponentMatch{
 					Template: &templateapi.Template{
-						ObjectMeta: kapi.ObjectMeta{
+						ObjectMeta: metav1.ObjectMeta{
 							Name:      "testfile",
 							Namespace: "openshift",
 						},
@@ -400,7 +400,7 @@ func fakeTemplateList() *templateapi.TemplateList {
 	return &templateapi.TemplateList{
 		Items: []templateapi.Template{
 			{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "openshift",
 				},
@@ -413,7 +413,7 @@ func fakeImagestreamList() *imageapi.ImageStreamList {
 	return &imageapi.ImageStreamList{
 		Items: []imageapi.ImageStream{
 			{
-				ObjectMeta: kapi.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testimage",
 					Namespace: "openshift",
 				},

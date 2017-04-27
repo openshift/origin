@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -304,9 +306,9 @@ func (m *mockBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 func mockBuildConfig(baseImage, triggerImage, repoName, repoTag string) *buildapi.BuildConfig {
 	dockerfile := "FROM foo"
 	return &buildapi.BuildConfig{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testBuildCfg",
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: buildapi.BuildConfigSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -346,9 +348,9 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 	}
 
 	return &imageapi.ImageStream{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
-			Namespace: kapi.NamespaceDefault,
+			Namespace: metav1.NamespaceDefault,
 		},
 		Status: imageapi.ImageStreamStatus{
 			DockerImageRepository: dockerImageRepo,
@@ -359,7 +361,7 @@ func mockImageStream(repoName, dockerImageRepo string, tags map[string]string) *
 
 func mockImage(name, dockerSpec string) *imageapi.Image {
 	return &imageapi.Image{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		DockerImageReference: dockerSpec,
@@ -376,12 +378,12 @@ type buildConfigInstantiator struct {
 
 func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	i.name = request.Name
-	return i.generator.Instantiate(kapi.WithNamespace(kapi.NewContext(), namespace), request)
+	return i.generator.Instantiate(apirequest.WithNamespace(apirequest.NewContext(), namespace), request)
 }
 
 func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream, image *imageapi.Image) *buildConfigInstantiator {
 	builderAccount := kapi.ServiceAccount{
-		ObjectMeta: kapi.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: kapi.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: metav1.NamespaceDefault},
 		Secrets:    []kapi.ObjectReference{},
 	}
 	instantiator := &buildConfigInstantiator{}
@@ -390,26 +392,26 @@ func mockBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *im
 		Secrets:         fake.NewSimpleClientset().Core(),
 		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc: func(ctx kapi.Context, name string) (*buildapi.BuildConfig, error) {
+			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
 			},
-			UpdateBuildConfigFunc: func(ctx kapi.Context, buildConfig *buildapi.BuildConfig) error {
+			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 				return instantiator.buildConfigUpdater.Update(buildConfig)
 			},
-			CreateBuildFunc: func(ctx kapi.Context, build *buildapi.Build) error {
+			CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 				instantiator.newBuild = build
 				return instantiator.err
 			},
-			GetBuildFunc: func(ctx kapi.Context, name string) (*buildapi.Build, error) {
+			GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
 				return instantiator.newBuild, nil
 			},
-			GetImageStreamFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStream, error) {
+			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return imageStream, nil
 			},
-			GetImageStreamTagFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamTag, error) {
+			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 				return &imageapi.ImageStreamTag{Image: *image}, nil
 			},
-			GetImageStreamImageFunc: func(ctx kapi.Context, name string) (*imageapi.ImageStreamImage, error) {
+			GetImageStreamImageFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
 				return &imageapi.ImageStreamImage{Image: *image}, nil
 			},
 		}}

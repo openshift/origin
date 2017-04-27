@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/intstr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
 )
@@ -28,7 +28,7 @@ func TestGenerateRoute(t *testing.T) {
 				"hostname":     "www.example.com",
 			},
 			expected: routeapi.Route{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 					Labels: map[string]string{
 						"foo": "bar",
@@ -58,7 +58,7 @@ func TestGenerateRoute(t *testing.T) {
 				"hostname":     "www.example.com",
 			},
 			expected: routeapi.Route{
-				ObjectMeta: api.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 					Labels: map[string]string{
 						"foo": "bar",

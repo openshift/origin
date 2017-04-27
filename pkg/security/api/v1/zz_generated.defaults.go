@@ -5,8 +5,8 @@
 package v1
 
 import (
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.
@@ -51,6 +51,23 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 		}
 		if a.VolumeSource.AzureDisk != nil {
 			api_v1.SetDefaults_AzureDiskVolumeSource(a.VolumeSource.AzureDisk)
+		}
+		if a.VolumeSource.Projected != nil {
+			api_v1.SetDefaults_ProjectedVolumeSource(a.VolumeSource.Projected)
+			for j := range a.VolumeSource.Projected.Sources {
+				b := &a.VolumeSource.Projected.Sources[j]
+				if b.DownwardAPI != nil {
+					for k := range b.DownwardAPI.Items {
+						c := &b.DownwardAPI.Items[k]
+						if c.FieldRef != nil {
+							api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
+						}
+					}
+				}
+			}
+		}
+		if a.VolumeSource.ScaleIO != nil {
+			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
 		if a.VolumeSource.Metadata != nil {
 			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
@@ -175,6 +192,23 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 			}
 			if b.VolumeSource.AzureDisk != nil {
 				api_v1.SetDefaults_AzureDiskVolumeSource(b.VolumeSource.AzureDisk)
+			}
+			if b.VolumeSource.Projected != nil {
+				api_v1.SetDefaults_ProjectedVolumeSource(b.VolumeSource.Projected)
+				for k := range b.VolumeSource.Projected.Sources {
+					c := &b.VolumeSource.Projected.Sources[k]
+					if c.DownwardAPI != nil {
+						for l := range c.DownwardAPI.Items {
+							d := &c.DownwardAPI.Items[l]
+							if d.FieldRef != nil {
+								api_v1.SetDefaults_ObjectFieldSelector(d.FieldRef)
+							}
+						}
+					}
+				}
+			}
+			if b.VolumeSource.ScaleIO != nil {
+				api_v1.SetDefaults_ScaleIOVolumeSource(b.VolumeSource.ScaleIO)
 			}
 			if b.VolumeSource.Metadata != nil {
 				api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(b.VolumeSource.Metadata)
@@ -302,6 +336,23 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 		if a.VolumeSource.AzureDisk != nil {
 			api_v1.SetDefaults_AzureDiskVolumeSource(a.VolumeSource.AzureDisk)
 		}
+		if a.VolumeSource.Projected != nil {
+			api_v1.SetDefaults_ProjectedVolumeSource(a.VolumeSource.Projected)
+			for j := range a.VolumeSource.Projected.Sources {
+				b := &a.VolumeSource.Projected.Sources[j]
+				if b.DownwardAPI != nil {
+					for k := range b.DownwardAPI.Items {
+						c := &b.DownwardAPI.Items[k]
+						if c.FieldRef != nil {
+							api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
+						}
+					}
+				}
+			}
+		}
+		if a.VolumeSource.ScaleIO != nil {
+			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
+		}
 		if a.VolumeSource.Metadata != nil {
 			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
 			for j := range a.VolumeSource.Metadata.Items {
@@ -423,6 +474,23 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 		}
 		if a.VolumeSource.AzureDisk != nil {
 			api_v1.SetDefaults_AzureDiskVolumeSource(a.VolumeSource.AzureDisk)
+		}
+		if a.VolumeSource.Projected != nil {
+			api_v1.SetDefaults_ProjectedVolumeSource(a.VolumeSource.Projected)
+			for j := range a.VolumeSource.Projected.Sources {
+				b := &a.VolumeSource.Projected.Sources[j]
+				if b.DownwardAPI != nil {
+					for k := range b.DownwardAPI.Items {
+						c := &b.DownwardAPI.Items[k]
+						if c.FieldRef != nil {
+							api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
+						}
+					}
+				}
+			}
+		}
+		if a.VolumeSource.ScaleIO != nil {
+			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
 		if a.VolumeSource.Metadata != nil {
 			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
@@ -549,6 +617,23 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 		if a.VolumeSource.AzureDisk != nil {
 			api_v1.SetDefaults_AzureDiskVolumeSource(a.VolumeSource.AzureDisk)
 		}
+		if a.VolumeSource.Projected != nil {
+			api_v1.SetDefaults_ProjectedVolumeSource(a.VolumeSource.Projected)
+			for j := range a.VolumeSource.Projected.Sources {
+				b := &a.VolumeSource.Projected.Sources[j]
+				if b.DownwardAPI != nil {
+					for k := range b.DownwardAPI.Items {
+						c := &b.DownwardAPI.Items[k]
+						if c.FieldRef != nil {
+							api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
+						}
+					}
+				}
+			}
+		}
+		if a.VolumeSource.ScaleIO != nil {
+			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
+		}
 		if a.VolumeSource.Metadata != nil {
 			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
 			for j := range a.VolumeSource.Metadata.Items {
@@ -670,6 +755,23 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 		}
 		if a.VolumeSource.AzureDisk != nil {
 			api_v1.SetDefaults_AzureDiskVolumeSource(a.VolumeSource.AzureDisk)
+		}
+		if a.VolumeSource.Projected != nil {
+			api_v1.SetDefaults_ProjectedVolumeSource(a.VolumeSource.Projected)
+			for j := range a.VolumeSource.Projected.Sources {
+				b := &a.VolumeSource.Projected.Sources[j]
+				if b.DownwardAPI != nil {
+					for k := range b.DownwardAPI.Items {
+						c := &b.DownwardAPI.Items[k]
+						if c.FieldRef != nil {
+							api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
+						}
+					}
+				}
+			}
+		}
+		if a.VolumeSource.ScaleIO != nil {
+			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
 		if a.VolumeSource.Metadata != nil {
 			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)

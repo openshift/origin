@@ -9,8 +9,8 @@ import (
 
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"

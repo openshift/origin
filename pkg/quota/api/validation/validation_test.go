@@ -1,12 +1,13 @@
 package validation
 
 import (
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/api/validation"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/validation"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 )
@@ -56,9 +57,9 @@ func TestValidationClusterQuota(t *testing.T) {
 
 	errs := ValidateClusterResourceQuota(
 		&quotaapi.ClusterResourceQuota{
-			ObjectMeta: api.ObjectMeta{Name: "good"},
+			ObjectMeta: metav1.ObjectMeta{Name: "good"},
 			Spec: quotaapi.ClusterResourceQuotaSpec{
-				Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+				Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 				Quota:    spec(),
 			},
 		},
@@ -74,9 +75,9 @@ func TestValidationClusterQuota(t *testing.T) {
 	}{
 		"non-zero-length namespace": {
 			A: quotaapi.ClusterResourceQuota{
-				ObjectMeta: api.ObjectMeta{Namespace: "bad", Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "bad", Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    spec(),
 				},
 			},
@@ -85,7 +86,7 @@ func TestValidationClusterQuota(t *testing.T) {
 		},
 		"missing label selector": {
 			A: quotaapi.ClusterResourceQuota{
-				ObjectMeta: api.ObjectMeta{Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
 					Quota: spec(),
 				},
@@ -95,7 +96,7 @@ func TestValidationClusterQuota(t *testing.T) {
 		},
 		"ok scope": {
 			A: quotaapi.ClusterResourceQuota{
-				ObjectMeta: api.ObjectMeta{Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
 					Quota: scopeableSpec(api.ResourceQuotaScopeNotTerminating),
 				},
@@ -105,9 +106,9 @@ func TestValidationClusterQuota(t *testing.T) {
 		},
 		"bad scope": {
 			A: quotaapi.ClusterResourceQuota{
-				ObjectMeta: api.ObjectMeta{Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    spec(api.ResourceQuotaScopeNotTerminating),
 				},
 			},
@@ -116,9 +117,9 @@ func TestValidationClusterQuota(t *testing.T) {
 		},
 		"bad quota spec": {
 			A: quotaapi.ClusterResourceQuota{
-				ObjectMeta: api.ObjectMeta{Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Name: "good"},
 				Spec: quotaapi.ClusterResourceQuotaSpec{
-					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &unversioned.LabelSelector{MatchLabels: validLabels}},
+					Selector: quotaapi.ClusterResourceQuotaSelector{LabelSelector: &metav1.LabelSelector{MatchLabels: validLabels}},
 					Quota:    invalidQuotaResourceSpec,
 				},
 			},
@@ -151,7 +152,7 @@ func TestValidationQuota(t *testing.T) {
 	}{
 		"scope": {
 			A: api.ResourceQuota{
-				ObjectMeta: api.ObjectMeta{Namespace: "ns", Name: "good"},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "good"},
 				Spec:       scopeableSpec(api.ResourceQuotaScopeNotTerminating),
 			},
 		},

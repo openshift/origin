@@ -11,8 +11,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/wait"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -48,14 +48,14 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
+			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.Core().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router")
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(oc.KubeFramework().Namespace.Name).Get("scoped-router", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -98,14 +98,14 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 			}()
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 			ns := oc.KubeFramework().Namespace.Name
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, kapi.NewDeleteOptions(1)) }()
+			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().CoreV1(), ns, "execpod")
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By(fmt.Sprintf("creating a scoped router from a config file %q", configPath))
 
 			var routerIP string
 			err := wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				pod, err := oc.KubeFramework().ClientSet.Core().Pods(ns).Get("router-override")
+				pod, err := oc.KubeFramework().ClientSet.CoreV1().Pods(ns).Get("router-override", metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}

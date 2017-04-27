@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	kerrs "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type testRequest struct {

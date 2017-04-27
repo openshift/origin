@@ -1,9 +1,11 @@
 package imagestreammapping
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
@@ -12,7 +14,7 @@ import (
 // Strategy implements behavior for image stream mappings.
 type Strategy struct {
 	runtime.ObjectTyper
-	kapi.NameGenerator
+	names.NameGenerator
 
 	defaultRegistry api.DefaultRegistry
 }
@@ -22,7 +24,7 @@ type Strategy struct {
 func NewStrategy(defaultRegistry api.DefaultRegistry) Strategy {
 	return Strategy{
 		kapi.Scheme,
-		kapi.SimpleNameGenerator,
+		names.SimpleNameGenerator,
 		defaultRegistry,
 	}
 }
@@ -33,7 +35,7 @@ func (s Strategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (s Strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	ism := obj.(*api.ImageStreamMapping)
 	if len(ism.Image.DockerImageReference) == 0 {
 		internalRegistry, ok := s.defaultRegistry.DefaultRegistry()
@@ -56,7 +58,7 @@ func (s Strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new ImageStreamMapping.
-func (s Strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (s Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	mapping := obj.(*api.ImageStreamMapping)
 	return validation.ValidateImageStreamMapping(mapping)
 }

@@ -5,22 +5,21 @@ import (
 	"testing"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestSortBuildSliceByCreationTimestamp(t *testing.T) {
-	present := unversioned.Now()
-	past := unversioned.NewTime(present.Add(-time.Minute))
+	present := metav1.Now()
+	past := metav1.NewTime(present.Add(-time.Minute))
 	builds := []Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
 				CreationTimestamp: present,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "past",
 				CreationTimestamp: past,
 			},
@@ -33,17 +32,17 @@ func TestSortBuildSliceByCreationTimestamp(t *testing.T) {
 }
 
 func TestSortBuildPtrSliceByCreationTimestamp(t *testing.T) {
-	present := unversioned.Now()
-	past := unversioned.NewTime(present.Add(-time.Minute))
+	present := metav1.Now()
+	past := metav1.NewTime(present.Add(-time.Minute))
 	builds := []*Build{
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "present",
 				CreationTimestamp: present,
 			},
 		},
 		{
-			ObjectMeta: kapi.ObjectMeta{
+			ObjectMeta: metav1.ObjectMeta{
 				Name:              "past",
 				CreationTimestamp: past,
 			},

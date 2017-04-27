@@ -5,10 +5,10 @@ import (
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
-	kerrors "k8s.io/kubernetes/pkg/util/errors"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	oclient "github.com/openshift/origin/pkg/client"
@@ -94,7 +94,7 @@ func (ctx *RoleBindingRestrictionContext) labelSetForUser(subject kapi.ObjectRef
 		return labelSet, nil
 	}
 
-	user, err := ctx.oclient.Users().Get(subject.Name)
+	user, err := ctx.oclient.Users().Get(subject.Name, metav1.GetOptions{})
 	if err != nil {
 		return labels.Set{}, err
 	}
@@ -132,7 +132,7 @@ func (ctx *RoleBindingRestrictionContext) labelSetForGroup(subject kapi.ObjectRe
 		return labelSet, nil
 	}
 
-	group, err := ctx.oclient.Groups().Get(subject.Name)
+	group, err := ctx.oclient.Groups().Get(subject.Name, metav1.GetOptions{})
 	if err != nil {
 		return labels.Set{}, err
 	}
@@ -194,7 +194,7 @@ func (checker UserSubjectChecker) Allowed(subject kapi.ObjectReference, ctx *Rol
 		}
 
 		for _, labelSelector := range checker.userRestriction.Selectors {
-			selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+			selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 			if err != nil {
 				return false, err
 			}
@@ -245,7 +245,7 @@ func (checker GroupSubjectChecker) Allowed(subject kapi.ObjectReference, ctx *Ro
 		}
 
 		for _, labelSelector := range checker.groupRestriction.Selectors {
-			selector, err := unversioned.LabelSelectorAsSelector(&labelSelector)
+			selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 			if err != nil {
 				return false, err
 			}

@@ -5,10 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller/informers"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	oclient "github.com/openshift/origin/pkg/client"
 )
@@ -32,11 +33,8 @@ type InformerFactory interface {
 	SecurityContextConstraints() SecurityContextConstraintsInformer
 	ClusterResourceQuotas() ClusterResourceQuotaInformer
 
-	KubernetesInformers() informers.SharedInformerFactory
-
-	// TODO switch to the generated upstream informers once the kube 1.6 rebase is
-	// in
-	ReplicationControllers() ReplicationControllerInformer
+	KubernetesInformers() kinformers.SharedInformerFactory
+	InternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 }
 
 // ListerWatcherOverrides allows a caller to specify special behavior for particular ListerWatchers
@@ -44,22 +42,30 @@ type InformerFactory interface {
 type ListerWatcherOverrides interface {
 	// GetListerWatcher returns back a ListerWatcher for a given resource or nil if
 	// no particular ListerWatcher was specified for the type
-	GetListerWatcher(resource unversioned.GroupResource) cache.ListerWatcher
+	GetListerWatcher(resource schema.GroupResource) cache.ListerWatcher
 }
 
-type DefaultListerWatcherOverrides map[unversioned.GroupResource]cache.ListerWatcher
+type DefaultListerWatcherOverrides map[schema.GroupResource]cache.ListerWatcher
 
-func (o DefaultListerWatcherOverrides) GetListerWatcher(resource unversioned.GroupResource) cache.ListerWatcher {
+func (o DefaultListerWatcherOverrides) GetListerWatcher(resource schema.GroupResource) cache.ListerWatcher {
 	return o[resource]
 }
 
-func NewInformerFactory(kubeInformers informers.SharedInformerFactory, kubeClient kclientset.Interface, originClient oclient.Interface, customListerWatchers ListerWatcherOverrides, defaultResync time.Duration) InformerFactory {
+func NewInformerFactory(
+	internalKubeInformers kinternalinformers.SharedInformerFactory,
+	kubeInformers kinformers.SharedInformerFactory,
+	kubeClient kclientset.Interface,
+	originClient oclient.Interface,
+	customListerWatchers ListerWatcherOverrides,
+	defaultResync time.Duration,
+) InformerFactory {
 	return &sharedInformerFactory{
-		kubeInformers:        kubeInformers,
-		kubeClient:           kubeClient,
-		originClient:         originClient,
-		customListerWatchers: customListerWatchers,
-		defaultResync:        defaultResync,
+		internalKubeInformers: internalKubeInformers,
+		kubeInformers:         kubeInformers,
+		kubeClient:            kubeClient,
+		originClient:          originClient,
+		customListerWatchers:  customListerWatchers,
+		defaultResync:         defaultResync,
 
 		informers:            map[reflect.Type]cache.SharedIndexInformer{},
 		coreInformers:        map[reflect.Type]cache.SharedIndexInformer{},
@@ -69,11 +75,12 @@ func NewInformerFactory(kubeInformers informers.SharedInformerFactory, kubeClien
 }
 
 type sharedInformerFactory struct {
-	kubeInformers        informers.SharedInformerFactory
-	kubeClient           kclientset.Interface
-	originClient         oclient.Interface
-	customListerWatchers ListerWatcherOverrides
-	defaultResync        time.Duration
+	internalKubeInformers kinternalinformers.SharedInformerFactory
+	kubeInformers         kinformers.SharedInformerFactory
+	kubeClient            kclientset.Interface
+	originClient          oclient.Interface
+	customListerWatchers  ListerWatcherOverrides
+	defaultResync         time.Duration
 
 	informers            map[reflect.Type]cache.SharedIndexInformer
 	coreInformers        map[reflect.Type]cache.SharedIndexInformer
@@ -150,11 +157,10 @@ func (f *sharedInformerFactory) ClusterResourceQuotas() ClusterResourceQuotaInfo
 	return &clusterResourceQuotaInformer{sharedInformerFactory: f}
 }
 
-func (f *sharedInformerFactory) KubernetesInformers() informers.SharedInformerFactory {
+func (f *sharedInformerFactory) KubernetesInformers() kinformers.SharedInformerFactory {
 	return f.kubeInformers
 }
 
-// TODO switch to upstream generated informers once kube 1.6 is in and remove these.
-func (f *sharedInformerFactory) ReplicationControllers() ReplicationControllerInformer {
-	return &replicationControllerInformer{sharedInformerFactory: f}
+func (f *sharedInformerFactory) InternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
+	return f.internalKubeInformers
 }

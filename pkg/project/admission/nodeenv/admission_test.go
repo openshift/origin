@@ -3,9 +3,10 @@ package nodeenv
 import (
 	"testing"
 
-	"k8s.io/kubernetes/pkg/admission"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -15,7 +16,7 @@ import (
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestPodAdmission(t *testing.T) {
 	project := &kapi.Namespace{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testProject",
 			Namespace: "",
 		},
@@ -26,7 +27,7 @@ func TestPodAdmission(t *testing.T) {
 	mockClientset := fake.NewSimpleClientset()
 	handler := &podNodeEnvironment{client: mockClientset}
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: "testPod"},
+		ObjectMeta: metav1.ObjectMeta{Name: "testPod"},
 	}
 
 	tests := []struct {
@@ -131,7 +132,7 @@ func TestHandles(t *testing.T) {
 		admission.Connect: false,
 		admission.Delete:  false,
 	} {
-		nodeEnvionment, err := NewPodNodeEnvironment(nil)
+		nodeEnvionment, err := NewPodNodeEnvironment()
 		if err != nil {
 			t.Errorf("%v: error getting node environment: %v", op, err)
 			continue

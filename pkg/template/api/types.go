@@ -1,17 +1,17 @@
 package api
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/runtime"
 )
 
 // +genclient=true
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// message is an optional instructional message that will
 	// be displayed when this template is instantiated.
@@ -40,8 +40,8 @@ type Template struct {
 
 // TemplateList is a list of Template objects.
 type TemplateList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 	Items []Template
 }
 
@@ -81,8 +81,8 @@ type Parameter struct {
 // TemplateInstance requests and records the instantiation of a Template.
 // TemplateInstance is part of an experimental API.
 type TemplateInstance struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec describes the desired state of this TemplateInstance.
 	Spec TemplateInstanceSpec
@@ -128,7 +128,7 @@ type TemplateInstanceCondition struct {
 	Status kapi.ConditionStatus
 	// LastTransitionTime is the last time a condition status transitioned from
 	// one state to another.
-	LastTransitionTime unversioned.Time
+	LastTransitionTime metav1.Time
 	// Reason is a brief machine readable explanation for the condition's last
 	// transition.
 	Reason string
@@ -152,8 +152,8 @@ const (
 
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of Templateinstances
 	Items []TemplateInstance
@@ -165,8 +165,8 @@ type TemplateInstanceList struct {
 // BrokerTemplateInstance holds the service broker-related state associated with
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
 type BrokerTemplateInstance struct {
-	unversioned.TypeMeta
-	kapi.ObjectMeta
+	metav1.TypeMeta
+	metav1.ObjectMeta
 
 	// Spec describes the state of this BrokerTemplateInstance.
 	Spec BrokerTemplateInstanceSpec
@@ -189,8 +189,8 @@ type BrokerTemplateInstanceSpec struct {
 
 // BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.
 type BrokerTemplateInstanceList struct {
-	unversioned.TypeMeta
-	unversioned.ListMeta
+	metav1.TypeMeta
+	metav1.ListMeta
 
 	// Items is a list of BrokerTemplateInstances
 	Items []BrokerTemplateInstance

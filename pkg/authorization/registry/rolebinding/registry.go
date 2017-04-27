@@ -1,8 +1,11 @@
 package rolebinding
 
 import (
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -10,15 +13,15 @@ import (
 // Registry is an interface for things that know how to store RoleBindings.
 type Registry interface {
 	// ListRoleBindings obtains list of policyRoleBindings that match a selector.
-	ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error)
+	ListRoleBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.RoleBindingList, error)
 	// GetRoleBinding retrieves a specific policyRoleBinding.
-	GetRoleBinding(ctx kapi.Context, id string) (*authorizationapi.RoleBinding, error)
+	GetRoleBinding(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.RoleBinding, error)
 	// CreateRoleBinding creates a new policyRoleBinding.
-	CreateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
+	CreateRoleBinding(ctx apirequest.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	// UpdateRoleBinding updates a policyRoleBinding.
-	UpdateRoleBinding(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error)
+	UpdateRoleBinding(ctx apirequest.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error)
 	// DeleteRoleBinding deletes a policyRoleBinding.
-	DeleteRoleBinding(ctx kapi.Context, id string) error
+	DeleteRoleBinding(ctx apirequest.Context, id string) error
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -29,9 +32,9 @@ type Storage interface {
 	rest.GracefulDeleter
 
 	// CreateRoleBindingWithEscalation creates a new policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
-	CreateRoleBindingWithEscalation(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
+	CreateRoleBindingWithEscalation(ctx apirequest.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error)
 	// UpdateRoleBindingWithEscalation updates a policyRoleBinding.  Skipping the escalation check should only be done during bootstrapping procedures where no users are currently bound.
-	UpdateRoleBindingWithEscalation(ctx kapi.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error)
+	UpdateRoleBindingWithEscalation(ctx apirequest.Context, policyRoleBinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error)
 }
 
 // storage puts strong typing around storage calls
@@ -45,7 +48,7 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.RoleBindingList, error) {
+func (s *storage) ListRoleBindings(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.RoleBindingList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -54,25 +57,25 @@ func (s *storage) ListRoleBindings(ctx kapi.Context, options *kapi.ListOptions) 
 	return obj.(*authorizationapi.RoleBindingList), nil
 }
 
-func (s *storage) CreateRoleBinding(ctx kapi.Context, rolebinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
+func (s *storage) CreateRoleBinding(ctx apirequest.Context, rolebinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, error) {
 	obj, err := s.Create(ctx, rolebinding)
 	return obj.(*authorizationapi.RoleBinding), err
 }
 
-func (s *storage) UpdateRoleBinding(ctx kapi.Context, rolebinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
+func (s *storage) UpdateRoleBinding(ctx apirequest.Context, rolebinding *authorizationapi.RoleBinding) (*authorizationapi.RoleBinding, bool, error) {
 	obj, created, err := s.Update(ctx, rolebinding.Name, rest.DefaultUpdatedObjectInfo(rolebinding, kapi.Scheme))
 	return obj.(*authorizationapi.RoleBinding), created, err
 }
 
-func (s *storage) GetRoleBinding(ctx kapi.Context, name string) (*authorizationapi.RoleBinding, error) {
-	obj, err := s.Get(ctx, name)
+func (s *storage) GetRoleBinding(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.RoleBinding, error) {
+	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 	return obj.(*authorizationapi.RoleBinding), nil
 }
 
-func (s *storage) DeleteRoleBinding(ctx kapi.Context, name string) error {
-	_, err := s.Delete(ctx, name, nil)
+func (s *storage) DeleteRoleBinding(ctx apirequest.Context, name string) error {
+	_, _, err := s.Delete(ctx, name, nil)
 	return err
 }

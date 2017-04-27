@@ -2,12 +2,12 @@ package fake
 
 import (
 	internalversion "github.com/openshift/origin/pkg/quota/clientset/internalclientset/typed/quota/internalversion"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	core "k8s.io/kubernetes/pkg/client/testing/core"
+	rest "k8s.io/client-go/rest"
+	testing "k8s.io/client-go/testing"
 )
 
 type FakeQuota struct {
-	*core.Fake
+	*testing.Fake
 }
 
 func (c *FakeQuota) ClusterResourceQuotas() internalversion.ClusterResourceQuotaInterface {
@@ -16,7 +16,7 @@ func (c *FakeQuota) ClusterResourceQuotas() internalversion.ClusterResourceQuota
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeQuota) RESTClient() restclient.Interface {
-	var ret *restclient.RESTClient
+func (c *FakeQuota) RESTClient() rest.Interface {
+	var ret *rest.RESTClient
 	return ret
 }

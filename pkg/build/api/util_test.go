@@ -3,11 +3,11 @@ package api
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestGetBuildPodName(t *testing.T) {
-	if expected, actual := "mybuild-build", GetBuildPodName(&Build{ObjectMeta: kapi.ObjectMeta{Name: "mybuild"}}); expected != actual {
+	if expected, actual := "mybuild-build", GetBuildPodName(&Build{ObjectMeta: metav1.ObjectMeta{Name: "mybuild"}}); expected != actual {
 		t.Errorf("Expected %s, got %s", expected, actual)
 	}
 }

@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kubernetes/pkg/util/wait"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -248,7 +249,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			})
 
 			o.Expect(buildName).ToNot(o.BeEmpty())
-			build, err := oc.Client().Builds(oc.Namespace()).Get(buildName)
+			build, err := oc.Client().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build).NotTo(o.BeNil(), "build object should exist")
 

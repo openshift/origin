@@ -2,10 +2,11 @@ package v1
 
 import (
 	v1 "github.com/openshift/origin/pkg/template/api/v1"
-	api "k8s.io/kubernetes/pkg/api"
-	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	restclient "k8s.io/kubernetes/pkg/client/restclient"
-	watch "k8s.io/kubernetes/pkg/watch"
+	scheme "github.com/openshift/origin/pkg/template/clientset/release_v3_6/scheme"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	rest "k8s.io/client-go/rest"
 )
 
 // TemplatesGetter has a method to return a TemplateResourceInterface.
@@ -18,18 +19,18 @@ type TemplatesGetter interface {
 type TemplateResourceInterface interface {
 	Create(*v1.Template) (*v1.Template, error)
 	Update(*v1.Template) (*v1.Template, error)
-	Delete(name string, options *api_v1.DeleteOptions) error
-	DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error
-	Get(name string) (*v1.Template, error)
-	List(opts api_v1.ListOptions) (*v1.TemplateList, error)
-	Watch(opts api_v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Template, err error)
+	Delete(name string, options *meta_v1.DeleteOptions) error
+	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
+	Get(name string, options meta_v1.GetOptions) (*v1.Template, error)
+	List(opts meta_v1.ListOptions) (*v1.TemplateList, error)
+	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Template, err error)
 	TemplateResourceExpansion
 }
 
 // templates implements TemplateResourceInterface
 type templates struct {
-	client restclient.Interface
+	client rest.Interface
 	ns     string
 }
 
@@ -67,7 +68,7 @@ func (c *templates) Update(template *v1.Template) (result *v1.Template, err erro
 }
 
 // Delete takes name of the template and deletes it. Returns an error if one occurs.
-func (c *templates) Delete(name string, options *api_v1.DeleteOptions) error {
+func (c *templates) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("templates").
@@ -78,52 +79,53 @@ func (c *templates) Delete(name string, options *api_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *templates) DeleteCollection(options *api_v1.DeleteOptions, listOptions api_v1.ListOptions) error {
+func (c *templates) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("templates").
-		VersionedParams(&listOptions, api.ParameterCodec).
+		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
 		Error()
 }
 
 // Get takes name of the template, and returns the corresponding template object, and an error if there is any.
-func (c *templates) Get(name string) (result *v1.Template, err error) {
+func (c *templates) Get(name string, options meta_v1.GetOptions) (result *v1.Template, err error) {
 	result = &v1.Template{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("templates").
 		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of Templates that match those selectors.
-func (c *templates) List(opts api_v1.ListOptions) (result *v1.TemplateList, err error) {
+func (c *templates) List(opts meta_v1.ListOptions) (result *v1.TemplateList, err error) {
 	result = &v1.TemplateList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("templates").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested templates.
-func (c *templates) Watch(opts api_v1.ListOptions) (watch.Interface, error) {
+func (c *templates) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
 	return c.client.Get().
-		Prefix("watch").
 		Namespace(c.ns).
 		Resource("templates").
-		VersionedParams(&opts, api.ParameterCodec).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Patch applies the patch and returns the patched template.
-func (c *templates) Patch(name string, pt api.PatchType, data []byte, subresources ...string) (result *v1.Template, err error) {
+func (c *templates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Template, err error) {
 	result = &v1.Template{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).

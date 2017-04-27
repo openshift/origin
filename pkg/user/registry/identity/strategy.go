@@ -3,12 +3,13 @@ package identity
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
@@ -23,7 +24,7 @@ type identityStrategy struct {
 // objects via the REST API.
 var Strategy = identityStrategy{kapi.Scheme}
 
-func (identityStrategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (identityStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for users
 func (identityStrategy) NamespaceScoped() bool {
@@ -34,13 +35,13 @@ func (identityStrategy) GenerateName(base string) string {
 	return base
 }
 
-func (identityStrategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (identityStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	identity := obj.(*api.Identity)
 	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }
 
 // Validate validates a new user
-func (identityStrategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (identityStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	identity := obj.(*api.Identity)
 	return validation.ValidateIdentity(identity)
 }
@@ -59,7 +60,7 @@ func (identityStrategy) Canonicalize(obj runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an identity
-func (identityStrategy) ValidateUpdate(ctx kapi.Context, obj, old runtime.Object) field.ErrorList {
+func (identityStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
 }
 

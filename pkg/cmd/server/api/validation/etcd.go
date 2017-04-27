@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/openshift/origin/pkg/cmd/server/api"
-	"k8s.io/kubernetes/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // ValidateEtcdConnectionInfo validates the connection info. If a server EtcdConfig is provided,

@@ -6,9 +6,9 @@ package v1
 
 import (
 	api "github.com/openshift/origin/pkg/user/api"
+	conversion "k8s.io/apimachinery/pkg/conversion"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	api_v1 "k8s.io/kubernetes/pkg/api/v1"
-	conversion "k8s.io/kubernetes/pkg/conversion"
-	runtime "k8s.io/kubernetes/pkg/runtime"
 	unsafe "unsafe"
 )
 
@@ -38,9 +38,7 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 }
 
 func autoConvert_v1_Group_To_api_Group(in *Group, out *api.Group, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.Users = *(*[]string)(unsafe.Pointer(&in.Users))
 	return nil
 }
@@ -50,10 +48,12 @@ func Convert_v1_Group_To_api_Group(in *Group, out *api.Group, s conversion.Scope
 }
 
 func autoConvert_api_Group_To_v1_Group(in *api.Group, out *Group, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
+	out.ObjectMeta = in.ObjectMeta
+	if in.Users == nil {
+		out.Users = make(OptionalNames, 0)
+	} else {
+		out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
 	}
-	out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
 	return nil
 }
 
@@ -63,17 +63,7 @@ func Convert_api_Group_To_v1_Group(in *api.Group, out *Group, s conversion.Scope
 
 func autoConvert_v1_GroupList_To_api_GroupList(in *GroupList, out *api.GroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]api.Group, len(*in))
-		for i := range *in {
-			if err := Convert_v1_Group_To_api_Group(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]api.Group)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -83,16 +73,10 @@ func Convert_v1_GroupList_To_api_GroupList(in *GroupList, out *api.GroupList, s 
 
 func autoConvert_api_GroupList_To_v1_GroupList(in *api.GroupList, out *GroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]Group, len(*in))
-		for i := range *in {
-			if err := Convert_api_Group_To_v1_Group(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
+	if in.Items == nil {
+		out.Items = make([]Group, 0)
 	} else {
-		out.Items = nil
+		out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
 	}
 	return nil
 }
@@ -102,9 +86,7 @@ func Convert_api_GroupList_To_v1_GroupList(in *api.GroupList, out *GroupList, s 
 }
 
 func autoConvert_v1_Identity_To_api_Identity(in *Identity, out *api.Identity, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.User, &out.User, s); err != nil {
@@ -119,9 +101,7 @@ func Convert_v1_Identity_To_api_Identity(in *Identity, out *api.Identity, s conv
 }
 
 func autoConvert_api_Identity_To_v1_Identity(in *api.Identity, out *Identity, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.ProviderName = in.ProviderName
 	out.ProviderUserName = in.ProviderUserName
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.User, &out.User, s); err != nil {
@@ -166,7 +146,7 @@ func autoConvert_api_IdentityList_To_v1_IdentityList(in *api.IdentityList, out *
 			}
 		}
 	} else {
-		out.Items = nil
+		out.Items = make([]Identity, 0)
 	}
 	return nil
 }
@@ -176,9 +156,7 @@ func Convert_api_IdentityList_To_v1_IdentityList(in *api.IdentityList, out *Iden
 }
 
 func autoConvert_v1_User_To_api_User(in *User, out *api.User, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
 	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
 	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
@@ -190,12 +168,18 @@ func Convert_v1_User_To_api_User(in *User, out *api.User, s conversion.Scope) er
 }
 
 func autoConvert_api_User_To_v1_User(in *api.User, out *User, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
-	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
-	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	if in.Identities == nil {
+		out.Identities = make([]string, 0)
+	} else {
+		out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
+	}
+	if in.Groups == nil {
+		out.Groups = make([]string, 0)
+	} else {
+		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	}
 	return nil
 }
 
@@ -204,9 +188,7 @@ func Convert_api_User_To_v1_User(in *api.User, out *User, s conversion.Scope) er
 }
 
 func autoConvert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityMapping, out *api.UserIdentityMapping, s conversion.Scope) error {
-	if err := api_v1.Convert_v1_ObjectMeta_To_api_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
 	}
@@ -221,9 +203,7 @@ func Convert_v1_UserIdentityMapping_To_api_UserIdentityMapping(in *UserIdentityM
 }
 
 func autoConvert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *api.UserIdentityMapping, out *UserIdentityMapping, s conversion.Scope) error {
-	if err := api_v1.Convert_api_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
+	out.ObjectMeta = in.ObjectMeta
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Identity, &out.Identity, s); err != nil {
 		return err
 	}
@@ -239,17 +219,7 @@ func Convert_api_UserIdentityMapping_To_v1_UserIdentityMapping(in *api.UserIdent
 
 func autoConvert_v1_UserList_To_api_UserList(in *UserList, out *api.UserList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]api.User, len(*in))
-		for i := range *in {
-			if err := Convert_v1_User_To_api_User(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]api.User)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -259,16 +229,10 @@ func Convert_v1_UserList_To_api_UserList(in *UserList, out *api.UserList, s conv
 
 func autoConvert_api_UserList_To_v1_UserList(in *api.UserList, out *UserList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]User, len(*in))
-		for i := range *in {
-			if err := Convert_api_User_To_v1_User(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
+	if in.Items == nil {
+		out.Items = make([]User, 0)
 	} else {
-		out.Items = nil
+		out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
 	}
 	return nil
 }

@@ -6,21 +6,23 @@ import (
 	"io"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
-	kerrors "k8s.io/kubernetes/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	utilerrors "k8s.io/kubernetes/pkg/util/errors"
 )
 
 type RetryOptions struct {
@@ -127,7 +129,7 @@ func (o RetryOptions) Run() error {
 		}
 
 		latestDeploymentName := deployutil.LatestDeploymentNameForConfig(config)
-		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName)
+		rc, err := o.Clientset.Core().ReplicationControllers(config.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("unable to find the latest rollout (#%d).\nYou can start a new rollout with 'oc rollout latest dc/%s'.", config.Status.LatestVersion, config.Name)))
@@ -149,14 +151,14 @@ func (o RetryOptions) Run() error {
 		}
 
 		// Delete the deployer pod as well as the deployment hooks pods, if any
-		pods, err := o.Clientset.Core().Pods(config.Namespace).List(kapi.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName)})
+		pods, err := o.Clientset.Core().Pods(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.DeployerPodSelector(latestDeploymentName).String()})
 		if err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to list deployer/hook pods for deployment #%d: %v", config.Status.LatestVersion, err)))
 			continue
 		}
 		hasError := false
 		for _, pod := range pods.Items {
-			err := o.Clientset.Core().Pods(pod.Namespace).Delete(pod.Name, kapi.NewDeleteOptions(0))
+			err := o.Clientset.Core().Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 			if err != nil {
 				allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, fmt.Errorf("failed to delete deployer/hook pod %s for deployment #%d: %v", pod.Name, config.Status.LatestVersion, err)))
 				hasError = true
@@ -166,11 +168,11 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) (bool, error) {
+		patches := set.CalculatePatches([]*resource.Info{{Object: rc, Mapping: mapping}}, o.Encoder, func(*resource.Info) ([]byte, error) {
 			rc.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 			delete(rc.Annotations, deployapi.DeploymentStatusReasonAnnotation)
 			delete(rc.Annotations, deployapi.DeploymentCancelledAnnotation)
-			return true, nil
+			return runtime.Encode(o.Encoder, rc)
 		})
 
 		if len(patches) == 0 {
@@ -178,7 +180,7 @@ func (o RetryOptions) Run() error {
 			continue
 		}
 
-		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, kapi.StrategicMergePatchType, patches[0].Patch); err != nil {
+		if _, err := o.Clientset.Core().ReplicationControllers(rc.Namespace).Patch(rc.Name, types.StrategicMergePatchType, patches[0].Patch); err != nil {
 			allErrs = append(allErrs, kcmdutil.AddSourceToErr("retrying", info.Source, err))
 			continue
 		}

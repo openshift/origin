@@ -11,8 +11,8 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/authenticator"
-	"k8s.io/kubernetes/pkg/auth/user"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // keystonePasswordAuthenticator uses OpenStack keystone to authenticate a user by password

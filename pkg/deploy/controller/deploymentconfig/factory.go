@@ -5,16 +5,19 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclientv1 "k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/record"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
-	"k8s.io/kubernetes/pkg/runtime"
-	utilruntime "k8s.io/kubernetes/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/util/workqueue"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -28,16 +31,29 @@ const (
 )
 
 // NewDeploymentConfigController creates a new DeploymentConfigController.
-func NewDeploymentConfigController(dcInformer, rcInformer, podInformer cache.SharedIndexInformer, oc osclient.Interface, kc kclientset.Interface, codec runtime.Codec) *DeploymentConfigController {
+func NewDeploymentConfigController(
+	dcInformer cache.SharedIndexInformer,
+	rcInformer kcoreinformers.ReplicationControllerInformer,
+	podInformer kcoreinformers.PodInformer,
+	oc osclient.Interface,
+	internalKubeClientset kclientset.Interface,
+	externalKubeClientset kclientsetexternal.Interface,
+	codec runtime.Codec,
+) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kcoreclient.EventSinkImpl{Interface: kc.Core().Events("")})
-	recorder := eventBroadcaster.NewRecorder(kapi.EventSource{Component: "deploymentconfig-controller"})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
+	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deploymentconfig-controller"})
 
 	c := &DeploymentConfigController{
 		dn: oc,
-		rn: kc.Core(),
+		rn: internalKubeClientset.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+
+		rcLister:        rcInformer.Lister(),
+		rcListerSynced:  rcInformer.Informer().HasSynced,
+		podLister:       podInformer.Lister(),
+		podListerSynced: podInformer.Informer().HasSynced,
 
 		recorder: recorder,
 		codec:    codec,
@@ -49,20 +65,17 @@ func NewDeploymentConfigController(dcInformer, rcInformer, podInformer cache.Sha
 		UpdateFunc: c.updateDeploymentConfig,
 		DeleteFunc: c.deleteDeploymentConfig,
 	})
-	c.rcStore.Indexer = rcInformer.GetIndexer()
-	rcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.dcStoreSynced = dcInformer.HasSynced
+
+	rcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: c.updateReplicationController,
 		DeleteFunc: c.deleteReplicationController,
 	})
-	c.podStore.Indexer = podInformer.GetIndexer()
-	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+
+	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: c.updatePod,
 		DeleteFunc: c.deletePod,
 	})
-
-	c.dcStoreSynced = dcInformer.HasSynced
-	c.rcStoreSynced = rcInformer.HasSynced
-	c.podStoreSynced = podInformer.HasSynced
 
 	return c
 }
@@ -70,37 +83,24 @@ func NewDeploymentConfigController(dcInformer, rcInformer, podInformer cache.Sha
 // Run begins watching and syncing.
 func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	defer c.queue.ShutDown()
+
+	glog.Infof("Starting deploymentconfig controller")
 
 	// Wait for the rc and dc stores to sync before starting any work in this controller.
-	ready := make(chan struct{})
-	go c.waitForSyncedStores(ready, stopCh)
-	select {
-	case <-ready:
-	case <-stopCh:
+	if !cache.WaitForCacheSync(stopCh, c.dcStoreSynced, c.rcListerSynced, c.podListerSynced) {
 		return
 	}
+
+	glog.Info("deploymentconfig controller caches are synced. Starting workers.")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
 
 	<-stopCh
+
 	glog.Infof("Shutting down deploymentconfig controller")
-	c.queue.ShutDown()
-}
-
-func (c *DeploymentConfigController) waitForSyncedStores(ready chan<- struct{}, stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-
-	for !c.dcStoreSynced() || !c.rcStoreSynced() || !c.podStoreSynced() {
-		glog.V(4).Infof("Waiting for the dc, rc, and pod caches to sync before starting the deployment config controller workers")
-		select {
-		case <-time.After(storeSyncedPollPeriod):
-		case <-stopCh:
-			return
-		}
-	}
-	close(ready)
 }
 
 func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {

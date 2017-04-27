@@ -1,6 +1,6 @@
 package api
 
-import "k8s.io/kubernetes/pkg/fields"
+import "k8s.io/apimachinery/pkg/fields"
 
 // RouteToSelectableFields returns a label set that represents the object
 func RouteToSelectableFields(route *Route) fields.Set {

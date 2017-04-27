@@ -1,13 +1,13 @@
 package api
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ClusterResourceOverrideConfig is the configuration for the ClusterResourceOverride
 // admission controller which overrides user-provided container request/limit values.
 type ClusterResourceOverrideConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	// For each of the following, if a non-zero ratio is specified then the initial
 	// value (if any) in the pod spec is overwritten according to the ratio.
 	// LimitRange defaults are merged prior to the override.

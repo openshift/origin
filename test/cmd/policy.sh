@@ -117,7 +117,7 @@ os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testda
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
 os::cmd::expect_failure 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/external-service.yaml'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n bob -o=jsonpath={.status.AllowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n bob -o=jsonpath={.status.allowedBy.name}' 'restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_ROOT}/test/testdata/job.yaml -n bob --no-headers=true' 'Job/hello   <none>'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -f ${OS_ROOT}/test/testdata/job.yaml' ''
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
@@ -163,7 +163,7 @@ os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/cluster_ad
 os::cmd::expect_success "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/cluster_admin_without_apigroups.yaml"
 
 # alternate-cluster-admin should NOT have the power add back star now
-os::cmd::try_until_failure "oc policy who-can update hpa.extensions | grep -q alternate-cluster-admin-user"
+os::cmd::try_until_failure "oc policy who-can update hpa.autoscaling | grep -q alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
 cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml

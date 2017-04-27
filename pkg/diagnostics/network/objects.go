@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientcmd "k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
-	"k8s.io/kubernetes/pkg/util/intstr"
 
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 )
@@ -28,7 +29,7 @@ func GetNetworkDiagnosticsPod(diagnosticsImage, command, podName, nodeName strin
 	gracePeriod := int64(0)
 
 	pod := &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{Name: podName},
+		ObjectMeta: metav1.ObjectMeta{Name: podName},
 		Spec: kapi.PodSpec{
 			RestartPolicy:                 kapi.RestartPolicyNever,
 			TerminationGracePeriodSeconds: &gracePeriod,
@@ -94,7 +95,7 @@ func GetTestPod(podName, nodeName string) *kapi.Pod {
 	gracePeriod := int64(0)
 
 	return &kapi.Pod{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: podName,
 			Labels: map[string]string{
 				networkDiagTestPodSelector: podName,
@@ -117,7 +118,7 @@ func GetTestPod(podName, nodeName string) *kapi.Pod {
 
 func GetTestService(serviceName, podName, nodeName string) *kapi.Service {
 	return &kapi.Service{
-		ObjectMeta: kapi.ObjectMeta{Name: serviceName},
+		ObjectMeta: metav1.ObjectMeta{Name: serviceName},
 		Spec: kapi.ServiceSpec{
 			Type: kapi.ServiceTypeClusterIP,
 			Selector: map[string]string{

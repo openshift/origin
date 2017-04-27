@@ -18,22 +18,23 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/batch/v1"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	kinternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/selection"
-	"k8s.io/kubernetes/pkg/util/uuid"
-	"k8s.io/kubernetes/pkg/util/wait"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -52,7 +53,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
 		for _, lang := range langs {
-			is, err := oc.Client().ImageStreams("openshift").Get(lang)
+			is, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
 				return false
 			}
@@ -87,7 +88,7 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 	missing := false
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	for _, lang := range langs {
-		_, err := oc.Client().ImageStreams("openshift").Get(lang)
+		_, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 		if err != nil {
 			missing = true
 			break
@@ -155,8 +156,8 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	ExaminePodDiskUsage(oc)
 }
 
-func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapi.PodList, error) {
-	return oc.KubeClient().Core().Pods(oc.Namespace()).List(kapi.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName))})
+func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
+	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
@@ -253,7 +254,7 @@ func ExaminePodDiskUsage(oc *CLI) {
 // WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
 // file.
 func WriteObjectToFile(obj runtime.Object, filename string) error {
-	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(registered.EnabledVersions()...), obj)
+	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...), obj)
 	if err != nil {
 		return err
 	}
@@ -376,7 +377,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
 		buildStarted = &t.Build.CreationTimestamp.Time
 	} else {
-		proj, err := oc.Client().Projects().Get(oc.Namespace())
+		proj, err := oc.Client().Projects().Get(oc.Namespace(), metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "Failed to get project %s: %v\n", oc.Namespace(), err)
 		} else {
@@ -540,7 +541,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 
 	// wait 2 minutes for build to exist
 	err := wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
-		if _, err := c.Get(name); err != nil {
+		if _, err := c.Get(name, metav1.GetOptions{}); err != nil {
 			return false, nil
 		}
 		return true, nil
@@ -553,7 +554,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 	}
 	// wait longer for the build to run to completion
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
-		list, err := c.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
+		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
 		if err != nil {
 			return false, err
 		}
@@ -592,7 +593,7 @@ var CheckBuildCancelledFn = func(b *buildapi.Build) bool {
 // provisioned
 func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
 	waitFn := func() (bool, error) {
-		sc, err := c.Get("builder")
+		sc, err := c.Get("builder", metav1.GetOptions{})
 		if err != nil {
 			// If we can't access the service accounts, let's wait till the controller
 			// create it.
@@ -616,7 +617,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 	name string,
 	isOK, isFailed func(*imageapi.ImageStream) bool) error {
 	for {
-		list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector()})
+		list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
 		if err != nil {
 			return err
 		}
@@ -631,7 +632,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 		}
 
 		rv := list.ResourceVersion
-		w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector(), ResourceVersion: rv})
+		w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String(), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}
@@ -744,7 +745,7 @@ func compareResourceControllerNames(a, b string) int {
 // When isOK returns true, WaitForADeployment returns nil, when isFailed returns
 // true, WaitForADeployment returns an error including the deployment status.
 // WaitForADeployment waits for at most a certain timeout (non-configurable).
-func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapi.ReplicationController) bool, oc *CLI) error {
+func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapiv1.ReplicationController) bool, oc *CLI) error {
 	timeout := 15 * time.Minute
 
 	// closing done signals that any pending operation should be aborted.
@@ -754,7 +755,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 	// okOrFailed returns whether a replication controller matches either of
 	// the predicates isOK or isFailed, and the associated error in case of
 	// failure.
-	okOrFailed := func(rc *kapi.ReplicationController) (err error, matched bool) {
+	okOrFailed := func(rc *kapiv1.ReplicationController) (err error, matched bool) {
 		if isOK(rc) {
 			return nil, true
 		}
@@ -771,12 +772,12 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 		if err != nil {
 			return fmt.Errorf("unexpected error generating label selector: %v", err), false
 		}
-		list, err := client.List(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement)})
+		list, err := client.List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 		if err != nil {
 			return err, false
 		}
 		// multiple deployments are conceivable; so we look to see how the latest depoy does
-		var lastRC *kapi.ReplicationController
+		var lastRC *kapiv1.ReplicationController
 		for _, rc := range list.Items {
 			if lastRC == nil {
 				lastRC = &rc
@@ -794,7 +795,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 			}
 		}
 
-		w, err := client.Watch(kapi.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement), ResourceVersion: list.ResourceVersion})
+		w, err := client.Watch(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String(), ResourceVersion: list.ResourceVersion})
 		if err != nil {
 			return err, false
 		}
@@ -806,7 +807,7 @@ func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name 
 					// watcher error, re-get and re-watch
 					return nil, true
 				}
-				rc, ok := val.Object.(*kapi.ReplicationController)
+				rc, ok := val.Object.(*kapiv1.ReplicationController)
 				if !ok {
 					continue
 				}
@@ -875,7 +876,7 @@ func WaitForRegistry(
 	if waitForDCVersion != nil {
 		latestVersion = *waitForDCVersion
 	} else {
-		dc, err := dcNamespacer.DeploymentConfigs(kapi.NamespaceDefault).Get("docker-registry")
+		dc, err := dcNamespacer.DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -883,8 +884,8 @@ func WaitForRegistry(
 	}
 	fmt.Fprintf(g.GinkgoWriter, "waiting for deployment of version %d to complete\n", latestVersion)
 
-	err := WaitForADeployment(kubeClient.Core().ReplicationControllers(kapi.NamespaceDefault), "docker-registry",
-		func(rc *kapi.ReplicationController) bool {
+	err := WaitForADeployment(kubeClient.CoreV1().ReplicationControllers(metav1.NamespaceDefault), "docker-registry",
+		func(rc *kapiv1.ReplicationController) bool {
 			if !CheckDeploymentCompletedFn(rc) {
 				return false
 			}
@@ -895,7 +896,7 @@ func WaitForRegistry(
 			}
 			return v >= latestVersion
 		},
-		func(rc *kapi.ReplicationController) bool {
+		func(rc *kapiv1.ReplicationController) bool {
 			v, err := strconv.ParseInt(rc.Annotations[deployapi.DeploymentVersionAnnotation], 10, 64)
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "failed to parse %q of replication controller %q: %v\n", deployapi.DeploymentVersionAnnotation, rc.Name, err)
@@ -911,7 +912,7 @@ func WaitForRegistry(
 	}
 
 	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{fmt.Sprintf("docker-registry-%d", latestVersion)})
-	pods, err := WaitForPods(kubeClient.Core().Pods(kapi.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
+	pods, err := WaitForPods(kubeClient.CoreV1().Pods(metav1.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
 	now := time.Now()
 	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
 	return err
@@ -941,7 +942,7 @@ func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bo
 // or equal to quota's usage, which is useful for expected usage increment. Otherwise expected usage must
 // compare lower or equal to quota's usage, which is useful for expected usage decrement.
 func WaitForResourceQuotaSync(
-	client kcoreclient.ResourceQuotaInterface,
+	client kinternalcoreclient.ResourceQuotaInterface,
 	name string,
 	expectedUsage kapi.ResourceList,
 	expectedIsUpperLimit bool,
@@ -953,7 +954,7 @@ func WaitForResourceQuotaSync(
 
 	expectedResourceNames := quota.ResourceNames(expectedUsage)
 
-	list, err := client.List(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector()})
+	list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 	if err != nil {
 		return nil, err
 	}
@@ -966,7 +967,7 @@ func WaitForResourceQuotaSync(
 	}
 
 	rv := list.ResourceVersion
-	w, err := client.Watch(kapi.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector(), ResourceVersion: rv})
+	w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
 	if err != nil {
 		return nil, err
 	}
@@ -993,18 +994,22 @@ func WaitForResourceQuotaSync(
 }
 
 // CheckDeploymentCompletedFn returns true if the deployment completed
-var CheckDeploymentCompletedFn = func(d *kapi.ReplicationController) bool {
+var CheckDeploymentCompletedFn = func(dv1 *kapiv1.ReplicationController) bool {
+	d := &kapi.ReplicationController{}
+	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(dv1, d, nil)
 	return deployutil.IsCompleteDeployment(d)
 }
 
 // CheckDeploymentFailedFn returns true if the deployment failed
-var CheckDeploymentFailedFn = func(d *kapi.ReplicationController) bool {
+var CheckDeploymentFailedFn = func(dv1 *kapiv1.ReplicationController) bool {
+	d := &kapi.ReplicationController{}
+	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(dv1, d, nil)
 	return deployutil.IsFailedDeployment(d)
 }
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
-func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool) (podNames []string, err error) {
-	podList, err := c.List(kapi.ListOptions{LabelSelector: label})
+func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool) (podNames []string, err error) {
+	podList, err := c.List(metav1.ListOptions{LabelSelector: label.String()})
 	if err != nil {
 		return nil, err
 	}
@@ -1018,14 +1023,14 @@ func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, pred
 
 func WaitForAJob(c kbatchclient.JobInterface, name string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
-		j, e := c.Get(name)
+		j, e := c.Get(name, metav1.GetOptions{})
 		if e != nil {
 			return true, e
 		}
 		// TODO soltysh: replace this with a function once such exist, currently
 		// it's private in the controller
 		for _, c := range j.Status.Conditions {
-			if (c.Type == batch.JobComplete || c.Type == batch.JobFailed) && c.Status == kapi.ConditionTrue {
+			if (c.Type == batchv1.JobComplete || c.Type == batchv1.JobFailed) && c.Status == kapiv1.ConditionTrue {
 				return true, nil
 			}
 		}
@@ -1035,7 +1040,7 @@ func WaitForAJob(c kbatchclient.JobInterface, name string, timeout time.Duration
 
 // WaitForPods waits until given number of pods that match the label selector and
 // satisfy the predicate are found
-func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapi.Pod) bool, count int, timeout time.Duration) ([]string, error) {
+func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool, count int, timeout time.Duration) ([]string, error) {
 	var podNames []string
 	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		p, e := GetPodNamesByFilter(c, label, predicate)
@@ -1052,25 +1057,25 @@ func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate fu
 }
 
 // CheckPodIsRunningFn returns true if the pod is running
-var CheckPodIsRunningFn = func(pod kapi.Pod) bool {
-	return pod.Status.Phase == kapi.PodRunning
+var CheckPodIsRunningFn = func(pod kapiv1.Pod) bool {
+	return pod.Status.Phase == kapiv1.PodRunning
 }
 
 // CheckPodIsSucceededFn returns true if the pod status is "Succdeded"
-var CheckPodIsSucceededFn = func(pod kapi.Pod) bool {
-	return pod.Status.Phase == kapi.PodSucceeded
+var CheckPodIsSucceededFn = func(pod kapiv1.Pod) bool {
+	return pod.Status.Phase == kapiv1.PodSucceeded
 }
 
 // CheckPodIsReadyFn returns true if the pod's ready probe determined that the pod is ready.
-var CheckPodIsReadyFn = func(pod kapi.Pod) bool {
-	if pod.Status.Phase != kapi.PodRunning {
+var CheckPodIsReadyFn = func(pod kapiv1.Pod) bool {
+	if pod.Status.Phase != kapiv1.PodRunning {
 		return false
 	}
 	for _, cond := range pod.Status.Conditions {
-		if cond.Type != kapi.PodReady {
+		if cond.Type != kapiv1.PodReady {
 			continue
 		}
-		return cond.Status == kapi.ConditionTrue
+		return cond.Status == kapiv1.ConditionTrue
 	}
 	return false
 }
@@ -1078,7 +1083,7 @@ var CheckPodIsReadyFn = func(pod kapi.Pod) bool {
 // WaitUntilPodIsGone waits until the named Pod will disappear
 func WaitUntilPodIsGone(c kcoreclient.PodInterface, podName string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
-		_, err := c.Get(podName)
+		_, err := c.Get(podName, metav1.GetOptions{})
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				return true, nil
@@ -1092,7 +1097,7 @@ func WaitUntilPodIsGone(c kcoreclient.PodInterface, podName string, timeout time
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
 // and tag
 func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (string, error) {
-	imageStream, err := c.Get(name)
+	imageStream, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1107,55 +1112,55 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 }
 
 // GetPodForContainer creates a new Pod that runs specified container
-func GetPodForContainer(container kapi.Container) *kapi.Pod {
+func GetPodForContainer(container kapiv1.Container) *kapiv1.Pod {
 	name := namer.GetPodName("test-pod", string(uuid.NewUUID()))
-	return &kapi.Pod{
-		TypeMeta: unversioned.TypeMeta{
+	return &kapiv1.Pod{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: map[string]string{"name": name},
 		},
-		Spec: kapi.PodSpec{
-			Containers:    []kapi.Container{container},
-			RestartPolicy: kapi.RestartPolicyNever,
+		Spec: kapiv1.PodSpec{
+			Containers:    []kapiv1.Container{container},
+			RestartPolicy: kapiv1.RestartPolicyNever,
 		},
 	}
 }
 
 // CreatePersistentVolume creates a HostPath Persistent Volume.
-func CreatePersistentVolume(name, capacity, hostPath string) *kapi.PersistentVolume {
-	return &kapi.PersistentVolume{
-		TypeMeta: unversioned.TypeMeta{
+func CreatePersistentVolume(name, capacity, hostPath string) *kapiv1.PersistentVolume {
+	return &kapiv1.PersistentVolume{
+		TypeMeta: metav1.TypeMeta{
 			Kind:       "PersistentVolume",
 			APIVersion: "v1",
 		},
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: map[string]string{"name": name},
 		},
-		Spec: kapi.PersistentVolumeSpec{
-			PersistentVolumeSource: kapi.PersistentVolumeSource{
-				HostPath: &kapi.HostPathVolumeSource{
+		Spec: kapiv1.PersistentVolumeSpec{
+			PersistentVolumeSource: kapiv1.PersistentVolumeSource{
+				HostPath: &kapiv1.HostPathVolumeSource{
 					Path: hostPath,
 				},
 			},
-			Capacity: kapi.ResourceList{
-				kapi.ResourceStorage: resource.MustParse(capacity),
+			Capacity: kapiv1.ResourceList{
+				kapiv1.ResourceStorage: resource.MustParse(capacity),
 			},
-			AccessModes: []kapi.PersistentVolumeAccessMode{
-				kapi.ReadWriteOnce,
-				kapi.ReadOnlyMany,
-				kapi.ReadWriteMany,
+			AccessModes: []kapiv1.PersistentVolumeAccessMode{
+				kapiv1.ReadWriteOnce,
+				kapiv1.ReadOnlyMany,
+				kapiv1.ReadWriteMany,
 			},
 		},
 	}
 }
 
 // SetupHostPathVolumes will create multiple PersistentVolumes with given capacity
-func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapi.PersistentVolume, err error) {
+func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapiv1.PersistentVolume, err error) {
 	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
 	if err != nil {
 		return volumes, err
@@ -1186,7 +1191,7 @@ func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capac
 // CleanupHostPathVolumes removes all PersistentVolumes created by
 // SetupHostPathVolumes, with a given prefix
 func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix string) error {
-	pvs, err := c.List(kapi.ListOptions{})
+	pvs, err := c.List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -1196,7 +1201,7 @@ func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix stri
 			continue
 		}
 
-		pvInfo, err := c.Get(pv.Name)
+		pvInfo, err := c.Get(pv.Name, metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
 			continue
@@ -1345,7 +1350,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	endpoint, err := oc.KubeClient().Core().Endpoints(oc.Namespace()).Get(name)
+	endpoint, err := oc.KubeClient().CoreV1().Endpoints(oc.Namespace()).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -1354,8 +1359,8 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 
 // GetPodForImage creates a new Pod that runs the containers from specified
 // Docker image reference
-func GetPodForImage(dockerImageReference string) *kapi.Pod {
-	return GetPodForContainer(kapi.Container{
+func GetPodForImage(dockerImageReference string) *kapiv1.Pod {
+	return GetPodForContainer(kapiv1.Container{
 		Name:  "test",
 		Image: dockerImageReference,
 	})
@@ -1365,17 +1370,17 @@ func GetPodForImage(dockerImageReference string) *kapi.Pod {
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
 // TODO: expose upstream
-func CreateExecPodOrFail(client kcoreclient.CoreInterface, ns, name string) string {
+func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) string {
 	framework.Logf("Creating new exec pod")
 	execPod := framework.NewHostExecPodSpec(ns, name)
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
-		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+		return retrievedPod.Status.Phase == kapiv1.PodRunning, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return created.Name
@@ -1384,25 +1389,25 @@ func CreateExecPodOrFail(client kcoreclient.CoreInterface, ns, name string) stri
 // CreateExecPodOnNode launches a exec pod in the given namespace and node
 // waits until it's Running, created pod name would be returned
 // TODO: expose upstream
-func CreateExecPodOnNode(client kcoreclient.CoreInterface, ns, nodeName, name string) string {
+func CreateExecPodOnNode(client kcoreclient.CoreV1Interface, ns, nodeName, name string) string {
 	framework.Logf("Creating exec pod %q in namespace %q", name, ns)
 	execPod := framework.NewHostExecPodSpec(ns, name)
 	execPod.Spec.NodeName = nodeName
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name)
+		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}
-		return retrievedPod.Status.Phase == kapi.PodRunning, nil
+		return retrievedPod.Status.Phase == kapiv1.PodRunning, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	return created.Name
 }
 
-func CheckForBuildEvent(client kcoreclient.CoreInterface, build *buildapi.Build, reason, message string) {
-	events, err := client.Events(build.Namespace).Search(build)
+func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
+	events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
 	o.ExpectWithOffset(1, events).NotTo(o.BeNil(), "Build event list should not be nil")
 

@@ -4,7 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -13,33 +14,33 @@ import (
 )
 
 type TestConfig struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	Item1 string   `json:"item1"`
 	Item2 []string `json:"item2"`
 }
 
 type TestConfigV1 struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 
 	Item1 string   `json:"item1"`
 	Item2 []string `json:"item2"`
 }
 
 type OtherTestConfig2 struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	Thing string `json:"thing"`
 }
 
 type OtherTestConfig2V2 struct {
-	unversioned.TypeMeta
+	metav1.TypeMeta
 	Thing string `json:"thing"`
 }
 
-func (obj *TestConfig) GetObjectKind() unversioned.ObjectKind         { return &obj.TypeMeta }
-func (obj *TestConfigV1) GetObjectKind() unversioned.ObjectKind       { return &obj.TypeMeta }
-func (obj *OtherTestConfig2) GetObjectKind() unversioned.ObjectKind   { return &obj.TypeMeta }
-func (obj *OtherTestConfig2V2) GetObjectKind() unversioned.ObjectKind { return &obj.TypeMeta }
+func (obj *TestConfig) GetObjectKind() schema.ObjectKind         { return &obj.TypeMeta }
+func (obj *TestConfigV1) GetObjectKind() schema.ObjectKind       { return &obj.TypeMeta }
+func (obj *OtherTestConfig2) GetObjectKind() schema.ObjectKind   { return &obj.TypeMeta }
+func (obj *OtherTestConfig2V2) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestReadPluginConfig(t *testing.T) {
 	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestConfig{})

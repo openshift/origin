@@ -6,10 +6,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/meta"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -80,12 +81,12 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 	o.DC = &deployapi.DeploymentConfig{
-		ObjectMeta: kapi.ObjectMeta{Name: args[0]},
+		ObjectMeta: metav1.ObjectMeta{Name: args[0]},
 		Spec: deployapi.DeploymentConfigSpec{
 			Selector: labels,
 			Replicas: 1,
 			Template: &kapi.PodTemplateSpec{
-				ObjectMeta: kapi.ObjectMeta{Labels: labels},
+				ObjectMeta: metav1.ObjectMeta{Labels: labels},
 				Spec: kapi.PodSpec{
 					Containers: []kapi.Container{
 						{

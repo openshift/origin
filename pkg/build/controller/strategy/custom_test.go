@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/resource"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
@@ -129,7 +129,7 @@ func TestCustomCreateBuildPodWithCustomCodec(t *testing.T) {
 		Codec: kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
 	}
 
-	for _, version := range registered.GroupOrDie(buildapi.LegacyGroupName).GroupVersions {
+	for _, version := range kapi.Registry.GroupOrDie(buildapi.LegacyGroupName).GroupVersions {
 		// Create new Build specification and modify Spec API version
 		build := mockCustomBuild(false, false)
 		build.Spec.Strategy.CustomStrategy.BuildAPIVersion = fmt.Sprintf("%s/%s", version.Group, version.Version)
@@ -183,7 +183,7 @@ func mockCustomBuild(forcePull, emptySource bool) *buildapi.Build {
 		}
 	}
 	return &buildapi.Build{
-		ObjectMeta: kapi.ObjectMeta{
+		ObjectMeta: metav1.ObjectMeta{
 			Name: "customBuild",
 			Labels: map[string]string{
 				"name": "customBuild",

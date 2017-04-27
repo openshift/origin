@@ -1,7 +1,7 @@
 package validation
 
 import (
-	"k8s.io/kubernetes/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api"
 )

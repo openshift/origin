@@ -5,12 +5,13 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/labels"
-	"k8s.io/kubernetes/pkg/runtime"
-	kstorage "k8s.io/kubernetes/pkg/storage"
-	"k8s.io/kubernetes/pkg/util/validation/field"
 )
 
 // strategy implements behavior for OAuthClient objects
@@ -22,7 +23,7 @@ type strategy struct {
 // objects via the REST API.
 var Strategy = strategy{kapi.Scheme}
 
-func (strategy) PrepareForUpdate(ctx kapi.Context, obj, old runtime.Object) {}
+func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects
 func (strategy) NamespaceScoped() bool {
@@ -33,7 +34,7 @@ func (strategy) GenerateName(base string) string {
 	return base
 }
 
-func (strategy) PrepareForCreate(ctx kapi.Context, obj runtime.Object) {
+func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 }
 
 // Canonicalize normalizes the object after validation.
@@ -41,13 +42,13 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 // Validate validates a new client
-func (strategy) Validate(ctx kapi.Context, obj runtime.Object) field.ErrorList {
+func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	token := obj.(*api.OAuthClient)
 	return validation.ValidateClient(token)
 }
 
 // ValidateUpdate validates a client update
-func (strategy) ValidateUpdate(ctx kapi.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
+func (strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
 	client := obj.(*api.OAuthClient)
 	oldClient := old.(*api.OAuthClient)
 	return validation.ValidateClientUpdate(client, oldClient)

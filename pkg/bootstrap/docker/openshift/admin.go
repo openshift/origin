@@ -9,10 +9,11 @@ import (
 	"path/filepath"
 
 	"github.com/golang/glog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
-	apierrors "k8s.io/kubernetes/pkg/api/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/client"
@@ -34,7 +35,7 @@ const (
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
 func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry)
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
 		return nil
@@ -80,7 +81,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 
 // InstallRouter installs a default router on the OpenShift server
 func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
-	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter)
+	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter, metav1.GetOptions{})
 	if err == nil {
 		// Router service already exists, nothing to do
 		return nil
@@ -100,7 +101,7 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	}
 
 	// Add router SA to privileged SCC
-	privilegedSCC, err := kubeClient.Core().SecurityContextConstraints().Get("privileged")
+	privilegedSCC, err := kubeClient.Core().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}

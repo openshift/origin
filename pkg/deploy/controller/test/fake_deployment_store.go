@@ -1,8 +1,8 @@
 package test
 
 import (
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/util/sets"
 )
 
 type FakeDeploymentStore struct {

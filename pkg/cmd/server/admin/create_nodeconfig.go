@@ -13,12 +13,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apimachinery/registered"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/master/ports"
-	"k8s.io/kubernetes/pkg/runtime"
-	"k8s.io/kubernetes/pkg/util/cert"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -380,7 +380,7 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 		CertFile: clientCertFile,
 		KeyFile:  clientKeyFile,
 
-		ContextNamespace: kapi.NamespaceDefault,
+		ContextNamespace: metav1.NamespaceDefault,
 
 		KubeConfigFile: kubeConfigFile,
 		Output:         o.Output,
@@ -480,7 +480,7 @@ func (o CreateNodeConfigOptions) MakeNodeJSON(nodeJSONFile string) error {
 	node := &kapi.Node{}
 	node.Name = o.NodeName
 
-	groupMeta := registered.GroupOrDie(kapi.GroupName)
+	groupMeta := kapi.Registry.GroupOrDie(kapi.GroupName)
 
 	json, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupMeta.GroupVersions[0]), node)
 	if err != nil {

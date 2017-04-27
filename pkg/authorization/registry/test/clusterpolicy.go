@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	kapierrors "k8s.io/kubernetes/pkg/api/errors"
-	"k8s.io/kubernetes/pkg/watch"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 )
@@ -29,23 +31,27 @@ func NewClusterPolicyRegistry(policies []authorizationapi.ClusterPolicy, err err
 	return &ClusterPolicyRegistry{policyMap, err}
 }
 
-func (r *ClusterPolicyRegistry) List(options kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return r.ListClusterPolicies(kapi.NewContext(), &options)
+func (r *ClusterPolicyRegistry) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+	var internalOptions metainternal.ListOptions
+	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internalOptions, nil); err != nil {
+		return nil, err
+	}
+	return r.ListClusterPolicies(apirequest.NewContext(), &internalOptions)
 }
-func (r *ClusterPolicyRegistry) Get(name string) (*authorizationapi.ClusterPolicy, error) {
-	return r.GetClusterPolicy(kapi.NewContext(), name)
+func (r *ClusterPolicyRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
+	return r.GetClusterPolicy(apirequest.NewContext(), name, &options)
 }
 
 // ListClusterPolicies obtains list of ListClusterPolicy that match a selector.
-func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *kapi.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
+func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	list := make([]authorizationapi.ClusterPolicy, 0)
 
-	if namespace == kapi.NamespaceAll {
+	if namespace == metav1.NamespaceAll {
 		for _, curr := range r.clusterPolicies {
 			for _, policy := range curr {
 				list = append(list, policy)
@@ -67,12 +73,12 @@ func (r *ClusterPolicyRegistry) ListClusterPolicies(ctx kapi.Context, options *k
 }
 
 // GetClusterPolicy retrieves a specific policy.
-func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx kapi.Context, id string) (*authorizationapi.ClusterPolicy, error) {
+func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx apirequest.Context, id string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return nil, errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -87,16 +93,16 @@ func (r *ClusterPolicyRegistry) GetClusterPolicy(ctx kapi.Context, id string) (*
 }
 
 // CreateClusterPolicy creates a new policy.
-func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx apirequest.Context, policy *authorizationapi.ClusterPolicy) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicy(ctx, policy.Name); existing != nil {
+	if existing, _ := r.GetClusterPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing != nil {
 		return kapierrors.NewAlreadyExists(authorizationapi.Resource("ClusterPolicy"), policy.Name)
 	}
 
@@ -106,16 +112,16 @@ func (r *ClusterPolicyRegistry) CreateClusterPolicy(ctx kapi.Context, policy *au
 }
 
 // UpdateClusterPolicy updates a policy.
-func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx kapi.Context, policy *authorizationapi.ClusterPolicy) error {
+func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx apirequest.Context, policy *authorizationapi.ClusterPolicy) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
-	if existing, _ := r.GetClusterPolicy(ctx, policy.Name); existing == nil {
+	if existing, _ := r.GetClusterPolicy(ctx, policy.Name, &metav1.GetOptions{}); existing == nil {
 		return kapierrors.NewNotFound(authorizationapi.Resource("clusterpolicy"), policy.Name)
 	}
 
@@ -125,12 +131,12 @@ func (r *ClusterPolicyRegistry) UpdateClusterPolicy(ctx kapi.Context, policy *au
 }
 
 // DeleteClusterPolicy deletes a policy.
-func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string) error {
+func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx apirequest.Context, id string) error {
 	if r.Err != nil {
 		return r.Err
 	}
 
-	namespace := kapi.NamespaceValue(ctx)
+	namespace := apirequest.NamespaceValue(ctx)
 	if len(namespace) != 0 {
 		return errors.New("invalid request.  Namespace parameter disallowed.")
 	}
@@ -143,7 +149,7 @@ func (r *ClusterPolicyRegistry) DeleteClusterPolicy(ctx kapi.Context, id string)
 	return nil
 }
 
-func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx kapi.Context, options *kapi.ListOptions) (watch.Interface, error) {
+func (r *ClusterPolicyRegistry) WatchClusterPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
 	return nil, errors.New("unsupported action for test registry")
 }
 

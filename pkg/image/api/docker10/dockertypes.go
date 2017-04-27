@@ -1,25 +1,25 @@
 package docker10
 
 import (
-	"k8s.io/kubernetes/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {
-	unversioned.TypeMeta `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
 
-	ID              string           `json:"Id"`
-	Parent          string           `json:"Parent,omitempty"`
-	Comment         string           `json:"Comment,omitempty"`
-	Created         unversioned.Time `json:"Created,omitempty"`
-	Container       string           `json:"Container,omitempty"`
-	ContainerConfig DockerConfig     `json:"ContainerConfig,omitempty"`
-	DockerVersion   string           `json:"DockerVersion,omitempty"`
-	Author          string           `json:"Author,omitempty"`
-	Config          *DockerConfig    `json:"Config,omitempty"`
-	Architecture    string           `json:"Architecture,omitempty"`
-	Size            int64            `json:"Size,omitempty"`
+	ID              string        `json:"Id"`
+	Parent          string        `json:"Parent,omitempty"`
+	Comment         string        `json:"Comment,omitempty"`
+	Created         metav1.Time   `json:"Created,omitempty"`
+	Container       string        `json:"Container,omitempty"`
+	ContainerConfig DockerConfig  `json:"ContainerConfig,omitempty"`
+	DockerVersion   string        `json:"DockerVersion,omitempty"`
+	Author          string        `json:"Author,omitempty"`
+	Config          *DockerConfig `json:"Config,omitempty"`
+	Architecture    string        `json:"Architecture,omitempty"`
+	Size            int64         `json:"Size,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.

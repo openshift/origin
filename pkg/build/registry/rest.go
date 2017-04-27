@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/rest"
-	"k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/watch"
+	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/origin/pkg/build/api"
 )
@@ -21,9 +22,9 @@ var (
 // WaitForRunningBuild waits until the specified build is no longer New or Pending. Returns true if
 // the build ran within timeout, false if it did not, and an error if any other error state occurred.
 // The last observed Build state is returned.
-func WaitForRunningBuild(watcher rest.Watcher, ctx kapi.Context, build *api.Build, timeout time.Duration) (*api.Build, bool, error) {
+func WaitForRunningBuild(watcher rest.Watcher, ctx apirequest.Context, build *api.Build, timeout time.Duration) (*api.Build, bool, error) {
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", build.Name)
-	options := &kapi.ListOptions{FieldSelector: fieldSelector, ResourceVersion: build.ResourceVersion}
+	options := &metainternal.ListOptions{FieldSelector: fieldSelector, ResourceVersion: build.ResourceVersion}
 	w, err := watcher.Watch(ctx, options)
 	if err != nil {
 		return build, false, err
