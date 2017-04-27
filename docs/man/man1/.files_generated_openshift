@@ -253,7 +253,6 @@ openshift-cli-extract.1
 openshift-cli-get.1
 openshift-cli-idle.1
 openshift-cli-import-app.json.1
-openshift-cli-import-docker-compose.1
 openshift-cli-import-image.1
 openshift-cli-import.1
 openshift-cli-label.1

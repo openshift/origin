@@ -22,9 +22,9 @@ for dir in %s; do
   fi
 done
 `
-	cmdCreateVolumesDirBindMount = "cat /rootfs/proc/1/mountinfo | grep /var/lib/origin || " +
+	cmdCreateVolumesDirBindMount = "grep /var/lib/origin /rootfs/proc/1/mountinfo || " +
 		"nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s"
-	cmdCreateVolumesDirShare = "cat /rootfs/proc/1/mountinfo | grep %[1]s | grep shared || " +
+	cmdCreateVolumesDirShare = "grep %[1]s /rootfs/proc/1/mountinfo | grep shared || " +
 		"nsenter --mount=/rootfs/proc/1/ns/mnt mount --make-shared %[1]s"
 
 	DefaultVolumesDir           = "/var/lib/origin/openshift.local.volumes"

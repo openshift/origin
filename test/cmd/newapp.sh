@@ -190,7 +190,7 @@ os::cmd::expect_success "oc new-build --binary php --build-env-file /dev/null --
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-build --binary php --build-env-file -" 'invalid parameter assignment'
 
-# new-build - check that we can set build args in DockerStrategy 
+# new-build - check that we can set build args in DockerStrategy
 os::cmd::expect_success_and_text "oc new-build ${OS_ROOT}/test/testdata/build-arg-dockerfile --build-arg 'foo=bar' --to 'test' -o jsonpath='{.items[?(@.kind==\"BuildConfig\")].spec.strategy.dockerStrategy.buildArgs[?(@.name==\"foo\")].value}'" 'bar'
 
 # check that we cannot set build args in a non-DockerStrategy build
@@ -357,20 +357,6 @@ os::cmd::expect_success 'oc delete all -l app=ruby'
 # check for error when template JSON file has errors
 jsonfile="${OS_ROOT}/test/testdata/invalid.json"
 os::cmd::expect_failure_and_text "oc new-app '${jsonfile}'" "error: unable to load template file \"${jsonfile}\": json: line 0: invalid character '}' after object key"
-
-# a docker compose file should be transformed into an application by the import command
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'warning: not all docker-compose fields were honored'
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'db: cpuset is not supported'
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml --dry-run' 'no-ports: no ports defined to send traffic to - no OpenShift service was created'
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml -o name --dry-run' 'service/redis'
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml -o name --as-template=other --dry-run' 'template/other'
-if git status &>/dev/null; then
-  # TODO: only consistent when running in a Git repository
-  os::cmd::expect_success '[[ $(diff --suppress-common-lines -y <(oc import docker-compose -f test/testdata/app-scenarios/docker-compose/complex/docker-compose.yml -o yaml) test/testdata/app-scenarios/docker-compose/complex/docker-compose.imported.yaml | grep -vE "ref\:|secret|uri\:" | wc -l) -eq 0 ]]'
-fi
-
-# verify a docker-compose.yml schema 2 resource can be transformed, and that it sets env vars correctly.
-os::cmd::expect_success_and_text 'oc import docker-compose -f test/testdata/app-scenarios/docker-compose/wordpress/docker-compose.yml -o yaml --as-template=other --dry-run' 'value: wordpress'
 
 # check new-build
 os::cmd::expect_failure_and_text 'oc new-build mysql -o yaml' 'you must specify at least one source repository URL'

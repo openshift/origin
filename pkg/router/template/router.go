@@ -269,7 +269,24 @@ func generateRouteRegexp(hostname, path string, wildcard bool) string {
 		}
 	}
 
-	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, regexp.QuoteMeta(path))
+	portRE := "(:[0-9]+)?"
+
+	// build the correct subpath regex, depending on whether path ends with a segment separator
+	var pathRE, subpathRE string
+	switch {
+	case strings.TrimRight(path, "/") == "":
+		// Special-case paths consisting solely of "/" to match a root request to "" as well
+		pathRE = ""
+		subpathRE = "(/.*)?"
+	case strings.HasSuffix(path, "/"):
+		pathRE = regexp.QuoteMeta(path)
+		subpathRE = "(.*)?"
+	default:
+		pathRE = regexp.QuoteMeta(path)
+		subpathRE = "(/.*)?"
+	}
+
+	return "^" + hostRE + portRE + pathRE + subpathRE + "$"
 }
 
 // Generates the host name to use for serving/certificate matching.
@@ -496,7 +513,6 @@ func (r *templateRouter) writeConfig() error {
 // for details
 func (r *templateRouter) writeCertificates(cfg *ServiceAliasConfig) error {
 	if r.shouldWriteCerts(cfg) {
-		//TODO: better way so this doesn't need to create lots of files every time state is written, probably too expensive
 		return r.certManager.WriteCertificatesForConfig(cfg)
 	}
 	return nil
@@ -822,6 +838,12 @@ func cmpStrSlices(first []string, second []string) bool {
 // it will log a warning.  The route will still be written but users may receive browser errors
 // for a host/cert mismatch
 func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
+
+	// The cert is already written
+	if cfg.Status == ServiceAliasConfigStatusSaved {
+		return false
+	}
+
 	if cfg.Certificates == nil {
 		return false
 	}
@@ -840,7 +862,7 @@ func (r *templateRouter) shouldWriteCerts(cfg *ServiceAliasConfig) bool {
 			cfg.TLSTermination, cfg.Host)
 		// if a default cert is configured we'll assume it is meant to be a wildcard and only log info
 		// otherwise we'll consider this a warning
-		if len(r.defaultCertificate) > 0 {
+		if len(r.defaultCertificatePath) > 0 {
 			glog.V(4).Info(msg)
 		} else {
 			glog.Warning(msg)
