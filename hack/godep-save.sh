@@ -21,6 +21,16 @@ for pkg in "$GOPATH/src/k8s.io/kubernetes/staging/src/k8s.io/"*; do
   fi
 done
 
+# fail early if we don't have a proper kube version from the latest git tag
+function kube-version () {
+    local git_v=$(cd "${GOPATH}/src/k8s.io/kubernetes" && git describe --tags)
+    echo "${git_v##-*}"
+}
+if ! [[ "$(kube-version)" =~ v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+ ]]; then
+    echo "Unexpected kubernetes version: '$(kube-version)'. Check for non-release git tags that shouldn't be there." 1>&2
+    exit 1
+fi
+
 # build the godep tool
 # Again go get stinks, hence || true
 go get -u github.com/tools/godep 2>/dev/null || true
