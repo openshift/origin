@@ -77,6 +77,14 @@ func (h *Helper) dockerInfo() (*dockertypes.Info, error) {
 	return h.info, nil
 }
 
+func (h *Helper) CgroupDriver() (string, error) {
+	info, err := h.dockerInfo()
+	if err != nil {
+		return "", err
+	}
+	return info.CgroupDriver, nil
+}
+
 // HasInsecureRegistryArg checks whether the docker daemon is configured with
 // the appropriate insecure registry argument
 func (h *Helper) HasInsecureRegistryArg() (bool, error) {
