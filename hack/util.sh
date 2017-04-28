@@ -61,11 +61,6 @@ function cleanup_openshift() {
 		set -u
 	fi
 
-	if grep -q 'no Docker socket found' "${LOG_DIR}/openshift.log" && command -v journalctl >/dev/null 2>&1; then
-		# the Docker daemon crashed, we need the logs
-		journalctl --unit docker.service --since -4hours > "${LOG_DIR}/docker.log"
-	fi
-
 	truncate_large_logs
 
 	os::log::info "Cleanup complete"

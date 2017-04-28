@@ -77,7 +77,7 @@ function os::cleanup::dump_container_logs() {
 readonly -f os::cleanup::dump_container_logs
 
 # os::cleanup::internal::list_our_containers returns a space-delimited list of
-# docker containers that belonging to some part of the Origin deployment.
+# docker containers that belonged to some part of the Origin deployment.
 #
 # Globals:
 #  None
@@ -92,7 +92,7 @@ function os::cleanup::internal::list_our_containers() {
 readonly -f os::cleanup::internal::list_our_containers
 
 # os::cleanup::internal::list_k8s_containers returns a space-delimited list of
-# docker containers that belonging to k8s.
+# docker containers that belonged to k8s.
 #
 # Globals:
 #  None
