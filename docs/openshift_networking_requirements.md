@@ -15,7 +15,7 @@ networkConfig:
 
 When done through ansible, provide sdn_network_plugin_name=cni as the option while installing OpenShift. Be aware that OpenShift ansible installation allows a firewall passthrough for the VxLAN port (4789), so if a plugin needs other ports (for management/control/data) to be open, then the installer needs to be changed suitably.
 
-Learn more about CNI [here](http://kubernetes.io/docs/admin/network-plugins/#cni) and [here](https://github.com/containernetworking/cni/blob/master/SPEC.md).
+Learn more about CNI [here](https://kubernetes.io/docs/concepts/cluster-administration/network-plugins) and [here](https://github.com/containernetworking/cni/blob/master/SPEC.md).
 
 ## Advanced requirements
 Finally, these extra things should be kept in mind when writing a CNI plugin for OpenShift:
