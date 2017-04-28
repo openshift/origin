@@ -90,6 +90,7 @@ echo "login warnings: ok"
 # login and create serviceaccount and test login and logout with a service account token
 os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
 os::cmd::expect_success_and_text "oc create sa testserviceaccount" "serviceaccount \"testserviceaccount\" created"
+os::cmd::try_until_success "oc sa get-token testserviceaccount"
 os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testserviceaccount)" "system:serviceaccount:project-foo:testserviceaccount"
 # attempt to logout successfully
 os::cmd::expect_success_and_text "oc logout" "Logged \"system:serviceaccount:project-foo:testserviceaccount\" out"
