@@ -24,7 +24,7 @@ function generate_clientset_for() {
   local package="$1";shift
   local name="$1";shift
   echo "-- Generating ${name} client set for ${package} ..."
-  client-gen --clientset-path="${package}/clientset" \
+  client-gen --clientset-path="${package}/generated" \
              --input-base="${package}"                            \
              --output-base="../../.."                                 \
              --clientset-name="${name}"                               \
@@ -37,7 +37,7 @@ verify="${VERIFY:-}"
 # remove the old client sets
 for pkg in "${packages[@]}"; do
   if [[ -z "${verify}" ]]; then
-    go list -f '{{.Dir}}' "${pkg}/clientset/..." | xargs rm -rf
+    go list -f '{{.Dir}}' "${pkg}/generated/clientset/..." "${pkg}/generated/internalclientset/..." | xargs rm -rf
   fi
 done
 
