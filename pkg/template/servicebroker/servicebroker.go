@@ -10,8 +10,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/controller/shared"
-	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/clientset/internalclientset/typed/template/internalversion"
+	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
 type Broker struct {
