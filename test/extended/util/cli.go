@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
-	templateclientset "github.com/openshift/origin/pkg/template/clientset/internalclientset"
+	templateclientset "github.com/openshift/origin/pkg/template/generated/clientset/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 )
 
