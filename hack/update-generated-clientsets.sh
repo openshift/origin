@@ -41,12 +41,8 @@ for pkg in "${packages[@]}"; do
   fi
 done
 
-# get the tag name for the current origin release
-os::build::get_version_vars
-origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
-
 for pkg in "${packages[@]}"; do
   shortGroup=$(basename "${pkg}")
   generate_clientset_for "${pkg}" "internalclientset"  --group=${shortGroup} --input=api/ "$@"
-  generate_clientset_for "${pkg}" "release_${origin_version}" --group=${shortGroup} --version=v1 --input=api/v1 "$@"
+  generate_clientset_for "${pkg}" "clientset" --group=${shortGroup} --version=v1 --input=api/v1 "$@"
 done
