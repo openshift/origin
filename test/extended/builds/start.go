@@ -21,6 +21,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture      = exutil.FixturePath("testdata", "test-build.json")
+		bcWithPRRef       = exutil.FixturePath("testdata", "test-bc-with-pr-ref.yaml")
 		exampleGemfile    = exutil.FixturePath("testdata", "test-build-app", "Gemfile")
 		exampleBuild      = exutil.FixturePath("testdata", "test-build-app")
 		exampleGemfileURL = "https://raw.githubusercontent.com/openshift/ruby-hello-world/master/Gemfile"
@@ -50,6 +51,31 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(br.StartBuildErr).To(o.HaveOccurred()) // start-build should detect the build error with --wait flag
 			o.Expect(br.StartBuildStdErr).Should(o.ContainSubstring(`status is "Failed"`))
 		})
+	})
+
+	g.Describe("oc start-build with pr ref", func() {
+		g.It("should start a build from a PR ref, wait for the build to complete, and confirm the right level was used", func() {
+			g.By("make sure wildly imagestream has latest tag")
+			err := exutil.WaitForAnImageStreamTag(oc.AsAdmin(), "openshift", "wildfly", "latest")
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("create build config")
+			err = oc.Run("create").Args("-f", bcWithPRRef).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("start the build, wait for and confirm successful completion")
+			br, err := exutil.StartBuildAndWait(oc, "bc-with-pr-ref")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertSuccess()
+			out, err := br.Logs()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// the repo at the PR level noted in bcWithPRRef had a pom.xml level of "0.1-SNAPSHOT" (we are well past that now)
+			// so simply looking for that string in the mvn output is indicative of being at that level
+			g.By("confirm the correct commit level was retrieved")
+			o.Expect(strings.Contains(out, "0.1-SNAPSHOT")).To(o.BeTrue())
+		})
+
 	})
 
 	g.Describe("override environment", func() {

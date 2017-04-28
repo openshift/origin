@@ -72,8 +72,33 @@ func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
 	for k, v := range b.config.Annotations {
 		addDefaultAnnotations(k, v, pod.Annotations)
 	}
-	podEnv := &pod.Spec.Containers[0].Env
-	util.MergeTrustedEnvWithoutDuplicates(b.config.Env, podEnv, false)
+
+	// Apply default resources
+	defaultResources := b.config.Resources
+	for i := range pod.Spec.Containers {
+		podEnv := &pod.Spec.Containers[i].Env
+		util.MergeTrustedEnvWithoutDuplicates(b.config.Env, podEnv, false)
+
+		if pod.Spec.Containers[i].Resources.Limits == nil {
+			pod.Spec.Containers[i].Resources.Limits = kapi.ResourceList{}
+		}
+		for name, value := range defaultResources.Limits {
+			if _, ok := pod.Spec.Containers[i].Resources.Limits[name]; !ok {
+				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
+				pod.Spec.Containers[i].Resources.Limits[name] = value
+			}
+		}
+		if pod.Spec.Containers[i].Resources.Requests == nil {
+			pod.Spec.Containers[i].Resources.Requests = kapi.ResourceList{}
+		}
+		for name, value := range defaultResources.Requests {
+			if _, ok := pod.Spec.Containers[i].Resources.Requests[name]; !ok {
+				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
+				pod.Spec.Containers[i].Resources.Requests[name] = value
+			}
+		}
+	}
+
 }
 
 func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
@@ -129,7 +154,7 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 
 	//Apply default resources
 	defaultResources := b.config.Resources
-	if len(build.Spec.Resources.Limits) == 0 {
+	if build.Spec.Resources.Limits == nil {
 		build.Spec.Resources.Limits = kapi.ResourceList{}
 	}
 	for name, value := range defaultResources.Limits {
@@ -138,7 +163,7 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 			build.Spec.Resources.Limits[name] = value
 		}
 	}
-	if len(build.Spec.Resources.Requests) == 0 {
+	if build.Spec.Resources.Requests == nil {
 		build.Spec.Resources.Requests = kapi.ResourceList{}
 	}
 	for name, value := range defaultResources.Requests {

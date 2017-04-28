@@ -259,7 +259,17 @@ func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *api.G
 		}
 
 		if err := gitClient.Checkout(dir, commit); err != nil {
-			return true, err
+			glog.V(4).Infof("Checkout after clone failed for ref %s with error: %v, attempting fetch", commit, err)
+			err = gitClient.Fetch(dir, gitSource.URI, commit)
+			if err != nil {
+				return true, err
+			}
+
+			err = gitClient.Checkout(dir, "FETCH_HEAD")
+			if err != nil {
+				return true, err
+			}
+			glog.V(4).Infof("Fetch  / checkout for %s successful", commit)
 		}
 
 		// Recursively update --init

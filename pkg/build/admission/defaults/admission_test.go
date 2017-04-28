@@ -564,6 +564,13 @@ func TestResourceDefaults(t *testing.T) {
 		build := u.Build().WithSourceStrategy().AsBuild()
 		build.Spec.Resources = test.BuildResource
 		pod := u.Pod().WithBuild(t, build, "v1")
+
+		// normally the buildconfig resources would be applied to the pod
+		// when it was created, but this pod didn't get created by the normal
+		// pod creation flow, so fake this out.
+		for i := range pod.Spec.Containers {
+			pod.Spec.Containers[i].Resources = test.BuildResource
+		}
 		err := defaults.ApplyDefaults((*kapi.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
@@ -573,7 +580,12 @@ func TestResourceDefaults(t *testing.T) {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
 		if !kapi.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
-			t.Fatalf("%v:Expected expected=actual, %v != %v", name, test.ExpectedResource, build.Spec.Resources)
+			t.Fatalf("%v:Build resource expected expected=actual, %#v != %#v", name, test.ExpectedResource, build.Spec.Resources)
+		}
+		for i := range pod.Spec.Containers {
+			if !kapi.Semantic.DeepEqual(test.ExpectedResource, pod.Spec.Containers[i].Resources) {
+				t.Fatalf("%v:Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, pod.Spec.Containers[i].Resources)
+			}
 		}
 	}
 }
