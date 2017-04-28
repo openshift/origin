@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  creationTimestamp: null
+  name: bc-with-pr-ref
+spec:
+  resources: {}
+  source:
+    git:
+      uri: https://github.com/openshift/jenkins-openshift-login-plugin.git
+      ref: refs/pull/1/head
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: wildfly:latest
+        namespace: openshift
+    type: Source
+status:
+  lastVersion: 0
