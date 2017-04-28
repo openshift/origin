@@ -5,6 +5,8 @@
 # be running `hack/build-cross.sh` under the covers, so we transitively
 # consume all of the relevant envars.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+os::util::ensure::system_binary_exists tito
+os::util::ensure::system_binary_exists createrepo
 os::build::setup_env
 
 if [[ "${OS_ONLY_BUILD_PLATFORMS:-}" == 'linux/amd64' ]]; then
@@ -39,7 +41,7 @@ elif [[ "${#output_directories[@]}" -gt 1 ]]; then
 			output_directory="${directory}"
 		fi
 	done
-	os::log::warn "After the tito build, more than one rpmbuild directory was found!
+	os::log::warning "After the tito build, more than one rpmbuild directory was found!
 This script will unpack the most recently modified directory: ${output_directory}"
 else
         output_directory="${output_directories[0]}"
@@ -56,24 +58,20 @@ make clean
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
-mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
-mv "${tito_tmp_dir}"/*src.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
-mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+mkdir -p "${OS_LOCAL_RPMPATH}"
+mv "${tito_tmp_dir}"/*src.rpm "${OS_LOCAL_RPMPATH}"
+mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RPMPATH}"
 
-if command -v createrepo >/dev/null 2>&1; then
-	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
-	createrepo "${repo_path}"
+repo_path="$( os::util::absolute_path "${OS_LOCAL_RPMPATH}" )"
+createrepo "${repo_path}"
 
-	echo "[${OS_RPM_NAME}-local-release]
+echo "[${OS_RPM_NAME}-local-release]
 baseurl = file://${repo_path}
 gpgcheck = 0
 name = OpenShift Release from Local Source
 enabled = 1
 " > "${repo_path}/${OS_RPM_NAME}-local-release.repo"
 
-	os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo
+os::log::info "Repository file for \`yum\` or \`dnf\` placed at ${repo_path}/origin-local-release.repo
 Install it with:
-  $ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"
-else
-	os::log::warning "Repository file for \`yum\` or \`dnf\` could not be generated, install \`createrepo\`."
-fi
+$ mv '${repo_path}/origin-local-release.repo' '/etc/yum.repos.d"

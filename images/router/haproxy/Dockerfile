@@ -19,7 +19,8 @@ RUN INSTALL_PKGS="haproxy" && \
 COPY . /var/lib/haproxy/
 
 LABEL io.k8s.display-name="OpenShift Origin HAProxy Router" \
-      io.k8s.description="This is a component of OpenShift Origin and contains an HAProxy instance that automatically exposes services within the cluster through routes, and offers TLS termination, reencryption, or SNI-passthrough on ports 80 and 443."
+      io.k8s.description="This is a component of OpenShift Origin and contains an HAProxy instance that automatically exposes services within the cluster through routes, and offers TLS termination, reencryption, or SNI-passthrough on ports 80 and 443." \
+      io.openshift.tags="openshift,router,haproxy"
 USER 1001
 EXPOSE 80 443
 WORKDIR /var/lib/haproxy/conf

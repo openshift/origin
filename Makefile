@@ -239,8 +239,7 @@ clean:
 #
 # Example:
 #   make release
-release: clean
-	OS_ONLY_BUILD_PLATFORMS="linux/amd64" hack/build-release.sh
+release: clean build-rpms
 	hack/build-images.sh
 	hack/extract-release.sh
 .PHONY: release
@@ -289,18 +288,6 @@ build-rpms:
 build-rpms-redistributable:
 	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
-
-# Build a release of OpenShift using tito for linux/amd64 and the images that depend on it.
-#
-# Args:
-#
-# Example:
-#   make release-rpms
-release-rpms: clean build-rpms-redistributable
-	hack/build-base-images.sh
-	hack/build-images.sh
-	hack/extract-release.sh
-.PHONY: release
 
 # Vendor the Origin Web Console
 #

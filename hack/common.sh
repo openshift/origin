@@ -70,7 +70,7 @@ readonly -f os::build::platform_arch
 function os::build::setup_env() {
   os::util::ensure::system_binary_exists 'go'
 
-  if os::util::find::system_binary 'sha256sum' >/dev/null 2>&1; then
+  if [[ -z "$(which sha256sum)" ]]; then
     sha256sum() {
       return 0
     }
@@ -82,9 +82,9 @@ function os::build::setup_env() {
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.5" ]]; then
+    if [[ "${go_version[2]}" < "go1.7" ]]; then
       os::log::fatal "Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.6 or greater."
+Origin builds require Go version 1.7 or greater."
     fi
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),

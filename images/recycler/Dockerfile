@@ -5,8 +5,8 @@
 #
 FROM openshift/origin
 
-LABEL io.openshift.tags="openshift,recycler" \
-      io.k8s.display-name="OpenShift Origin Volume Recycler" \
-      io.k8s.description="This is a component of OpenShift Origin and is used to prepare persistent volumes for reuse after they are deleted."
+LABEL io.k8s.display-name="OpenShift Origin Volume Recycler" \
+      io.k8s.description="This is a component of OpenShift Origin and is used to prepare persistent volumes for reuse after they are deleted." \
+      io.openshift.tags="openshift,recycler"
 
 ENTRYPOINT ["/usr/bin/openshift-recycle"]

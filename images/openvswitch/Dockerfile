@@ -5,13 +5,10 @@
 #
 FROM openshift/node
 
-COPY scripts/* /usr/local/bin/
-
-RUN INSTALL_PKGS="openvswitch" \
- && yum install -y ${INSTALL_PKGS} \
- && rpm -V ${INSTALL_PKGS} \
- && yum clean all \
- && chmod +x /usr/local/bin/*
+RUN INSTALL_PKGS="openvswitch" && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all
 
 LABEL io.openshift.tags="openshift,openvswitch" \
       io.k8s.display-name="OpenShift Origin OpenVSwitch Daemon" \

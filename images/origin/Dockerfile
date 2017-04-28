@@ -12,15 +12,15 @@ FROM openshift/origin-base
 
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/manifest.json system-container/service.template system-container/tmpfiles.template /exports/
-RUN INSTALL_PKGS="origin" \
- && yum install -y ${INSTALL_PKGS} \
- && rpm -V ${INSTALL_PKGS} \
- && yum clean all \
- && setcap 'cap_net_bind_service=ep' /usr/bin/openshift
+RUN INSTALL_PKGS="origin" && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all && \
+    setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
-LABEL io.openshift.tags="openshift,core" \
-      io.k8s.display-name="OpenShift Origin Application Platform" \
-      io.k8s.description="OpenShift Origin is a platform for developing, building, and deploying containerized applications. See https://docs.openshift.org/latest for more on running OpenShift Origin."
+LABEL io.k8s.display-name="OpenShift Origin Application Platform" \
+      io.k8s.description="OpenShift Origin is a platform for developing, building, and deploying containerized applications." \
+      io.openshift.tags="openshift,core"
 
 ENV HOME=/root \
     OPENSHIFT_CONTAINERIZED=true \

@@ -8,15 +8,12 @@
 # origin-deployer, etc.
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
-source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
-if [[ ! -d "${OS_LOCAL_RPMPATH}" ]]; then
-	relative_rpmpath="$( os::util::repository_relative_path "${OS_LOCAL_RPMPATH}" )"
-	relative_binpath="$( os::util::repository_relative_path "${OS_OUTPUT_BINPATH}" )"
-	os::log::fatal "No release RPMs have been built! RPMs are necessary to build container images.
-Build them with:
-  $ OS_BUILD_ENV_PRESERVE=${relative_binpath}:${relative_rpmpath} hack/env make build-rpms-redistributable"
-fi
+os::util::ensure::gopath_binary_exists imagebuilder
+# image builds require RPMs to have been built
+os::build::release::check_for_rpms
+# OS_RELEASE_COMMIT is required by image-build
+os::build::detect_local_release_tars $(os::build::host_platform_friendly)
 
 # Without this, the dockerregistry lacks gcs+oss storage drivers in non-cross builds.
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
@@ -87,15 +84,10 @@ function image() {
 ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
 ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
 
-# Copy SDN scripts into images/node
-os::provision::install-sdn "${OS_ROOT}" "${OS_OUTPUT_BINPATH}/linux/amd64" "${OS_ROOT}/images/node"
-mkdir -p images/node/conf/
-cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
-
 # determine the correct tag prefix
 tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-# images that depend on scratch / centos
+# images that depend on "${tag_prefix}-source"
 image "${tag_prefix}-pod"                   images/pod
 # images that depend on "${tag_prefix}-base"
 image "${tag_prefix}"                       images/origin

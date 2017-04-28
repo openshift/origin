@@ -12,4 +12,8 @@ RUN INSTALL_PKGS="iproute iputils" && \
 
 ADD egress-router.sh /bin/egress-router.sh
 
+LABEL io.k8s.display-name="OpenShift Origin Egress Router" \
+      io.k8s.description="This is a component of OpenShift Origin and contains an egress router." \
+      io.openshift.tags="openshift,router,egress"
+
 ENTRYPOINT /bin/egress-router.sh

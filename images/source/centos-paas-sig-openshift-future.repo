@@ -1,5 +1,0 @@
-[centos-paas-sig-openshift-future]
-name = CentOS PaaS SIG Origin Repository
-baseurl = http://buildlogs.centos.org/centos/7/paas/x86_64/openshift-future/
-gpgcheck = 0
-includepkgs = openvswitch*
