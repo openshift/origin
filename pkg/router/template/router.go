@@ -250,7 +250,24 @@ func generateRouteRegexp(hostname, path string, wildcard bool) string {
 		}
 	}
 
-	return fmt.Sprintf("^%s(|:[0-9]+)%s(|/.*)$", hostRE, regexp.QuoteMeta(path))
+	portRE := "(:[0-9]+)?"
+
+	// build the correct subpath regex, depending on whether path ends with a segment separator
+	var pathRE, subpathRE string
+	switch {
+	case strings.TrimRight(path, "/") == "":
+		// Special-case paths consisting solely of "/" to match a root request to "" as well
+		pathRE = ""
+		subpathRE = "(/.*)?"
+	case strings.HasSuffix(path, "/"):
+		pathRE = regexp.QuoteMeta(path)
+		subpathRE = "(.*)?"
+	default:
+		pathRE = regexp.QuoteMeta(path)
+		subpathRE = "(/.*)?"
+	}
+
+	return "^" + hostRE + portRE + pathRE + subpathRE + "$"
 }
 
 // Generates the host name to use for serving/certificate matching.
