@@ -41,6 +41,7 @@ var _ = g.Describe("[builds][Conformance] build without output image", func() {
 
 			g.By("expecting build to pass without an output image reference specified")
 			br, err := exutil.StartBuildAndWait(oc, "test-sti")
+			o.Expect(err).NotTo(o.HaveOccurred())
 			br.AssertSuccess()
 
 			g.By("verifying the build test-sti-1 output")
