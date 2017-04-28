@@ -27,13 +27,6 @@ function os::log::warning() {
 }
 readonly -f os::log::warning
 
-# os::log::warn remains for backward compatibility
-function os::log::warn() {
-	os::log::warning "os::log::warn is deprecated and will be removed in the future. Use os::log::warning instead."
-	os::log::warning "$@"
-}
-readonly -f os::log::warn
-
 # os::log::error writes the message to stderr.
 # An error indicates that something went wrong
 # and we will most likely fail after this.
