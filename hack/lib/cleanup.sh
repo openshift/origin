@@ -16,7 +16,7 @@ function os::cleanup::dump_etcd() {
 	os::util::curl_etcd "/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
 }
 
-# os::cleanup::containers operates on k8s containers to stop the containers
+# os::cleanup::containers operates on our containers to stop the containers
 # and optionally remove the containers and any volumes they had attached.
 #
 # Globals:
@@ -31,8 +31,8 @@ function os::cleanup::containers() {
 		return
 	fi
 
-	os::log::info "Stopping k8s docker containers"
-	for id in $( os::cleanup::internal::list_k8s_containers ); do
+	os::log::info "Stopping docker containers"
+	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Stopping ${id}"
 		docker stop "${id}" >/dev/null
 	done
@@ -41,8 +41,8 @@ function os::cleanup::containers() {
 		return
 	fi
 
-	os::log::info "Removing k8s docker containers"
-	for id in $( os::cleanup::internal::list_k8s_containers ); do
+	os::log::info "Removing docker containers"
+	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Removing ${id}"
 		docker stop "${id}" >/dev/null
 	done
@@ -68,7 +68,7 @@ function os::cleanup::dump_container_logs() {
 	mkdir -p "${container_log_dir}"
 
 	os::log::info "Dumping container logs to ${container_log_dir}"
-	for id in $( os::cleanup::internal::list_k8s_containers ); do
+	for id in $( os::cleanup::internal::list_our_containers ); do
 		local name; name="$( docker inspect --format '{{ .Name }}' "${id}" )"
 		os::log::debug "Dumping logs for ${id} to ${name}.log"
 		docker logs "${id}" >"${container_log_dir}/${name}.log" 2>&1
@@ -76,8 +76,23 @@ function os::cleanup::dump_container_logs() {
 }
 readonly -f os::cleanup::dump_container_logs
 
+# os::cleanup::internal::list_our_containers returns a space-delimited list of
+# docker containers that belonging to some part of the Origin deployment.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::internal::list_our_containers() {
+	os::cleanup::internal::list_containers '^/origin$'
+	os::cleanup::internal::list_k8s_containers
+}
+readonly -f os::cleanup::internal::list_our_containers
+
 # os::cleanup::internal::list_k8s_containers returns a space-delimited list of
-# docker containers that belonged to k8s.
+# docker containers that belonging to k8s.
 #
 # Globals:
 #  None
@@ -86,18 +101,33 @@ readonly -f os::cleanup::dump_container_logs
 # Returns:
 #  None
 function os::cleanup::internal::list_k8s_containers() {
+	os::cleanup::internal::list_containers '^/k8s_.*'
+}
+readonly -f os::cleanup::internal::list_k8s_containers
+
+# os::cleanup::internal::list_containers returns a space-delimited list of
+# docker containers that match a name regex.
+#
+# Globals:
+#  None
+# Arguments:
+#  1 - regex to match on the name
+# Returns:
+#  None
+function os::cleanup::internal::list_containers() {
+	local regex="$1"
 	local ids;
 	for short_id in $( docker ps -aq ); do
 		local id; id="$( docker inspect --format '{{ .Id }}' "${short_id}" )"
 		local name; name="$( docker inspect --format '{{ .Name }}' "${id}" )"
-		if [[ "${name}" =~ ^/k8s_.* ]]; then
+		if [[ "${name}" =~ ${regex} ]]; then
 			ids+=( "${id}" )
 		fi
 	done
 
 	echo "${ids[*]:+"${ids[*]}"}"
 }
-readonly -f os::cleanup::internal::list_k8s_containers
+readonly -f os::cleanup::internal::list_containers
 
 # os::cleanup::tmpdir performs cleanup of temp directories as a precondition for running a test. It tries to
 # clean up mounts in the temp directories.
