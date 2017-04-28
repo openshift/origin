@@ -56,7 +56,7 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 		&FakeDocker{
 			errPushImage: config.errPushImage,
 		},
-		"/docker.socket",
+		"unix:///var/run/docker.sock",
 		testclient.NewSimpleFake().Builds(""),
 		makeBuild(),
 		git.NewRepository(),

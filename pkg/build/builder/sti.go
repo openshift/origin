@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/api/validation"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
+	"github.com/openshift/source-to-image/pkg/docker"
 
 	"github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -45,7 +46,11 @@ type runtimeBuilderFactory struct{}
 
 // Builder delegates execution to S2I-specific code
 func (_ runtimeBuilderFactory) Builder(config *s2iapi.Config, overrides s2ibuild.Overrides) (s2ibuild.Builder, s2iapi.BuildInfo, error) {
-	builder, buildInfo, err := s2i.Strategy(config, overrides)
+	client, err := docker.NewEngineAPIClient(config.DockerConfig)
+	if err != nil {
+		return nil, s2iapi.BuildInfo{}, err
+	}
+	builder, buildInfo, err := s2i.Strategy(client, config, overrides)
 	return builder, buildInfo, err
 }
 
@@ -274,7 +279,11 @@ func (s *S2IBuilder) Build() error {
 		return errors.New(buffer.String())
 	}
 
-	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(config))
+	client, err := docker.NewEngineAPIClient(config.DockerConfig)
+	if err != nil {
+		return err
+	}
+	glog.V(4).Infof("Creating a new S2I builder with build config: %#v\n", describe.Config(client, config))
 	builder, buildInfo, err := s.builder.Builder(config, s2ibuild.Overrides{Downloader: nil})
 	if err != nil {
 		s.build.Status.Phase = api.BuildPhaseFailed
