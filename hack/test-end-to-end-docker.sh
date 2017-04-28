@@ -43,8 +43,6 @@ function cleanup()
 		os::cleanup::containers
 	fi
 
-	journalctl --unit docker.service --since -15minutes > "${LOG_DIR}/docker.log"
-
 	truncate_large_logs
 	os::test::junit::generate_oscmd_report
 	set -e
