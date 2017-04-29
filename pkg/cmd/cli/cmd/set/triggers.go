@@ -1,6 +1,7 @@
 package set
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -14,10 +15,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapps "k8s.io/kubernetes/pkg/apis/apps"
+	kbatch "k8s.io/kubernetes/pkg/apis/batch"
+	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	ometa "github.com/openshift/origin/pkg/api/meta"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -26,23 +32,28 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/api"
-	"k8s.io/apimachinery/pkg/util/sets"
+	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	"github.com/openshift/origin/pkg/image/trigger/annotations"
 )
 
 var (
 	triggersLong = templates.LongDesc(`
-		Set or remove triggers for build configs and deployment configs
+		Set or remove triggers
 
-		All build configs and deployment configs may have a set of triggers that result in a new deployment
-		or build being created. This command enables you to alter those triggers - making them automatic or
-		manual, adding new entries, or changing existing entries.
+		Build configs, deployment configs, and most Kubernetes workload objects may have a set of triggers
+		that result in a new deployment or build being created when an image changes. This command enables
+		you to alter those triggers - making them automatic or manual, adding new entries, or changing
+		existing entries.
 
 		Deployments support triggering off of image changes and on config changes. Config changes are any
 		alterations to the pod template, while image changes will result in the container image value being
-		updated whenever an image stream tag is updated.
+		updated whenever an image stream tag is updated. You may also trigger Kubernetes stateful sets,
+		daemon sets, deployments, and cron jobs from images. Disabling the config change trigger is equivalent
+		to pausing most objects. Deployment configs will not perform their first deployment until all image
+		change triggers have been submitted.
 
-		Build configs support triggering off of image changes, config changes, and webhooks (both GitHub-specific
-		and generic). The config change trigger for a build config will only trigger the first build.`)
+		Build configs support triggering off of image changes, config changes, and webhooks. The config change
+		trigger for a build config will only trigger the first build.`)
 
 	triggersExample = templates.Examples(`
 		# Print the triggers on the registry
@@ -65,7 +76,10 @@ var (
 	  %[1]s triggers dc/registry --from-config --remove
 
 	  # Add an image trigger to a build config
-	  %[1]s triggers bc/webapp --from-image=namespace1/image:latest`)
+	  %[1]s triggers bc/webapp --from-image=namespace1/image:latest
+
+	  # Add an image trigger to a stateful set on the main container
+	  %[1]s triggers statefulset/db --from-image=namespace1/image:latest -c main`)
 )
 
 type TriggersOptions struct {
@@ -117,7 +131,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	}
 	cmd := &cobra.Command{
 		Use:     "triggers RESOURCE/NAME [--from-config|--from-image|--from-github|--from-webhook] [--auto|--manual]",
-		Short:   "Update the triggers on a build or deployment config",
+		Short:   "Update the triggers on one or more objects",
 		Long:    triggersLong,
 		Example: fmt.Sprintf(triggersExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -302,7 +316,7 @@ func (o *TriggersOptions) Run() error {
 		return UpdateTriggersForObject(info.Object, updateTriggerFn)
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
+		return fmt.Errorf("%s/%s does not support triggers", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
@@ -379,6 +393,7 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 			return nil
 		})
 		if err != nil {
+			glog.V(2).Infof("Unable to calculate trigger for %s: %v", info.Name, err)
 			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource, info.Name, "<error>", "", false)
 		}
 	}
@@ -513,6 +528,44 @@ func defaultNamespace(namespace, defaultNamespace string) string {
 	return namespace
 }
 
+// NewAnnotationTriggers creates a trigger definition from an object that can be triggered by the image
+// annotation.
+func NewAnnotationTriggers(obj runtime.Object) (*TriggerDefinition, error) {
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &TriggerDefinition{ConfigChange: true}
+	switch typed := obj.(type) {
+	case *kextensions.Deployment:
+		t.ConfigChange = !typed.Spec.Paused
+	}
+
+	out, ok := m.GetAnnotations()[triggerapi.TriggerAnnotationKey]
+	if !ok {
+		return t, nil
+	}
+	triggers := []triggerapi.ObjectFieldTrigger{}
+	if err := json.Unmarshal([]byte(out), &triggers); err != nil {
+		return nil, err
+	}
+
+	for _, trigger := range triggers {
+		container, remainder, err := annotations.ContainerForObjectFieldPath(obj, trigger.FieldPath)
+		if err != nil || remainder != "image" {
+			continue
+		}
+		t.ImageChange = append(t.ImageChange, ImageChangeTrigger{
+			Auto:      !trigger.Paused,
+			Names:     []string{container.GetName()},
+			From:      trigger.From.Name,
+			Namespace: defaultNamespace(trigger.From.Namespace, m.GetNamespace()),
+		})
+	}
+	return t, nil
+}
+
 // NewDeploymentConfigTriggers creates a trigger definition from a deployment config.
 func NewDeploymentConfigTriggers(config *deployapi.DeploymentConfig) *TriggerDefinition {
 	t := &TriggerDefinition{}
@@ -575,7 +628,7 @@ func NewBuildConfigTriggers(config *buildapi.BuildConfig) *TriggerDefinition {
 	return t
 }
 
-// Apply writes a trigger definition back to a build or deployment config.
+// Apply writes a trigger definition back to an object.
 func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 	switch c := obj.(type) {
 	case *deployapi.DeploymentConfig:
@@ -599,6 +652,9 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		}
 		allNames := sets.NewString()
 		for _, container := range c.Spec.Template.Spec.Containers {
+			allNames.Insert(container.Name)
+		}
+		for _, container := range c.Spec.Template.Spec.InitContainers {
 			allNames.Insert(container.Name)
 		}
 		for _, trigger := range t.ImageChange {
@@ -699,6 +755,87 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			})
 		}
 		c.Spec.Triggers = mergeBuildTriggers(existingTriggers, triggers)
+		return nil
+
+	case *kextensions.DaemonSet, *kapps.StatefulSet, *kbatch.CronJob, *kextensions.Deployment:
+		if len(t.GitHubWebHooks) > 0 {
+			return fmt.Errorf("does not support GitHub web hooks")
+		}
+		if len(t.WebHooks) > 0 {
+			return fmt.Errorf("does not support web hooks")
+		}
+		if len(t.GitLabWebHooks) > 0 {
+			return fmt.Errorf("does not support GitLab web hooks")
+		}
+		if len(t.BitbucketWebHooks) > 0 {
+			return fmt.Errorf("does not support Bitbucket web hooks")
+		}
+		m, err := meta.Accessor(obj)
+		if err != nil {
+			return err
+		}
+		spec, path, err := ometa.GetPodSpec(obj)
+		if err != nil {
+			return err
+		}
+		allNames := sets.NewString()
+		for _, container := range spec.Containers {
+			allNames.Insert(container.Name)
+		}
+		for _, container := range spec.InitContainers {
+			allNames.Insert(container.Name)
+		}
+		alreadyTriggered := sets.NewString()
+		var triggers []triggerapi.ObjectFieldTrigger
+		glog.V(4).Infof("calculated triggers: %#v", t.ImageChange)
+		for _, trigger := range t.ImageChange {
+			if len(trigger.Names) == 0 {
+				return fmt.Errorf("you must specify --containers when setting --from-image")
+			}
+			if !allNames.HasAll(trigger.Names...) {
+				return fmt.Errorf(
+					"not all container names exist: %s (accepts: %s)",
+					strings.Join(sets.NewString(trigger.Names...).Difference(allNames).List(), ", "),
+					strings.Join(allNames.List(), ", "),
+				)
+			}
+			if alreadyTriggered.HasAny(trigger.Names...) {
+				return fmt.Errorf("only one trigger may reference each container: %s", strings.Join(alreadyTriggered.Intersection(sets.NewString(trigger.Names...)).List(), ", "))
+			}
+			alreadyTriggered.Insert(trigger.Names...)
+
+			ns := trigger.Namespace
+			if ns == m.GetNamespace() {
+				ns = ""
+			}
+			for _, name := range trigger.Names {
+				triggers = append(triggers, triggerapi.ObjectFieldTrigger{
+					From: triggerapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Name:      trigger.From,
+						Namespace: ns,
+					},
+					FieldPath: fmt.Sprintf(path.Child("containers").String()+"[?(@.name='%s')].image", name),
+					Paused:    !trigger.Auto,
+				})
+			}
+		}
+		out, err := json.Marshal(triggers)
+		if err != nil {
+			return err
+		}
+		a := m.GetAnnotations()
+		if a == nil {
+			a = make(map[string]string)
+		}
+		a[triggerapi.TriggerAnnotationKey] = string(out)
+		m.SetAnnotations(a)
+
+		switch typed := obj.(type) {
+		case *kextensions.Deployment:
+			typed.Spec.Paused = !t.ConfigChange
+		}
+		glog.V(4).Infof("Updated annotated object: %#v", obj)
 		return nil
 
 	default:
@@ -844,7 +981,16 @@ func UpdateTriggersForObject(obj runtime.Object, fn func(*TriggerDefinition) err
 			return true, err
 		}
 		return true, triggers.Apply(t)
+	case *kextensions.DaemonSet, *kextensions.Deployment, *kapps.StatefulSet, *kbatch.CronJob:
+		triggers, err := NewAnnotationTriggers(obj)
+		if err != nil {
+			return false, err
+		}
+		if err := fn(triggers); err != nil {
+			return true, err
+		}
+		return true, triggers.Apply(obj)
 	default:
-		return false, fmt.Errorf("the object is not a deployment config or build config")
+		return false, fmt.Errorf("the object does not support triggers")
 	}
 }
