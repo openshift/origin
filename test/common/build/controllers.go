@@ -31,6 +31,10 @@ var (
 	// after a state transition to make sure other state transitions don't occur unexpectedly
 	BuildPodControllerTestWait = 10 * time.Second
 
+	// BuildPodControllerTestTransitionTimeout is the time RunBuildPodControllerTest waits
+	// for a build trasition to occur after the pod's status has been updated
+	BuildPodControllerTestTransitionTimeout = 60 * time.Second
+
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
 	// The value is 6 minutes to allow for a resync to occur, which allows for necessarily
@@ -208,7 +212,6 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 		// Setup communications channels
 		podReadyChan := make(chan *kapi.Pod) // Will receive a value when a build pod is ready
 		errChan := make(chan error)          // Will receive a value when an error occurs
-		stateReached := int32(0)
 
 		// Create a build
 		b, err := osClient.Builds(ns).Create(mockBuild())
@@ -262,58 +265,82 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 					return fmt.Errorf("another client altered the pod phase to %s: %#v", state.PodPhase, pod)
 				}
 				pod.Status.Phase = state.PodPhase
+				if pod.Status.Phase == kapi.PodSucceeded {
+					pod.Status.ContainerStatuses = []kapi.ContainerStatus{
+						{
+							Name: "container",
+							State: kapi.ContainerState{
+								Terminated: &kapi.ContainerStateTerminated{
+									ExitCode: 0,
+								},
+							},
+						},
+					}
+				}
 				_, err = kClient.Core().Pods(ns).UpdateStatus(pod)
 				return err
 			}); err != nil {
 				t.Fatal(err)
 			}
 
-			buildWatch, err := osClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name).String(), ResourceVersion: b.ResourceVersion})
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer buildWatch.Stop()
-			go func() {
-				done := false
-				for e := range buildWatch.ResultChan() {
-					var ok bool
-					b, ok = e.Object.(*buildapi.Build)
-					if !ok {
-						errChan <- fmt.Errorf("%s: unexpected object received: %#v", test.Name, e.Object)
+			shouldContinue := func() bool {
+				buildWatch, err := osClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", b.Name).String(), ResourceVersion: b.ResourceVersion})
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer buildWatch.Stop()
+
+				stateReached := make(chan struct{})
+				go func() {
+					done := false
+					for e := range buildWatch.ResultChan() {
+						var ok bool
+						b, ok = e.Object.(*buildapi.Build)
+						if !ok {
+							errChan <- fmt.Errorf("unexpected object received: %#v", e.Object)
+							return
+						}
+						glog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
+						if e.Type != watchapi.Modified {
+							errChan <- fmt.Errorf("unexpected event received: %s, object: %#v", e.Type, e.Object)
+							return
+						}
+						if done {
+							errChan <- fmt.Errorf("build %s/%s transitioned to new state (%s) after reaching desired state", b.Namespace, b.Name, b.Status.Phase)
+							return
+						}
+						if b.Status.Phase == state.BuildPhase {
+							done = true
+							stateReached <- struct{}{}
+						}
 					}
-					glog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
-					if e.Type != watchapi.Modified {
-						errChan <- fmt.Errorf("%s: unexpected event received: %s, object: %#v", test.Name, e.Type, e.Object)
-					}
-					if done {
-						errChan <- fmt.Errorf("%s: unexpected build state: %#v", test.Name, e.Object)
-					} else if b.Status.Phase == state.BuildPhase {
-						done = true
-						atomic.StoreInt32(&stateReached, 1)
-					}
+				}()
+
+				select {
+				case err := <-errChan:
+					t.Errorf("%s: Error %v", test.Name, err)
+					return false
+				case <-time.After(BuildPodControllerTestTransitionTimeout):
+					t.Errorf("%s: Timed out waiting for build %s/%s to reach state %s. Current state: %s", test.Name, b.Namespace, b.Name, state.BuildPhase, b.Status.Phase)
+					return false
+				case <-stateReached:
+					glog.Infof("%s: build %s/%s reached desired state of %s", test.Name, b.Namespace, b.Name, state.BuildPhase)
+				}
+
+				// After state is reached, continue waiting some time to check for unexpected transitions
+				select {
+				case err := <-errChan:
+					t.Errorf("%s: Error %v", test.Name, err)
+					return false
+
+				case <-time.After(BuildPodControllerTestWait):
+					// After waiting for a set time, if no other state is reached, continue to wait for next state transition
+					return true
 				}
 			}()
 
-			select {
-			case err := <-errChan:
-				buildWatch.Stop()
-				t.Errorf("%s: Error: %v\n", test.Name, err)
+			if !shouldContinue {
 				break
-			case <-time.After(BuildPodControllerTestWait):
-				buildWatch.Stop()
-				if atomic.LoadInt32(&stateReached) != 1 {
-					// attempt to retrieve build and get current state
-					func() {
-						currentBuild, err := osClient.Builds(b.Namespace).Get(b.Name, metav1.GetOptions{})
-						if err != nil {
-							glog.Infof("Cannot get build %s/%s: %v", b.Namespace, b.Name, err)
-							return
-						}
-						glog.Infof("Failing build %s/%s. Current build phase: %s", currentBuild.Namespace, currentBuild.Name, currentBuild.Status.Phase)
-					}()
-					t.Errorf("%s: Did not reach desired build state: %s", test.Name, state.BuildPhase)
-					break
-				}
 			}
 		}
 	}
