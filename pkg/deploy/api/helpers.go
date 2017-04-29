@@ -60,6 +60,21 @@ type TemplateImage struct {
 	Container *kapi.Container
 }
 
+// templateImageForContainer takes a container and returns a TemplateImage.
+func templateImageForContainer(container *kapi.Container, triggerFn TriggeredByFunc) (TemplateImage, error) {
+	var ref imageapi.DockerImageReference
+	if trigger, ok := triggerFn(container); ok {
+		trigger.Image = container.Image
+		trigger.Container = container
+		return trigger, nil
+	}
+	ref, err := imageapi.ParseDockerImageReference(container.Image)
+	if err != nil {
+		return TemplateImage{Image: container.Image, Container: container}, err
+	}
+	return TemplateImage{Image: container.Image, Ref: &ref, Container: container}, nil
+}
+
 // TemplateImageForContainer locates the requested container in a pod spec, returning information about the
 // trigger (if it exists), or an error.
 func TemplateImageForContainer(pod *kapi.PodSpec, triggerFn TriggeredByFunc, containerName string) (TemplateImage, error) {
@@ -68,40 +83,50 @@ func TemplateImageForContainer(pod *kapi.PodSpec, triggerFn TriggeredByFunc, con
 		if container.Name != containerName {
 			continue
 		}
-		var ref imageapi.DockerImageReference
-		if trigger, ok := triggerFn(container); ok {
-			trigger.Image = container.Image
-			trigger.Container = container
-			return trigger, nil
+		return templateImageForContainer(container, triggerFn)
+	}
+	for i := range pod.InitContainers {
+		container := &pod.InitContainers[i]
+		if container.Name != containerName {
+			continue
 		}
-		ref, err := imageapi.ParseDockerImageReference(container.Image)
-		if err != nil {
-			return TemplateImage{Image: container.Image, Container: container}, err
-		}
-		return TemplateImage{Image: container.Image, Ref: &ref, Container: container}, nil
+		return templateImageForContainer(container, triggerFn)
 	}
 	return TemplateImage{}, fmt.Errorf("no container %q found", containerName)
+}
+
+// eachTemplateImage invokes triggerFn and fn on the provided container.
+func eachTemplateImage(container *kapi.Container, triggerFn TriggeredByFunc, fn func(TemplateImage, error)) {
+	image, err := templateImageForContainer(container, triggerFn)
+	fn(image, err)
 }
 
 // EachTemplateImage iterates a pod spec, looking for triggers that match each container and invoking
 // fn with each located image.
 func EachTemplateImage(pod *kapi.PodSpec, triggerFn TriggeredByFunc, fn func(TemplateImage, error)) {
 	for i := range pod.Containers {
-		container := &pod.Containers[i]
-		var ref imageapi.DockerImageReference
-		if trigger, ok := triggerFn(container); ok {
-			trigger.Image = container.Image
-			trigger.Container = container
-			fn(trigger, nil)
-			continue
-		}
-		ref, err := imageapi.ParseDockerImageReference(container.Image)
-		if err != nil {
-			fn(TemplateImage{Image: container.Image, Container: container}, err)
-			continue
-		}
-		fn(TemplateImage{Image: container.Image, Ref: &ref, Container: container}, nil)
+		eachTemplateImage(&pod.Containers[i], triggerFn, fn)
 	}
+	for i := range pod.InitContainers {
+		eachTemplateImage(&pod.InitContainers[i], triggerFn, fn)
+	}
+}
+
+// EachContainer iterates a pod spec with each container.
+func EachContainer(pod *kapi.PodSpec, fn func(*kapi.Container) error) error {
+	for i := range pod.InitContainers {
+		container := &pod.InitContainers[i]
+		if err := fn(container); err != nil {
+			return err
+		}
+	}
+	for i := range pod.Containers {
+		container := &pod.Containers[i]
+		if err := fn(container); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // TriggeredByFunc returns a TemplateImage or error from the provided container
