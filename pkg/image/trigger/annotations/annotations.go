@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -125,12 +127,14 @@ func UpdateObjectFromImages(obj runtime.Object, copier runtime.ObjectCopier, tag
 	if err != nil {
 		return nil, err
 	}
+	glog.V(5).Infof("%T/%s has triggers: %#v", obj, m.GetName(), triggers)
 	for _, trigger := range triggers {
 		if trigger.Paused {
 			continue
 		}
 		fieldPath := trigger.FieldPath
 		if !strings.HasPrefix(trigger.FieldPath, basePath) {
+			glog.V(5).Infof("%T/%s trigger %s did not match base path %s", obj, m.GetName(), trigger.FieldPath, basePath)
 			continue
 		}
 		fieldPath = strings.TrimPrefix(fieldPath, basePath)
@@ -141,6 +145,7 @@ func UpdateObjectFromImages(obj runtime.Object, copier runtime.ObjectCopier, tag
 		}
 		ref, _, ok := tagRetriever.ImageStreamTag(namespace, trigger.From.Name)
 		if !ok {
+			glog.V(5).Infof("%T/%s detected no pending image on %s from %#v", obj, m.GetName(), trigger.FieldPath, trigger.From)
 			continue
 		}
 
@@ -163,6 +168,7 @@ func UpdateObjectFromImages(obj runtime.Object, copier runtime.ObjectCopier, tag
 				spec, _ = ometa.GetPodSpecReferenceMutator(updated)
 				container, _ = findContainerBySelector(spec, init, selector)
 			}
+			glog.V(5).Infof("%T/%s detected change on %s = %s", obj, m.GetName(), trigger.FieldPath, ref)
 			container.SetImage(ref)
 		}
 	}
