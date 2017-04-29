@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 75b2e4e98765d796fd7eb534387cccb78bfdf8d5
+%global commit 3a4e35130c6440a0f9e6c15ed0f8da7875133ad6
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.53 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=75b2e4e
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.54 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3a4e351
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.54
+Version:        3.6.55
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,27 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sat Apr 29 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.55-1
+- bump(github.com/openshift/origin-web-console):
+  53807d04bc6cc26a815bcbf44b39a69a6d064a53 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0fd4423a0211eeedb946b482ed1948ac7fa73610 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 45105: taint-controller-tests: double 'a bit of time' to avoid
+  flakes (stefan.schimanski@gmail.com)
+- UPSTREAM: 45100: node-controller: deflake TestUpdateNodeWithMultiplePods
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: 41634: Handle error event type (yashulyak@gmail.com)
+- Add synthetic Ginkgo foci for parallel and serial conformance suites
+  (skuznets@redhat.com)
+- make build event checking tolerant of latency (bparees@redhat.com)
+- Resolve build hang when docker daemon under load (jminter@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  191ae3b6e99e84bc76419e18d3086dc3a3d2a49d (jminter@redhat.com)
+- Wait for service account token (jliggitt@redhat.com)
+- Minor improvements. (vsemushi@redhat.com)
+- debug logging for WaitForABuild failures (bparees@redhat.com)
+- fix git server capacity to 1gi (bparees@redhat.com)
+
 * Fri Apr 28 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.54-1
 - syscontainers: add mount for /var/log to origin (gscrivan@redhat.com)
 - enable builds with PR references (gmontero@redhat.com)
