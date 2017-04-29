@@ -523,7 +523,7 @@ func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
 	result.BuildAttempt = true
 	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
-	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n", result.BuildName, *result)
+	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n with error: %v\n", result.BuildName, *result, err)
 	return nil
 }
 
@@ -556,18 +556,25 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
 		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "error listing builds: %v", err)
 			return false, err
 		}
 		for i := range list.Items {
 			if name == list.Items[i].Name && (isOK(&list.Items[i]) || isCanceled(&list.Items[i])) {
 				return true, nil
 			}
-			if name != list.Items[i].Name || isFailed(&list.Items[i]) {
+			if name != list.Items[i].Name {
+				return false, fmt.Errorf("While listing builds named %s, found unexpected build %#v", name, list.Items[i])
+			}
+			if isFailed(&list.Items[i]) {
 				return false, fmt.Errorf("The build %q status is %q", name, list.Items[i].Status.Phase)
 			}
 		}
 		return false, nil
 	})
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "WaitForABuild returning with error: %v", err)
+	}
 	if err == wait.ErrWaitTimeout {
 		return fmt.Errorf("Timed out waiting for build %q to complete", name)
 	}
@@ -1406,18 +1413,25 @@ func CreateExecPodOnNode(client kcoreclient.CoreV1Interface, ns, nodeName, name 
 	return created.Name
 }
 
+// CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
+// the specified reason and message template.
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
-	events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
-	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
-	o.ExpectWithOffset(1, events).NotTo(o.BeNil(), "Build event list should not be nil")
-
-	found := false
-	for _, event := range events.Items {
-		framework.Logf("Found event %#v", event)
-		if reason == event.Reason {
-			found = true
-			o.ExpectWithOffset(1, event.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
+	var expectedEvent *kapiv1.Event
+	err := wait.PollImmediate(framework.Poll, 1*time.Minute, func() (bool, error) {
+		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
+		if err != nil {
+			return false, err
 		}
-	}
-	o.ExpectWithOffset(1, found).To(o.BeTrue(), "Did not find a %q event on build %s/%s", reason, build.Namespace, build.Name)
+		for _, event := range events.Items {
+			framework.Logf("Found event %#v", event)
+			if reason == event.Reason {
+				expectedEvent = &event
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")
+	o.ExpectWithOffset(1, expectedEvent).NotTo(o.BeNil(), "Did not find a %q event on build %s/%s", reason, build.Namespace, build.Name)
+	o.ExpectWithOffset(1, expectedEvent.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
 }

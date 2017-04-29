@@ -162,7 +162,7 @@ There are a number of suspicious looking messages that appear in the openshift l
 Vagrant synced folder
 ----------------
 
-When using [vagrant synced folder](http://docs.vagrantup.com/v2/synced-folders/), (by default your
+When using [vagrant synced folder](https://www.vagrantup.com/docs/synced-folders/), (by default your
 origin directory is mounted using synced folder into `/data/src/github.com/openshift/origin`) you may encounter
 following errors in OpenShift log:
 
