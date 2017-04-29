@@ -620,7 +620,10 @@ func ResolveLatestTaggedImage(stream *ImageStream, tag string) (string, bool) {
 	if latest == nil {
 		return "", false
 	}
+	return ResolveTagReference(stream, tag, latest)
+}
 
+func ResolveTagReference(stream *ImageStream, tag string, latest *TagEvent) (string, bool) {
 	// retrieve spec policy - if not found, we use the latest spec
 	ref, ok := stream.Spec.Tags[tag]
 	if !ok {

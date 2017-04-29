@@ -36,6 +36,9 @@ func GetImageReferenceMutator(obj runtime.Object) (ImageReferenceMutator, error)
 		if spec, path, err := GetPodSpec(obj); err == nil {
 			return &podSpecMutator{spec: spec, path: path}, nil
 		}
+		if spec, path, err := GetPodSpecV1(obj); err == nil {
+			return &podSpecV1Mutator{spec: spec, path: path}, nil
+		}
 		return nil, errNoImageMutator
 	}
 }
