@@ -267,6 +267,9 @@ type DeploymentTriggerImageChangeParams struct {
 	// inside the pod template.
 	Automatic bool `json:"automatic,omitempty" protobuf:"varint,1,opt,name=automatic"`
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
+	// If multiple triggers point to the same containers, the resulting behavior is undefined. Future
+	// API versions will make this a validation error. If ContainerNames does not point to a valid container,
+	// the trigger will be ignored. Future API versions will make this a validation error.
 	ContainerNames []string `json:"containerNames,omitempty" protobuf:"bytes,2,rep,name=containerNames"`
 	// From is a reference to an image stream tag to watch for changes. From.Name is the only
 	// required subfield - if From.Namespace is blank, the namespace of the current deployment
