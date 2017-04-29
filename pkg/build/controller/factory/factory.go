@@ -29,7 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	controller "github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	errors "github.com/openshift/origin/pkg/util/errors"
@@ -212,58 +211,6 @@ func (keyListerGetter) ListKeys() []string {
 // always "", true, nil; used only to force DeltaFIFO to always queue delete events.
 func (keyListerGetter) GetByKey(key string) (interface{}, bool, error) {
 	return "", true, nil
-}
-
-// ImageChangeControllerFactory can create an ImageChangeController which obtains ImageStreams
-// from a queue populated from a watch of all ImageStreams.
-type ImageChangeControllerFactory struct {
-	Client                  osclient.Interface
-	BuildConfigInstantiator buildclient.BuildConfigInstantiator
-	BuildConfigIndex        oscache.StoreToBuildConfigLister
-	BuildConfigIndexSynced  func() bool
-	// Stop may be set to allow controllers created by this factory to be terminated.
-	Stop <-chan struct{}
-}
-
-// Create creates a new ImageChangeController which is used to trigger builds when a new
-// image is available
-func (factory *ImageChangeControllerFactory) Create() controller.RunnableController {
-	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	cache.NewReflector(newImageStreamLW(factory.Client), &imageapi.ImageStream{}, queue, 2*time.Minute).RunUntil(factory.Stop)
-
-	imageChangeController := &buildcontroller.ImageChangeController{
-		BuildConfigIndex:        factory.BuildConfigIndex,
-		BuildConfigInstantiator: factory.BuildConfigInstantiator,
-	}
-
-	// Wait for the bc store to sync before starting any work in this controller.
-	factory.waitForSyncedStores()
-
-	return &controller.RetryController{
-		Queue: queue,
-		RetryManager: controller.NewQueueRetryManager(
-			queue,
-			cache.MetaNamespaceKeyFunc,
-			retryFunc("ImageStream update", nil),
-			flowcontrol.NewTokenBucketRateLimiter(1, 10),
-		),
-		Handle: func(obj interface{}) error {
-			imageRepo := obj.(*imageapi.ImageStream)
-			return imageChangeController.HandleImageStream(imageRepo)
-		},
-	}
-}
-
-func (factory *ImageChangeControllerFactory) waitForSyncedStores() {
-	for !factory.BuildConfigIndexSynced() {
-		glog.V(4).Infof("Waiting for the bc caches to sync before starting the imagechange buildconfig controller worker")
-		select {
-		case <-time.After(storeSyncedPollPeriod):
-		case <-factory.Stop:
-			return
-		}
-
-	}
 }
 
 type BuildConfigControllerFactory struct {

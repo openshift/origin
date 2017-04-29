@@ -380,9 +380,10 @@ var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system
 
 // this list includes any other users who can get DeploymentConfigs
 var globalDeploymentConfigGetterUsers = sets.NewString(
-	"system:serviceaccount:openshift-infra:unidling-controller",
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
+	"system:serviceaccount:openshift-infra:imagetrigger-controller",
+	"system:serviceaccount:openshift-infra:unidling-controller",
 )
 
 type resourceAccessReviewTest struct {

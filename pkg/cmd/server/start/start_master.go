@@ -701,18 +701,18 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 	// no special order
 	if configapi.IsBuildEnabled(&oc.Options) {
-		err := oc.RunBuildController(oc.Informers)
-		if err != nil {
+		if err := oc.RunBuildController(oc.Informers); err != nil {
 			glog.Fatalf("Could not start build controller: %v", err)
 			return err
 		}
 		oc.RunBuildPodController()
 		oc.RunBuildConfigChangeController()
-		oc.RunBuildImageChangeTriggerController()
 	}
+
 	oc.RunDeploymentController()
 	oc.RunDeploymentConfigController()
 	oc.RunDeploymentTriggerController()
+	oc.RunImageTriggerController()
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()

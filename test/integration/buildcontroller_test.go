@@ -113,7 +113,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		openshiftConfig.RunBuildPodController()
 	}
 	for i := 0; i < counts.ImageChangeControllers; i++ {
-		openshiftConfig.RunBuildImageChangeTriggerController()
+		openshiftConfig.RunImageTriggerController()
 	}
 	for i := 0; i < counts.ConfigChangeControllers; i++ {
 		openshiftConfig.RunBuildConfigChangeController()
