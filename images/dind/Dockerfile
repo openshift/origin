@@ -57,8 +57,7 @@ RUN dnf -y update && dnf -y install\
  glibc-langpack-en\
  iptables\
  openssh-clients\
- openssh-server\
- && dnf clean all
+ openssh-server
 
 ## Configure docker
 

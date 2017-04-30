@@ -21,8 +21,7 @@ RUN dnf -y update && dnf -y install\
  bridge-utils\
  ethtool\
  iptables-services\
- openvswitch\
- && dnf clean all
+ openvswitch
 
 # A default deny firewall (either iptables or firewalld) is
 # installed by default on non-cloud fedora and rhel, so all

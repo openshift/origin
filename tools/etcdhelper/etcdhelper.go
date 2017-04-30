@@ -10,9 +10,9 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"golang.org/x/net/context"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apimachinery/pkg/runtime/serializer/protobuf"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/runtime/serializer/json"
-	"k8s.io/kubernetes/pkg/runtime/serializer/protobuf"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
