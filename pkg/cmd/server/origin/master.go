@@ -310,12 +310,13 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 }
 
 func (c *MasterConfig) RunHealth() error {
-	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs)
+	postGoRestfulMux := genericmux.NewPathRecorderMux()
+	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs, postGoRestfulMux)
 
-	healthz.InstallHandler(&apiContainer.NonSwaggerRoutes, healthz.PingHealthz)
+	healthz.InstallHandler(postGoRestfulMux, healthz.PingHealthz)
 	initReadinessCheckRoute(apiContainer, "/healthz/ready", func() bool { return true })
-	genericroutes.Profiling{}.Install(apiContainer)
-	genericroutes.MetricsWithReset{}.Install(apiContainer)
+	genericroutes.Profiling{}.Install(postGoRestfulMux)
+	genericroutes.MetricsWithReset{}.Install(postGoRestfulMux)
 
 	// TODO: replace me with a service account for controller manager
 	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
@@ -522,7 +523,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 
 	// Set up OAuth metadata only if we are configured to use OAuth
 	if c.Options.OAuthConfig != nil {
-		initOAuthAuthorizationServerMetadataRoute(apiContainer, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+		initOAuthAuthorizationServerMetadataRoute(server.FallThroughHandler, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
 	}
 
 	return messages, nil
@@ -561,7 +562,7 @@ func writeJSON(resp *restful.Response, json []byte) {
 // initOAuthAuthorizationServerMetadataRoute initializes an HTTP endpoint for OAuth 2.0 Authorization Server Metadata discovery
 // https://tools.ietf.org/id/draft-ietf-oauth-discovery-04.html#rfc.section.2
 // masterPublicURL should be internally and externally routable to allow all users to discover this information
-func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIContainer, path, masterPublicURL string) {
+func initOAuthAuthorizationServerMetadataRoute(mux *genericmux.PathRecorderMux, path, masterPublicURL string) {
 	// Build OAuth metadata once
 	metadata, err := json.MarshalIndent(discovery.Get(masterPublicURL, OpenShiftOAuthAuthorizeURL(masterPublicURL), OpenShiftOAuthTokenURL(masterPublicURL)), "", "  ")
 	if err != nil {
@@ -569,23 +570,11 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 		return
 	}
 
-	// Create temporary container because we only have a mux for secret routes
-	secretContainer := restful.NewContainer()
-	secretContainer.ServeMux = apiContainer.UnlistedRoutes
-
-	// Set up a service to return the OAuth metadata.
-	ws := new(restful.WebService)
-	ws.Path(path)
-	ws.Doc("OAuth 2.0 Authorization Server Metadata")
-	ws.Route(
-		ws.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
-			writeJSON(resp, metadata)
-		}).
-			Doc("get the server's OAuth 2.0 Authorization Server Metadata").
-			Operation("getOAuthAuthorizationServerMetadata").
-			Produces(restful.MIME_JSON))
-
-	secretContainer.Add(ws)
+	mux.UnlistedHandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(metadata)
+	})
 }
 
 func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.Storage {
