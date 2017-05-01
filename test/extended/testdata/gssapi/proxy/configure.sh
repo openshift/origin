@@ -15,6 +15,9 @@ for file in /etc/krb5.conf /var/kerberos/krb5kdc/kdc.conf /var/kerberos/krb5kdc/
   sed -i.bak2 -e "s/example\.com/${HOST}/g" $file
 done
 
+# Temporary hack to get around hairpin issue
+sed -i.bak3 -e "s/kdc = ${HOST}/kdc = localhost/g" /etc/krb5.conf
+
 # Create ticket database
 kdb5_util create -s -r "${REALM}" -P password
 
