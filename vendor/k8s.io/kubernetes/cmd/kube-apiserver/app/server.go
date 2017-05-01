@@ -107,6 +107,12 @@ func Run(runOptions *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	// we've picked the aggregator a release early.  We want to make sure that the kube-apiserver doesn't
+	// have it enabled when run as a separat binary.
+	if true {
+		return kubeAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
+	}
+
 	// if we're starting up a hacked up version of this API server for a weird test case,
 	// just start the API server as is because clients don't get built correctly when you do this
 	if len(os.Getenv("KUBE_API_VERSIONS")) > 0 {
