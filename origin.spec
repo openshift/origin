@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 05967394af91b06a664829cfb93d1a13d72fba1a
+%global commit 987b26c2da27945e720d42c72ac03368146393d2
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.55 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=0596739
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.56 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=987b26c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.56
+Version:        3.6.57
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,9 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Mon May 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.57-1
+- Add support for Node.js 6 (official) (sspeiche@redhat.com)
+
 * Sun Apr 30 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.56-1
 - Drop "dnf clean all" from dind image builds to try to fix a flake
   (danw@redhat.com)
