@@ -82,11 +82,13 @@ verify: build
 	hack/verify-generated-conversions.sh ||r=1;\
 	hack/verify-generated-clientsets.sh ||r=1;\
 	hack/verify-generated-defaulters.sh ||r=1;\
+	hack/verify-generated-listers.sh ||r=1;\
+	hack/verify-generated-informers.sh ||r=1;\
 	hack/verify-generated-openapi.sh ||r=1;\
+	hack/verify-generated-protobuf.sh ||r=1;\
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-generated-docs.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
-	hack/verify-generated-protobuf.sh ||r=1;\
 	hack/verify-generated-swagger-descriptions.sh ||r=1;\
 	hack/verify-generated-swagger-spec.sh ||r=1;\
 	exit $$r ;\
@@ -113,6 +115,7 @@ update:
 	hack/update-generated-clientsets.sh
 	hack/update-generated-defaulters.sh
 	hack/update-generated-listers.sh
+	hack/update-generated-informers.sh
 	hack/update-generated-openapi.sh
 	hack/update-generated-protobuf.sh
 	hack/update-generated-completions.sh
