@@ -277,7 +277,6 @@ func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.Prin
 }
 
 func (f *ring0Factory) Pauser(info *resource.Info) ([]byte, error) {
-	// TODO(rebase): compare with origin master, the logic changed completely
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
 		if t.Spec.Paused {
@@ -332,7 +331,6 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 }
 
 func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
-	// TODO(rebase): compare with origin master, the logic changed completely
 	switch t := info.Object.(type) {
 	case *deployapi.DeploymentConfig:
 		if !t.Spec.Paused {
