@@ -73,7 +73,7 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kprinters.Resourc
 	fmt.Fprint(l.Options.ErrWriter, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n\n")
 	printer.PrintObj(pods, l.Options.Writer)
 
-	return err
+	return nil
 }
 
 // handleRESTOutput receives a list of nodes, and a REST output type, and combines *kapi.PodList
