@@ -15,15 +15,29 @@ type CreateOptsBuilder interface {
 // the volumes.Create function. For more information about these parameters,
 // see the Volume object.
 type CreateOpts struct {
-	Size             int               `json:"size" required:"true"`
-	AvailabilityZone string            `json:"availability_zone,omitempty"`
-	Description      string            `json:"display_description,omitempty"`
-	Metadata         map[string]string `json:"metadata,omitempty"`
-	Name             string            `json:"display_name,omitempty"`
-	SnapshotID       string            `json:"snapshot_id,omitempty"`
-	SourceVolID      string            `json:"source_volid,omitempty"`
-	ImageID          string            `json:"imageRef,omitempty"`
-	VolumeType       string            `json:"volume_type,omitempty"`
+	// The size of the volume, in GB
+	Size int `json:"size" required:"true"`
+	// The availability zone
+	AvailabilityZone string `json:"availability_zone,omitempty"`
+	// ConsistencyGroupID is the ID of a consistency group
+	ConsistencyGroupID string `json:"consistencygroup_id,omitempty"`
+	// The volume description
+	Description string `json:"description,omitempty"`
+	// One or more metadata key and value pairs to associate with the volume
+	Metadata map[string]string `json:"metadata,omitempty"`
+	// The volume name
+	Name string `json:"name,omitempty"`
+	// the ID of the existing volume snapshot
+	SnapshotID string `json:"snapshot_id,omitempty"`
+	// SourceReplica is a UUID of an existing volume to replicate with
+	SourceReplica string `json:"source_replica,omitempty"`
+	// the ID of the existing volume
+	SourceVolID string `json:"source_volid,omitempty"`
+	// The ID of the image from which you want to create the volume.
+	// Required to create a bootable volume.
+	ImageID string `json:"imageRef,omitempty"`
+	// The associated volume type
+	VolumeType string `json:"volume_type,omitempty"`
 }
 
 // ToVolumeCreateMap assembles a request body based on the contents of a
@@ -42,7 +56,7 @@ func Create(client *gophercloud.ServiceClient, opts CreateOptsBuilder) (r Create
 		return
 	}
 	_, r.Err = client.Post(createURL(client), b, &r.Body, &gophercloud.RequestOpts{
-		OkCodes: []int{200, 201},
+		OkCodes: []int{202},
 	})
 	return
 }
@@ -74,7 +88,7 @@ type ListOpts struct {
 	// List only volumes that contain Metadata.
 	Metadata map[string]string `q:"metadata"`
 	// List only volumes that have Name as the display name.
-	Name string `q:"display_name"`
+	Name string `q:"name"`
 	// List only volumes that have a status of Status.
 	Status string `q:"status"`
 }
@@ -95,6 +109,7 @@ func List(client *gophercloud.ServiceClient, opts ListOptsBuilder) pagination.Pa
 		}
 		url += query
 	}
+
 	return pagination.NewPager(client, url, func(r pagination.PageResult) pagination.Page {
 		return VolumePage{pagination.SinglePageBase(r)}
 	})
@@ -110,8 +125,8 @@ type UpdateOptsBuilder interface {
 // to the volumes.Update function. For more information about the parameters, see
 // the Volume object.
 type UpdateOpts struct {
-	Name        string            `json:"display_name,omitempty"`
-	Description string            `json:"display_description,omitempty"`
+	Name        string            `json:"name,omitempty"`
+	Description string            `json:"description,omitempty"`
 	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
