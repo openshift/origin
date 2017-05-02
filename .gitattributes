@@ -1,2 +1,7 @@
 # Set unix LF EOL for shell scripts
 *.sh text eol=lf
+
+# Ignore changes in generated files during merge from origin into ose
+# To enable in a new clone, run $ git config merge.ours.driver true
+pkg/assets/bindata.go merge=ours
+pkg/assets/java/bindata.go merge=ours
