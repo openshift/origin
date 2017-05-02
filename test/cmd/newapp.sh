@@ -303,6 +303,9 @@ os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'error: only a part
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' 'The argument "mysq" only partially matched'
 os::cmd::expect_failure_and_text 'oc new-app --dry-run mysq' "Image stream \"mysql\" \\(tag \"5.7\"\\) in project"
 
+# ensure new-app with pr ref does not fail
+os::cmd::expect_success 'oc new-app https://github.com/openshift/ruby-hello-world#refs/pull/58/head --dry-run'
+
 # verify image streams with no tags are reported correctly and that --allow-missing-imagestream-tags works
 # new-app
 os::cmd::expect_success 'printf "apiVersion: v1\nkind: ImageStream\nmetadata:\n  name: emptystream\n" | oc create -f -'

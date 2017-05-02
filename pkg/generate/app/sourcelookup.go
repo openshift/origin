@@ -590,7 +590,10 @@ func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, context
 	}
 	if len(ref) > 0 {
 		if err := repo.Checkout(localDir, ref); err != nil {
-			return "", fmt.Errorf("unable to checkout ref %q in %q repository: %v", ref, remote, err)
+			err = repo.PotentialPRRetryAsFetch(localDir, remote, ref, err)
+			if err != nil {
+				return "", fmt.Errorf("unable to checkout ref %q in %q repository: %v", ref, remote, err)
+			}
 		}
 	}
 	if len(contextDir) > 0 {
