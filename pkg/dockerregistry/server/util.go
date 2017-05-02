@@ -208,5 +208,6 @@ func (g *cachedImageStreamGetter) get() (*imageapi.ImageStream, error) {
 }
 
 func (g *cachedImageStreamGetter) cacheImageStream(is *imageapi.ImageStream) {
+	context.GetLogger(g.ctx).Debugf("(*cachedImageStreamGetter).cacheImageStream: got image stream %s/%s", is.Namespace, is.Name)
 	g.cachedImageStream = is
 }

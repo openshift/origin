@@ -46,7 +46,7 @@ func (m *manifestService) Exists(ctx context.Context, dgst digest.Digest) (bool,
 func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	context.GetLogger(ctx).Debugf("(*manifestService).Get")
 
-	image, _, err := m.repo.getImageOfImageStream(dgst)
+	image, _, _, err := m.repo.getStoredImageOfImageStream(dgst)
 	if err != nil {
 		return nil, err
 	}
