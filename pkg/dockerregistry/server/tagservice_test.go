@@ -17,12 +17,8 @@ func TestTagGet(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
 		title                 string
@@ -137,12 +133,8 @@ func TestTagCreation(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
 		title         string
@@ -198,9 +190,13 @@ func TestTagCreation(t *testing.T) {
 			continue
 		}
 
-		_, err = ts.Get(context.Background(), tc.tagName)
-		if err == nil {
-			t.Fatalf("[%s] error expected", tc.title)
+		tag, err := ts.Get(context.Background(), tc.tagName)
+		if err != nil {
+			t.Fatalf("[%s] unexpected error: %s", tc.title, err)
+		}
+
+		if tag.Digest != tc.tagValue.Digest {
+			t.Fatalf("[%s] got %v, want %v", tc.title, tag.Digest, tc.tagValue.Digest)
 		}
 	}
 }
@@ -210,12 +206,8 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	anotherImage, err := registrytest.RegisterRandomImage(os, namespace, repo+"-another", tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: client,
@@ -226,7 +218,7 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 		repo:       r,
 	}
 
-	err = ts.Tag(context.Background(), tag, distribution.Descriptor{
+	err := ts.Tag(context.Background(), tag, distribution.Descriptor{
 		Digest: digest.Digest(anotherImage.Name),
 	})
 	if err == nil {
@@ -244,12 +236,8 @@ func TestTagDeletion(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
 		title                 string
@@ -357,12 +345,8 @@ func TestTagGetAll(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
 		title         string
@@ -448,12 +432,8 @@ func TestTagLookup(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	testImage, err := registrytest.RegisterRandomImage(os, namespace, repo, tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
 		title         string
@@ -531,12 +511,8 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	os, client := registrytest.NewFakeOpenShiftWithClient()
-
-	anotherImage, err := registrytest.RegisterRandomImage(os, namespace, repo+"-another", tag)
-	if err != nil {
-		t.Fatal(err)
-	}
+	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: client,
@@ -547,7 +523,7 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 		repo:       r,
 	}
 
-	_, err = ts.Lookup(context.Background(), distribution.Descriptor{
+	_, err := ts.Lookup(context.Background(), distribution.Descriptor{
 		Digest: digest.Digest(anotherImage.Name),
 	})
 	if err == nil {
