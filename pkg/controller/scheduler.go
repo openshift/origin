@@ -147,7 +147,7 @@ func (s *Scheduler) Delay(key interface{}) {
 	last := s.at(-1)
 	for i, bucket := range s.buckets {
 		if i == last {
-			continue
+			return
 		}
 		if value, ok := bucket[key]; ok {
 			delete(bucket, key)
