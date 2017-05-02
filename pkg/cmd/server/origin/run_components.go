@@ -419,6 +419,12 @@ func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal
 	go servingCertUpdateController.Run(5, make(chan struct{}))
 }
 
+func (c *MasterConfig) RunUpdateTrackingTagController() {
+	options := imagecontroller.UpdateTrackingTagsControllerOptions{Resync: 10 * time.Minute}
+	ctrl := imagecontroller.NewUpdateTrackingTagsController(c.UpdateTrackingTagsControllerClient(), options)
+	go ctrl.Run(5, utilwait.NeverStop)
+}
+
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
 	osclient := c.ImageImportControllerClient()

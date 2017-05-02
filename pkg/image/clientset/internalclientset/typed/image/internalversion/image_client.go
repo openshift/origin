@@ -8,6 +8,8 @@ import (
 type ImageInterface interface {
 	RESTClient() rest.Interface
 	ImagesGetter
+	ImageStreamsGetter
+	ImageStreamTagsGetter
 }
 
 // ImageClient is used to interact with features provided by the image.openshift.io group.
@@ -17,6 +19,14 @@ type ImageClient struct {
 
 func (c *ImageClient) Images() ImageResourceInterface {
 	return newImages(c)
+}
+
+func (c *ImageClient) ImageStreams(namespace string) ImageStreamInterface {
+	return newImageStreams(c, namespace)
+}
+
+func (c *ImageClient) ImageStreamTags(namespace string) ImageStreamTagInterface {
+	return newImageStreamTags(c, namespace)
 }
 
 // NewForConfig creates a new ImageClient for the given config.
