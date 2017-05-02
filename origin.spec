@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 569d58d38faf4080a07e8614bbbf8b73799cba69
+%global commit a2bdd58239da43437261941e9093006148b77d27
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.60 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=569d58d
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.61 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=a2bdd58
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.61
+Version:        3.6.62
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,31 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Tue May 02 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.62-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 09e89a7
+  (tdawson@redhat.com)
+- Ignore generated data during origin->ose merge (jupierce@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  09e89a72b9f5c560494e27b9815958e5b729c27b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6bc131aac557f5f2afa66ea09173b26d0d348093 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  900019bc0d2f665d664c1c74e49053fd3d33fdef (dmcphers+openshiftbot@redhat.com)
+- Remove clarified todos (stefan.schimanski@gmail.com)
+- bump(github.com/openshift/origin-web-console):
+  15d3a3d764397e6bfd41d184d5ccfc21ce7fe3c0 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  66df3b8534cf2869f65a0e94792688c6a690fea2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  200c8cd0b9194e53ab237fcc988fd422398b5f63 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  36195366413134ad5defd1d7bcc0737c5f310397 (dmcphers+openshiftbot@redhat.com)
+- Narrow Travis config to only verify commits (skuznets@redhat.com)
+- Use docker image reference from ImageStream (obulatov@redhat.com)
+- Remove GetFake*Handler (obulatov@redhat.com)
+- Replace io.ReadSeeker by simple []byte buffer (obulatov@redhat.com)
+- deploy: allow to trigger deployment when ICT is updated (mfojtik@redhat.com)
+
 * Mon May 01 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.61-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 3619536
   (tdawson@redhat.com)
