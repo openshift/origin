@@ -113,7 +113,7 @@ func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *me
 }
 
 func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
-	return m.createRole(ctx, obj, false)
+	return m.createRole(ctx, obj, rulevalidation.EscalationAllowed(ctx))
 }
 
 func (m *VirtualStorage) CreateRoleWithEscalation(ctx apirequest.Context, obj *authorizationapi.Role) (*authorizationapi.Role, error) {
@@ -161,7 +161,7 @@ func (m *VirtualStorage) createRole(ctx apirequest.Context, obj runtime.Object, 
 }
 
 func (m *VirtualStorage) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	return m.updateRole(ctx, name, objInfo, false)
+	return m.updateRole(ctx, name, objInfo, rulevalidation.EscalationAllowed(ctx))
 }
 func (m *VirtualStorage) UpdateRoleWithEscalation(ctx apirequest.Context, obj *authorizationapi.Role) (*authorizationapi.Role, bool, error) {
 	return m.updateRole(ctx, obj.Name, rest.DefaultUpdatedObjectInfo(obj, kapi.Scheme), true)
