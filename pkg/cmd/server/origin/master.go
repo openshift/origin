@@ -32,6 +32,8 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
+	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
+	clientgoclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -41,8 +43,6 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
-	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
 	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
@@ -318,20 +318,19 @@ func (c *MasterConfig) RunHealth() error {
 	genericroutes.MetricsWithReset{}.Install(apiContainer)
 
 	// TODO: replace me with a service account for controller manager
-	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
+	tokenReview := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
+	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, c.APIClientCAs, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-	authz, err := authzremote.NewAuthorizer(c.PrivilegedLoopbackOpenShiftClient)
+	sarClient := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
+	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-	authz, err = authzcache.NewAuthorizer(authz, 5*time.Minute, 10)
-	if err != nil {
-		return err
-	}
+
 	// we use direct bypass to allow readiness and health to work regardless of the master health
-	authz = serverhandlers.NewBypassAuthorizer(authz, "/healthz", "/healthz/ready")
+	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
 	contextMapper := c.getRequestContextMapper()
 	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
 	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
