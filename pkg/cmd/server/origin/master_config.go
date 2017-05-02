@@ -25,6 +25,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
+	"k8s.io/apiserver/pkg/authentication/request/anonymous"
+	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -48,8 +50,6 @@ import (
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -686,7 +686,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true), paramtoken.New("access_token", serviceAccountTokenAuthenticator, true))
+		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator), paramtoken.New("access_token", serviceAccountTokenAuthenticator, true))
 	}
 
 	// OAuth token
@@ -696,7 +696,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			return nil, fmt.Errorf("Error building OAuth token authenticator: %v", err)
 		}
 		oauthTokenRequestAuthenticators := []authenticator.Request{
-			bearertoken.New(oauthTokenAuthenticator, true),
+			bearertoken.New(oauthTokenAuthenticator),
 			// Allow token as access_token param for WebSockets
 			paramtoken.New("access_token", oauthTokenAuthenticator, true),
 		}
