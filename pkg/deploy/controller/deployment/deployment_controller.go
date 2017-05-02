@@ -329,10 +329,8 @@ func (c *DeploymentController) makeDeployerPod(deployment *kapi.ReplicationContr
 			// and the deployer pod is preserved when a revisionHistory limit is reached and the
 			// deployment is removed, we also remove the deployer pod with it.
 			OwnerReferences: []metav1.OwnerReference{{
-				// FIXME: This will have to point to apps.openshift.io/v1 after we switch to
-				// clientsets.
 				APIVersion: "v1",
-				Kind:       deployapi.Kind("DeploymentConfig").Kind,
+				Kind:       kapi.Kind("ReplicationController").Kind,
 				Name:       deployment.Name,
 				UID:        deployment.UID,
 			}},
