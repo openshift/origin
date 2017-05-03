@@ -27,7 +27,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployclient "github.com/openshift/origin/pkg/deploy/clientset/internalclientset/typed/deploy/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
