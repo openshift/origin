@@ -495,6 +495,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment1",
 	},
+	gvr("extensions", "v1beta1", "horizontalpodautoscalers"): {
+		stub:             `{"metadata": {"name": "hpa1"}, "spec": {"maxReplicas": 3, "scaleRef": {"kind": "something", "name": "cross"}}}`,
+		expectedEtcdPath: "kubernetes.io/horizontalpodautoscalers/etcdstoragepathtestnamespace/hpa1",
+		expectedGVK:      gvkP("autoscaling", "v1", "HorizontalPodAutoscaler"),
+	},
 	gvr("extensions", "v1beta1", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs1",
@@ -791,12 +796,6 @@ var kindWhiteList = sets.NewString(
 
 	// github.com/openshift/origin/pkg/image/api
 	"DockerImage",
-	// --
-
-	// github.com/openshift/origin/pkg/kubecompat/apis/extensions/v1beta1
-	// HPAs are still stored encoded as extensions/v1beta1. We will convert them to autoscaling as
-	// part of the 3.7 upgrade.
-	"extensions/v1beta1, Kind=HorizontalPodAutoscaler",
 	// --
 )
 
