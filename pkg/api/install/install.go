@@ -24,7 +24,6 @@ import (
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	_ "github.com/openshift/origin/pkg/image/api/install"
-	_ "github.com/openshift/origin/pkg/kubecompat/apis/extensions/v1beta1"
 	_ "github.com/openshift/origin/pkg/oauth/api/install"
 	_ "github.com/openshift/origin/pkg/project/api/install"
 	_ "github.com/openshift/origin/pkg/quota/api/install"
