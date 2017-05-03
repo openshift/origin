@@ -160,21 +160,6 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 	}
 }
 
-func RunNamespacedPodEventQueue(client kcache.Getter, namespace string, closeChan chan struct{}, process ProcessEventFunc) {
-	eventQueue := newEventQueue(client, Pods, &kapi.Pod{}, namespace)
-	// Loop calling eventQueue.Pop() until closeChan is closed. process() will be called
-	// once after closeChan is closed; this possibility is unavoidable anyway due to race
-	// conditions.
-	for {
-		select {
-		case <-closeChan:
-			return
-		default:
-			eventQueue.Pop(process, &kapi.Pod{})
-		}
-	}
-}
-
 // RegisterSharedInformerEventHandlers registers addOrUpdateFunc and delFunc event handlers with
 // kubernetes shared informers for the given resource name.
 func RegisterSharedInformerEventHandlers(kubeInformers kinternalinformers.SharedInformerFactory,
@@ -196,6 +181,9 @@ func RegisterSharedInformerEventHandlers(kubeInformers kinternalinformers.Shared
 	case Services:
 		informer = internalVersion.Services().Informer()
 		expectedObjType = &kapi.Service{}
+	case Pods:
+		informer = internalVersion.Pods().Informer()
+		expectedObjType = &kapi.Pod{}
 	default:
 		glog.Errorf("Unknown resource name: %s", resourceName)
 		return
