@@ -43,7 +43,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 	gccontroller "k8s.io/kubernetes/pkg/controller/podgc"
 	replicasetcontroller "k8s.io/kubernetes/pkg/controller/replicaset"
-	replicationcontroller "k8s.io/kubernetes/pkg/controller/replication"
 	servicecontroller "k8s.io/kubernetes/pkg/controller/service"
 	statefulsetcontroller "k8s.io/kubernetes/pkg/controller/statefulset"
 	attachdetachcontroller "k8s.io/kubernetes/pkg/controller/volume/attachdetach"
@@ -205,17 +204,6 @@ func (c *MasterConfig) RunReplicaSetController(client kclientset.Interface) {
 		replicasetcontroller.BurstReplicas,
 	)
 	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
-}
-
-// RunReplicationController starts the Kubernetes replication controller sync loop
-func (c *MasterConfig) RunReplicationController(client kclientset.Interface) {
-	controllerManager := replicationcontroller.NewReplicationManager(
-		c.Informers.KubernetesInformers().Core().V1().Pods(),
-		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),
-		client,
-		replicationcontroller.BurstReplicas,
-	)
-	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
 }
 
 func (c *MasterConfig) RunDeploymentController(client kclientset.Interface) {

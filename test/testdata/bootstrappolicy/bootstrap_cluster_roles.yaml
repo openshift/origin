@@ -2784,6 +2784,12 @@ items:
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    creationTimestamp: null
+    name: system:replication-controller
+  rules: []
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
@@ -3716,63 +3722,6 @@ items:
     - delete
     - list
     - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:replication-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - patch
   - apiGroups:
     - ""
     attributeRestrictions: null

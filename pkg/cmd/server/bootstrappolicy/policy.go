@@ -941,6 +941,9 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	openshiftClusterRoles := GetOpenshiftBootstrapClusterRoles()
+	// dead cluster roles need to be checked for conflicts (in case something new comes up)
+	// so add them to this list.
+	openshiftClusterRoles = append(openshiftClusterRoles, GetDeadClusterRoles()...)
 	openshiftSAClusterRoles := InfraSAs.AllRoles()
 	kubeClusterRoles, err := GetKubeBootstrapClusterRoles()
 	// coder error
