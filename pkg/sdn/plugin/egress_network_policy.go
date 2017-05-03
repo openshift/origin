@@ -108,8 +108,11 @@ func (plugin *OsdnNode) syncEgressDNSPolicyRules() {
 			continue
 		}
 
-		plugin.egressPoliciesLock.Lock()
-		defer plugin.egressPoliciesLock.Unlock()
-		plugin.updateEgressNetworkPolicyRules(vnid)
+		func() {
+			plugin.egressPoliciesLock.Lock()
+			defer plugin.egressPoliciesLock.Unlock()
+
+			plugin.updateEgressNetworkPolicyRules(vnid)
+		}()
 	}
 }
