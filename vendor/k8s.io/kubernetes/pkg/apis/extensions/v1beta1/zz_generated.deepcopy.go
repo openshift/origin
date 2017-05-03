@@ -5,6 +5,7 @@
 package v1beta1
 
 import (
+	resource "k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -22,6 +23,8 @@ func init() {
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_APIVersion, InType: reflect.TypeOf(&APIVersion{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CPUTargetUtilization, InType: reflect.TypeOf(&CPUTargetUtilization{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CrossVersionObjectReference, InType: reflect.TypeOf(&CrossVersionObjectReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricCurrentStatus, InType: reflect.TypeOf(&CustomMetricCurrentStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricCurrentStatusList, InType: reflect.TypeOf(&CustomMetricCurrentStatusList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_CustomMetricTarget, InType: reflect.TypeOf(&CustomMetricTarget{})},
@@ -41,6 +44,10 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_FSGroupStrategyOptions, InType: reflect.TypeOf(&FSGroupStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HTTPIngressPath, InType: reflect.TypeOf(&HTTPIngressPath{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HTTPIngressRuleValue, InType: reflect.TypeOf(&HTTPIngressRuleValue{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscaler, InType: reflect.TypeOf(&HorizontalPodAutoscaler{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerList, InType: reflect.TypeOf(&HorizontalPodAutoscalerList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerSpec, InType: reflect.TypeOf(&HorizontalPodAutoscalerSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HorizontalPodAutoscalerStatus, InType: reflect.TypeOf(&HorizontalPodAutoscalerStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_HostPortRange, InType: reflect.TypeOf(&HostPortRange{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_IDRange, InType: reflect.TypeOf(&IDRange{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_Ingress, InType: reflect.TypeOf(&Ingress{})},
@@ -51,21 +58,29 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_IngressSpec, InType: reflect.TypeOf(&IngressSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_IngressStatus, InType: reflect.TypeOf(&IngressStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_IngressTLS, InType: reflect.TypeOf(&IngressTLS{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_MetricSpec, InType: reflect.TypeOf(&MetricSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_MetricStatus, InType: reflect.TypeOf(&MetricStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicy, InType: reflect.TypeOf(&NetworkPolicy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicyIngressRule, InType: reflect.TypeOf(&NetworkPolicyIngressRule{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicyList, InType: reflect.TypeOf(&NetworkPolicyList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicyPeer, InType: reflect.TypeOf(&NetworkPolicyPeer{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicyPort, InType: reflect.TypeOf(&NetworkPolicyPort{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_NetworkPolicySpec, InType: reflect.TypeOf(&NetworkPolicySpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ObjectMetricSource, InType: reflect.TypeOf(&ObjectMetricSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ObjectMetricStatus, InType: reflect.TypeOf(&ObjectMetricStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_PodSecurityPolicy, InType: reflect.TypeOf(&PodSecurityPolicy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_PodSecurityPolicyList, InType: reflect.TypeOf(&PodSecurityPolicyList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_PodSecurityPolicySpec, InType: reflect.TypeOf(&PodSecurityPolicySpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_PodsMetricSource, InType: reflect.TypeOf(&PodsMetricSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_PodsMetricStatus, InType: reflect.TypeOf(&PodsMetricStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSet, InType: reflect.TypeOf(&ReplicaSet{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSetCondition, InType: reflect.TypeOf(&ReplicaSetCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSetList, InType: reflect.TypeOf(&ReplicaSetList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSetSpec, InType: reflect.TypeOf(&ReplicaSetSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicaSetStatus, InType: reflect.TypeOf(&ReplicaSetStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ReplicationControllerDummy, InType: reflect.TypeOf(&ReplicationControllerDummy{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ResourceMetricSource, InType: reflect.TypeOf(&ResourceMetricSource{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ResourceMetricStatus, InType: reflect.TypeOf(&ResourceMetricStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollbackConfig, InType: reflect.TypeOf(&RollbackConfig{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollingUpdateDaemonSet, InType: reflect.TypeOf(&RollingUpdateDaemonSet{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_RollingUpdateDeployment, InType: reflect.TypeOf(&RollingUpdateDeployment{})},
@@ -74,6 +89,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_Scale, InType: reflect.TypeOf(&Scale{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ScaleSpec, InType: reflect.TypeOf(&ScaleSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ScaleStatus, InType: reflect.TypeOf(&ScaleStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_SubresourceReference, InType: reflect.TypeOf(&SubresourceReference{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_SupplementalGroupsStrategyOptions, InType: reflect.TypeOf(&SupplementalGroupsStrategyOptions{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ThirdPartyResource, InType: reflect.TypeOf(&ThirdPartyResource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_v1beta1_ThirdPartyResourceData, InType: reflect.TypeOf(&ThirdPartyResourceData{})},
@@ -86,6 +102,24 @@ func DeepCopy_v1beta1_APIVersion(in interface{}, out interface{}, c *conversion.
 	{
 		in := in.(*APIVersion)
 		out := out.(*APIVersion)
+		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_CPUTargetUtilization(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*CPUTargetUtilization)
+		out := out.(*CPUTargetUtilization)
+		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_CrossVersionObjectReference(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*CrossVersionObjectReference)
+		out := out.(*CrossVersionObjectReference)
 		*out = *in
 		return nil
 	}
@@ -409,6 +443,87 @@ func DeepCopy_v1beta1_HTTPIngressRuleValue(in interface{}, out interface{}, c *c
 	}
 }
 
+func DeepCopy_v1beta1_HorizontalPodAutoscaler(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*HorizontalPodAutoscaler)
+		out := out.(*HorizontalPodAutoscaler)
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
+			return err
+		} else {
+			out.ObjectMeta = *newVal.(*v1.ObjectMeta)
+		}
+		if err := DeepCopy_v1beta1_HorizontalPodAutoscalerSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_v1beta1_HorizontalPodAutoscalerStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_HorizontalPodAutoscalerList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*HorizontalPodAutoscalerList)
+		out := out.(*HorizontalPodAutoscalerList)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]HorizontalPodAutoscaler, len(*in))
+			for i := range *in {
+				if err := DeepCopy_v1beta1_HorizontalPodAutoscaler(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_HorizontalPodAutoscalerSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*HorizontalPodAutoscalerSpec)
+		out := out.(*HorizontalPodAutoscalerSpec)
+		*out = *in
+		if in.MinReplicas != nil {
+			in, out := &in.MinReplicas, &out.MinReplicas
+			*out = new(int32)
+			**out = **in
+		}
+		if in.CPUUtilization != nil {
+			in, out := &in.CPUUtilization, &out.CPUUtilization
+			*out = new(CPUTargetUtilization)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_HorizontalPodAutoscalerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*HorizontalPodAutoscalerStatus)
+		out := out.(*HorizontalPodAutoscalerStatus)
+		*out = *in
+		if in.ObservedGeneration != nil {
+			in, out := &in.ObservedGeneration, &out.ObservedGeneration
+			*out = new(int64)
+			**out = **in
+		}
+		if in.LastScaleTime != nil {
+			in, out := &in.LastScaleTime, &out.LastScaleTime
+			*out = new(v1.Time)
+			**out = (*in).DeepCopy()
+		}
+		if in.CurrentCPUUtilizationPercentage != nil {
+			in, out := &in.CurrentCPUUtilizationPercentage, &out.CurrentCPUUtilizationPercentage
+			*out = new(int32)
+			**out = **in
+		}
+		return nil
+	}
+}
+
 func DeepCopy_v1beta1_HostPortRange(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*HostPortRange)
@@ -560,6 +675,66 @@ func DeepCopy_v1beta1_IngressTLS(in interface{}, out interface{}, c *conversion.
 	}
 }
 
+func DeepCopy_v1beta1_MetricSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*MetricSpec)
+		out := out.(*MetricSpec)
+		*out = *in
+		if in.Object != nil {
+			in, out := &in.Object, &out.Object
+			*out = new(ObjectMetricSource)
+			if err := DeepCopy_v1beta1_ObjectMetricSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Pods != nil {
+			in, out := &in.Pods, &out.Pods
+			*out = new(PodsMetricSource)
+			if err := DeepCopy_v1beta1_PodsMetricSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Resource != nil {
+			in, out := &in.Resource, &out.Resource
+			*out = new(ResourceMetricSource)
+			if err := DeepCopy_v1beta1_ResourceMetricSource(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_MetricStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*MetricStatus)
+		out := out.(*MetricStatus)
+		*out = *in
+		if in.Object != nil {
+			in, out := &in.Object, &out.Object
+			*out = new(ObjectMetricStatus)
+			if err := DeepCopy_v1beta1_ObjectMetricStatus(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Pods != nil {
+			in, out := &in.Pods, &out.Pods
+			*out = new(PodsMetricStatus)
+			if err := DeepCopy_v1beta1_PodsMetricStatus(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		if in.Resource != nil {
+			in, out := &in.Resource, &out.Resource
+			*out = new(ResourceMetricStatus)
+			if err := DeepCopy_v1beta1_ResourceMetricStatus(*in, *out, c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 func DeepCopy_v1beta1_NetworkPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*NetworkPolicy)
@@ -689,6 +864,26 @@ func DeepCopy_v1beta1_NetworkPolicySpec(in interface{}, out interface{}, c *conv
 	}
 }
 
+func DeepCopy_v1beta1_ObjectMetricSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ObjectMetricSource)
+		out := out.(*ObjectMetricSource)
+		*out = *in
+		out.TargetValue = in.TargetValue.DeepCopy()
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_ObjectMetricStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ObjectMetricStatus)
+		out := out.(*ObjectMetricStatus)
+		*out = *in
+		out.CurrentValue = in.CurrentValue.DeepCopy()
+		return nil
+	}
+}
+
 func DeepCopy_v1beta1_PodSecurityPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*PodSecurityPolicy)
@@ -766,6 +961,26 @@ func DeepCopy_v1beta1_PodSecurityPolicySpec(in interface{}, out interface{}, c *
 		if err := DeepCopy_v1beta1_FSGroupStrategyOptions(&in.FSGroup, &out.FSGroup, c); err != nil {
 			return err
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_PodsMetricSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*PodsMetricSource)
+		out := out.(*PodsMetricSource)
+		*out = *in
+		out.TargetAverageValue = in.TargetAverageValue.DeepCopy()
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_PodsMetricStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*PodsMetricStatus)
+		out := out.(*PodsMetricStatus)
+		*out = *in
+		out.CurrentAverageValue = in.CurrentAverageValue.DeepCopy()
 		return nil
 	}
 }
@@ -866,6 +1081,40 @@ func DeepCopy_v1beta1_ReplicationControllerDummy(in interface{}, out interface{}
 		in := in.(*ReplicationControllerDummy)
 		out := out.(*ReplicationControllerDummy)
 		*out = *in
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_ResourceMetricSource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ResourceMetricSource)
+		out := out.(*ResourceMetricSource)
+		*out = *in
+		if in.TargetAverageUtilization != nil {
+			in, out := &in.TargetAverageUtilization, &out.TargetAverageUtilization
+			*out = new(int32)
+			**out = **in
+		}
+		if in.TargetAverageValue != nil {
+			in, out := &in.TargetAverageValue, &out.TargetAverageValue
+			*out = new(resource.Quantity)
+			**out = (*in).DeepCopy()
+		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_ResourceMetricStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ResourceMetricStatus)
+		out := out.(*ResourceMetricStatus)
+		*out = *in
+		if in.CurrentAverageUtilization != nil {
+			in, out := &in.CurrentAverageUtilization, &out.CurrentAverageUtilization
+			*out = new(int32)
+			**out = **in
+		}
+		out.CurrentAverageValue = in.CurrentAverageValue.DeepCopy()
 		return nil
 	}
 }
@@ -978,6 +1227,15 @@ func DeepCopy_v1beta1_ScaleStatus(in interface{}, out interface{}, c *conversion
 				(*out)[key] = val
 			}
 		}
+		return nil
+	}
+}
+
+func DeepCopy_v1beta1_SubresourceReference(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*SubresourceReference)
+		out := out.(*SubresourceReference)
+		*out = *in
 		return nil
 	}
 }
