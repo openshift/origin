@@ -182,6 +182,14 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
+
+%package cluster-capacity
+Summary:        %{product_name} Cluster Capacity Analysis Tool
+Requires:       %{name} = %{version}-%{release}
+
+%description cluster-capacity
+%{summary}
+
 %package excluder
 Summary:   Exclude openshift packages from updates
 BuildArch: noarch
@@ -258,6 +266,11 @@ install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
+
+# Install cluster capacity
+install -p -m 755 _output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
+ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
+ln -s hypercc %{buildroot}%{_bindir}/genpod
 
 install -d -m 0755 %{buildroot}%{_unitdir}
 
@@ -549,6 +562,11 @@ fi
 
 %files pod
 %{_bindir}/pod
+
+%files cluster-capacity
+%{_bindir}/hypercc
+%{_bindir}/cluster-capacity
+%{_bindir}/genpod
 
 %files excluder
 /usr/sbin/%{name}-excluder
