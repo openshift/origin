@@ -13,10 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	rcutils "k8s.io/kubernetes/pkg/controller/replication"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
@@ -121,23 +119,17 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 			header := fmt.Sprintf("Deployment #%d (latest)", deployutil.DeploymentVersionFor(deployment))
 			// Show details if the current deployment is the active one or it is the
 			// initial deployment.
-			versioned := &v1.ReplicationController{}
-			if err := kapi.Scheme.Convert(deployment, versioned, nil); err == nil {
-				printDeploymentRc(versioned, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
-			}
+			printDeploymentRc(deployment, d.kubeClient, out, header, (deployment.Name == activeDeploymentName) || len(deploymentsHistory) == 1)
 		}
 
 		// We don't show the deployment history when running `oc rollback --dry-run`.
 		if d.config == nil && !isNotDeployed {
-			var sorted []*v1.ReplicationController
+			var sorted []*kapi.ReplicationController
 			// TODO(rebase-1.6): we should really convert the describer to use a versioned clientset
 			for i := range deploymentsHistory {
-				versioned := &v1.ReplicationController{}
-				if err := kapi.Scheme.Convert(deploymentsHistory[i], versioned, nil); err == nil {
-					sorted = append(sorted, versioned)
-				}
+				sorted = append(sorted, deploymentsHistory[i])
 			}
-			sort.Sort(sort.Reverse(rcutils.OverlappingControllers(sorted)))
+			sort.Sort(sort.Reverse(OverlappingControllers(sorted)))
 			counter := 1
 			for _, item := range sorted {
 				if item.Name != latestDeploymentName && deploymentConfig.Name == deployutil.DeploymentConfigNameFor(item) {
@@ -165,6 +157,22 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 		}
 		return nil
 	})
+}
+
+// OverlappingControllers sorts a list of controllers by creation timestamp, using their names as a tie breaker.
+// From
+// https://github.com/kubernetes/kubernetes/blob/9eab226947d73a77cbf8474188f216cd64cd5fef/pkg/controller/replication/replication_controller_utils.go#L81-L92
+// and modified to use internal instead of versioned objects.
+type OverlappingControllers []*kapi.ReplicationController
+
+func (o OverlappingControllers) Len() int      { return len(o) }
+func (o OverlappingControllers) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+
+func (o OverlappingControllers) Less(i, j int) bool {
+	if o[i].CreationTimestamp.Equal(o[j].CreationTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].CreationTimestamp.Before(o[j].CreationTimestamp)
 }
 
 func multilineStringArray(sep, indent string, args ...string) string {
@@ -371,7 +379,7 @@ func formatHPATargets(hpa *autoscaling.HorizontalPodAutoscaler) []string {
 	return descriptions
 }
 
-func printDeploymentRc(deployment *v1.ReplicationController, kubeClient kclientset.Interface, w io.Writer, header string, verbose bool) error {
+func printDeploymentRc(deployment *kapi.ReplicationController, kubeClient kclientset.Interface, w io.Writer, header string, verbose bool) error {
 	if len(header) > 0 {
 		fmt.Fprintf(w, "%v:\n", header)
 	}
@@ -397,7 +405,7 @@ func printDeploymentRc(deployment *v1.ReplicationController, kubeClient kclients
 	return nil
 }
 
-func getPodStatusForDeployment(deployment *v1.ReplicationController, kubeClient kclientset.Interface) (running, waiting, succeeded, failed int, err error) {
+func getPodStatusForDeployment(deployment *kapi.ReplicationController, kubeClient kclientset.Interface) (running, waiting, succeeded, failed int, err error) {
 	rcPods, err := kubeClient.Core().Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.Set(deployment.Spec.Selector).AsSelector().String()})
 	if err != nil {
 		return
