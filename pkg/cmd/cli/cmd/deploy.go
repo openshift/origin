@@ -245,7 +245,7 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 	if err == nil && !deployutil.IsTerminatedDeployment(deployment) {
 		// Reject attempts to start a concurrent deployment.
 		return fmt.Errorf("#%d is already in progress (%s).\nOptionally, you can cancel this deployment using 'oc rollout cancel dc/%s'.",
-			config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment), deployment.Name)
+			config.Status.LatestVersion, deployutil.DeploymentStatusFor(deployment), config.Name)
 	}
 	if err != nil && !kerrors.IsNotFound(err) {
 		return err
