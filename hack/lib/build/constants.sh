@@ -18,11 +18,17 @@ readonly OS_SDN_COMPILE_TARGETS_LINUX=(
   vendor/github.com/containernetworking/cni/plugins/ipam/host-local
   vendor/github.com/containernetworking/cni/plugins/main/loopback
 )
+
+readonly OS_CLUSTER_CAPACITY_COMPILE_TARGETS_LINUX=(
+  vendor/github.com/kubernetes-incubator/cluster-capacity/cmd/hypercc
+)
+
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   images/pod
   cmd/dockerregistry
   cmd/gitserver
   "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
+  "${OS_CLUSTER_CAPACITY_COMPILE_TARGETS_LINUX[@]}"
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
   examples/hello-openshift

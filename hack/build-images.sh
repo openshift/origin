@@ -117,6 +117,7 @@ ln_or_cp "${imagedir}/pod"             images/pod/bin
 ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
 ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
 ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
+ln_or_cp "${imagedir}/hypercc"         images/cluster-capacity/bin
 
 # Copy SDN scripts into images/node
 os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
@@ -128,6 +129,7 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
 # images that depend on scratch / centos
 image "${tag_prefix}-pod"                   images/pod
+image "${tag_prefix}-cluster-capacity"      images/cluster-capacity
 # images that depend on "${tag_prefix}-base"
 image "${tag_prefix}"                       images/origin
 image "${tag_prefix}-haproxy-router"        images/router/haproxy
