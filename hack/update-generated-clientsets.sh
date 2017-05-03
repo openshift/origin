@@ -24,7 +24,7 @@ function generate_clientset_for() {
   local package="$1";shift
   local name="$1";shift
   echo "-- Generating ${name} client set for ${package} ..."
-  client-gen --clientset-path="${package}/clientset" \
+  client-gen --clientset-path="${package}/generated" \
              --input-base="${package}"                            \
              --output-base="../../.."                                 \
              --clientset-name="${name}"                               \
@@ -37,16 +37,12 @@ verify="${VERIFY:-}"
 # remove the old client sets
 for pkg in "${packages[@]}"; do
   if [[ -z "${verify}" ]]; then
-    go list -f '{{.Dir}}' "${pkg}/clientset/..." | xargs rm -rf
+    go list -f '{{.Dir}}' "${pkg}/generated/clientset/..." "${pkg}/generated/internalclientset/..." | xargs rm -rf
   fi
 done
-
-# get the tag name for the current origin release
-os::build::get_version_vars
-origin_version="v${OS_GIT_MAJOR}_${OS_GIT_MINOR%+}"
 
 for pkg in "${packages[@]}"; do
   shortGroup=$(basename "${pkg}")
   generate_clientset_for "${pkg}" "internalclientset"  --group=${shortGroup} --input=api/ "$@"
-  generate_clientset_for "${pkg}" "release_${origin_version}" --group=${shortGroup} --version=v1 --input=api/v1 "$@"
+  generate_clientset_for "${pkg}" "clientset" --group=${shortGroup} --version=v1 --input=api/v1 "$@"
 done

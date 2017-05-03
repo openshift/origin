@@ -34,7 +34,7 @@ import (
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
-		"Endpoints": "Endpoints",
+		"Endpoints":                  "Endpoints",
 		"SecurityContextConstraints": "SecurityContextConstraints",
 	}
 	return namer.NameSystems{
@@ -105,6 +105,13 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			gv.Version = clientgentypes.Version(parts[len(parts)-1])
 
 			internalGVPkg = strings.Join(parts[0:len(parts)-1], "/")
+		}
+
+		// If there's a comment of the form "// +groupName=somegroup" or
+		// "// +groupName=somegroup.foo.bar.io", use the first field (somegroup) as the name of the
+		// group when generating.
+		if override := types.ExtractCommentTags("+", p.DocComments)["groupName"]; override != nil {
+			gv.Group = clientgentypes.Group(strings.Split(override[0], ".")[0])
 		}
 
 		var typesToGenerate []*types.Type
