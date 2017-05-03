@@ -8,12 +8,16 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
@@ -206,6 +210,12 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 				if err := c.cleanupDeployerPods(deployment); err != nil {
 					return err
 				}
+			} else {
+				// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
+				// replication controller is deleted.
+				if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -214,6 +224,12 @@ func (c *DeploymentController) handle(deployment *kapi.ReplicationController, wi
 		// were created just after we issued the first cleanup request.
 		if deployutil.IsDeploymentCancelled(deployment) {
 			if err := c.cleanupDeployerPods(deployment); err != nil {
+				return err
+			}
+		} else {
+			// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
+			// replication controller is deleted.
+			if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
 				return err
 			}
 		}
@@ -412,9 +428,65 @@ func (c *DeploymentController) makeDeployerContainer(strategy *deployapi.Deploym
 	}
 }
 
+func (c *DeploymentController) getDeployerPods(deployment *kapi.ReplicationController) ([]*kapi.Pod, error) {
+	return c.podLister.Pods(deployment.Namespace).List(deployutil.DeployerPodSelector(deployment.Name))
+}
+
+func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *kapi.ReplicationController) error {
+	deployerPodsList, err := c.getDeployerPods(deployment)
+	if err != nil {
+		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeployment(deployment), err)
+	}
+
+	encoder := kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...)
+	glog.V(4).Infof("deployment %s/%s owning %d pods", deployment.Namespace, deployment.Name, len(deployerPodsList))
+
+	var errors []error
+	for _, pod := range deployerPodsList {
+		if len(pod.OwnerReferences) > 0 {
+			continue
+		}
+		glog.V(4).Infof("setting ownerRef for pod %s/%s to deployment %s/%s", pod.Namespace, pod.Name, deployment.Namespace, deployment.Name)
+		objCopy, err := kapi.Scheme.DeepCopy(pod)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		newPod, ok := objCopy.(*kapi.Pod)
+		if !ok {
+			errors = append(errors, fmt.Errorf("object %#+v is not a pod", objCopy))
+			continue
+		}
+		newPod.SetOwnerReferences([]metav1.OwnerReference{{
+			APIVersion: "v1",
+			Name:       deployment.Name,
+			Kind:       kapi.Kind("ReplicationController").Kind,
+			UID:        deployment.UID,
+		}})
+		newPodBytes, err := runtime.Encode(encoder, newPod)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		oldPodBytes, err := runtime.Encode(encoder, pod)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldPodBytes, newPodBytes, &kapiv1.Pod{})
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		if _, err := c.pn.Pods(pod.Namespace).Patch(pod.Name, types.StrategicMergePatchType, patchBytes); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return kutilerrors.NewAggregate(errors)
+}
+
 func (c *DeploymentController) cleanupDeployerPods(deployment *kapi.ReplicationController) error {
-	selector := deployutil.DeployerPodSelector(deployment.Name)
-	deployerList, err := c.podLister.Pods(deployment.Namespace).List(selector)
+	deployerList, err := c.getDeployerPods(deployment)
 	if err != nil {
 		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeployment(deployment), err)
 	}

@@ -122,6 +122,9 @@ func TestHandle_createPodOk(t *testing.T) {
 		createdPod = pod
 		return true, pod, nil
 	})
+	client.AddReactor("patch", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, nil
+	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
 		updatedDeployment = rc
@@ -436,8 +439,9 @@ func TestHandle_noop(t *testing.T) {
 			continue
 		}
 
-		if len(client.Actions()) > 0 {
-			t.Errorf("%s: unexpected actions: %v", test.name, client.Actions())
+		// Expect only patching for ownerRefs
+		if len(client.Actions()) != 1 {
+			t.Errorf("%s: unexpected %d actions: %#+v", test.name, len(client.Actions()), client.Actions())
 		}
 	}
 }
