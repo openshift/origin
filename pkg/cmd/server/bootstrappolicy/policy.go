@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
@@ -17,10 +18,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/apis/settings"
 	"k8s.io/kubernetes/pkg/apis/storage"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
@@ -112,8 +113,7 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []authorizationapi.Ro
 
 }
 
-func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
-
+func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	// four resource can be a single line
 	// up to ten-ish resources per line otherwise
 
@@ -927,38 +927,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 	}
 
-	saRoles := InfraSAs.AllRoles()
-	for _, saRole := range saRoles {
-		for _, existingRole := range roles {
-			if existingRole.Name == saRole.Name {
-				panic(fmt.Sprintf("clusterrole/%s is already registered", existingRole.Name))
-			}
-		}
-	}
-
-	// TODO roundtrip roles to pick up defaulting for API groups.  Without this, the covers check in reconcile-cluster-roles will fail.
-	// we can remove this again once everything gets group qualified and we have unit tests enforcing that.  other pulls are in
-	// progress to do that.
-	// we only want to roundtrip the sa roles now.  We'll remove this once we convert the SA roles
-	versionedRoles := []authorizationapiv1.ClusterRole{}
-	for i := range saRoles {
-		newRole := &authorizationapiv1.ClusterRole{}
-		if err := kapi.Scheme.Convert(&saRoles[i], newRole, nil); err != nil {
-			panic(err)
-		}
-		versionedRoles = append(versionedRoles, *newRole)
-	}
-	roundtrippedRoles := []authorizationapi.ClusterRole{}
-	for i := range versionedRoles {
-		newRole := &authorizationapi.ClusterRole{}
-		if err := kapi.Scheme.Convert(&versionedRoles[i], newRole, nil); err != nil {
-			panic(err)
-		}
-		roundtrippedRoles = append(roundtrippedRoles, *newRole)
-	}
-
-	roles = append(roles, roundtrippedRoles...)
-
+	// TODO check if we really need to do this
 	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
 	// our default roles and hard for them to reason about what power they are granting their users
 	for i := range roles {
@@ -968,6 +937,60 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	}
 
 	return roles
+}
+
+func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
+	openshiftClusterRoles := GetOpenshiftBootstrapClusterRoles()
+	openshiftSAClusterRoles := InfraSAs.AllRoles()
+	kubeClusterRoles, err := GetKubeBootstrapClusterRoles()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
+	kubeSAClusterRoles, err := GetKubeControllerBootstrapClusterRoles()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
+
+	// Eventually openshift controllers and kube controllers have different prefixes
+	// so we will only need to check conflicts on the "normal" cluster roles
+	// for now, deconflict with all names
+	openshiftClusterRoleNames := sets.NewString()
+	kubeClusterRoleNames := sets.NewString()
+	for _, clusterRole := range openshiftClusterRoles {
+		openshiftClusterRoleNames.Insert(clusterRole.Name)
+	}
+	for _, clusterRole := range openshiftSAClusterRoles {
+		openshiftClusterRoleNames.Insert(clusterRole.Name)
+	}
+	for _, clusterRole := range kubeClusterRoles {
+		kubeClusterRoleNames.Insert(clusterRole.Name)
+	}
+
+	conflictingNames := kubeClusterRoleNames.Intersection(openshiftClusterRoleNames)
+	extraRBACConflicts := conflictingNames.Difference(clusterRoleConflicts)
+	extraWhitelistEntries := clusterRoleConflicts.Difference(conflictingNames)
+	switch {
+	case len(extraRBACConflicts) > 0 && len(extraWhitelistEntries) > 0:
+		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v and ClusterRole whitelist contains a extraneous entries: %v ", extraRBACConflicts.List(), extraWhitelistEntries.List()))
+	case len(extraRBACConflicts) > 0:
+		panic(fmt.Sprintf("kube ClusterRoles conflict with openshift ClusterRoles: %v", extraRBACConflicts.List()))
+	case len(extraWhitelistEntries) > 0:
+		panic(fmt.Sprintf("ClusterRole whitelist contains a extraneous entries: %v", extraWhitelistEntries.List()))
+	}
+
+	finalClusterRoles := []authorizationapi.ClusterRole{}
+	finalClusterRoles = append(finalClusterRoles, openshiftClusterRoles...)
+	finalClusterRoles = append(finalClusterRoles, openshiftSAClusterRoles...)
+	finalClusterRoles = append(finalClusterRoles, kubeSAClusterRoles...)
+	for i := range kubeClusterRoles {
+		if !clusterRoleConflicts.Has(kubeClusterRoles[i].Name) {
+			finalClusterRoles = append(finalClusterRoles, kubeClusterRoles[i])
+		}
+	}
+
+	return finalClusterRoles
 }
 
 func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizationapi.RoleBinding {
@@ -986,7 +1009,7 @@ func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []authorizatio
 	}
 }
 
-func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
+func GetOpenshiftBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 	return []authorizationapi.ClusterRoleBinding{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1150,4 +1173,125 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 			Subjects:   []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: AuthenticatedGroup}},
 		},
 	}
+}
+
+func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
+	openshiftClusterRoleBindings := GetOpenshiftBootstrapClusterRoleBindings()
+	kubeClusterRoleBindings, err := GetKubeBootstrapClusterRoleBindings()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
+	kubeSAClusterRoleBindings, err := GetKubeControllerBootstrapClusterRoleBindings()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
+
+	// openshift controllers and kube controllers have different prefixes
+	// so we only need to check conflicts on the "normal" cluster rolebindings
+	openshiftClusterRoleBindingNames := sets.NewString()
+	kubeClusterRoleBindingNames := sets.NewString()
+	for _, clusterRoleBinding := range openshiftClusterRoleBindings {
+		openshiftClusterRoleBindingNames.Insert(clusterRoleBinding.Name)
+	}
+	for _, clusterRoleBinding := range kubeClusterRoleBindings {
+		kubeClusterRoleBindingNames.Insert(clusterRoleBinding.Name)
+	}
+
+	conflictingNames := kubeClusterRoleBindingNames.Intersection(openshiftClusterRoleBindingNames)
+	extraRBACConflicts := conflictingNames.Difference(clusterRoleBindingConflicts)
+	extraWhitelistEntries := clusterRoleBindingConflicts.Difference(conflictingNames)
+	switch {
+	case len(extraRBACConflicts) > 0 && len(extraWhitelistEntries) > 0:
+		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v and ClusterRoleBinding whitelist contains a extraneous entries: %v ", extraRBACConflicts.List(), extraWhitelistEntries.List()))
+	case len(extraRBACConflicts) > 0:
+		panic(fmt.Sprintf("kube ClusterRoleBindings conflict with openshift ClusterRoleBindings: %v", extraRBACConflicts.List()))
+	case len(extraWhitelistEntries) > 0:
+		panic(fmt.Sprintf("ClusterRoleBinding whitelist contains a extraneous entries: %v", extraWhitelistEntries.List()))
+	}
+
+	finalClusterRoleBindings := []authorizationapi.ClusterRoleBinding{}
+	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftClusterRoleBindings...)
+	finalClusterRoleBindings = append(finalClusterRoleBindings, kubeSAClusterRoleBindings...)
+	for i := range kubeClusterRoleBindings {
+		if !clusterRoleBindingConflicts.Has(kubeClusterRoleBindings[i].Name) {
+			finalClusterRoleBindings = append(finalClusterRoleBindings, kubeClusterRoleBindings[i])
+		}
+	}
+
+	return finalClusterRoleBindings
+}
+
+// clusterRoleConflicts lists the roles which are known to conflict with upstream and which we have manually
+// deconflicted with our own.
+var clusterRoleConflicts = sets.NewString(
+	// these require special treatment to handle origin resources
+	"admin",
+	"edit",
+	"view",
+
+	// TODO this should probably be re-swizzled to be the delta on top of the kube role
+	"system:discovery",
+
+	// TODO deconflict this
+	"system:node-bootstrapper",
+
+	// TODO these should be reconsidered
+	"cluster-admin",
+	"system:node",
+	"system:node-proxier",
+	"system:persistent-volume-provisioner",
+)
+
+// clusterRoleBindingConflicts lists the roles which are known to conflict with upstream and which we have manually
+// deconflicted with our own.
+var clusterRoleBindingConflicts = sets.NewString()
+
+func GetKubeBootstrapClusterRoleBindings() ([]authorizationapi.ClusterRoleBinding, error) {
+	return convertClusterRoleBindings(bootstrappolicy.ClusterRoleBindings())
+}
+
+func GetKubeControllerBootstrapClusterRoleBindings() ([]authorizationapi.ClusterRoleBinding, error) {
+	return convertClusterRoleBindings(bootstrappolicy.ControllerRoleBindings())
+}
+
+func convertClusterRoleBindings(in []rbac.ClusterRoleBinding) ([]authorizationapi.ClusterRoleBinding, error) {
+	out := []authorizationapi.ClusterRoleBinding{}
+	errs := []error{}
+
+	for i := range in {
+		newRoleBinding := &authorizationapi.ClusterRoleBinding{}
+		if err := kapi.Scheme.Convert(&in[i], newRoleBinding, nil); err != nil {
+			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
+			continue
+		}
+		out = append(out, *newRoleBinding)
+	}
+
+	return out, kutilerrors.NewAggregate(errs)
+}
+
+func GetKubeBootstrapClusterRoles() ([]authorizationapi.ClusterRole, error) {
+	return convertClusterRoles(bootstrappolicy.ClusterRoles())
+}
+
+func GetKubeControllerBootstrapClusterRoles() ([]authorizationapi.ClusterRole, error) {
+	return convertClusterRoles(bootstrappolicy.ControllerRoles())
+}
+
+func convertClusterRoles(in []rbac.ClusterRole) ([]authorizationapi.ClusterRole, error) {
+	out := []authorizationapi.ClusterRole{}
+	errs := []error{}
+
+	for i := range in {
+		newRole := &authorizationapi.ClusterRole{}
+		if err := kapi.Scheme.Convert(&in[i], newRole, nil); err != nil {
+			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
+			continue
+		}
+		out = append(out, *newRole)
+	}
+
+	return out, kutilerrors.NewAggregate(errs)
 }

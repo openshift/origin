@@ -34,7 +34,11 @@ func TestSubjects(t *testing.T) {
 			Verb:            "get",
 			Resource:        "pods",
 		},
-		expectedUsers:  sets.NewString("Anna", "ClusterAdmin", "Ellen", "Valerie", "system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first", "system:admin"),
+		expectedUsers: sets.NewString("Anna", "ClusterAdmin", "Ellen", "Valerie",
+			"system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first",
+			"system:serviceaccount:kube-system:deployment-controller", "system:serviceaccount:kube-system:endpoint-controller", "system:serviceaccount:kube-system:generic-garbage-collector",
+			"system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:kube-system:persistent-volume-binder", "system:serviceaccount:kube-system:statefulset-controller",
+			"system:admin", "system:kube-scheduler"),
 		expectedGroups: sets.NewString("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()

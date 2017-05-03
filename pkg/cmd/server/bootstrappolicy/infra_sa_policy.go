@@ -15,7 +15,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/storage"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+
+	// we need the conversions registered for our init block
+	_ "github.com/openshift/origin/pkg/authorization/api/install"
 )
 
 const (
@@ -114,7 +118,28 @@ func (r *InfraServiceAccounts) addServiceAccount(saName string, role authorizati
 		role.Annotations = map[string]string{}
 	}
 	role.Annotations[roleSystemOnly] = roleIsSystemOnly
-	r.saToRole[saName] = role
+
+	// TODO make this unnecessary
+	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
+	// our default roles and hard for them to reason about what power they are granting their users
+	for j := range role.Rules {
+		role.Rules[j].Resources = authorizationapi.NormalizeResources(role.Rules[j].Resources)
+	}
+
+	// TODO roundtrip roles to pick up defaulting for API groups.  Without this, the covers check in reconcile-cluster-roles will fail.
+	// we can remove this again once everything gets group qualified and we have unit tests enforcing that.  other pulls are in
+	// progress to do that.
+	// we only want to roundtrip the sa roles now.  We'll remove this once we convert the SA roles
+	versionedRole := &authorizationapiv1.ClusterRole{}
+	if err := kapi.Scheme.Convert(&role, versionedRole, nil); err != nil {
+		return err
+	}
+	defaultedInternalRole := &authorizationapi.ClusterRole{}
+	if err := kapi.Scheme.Convert(versionedRole, defaultedInternalRole, nil); err != nil {
+		return err
+	}
+
+	r.saToRole[saName] = *defaultedInternalRole
 	r.serviceAccounts.Insert(saName)
 	return nil
 }
@@ -129,11 +154,12 @@ func (r *InfraServiceAccounts) RoleFor(saName string) (authorizationapi.ClusterR
 }
 
 func (r *InfraServiceAccounts) AllRoles() []authorizationapi.ClusterRole {
-	ret := []authorizationapi.ClusterRole{}
+	saRoles := []authorizationapi.ClusterRole{}
 	for _, saName := range r.serviceAccounts.List() {
-		ret = append(ret, r.saToRole[saName])
+		saRoles = append(saRoles, r.saToRole[saName])
 	}
-	return ret
+
+	return saRoles
 }
 
 func init() {
@@ -1113,7 +1139,9 @@ func init() {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					APIGroups: []string{certificates.GroupName},
-					Verbs:     sets.NewString("create", "get"),
+					// match the upstream role for now
+					// TODO sort out how to deconflict this with upstream
+					Verbs:     sets.NewString("create", "get", "list", "watch"),
 					Resources: sets.NewString("certificatesigningrequests"),
 				},
 			},
