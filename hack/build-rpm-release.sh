@@ -23,8 +23,9 @@ tito tag --use-version="${OS_RPM_VERSION}" \
          --no-auto-changelog --offline
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
+tito build --quiet --offline --srpm --rpmbuild-options="--define 'dist .el7'" --output="${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'  ${RPM_BUILD_OPTS:-}"
+           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS:-}"
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
