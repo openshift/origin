@@ -9,6 +9,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
@@ -63,4 +64,22 @@ func ConfirmNoEscalation(ctx apirequest.Context, resource schema.GroupResource, 
 		internalErr = fmt.Errorf("user %q cannot grant extra privileges:\n%v", user.GetName(), strings.Join(missingRightsStrings, "\n"))
 	}
 	return kapierrors.NewForbidden(resource, name, internalErr)
+}
+
+// EscalationAllowed returns true if a particular user is allowed to escalate his powers
+func EscalationAllowed(ctx apirequest.Context) bool {
+	u, ok := apirequest.UserFrom(ctx)
+	if !ok {
+		return false
+	}
+
+	// system:masters is special because the API server uses it for privileged loopback connections
+	// therefore we know that a member of system:masters can always do anything
+	for _, group := range u.GetGroups() {
+		if group == user.SystemPrivilegedGroup {
+			return true
+		}
+	}
+
+	return false
 }

@@ -2,9 +2,14 @@ package integration
 
 import (
 	"fmt"
+	"path"
 	"testing"
 	"time"
 
+	etcd "github.com/coreos/etcd/client"
+	"golang.org/x/net/context"
+
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -89,11 +94,12 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 }
 
-// TestProjectMustExist verifies that content cannot be added in a project that does not exist
-func TestProjectMustExist(t *testing.T) {
-	testutil.RequireEtcd(t)
+// TestProjectLifecycle verifies that content cannot be added in a project that does not exist
+// and that openshift content is cleaned up when a project is deleted.
+func TestProjectLifecycle(t *testing.T) {
+	etcdServer := testutil.RequireEtcd(t)
 	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -125,7 +131,7 @@ func TestProjectMustExist(t *testing.T) {
 	build := &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "buildid",
-			Namespace: "default",
+			Namespace: "test",
 			Labels: map[string]string{
 				buildapi.BuildConfigLabel:    "mock-build-config",
 				buildapi.BuildRunPolicyLabel: string(buildapi.BuildRunPolicyParallel),
@@ -159,6 +165,49 @@ func TestProjectMustExist(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
 	}
+
+	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "test"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = clusterAdminClient.Builds("test").Create(build)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// confirm that we see the build in etcd
+	keys := etcd.NewKeysAPI(etcdServer.Client)
+	buildEtcdKey := path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "builds", "test", "buildid")
+	if _, err := keys.Get(context.TODO(), buildEtcdKey, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// delete the project, which should finalize our stuff
+	if err := clusterAdminKubeClientset.Core().Namespaces().Delete("test", nil); err != nil {
+		t.Fatal(err)
+	}
+	err = wait.PollImmediate(30*time.Millisecond, 30*time.Second, func() (bool, error) {
+		var err error
+		_, err = clusterAdminKubeClientset.Core().Namespaces().Get("test", metav1.GetOptions{})
+		if kapierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// confirm the build is gone in etcd
+	if _, err := keys.Get(context.TODO(), buildEtcdKey, nil); !etcd.IsKeyNotFound(err) {
+		t.Fatal("didn't delete the build")
+	}
+
 }
 
 func TestProjectWatch(t *testing.T) {
@@ -288,17 +337,23 @@ func waitForOnlyAdd(projectName string, w watch.Interface, t *testing.T) {
 	}
 }
 func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
-	select {
-	case event := <-w.ResultChan():
-		project := event.Object.(*projectapi.Project)
-		t.Logf("got %#v %#v", event, project)
-		if event.Type == watch.Deleted && project.Name == projectName {
-			return
-		}
-		t.Errorf("got unexpected project %v", project.Name)
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if event.Type == watch.Deleted && project.Name == projectName {
+				return
+			}
+			// if its an event indicating Terminated status, don't fail, but keep waiting
+			if event.Type == watch.Modified && project.Name == projectName && project.Status.Phase == kapi.NamespaceTerminating {
+				continue
+			}
+			t.Errorf("got unexpected project %v", project.Name)
 
-	case <-time.After(30 * time.Second):
-		t.Fatalf("timeout: %v", projectName)
+		case <-time.After(30 * time.Second):
+			t.Fatalf("timeout: %v", projectName)
+		}
 	}
 }
 

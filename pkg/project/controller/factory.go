@@ -12,13 +12,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	controller "github.com/openshift/origin/pkg/controller"
 )
 
 type NamespaceControllerFactory struct {
-	// Client is an OpenShift client.
-	Client osclient.Interface
 	// KubeClient is a Kubernetes client.
 	KubeClient kclientset.Interface
 }
@@ -37,7 +34,6 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 	cache.NewReflector(namespaceLW, &kapi.Namespace{}, queue, 1*time.Minute).Run()
 
 	namespaceController := &NamespaceController{
-		Client:     factory.Client,
 		KubeClient: factory.KubeClient,
 	}
 
@@ -48,9 +44,6 @@ func (factory *NamespaceControllerFactory) Create() controller.RunnableControlle
 			cache.MetaNamespaceKeyFunc,
 			func(obj interface{}, err error, retries controller.Retry) bool {
 				utilruntime.HandleError(err)
-				if _, isFatal := err.(fatalError); isFatal {
-					return false
-				}
 				if retries.Count > 0 {
 					return false
 				}
