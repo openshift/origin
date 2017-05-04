@@ -284,7 +284,7 @@ function os::start::master() {
 	os::log::debug "$( ps -ef | grep openshift )"
 
 	os::log::debug "Starting OpenShift server"
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
 	$(os::start::internal::openshift_executable) start master                                       \
 	                                             --loglevel=4                                       \
 	                                             --logspec='*importer=5'                            \
@@ -334,7 +334,7 @@ function os::start::all_in_one() {
 	fi
 
 	os::log::debug "Starting OpenShift server"
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
 	local openshift_executable
 	openshift_executable="$(os::start::internal::openshift_executable)"
 	${openshift_executable} start                                                     \
@@ -410,7 +410,7 @@ readonly -f os::start::etcd
 function os::start::api_server() {
 	local api_server_version=${1:-}
 	local openshift_volumes=( "${MASTER_CONFIG_DIR}" )
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
 	local openshift_executable
 	openshift_executable="$(os::start::internal::openshift_executable "${api_server_version}")"
 
