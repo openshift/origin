@@ -386,7 +386,6 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 		return nil, fmt.Errorf("'%s': %s", dockercfgPath, err)
 	}
 	return docker.NewAuthConfigurations(r)
-
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
