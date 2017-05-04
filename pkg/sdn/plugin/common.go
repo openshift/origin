@@ -138,14 +138,6 @@ func RunEventQueue(client kcache.Getter, resourceName ResourceName, process Proc
 		expectedType = &osapi.HostSubnet{}
 	case NetNamespaces:
 		expectedType = &osapi.NetNamespace{}
-	case Nodes:
-		expectedType = &kapi.Node{}
-	case Namespaces:
-		expectedType = &kapi.Namespace{}
-	case Services:
-		expectedType = &kapi.Service{}
-	case Pods:
-		expectedType = &kapi.Pod{}
 	case EgressNetworkPolicies:
 		expectedType = &osapi.EgressNetworkPolicy{}
 	case NetworkPolicies:
