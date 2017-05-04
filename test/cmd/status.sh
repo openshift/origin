@@ -61,7 +61,8 @@ os::cmd::expect_success_and_text "oc project" 'Using project "project-bar-2"'
 # delete the current project `project-bar-2` and make sure `oc status` does not return the "no projects"
 # message since `project-bar` still exists
 os::cmd::expect_success_and_text "oc delete project project-bar-2" 'project "project-bar-2" deleted'
-os::cmd::expect_failure_and_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get project "project-bar-2"'
+# the deletion is asynchronous and can take a while, so wait until we see the error
+os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get project "project-bar-2"'
 
 # delete "project-bar" and test that `oc status` still does not return the "no projects" message.
 # Although we are deleting the last remaining project, the current context's namespace is still set
@@ -69,7 +70,8 @@ os::cmd::expect_failure_and_text "oc status" 'Error from server \(Forbidden\): U
 # until the next time the user logs in.
 os::cmd::expect_success "oc project project-bar"
 os::cmd::expect_success "oc delete project project-bar"
-os::cmd::expect_failure_and_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get project "project-bar"'
+# the deletion is asynchronous and can take a while, so wait until we see the error
+os::cmd::try_until_text "oc status" 'Error from server \(Forbidden\): User "test-user" cannot get project "project-bar"'
 os::cmd::try_until_not_text "oc get projects" "project-bar"
 os::cmd::try_until_not_text "oc get projects" "project-bar-2"
 os::cmd::expect_success "oc logout"

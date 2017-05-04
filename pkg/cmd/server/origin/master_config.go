@@ -1074,11 +1074,10 @@ func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
 }
 
-// OriginNamespaceControllerClients returns a client for openshift and kubernetes.
-// The openshift client object must have authority to delete openshift content in any namespace
+// OriginNamespaceControllerClient returns a client for openshift and kubernetes.
 // The kubernetes client object must have authority to execute a finalize request on a namespace
-func (c *MasterConfig) OriginNamespaceControllerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
+func (c *MasterConfig) OriginNamespaceControllerClient() kclientsetinternal.Interface {
+	return c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
 // UnidlingControllerClients returns the unidling controller clients
