@@ -41,6 +41,8 @@ type IsPersonalSubjectAccessReview struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
+// +genclient=true
+
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
 	metav1.TypeMeta `json:",inline"`
@@ -59,6 +61,8 @@ type OptionalNames []string
 func (t OptionalNames) String() string {
 	return fmt.Sprintf("%v", []string(t))
 }
+
+// +genclient=true
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
@@ -353,6 +357,9 @@ type RoleList struct {
 	Items []Role `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +genclient=true
+// +nonNamespaced=true
+
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
 	metav1.TypeMeta `json:",inline"`
@@ -362,6 +369,9 @@ type ClusterRole struct {
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
+
+// +genclient=true
+// +nonNamespaced=true
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
