@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/docker/distribution/manifest/schema2"
@@ -267,6 +268,7 @@ func NewPruner(options PrunerOptions) Pruner {
 	if options.PruneOverSizeLimit != nil {
 		algorithm.pruneOverSizeLimit = *options.PruneOverSizeLimit
 	}
+	algorithm.allImages = true
 	if options.AllImages != nil {
 		algorithm.allImages = *options.AllImages
 	}
@@ -635,6 +637,17 @@ func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
 	return ret
 }
 
+// getImageStreamNodes returns only nodes of type ImageStreamNode.
+func getImageStreamNodes(nodes []gonum.Node) []*imagegraph.ImageStreamNode {
+	ret := []*imagegraph.ImageStreamNode{}
+	for i := range nodes {
+		if node, ok := nodes[i].(*imagegraph.ImageStreamNode); ok {
+			ret = append(ret, node)
+		}
+	}
+	return ret
+}
+
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
 func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	edge := g.Edge(from, to)
@@ -787,14 +800,60 @@ func pruneImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, imagePruner 
 	return errs
 }
 
-func (p *pruner) determineRegistry(imageNodes []*imagegraph.ImageNode) (string, error) {
+// order younger images before older
+type imgByAge []*imageapi.Image
+
+func (ba imgByAge) Len() int      { return len(ba) }
+func (ba imgByAge) Swap(i, j int) { ba[i], ba[j] = ba[j], ba[i] }
+func (ba imgByAge) Less(i, j int) bool {
+	return ba[i].CreationTimestamp.After(ba[j].CreationTimestamp.Time)
+}
+
+// order younger image stream before older
+type isByAge []*imagegraph.ImageStreamNode
+
+func (ba isByAge) Len() int      { return len(ba) }
+func (ba isByAge) Swap(i, j int) { ba[i], ba[j] = ba[j], ba[i] }
+func (ba isByAge) Less(i, j int) bool {
+	return ba[i].ImageStream.CreationTimestamp.After(ba[j].ImageStream.CreationTimestamp.Time)
+}
+
+func (p *pruner) determineRegistry(imageNodes []*imagegraph.ImageNode, isNodes []*imagegraph.ImageStreamNode) (string, error) {
 	if len(p.registryURL) > 0 {
 		return p.registryURL, nil
 	}
 
-	// we only support a single internal registry, and all images have the same registry
-	// so we just take the 1st one and use it
-	pullSpec := imageNodes[0].Image.DockerImageReference
+	var pullSpec string
+	var managedImages []*imageapi.Image
+
+	// 1st try to determine registry url from a pull spec of the youngest managed image
+	for _, node := range imageNodes {
+		if node.Image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
+			continue
+		}
+		managedImages = append(managedImages, node.Image)
+	}
+	// be sure to pick up the newest managed image which should have an up to date information
+	sort.Sort(imgByAge(managedImages))
+
+	if len(managedImages) > 0 {
+		pullSpec = managedImages[0].DockerImageReference
+	} else {
+		// 2nd try to get the pull spec from any image stream
+		// Sorting by creation timestamp may not get us up to date info. Modification time would be much
+		// better if there were such an attribute.
+		sort.Sort(isByAge(isNodes))
+		for _, node := range isNodes {
+			if len(node.ImageStream.Status.DockerImageRepository) == 0 {
+				continue
+			}
+			pullSpec = node.ImageStream.Status.DockerImageRepository
+		}
+	}
+
+	if len(pullSpec) == 0 {
+		return "", fmt.Errorf("no managed image found")
+	}
 
 	ref, err := imageapi.ParseDockerImageReference(pullSpec)
 	if err != nil {
@@ -825,7 +884,7 @@ func (p *pruner) Prune(
 		return nil
 	}
 
-	registryURL, err := p.determineRegistry(imageNodes)
+	registryURL, err := p.determineRegistry(imageNodes, getImageStreamNodes(allNodes))
 	if err != nil {
 		return fmt.Errorf("unable to determine registry: %v", err)
 	}
