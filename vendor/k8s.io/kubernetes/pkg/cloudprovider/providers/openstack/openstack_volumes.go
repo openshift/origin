@@ -153,10 +153,10 @@ func (os *OpenStack) CreateVolume(name string, size int, vtype, availability str
 	}
 
 	opts := volumes.CreateOpts{
-		Name:         name,
-		Size:         size,
-		VolumeType:   vtype,
-		Availability: availability,
+		Name:             name,
+		Size:             size,
+		VolumeType:       vtype,
+		AvailabilityZone: availability,
 	}
 	if tags != nil {
 		opts.Metadata = *tags
