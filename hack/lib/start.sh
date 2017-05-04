@@ -140,6 +140,7 @@ readonly -f os::start::internal::create_bootstrap_policy
 #  - API_BIND_HOST
 #  - API_PORT
 #  - PUBLIC_MASTER_HOST
+#  - NETWORK_PLUGIN
 # Arguments
 #  1 - alternate version for the config
 #  - MASTER_CONFIG_DIR
@@ -158,6 +159,7 @@ function os::start::internal::configure_master() {
 	                        --hostname="${KUBELET_HOST}"                            \
 	                        --volume-dir="${VOLUME_DIR}"                            \
 	                        --etcd-dir="${ETCD_DATA_DIR}"                           \
+	                        --network-plugin="${NETWORK_PLUGIN:-}"                  \
 	                        --write-config="${SERVER_CONFIG_DIR}"                   \
 	                        --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	                        --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
