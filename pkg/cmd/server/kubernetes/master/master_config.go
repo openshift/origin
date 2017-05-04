@@ -495,6 +495,7 @@ func buildKubeApiserverConfig(
 		EnableCoreControllers: true,
 	}
 
+	fmt.Printf("apiserverOptions.Etcd.EnableWatchCache = %v\n", apiserverOptions.Etcd.EnableWatchCache)
 	if apiserverOptions.Etcd.EnableWatchCache {
 		// TODO(rebase): upstream also does the following:
 		// cachesize.InitializeWatchCacheSizes(s.GenericServerRunOptions.TargetRAMMB)

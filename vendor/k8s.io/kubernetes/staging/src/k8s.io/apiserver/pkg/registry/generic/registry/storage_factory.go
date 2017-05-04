@@ -23,6 +23,7 @@ import (
 	etcdstorage "k8s.io/apiserver/pkg/storage/etcd"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	"k8s.io/apiserver/pkg/storage/storagebackend/factory"
+	"fmt"
 )
 
 var _ generic.StorageDecorator = StorageWithCacher
@@ -55,6 +56,7 @@ func StorageWithCacher(
 		TriggerPublisherFunc: triggerFunc,
 		Codec:                storageConfig.Codec,
 	}
+	fmt.Printf("StorageWithCache cacherConfig = %#v\n", cacherConfig)
 	cacher := storage.NewCacherFromConfig(cacherConfig)
 	destroyFunc := func() {
 		cacher.Stop()

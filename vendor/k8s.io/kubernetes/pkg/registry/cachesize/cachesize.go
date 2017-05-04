@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"fmt"
 )
 
 type Resource string
@@ -95,6 +96,7 @@ func InitializeWatchCacheSizes(expectedRAMCapacityMB int) {
 }
 
 func SetWatchCacheSizes(cacheSizes []string) {
+	fmt.Printf("SetWatchCacheSizes %v\n", cacheSizes)
 	for _, c := range cacheSizes {
 		tokens := strings.Split(c, "#")
 		if len(tokens) != 2 {
@@ -112,7 +114,10 @@ func SetWatchCacheSizes(cacheSizes []string) {
 	}
 }
 
-func GetWatchCacheSizeByResource(resource string) int { // TODO this should use schema.GroupResource for lookups
+func GetWatchCacheSizeByResource(resource string) (ret int) { // TODO this should use schema.GroupResource for lookups
+	defer func () {
+		fmt.Printf("GetWatchCacheSizeByResource(%s) => %v\n", resource, ret)
+	}()
 	if value, found := watchCacheSizes[Resource(resource)]; found {
 		return value
 	}

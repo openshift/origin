@@ -344,6 +344,8 @@ var _ = framework.KubeDescribe("StatefulSet", func() {
 				}
 				return false, nil
 			})
+			expectedPod, _ = f.ClientSet.Core().Pods(ns).Get(expectedPodName, metav1.GetOptions{})
+			fmt.Printf("expectedPod = %#v\n", expectedPod)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -423,6 +425,8 @@ var _ = framework.KubeDescribe("StatefulSet", func() {
 				return len(expectedOrder) == 0, nil
 
 			})
+			expectedPod, _ = f.ClientSet.Core().Pods(ns).Get(expectedPodName, metav1.GetOptions{})
+			fmt.Printf("expectedPod = %#v\n", expectedPod)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
