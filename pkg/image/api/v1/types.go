@@ -142,6 +142,8 @@ type ImageStreamList struct {
 	Items []ImageStream `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +genclient=true
+
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image
 // repository on a registry.
