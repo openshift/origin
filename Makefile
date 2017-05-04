@@ -118,6 +118,7 @@ update:
 	hack/update-generated-informers.sh
 	hack/update-generated-openapi.sh
 	hack/update-generated-protobuf.sh
+	$(MAKE) build
 	hack/update-generated-completions.sh
 	hack/update-generated-docs.sh
 	hack/update-generated-swagger-descriptions.sh
