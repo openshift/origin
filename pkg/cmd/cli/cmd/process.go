@@ -100,6 +100,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	cmd.Flags().Bool("raw", false, "If true, output the processed template instead of the template's objects. Implied by -o describe")
 	cmd.Flags().String("output-version", "", "Output the formatted object with the given version (default api-version).")
 	cmd.Flags().StringP("template", "t", "", "Template string or path to template file to use when -o=go-template, -o=go-templatefile.  The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview]")
+	cmd.Flags().Bool("ignore-invalid-parameters", false, "If true, do not fail on invalid parameters.")
 
 	// kcmdutil.PrinterForCommand needs these flags, however they are useless
 	// here because oc process returns list of heterogeneous objects that is
@@ -346,7 +347,11 @@ func injectUserVars(values app.Environment, t *templateapi.Template) []error {
 			v.Value = val
 			v.Generate = ""
 		} else {
-			errors = append(errors, fmt.Errorf("unknown parameter name %q\n", param))
+			if kcmdutil.GetFlagBool(cmd, "ignore-invalid-parameters") {
+				fmt.Fprintf(errout, "warning: Unknown template parameter %q", param)
+			} else {
+				errors = append(errors, fmt.Errorf("unknown parameter name %q\n", param))
+			}
 		}
 	}
 	return errors
