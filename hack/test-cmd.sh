@@ -60,14 +60,16 @@ function find_tests() {
 }
 tests=( $(find_tests ${1:-.*}) )
 
-# test-cmd specific defaults
+# deconflict ports so we can run in parallel with other test suites
 export API_PORT=${API_PORT:-28443}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
+# use a network plugin for network tests
+export NETWORK_PLUGIN='redhat/openshift-ovs-multitenant'
+
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
-export HOME="${FAKE_HOME_DIR}"
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
 if [[ -n "${JUNIT_REPORT:-}" ]]; then
@@ -97,100 +99,29 @@ fi
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
 
-# Specify the scheme and port for the listen address, but let the IP auto-discover. Set --public-master to localhost, for a stable link to the console.
-os::log::info "Create certificates for the OpenShift server to ${MASTER_CONFIG_DIR}"
-# find the same IP that openshift start will bind to.  This allows access from pods that have to talk back to master
-SERVER_HOSTNAME_LIST="${PUBLIC_MASTER_HOST},$(openshift start --print-ip),localhost"
+os::start::configure_server
 
-openshift admin ca create-master-certs \
-  --overwrite=false \
-  --cert-dir="${MASTER_CONFIG_DIR}" \
-  --hostnames="${SERVER_HOSTNAME_LIST}" \
-  --master="${MASTER_ADDR}" \
-  --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
-
-openshift admin create-node-config \
-  --listen="${KUBELET_SCHEME}://0.0.0.0:${KUBELET_PORT}" \
-  --node-dir="${NODE_CONFIG_DIR}" \
-  --node="${KUBELET_HOST}" \
-  --hostnames="${KUBELET_HOST}" \
-  --master="${MASTER_ADDR}" \
-  --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-  --signer-key="${MASTER_CONFIG_DIR}/ca.key" \
-  --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-
-oadm create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-
-# create openshift config
-openshift start \
-  --write-config=${SERVER_CONFIG_DIR} \
-  --create-certs=false \
-  --master="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --listen="${API_SCHEME}://${API_HOST}:${API_PORT}" \
-  --hostname="${KUBELET_HOST}" \
-  --volume-dir="${VOLUME_DIR}" \
-  --etcd-dir="${ETCD_DATA_DIR}" \
-  --images="${USE_IMAGES}" \
-  --network-plugin=redhat/openshift-ovs-multitenant
-
-# Set deconflicted etcd ports in the config
-cp ${SERVER_CONFIG_DIR}/master/master-config.yaml ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml
-openshift ex config patch ${SERVER_CONFIG_DIR}/master/master-config.orig.yaml --patch="{\"etcdConfig\": {\"address\": \"${API_HOST}:${ETCD_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"servingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PORT}\"}}}" | \
-openshift ex config patch - --type json --patch="[{\"op\": \"replace\", \"path\": \"/etcdClientInfo/urls\", \"value\": [\"${API_SCHEME}://${API_HOST}:${ETCD_PORT}\"]}]" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}" | \
-openshift ex config patch - --patch="{\"etcdConfig\": {\"peerServingInfo\": {\"bindAddress\": \"${API_HOST}:${ETCD_PEER_PORT}\"}}}" > ${SERVER_CONFIG_DIR}/master/master-config.yaml
-
-# check oc version with no server running but config files present
 os::test::junit::declare_suite_start "cmd/version"
 os::cmd::expect_success_and_not_text "KUBECONFIG='${MASTER_CONFIG_DIR}/admin.kubeconfig' oc version" "did you specify the right host or port"
+os::cmd::expect_success_and_not_text "KUBECONFIG='' oc version" "Missing or incomplete configuration info"
 os::test::junit::declare_suite_end
 
-# Start openshift
-OPENSHIFT_ON_PANIC=crash openshift start master \
-  --config=${MASTER_CONFIG_DIR}/master-config.yaml \
-  --loglevel=5 \
-  &>"${LOG_DIR}/openshift.log" &
-OS_PID=$!
-
-if [[ "${API_SCHEME}" == "https" ]]; then
-    export CURL_CA_BUNDLE="${MASTER_CONFIG_DIR}/ca.crt"
-    export CURL_CERT="${MASTER_CONFIG_DIR}/admin.crt"
-    export CURL_KEY="${MASTER_CONFIG_DIR}/admin.key"
-fi
-
-os::test::junit::declare_suite_start "cmd/startup"
-os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" "ok"
-os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" "ok"
-os::test::junit::declare_suite_end
-
-# profile the cli commands
-export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
-
-# start up a registry for images tests
-ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" os::start::registry
-
-
-# check oc version with no config file
-os::test::junit::declare_suite_start "cmd/version"
-os::cmd::expect_success_and_not_text "oc version" "Missing or incomplete configuration info"
-echo "oc version (with no config file set): ok"
-os::test::junit::declare_suite_end
-
-# ensure that DisabledFeatures aren't written to config files
 os::test::junit::declare_suite_start "cmd/config"
 os::cmd::expect_success_and_text "cat ${MASTER_CONFIG_DIR}/master-config.yaml" 'disabledFeatures: null'
 os::test::junit::declare_suite_end
 
-# from this point every command will use config from the KUBECONFIG env var
-export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
-export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
-mkdir -p ${HOME}/.kube
-cp ${MASTER_CONFIG_DIR}/admin.kubeconfig ${HOME}/.kube/non-default-config
+os::start::master
+
+# profile the cli commands
+export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
+
+os::start::registry
+
+export HOME="${FAKE_HOME_DIR}"
+mkdir -p "${HOME}/.kube"
+cp "${MASTER_CONFIG_DIR}/admin.kubeconfig" "${HOME}/.kube/non-default-config"
 export KUBECONFIG="${HOME}/.kube/non-default-config"
-export CLUSTER_ADMIN_CONTEXT=$(oc config view --flatten -o template --template='{{index . "current-context"}}')
+export KUBERNETES_MASTER="${API_SCHEME}://${API_HOST}:${API_PORT}"
 
 # NOTE: Do not add tests here, add them to test/cmd/*.
 # Tests should assume they run in an empty project, and should be reentrant if possible
