@@ -332,7 +332,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	env := app.Environment{}
 	env.Add(secretEnv)
 
-	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = fmt.Sprintf("%t", opts.Config.EnforceQuota)
+	env["REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA"] = fmt.Sprintf("%T", opts.Config.EnforceQuota)
 	healthzPort := defaultPort
 	if len(opts.ports) > 0 {
 		healthzPort = int(opts.ports[0].ContainerPort)
