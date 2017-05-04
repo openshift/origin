@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e269c494f327908684c9580f5940722fd04cd6c3
+%global commit dd2329650efb6d2766ee38e2ce730c3ead447d9b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.62 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e269c49
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.63 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=dd23296
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.63
+Version:        3.6.64
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,30 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu May 04 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.64-1
+- bump(github.com/openshift/origin-web-console):
+  9f15b0a9c9254fa81e9da7e1f8b517b6a3001496 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  513de5aaa7315ba8b21935fe90e4aae82bd1e773 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  51f517abc35cdf2280ecba4675143c78f5301e34 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9b9e9f8777c7b3e9da2ab58035dd667e93ca8c90 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: <carry>: Fix to avoid REST API calls at log level 2.
+  (avagarwa@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b23d5ff49ffa5a29fce3865e1b1f287ac9aa15ba (dmcphers+openshiftbot@redhat.com)
+- rely on the upstream namespace cleanup controller (deads@redhat.com)
+- resolve merge conflict (li.guangxu@zte.com.cn)
+- use the upstream system:masters authorizer (deads@redhat.com)
+- UPSTREAM: <drop>: remove hacks for delaying post start hooks
+  (deads@redhat.com)
+- UPSTREAM: 44462: 44489: fix selfLink for cluster-scoped resources
+  (andy.goldstein@gmail.com)
+- Switch back to kapi instead of v1 for RCs in deployment describer
+  (andy.goldstein@gmail.com)
+- Bug 1445694 - Fix locking in syncEgressDNSPolicyRules() (rpenta@redhat.com)
+
 * Wed May 03 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.63-1
 - Update Makefile update/verify (andy.goldstein@gmail.com)
 - Update clientset imports (andy.goldstein@gmail.com)
