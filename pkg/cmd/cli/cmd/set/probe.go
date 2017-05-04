@@ -73,11 +73,14 @@ type ProbeOptions struct {
 	ContainerSelector string
 	Selector          string
 	All               bool
+	Output            string
 
 	Builder *resource.Builder
 	Infos   []*resource.Info
 
 	Encoder runtime.Encoder
+
+	Cmd *cobra.Command
 
 	ShortOutput bool
 	Mapper      meta.RESTMapper
@@ -88,6 +91,7 @@ type ProbeOptions struct {
 	Readiness bool
 	Liveness  bool
 	Remove    bool
+	Local     bool
 
 	OpenTCPSocket string
 	HTTPGet       string
@@ -144,6 +148,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 	cmd.Flags().BoolVar(&options.Remove, "remove", options.Remove, "If true, remove the specified probe(s).")
 	cmd.Flags().BoolVar(&options.Readiness, "readiness", options.Readiness, "Set or remove a readiness probe to indicate when this container should receive traffic")
 	cmd.Flags().BoolVar(&options.Liveness, "liveness", options.Liveness, "Set or remove a liveness probe to verify this container is running")
+	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
 
 	cmd.Flags().StringVar(&options.OpenTCPSocket, "open-tcp", options.OpenTCPSocket, "A port number or port name to attempt to open via TCP.")
 	cmd.Flags().StringVar(&options.HTTPGet, "get-url", options.HTTPGet, "A URL to perform an HTTP GET on (you can omit the host, have a string port, or omit the scheme.")
@@ -153,6 +158,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 	options.PeriodSeconds = cmd.Flags().Int("period-seconds", 0, "The time in seconds between attempts")
 	options.TimeoutSeconds = cmd.Flags().Int("timeout-seconds", 0, "The time in seconds to wait before considering the probe to have failed")
 
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
@@ -173,20 +179,24 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return err
 	}
 
+	o.Cmd = cmd
+
 	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		SelectorParam(o.Selector).
-		ResourceTypeOrNameArgs(o.All, resources...).
 		Flatten()
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) > 0 {
-		o.PrintObject = func(infos []*resource.Info) error {
-			return f.PrintResourceInfos(cmd, infos, o.Out)
-		}
+	if !o.Local {
+		o.Builder = o.Builder.
+			SelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, resources...)
+	}
+
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObject = func(infos []*resource.Info) error {
+		return f.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -308,7 +318,7 @@ func (o *ProbeOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a pod or does not have a pod template", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if o.PrintObject != nil {
+	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
 	}
 

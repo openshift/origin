@@ -78,12 +78,16 @@ type BackendsOptions struct {
 	Filenames []string
 	Selector  string
 	All       bool
+	Output    string
+
+	Cmd *cobra.Command
 
 	Builder *resource.Builder
 	Infos   []*resource.Info
 
 	Encoder runtime.Encoder
 
+	Local         bool
 	ShortOutput   bool
 	Mapper        meta.RESTMapper
 	OutputVersion schema.GroupVersion
@@ -121,11 +125,13 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
 	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
+	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
 
 	cmd.Flags().BoolVar(&options.Transform.Adjust, "adjust", options.Transform.Adjust, "Adjust a single backend using an absolute or relative weight. If the primary backend is selected and there is more than one alternate an error will be returned.")
 	cmd.Flags().BoolVar(&options.Transform.Zero, "zero", options.Transform.Zero, "If true, set the weight of all backends to zero.")
 	cmd.Flags().BoolVar(&options.Transform.Equal, "equal", options.Transform.Equal, "If true, set the weight of all backends to 100.")
 
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
@@ -153,23 +159,27 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.PrintTable = o.Transform.Empty()
 
+	o.Cmd = cmd
+
 	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		SelectorParam(o.Selector).
-		SelectAllParam(o.All).
-		ResourceNames("route", resources...).
 		Flatten()
-	if len(resources) == 0 {
-		o.Builder.ResourceTypes("routes")
+	if !o.Local {
+		o.Builder = o.Builder.
+			SelectorParam(o.Selector).
+			SelectAllParam(o.All).
+			ResourceNames("route", resources...)
+
+		if len(resources) == 0 {
+			o.Builder.ResourceTypes("routes")
+		}
 	}
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
-	}
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
 
 	o.Encoder = f.JSONEncoder()
 	o.ShortOutput = kcmdutil.GetFlagString(cmd, "output") == "name"
@@ -195,7 +205,7 @@ func (o *BackendsOptions) Run() error {
 		infos = loaded
 	}
 
-	if o.PrintTable && o.PrintObject == nil {
+	if o.PrintTable && len(o.Output) == 0 {
 		return o.printBackends(infos)
 	}
 
@@ -205,7 +215,7 @@ func (o *BackendsOptions) Run() error {
 	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if o.PrintObject != nil {
+	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		var object runtime.Object
 		if len(infos) == 1 && singleItemImplied {
 			object = infos[0].Object
