@@ -61,9 +61,13 @@ type BuildSecretOptions struct {
 	Selector  string
 	All       bool
 
+	Cmd *cobra.Command
+
 	ShortOutput bool
 	Local       bool
 	Mapper      meta.RESTMapper
+
+	Output string
 
 	PrintObject func([]*resource.Info) error
 
@@ -111,7 +115,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set build-secret will NOT contact api-server but run locally.")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
-
+	kcmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -161,6 +165,8 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return err
 	}
 
+	o.Cmd = cmd
+
 	mapper, typer := f.Object()
 	if len(secretArg) > 0 {
 		o.Secret, err = o.secretFromArg(f, mapper, typer, cmdNamespace, secretArg)
@@ -185,11 +191,9 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) > 0 || o.Local {
-		o.PrintObject = func(infos []*resource.Info) error {
-			return f.PrintResourceInfos(cmd, infos, o.Out)
-		}
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObject = func(infos []*resource.Info) error {
+		return f.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -231,7 +235,7 @@ func (o *BuildSecretOptions) Run() error {
 		return fmt.Errorf("cannot set a build secret on %s/%s", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if o.PrintObject != nil {
+	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
 	}
 
