@@ -4,7 +4,8 @@
 # tito and other build dependencies are required on the host. We will
 # be running `hack/build-cross.sh` under the covers, so we transitively
 # consume all of the relevant envars. We also consume:
-#  - BUILD_TESTS: whether or not to build a test RPM, off by default
+#  - RPM_BUILD_OPTS: raw options to give to `rpmbuild` on normal RPM build
+#  - SRPM_BUILD_OPTS: raw options to give to `rpmbuild` on source RPM build
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 
@@ -24,7 +25,9 @@ tito tag --use-version="${OS_RPM_VERSION}" \
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS:-}"
+tito build --output="${tito_tmp_dir}" --srpm --no-cleanup --quiet --offline \
+           --rpmbuild-options="${SRPM_BUILD_OPTS:-}"
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
@@ -59,6 +62,7 @@ mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
 mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
 mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
+mv "${tito_tmp_dir}"/*/*.srpm "${OS_LOCAL_RELEASEPATH}/rpms"
 
 if command -v createrepo >/dev/null 2>&1; then
 	repo_path="$( os::util::absolute_path "${OS_LOCAL_RELEASEPATH}/rpms" )"
