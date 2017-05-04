@@ -52,7 +52,7 @@ type RemoteError struct {
 	Error string
 }
 
-var RedirectAttemptedError = errors.New("Redirect attempted")
+var RedirectAttemptedError = errors.New("redirect attempted")
 
 // New returns an authenticator which will make a basic auth call to the given url.
 // A custom transport can be provided (typically to customize TLS options like trusted roots or present a client certificate).
@@ -119,7 +119,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 	}
 
 	if len(remoteUserData.Subject) == 0 {
-		return nil, false, errors.New("Could not retrieve user data")
+		return nil, false, errors.New("could not retrieve user data")
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.Subject)
 
