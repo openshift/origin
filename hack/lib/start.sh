@@ -283,10 +283,11 @@ function os::start::master() {
 
 	os::log::debug "Starting OpenShift server"
 	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
-	$(os::start::internal::openshift_executable) start master \
-		--config="${MASTER_CONFIG_DIR}/master-config.yaml" \
-		--loglevel=4 --logspec='*importer=5' \
-	&>"${LOG_DIR}/openshift.log" &
+	$(os::start::internal::openshift_executable) start master                                       \
+	                                             --loglevel=4                                       \
+	                                             --logspec='*importer=5'                            \
+	                                             --config="${MASTER_CONFIG_DIR}/master-config.yaml" \
+	                                             &>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	os::log::debug "OpenShift server start at: $( date )"
@@ -334,13 +335,13 @@ function os::start::all_in_one() {
 	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
 	local openshift_executable
 	openshift_executable="$(os::start::internal::openshift_executable)"
-	${openshift_executable} start                                                       \
-		                      --loglevel=4                                              \
-		                      --logspec='*importer=5'                                   \
-		                      --latest-images="${use_latest_images}"                    \
-		                      --node-config="${NODE_CONFIG_DIR}/node-config.yaml"       \
-		                      --master-config="${MASTER_CONFIG_DIR}/master-config.yaml" \
-		                      &>"${LOG_DIR}/openshift.log" &
+	${openshift_executable} start                                                     \
+	                        --loglevel=4                                              \
+	                        --logspec='*importer=5'                                   \
+	                        --latest-images="${use_latest_images}"                    \
+	                        --node-config="${NODE_CONFIG_DIR}/node-config.yaml"       \
+	                        --master-config="${MASTER_CONFIG_DIR}/master-config.yaml" \
+	                        &>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	os::log::debug "OpenShift server start at: $( date )"

@@ -39,8 +39,6 @@ function cleanup()
 trap "exit" INT TERM
 trap "cleanup" EXIT
 
-set -e
-
 function find_tests() {
     local test_regex="${1}"
     local full_test_list=()
@@ -61,8 +59,6 @@ function find_tests() {
     fi
 }
 tests=( $(find_tests ${1:-.*}) )
-
-# Setup environment
 
 # test-cmd specific defaults
 API_HOST=${API_HOST:-127.0.0.1}
@@ -100,14 +96,6 @@ if [[ -n "${profile}" ]]; then
 else
   export WEB_PROFILE=cpu
 fi
-
-# Check openshift version
-echo "openshift version:"
-openshift version
-
-# Check oc version
-echo "oc version:"
-oc version
 
 # profile the web
 export OPENSHIFT_PROFILE="${WEB_PROFILE-}"
@@ -187,9 +175,6 @@ export OPENSHIFT_PROFILE="${CLI_PROFILE-}"
 # start up a registry for images tests
 ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig" os::start::registry
 
-#
-# Begin tests
-#
 
 # check oc version with no config file
 os::test::junit::declare_suite_start "cmd/version"
