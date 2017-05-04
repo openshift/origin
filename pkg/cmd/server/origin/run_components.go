@@ -30,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
+	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -594,4 +595,32 @@ func (c *MasterConfig) RunUnidlingController() {
 
 func (c *MasterConfig) RunTemplateController() {
 	go templatecontroller.NewTemplateInstanceController(c.PrivilegedLoopbackClientConfig).Run(utilwait.NeverStop)
+}
+
+func (c *MasterConfig) RunOriginToRBACSyncControllers() {
+	clusterRoles := authorizationsync.NewOriginToRBACClusterRoleController(
+		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoles(),
+		c.AuthorizationInformers.Authorization().InternalVersion().ClusterRoles(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
+	)
+	go clusterRoles.Run(5, utilwait.NeverStop)
+	clusterRoleBindings := authorizationsync.NewOriginToRBACClusterRoleBindingController(
+		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoleBindings(),
+		c.AuthorizationInformers.Authorization().InternalVersion().ClusterRoleBindings(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
+	)
+	go clusterRoleBindings.Run(5, utilwait.NeverStop)
+
+	roles := authorizationsync.NewOriginToRBACRoleController(
+		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().Roles(),
+		c.AuthorizationInformers.Authorization().InternalVersion().Roles(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
+	)
+	go roles.Run(5, utilwait.NeverStop)
+	roleBindings := authorizationsync.NewOriginToRBACRoleBindingController(
+		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().RoleBindings(),
+		c.AuthorizationInformers.Authorization().InternalVersion().RoleBindings(),
+		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
+	)
+	go roleBindings.Run(5, utilwait.NeverStop)
 }

@@ -453,11 +453,13 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
+			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
+		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -822,6 +824,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
+	oc.RunOriginToRBACSyncControllers()
 
 	// initializes quota docs used by admission
 	oc.RunResourceQuotaManager(nil)

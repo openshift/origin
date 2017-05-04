@@ -284,6 +284,7 @@ func setValidRBACKindAndNamespace(subject *rbac.Subject, i int, c fuzz.Continue)
 	if subject.Kind != rbac.ServiceAccountKind {
 		subject.Namespace = ""
 	} else {
+		subject.APIGroup = ""
 		if len(validation.ValidateServiceAccountName(subject.Name, false)) != 0 {
 			subject.Name = fmt.Sprintf("sanamehere%d", i)
 		}
