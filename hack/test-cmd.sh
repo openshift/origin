@@ -61,10 +61,7 @@ function find_tests() {
 tests=( $(find_tests ${1:-.*}) )
 
 # test-cmd specific defaults
-API_HOST=${API_HOST:-127.0.0.1}
 export API_PORT=${API_PORT:-28443}
-
-export ETCD_HOST=${ETCD_HOST:-127.0.0.1}
 export ETCD_PORT=${ETCD_PORT:-24001}
 export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
 
