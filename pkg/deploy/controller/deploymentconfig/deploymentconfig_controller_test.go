@@ -1,6 +1,7 @@
 package deploymentconfig
 
 import (
+	"reflect"
 	"sort"
 	"strconv"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -431,4 +433,113 @@ func TestHandleScenarios(t *testing.T) {
 
 func newInt32(i int32) *int32 {
 	return &i
+}
+
+func newDC(version, replicas, maxUnavailable int, cond deployapi.DeploymentCondition) *deployapi.DeploymentConfig {
+	return &deployapi.DeploymentConfig{
+		Spec: deployapi.DeploymentConfigSpec{
+			Replicas: int32(replicas),
+			Strategy: deployapi.DeploymentStrategy{
+				Type: deployapi.DeploymentStrategyTypeRolling,
+				RollingParams: &deployapi.RollingDeploymentStrategyParams{
+					MaxUnavailable: intstr.FromInt(maxUnavailable),
+					MaxSurge:       intstr.FromInt(1),
+				},
+			},
+		},
+		Status: deployapi.DeploymentConfigStatus{
+			LatestVersion: int64(version),
+			Conditions: []deployapi.DeploymentCondition{
+				cond,
+			},
+		},
+	}
+}
+
+var (
+	availableCond = deployapi.DeploymentCondition{
+		Type:   deployapi.DeploymentAvailable,
+		Status: kapi.ConditionTrue,
+	}
+	unavailableCond = deployapi.DeploymentCondition{
+		Type:   deployapi.DeploymentAvailable,
+		Status: kapi.ConditionFalse,
+	}
+)
+
+func newRC(version, desired, current, ready, available int32) *kapi.ReplicationController {
+	return &kapi.ReplicationController{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{deployapi.DeploymentVersionAnnotation: strconv.Itoa(int(version))},
+		},
+		Spec: kapi.ReplicationControllerSpec{
+			Replicas: desired,
+		},
+		Status: kapi.ReplicationControllerStatus{
+			Replicas:          current,
+			ReadyReplicas:     ready,
+			AvailableReplicas: available,
+		},
+	}
+}
+
+func TestCalculateStatus(t *testing.T) {
+	tests := []struct {
+		name string
+
+		dc  *deployapi.DeploymentConfig
+		rcs []*kapi.ReplicationController
+
+		expected deployapi.DeploymentConfigStatus
+	}{
+		{
+			name: "available deployment",
+
+			dc: newDC(3, 3, 1, availableCond),
+			rcs: []*kapi.ReplicationController{
+				newRC(3, 2, 2, 1, 1),
+				newRC(2, 0, 0, 0, 0),
+				newRC(1, 0, 1, 1, 1),
+			},
+
+			expected: deployapi.DeploymentConfigStatus{
+				LatestVersion:     int64(3),
+				Replicas:          int32(3),
+				ReadyReplicas:     int32(2),
+				AvailableReplicas: int32(2),
+				UpdatedReplicas:   int32(2),
+				Conditions: []deployapi.DeploymentCondition{
+					availableCond,
+				},
+			},
+		},
+		{
+			name: "unavailable deployment",
+
+			dc: newDC(2, 2, 0, unavailableCond),
+			rcs: []*kapi.ReplicationController{
+				newRC(2, 2, 0, 0, 0),
+				newRC(1, 0, 1, 1, 1),
+			},
+
+			expected: deployapi.DeploymentConfigStatus{
+				LatestVersion:       int64(2),
+				Replicas:            int32(1),
+				ReadyReplicas:       int32(1),
+				AvailableReplicas:   int32(1),
+				UpdatedReplicas:     int32(0),
+				UnavailableReplicas: int32(1),
+				Conditions: []deployapi.DeploymentCondition{
+					unavailableCond,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		status := calculateStatus(test.dc, test.rcs)
+		if !reflect.DeepEqual(status, test.expected) {
+			t.Errorf("%s: expected status:\n%+v\ngot status:\n%+v", test.name, test.expected, status)
+		}
+	}
 }

@@ -337,18 +337,6 @@ func GetStatusReplicaCountForDeployments(deployments []*api.ReplicationControlle
 	return totalReplicaCount
 }
 
-// GetAvailablePods returns all the available pods from the provided pod list.
-func GetAvailablePods(pods []*api.Pod, minReadySeconds int32) int32 {
-	available := int32(0)
-	for i := range pods {
-		pod := pods[i]
-		if api.IsPodAvailable(pod, minReadySeconds, metav1.NewTime(time.Now())) {
-			available++
-		}
-	}
-	return available
-}
-
 // GetReadyReplicaCountForReplicationControllers returns the number of ready pods corresponding to
 // the given replication controller.
 func GetReadyReplicaCountForReplicationControllers(replicationControllers []*api.ReplicationController) int32 {
@@ -359,6 +347,18 @@ func GetReadyReplicaCountForReplicationControllers(replicationControllers []*api
 		}
 	}
 	return totalReadyReplicas
+}
+
+// GetAvailableReplicaCountForReplicationControllers returns the number of available pods corresponding to
+// the given replication controller.
+func GetAvailableReplicaCountForReplicationControllers(replicationControllers []*api.ReplicationController) int32 {
+	totalAvailableReplicas := int32(0)
+	for _, rc := range replicationControllers {
+		if rc != nil {
+			totalAvailableReplicas += rc.Status.AvailableReplicas
+		}
+	}
+	return totalAvailableReplicas
 }
 
 func DeploymentConfigNameFor(obj runtime.Object) string {
@@ -472,7 +472,7 @@ func IsRollingConfig(config *deployapi.DeploymentConfig) bool {
 
 // IsProgressing expects a state deployment config and its updated status in order to
 // determine if there is any progress.
-func IsProgressing(config deployapi.DeploymentConfig, newStatus deployapi.DeploymentConfigStatus) bool {
+func IsProgressing(config *deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus) bool {
 	oldStatusOldReplicas := config.Status.Replicas - config.Status.UpdatedReplicas
 	newStatusOldReplicas := newStatus.Replicas - newStatus.UpdatedReplicas
 
@@ -480,8 +480,8 @@ func IsProgressing(config deployapi.DeploymentConfig, newStatus deployapi.Deploy
 }
 
 // MaxUnavailable returns the maximum unavailable pods a rolling deployment config can take.
-func MaxUnavailable(config deployapi.DeploymentConfig) int32 {
-	if !IsRollingConfig(&config) {
+func MaxUnavailable(config *deployapi.DeploymentConfig) int32 {
+	if !IsRollingConfig(config) {
 		return int32(0)
 	}
 	// Error caught by validation

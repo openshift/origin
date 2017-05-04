@@ -133,13 +133,12 @@ func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deplo
 func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) field.ErrorList {
 	allErrs := field.ErrorList{}
 	statusPath := field.NewPath("status")
-	if status.LatestVersion < 0 {
-		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), status.LatestVersion, "latestVersion cannot be negative"))
-	}
-	if status.ObservedGeneration < int64(0) {
-		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), status.ObservedGeneration, "observedGeneration cannot be negative"))
-	}
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.LatestVersion), statusPath.Child("latestVersion"))...)
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.ObservedGeneration), statusPath.Child("observedGeneration"))...)
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.Replicas), statusPath.Child("replicas"))...)
 	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.ReadyReplicas), statusPath.Child("readyReplicas"))...)
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.AvailableReplicas), statusPath.Child("availableReplicas"))...)
+	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.UnavailableReplicas), statusPath.Child("unavailableReplicas"))...)
 	return allErrs
 }
 
