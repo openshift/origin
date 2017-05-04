@@ -195,7 +195,11 @@ func (c *MasterConfig) RunReplicaSetController(client *kclientset.Clientset) {
 		client,
 		replicasetcontroller.BurstReplicas,
 		int(c.ControllerManager.LookupCacheSizeForRC),
-		c.ControllerManager.EnableGarbageCollector,
+		// The garbage collector flag has to be set true, otherwise the controller won't see
+		// the owners references of pods which might lead to removal of pods that are not
+		// owned by this controller.
+		// This flag will be removed in 1.6.
+		true,
 	)
 	go controller.Run(int(c.ControllerManager.ConcurrentRSSyncs), utilwait.NeverStop)
 }
@@ -208,7 +212,11 @@ func (c *MasterConfig) RunReplicationController(client *kclientset.Clientset) {
 		kctrlmgr.ResyncPeriod(c.ControllerManager),
 		replicationcontroller.BurstReplicas,
 		int(c.ControllerManager.LookupCacheSizeForRC),
-		c.ControllerManager.EnableGarbageCollector,
+		// The garbage collector flag has to be set true, otherwise the controller won't see
+		// the owners references of pods which might lead to removal of pods that are not
+		// owned by this controller.
+		// This flag will be removed in 1.6.
+		true,
 	)
 	go controllerManager.Run(int(c.ControllerManager.ConcurrentRCSyncs), utilwait.NeverStop)
 }
