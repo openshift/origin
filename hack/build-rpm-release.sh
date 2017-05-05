@@ -23,32 +23,33 @@ tito tag --use-version="${OS_RPM_VERSION}" \
          --no-auto-changelog --offline
 tito_tmp_dir="${BASETMPDIR}/tito"
 mkdir -p "${tito_tmp_dir}"
+tito build --offline --srpm --rpmbuild-options="--define 'dist .el7'" --output="${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
-           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}'"
+           --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS:-}"
 tito tag --undo --offline
 
 os::log::info 'Unpacking tito artifacts for reuse...'
 output_directories=( $( find "${tito_tmp_dir}" -type d -name "rpmbuild-${OS_RPM_NAME}*" ) )
 if [[ "${#output_directories[@]}" -eq 0 ]]; then
-	os::log::error 'After the tito build, no rpmbuild directory was found!'
-	exit 1
+        os::log::error 'After the tito build, no rpmbuild directory was found!'
+        exit 1
 elif [[ "${#output_directories[@]}" -gt 1 ]]; then
-	# find the newest directory in the list
-	output_directory="${output_directories[0]}"
-	for directory in "${output_directories[@]}"; do
-		if [[ "${directory}" -nt "${output_directory}" ]]; then
-			output_directory="${directory}"
-		fi
-	done
-	os::log::warning 'After the tito build, more than one rpmbuild directory was found!'
-	os::log::warning 'This script will unpack the most recently modified directory: '"${output_directory}"
+        # find the newest directory in the list
+        output_directory="${output_directories[0]}"
+        for directory in "${output_directories[@]}"; do
+                if [[ "${directory}" -nt "${output_directory}" ]]; then
+                        output_directory="${directory}"
+                fi
+        done
+        os::log::warning 'After the tito build, more than one rpmbuild directory was found!'
+        os::log::warning 'This script will unpack the most recently modified directory: '"${output_directory}"
 else
-	output_directory="${output_directories[0]}"
+        output_directory="${output_directories[0]}"
 fi
 
 tito_output_directory="$( find "${output_directory}" -type d -path "*/BUILD/${OS_RPM_NAME}-${OS_RPM_VERSION}/_output/local" )"
 if [[ -z "${tito_output_directory}" ]]; then
-	os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
+        os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
 # clean up our local state so we can unpack the tito artifacts cleanly
@@ -58,6 +59,7 @@ make clean
 mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
 mkdir -p "${OS_LOCAL_RELEASEPATH}/rpms"
+mv "${tito_tmp_dir}"/*src.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
 mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RELEASEPATH}/rpms"
 
 if command -v createrepo >/dev/null 2>&1; then
