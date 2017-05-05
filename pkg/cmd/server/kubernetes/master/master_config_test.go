@@ -78,6 +78,7 @@ func TestAPIServerDefaults(t *testing.T) {
 			DeleteCollectionWorkers: 1,
 			EnableGarbageCollection: true,
 			EnableWatchCache:        true,
+			DefaultWatchCacheSize:   100,
 		},
 		SecureServing: &apiserveroptions.SecureServingOptions{
 			ServingOptions: apiserveroptions.ServingOptions{
