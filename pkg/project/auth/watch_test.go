@@ -12,23 +12,32 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/controller"
 
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 )
 
-func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache) {
+func newTestWatcher(username string, groups []string, namespaces ...*kapi.Namespace) (*userProjectWatcher, *fakeAuthCache, chan struct{}) {
 	objects := []runtime.Object{}
 	for i := range namespaces {
 		objects = append(objects, namespaces[i])
 	}
 	mockClient := fake.NewSimpleClientset(objects...)
 
-	projectCache := projectcache.NewProjectCache(mockClient.Core().Namespaces(), "")
-	projectCache.Run()
+	informers := informers.NewSharedInformerFactory(mockClient, controller.NoResyncPeriodFunc())
+	projectCache := projectcache.NewProjectCache(
+		informers.Core().InternalVersion().Namespaces().Informer(),
+		mockClient.Core().Namespaces(),
+		"",
+	)
 	fakeAuthCache := &fakeAuthCache{}
 
-	return NewUserProjectWatcher(&user.DefaultInfo{Name: username, Groups: groups}, sets.NewString("*"), projectCache, fakeAuthCache, false), fakeAuthCache
+	stopCh := make(chan struct{})
+	go projectCache.Run(stopCh)
+
+	return NewUserProjectWatcher(&user.DefaultInfo{Name: username, Groups: groups}, sets.NewString("*"), projectCache, fakeAuthCache, false), fakeAuthCache, stopCh
 }
 
 type fakeAuthCache struct {
@@ -53,7 +62,8 @@ func (w *fakeAuthCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
 }
 
 func TestFullIncoming(t *testing.T) {
-	watcher, fakeAuthCache := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	watcher, fakeAuthCache, stopCh := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	defer close(stopCh)
 	watcher.cacheIncoming = make(chan watch.Event)
 
 	go watcher.Watch()
@@ -101,7 +111,8 @@ func TestFullIncoming(t *testing.T) {
 }
 
 func TestAddModifyDeleteEventsByUser(t *testing.T) {
-	watcher, _ := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	watcher, _, stopCh := newTestWatcher("bob", nil, newNamespaces("ns-01")...)
+	defer close(stopCh)
 	go watcher.Watch()
 
 	watcher.GroupMembershipChanged("ns-01", sets.NewString("bob"), sets.String{})
@@ -140,7 +151,8 @@ func TestAddModifyDeleteEventsByUser(t *testing.T) {
 }
 
 func TestAddModifyDeleteEventsByGroup(t *testing.T) {
-	watcher, _ := newTestWatcher("bob", []string{"group-one"}, newNamespaces("ns-01")...)
+	watcher, _, stopCh := newTestWatcher("bob", []string{"group-one"}, newNamespaces("ns-01")...)
+	defer close(stopCh)
 	go watcher.Watch()
 
 	watcher.GroupMembershipChanged("ns-01", sets.String{}, sets.NewString("group-one"))

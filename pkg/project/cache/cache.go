@@ -7,8 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -18,9 +17,16 @@ import (
 )
 
 // NewProjectCache returns a non-initialized ProjectCache. The cache needs to be run to begin functioning
-func NewProjectCache(client kcoreclient.NamespaceInterface, defaultNodeSelector string) *ProjectCache {
+func NewProjectCache(namespaces cache.SharedIndexInformer, client kcoreclient.NamespaceInterface, defaultNodeSelector string) *ProjectCache {
+	if err := namespaces.GetIndexer().AddIndexers(cache.Indexers{
+		"requester": indexNamespaceByRequester,
+	}); err != nil {
+		panic(err)
+	}
 	return &ProjectCache{
 		Client:              client,
+		Store:               namespaces.GetIndexer(),
+		HasSynced:           namespaces.GetController().HasSynced,
 		DefaultNodeSelector: defaultNodeSelector,
 	}
 }
@@ -28,6 +34,7 @@ func NewProjectCache(client kcoreclient.NamespaceInterface, defaultNodeSelector 
 type ProjectCache struct {
 	Client              kcoreclient.NamespaceInterface
 	Store               cache.Indexer
+	HasSynced           cache.InformerSynced
 	DefaultNodeSelector string
 }
 
@@ -91,24 +98,13 @@ func (p *ProjectCache) GetNodeSelectorMap(namespace *kapi.Namespace) (map[string
 	return labelsMap, nil
 }
 
-// Run builds the store that backs this cache and runs the backing reflector
-func (c *ProjectCache) Run() {
-	store := NewCacheStore(cache.MetaNamespaceKeyFunc)
-	reflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return c.Client.List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return c.Client.Watch(options)
-			},
-		},
-		&kapi.Namespace{},
-		store,
-		0,
-	)
-	reflector.Run()
-	c.Store = store
+// Run waits until the cache has synced.
+func (c *ProjectCache) Run(stopCh <-chan struct{}) {
+	defer runtime.HandleCrash()
+	if !cache.WaitForCacheSync(stopCh, c.HasSynced) {
+		return
+	}
+	<-stopCh
 }
 
 // Running determines if the cache is initialized and running

@@ -263,7 +263,7 @@ func (c *MasterConfig) RunDNSServer() {
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
-	c.ProjectCache.Run()
+	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
