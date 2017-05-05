@@ -398,10 +398,20 @@ func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal
 		glog.Fatalf("service serving cert controller failed: %v", err)
 	}
 
-	servingCertController := servingcertcontroller.NewServiceServingCertController(client.Core(), client.Core(), ca, "cluster.local", 2*time.Minute)
+	servingCertController := servingcertcontroller.NewServiceServingCertController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		client.Core(), client.Core(),
+		ca, "cluster.local", 2*time.Minute,
+	)
 	go servingCertController.Run(1, make(chan struct{}))
 
-	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(client.Core(), client.Core(), ca, "cluster.local", 20*time.Minute)
+	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		client.Core(),
+		ca, "cluster.local", 20*time.Minute,
+	)
 	go servingCertUpdateController.Run(5, make(chan struct{}))
 }
 
