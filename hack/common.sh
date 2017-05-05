@@ -186,8 +186,8 @@ os::build::internal::build_binaries() {
     local version_ldflags
     version_ldflags=$(os::build::ldflags)
 
-    # Use eval to preserve embedded quoted strings.
     local goflags
+    # Use eval to preserve embedded quoted strings.
     eval "goflags=(${OS_GOFLAGS:-})"
 
     local arg

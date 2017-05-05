@@ -2167,6 +2167,56 @@
 			"Rev": "3573b8b52aa7b37b9358d966a898feb387f62437"
 		},
 		{
+			"ImportPath": "github.com/containers/image/signature",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/types",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/docker/reference",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/manifest",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/transports",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/image/version",
+			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
+		},
+		{
+			"ImportPath": "github.com/containers/storage/pkg/homedir",
+			"Rev": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787"
+		},
+		{
+			"ImportPath": "github.com/mtrmac/gpgme",
+			"Rev": "b2432428689ca58c2b8e8dea9449d3295cf96fc9"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/go-digest",
+			"Rev": "a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go/v1",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
@@ -3313,6 +3363,10 @@
 			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
+			"ImportPath": "golang.org/x/crypto/cast5",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
 			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
@@ -3323,6 +3377,30 @@
 		{
 			"ImportPath": "golang.org/x/crypto/ed25519/internal/edwards25519",
 			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/armor",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/elgamal",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/errors",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/packet",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/s2k",
+			"Rev": "1f22c0103821b9390939b6776727195525381532"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/pkcs12",
