@@ -148,6 +148,7 @@ func newWatchCache(
 		resourceVersion: 0,
 		clock:           clock.RealClock{},
 	}
+	fmt.Printf("newWatchCache: %v\n", capacity)
 	wc.cond = sync.NewCond(wc.RLocker())
 	return wc
 }
@@ -441,7 +442,7 @@ func (w *watchCache) GetAllEventsSinceThreadUnsafe(resourceVersion uint64) ([]*w
 		return result, nil
 	}
 	if resourceVersion < oldest-1 {
-		return nil, errors.NewGone(fmt.Sprintf("too old resource version: %d (%d)", resourceVersion, oldest-1))
+		return nil, errors.NewGone(fmt.Sprintf("too old resource version: %d (%d), cache %v capa [%v,%d] %v", resourceVersion, oldest-1, w.capacity, w.startIndex, w.endIndex, w.cache))
 	}
 
 	// Binary search the smallest index at which resourceVersion is greater than the given one.

@@ -76,10 +76,12 @@ func NewStorage(optsGetter generic.RESTOptionsGetter, k client.ConnectionInfoGet
 		DeleteStrategy:      pod.Strategy,
 		ReturnDeletedObject: true,
 	}
+	fmt.Printf("NewStorage pods before: %#v\n", store)
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: pod.GetAttrs, TriggerFunc: pod.NodeNameTriggerFunc}
 	if err := store.CompleteWithOptions(options); err != nil {
 		panic(err) // TODO: Propagate error up
 	}
+	fmt.Printf("NewStorage pods completed: %#v\n", store)
 
 	statusStore := *store
 	statusStore.UpdateStrategy = pod.StatusStrategy
