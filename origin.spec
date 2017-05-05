@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit dd2329650efb6d2766ee38e2ce730c3ead447d9b
+%global commit ecd0974b3cc71198f181847306e7d9b92ecdc447
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.63 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=dd23296
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.64 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ecd0974
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.64
+Version:        3.6.65
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,46 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Fri May 05 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.65-1
+- bump(github.com/openshift/origin-web-console):
+  fd1527a4b40ad3bfda9643c1408f05052c7758e1 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8c82ca97414df7afd184cc385f5f5deda0ff7fd0 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d4cf894195a22088ebf1206638ed055bba630cc5 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7330c8e302ba171ed11e2849508f9186af9e582e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b9e9fde662aa602c1c85b6e14bab0e70fe9a51e0 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  078c7308f5b838d16629ea37debcc6d8a8891f84 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  99ace08b7027802c038611b6aa82fc479347c776 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9138b0532860eab255d7edaf1a55691fc3f1ffa9 (dmcphers+openshiftbot@redhat.com)
+- Don't show policy rules with attribute restrictions
+  (andy.goldstein@gmail.com)
+- deploy: suggest to cancel dc instead of rc in oc deploy (mfojtik@redhat.com)
+- update generated docs and completion (mfojtik@redhat.com)
+- image: add verify-image-signature command for image admins
+  (mfojtik@redhat.com)
+- Always build with -tags=containers_image_openpgp (mitr@redhat.com)
+- bump(github.com/opencontainers/image-spec):
+  00850eca2ab993e282a4921f8b7000b2fcbd26fa (mfojtik@redhat.com)
+- bump(github.com/opencontainers/go-digest):
+  a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb (mfojtik@redhat.com)
+- bump(github.com/mtrmac/gpgme): b2432428689ca58c2b8e8dea9449d3295cf96fc9
+  (mfojtik@redhat.com)
+- bump(github.com/containers/storage): 5cbbc6bafb45bd7ef10486b673deb3b81bb3b787
+  (mfojtik@redhat.com)
+- bump(github.com/containers/image): c07f8fdceeda1517556602778a61ba94894e7c02
+  (mfojtik@redhat.com)
+- bump(golang.org/x/crypto): 1f22c0103821b9390939b6776727195525381532
+  (mfojtik@redhat.com)
+- Prune external images by default (miminar@redhat.com)
+- allow SA tokens via websockets (deads@redhat.com)
+- support for reencrypt routes in the same vserver (rajatchopra@gmail.com)
+
 * Thu May 04 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.64-1
 - bump(github.com/openshift/origin-web-console):
   9f15b0a9c9254fa81e9da7e1f8b517b6a3001496 (dmcphers+openshiftbot@redhat.com)
