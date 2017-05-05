@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -8,12 +9,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 )
 
 // DockercfgTokenDeletedControllerOptions contains options for the DockercfgTokenDeletedController
@@ -24,28 +24,28 @@ type DockercfgTokenDeletedControllerOptions struct {
 }
 
 // NewDockercfgTokenDeletedController returns a new *DockercfgTokenDeletedController.
-func NewDockercfgTokenDeletedController(cl kclientset.Interface, options DockercfgTokenDeletedControllerOptions) *DockercfgTokenDeletedController {
+func NewDockercfgTokenDeletedController(secrets informers.SecretInformer, cl kclientset.Interface, options DockercfgTokenDeletedControllerOptions) *DockercfgTokenDeletedController {
 	e := &DockercfgTokenDeletedController{
 		client: cl,
 	}
 
-	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	_, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String()}
-				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
+	e.secretController = secrets.Informer().GetController()
+	secrets.Informer().AddEventHandlerWithResyncPeriod(
+		cache.FilteringResourceEventHandler{
+			FilterFunc: func(obj interface{}) bool {
+				switch t := obj.(type) {
+				case *api.Secret:
+					return t.Type == api.SecretTypeServiceAccountToken
+				default:
+					utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
+					return false
+				}
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String(), ResourceVersion: options.ResourceVersion}
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
+			Handler: cache.ResourceEventHandlerFuncs{
+				DeleteFunc: e.secretDeleted,
 			},
 		},
-		&api.Secret{},
 		options.Resync,
-		cache.ResourceEventHandlerFuncs{
-			DeleteFunc: e.secretDeleted,
-		},
 	)
 
 	return e
@@ -54,27 +54,22 @@ func NewDockercfgTokenDeletedController(cl kclientset.Interface, options Dockerc
 // The DockercfgTokenDeletedController watches for service account tokens to be deleted.
 // On delete, it removes the associated dockercfg secret if it exists.
 type DockercfgTokenDeletedController struct {
-	stopChan chan struct{}
-
-	client kclientset.Interface
-
+	client           kclientset.Interface
 	secretController cache.Controller
 }
 
-// Runs controller loops and returns immediately
-func (e *DockercfgTokenDeletedController) Run() {
-	if e.stopChan == nil {
-		e.stopChan = make(chan struct{})
-		go e.secretController.Run(e.stopChan)
-	}
-}
+// Runs controller loops and returns on shutdown
+func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
 
-// Stop gracefully shuts down this controller
-func (e *DockercfgTokenDeletedController) Stop() {
-	if e.stopChan != nil {
-		close(e.stopChan)
-		e.stopChan = nil
+	// Wait for the stores to fill
+	if !cache.WaitForCacheSync(stopCh, e.secretController.HasSynced) {
+		return
 	}
+
+	glog.V(5).Infof("Worker started")
+	<-stopCh
+	glog.V(1).Infof("Shutting down")
 }
 
 // secretDeleted reacts to a token secret being deleted by looking for a corresponding dockercfg secret and deleting it if it exists

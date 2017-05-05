@@ -172,25 +172,41 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	go serviceaccountcontrollers.NewDockercfgDeletedController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
+	).Run(utilwait.NeverStop)
+	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
+	).Run(utilwait.NeverStop)
 
-	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockerURLsInitialized := make(chan struct{})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
+	)
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		RegistryNamespace:    "default",
-		RegistryServiceName:  "docker-registry",
-		DockercfgController:  dockercfgController,
-		DockerURLsIntialized: dockerURLsIntialized,
+		RegistryNamespace:     "default",
+		RegistryServiceName:   "docker-registry",
+		DockercfgController:   dockercfgController,
+		DockerURLsInitialized: dockerURLsInitialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		dockerRegistryControllerOptions,
+	).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
-
 }
 
 // RunDNSServer starts the DNS server
