@@ -564,7 +564,13 @@ func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetin
 	if ipNet.IP.IsUnspecified() {
 		return
 	}
-	ingressIPController := ingressip.NewIngressIPController(internalKubeClientset, externalKubeClientset, ipNet, defaultIngressIPSyncPeriod)
+	ingressIPController := ingressip.NewIngressIPController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services().Informer(),
+		internalKubeClientset,
+		externalKubeClientset,
+		ipNet,
+		defaultIngressIPSyncPeriod,
+	)
 	go ingressIPController.Run(utilwait.NeverStop)
 }
 

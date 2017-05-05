@@ -9,12 +9,9 @@ import (
 
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	clientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
@@ -47,6 +44,7 @@ type IngressIPController struct {
 	client kcoreclient.ServicesGetter
 
 	controller cache.Controller
+	hasSynced  cache.InformerSynced
 
 	maxRetries int
 
@@ -81,7 +79,7 @@ type serviceChange struct {
 
 // NewIngressIPController creates a new IngressIPController.
 // TODO this should accept a shared informer
-func NewIngressIPController(kc kclientset.Interface, externalKubeClientset kclientsetexternal.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
+func NewIngressIPController(services cache.SharedIndexInformer, kc kclientset.Interface, externalKubeClientset kclientsetexternal.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "ingressip-controller"})
@@ -93,35 +91,23 @@ func NewIngressIPController(kc kclientset.Interface, externalKubeClientset kclie
 		recorder:   recorder,
 	}
 
-	ic.cache, ic.controller = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return ic.client.Services(metav1.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return ic.client.Services(metav1.NamespaceAll).Watch(options)
-			},
-		},
-		&kapi.Service{},
-		resyncInterval,
+	ic.cache = services.GetStore()
+	ic.controller = services.GetController()
+	services.AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				service := obj.(*kapi.Service)
-				glog.V(5).Infof("Adding service %s/%s", service.Namespace, service.Name)
 				ic.enqueueChange(obj, nil)
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				service := cur.(*kapi.Service)
-				glog.V(5).Infof("Updating service %s/%s", service.Namespace, service.Name)
 				ic.enqueueChange(cur, old)
 			},
 			DeleteFunc: func(obj interface{}) {
-				service := obj.(*kapi.Service)
-				glog.V(5).Infof("Deleting service %s/%s", service.Namespace, service.Name)
 				ic.enqueueChange(nil, obj)
 			},
 		},
+		resyncInterval,
 	)
+	ic.hasSynced = ic.controller.HasSynced
 
 	ic.changeHandler = ic.processChange
 	ic.persistenceHandler = persistService
@@ -158,7 +144,20 @@ func (ic *IngressIPController) enqueueChange(new interface{}, old interface{}) {
 	}
 
 	if old != nil {
-		change.oldService = old.(*kapi.Service)
+		service, ok := old.(*kapi.Service)
+		if !ok {
+			tombstone, ok := old.(cache.DeletedFinalStateUnknown)
+			if !ok {
+				utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", old))
+				return
+			}
+			service, ok = tombstone.Obj.(*kapi.Service)
+			if !ok {
+				utilruntime.HandleError(fmt.Errorf("tombstone contained unexpected object %#v", old))
+				return
+			}
+		}
+		change.oldService = service
 	}
 
 	ic.queue.Add(change)
@@ -167,30 +166,31 @@ func (ic *IngressIPController) enqueueChange(new interface{}, old interface{}) {
 // Run begins watching and syncing.
 func (ic *IngressIPController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	go ic.controller.Run(stopCh)
+	defer ic.queue.ShutDown()
 
 	glog.V(5).Infof("Waiting for the initial sync to be completed")
-	for !ic.controller.HasSynced() {
-		select {
-		case <-time.After(SyncProcessedPollPeriod):
-		case <-stopCh:
-			return
-		}
+	if !cache.WaitForCacheSync(stopCh, ic.hasSynced) {
+		return
 	}
 
 	if !ic.processInitialSync() {
 		return
 	}
 
-	glog.V(5).Infof("Starting normal worker")
-	for {
-		if !ic.work() {
+	glog.V(5).Infof("Initial sync completed, starting worker")
+	for ic.work() {
+		var done bool
+		select {
+		case _, ok := <-stopCh:
+			done = !ok
+		default:
+		}
+		if done {
 			break
 		}
 	}
 
-	glog.V(5).Infof("Shutting down ingress ip controller")
-	ic.queue.ShutDown()
+	glog.V(1).Infof("Shutting down ingress ip controller")
 }
 
 type serviceAge []*kapi.Service
