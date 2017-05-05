@@ -1,7 +1,6 @@
 package describe
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -1273,26 +1272,17 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
+const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tResource Names\tAPI Groups\tResources"
 
 func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
-	extensionString := ""
 	if rule.AttributeRestrictions != nil {
-		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
-
-		buffer := new(bytes.Buffer)
-
-		// TODO(rebase-1.6): we probably need a non-nil encoder and decoder
-		printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{NoHeaders: true})
-		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
-			extensionString = strings.TrimSpace(buffer.String())
-		}
+		// We are not supporting attribute restrictions going forward
+		return
 	}
 
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\t%v\n",
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
 		rule.Verbs.List(),
 		rule.NonResourceURLs.List(),
-		extensionString,
 		rule.ResourceNames.List(),
 		rule.APIGroups,
 		rule.Resources.List(),
