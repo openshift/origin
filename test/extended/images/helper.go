@@ -6,15 +6,19 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/docker/distribution/digest"
 	dockerclient "github.com/fsouza/go-dockerclient"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/image/api"
@@ -26,6 +30,8 @@ const (
 	// There are coefficients used to multiply layer data size to get a rough size of uploaded blob.
 	layerSizeMultiplierForDocker18     = 2.0
 	layerSizeMultiplierForLatestDocker = 0.8
+	digestSHA256GzippedEmptyTar        = digest.Digest("sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4")
+	digestSha256EmptyTar               = digest.Digest("sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
 )
 
 var (
@@ -220,7 +226,6 @@ func BuildAndPushImageOfSizeWithDocker(
 			return "", fmt.Errorf("Got unexpected push error: %v", err)
 		}
 		if len(imageDigest) == 0 {
-			outSink.Write([]byte("matching digest string\n"))
 			match := rePushedImageDigest.FindStringSubmatch(out)
 			if len(match) < 2 {
 				return imageDigest, fmt.Errorf("Failed to parse digest")
@@ -326,4 +331,95 @@ func calculateRoughDataSize(logger io.Writer, wantedImageSize uint64, numberOfLa
 
 	// running Docker daemon < 1.9
 	return uint64(float64(wantedImageSize) / (float64(numberOfLayers) * layerSizeMultiplierForDocker18))
+}
+
+// MirrorBlobInRegistry forces a blob of external image to be mirrored in the registry. The function expects
+// the blob not to exist before a GET request is issued. The function blocks until the blob is mirrored or the
+// given timeout passes.
+func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string, timeout time.Duration) error {
+	presentGlobally, inRepository, err := IsBlobStoredInRegistry(oc, dgst, repository)
+	if err != nil {
+		return err
+	}
+	if presentGlobally || inRepository {
+		return fmt.Errorf("blob %q is already present in the registry", dgst.String())
+	}
+	registryURL, err := GetDockerRegistryURL(oc)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/v2/%s/blobs/%s", registryURL, repository, dgst.String()), nil)
+	if err != nil {
+		return err
+	}
+	token, err := oc.Run("whoami").Args("-t").Output()
+	if err != nil {
+		return err
+	}
+	req.Header.Set("range", "bytes=0-1")
+	req.Header.Set("Authorization", "Bearer "+token)
+	c := http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusPartialContent && resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("expected status %d for request '%s %s', got %d", http.StatusOK, req.Method, req.URL.String(), resp.StatusCode)
+	}
+
+	return wait.Poll(time.Second, timeout, func() (bool, error) {
+		globally, inRepo, err := IsBlobStoredInRegistry(oc, dgst, repository)
+		return globally || inRepo, err
+	})
+}
+
+// IsEmptyDigest returns true if the given digest matches one of empty blobs.
+func IsEmptyDigest(dgst digest.Digest) bool {
+	return dgst == digestSha256EmptyTar || dgst == digestSHA256GzippedEmptyTar
+}
+
+func pathExistsInRegistry(oc *exutil.CLI, pthComponents ...string) (bool, error) {
+	pth := path.Join(append([]string{"/registry/docker/registry/v2"}, pthComponents...)...)
+	cmd := fmt.Sprintf("[ -e %s ] && echo exists || echo missing", pth)
+	out, err := oc.SetNamespace(metav1.NamespaceDefault).AsAdmin().Run("rsh").Args(
+		"dc/docker-registry", "/bin/sh", "-c", cmd).Output()
+	if err != nil {
+		return false, fmt.Errorf("failed to check for blob existence: %v", err)
+	}
+	return strings.HasPrefix(out, "exists"), nil
+}
+
+// IsBlobStoredInRegistry verifies a presence of the given blob on registry's storage. The registry must be
+// deployed with a filesystem storage driver. If repository is given, the presence will be verified also for
+// layer link inside the ${repository}/_layers directory. First returned bool says whether the blob is present
+// globally in the registry's storage. The second says whether the blob is linked in the given repository.
+func IsBlobStoredInRegistry(
+	oc *exutil.CLI,
+	dgst digest.Digest,
+	repository string,
+) (bool, bool, error) {
+	present, err := pathExistsInRegistry(
+		oc,
+		"blobs",
+		string(dgst.Algorithm()),
+		dgst.Hex()[0:2],
+		dgst.Hex(),
+		"data")
+	if err != nil || !present {
+		return false, false, err
+	}
+
+	presentInRepository := false
+	if len(repository) > 0 {
+		presentInRepository, err = pathExistsInRegistry(oc,
+			"repositories",
+			repository,
+			"_layers",
+			string(dgst.Algorithm()),
+			dgst.Hex(),
+			"link")
+	}
+	return present, presentInRepository, err
 }

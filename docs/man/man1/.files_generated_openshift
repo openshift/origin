@@ -91,6 +91,7 @@ openshift-admin-top-node.1
 openshift-admin-top-pod.1
 openshift-admin-top.1
 openshift-admin-uncordon.1
+openshift-admin-verify-image-signature.1
 openshift-admin.1
 openshift-cli-adm-build-chain.1
 openshift-cli-adm-ca-create-key-pair.1
@@ -185,6 +186,7 @@ openshift-cli-adm-top-node.1
 openshift-cli-adm-top-pod.1
 openshift-cli-adm-top.1
 openshift-cli-adm-uncordon.1
+openshift-cli-adm-verify-image-signature.1
 openshift-cli-adm.1
 openshift-cli-annotate.1
 openshift-cli-apply-set-last-applied.1

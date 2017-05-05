@@ -401,6 +401,14 @@ func (p *F5Plugin) addRoute(routename, poolname, hostname, pathname string,
 			return err
 		}
 
+		if tls.Termination == routeapi.TLSTerminationReencrypt {
+			// add to reencrypt dg
+			glog.V(4).Infof("Adding re-encrypt route %s for pool %s,"+
+				" hostname %s, pathname %s...",
+				routename, poolname, hostname, prettyPathname)
+			p.F5Client.AddReencryptRoute(routename, poolname, hostname)
+		}
+
 		// TODO(ramr):  need to handle redirect case for F5.
 		if tls.Termination == routeapi.TLSTerminationEdge &&
 			tls.InsecureEdgeTerminationPolicy == routeapi.InsecureEdgeTerminationPolicyAllow {

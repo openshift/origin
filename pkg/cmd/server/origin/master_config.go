@@ -686,7 +686,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true))
+		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator, true), paramtoken.New("access_token", serviceAccountTokenAuthenticator, true))
 	}
 
 	// OAuth token

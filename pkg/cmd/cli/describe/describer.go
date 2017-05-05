@@ -1,7 +1,6 @@
 package describe
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -544,6 +543,24 @@ func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.Des
 	return describeImage(image, "")
 }
 
+func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) error {
+	formatString(out, "\tName", s.Name)
+	formatString(out, "\tType", s.Type)
+	if s.IssuedBy == nil {
+		// FIXME: Make this constant
+		formatString(out, "\tStatus", "Unverified")
+	} else {
+		formatString(out, "\tStatus", "Verified")
+		formatString(out, "\tIssued By", s.IssuedBy.CommonName)
+		if len(s.Conditions) > 0 {
+			for _, c := range s.Conditions {
+				formatString(out, "\t", fmt.Sprintf("Signature is %s (%s on %s)", string(c.Type), c.Message, fmt.Sprintf("%s", c.LastProbeTime)))
+			}
+		}
+	}
+	return nil
+}
+
 func describeImage(image *imageapi.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, image.ObjectMeta)
@@ -573,6 +590,14 @@ func describeImage(image *imageapi.Image, imageName string) (string, error) {
 				formatString(out, "Image Size", fmt.Sprintf("%s (%s)", units.HumanSize(float64(image.DockerImageMetadata.Size)), strings.Join(info, ", ")))
 			} else {
 				formatString(out, "Image Size", units.HumanSize(float64(image.DockerImageMetadata.Size)))
+			}
+		}
+		if len(image.Signatures) > 0 {
+			for _, s := range image.Signatures {
+				formatString(out, "Image Signatures", " ")
+				if err := describeImageSignature(s, out); err != nil {
+					return err
+				}
 			}
 		}
 		//formatString(out, "Parent Image", image.DockerImageMetadata.Parent)
@@ -1247,26 +1272,17 @@ func DescribePolicy(policy *authorizationapi.Policy) (string, error) {
 	})
 }
 
-const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tExtension\tResource Names\tAPI Groups\tResources"
+const PolicyRuleHeadings = "Verbs\tNon-Resource URLs\tResource Names\tAPI Groups\tResources"
 
 func DescribePolicyRule(out *tabwriter.Writer, rule authorizationapi.PolicyRule, indent string) {
-	extensionString := ""
 	if rule.AttributeRestrictions != nil {
-		extensionString = fmt.Sprintf("%#v", rule.AttributeRestrictions)
-
-		buffer := new(bytes.Buffer)
-
-		// TODO(rebase-1.6): we probably need a non-nil encoder and decoder
-		printer := NewHumanReadablePrinter(nil, nil, kprinters.PrintOptions{NoHeaders: true})
-		if err := printer.PrintObj(rule.AttributeRestrictions, buffer); err == nil {
-			extensionString = strings.TrimSpace(buffer.String())
-		}
+		// We are not supporting attribute restrictions going forward
+		return
 	}
 
-	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\t%v\n",
+	fmt.Fprintf(out, indent+"%v\t%v\t%v\t%v\t%v\n",
 		rule.Verbs.List(),
 		rule.NonResourceURLs.List(),
-		extensionString,
 		rule.ResourceNames.List(),
 		rule.APIGroups,
 		rule.Resources.List(),

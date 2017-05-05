@@ -8,7 +8,7 @@ build_targets=("$@")
 platform="$(os::build::host_platform)"
 
 # Set build tags for these binaries
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
+readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
 
 # only works on Linux for now, all other platforms must build binaries themselves
 if [[ -z "$@" ]]; then
@@ -31,6 +31,7 @@ if [[ -z "$@" ]]; then
     build_targets=("${build_targets[@]}" "${OS_SDN_COMPILE_TARGETS_LINUX[@]}")
   fi
 fi
+
 
 OS_BUILD_PLATFORMS=("${OS_BUILD_PLATFORMS[@]:-${platform}}")
 os::build::build_binaries "${build_targets[@]}"
