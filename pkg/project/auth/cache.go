@@ -8,16 +8,13 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -123,7 +120,6 @@ type AuthorizationCache struct {
 	// TODO remove this in favor of a list/watch mechanism for projects
 	allKnownNamespaces        sets.String
 	namespaceStore            cache.Store
-	namespaceInterface        kcoreclient.NamespaceInterface
 	lastSyncResourceVersioner LastSyncResourceVersioner
 
 	clusterPolicyLister             client.SyncedClusterPoliciesListerInterface
@@ -151,16 +147,13 @@ type AuthorizationCache struct {
 }
 
 // NewAuthorizationCache creates a new AuthorizationCache
-func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kcoreclient.NamespaceInterface,
+func NewAuthorizationCache(namespaces cache.SharedIndexInformer, reviewer Reviewer,
 	clusterPolicyLister client.SyncedClusterPoliciesListerInterface, clusterPolicyBindingLister client.SyncedClusterPolicyBindingsListerInterface,
 	policyNamespacer client.SyncedPoliciesListerNamespacer, policyBindingNamespacer client.SyncedPolicyBindingsListerNamespacer,
 ) *AuthorizationCache {
-
-	result := &AuthorizationCache{
-		allKnownNamespaces:        sets.String{},
-		namespaceStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
-		namespaceInterface:        namespaceInterface,
-		lastSyncResourceVersioner: &unchangingLastSyncResourceVersioner{},
+	ac := &AuthorizationCache{
+		allKnownNamespaces: sets.String{},
+		namespaceStore:     namespaces.GetStore(),
 
 		clusterPolicyResourceVersions:  sets.NewString(),
 		clusterBindingResourceVersions: sets.NewString(),
@@ -180,29 +173,13 @@ func NewAuthorizationCache(reviewer Reviewer, namespaceInterface kcoreclient.Nam
 
 		watchers: []CacheWatcher{},
 	}
-	result.syncHandler = result.syncRequest
-	return result
+	ac.lastSyncResourceVersioner = namespaces.(LastSyncResourceVersioner)
+	ac.syncHandler = ac.syncRequest
+	return ac
 }
 
 // Run begins watching and synchronizing the cache
 func (ac *AuthorizationCache) Run(period time.Duration) {
-
-	namespaceReflector := cache.NewReflector(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return ac.namespaceInterface.List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return ac.namespaceInterface.Watch(options)
-			},
-		},
-		&kapi.Namespace{},
-		ac.namespaceStore,
-		2*time.Minute,
-	)
-	namespaceReflector.Run()
-	ac.lastSyncResourceVersioner = namespaceReflector
-
 	ac.skip = &statelessSkipSynchronizer{}
 
 	go utilwait.Forever(func() { ac.synchronize() }, period)

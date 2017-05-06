@@ -749,8 +749,8 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
+		informerFactory.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
 		projectauth.NewAuthorizerReviewer(subjectLocator),
-		kubeClient.Core().Namespaces(),
 		informerFactory.ClusterPolicies().Lister(),
 		informerFactory.ClusterPolicyBindings().Lister(),
 		informerFactory.Policies().Lister(),
