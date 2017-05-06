@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ecd0974b3cc71198f181847306e7d9b92ecdc447
+%global commit b4aedaa96b1c0cc011f02193690f02b4856aeb5a
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.64 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ecd0974
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.65 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b4aedaa
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.65
+Version:        3.6.66
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,18 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sat May 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.66-1
+- Make integration test able to produce junitreport format (jhadvig@redhat.com)
+- Wait for SA creation in etcd test (mkhan@redhat.com)
+- Fix dumping registry disk usage in tests (andy.goldstein@gmail.com)
+- display jenkins url for pipeline build (gmontero@redhat.com)
+- <drop>: Allow basic fallback without hairpin (mkhan@redhat.com)
+- GSSAPI test: wait longer for config change (mkhan@redhat.com)
+- extended-tests: update rebase flake patterns (stefan.schimanski@gmail.com)
+- fix build default import to v1 api (bparees@redhat.com)
+- Add ability to provide additional rpmbuild-options to tito
+  (alivigni@redhat.com)
+
 * Fri May 05 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.65-1
 - bump(github.com/openshift/origin-web-console):
   fd1527a4b40ad3bfda9643c1408f05052c7758e1 (dmcphers+openshiftbot@redhat.com)
