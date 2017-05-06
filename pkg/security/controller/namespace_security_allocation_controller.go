@@ -59,7 +59,7 @@ func NewNamespaceSecurityDefaultsController(namespaces informers.NamespaceInform
 	return c
 }
 
-// Runs controller loops and returns immediately
+// Run starts the workers for this controller.
 func (c *NamespaceSecurityDefaultsController) Run(stopCh <-chan struct{}, workers int) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
@@ -155,6 +155,12 @@ func (c *NamespaceSecurityDefaultsController) allocate(ns *kapi.Namespace) error
 	if _, ok := ns.Annotations[security.UIDRangeAnnotation]; ok {
 		return nil
 	}
+
+	obj, err := kapi.Scheme.Copy(ns)
+	if err != nil {
+		return err
+	}
+	ns = obj.(*kapi.Namespace)
 
 	if ns.Annotations == nil {
 		ns.Annotations = make(map[string]string)
