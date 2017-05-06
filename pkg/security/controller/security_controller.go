@@ -2,18 +2,128 @@ package controller
 
 import (
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
 )
+
+// NamespaceSecurityDefaultsController allocates uids/labels for namespaces
+type NamespaceSecurityDefaultsController struct {
+	uidAllocator uidallocator.Interface
+	mcsAllocator MCSAllocationFunc
+
+	client kcoreclient.NamespaceInterface
+
+	queue      workqueue.RateLimitingInterface
+	maxRetries int
+
+	controller cache.Controller
+	cache      cache.Store
+
+	// extracted for testing
+	syncHandler func(key string) error
+}
+
+func NewNamespaceSecurityDefaultsController(namespaces informers.NamespaceInformer, client kcoreclient.NamespaceInterface, uid uidallocator.Interface, mcs MCSAllocationFunc) *NamespaceSecurityDefaultsController {
+	c := &NamespaceSecurityDefaultsController{
+		uidAllocator: uid,
+		mcsAllocator: mcs,
+		client:       client,
+		controller:   namespaces.Informer().GetController(),
+		cache:        namespaces.Informer().GetStore(),
+		queue:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		maxRetries:   10,
+	}
+	namespaces.Informer().AddEventHandlerWithResyncPeriod(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: c.enqueueNamespace,
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				c.enqueueNamespace(newObj)
+			},
+		},
+		10*time.Minute,
+	)
+	c.syncHandler = c.syncNamespace
+	return c
+}
+
+// Runs controller loops and returns immediately
+func (c *NamespaceSecurityDefaultsController) Run(stopCh <-chan struct{}, workers int) {
+	defer utilruntime.HandleCrash()
+	defer c.queue.ShutDown()
+
+	// Wait for the stores to fill
+	if !cache.WaitForCacheSync(stopCh, c.controller.HasSynced) {
+		return
+	}
+
+	glog.V(5).Infof("Starting workers")
+	for i := 0; i < workers; i++ {
+		go c.worker()
+	}
+	<-stopCh
+	glog.V(1).Infof("Shutting down")
+}
+
+func (c *NamespaceSecurityDefaultsController) enqueueNamespace(obj interface{}) {
+	ns, ok := obj.(*kapi.Namespace)
+	if !ok {
+		return
+	}
+	c.queue.Add(ns.Name)
+}
+
+// worker runs a worker thread that just dequeues items, processes them, and marks them done.
+// It enforces that the syncHandler is never invoked concurrently with the same key.
+func (c *NamespaceSecurityDefaultsController) worker() {
+	for c.work() {
+	}
+}
+
+// work returns true if the worker thread should continue
+func (c *NamespaceSecurityDefaultsController) work() bool {
+	key, quit := c.queue.Get()
+	if quit {
+		return false
+	}
+	defer c.queue.Done(key)
+
+	if err := c.syncHandler(key.(string)); err == nil {
+		// this means the request was successfully handled.  We should "forget" the item so that any retry
+		// later on is reset
+		c.queue.Forget(key)
+	} else {
+		// if we had an error it means that we didn't handle it, which means that we want to requeue the work
+		utilruntime.HandleError(fmt.Errorf("error syncing namespace, it will be retried: %v", err))
+		c.queue.AddRateLimited(key)
+	}
+	return true
+}
+
+// syncNamespace will sync the namespace with the given key.
+// This function is not meant to be invoked concurrently with the same key.
+func (c *NamespaceSecurityDefaultsController) syncNamespace(key string) error {
+	item, exists, err := c.cache.GetByKey(key)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+	return c.allocate(item.(*kapi.Namespace))
+}
 
 type MCSAllocationFunc func(uid.Block) *mcs.Label
 
@@ -35,19 +145,10 @@ func DefaultMCSAllocation(from *uid.Range, to *mcs.Range, blockSize int) MCSAllo
 	}
 }
 
-type Allocation struct {
-	uid    uidallocator.Interface
-	mcs    MCSAllocationFunc
-	client kcoreclient.NamespaceInterface
-}
-
-// retryCount is the number of times to retry on a conflict when updating a namespace
-const retryCount = 2
-
 // Next processes a changed namespace and tries to allocate a uid range for it.  If it is
 // successful, an mcs label corresponding to the relative position of the range is also
 // set.
-func (c *Allocation) Next(ns *kapi.Namespace) error {
+func (c *NamespaceSecurityDefaultsController) allocate(ns *kapi.Namespace) error {
 	tx := &tx{}
 	defer tx.Rollback()
 
@@ -60,56 +161,28 @@ func (c *Allocation) Next(ns *kapi.Namespace) error {
 	}
 
 	// do uid allocation
-	block, err := c.uid.AllocateNext()
+	block, err := c.uidAllocator.AllocateNext()
 	if err != nil {
 		return err
 	}
-	tx.Add(func() error { return c.uid.Release(block) })
+	tx.Add(func() error { return c.uidAllocator.Release(block) })
+
 	ns.Annotations[security.UIDRangeAnnotation] = block.String()
 	ns.Annotations[security.SupplementalGroupsAnnotation] = block.String()
 	if _, ok := ns.Annotations[security.MCSAnnotation]; !ok {
-		if label := c.mcs(block); label != nil {
+		if label := c.mcsAllocator(block); label != nil {
 			ns.Annotations[security.MCSAnnotation] = label.String()
 		}
 	}
 
-	// TODO: could use a client.GuaranteedUpdate/Merge function
-	for i := 0; i < retryCount; i++ {
-		_, err := c.client.Update(ns)
-		if err == nil {
-			// commit and exit
-			tx.Commit()
-			return nil
-		}
-
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		if !errors.IsConflict(err) {
-			return err
-		}
-		newNs, err := c.client.Get(ns.Name, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if changedAndSetAnnotations(ns, newNs) {
-			return nil
-		}
-
-		// try again
-		if newNs.Annotations == nil {
-			newNs.Annotations = make(map[string]string)
-		}
-		newNs.Annotations[security.UIDRangeAnnotation] = ns.Annotations[security.UIDRangeAnnotation]
-		newNs.Annotations[security.SupplementalGroupsAnnotation] = ns.Annotations[security.SupplementalGroupsAnnotation]
-		newNs.Annotations[security.MCSAnnotation] = ns.Annotations[security.MCSAnnotation]
-		ns = newNs
+	_, err = c.client.Update(ns)
+	if err == nil {
+		tx.Commit()
 	}
-
-	return fmt.Errorf("unable to allocate security info on %q after %d retries", ns.Name, retryCount)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	return err
 }
 
 func changedAndSetAnnotations(old, ns *kapi.Namespace) bool {

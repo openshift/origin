@@ -29,13 +29,13 @@ func TestController(t *testing.T) {
 	uidr, _ := uid.NewRange(10, 20, 2)
 	mcsr, _ := mcs.NewRange("s0:", 10, 2)
 	uida := uidallocator.NewInMemory(uidr)
-	c := Allocation{
-		uid:    uida,
-		mcs:    DefaultMCSAllocation(uidr, mcsr, 5),
-		client: client.Core().Namespaces(),
+	c := &NamespaceSecurityDefaultsController{
+		uidAllocator: uida,
+		mcsAllocator: DefaultMCSAllocation(uidr, mcsr, 5),
+		client:       client.Core().Namespaces(),
 	}
 
-	err := c.Next(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+	err := c.allocate(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestControllerError(t *testing.T) {
 			actions: 1,
 		},
 		"conflict": {
-			actions: 4,
+			actions: 1,
 			reactFn: func(a clientgotesting.Action) (bool, runtime.Object, error) {
 				if a.Matches("get", "namespaces") {
 					return true, &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}, nil
@@ -81,7 +81,7 @@ func TestControllerError(t *testing.T) {
 				return true, (*kapi.Namespace)(nil), errors.NewConflict(kapi.Resource("namespace"), "test", fmt.Errorf("test conflict"))
 			},
 			errFn: func(err error) bool {
-				return err != nil && strings.Contains(err.Error(), "unable to allocate security info")
+				return err != nil && strings.Contains(err.Error(), "test conflict")
 			},
 		},
 	}
@@ -100,13 +100,13 @@ func TestControllerError(t *testing.T) {
 		uidr, _ := uid.NewRange(10, 19, 2)
 		mcsr, _ := mcs.NewRange("s0:", 10, 2)
 		uida := uidallocator.NewInMemory(uidr)
-		c := Allocation{
-			uid:    uida,
-			mcs:    DefaultMCSAllocation(uidr, mcsr, 5),
-			client: client.Core().Namespaces(),
+		c := &NamespaceSecurityDefaultsController{
+			uidAllocator: uida,
+			mcsAllocator: DefaultMCSAllocation(uidr, mcsr, 5),
+			client:       client.Core().Namespaces(),
 		}
 
-		err := c.Next(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		err := c.allocate(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		if !testCase.errFn(err) {
 			t.Errorf("%s: unexpected error: %v", s, err)
 		}

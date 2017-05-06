@@ -506,14 +506,14 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to initialize namespaces: %v", err)
 	}
 
-	factory := securitycontroller.AllocationFactory{
-		UIDAllocator: uidAllocator,
-		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
-		Client:       kclient.Core().Namespaces(),
-		// TODO: reuse namespace cache
-	}
-	controller := factory.Create()
-	controller.Run()
+	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(),
+		kclient.Core().Namespaces(),
+		uidAllocator,
+		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
+	)
+	// TODO: scale out
+	go controller.Run(utilwait.NeverStop, 1)
 }
 
 // RunGroupCache starts the group cache
