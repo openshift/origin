@@ -81,11 +81,8 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 // RunOriginNamespaceController starts the controller that takes part in namespace termination of openshift content
 func (c *MasterConfig) RunOriginNamespaceController() {
 	kclient := c.OriginNamespaceControllerClient()
-	factory := projectcontroller.NamespaceControllerFactory{
-		KubeClient: kclient,
-	}
-	controller := factory.Create()
-	controller.Run()
+	controller := projectcontroller.NewProjectFinalizerController(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(), kclient)
+	go controller.Run(utilwait.NeverStop, 5)
 }
 
 // RunServiceAccountsController starts the service account controller
