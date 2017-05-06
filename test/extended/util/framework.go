@@ -220,7 +220,7 @@ func ExaminePodDiskUsage(oc *CLI) {
 	var podName string
 	if err == nil {
 		b := []byte(out)
-		var list kapi.PodList
+		var list kapiv1.PodList
 		err = json.Unmarshal(b, &list)
 		if err == nil {
 			for _, pod := range list.Items {
@@ -235,6 +235,10 @@ func ExaminePodDiskUsage(oc *CLI) {
 		}
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+	}
+	if len(podName) == 0 {
+		fmt.Fprintf(g.GinkgoWriter, "Unable to determine registry pod name, so we can't examine its disk usage.")
+		return
 	}
 
 	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
