@@ -140,6 +140,7 @@ readonly -f os::start::internal::create_bootstrap_policy
 #  - API_BIND_HOST
 #  - API_PORT
 #  - PUBLIC_MASTER_HOST
+#  - NETWORK_PLUGIN
 # Arguments
 #  1 - alternate version for the config
 #  - MASTER_CONFIG_DIR
@@ -158,6 +159,7 @@ function os::start::internal::configure_master() {
 	                        --hostname="${KUBELET_HOST}"                            \
 	                        --volume-dir="${VOLUME_DIR}"                            \
 	                        --etcd-dir="${ETCD_DATA_DIR}"                           \
+	                        --network-plugin="${NETWORK_PLUGIN:-}"                  \
 	                        --write-config="${SERVER_CONFIG_DIR}"                   \
 	                        --listen="${API_SCHEME}://${API_BIND_HOST}:${API_PORT}" \
 	                        --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
@@ -282,19 +284,20 @@ function os::start::master() {
 	os::log::debug "$( ps -ef | grep openshift )"
 
 	os::log::debug "Starting OpenShift server"
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
-	$(os::start::internal::openshift_executable) start master \
-		--config="${MASTER_CONFIG_DIR}/master-config.yaml" \
-		--loglevel=4 --logspec='*importer=5' \
-	&>"${LOG_DIR}/openshift.log" &
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
+	$(os::start::internal::openshift_executable) start master                                       \
+	                                             --loglevel=4                                       \
+	                                             --logspec='*importer=5'                            \
+	                                             --config="${MASTER_CONFIG_DIR}/master-config.yaml" \
+	                                             &>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	os::log::debug "OpenShift server start at: $( date )"
 
 	os::test::junit::declare_suite_start "setup/start-master"
-	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
-	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
-	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 160 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
+	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift server health checks done at: $( date )"
@@ -331,26 +334,26 @@ function os::start::all_in_one() {
 	fi
 
 	os::log::debug "Starting OpenShift server"
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
 	local openshift_executable
 	openshift_executable="$(os::start::internal::openshift_executable)"
-	${openshift_executable} start                                                       \
-		                      --loglevel=4                                              \
-		                      --logspec='*importer=5'                                   \
-		                      --latest-images="${use_latest_images}"                    \
-		                      --node-config="${NODE_CONFIG_DIR}/node-config.yaml"       \
-		                      --master-config="${MASTER_CONFIG_DIR}/master-config.yaml" \
-		                      &>"${LOG_DIR}/openshift.log" &
+	${openshift_executable} start                                                     \
+	                        --loglevel=4                                              \
+	                        --logspec='*importer=5'                                   \
+	                        --latest-images="${use_latest_images}"                    \
+	                        --node-config="${NODE_CONFIG_DIR}/node-config.yaml"       \
+	                        --master-config="${MASTER_CONFIG_DIR}/master-config.yaml" \
+	                        &>"${LOG_DIR}/openshift.log" &
 	export OS_PID=$!
 
 	os::log::debug "OpenShift server start at: $( date )"
 
 	os::test::junit::declare_suite_start "setup/start-all_in_one"
-	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
-	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 2 * minute )) 0.5
-	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
-	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 160 * second )) 0.25
-	os::cmd::try_until_success "oc get --raw /api/v1/nodes/${KUBELET_HOST} --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 2 * minute )) 0.5
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+	os::cmd::try_until_success "oc get --raw /api/v1/nodes/${KUBELET_HOST} --config='${ADMIN_KUBECONFIG}'" $(( 80 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift server health checks done at: $( date )"
@@ -407,7 +410,7 @@ readonly -f os::start::etcd
 function os::start::api_server() {
 	local api_server_version=${1:-}
 	local openshift_volumes=( "${MASTER_CONFIG_DIR}" )
-	local openshift_env=( "OPENSHIFT_PROFILE=web" "OPENSHIFT_ON_PANIC=crash" )
+	local openshift_env=( "OPENSHIFT_PROFILE=${OPENSHIFT_PROFILE:-web}" "OPENSHIFT_ON_PANIC=crash" )
 	local openshift_executable
 	openshift_executable="$(os::start::internal::openshift_executable "${api_server_version}")"
 
@@ -420,8 +423,8 @@ function os::start::api_server() {
 	os::log::debug "OpenShift API server start at: $( date )"
 
 	os::test::junit::declare_suite_start "setup/start-api_server"
-	os::cmd::try_until_text "oc get --raw /healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
-	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 160 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw /healthz/ready --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift API server health checks done at: $( date )"
@@ -490,7 +493,7 @@ function os::start::internal::start_node() {
 	os::log::debug "OpenShift node start at: $( date )"
 
 	os::test::junit::declare_suite_start "setup/start-node"
-	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${MASTER_CONFIG_DIR}/admin.kubeconfig'" 'ok' $(( 80 * second )) 0.25
+	os::cmd::try_until_text "oc get --raw ${KUBELET_SCHEME}://${KUBELET_HOST}:${KUBELET_PORT}/healthz --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 80 * second )) 0.25
 	os::test::junit::declare_suite_end
 
 	os::log::debug "OpenShift node health checks done at: $( date )"
@@ -646,7 +649,7 @@ function os::start::registry() {
 	# For testing purposes, ensure the quota objects are always up to date in the registry by
 	# disabling project cache.
 	openshift admin registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
-		oc env -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
-		oc create -f -
+		oc env --config="${ADMIN_KUBECONFIG}" -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
+		oc create --config="${ADMIN_KUBECONFIG}" -f -
 }
 readonly -f os::start::registry

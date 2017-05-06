@@ -25,6 +25,8 @@ project="$( oc project -q )"
 defaultimage="openshift/origin-\${component}:latest"
 USE_IMAGES=${USE_IMAGES:-$defaultimage}
 
+export NODECONFIG="${NODE_CONFIG_DIR}/node-config.yaml"
+
 os::test::junit::declare_suite_start "cmd/admin"
 # This test validates admin level commands including system policy
 
