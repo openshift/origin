@@ -24,6 +24,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -872,6 +873,13 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 
 	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
+	}
+	if err := testserver.WaitForServiceAccounts(
+		kubeClient,
+		testNamespace,
+		[]string{bootstrappolicy.DefaultServiceAccountName, bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DeployerServiceAccountName},
+	); err != nil {
+		t.Fatalf("error creating test namespace service accounts: %#v", err)
 	}
 
 	kindSeen := sets.NewString()
