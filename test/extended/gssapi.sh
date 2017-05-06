@@ -113,7 +113,7 @@ function update_auth_proxy_config() {
     spec+='{.items[0].status.conditions[?(@.type=="Ready")].status}'
 
     os::cmd::expect_success "oc set env dc/gssapiproxy-server SERVER='${server_config}'"
-    os::cmd::try_until_text "oc get pods -l deploymentconfig=gssapiproxy-server -o jsonpath='${spec}'" "^${server_config}_True$"
+    os::cmd::try_until_text "oc get pods -l deploymentconfig=gssapiproxy-server -o jsonpath='${spec}'" "^${server_config}_True$" $(( 10 * minute ))
 }
 
 function run_gssapi_tests() {

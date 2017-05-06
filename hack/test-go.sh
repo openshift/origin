@@ -186,13 +186,9 @@ if [[ -n "${junit_report}" ]]; then
     set +o pipefail
 
     go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" \
-        | tee "${test_output_file}"                                 \
-        | junitreport --type gotest                                 \
-                      --suites nested                               \
-                      --roots github.com/openshift/origin           \
-                      --stream                                      \
-                      --output "${junit_report_file}"
+    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${test_output_file}"
+
+    JUNIT_REPORT_OUTPUT="${test_output_file}" os::test::junit::generate_gotest_report
 
     test_return_code="${PIPESTATUS[0]}"
 
@@ -225,8 +221,6 @@ if [[ -n "${junit_report}" ]]; then
         fi
     fi
 
-    os::log::info "Full output from \`go test\` logged at ${test_output_file}"
-    os::log::info "jUnit XML report placed at ${junit_report_file}"
     exit "${test_return_code}"
 
 elif [[ -n "${coverage_output_dir}" ]]; then

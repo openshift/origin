@@ -170,12 +170,47 @@ function os::test::junit::generate_oscmd_report() {
     os::test::junit::check_test_counters
 
     # use the junitreport tool to generate us a report
-    os::util::ensure::built_binary_exists 'junitreport'
+    os::test::junit::generate_report "oscmd"
 
-    junitreport --type oscmd                          \
+    junitreport summarize <"${ARTIFACT_DIR}/report.xml"
+}
+
+# os::test::junit::generate_gotest_report generats an XML jUnit report
+# for the `go test` suite from the raw test output.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - ARTIFACT_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::test::junit::generate_gotest_report() {
+    if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
+          -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
+          # we can't generate a report
+          return
+    fi
+    os::test::junit::generate_report "gotest"
+
+    os::log::info "Full output from \`go test\` logged at ${JUNIT_REPORT_OUTPUT}"
+    os::log::info "jUnit XML report placed at ${ARTIFACT_DIR}/report.xml"
+}
+
+# os::test::junit::generate_report generats an XML jUnit report
+# for either `os::cmd` or `go test`, based on the passed argument.
+# If the `junitreport` binary is not present, it will be built.
+#
+# Globals:
+#  - JUNIT_REPORT_OUTPUT
+#  - ARTIFACT_DIR
+# Arguments:
+#  - 1: specify which type of tests command output should junitreport read
+function os::test::junit::generate_report() {
+    os::util::ensure::built_binary_exists 'junitreport'
+    junitreport --type "${1}"         \
                 --suites nested                       \
                 --roots github.com/openshift/origin   \
                 --output "${ARTIFACT_DIR}/report.xml" \
                 <"${JUNIT_REPORT_OUTPUT}"
-    junitreport summarize <"${ARTIFACT_DIR}/report.xml"
 }
