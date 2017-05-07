@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b4aedaa96b1c0cc011f02193690f02b4856aeb5a
+%global commit 9b023afba9ebfed4dd6b0a22a335a4da2c741e56
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.65 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b4aedaa
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.66 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=9b023af
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.66
+Version:        3.6.67
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,22 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sun May 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.67-1
+- UPSTREAM: 44939: don't HandleError on container start failure
+  (sjenning@redhat.com)
+- switch to upstream x509 request header authenticator (deads@redhat.com)
+- switch to upstream authentication/authorization types (deads@redhat.com)
+- UPSTREAM: 45235: remove bearer token from headers after we consume it
+  (deads@redhat.com)
+- Use generic start utilities in test-cmd (skuznets@redhat.com)
+- Stop using loopback address for API_HOST (skuznets@redhat.com)
+- Start registry using administrative credentials (skuznets@redhat.com)
+- Dry out start code to use `$ADMIN_KUBECONFIG` (skuznets@redhat.com)
+- Allow for configuration of profiling with `$OPENSHIFT_PROFILE`
+  (skuznets@redhat.com)
+- Allow for using network plugins with `$NETWORK_PLUGIN` (skuznets@redhat.com)
+- Reformatted Bash and cleaned up cruft in scripts (skuznets@redhat.com)
+
 * Sat May 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.66-1
 - Make integration test able to produce junitreport format (jhadvig@redhat.com)
 - Wait for SA creation in etcd test (mkhan@redhat.com)
