@@ -68,7 +68,6 @@ readonly -f os::util::environment::setup_time_vars
 #  - export VOLUME_DIR
 #  - export ARTIFACT_DIR
 #  - export FAKE_HOME_DIR
-#  - export HOME
 #  - export KUBELET_SCHEME
 #  - export KUBELET_BIND_HOST
 #  - export KUBELET_HOST
@@ -129,7 +128,6 @@ readonly -f os::util::environment::update_path_var
 #  - export VOLUME_DIR
 #  - export ARTIFACT_DIR
 #  - export FAKE_HOME_DIR
-#  - export HOME
 #  - export OS_TMP_ENV_SET
 function os::util::environment::setup_tmpdir_vars() {
     local sub_dir=$1

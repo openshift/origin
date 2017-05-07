@@ -9,10 +9,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
+	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
@@ -50,7 +50,7 @@ func GetUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 }
 
 func GetUserNicknameFromCert(clusterNick string, chain ...*x509.Certificate) (string, error) {
-	userInfo, _, err := x509request.SubjectToUserConversion(chain)
+	userInfo, _, err := x509request.CommonNameUserConversion(chain)
 	if err != nil {
 		return "", err
 	}

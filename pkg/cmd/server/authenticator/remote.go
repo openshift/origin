@@ -6,12 +6,12 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
+	"k8s.io/apiserver/pkg/authentication/request/anonymous"
+	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/authentication/request/union"
+	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	unversionedauthentication "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authentication/internalversion"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/anonymous"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/bearertoken"
-	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	authncache "github.com/openshift/origin/pkg/auth/authenticator/token/cache"
 	authnremote "github.com/openshift/origin/pkg/auth/authenticator/token/remotetokenreview"
 )
@@ -38,13 +38,13 @@ func NewRemoteAuthenticator(authenticationClient unversionedauthentication.Token
 			return nil, err
 		}
 	}
-	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator, true))
+	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
 
 	// Client-cert auth
 	if clientCAs != nil {
 		opts := x509request.DefaultVerifyOptions()
 		opts.Roots = clientCAs
-		certauth := x509request.New(opts, x509request.SubjectToUserConversion)
+		certauth := x509request.New(opts, x509request.CommonNameUserConversion)
 		authenticators = append(authenticators, certauth)
 	}
 

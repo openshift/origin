@@ -29,7 +29,6 @@ import (
 
 	"sort"
 
-	"github.com/openshift/origin/pkg/auth/authenticator/request/x509request"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -501,7 +500,7 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info, expir
 	}
 
 	clientPublicKey, clientPrivateKey, _ := NewKeyPair()
-	clientTemplate := newClientCertificateTemplate(x509request.UserToSubject(u), expireDays, time.Now)
+	clientTemplate := newClientCertificateTemplate(userToSubject(u), expireDays, time.Now)
 	clientCrt, err := ca.signCertificate(clientTemplate, clientPublicKey)
 	if err != nil {
 		return nil, err
@@ -524,6 +523,14 @@ func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info, expir
 	}
 
 	return GetTLSCertificateConfig(certFile, keyFile)
+}
+
+func userToSubject(u user.Info) pkix.Name {
+	return pkix.Name{
+		CommonName:   u.GetName(),
+		SerialNumber: u.GetUID(),
+		Organization: u.GetGroups(),
+	}
 }
 
 func (ca *CA) signCertificate(template *x509.Certificate, requestKey crypto.PublicKey) (*x509.Certificate, error) {
