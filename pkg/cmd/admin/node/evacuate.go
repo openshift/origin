@@ -27,6 +27,8 @@ type EvacuateOptions struct {
 	DryRun      bool
 	Force       bool
 	GracePeriod int64
+
+	printPodHeaders bool
 }
 
 // NewEvacuateOptions creates a new EvacuateOptions with default values.
@@ -36,6 +38,8 @@ func NewEvacuateOptions(nodeOptions *NodeOptions) *EvacuateOptions {
 		DryRun:      false,
 		Force:       false,
 		GracePeriod: 30,
+
+		printPodHeaders: true,
 	}
 }
 
@@ -49,6 +53,11 @@ func (e *EvacuateOptions) AddFlags(cmd *cobra.Command) {
 }
 
 func (e *EvacuateOptions) Run() error {
+	if e.DryRun {
+		listpodsOp := ListPodsOptions{Options: e.Options, printPodHeaders: e.printPodHeaders}
+		return listpodsOp.Run()
+	}
+
 	nodes, err := e.Options.GetNodes()
 	if err != nil {
 		return err
@@ -66,11 +75,6 @@ func (e *EvacuateOptions) Run() error {
 }
 
 func (e *EvacuateOptions) RunEvacuate(node *kapi.Node) error {
-	if e.DryRun {
-		listpodsOp := ListPodsOptions{Options: e.Options}
-		return listpodsOp.Run()
-	}
-
 	// We do *not* automatically mark the node unschedulable to perform evacuation.
 	// Rationale: If we unschedule the node and later the operation is unsuccessful (stopped by user, network error, etc.),
 	// we may not be able to recover in some cases to mark the node back to schedulable. To avoid these cases, we recommend

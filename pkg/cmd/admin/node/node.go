@@ -58,7 +58,7 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 	opts := &NodeOptions{}
 	schedulableOp := &SchedulableOptions{Options: opts}
 	evacuateOp := NewEvacuateOptions(opts)
-	listpodsOp := &ListPodsOptions{Options: opts}
+	listpodsOp := &ListPodsOptions{Options: opts, printPodHeaders: true}
 
 	cmd := &cobra.Command{
 		Use:     commandName,
@@ -91,8 +91,10 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 				schedulableOp.Schedulable = schedulable
 				err = schedulableOp.Run()
 			} else if evacuate {
+				evacuateOp.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
 				err = evacuateOp.Run()
 			} else if listpods {
+				listpodsOp.printPodHeaders = !kcmdutil.GetFlagBool(c, "no-headers")
 				err = listpodsOp.Run()
 			}
 			kcmdutil.CheckErr(err)
