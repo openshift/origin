@@ -382,6 +382,8 @@ var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system
 var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:openshift-infra:unidling-controller",
 	"system:serviceaccount:openshift-infra:garbage-collector-controller",
+	"system:serviceaccount:kube-system:generic-garbage-collector",
+	"system:serviceaccount:kube-system:namespace-controller",
 )
 
 type resourceAccessReviewTest struct {
@@ -1597,7 +1599,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1624,7 +1626,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
