@@ -581,7 +581,10 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 					return nil, err
 				}
 				if err := repo.Checkout(tempDirectory, commit); err != nil {
-					return nil, err
+					err = repo.PotentialPRRetryAsFetch(tempDirectory, path, commit, err)
+					if err != nil {
+						return nil, err
+					}
 				}
 
 				// We'll continue to use tar on the temp directory

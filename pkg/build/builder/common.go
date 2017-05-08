@@ -41,6 +41,7 @@ type GitClient interface {
 	CloneWithOptions(dir string, url string, args ...string) error
 	Fetch(dir string, url string, ref string) error
 	Checkout(dir string, ref string) error
+	PotentialPRRetryAsFetch(dir string, url string, ref string, err error) error
 	SubmoduleUpdate(dir string, init, recursive bool) error
 	TimedListRemote(timeout time.Duration, url string, args ...string) (string, string, error)
 	GetInfo(location string) (*git.SourceInfo, []error)
