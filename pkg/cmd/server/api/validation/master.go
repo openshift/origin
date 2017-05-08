@@ -249,6 +249,23 @@ func ValidateAuditConfig(config api.AuditConfig, fldPath *field.Path) Validation
 func ValidateControllerConfig(config api.ControllerConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
+	if election := config.Election; election != nil {
+		if len(election.LockName) == 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockName"), election.LockName, "may not be empty"))
+		}
+		for _, msg := range kvalidation.ValidateServiceName(election.LockName, false) {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockName"), election.LockName, msg))
+		}
+		if len(election.LockNamespace) == 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockNamespace"), election.LockNamespace, "may not be empty"))
+		}
+		for _, msg := range kvalidation.ValidateNamespaceName(election.LockNamespace, false) {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockNamespace"), election.LockNamespace, msg))
+		}
+		if len(election.LockResource.Resource) == 0 {
+			validationResults.AddErrors(field.Invalid(fldPath.Child("election", "lockResource", "resource"), election.LockResource.Resource, "may not be empty"))
+		}
+	}
 	if config.ServiceServingCert.Signer != nil {
 		validationResults.AddErrors(ValidateCertInfo(*config.ServiceServingCert.Signer, true, fldPath.Child("serviceServingCert.signer"))...)
 	}

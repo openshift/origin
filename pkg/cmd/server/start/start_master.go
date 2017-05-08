@@ -406,6 +406,18 @@ func (m *Master) Start() error {
 		return err
 	}
 
+	// initialize the election module if the controllers will start
+	if m.controllers {
+		openshiftConfig.ControllerPlug, openshiftConfig.ControllerPlugStart, err = origin.NewLeaderElection(
+			*m.config,
+			kubeMasterConfig.ControllerManager.KubeControllerManagerConfiguration.LeaderElection,
+			openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	// any controller that uses a core informer must be initialized *before* the API server starts core informers
 	// the API server adds its controllers at the correct time, but if the controllers are running, they need to be
 	// kicked separately
