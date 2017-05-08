@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f4aeb1ee1a970e4b9ecfa6845ed9f2ff581db639
+%global commit 16186729edd6150c38b4c0e58598d77d6719b366
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.68 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f4aeb1e
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.69 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1618672
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.69
+Version:        3.6.70
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,10 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Mon May 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.70-1
+- bump(github.com/openshift/origin-web-console):
+  86ccb7ba30bee182b18de74f53f9ab2e8b129c98 (dmcphers+openshiftbot@redhat.com)
+
 * Mon May 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.69-1
 - start bootstrapping cluster roles from kube (deads@redhat.com)
 
