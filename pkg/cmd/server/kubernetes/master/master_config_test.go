@@ -3,6 +3,7 @@ package master
 import (
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +25,32 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
+
+var expectedGroupPreferredVersions []string = []string{
+	// keep this sorted:
+	"apps/v1beta1,authentication.k8s.io/v1",
+	"authorization.k8s.io/v1",
+	"autoscaling/v1",
+	"batch/v1",
+	"certificates.k8s.io/v1beta1",
+	"componentconfig/v1alpha1",
+	"extensions/v1beta1",
+	"federation/v1beta1",
+	"imagepolicy.k8s.io/v1alpha1",
+	"policy/v1beta1",
+	"rbac.authorization.k8s.io/v1beta1",
+	"settings.k8s.io/v1alpha1",
+	"storage.k8s.io/v1beta1",
+	"v1",
+}
+
+func TestPreferredGroupVersions(t *testing.T) {
+	s := kapi.Registry.AllPreferredGroupVersions()
+	expected := strings.Join(expectedGroupPreferredVersions, ",")
+	if s != expected {
+		t.Errorf("unexpected preferred group versions: %v", diff.StringDiff(expected, s))
+	}
+}
 
 func TestAPIServerDefaults(t *testing.T) {
 	defaults := kubeapiserveroptions.NewServerRunOptions()
