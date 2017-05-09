@@ -17,6 +17,8 @@ import (
 
 type ListPodsOptions struct {
 	Options *NodeOptions
+
+	printPodHeaders bool
 }
 
 func (l *ListPodsOptions) AddFlags(cmd *cobra.Command) {
@@ -71,6 +73,14 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kprinters.Resourc
 	}
 
 	fmt.Fprint(l.Options.ErrWriter, "\nListing matched pods on node: ", node.ObjectMeta.Name, "\n\n")
+	if p, ok := printer.(*kprinters.HumanReadablePrinter); ok {
+		if l.printPodHeaders {
+			p.EnsurePrintHeaders()
+		}
+		p.PrintObj(pods, l.Options.Writer)
+		return err
+	}
+
 	printer.PrintObj(pods, l.Options.Writer)
 
 	return err
