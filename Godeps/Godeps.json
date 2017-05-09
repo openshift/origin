@@ -2693,6 +2693,10 @@
 			"Rev": "d59fa0ac68bb5dd932ee8d24eed631cdd519efc3"
 		},
 		{
+			"ImportPath": "github.com/opencontainers/go-digest",
+			"Rev": "a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v1.0.0-rc2-14-g45c30e7",
 			"Rev": "45c30e75abfd52107b53048004a83165403ad0d1"
