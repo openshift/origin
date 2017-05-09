@@ -1064,21 +1064,21 @@ func describeDeploymentStatus(rc *kapi.ReplicationController, first, test bool, 
 			reason = fmt.Sprintf(": %s", reason)
 		}
 		// TODO: encode fail time in the rc
-		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d failed %s ago%s%s", version, timeAt, reason, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, true, restartCount))
 	case deployapi.DeploymentStatusComplete:
 		// TODO: pod status output
 		if test {
 			return fmt.Sprintf("test deployment #%d deployed %s ago", version, timeAt)
 		}
-		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, first, restartCount))
+		return fmt.Sprintf("deployment #%d deployed %s ago%s", version, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, true, restartCount))
 	case deployapi.DeploymentStatusRunning:
 		format := "deployment #%d running%s for %s%s"
 		if test {
 			format = "test deployment #%d running%s for %s%s"
 		}
-		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf(format, version, maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, true, restartCount))
 	default:
-		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, false, restartCount))
+		return fmt.Sprintf("deployment #%d %s%s %s ago%s", version, strings.ToLower(string(status)), maybeCancelling, timeAt, describePodSummaryInline(rc.Status.ReadyReplicas, rc.Status.Replicas, rc.Spec.Replicas, true, restartCount))
 	}
 }
 
