@@ -2697,6 +2697,16 @@
 			"Rev": "a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb"
 		},
 		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go/v1",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v1.0.0-rc2-14-g45c30e7",
 			"Rev": "45c30e75abfd52107b53048004a83165403ad0d1"
