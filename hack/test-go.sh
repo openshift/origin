@@ -175,11 +175,10 @@ fi
 # Run 'go test' with the accumulated arguments and packages:
 if [[ -n "${junit_report}" ]]; then
     # we need to generate jUnit xml
-    os::util::ensure::built_binary_exists 'junitreport'
 
     test_output_file="${LOG_DIR}/test-go.log"
+    export JUNIT_REPORT_OUTPUT="${test_output_file}"
     test_error_file="${LOG_DIR}/test-go-err.log"
-    junit_report_file="${ARTIFACT_DIR}/report.xml"
 
     os::log::info "Running \`go test\`..."
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
@@ -187,8 +186,6 @@ if [[ -n "${junit_report}" ]]; then
 
     go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${test_output_file}"
-
-    JUNIT_REPORT_OUTPUT="${test_output_file}" os::test::junit::generate_gotest_report
 
     test_return_code="${PIPESTATUS[0]}"
 

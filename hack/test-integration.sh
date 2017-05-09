@@ -124,7 +124,6 @@ test_end_time=$(date +%s%3N)
 test_duration=$((test_end_time - test_start_time))
 
 echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration / 1000)).$((test_duration % 1000))s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
-os::test::junit::generate_gotest_report
 
 popd &>/dev/null
 
