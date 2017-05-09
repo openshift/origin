@@ -4,21 +4,10 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 function cleanup() {
-    out=$?
-    cleanup_openshift
-
-    if [ $out -ne 0 ]; then
-        echo "[FAIL] !!!!! Generate Failed !!!!"
-        echo
-        tail -100 "${LOG_DIR}/openshift.log"
-        echo
-        echo -------------------------------------
-        echo
-    fi
-    exit $out
+    return_code=$?
+    os::cleanup::all "${return_code}"
+    exit "${return_code}"
 }
-
-trap "exit" INT TERM
 trap "cleanup" EXIT
 
 export ALL_IP_ADDRESSES=127.0.0.1
@@ -45,7 +34,7 @@ for type in "${endpoint_types[@]}"; do
     endpoints=("v1")
     for endpoint in "${endpoints[@]}"; do
         generated_file="${SWAGGER_SPEC_OUT_DIR}/${type}-${endpoint}.json"
-        os::log::info "Updating ${generated_file} from /swaggerapi/${type}/${endpoint}..."
+        os::log::info "Updating $( os::util::repository_relative_path "${generated_file}" ) from /swaggerapi/${type}/${endpoint}..."
         oc get --raw "/swaggerapi/${type}/${endpoint}" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
         os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
@@ -79,5 +68,3 @@ for proto_file in $( find "${OS_ROOT}/pkg" "${OS_ROOT}/vendor/k8s.io/kubernetes/
 
     cp "${proto_file}" "${proto_spec_out_dir}/${openapi_file}"
 done
-
-os::log::info "SUCCESS"

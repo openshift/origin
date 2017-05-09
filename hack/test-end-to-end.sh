@@ -20,27 +20,12 @@ os::util::ensure::iptables_privileges_exist
 
 os::log::info "Starting end-to-end test"
 
-function cleanup()
-{
-	out=$?
-	echo
-	if [ $out -ne 0 ]; then
-		echo "[FAIL] !!!!! Test Failed !!!!"
-	else
-		os::log::info "Test Succeeded"
-	fi
-	echo
-
-	cleanup_openshift
-	os::test::junit::generate_oscmd_report
-	os::log::info "Exiting"
-	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-	exit $out
+function cleanup() {
+	return_code=$?
+	os::cleanup::all "${return_code}"
+	exit "${return_code}"
 }
-
-trap "exit" INT TERM
 trap "cleanup" EXIT
-
 
 # Start All-in-one server and wait for health
 os::util::environment::use_sudo

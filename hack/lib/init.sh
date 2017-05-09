@@ -9,6 +9,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+OS_SCRIPT_START_TIME="$( date +%s )"; export OS_SCRIPT_START_TIME
+
 # os::util::absolute_path returns the absolute path to the directory provided
 function os::util::absolute_path() {
 	local relative_path="$1"

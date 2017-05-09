@@ -19,24 +19,21 @@
 #  - JUNIT_REPORT:        toggles the creation of jUnit XML from the test output and changes this script's output behavior
 #                         to use the 'junitreport' tool for summarizing the tests.
 #  - DLV_DEBUG            toggles running tests using delve debugger
-function exit_trap() {
-    local return_code=$?
+function cleanup() {
+    return_code=$?
+    os::cleanup::all "${return_code}"
 
-    end_time=$(date +%s)
-
-    if [[ "${return_code}" -eq "0" ]]; then
-        verb="succeeded"
-    else
-        verb="failed"
+    if [[ "${JUNIT_REPORT_NUM_FAILED:-}" == "0 failed" ]]; then
+        if [[ "${return_code}" -ne "0" ]]; then
+            os::log::warning "While the jUnit report found no failed tests, the \`go test\` process failed."
+            os::log::warning "This usually means that the unit test suite failed to compile."
+        fi
     fi
 
-    echo "$0 ${verb} after $(( end_time - start_time )) seconds"
     exit "${return_code}"
 }
+trap "cleanup" EXIT
 
-trap exit_trap EXIT
-
-start_time=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::build::setup_env
 os::cleanup::tmpdir
@@ -190,17 +187,6 @@ if [[ -n "${junit_report}" ]]; then
     test_return_code="${PIPESTATUS[0]}"
 
     set -o pipefail
-
-    echo
-    summary="$( junitreport summarize < "${junit_report_file}" )"
-    echo "${summary}"
-
-    if echo "${summary}" | grep -q ', 0 failed,'; then
-        if [[ "${test_return_code}" -ne "0" ]]; then
-            os::log::warning "While the jUnit report found no failed tests, the \`go test\` process failed."
-            os::log::warning "This usually means that the unit test suite failed to compile."
-        fi
-    fi
 
     if [[ -s "${test_error_file}" ]]; then
         os::log::warning "\`go test\` had the following output to stderr:"
