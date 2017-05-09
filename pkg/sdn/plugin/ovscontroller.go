@@ -37,7 +37,7 @@ func (oc *ovsController) getVersionNote() string {
 	if VERSION > 254 {
 		panic("Version too large!")
 	}
-	return fmt.Sprintf("note:%02X.%02X", VERSION, oc.pluginId)
+	return fmt.Sprintf("note:%02X.%02X", oc.pluginId, VERSION)
 }
 
 func (oc *ovsController) AlreadySetUp() bool {

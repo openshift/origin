@@ -39,6 +39,8 @@ function cleanup()
 
 	os::cleanup::dump_etcd
 
+	os::cleanup::dump_events
+
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		os::cleanup::containers
 	fi

@@ -153,3 +153,21 @@ function os::cleanup::tmpdir() {
 	done
 }
 readonly -f os::cleanup::tmpdir
+
+# os::cleanup::dump_events dumps all the events from a cluster to a file.
+#
+# Globals:
+#  ARTIFACT_DIR
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::dump_events() {
+	os::log::info "Dumping cluster events to ${ARTIFACT_DIR}/events.txt"
+	local kubeconfig
+	if [[ -n "${ADMIN_KUBECONFIG}" ]]; then
+		kubeconfig="--config=${ADMIN_KUBECONFIG}"
+	fi
+	oc get events --all-namespaces ${kubeconfig} > "${ARTIFACT_DIR}/events.txt"
+}
+readonly -f os::cleanup::dump_events
