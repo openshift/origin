@@ -1452,10 +1452,6 @@
 			"Rev": "a720dfa8df582c51dee1b36feabb906bde1588bd"
 		},
 		{
-			"ImportPath": "github.com/flynn/go-shlex",
-			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
-		},
-		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
 			"Comment": "v1.3.1-1-gf12c623",
 			"Rev": "f12c6236fe7b5cf6bcf30e5935d08cb079d78334"
