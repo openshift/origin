@@ -161,6 +161,8 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 		server.SecureServing.SNICertKeys = append(server.SecureServing.SNICertKeys, sniCert)
 	}
 
+	server.KubeletConfig.ReadOnlyPort = 0
+
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
