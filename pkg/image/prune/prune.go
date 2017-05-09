@@ -29,6 +29,7 @@ import (
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // TODO these edges should probably have an `Add***Edges` method in images/graph and be moved there
@@ -140,6 +141,8 @@ type PrunerOptions struct {
 	RegistryClient *http.Client
 	// RegistryURL is the URL for the registry.
 	RegistryURL string
+	// Allow a fallback to insecure transport when contacting the registry.
+	Insecure bool
 }
 
 // Pruner knows how to prune istags, images, layers and image configs.
@@ -170,7 +173,8 @@ type registryPinger interface {
 
 // defaultRegistryPinger implements registryPinger.
 type defaultRegistryPinger struct {
-	client *http.Client
+	client   *http.Client
+	insecure bool
 }
 
 func (drp *defaultRegistryPinger) ping(registry string) error {
@@ -183,23 +187,29 @@ func (drp *defaultRegistryPinger) ping(registry string) error {
 		defer healthResponse.Body.Close()
 
 		if healthResponse.StatusCode != http.StatusOK {
-			return fmt.Errorf("unexpected status code %d", healthResponse.StatusCode)
+			return fmt.Errorf("unexpected status: %s", healthResponse.Status)
 		}
 
 		return nil
 	}
 
-	var err error
-	for _, proto := range []string{"https", "http"} {
+	var errs []error
+	protos := make([]string, 0, 2)
+	protos = append(protos, "https")
+	if drp.insecure || netutils.IsPrivateAddress(registry) {
+		protos = append(protos, "http")
+	}
+	for _, proto := range protos {
 		glog.V(4).Infof("Trying %s for %s", proto, registry)
-		err = healthCheck(proto, registry)
+		err := healthCheck(proto, registry)
 		if err == nil {
-			break
+			return nil
 		}
+		errs = append(errs, err)
 		glog.V(4).Infof("Error with %s for %s: %v", proto, registry, err)
 	}
 
-	return err
+	return kerrors.NewAggregate(errs)
 }
 
 // dryRunRegistryPinger implements registryPinger.
@@ -287,7 +297,10 @@ func NewPruner(options PrunerOptions) Pruner {
 	if options.DryRun {
 		rp = &dryRunRegistryPinger{}
 	} else {
-		rp = &defaultRegistryPinger{options.RegistryClient}
+		rp = &defaultRegistryPinger{
+			client:   options.RegistryClient,
+			insecure: options.Insecure,
+		}
 	}
 
 	return &pruner{
