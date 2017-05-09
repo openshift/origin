@@ -50,6 +50,7 @@ function cleanup_openshift() {
 
 	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
 		os::cleanup::dump_etcd
+		os::cleanup::dump_events
 		os::log::info "Tearing down test"
 		kill_all_processes
 
