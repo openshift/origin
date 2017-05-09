@@ -27,6 +27,10 @@ type NodeIPTables struct {
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 }
 
+const (
+	OutputFilteringChain iptables.Chain = "OPENSHIFT-ADMIN-OUTPUT-RULES"
+)
+
 func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
@@ -78,6 +82,10 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	}()
 	glog.V(3).Infof("Syncing openshift iptables rules")
 
+	if _, err := n.ipt.EnsureChain(iptables.TableFilter, OutputFilteringChain); err != nil {
+		return fmt.Errorf("failed to ensure chain %q exists: %v", OutputFilteringChain, err)
+	}
+
 	rules := n.getStaticNodeIPTablesRules()
 	for _, rule := range rules {
 		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.Table(rule.table), iptables.Chain(rule.chain), rule.args...)
@@ -99,5 +107,6 @@ func (n *NodeIPTables) getStaticNodeIPTablesRules() []FirewallRule {
 		{"filter", "INPUT", []string{"-i", "docker0", "-m", "comment", "--comment", "traffic from docker", "-j", "ACCEPT"}},
 		{"filter", "FORWARD", []string{"-d", n.clusterNetworkCIDR, "-j", "ACCEPT"}},
 		{"filter", "FORWARD", []string{"-s", n.clusterNetworkCIDR, "-j", "ACCEPT"}},
+		{"filter", "FORWARD", []string{"-i", TUN, "!", "-o", TUN, "-m", "comment", "--comment", "administrator overrides", "-j", string(OutputFilteringChain)}},
 	}
 }
