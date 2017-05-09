@@ -555,6 +555,13 @@ func (builder *STI) Save(config *api.Config) (err error) {
 func (builder *STI) Execute(command string, user string, config *api.Config) error {
 	glog.V(2).Infof("Using image name %s", config.BuilderImage)
 
+	// Ensure that the builder image is present in the local Docker daemon.
+	// The image should have been pulled when the strategy was created, so
+	// this should be a quick inspect of the existing image. However, if
+	// the image has been deleted since the strategy was created, this will ensure
+	// it exists before executing a script on it.
+	builder.docker.CheckAndPullImage(config.BuilderImage)
+
 	// we can't invoke this method before (for example in New() method)
 	// because of later initialization of config.WorkingDir
 	builder.env = createBuildEnvironment(config)
