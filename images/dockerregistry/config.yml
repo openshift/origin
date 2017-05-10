@@ -39,4 +39,7 @@ openshift:
   version: 1.0
   metrics:
     enabled: false
-    secret: TopSecretToken
+    # secret is used to authenticate to metrics endpoint. It cannot be empty.
+    # Attention! A weak secret can lead to the leakage of private data.
+    #
+    # secret: TopSecretLongToken
