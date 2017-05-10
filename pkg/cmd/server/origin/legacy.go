@@ -4,6 +4,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/registry/rest"
+
+	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
+	deploymentconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 )
 
 var (
@@ -186,9 +189,40 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 	for _, gvStorage := range storage {
 		for resource, s := range gvStorage {
 			if OriginLegacyResources.Has(resource) || OriginLegacySubresources.Has(resource) {
-				legacyStorage[resource] = s
+				// We want *some* our legacy resources to orphan by default instead of garbage collecting.
+				// Kube only did this for a select few resources which were controller managed and established links
+				// via a workload controller.  In openshift, these will all conform to registry.Store so we
+				// can actually wrap the "normal" storage here.
+				switch resource {
+				case "buildConfigs":
+					restStorage := s.(*buildconfigetcd.REST)
+					store := *restStorage.Store
+					store.DeleteStrategy = orphanByDefault(store.DeleteStrategy)
+					legacyStorage[resource] = &buildconfigetcd.REST{Store: &store}
+				case "deploymentConfigs":
+					restStorage := s.(*deploymentconfigetcd.REST)
+					store := *restStorage.Store
+					restStorage.DeleteStrategy = orphanByDefault(store.DeleteStrategy)
+					legacyStorage[resource] = &deploymentconfigetcd.REST{Store: &store}
+
+				default:
+					legacyStorage[resource] = s
+				}
+
 			}
 		}
 	}
 	return legacyStorage
+}
+
+type orphaningDeleter struct {
+	rest.RESTDeleteStrategy
+}
+
+func (o orphaningDeleter) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+	return rest.OrphanDependents
+}
+
+func orphanByDefault(in rest.RESTDeleteStrategy) rest.RESTDeleteStrategy {
+	return orphaningDeleter{in}
 }
