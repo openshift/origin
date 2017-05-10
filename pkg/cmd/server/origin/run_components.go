@@ -43,7 +43,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
+	deployercontroller "github.com/openshift/origin/pkg/deploy/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
 	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
@@ -360,7 +360,7 @@ func (c *MasterConfig) RunDeploymentController() {
 		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
 	)
 
-	controller := deploycontroller.NewDeploymentController(
+	controller := deployercontroller.NewDeployerController(
 		rcInformer,
 		podInformer,
 		internalKubeClientset,

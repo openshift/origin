@@ -42,7 +42,7 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	rcInformer := informerFactory.Core().InternalVersion().ReplicationControllers()
 	podInformer := informerFactory.Core().InternalVersion().Pods()
 
-	c := NewDeploymentController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
+	c := NewDeployerController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
 	c.podListerSynced = alwaysReady
 	c.rcListerSynced = alwaysReady
 
