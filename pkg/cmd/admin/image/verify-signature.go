@@ -93,7 +93,7 @@ func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out
 		PublicKeyFilename: filepath.Join(os.Getenv("GNUPGHOME"), "pubring.gpg"),
 	}
 	cmd := &cobra.Command{
-		Use:     fmt.Sprintf("%s IMAGE --expected-identity=EXPECTED_IDENTITY [--save]", name),
+		Use:     fmt.Sprintf("%s IMAGE --expected-identity=EXPECTED_IDENTITY [--save]", VerifyRecommendedName),
 		Short:   "Verify the image identity contained in the image signature",
 		Long:    verifyImageSignatureLongDesc,
 		Example: fmt.Sprintf(verifyImageSignatureExample, fullName),
@@ -112,11 +112,16 @@ func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out
 }
 
 func (o *VerifyImageSignatureOptions) Validate() error {
-	if len(o.ExpectedIdentity) == 0 {
-		return errors.New("the --expected-identity is required")
+	if !o.RemoveAll {
+		if len(o.ExpectedIdentity) == 0 {
+			return errors.New("the --expected-identity is required")
+		}
+		if _, err := imageapi.ParseDockerImageReference(o.ExpectedIdentity); err != nil {
+			return errors.New("the --expected-identity must be valid image reference")
+		}
 	}
-	if _, err := imageapi.ParseDockerImageReference(o.ExpectedIdentity); err != nil {
-		return errors.New("the --expected-identity must be valid image reference")
+	if o.RemoveAll && len(o.ExpectedIdentity) > 0 {
+		return errors.New("the --expected-identity cannot be used when removing all verifications")
 	}
 	return nil
 }
@@ -176,17 +181,16 @@ func (o VerifyImageSignatureOptions) Run() error {
 	}
 	defer pc.Destroy()
 
-	for i, s := range img.Signatures {
-		if o.RemoveAll {
-			o.clearSignatureVerificationStatus(&img.Signatures[i])
-			continue
-		}
+	if o.RemoveAll {
+		img.Signatures = []imageapi.ImageSignature{}
+	}
 
+	for i, s := range img.Signatures {
 		// Verify the signature against the policy
 		signedBy, err := o.verifySignature(pc, img, s.Content)
 		if err != nil {
-			fmt.Fprintf(o.ErrOut, "error: %s: %v\n", o.InputImage, err)
-			o.clearSignatureVerificationStatus(&img.Signatures[i])
+			fmt.Fprintf(o.ErrOut, "error verifying signature %s for image %s (verification status will be removed): %v\n", img.Signatures[i].Name, o.InputImage, err)
+			img.Signatures[i] = imageapi.ImageSignature{}
 			continue
 		}
 		fmt.Fprintf(o.Out, "image %q identity is now confirmed (signed by GPG key %q)\n", o.InputImage, signedBy)
@@ -215,7 +219,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 		img.Signatures[i].IssuedBy.CommonName = signedBy
 	}
 
-	if o.Save {
+	if o.Save || o.RemoveAll {
 		_, err := o.Client.Images().Update(img)
 		return err
 	}
@@ -254,14 +258,6 @@ func (o *VerifyImageSignatureOptions) verifySignature(pc *signature.PolicyContex
 	} else {
 		return untrustedInfo.UntrustedShortKeyIdentifier, nil
 	}
-}
-
-// clearSignatureVerificationStatus removes the current image signature from the Image object by
-// erasing all signature fields that were previously set (when image signature was
-// previously verified).
-func (o *VerifyImageSignatureOptions) clearSignatureVerificationStatus(s *imageapi.ImageSignature) {
-	s.Conditions = []imageapi.SignatureCondition{}
-	s.IssuedBy = nil
 }
 
 // dummyDockerTransport is containers/image/docker.Transport, except that it only provides identity information.
