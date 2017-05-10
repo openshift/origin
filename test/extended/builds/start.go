@@ -318,4 +318,24 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			o.Expect(buildLog).To(o.ContainSubstring("One or more build-args [bar] were not consumed, failing build"))
 		})
 	})
+
+	g.Describe("Trigger builds with branch refs matching directories on master branch", func() {
+
+		g.It("Should checkout the config branch, not config directory", func() {
+			g.By("calling oc new-app")
+			_, err := oc.Run("new-app").Args("https://github.com/openshift/ruby-hello-world#config").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the build to complete")
+			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "ruby-hello-world-1", nil, nil, nil)
+			if err != nil {
+				exutil.DumpBuildLogs("ruby-hello-world", oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("get build logs, confirm commit in the config branch is present")
+			out, err := oc.Run("logs").Args("build/ruby-hello-world-1").Output()
+			o.Expect(out).To(o.ContainSubstring("Merge pull request #61 from gabemontero/config"))
+		})
+	})
 })

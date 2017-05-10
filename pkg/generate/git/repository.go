@@ -293,7 +293,7 @@ func (r *repository) Checkout(location string, ref string) error {
 	if r.shallow {
 		return errors.New("cannot checkout ref on shallow clone")
 	}
-	_, _, err := r.git(location, "checkout", ref)
+	_, _, err := r.git(location, "checkout", ref, "--")
 	return err
 }
 
