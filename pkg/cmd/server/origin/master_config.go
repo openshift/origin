@@ -391,6 +391,7 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"DefaultTolerationSeconds",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
@@ -429,6 +430,7 @@ var (
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
+		"DefaultTolerationSeconds",
 		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		quotaadmission.PluginName,
