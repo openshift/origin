@@ -115,6 +115,7 @@
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/scoped-router.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
+// test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/statusfail-failedassemble.yaml
 // test/extended/testdata/statusfail-fetchbuilderimage.yaml
@@ -6497,6 +6498,65 @@ func testExtendedTestdataServiceServingCertNginxServingCertConf() (*asset, error
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/service-serving-cert/nginx-serving-cert.conf", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataSignerBuildconfigYaml = []byte(`kind: List
+apiVersion: v1
+items:
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: signer
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: signer-build
+  spec:
+    triggers:
+      - type: ConfigChange
+    source:
+      dockerfile: |
+        FROM openshift/origin:latest
+        RUN yum install -y skopeo && yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
+        RUN echo $'%echo Generating openpgp key ...\n\
+            Key-Type: DSA \n\
+            Key-Length: 1024 \n\
+            Subkey-Type: ELG-E \n\
+            Subkey-Length: 1024 \n\
+            Name-Real: Joe Tester \n\
+            Name-Comment: with stupid passphrase \n\
+            Name-Email: joe@foo.bar \n\
+            Expire-Date: 0 \n\
+            Creation-Date: 2017-01-01 \n\
+            %commit \n\
+            %echo done \n' >> dummy_key.conf
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/origin:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: signer:latest
+`)
+
+func testExtendedTestdataSignerBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataSignerBuildconfigYaml, nil
+}
+
+func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataSignerBuildconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/signer-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19244,6 +19304,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/statusfail-failedassemble.yaml": testExtendedTestdataStatusfailFailedassembleYaml,
 	"test/extended/testdata/statusfail-fetchbuilderimage.yaml": testExtendedTestdataStatusfailFetchbuilderimageYaml,
@@ -19609,6 +19670,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"service-serving-cert": &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
+				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"statusfail-assemble": &bintree{nil, map[string]*bintree{
 					".s2i": &bintree{nil, map[string]*bintree{
 						"bin": &bintree{nil, map[string]*bintree{
