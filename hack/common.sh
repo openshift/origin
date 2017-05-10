@@ -151,7 +151,7 @@ readonly -f os::build::setup_env
 #   OS_BUILD_PLATFORMS - Incoming variable of targets to build for.  If unset
 #     then just the host architecture is built.
 function os::build::build_static_binaries() {
-  CGO_ENABLED=0 os::build::build_binaries -installsuffix=cgo "$@"
+  OS_BUILD_STATIC=1 os::build::build_binaries -installsuffix=cgo "$@"
 }
 readonly -f os::build::build_static_binaries
 
@@ -236,6 +236,10 @@ os::build::internal::build_binaries() {
       if [[ "${platform}" == "darwin/amd64" ]]; then
         local_ldflags+=" -s"
       fi
+      # set static
+      if [[ "${OS_BUILD_STATIC}" == "1" && "${platform}" == "${host_platform}" ]]; then
+        local_ldflags+=" -extldflags \"-static\""
+      fi
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
@@ -255,7 +259,7 @@ os::build::internal::build_binaries() {
       for test in "${tests[@]:+${tests[@]}}"; do
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         # disabling cgo allows use of delve
-        CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
+        GOOS=${platform%/*} GOARCH=${platform##*/} go test \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${local_ldflags}" \
