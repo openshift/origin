@@ -95,7 +95,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
 				),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, out, errout),
-				image.NewCmdVerifyImageSignature("verify-image-signature", fullName, f, out, errout),
+				image.NewCmdVerifyImageSignature(name, fullName+" "+image.VerifyRecommendedName, f, out, errout),
 			},
 		},
 		{

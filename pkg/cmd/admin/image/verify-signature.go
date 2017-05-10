@@ -57,8 +57,7 @@ var (
 			--expected-identity=registry.local:5000/foo/bar:v1 --save
 
 	# Remove all signature verifications from the image
-	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \
-			--expected-identity=registry.local:5000/foo/bar:v1 --remove-all
+	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 --remove-all
 	`)
 )
 
@@ -79,6 +78,10 @@ type VerifyImageSignatureOptions struct {
 	ErrOut io.Writer
 }
 
+const (
+	VerifyRecommendedName = "verify-image-signature"
+)
+
 func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	opts := &VerifyImageSignatureOptions{
 		ErrOut:       errOut,
@@ -93,7 +96,7 @@ func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out
 		Use:     fmt.Sprintf("%s IMAGE --expected-identity=EXPECTED_IDENTITY [--save]", name),
 		Short:   "Verify the image identity contained in the image signature",
 		Long:    verifyImageSignatureLongDesc,
-		Example: fmt.Sprintf(verifyImageSignatureExample, name),
+		Example: fmt.Sprintf(verifyImageSignatureExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(opts.Validate())
 			kcmdutil.CheckErr(opts.Complete(f, cmd, args, out))
