@@ -15,18 +15,20 @@ import (
 // to the current time if it is nil.  It will also set the start timestamp to
 // the same value if it is nil.  Returns true if the build object was
 // modified.
-func SetBuildCompletionTimeAndDuration(build *buildapi.Build) bool {
+func SetBuildCompletionTimeAndDuration(build *buildapi.Build, startTime *metav1.Time) bool {
 	if build.Status.CompletionTimestamp != nil {
 		return false
 	}
 	now := metav1.Now()
 	build.Status.CompletionTimestamp = &now
 	// apparently this build completed so fast we didn't see the pod running event,
-	// so just use the completion time as the start time.
+	// so just use the pod start time as the start time.
 	if build.Status.StartTimestamp == nil {
-		build.Status.StartTimestamp = &now
+		build.Status.StartTimestamp = startTime
 	}
-	build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	if build.Status.StartTimestamp != nil {
+		build.Status.Duration = build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
+	}
 	return true
 }
 
