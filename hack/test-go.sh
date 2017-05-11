@@ -187,12 +187,11 @@ if [[ -n "${junit_report}" ]]; then
 
     go test -i ${gotest_flags} ${test_packages}
     go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${test_output_file}"
-
-    JUNIT_REPORT_OUTPUT="${test_output_file}" os::test::junit::generate_gotest_report
-
     test_return_code="${PIPESTATUS[0]}"
 
     set -o pipefail
+
+    JUNIT_REPORT_OUTPUT="${test_output_file}" os::test::junit::generate_gotest_report
 
     echo
     summary="$( junitreport summarize < "${junit_report_file}" )"
