@@ -52,6 +52,7 @@ type BuildController struct {
 	buildConfigGetter buildclient.BuildConfigGetter
 	buildDeleter      buildclient.BuildDeleter
 	podClient         kcoreclient.PodsGetter
+	kubeClient        kclientset.Interface
 
 	queue workqueue.RateLimitingInterface
 
@@ -113,6 +114,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildDeleter:      buildClient,
 		secretStore:       params.SecretInformer.Lister(),
 		podClient:         params.KubeClientInternal.Core(),
+		kubeClient:        params.KubeClientInternal,
 		podInformer:       params.PodInformer.Informer(),
 		podStore:          params.PodInformer.Lister(),
 		buildInformer:     params.BuildInformer.Informer(),
@@ -358,6 +360,11 @@ func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref stri
 	if err := bc.buildOverrides.ApplyOverrides(podSpec); err != nil {
 		return nil, fmt.Errorf("failed to apply build overrides for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
+
+	// Handle resolving ValueFrom references in build environment variables
+	if err := common.ResolveValueFrom(podSpec, bc.kubeClient); err != nil {
+		return nil, err
+	}
 	return podSpec, nil
 }
 
@@ -425,12 +432,18 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	// Create the build pod spec
 	buildPod, err := bc.createPodSpec(build, ref)
 	if err != nil {
+		switch err.(type) {
+		case common.ErrEnvVarResolver:
+			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonUnresolvableEnvironmentVariable, fmt.Sprintf("%v, %v", buildapi.StatusMessageUnresolvableEnvironmentVariable, err.Error()))
+		default:
+			update.setReason(buildapi.StatusReasonCannotCreateBuildPodSpec)
+			update.setMessage(buildapi.StatusMessageCannotCreateBuildPodSpec)
+
+		}
 		// If an error occurred when creating the pod spec, it likely means
 		// that the build is something we don't understand. For example, it could
 		// have a strategy that we don't recognize. It will remain in New state
 		// and be updated with the reason that it is still in New
-		update.setReason(buildapi.StatusReasonCannotCreateBuildPodSpec)
-		update.setMessage(buildapi.StatusMessageCannotCreateBuildPodSpec)
 
 		// The error will be logged, but will not be returned to the caller
 		// to be retried. The reason is that there's really no external factor

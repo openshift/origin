@@ -54,6 +54,7 @@ func init() {
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/optimizeddocker", "builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline").RuleOrDie(),
 			rbac.NewRule("get", "list").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 			rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			eventsRule(),

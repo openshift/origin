@@ -318,3 +318,59 @@ func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
 	newConfig.ScriptsURL, _ = s2iutil.SafeForLoggingURL(newConfig.ScriptsURL)
 	return &newConfig
 }
+
+// GetBuildEnv gets the build strategy environment
+func GetBuildEnv(build *buildapi.Build) []kapi.EnvVar {
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		return build.Spec.Strategy.SourceStrategy.Env
+	case build.Spec.Strategy.DockerStrategy != nil:
+		return build.Spec.Strategy.DockerStrategy.Env
+	case build.Spec.Strategy.CustomStrategy != nil:
+		return build.Spec.Strategy.CustomStrategy.Env
+	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return build.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return nil
+	}
+}
+
+// SetBuildEnv replaces the current build environment
+func SetBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
+	var oldEnv *[]kapi.EnvVar
+
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		oldEnv = &build.Spec.Strategy.SourceStrategy.Env
+	case build.Spec.Strategy.DockerStrategy != nil:
+		oldEnv = &build.Spec.Strategy.DockerStrategy.Env
+	case build.Spec.Strategy.CustomStrategy != nil:
+		oldEnv = &build.Spec.Strategy.CustomStrategy.Env
+	case build.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		oldEnv = &build.Spec.Strategy.JenkinsPipelineStrategy.Env
+	}
+	*oldEnv = env
+
+}
+
+// UpdateBuildEnv updates the strategy environment
+// This will replace the existing variable definitions with provided env
+func UpdateBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
+	buildEnv := GetBuildEnv(build)
+
+	newEnv := []kapi.EnvVar{}
+	for _, e := range buildEnv {
+		exists := false
+		for _, n := range env {
+			if e.Name == n.Name {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			newEnv = append(newEnv, e)
+		}
+	}
+	newEnv = append(newEnv, env...)
+	SetBuildEnv(build, newEnv)
+}

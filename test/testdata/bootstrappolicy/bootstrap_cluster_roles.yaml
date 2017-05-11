@@ -3619,6 +3619,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - configmaps
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - pods
     verbs:
     - create

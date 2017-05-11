@@ -1873,29 +1873,6 @@ func TestValidateCommonSpec(t *testing.T) {
 			},
 		},
 		// 32
-		// jenkins strategy env fields can't use valueFrom syntax
-		{
-			string(field.ErrorTypeInvalid) + "strategy.jenkinsPipelineStrategy.env[0].valueFrom",
-			buildapi.CommonSpec{
-				Source: buildapi.BuildSource{
-					Git: &buildapi.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-				},
-				Strategy: buildapi.BuildStrategy{
-					JenkinsPipelineStrategy: &buildapi.JenkinsPipelineBuildStrategy{
-						JenkinsfilePath: "myJenkinsfile",
-						Env: []kapi.EnvVar{
-							{
-								Name:      "key",
-								ValueFrom: &kapi.EnvVarSource{},
-							},
-						},
-					},
-				},
-			},
-		},
-		// 33
 		{
 			string(field.ErrorTypeRequired) + "output.imageLabels[0].name",
 			buildapi.CommonSpec{
@@ -1917,7 +1894,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 34
+		// 33
 		{
 			string(field.ErrorTypeInvalid) + "output.imageLabels[0].name",
 			buildapi.CommonSpec{
@@ -1939,7 +1916,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 35
+		// 34
 		// duplicate labels
 		{
 			string(field.ErrorTypeInvalid) + "output.imageLabels[1].name",
@@ -1966,7 +1943,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 36
+		// 35
 		// nonconsecutive duplicate labels
 		{
 			string(field.ErrorTypeInvalid) + "output.imageLabels[3].name",
@@ -2005,7 +1982,7 @@ func TestValidateCommonSpec(t *testing.T) {
 				},
 			},
 		},
-		// 37
+		// 36
 		// invalid nodeselector
 		{
 			string(field.ErrorTypeInvalid) + "nodeSelector[A@B!]",
@@ -2687,20 +2664,7 @@ func TestValidateStrategyEnvVars(t *testing.T) {
 			errField:    "env[0].name",
 			errType:     field.ErrorTypeInvalid,
 		},
-		// 2: valueFrom present in env var
-		{
-			env: []kapi.EnvVar{
-				{
-					Name:      "name",
-					Value:     "test",
-					ValueFrom: &kapi.EnvVarSource{},
-				},
-			},
-			errExpected: true,
-			errField:    "env[0].valueFrom",
-			errType:     field.ErrorTypeInvalid,
-		},
-		// 3: valid env
+		// 2: valid env
 		{
 			env: []kapi.EnvVar{
 				{

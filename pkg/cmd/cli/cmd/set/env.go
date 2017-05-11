@@ -12,18 +12,17 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/fieldpath"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	envutil "github.com/openshift/origin/pkg/util/env"
 )
 
 var (
@@ -165,108 +164,6 @@ func validateNoOverwrites(existing []kapi.EnvVar, env []kapi.EnvVar) error {
 func keyToEnvName(key string) string {
 	validEnvNameRegexp := regexp.MustCompile("[^a-zA-Z0-9_]")
 	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
-}
-
-type resourceStore struct {
-	secretStore    map[string]*kapi.Secret
-	configMapStore map[string]*kapi.ConfigMap
-}
-
-func newResourceStore() *resourceStore {
-	return &resourceStore{
-		secretStore:    make(map[string]*kapi.Secret),
-		configMapStore: make(map[string]*kapi.ConfigMap),
-	}
-}
-
-func getSecretRefValue(f *clientcmd.Factory, store *resourceStore, secretSelector *kapi.SecretKeySelector) (string, error) {
-	secret, ok := store.secretStore[secretSelector.Name]
-	if !ok {
-		kubeClient, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		namespace, _, err := f.DefaultNamespace()
-		if err != nil {
-			return "", err
-		}
-		secret, err = kubeClient.Core().Secrets(namespace).Get(secretSelector.Name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		store.secretStore[secretSelector.Name] = secret
-	}
-	if data, ok := secret.Data[secretSelector.Key]; ok {
-		return string(data), nil
-	}
-	return "", fmt.Errorf("key %s not found in secret %s", secretSelector.Key, secretSelector.Name)
-}
-
-func getConfigMapRefValue(f *clientcmd.Factory, store *resourceStore, configMapSelector *kapi.ConfigMapKeySelector) (string, error) {
-	configMap, ok := store.configMapStore[configMapSelector.Name]
-	if !ok {
-		kubeClient, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		namespace, _, err := f.DefaultNamespace()
-		if err != nil {
-			return "", err
-		}
-		configMap, err = kubeClient.Core().ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		store.configMapStore[configMapSelector.Name] = configMap
-	}
-	if data, ok := configMap.Data[configMapSelector.Key]; ok {
-		return string(data), nil
-	}
-	return "", fmt.Errorf("key %s not found in config map %s", configMapSelector.Key, configMapSelector.Name)
-}
-
-func getEnvVarRefValue(f *clientcmd.Factory, store *resourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
-	if from.SecretKeyRef != nil {
-		return getSecretRefValue(f, store, from.SecretKeyRef)
-	}
-
-	if from.ConfigMapKeyRef != nil {
-		return getConfigMapRefValue(f, store, from.ConfigMapKeyRef)
-	}
-
-	if from.FieldRef != nil {
-		return fieldpath.ExtractFieldPathAsString(obj, from.FieldRef.FieldPath)
-	}
-
-	if from.ResourceFieldRef != nil {
-		return fieldpath.InternalExtractContainerResourceValue(from.ResourceFieldRef, c)
-	}
-
-	return "", fmt.Errorf("invalid valueFrom")
-}
-
-func getEnvVarRefString(from *kapi.EnvVarSource) string {
-	if from.ConfigMapKeyRef != nil {
-		return fmt.Sprintf("configmap %s, key %s", from.ConfigMapKeyRef.Name, from.ConfigMapKeyRef.Key)
-	}
-
-	if from.SecretKeyRef != nil {
-		return fmt.Sprintf("secret %s, key %s", from.SecretKeyRef.Name, from.SecretKeyRef.Key)
-	}
-
-	if from.FieldRef != nil {
-		return fmt.Sprintf("field path %s", from.FieldRef.FieldPath)
-	}
-
-	if from.ResourceFieldRef != nil {
-		containerPrefix := ""
-		if from.ResourceFieldRef.ContainerName != "" {
-			containerPrefix = fmt.Sprintf("%s/", from.ResourceFieldRef.ContainerName)
-		}
-		return fmt.Sprintf("resource field %s%s", containerPrefix, from.ResourceFieldRef.Resource)
-	}
-
-	return "invalid valueFrom"
 }
 
 func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
@@ -450,7 +347,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 				if o.List {
 					resolveErrors := map[string][]string{}
-					store := newResourceStore()
+					store := envutil.NewResourceStore()
 
 					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
 					for _, env := range c.Env {
@@ -462,11 +359,11 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 						// Print the reference version
 						if !o.Resolve {
-							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, getEnvVarRefString(env.ValueFrom))
+							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envutil.GetEnvVarRefString(env.ValueFrom))
 							continue
 						}
 
-						value, err := getEnvVarRefValue(f, store, env.ValueFrom, info.Object, c)
+						value, err := envutil.GetEnvVarRefValue(f, nil, "", store, env.ValueFrom, info.Object, c)
 						// Print the resolved value
 						if err == nil {
 							fmt.Fprintf(o.Out, "%s=%s\n", env.Name, value)
@@ -474,7 +371,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 						}
 
 						// Print the reference version and save the resolve error
-						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, getEnvVarRefString(env.ValueFrom))
+						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envutil.GetEnvVarRefString(env.ValueFrom))
 						errString := err.Error()
 						resolveErrors[errString] = append(resolveErrors[errString], env.Name)
 						resolutionErrorsEncountered = true

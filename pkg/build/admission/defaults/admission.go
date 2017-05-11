@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
@@ -103,10 +104,9 @@ func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
 
 func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	// Apply default env
-	buildEnv := getBuildEnv(build)
 	for _, envVar := range b.config.Env {
 		glog.V(5).Infof("Adding default environment variable %s=%s to build %s/%s", envVar.Name, envVar.Value, build.Namespace, build.Name)
-		addDefaultEnvVar(envVar, buildEnv)
+		addDefaultEnvVar(build, envVar)
 	}
 
 	// Apply default labels
@@ -174,29 +174,16 @@ func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
 	}
 }
 
-func getBuildEnv(build *buildapi.Build) *[]kapi.EnvVar {
-	switch {
-	case build.Spec.Strategy.DockerStrategy != nil:
-		return &build.Spec.Strategy.DockerStrategy.Env
-	case build.Spec.Strategy.SourceStrategy != nil:
-		return &build.Spec.Strategy.SourceStrategy.Env
-	case build.Spec.Strategy.CustomStrategy != nil:
-		return &build.Spec.Strategy.CustomStrategy.Env
-	}
-	return nil
-}
+func addDefaultEnvVar(build *buildapi.Build, v kapi.EnvVar) {
+	envVars := buildutil.GetBuildEnv(build)
 
-func addDefaultEnvVar(v kapi.EnvVar, envVars *[]kapi.EnvVar) {
-	if envVars == nil {
-		return
-	}
-
-	for i := range *envVars {
-		if (*envVars)[i].Name == v.Name {
+	for i := range envVars {
+		if envVars[i].Name == v.Name {
 			return
 		}
 	}
-	*envVars = append(*envVars, v)
+	envVars = append(envVars, v)
+	buildutil.SetBuildEnv(build, envVars)
 }
 
 func addDefaultLabel(defaultLabel buildapi.ImageLabel, buildLabels *[]buildapi.ImageLabel) {

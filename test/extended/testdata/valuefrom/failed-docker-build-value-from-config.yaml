@@ -1,0 +1,48 @@
+
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: '7.0'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+                fieldPath: metadata.nofield
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: nokey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: nousername
+
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
