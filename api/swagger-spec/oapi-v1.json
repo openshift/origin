@@ -26007,6 +26007,15 @@
        "type": "string"
       },
       "description": "iSCSI target portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260)."
+     },
+     "chapAuthDiscovery": {
+      "type": "boolean"
+     },
+     "chapAuthSession": {
+      "type": "boolean"
+     },
+     "secretRef": {
+      "$ref": "v1.LocalObjectReference"
      }
     }
    },
