@@ -755,7 +755,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSDNController()
 
 	// initializes quota docs used by admission
-	oc.RunResourceQuotaManager(nil)
+	oc.RunResourceQuotaManager(controllerManagerOptions)
 	oc.RunClusterQuotaReconciliationController()
 	oc.RunClusterQuotaMappingController()
 
