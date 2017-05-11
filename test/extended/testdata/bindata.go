@@ -133,7 +133,7 @@
 // test/extended/testdata/test-build-app/config.ru
 // test/extended/testdata/test-build-podsvc.json
 // test/extended/testdata/test-build-postcommit.json
-// test/extended/testdata/test-build-proxy.json
+// test/extended/testdata/test-build-proxy.yaml
 // test/extended/testdata/test-build-revision.json
 // test/extended/testdata/test-build.json
 // test/extended/testdata/test-buildconfigsecretinjector.yaml
@@ -7033,117 +7033,111 @@ func testExtendedTestdataTestBuildPostcommitJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestBuildProxyJson = []byte(`{
-  "kind": "List",
-  "apiVersion": "v1",
-  "metadata": {},
-  "items": [
-    {
-      "kind": "ImageStream",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
-      },
-      "spec": {},
-      "status": {
-        "dockerImageRepository": ""
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git",
-            "httpProxy": "127.0.0.1:3128",
-            "httpsProxy": "127.0.0.1:3128"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              { "name": "HTTPS_PROXY", "value": "127.0.0.1:3128" },
-              { "name": "HTTP_PROXY", "value": "127.0.0.1:3128" }
-            ],
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "sample-build-noproxy",
-        "creationTimestamp": null
-      },
-      "spec": {
-        "triggers": [
-          {
-            "type": "imageChange",
-            "imageChange": {}
-          }
-        ],
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/ruby-hello-world.git",
-            "httpProxy": "127.0.0.1:3128",
-            "httpsProxy": "127.0.0.1:3128",
-            "noProxy": "github.com"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "from": {
-              "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
-            }
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    }
-  ]
-}
+var _testExtendedTestdataTestBuildProxyYaml = []byte(`kind: List
+apiVersion: v1
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: origin-ruby-sample
+    creationTimestamp: 
+  spec: {}
+  status:
+    dockerImageRepository: ''
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: 127.0.0.1:3128
+        httpsProxy: 127.0.0.1:3128
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: HTTPS_PROXY
+          value: 127.0.0.1:3128
+        - name: HTTP_PROXY
+          value: 127.0.0.1:3128
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-s2i-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-docker-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com
 `)
 
-func testExtendedTestdataTestBuildProxyJsonBytes() ([]byte, error) {
-	return _testExtendedTestdataTestBuildProxyJson, nil
+func testExtendedTestdataTestBuildProxyYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestBuildProxyYaml, nil
 }
 
-func testExtendedTestdataTestBuildProxyJson() (*asset, error) {
-	bytes, err := testExtendedTestdataTestBuildProxyJsonBytes()
+func testExtendedTestdataTestBuildProxyYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestBuildProxyYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/test-build-proxy.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/test-build-proxy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19159,7 +19153,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-build-app/config.ru": testExtendedTestdataTestBuildAppConfigRu,
 	"test/extended/testdata/test-build-podsvc.json": testExtendedTestdataTestBuildPodsvcJson,
 	"test/extended/testdata/test-build-postcommit.json": testExtendedTestdataTestBuildPostcommitJson,
-	"test/extended/testdata/test-build-proxy.json": testExtendedTestdataTestBuildProxyJson,
+	"test/extended/testdata/test-build-proxy.yaml": testExtendedTestdataTestBuildProxyYaml,
 	"test/extended/testdata/test-build-revision.json": testExtendedTestdataTestBuildRevisionJson,
 	"test/extended/testdata/test-build.json": testExtendedTestdataTestBuildJson,
 	"test/extended/testdata/test-buildconfigsecretinjector.yaml": testExtendedTestdataTestBuildconfigsecretinjectorYaml,
@@ -19535,7 +19529,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"test-build-podsvc.json": &bintree{testExtendedTestdataTestBuildPodsvcJson, map[string]*bintree{}},
 				"test-build-postcommit.json": &bintree{testExtendedTestdataTestBuildPostcommitJson, map[string]*bintree{}},
-				"test-build-proxy.json": &bintree{testExtendedTestdataTestBuildProxyJson, map[string]*bintree{}},
+				"test-build-proxy.yaml": &bintree{testExtendedTestdataTestBuildProxyYaml, map[string]*bintree{}},
 				"test-build-revision.json": &bintree{testExtendedTestdataTestBuildRevisionJson, map[string]*bintree{}},
 				"test-build.json": &bintree{testExtendedTestdataTestBuildJson, map[string]*bintree{}},
 				"test-buildconfigsecretinjector.yaml": &bintree{testExtendedTestdataTestBuildconfigsecretinjectorYaml, map[string]*bintree{}},

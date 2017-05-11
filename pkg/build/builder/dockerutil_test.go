@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fsouza/go-dockerclient"
+	docker "github.com/fsouza/go-dockerclient"
 )
 
 type FakeDocker struct {
@@ -520,5 +520,46 @@ func TestSimpleProgress(t *testing.T) {
 			t.Errorf("%s: expected %q, got:\n%s\n", tc.Filename, tc.Expected, outputStr)
 			continue
 		}
+	}
+}
+
+var credsRegex = regexp.MustCompile("user:password")
+var redactedRegex = regexp.MustCompile("redacted")
+
+func TestSafeForLoggingDockerCreateOptions(t *testing.T) {
+	opts := &docker.CreateContainerOptions{
+		Config: &docker.Config{
+
+			Env: []string{
+				"http_proxy=http://user:password@proxy.com",
+				"ignore=http://user:password@proxy.com",
+			},
+		},
+	}
+	stripped := SafeForLoggingDockerCreateOptions(opts)
+	if credsRegex.MatchString(stripped.Config.Env[0]) {
+		t.Errorf("stripped proxy variable %s should not contain credentials", stripped.Config.Env[0])
+	}
+	if !redactedRegex.MatchString(stripped.Config.Env[0]) {
+		t.Errorf("stripped proxy variable %s should contain redacted", stripped.Config.Env[0])
+	}
+	if !credsRegex.MatchString(stripped.Config.Env[1]) {
+		t.Errorf("stripped other variable %s should contain credentials", stripped.Config.Env[1])
+	}
+	if redactedRegex.MatchString(stripped.Config.Env[1]) {
+		t.Errorf("stripped other variable %s should not contain redacted", stripped.Config.Env[1])
+	}
+
+	if !credsRegex.MatchString(opts.Config.Env[0]) {
+		t.Errorf("original proxy variable %s should contain credentials", opts.Config.Env[0])
+	}
+	if redactedRegex.MatchString(opts.Config.Env[0]) {
+		t.Errorf("original proxy variable %s should not contain redacted", opts.Config.Env[0])
+	}
+	if !credsRegex.MatchString(opts.Config.Env[1]) {
+		t.Errorf("original other variable %s should contain credentials", opts.Config.Env[1])
+	}
+	if redactedRegex.MatchString(opts.Config.Env[1]) {
+		t.Errorf("original other variable %s should not contain redacted", opts.Config.Env[1])
 	}
 }

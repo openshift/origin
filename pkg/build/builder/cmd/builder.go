@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/build/api/validation"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
+	"github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/version"
@@ -47,17 +48,32 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 
 	cfg.out = out
 
-	// build (BUILD)
 	buildStr := os.Getenv("BUILD")
-	glog.V(4).Infof("$BUILD env var is %s \n", buildStr)
 	cfg.build = &api.Build{}
-	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), []byte(buildStr), cfg.build); err != nil {
-		return nil, fmt.Errorf("unable to parse build: %v", err)
+
+	obj, groupVersionKind, err := kapi.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse build string: %v", err)
+	}
+	ok := false
+	cfg.build, ok = obj.(*api.Build)
+	if !ok {
+		return nil, fmt.Errorf("build string is not a build: %v", err)
+	}
+	if glog.V(4) {
+		redactedBuild := util.SafeForLoggingBuild(cfg.build)
+		if err != nil {
+			return nil, fmt.Errorf("unable to strip proxy credentials from build: %v", err)
+		}
+		bytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(groupVersionKind.GroupVersion()), redactedBuild)
+		if err != nil {
+			return nil, fmt.Errorf("unable to serialize build: %v", err)
+		}
+		glog.V(4).Infof("redacted build: %v", string(bytes))
 	}
 	if errs := validation.ValidateBuild(cfg.build); len(errs) > 0 {
 		return nil, errors.NewInvalid(schema.GroupKind{Kind: "Build"}, cfg.build.Name, errs)
 	}
-	glog.V(4).Infof("Build: %#v", cfg.build)
 
 	masterVersion := os.Getenv(api.OriginVersion)
 	thisVersion := version.Get().String()
