@@ -12,7 +12,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	buildapi "github.com/openshift/origin/pkg/build/api"
 
 	// we need the conversions registered for our init block
 	_ "github.com/openshift/origin/pkg/authorization/api/install"
@@ -20,7 +19,6 @@ import (
 
 const (
 	InfraBuildControllerServiceAccountName = "build-controller"
-	BuildControllerRoleName                = "system:build-controller"
 
 	InfraDeploymentConfigControllerServiceAccountName = "deploymentconfig-controller"
 	DeploymentConfigControllerRoleName                = "system:deploymentconfig-controller"
@@ -123,57 +121,10 @@ func (r *InfraServiceAccounts) AllRoles() []authorizationapi.ClusterRole {
 }
 
 func init() {
+	var err error
+
 	InfraSAs.serviceAccounts = sets.String{}
 	InfraSAs.saToRole = map[string]authorizationapi.ClusterRole{}
-
-	var err error
-	err = InfraSAs.addServiceAccount(
-		InfraBuildControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: BuildControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// BuildControllerFactory.buildLW
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("builds"),
-				},
-				// BuildController.BuildUpdater (OSClientBuildClient)
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("builds"),
-				},
-				// Create permission on virtual build type resources allows builds of those types to be updated
-				{
-					Verbs:     sets.NewString("create"),
-					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline"),
-					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
-				},
-				// BuildController.ImageStreamClient (ControllerClient)
-				{
-					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("imagestreams"),
-				},
-				// BuildController.PodManager (ControllerClient)
-				// BuildDeleteController.PodManager (ControllerClient)
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// BuildController.Recorder (EventBroadcaster)
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
 
 	err = InfraSAs.addServiceAccount(
 		InfraDeploymentConfigControllerServiceAccountName,

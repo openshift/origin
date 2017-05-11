@@ -2872,64 +2872,9 @@ items:
 - apiVersion: v1
   kind: ClusterRole
   metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:build-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - builds
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - builds
-    verbs:
-    - update
-  - apiGroups:
-    - build.openshift.io
-    - ""
-    attributeRestrictions: null
-    resources:
-    - builds/custom
-    - builds/docker
-    - builds/jenkinspipeline
-    - builds/source
-    verbs:
-    - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - imagestreams
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
+  rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -3548,6 +3493,63 @@ items:
     - deploymentconfigs
     verbs:
     - get
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:build-controller
+  rules:
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds/custom
+    - builds/docker
+    - builds/jenkinspipeline
+    - builds/source
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
     - patch
     - update
 - apiVersion: v1
