@@ -114,18 +114,6 @@ func NewAttachDetachController(
 		cloud:       cloud,
 	}
 
-	podInformer.Informer().AddEventHandler(kcache.ResourceEventHandlerFuncs{
-		AddFunc:    adc.podAdd,
-		UpdateFunc: adc.podUpdate,
-		DeleteFunc: adc.podDelete,
-	})
-
-	nodeInformer.Informer().AddEventHandler(kcache.ResourceEventHandlerFuncs{
-		AddFunc:    adc.nodeAdd,
-		UpdateFunc: adc.nodeUpdate,
-		DeleteFunc: adc.nodeDelete,
-	})
-
 	if err := adc.volumePluginMgr.InitPlugins(plugins, adc); err != nil {
 		return nil, fmt.Errorf("Could not initialize volume plugins for Attach/Detach Controller: %+v", err)
 	}
@@ -165,6 +153,18 @@ func NewAttachDetachController(
 		&adc.volumePluginMgr,
 		pvcInformer.Lister(),
 		pvInformer.Lister())
+
+	podInformer.Informer().AddEventHandler(kcache.ResourceEventHandlerFuncs{
+		AddFunc:    adc.podAdd,
+		UpdateFunc: adc.podUpdate,
+		DeleteFunc: adc.podDelete,
+	})
+
+	nodeInformer.Informer().AddEventHandler(kcache.ResourceEventHandlerFuncs{
+		AddFunc:    adc.nodeAdd,
+		UpdateFunc: adc.nodeUpdate,
+		DeleteFunc: adc.nodeDelete,
+	})
 
 	return adc, nil
 }
