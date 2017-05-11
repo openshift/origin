@@ -462,12 +462,20 @@ func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventTyp
 	pod := obj.(*kapi.Pod)
 	glog.V(5).Infof("Watch %s event for Pod %q", eventType, getPodFullName(pod))
 
+	// Ignore pods with HostNetwork=true, SDN is not involved in this case
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+		return
+	}
+	if pod.Status.PodIP == "" {
+		glog.Warningf("PodIP is not set for pod %q", getPodFullName(pod))
+		return
+	}
+
 	// We don't want to grab np.Lock for every Pod.Status change...
 	// But it's safe to look up oldPod without locking here because no other
 	// threads modify this map.
 	oldPod, podExisted := np.pods[pod.UID]
-	if (podExisted && oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels)) ||
-		(pod.Status.PodIP == "") {
+	if podExisted && oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels) {
 		return
 	}
 
