@@ -43,6 +43,15 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		err := oc.Run("policy").Args("add-role-to-user", "registry-viewer", "system:anonymous").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		adminClientConfig, err := testutil.GetClusterAdminClientConfig(exutil.KubeConfigPath())
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		registryClient, _, _, err := testutil.GetClientForUser(*adminClientConfig, "system:serviceaccount:default:registry")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = testutil.WaitForClusterPolicyUpdate(registryClient, "get", imageapi.Resource("imagestreams"), true)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		dClient, err := testutil.NewDockerClient()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
