@@ -350,8 +350,6 @@ os::cmd::expect_success 'oc delete secret dbsecret'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld -o name' 'service/frontend'
 os::cmd::expect_success 'oc delete all -l app=helloworld'
 os::cmd::expect_success 'oc delete secret dbsecret'
-# create from template with code explicitly set is not supported
-os::cmd::expect_failure 'oc new-app ruby-helloworld-sample~git@github.com:mfojtik/sinatra-app-example'
 os::cmd::expect_success 'oc delete template ruby-helloworld-sample'
 # override component names
 os::cmd::expect_success_and_text 'oc new-app mysql --name=db' 'db'
