@@ -123,7 +123,7 @@ func autoConvert_api_PodSecurityPolicyReviewStatus_To_v1_PodSecurityPolicyReview
 			}
 		}
 	} else {
-		out.AllowedServiceAccounts = make([]ServiceAccountPodSecurityPolicyReviewStatus, 0)
+		out.AllowedServiceAccounts = nil
 	}
 	return nil
 }

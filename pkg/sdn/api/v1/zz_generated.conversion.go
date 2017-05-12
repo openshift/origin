@@ -82,11 +82,7 @@ func Convert_v1_ClusterNetworkList_To_api_ClusterNetworkList(in *ClusterNetworkL
 
 func autoConvert_api_ClusterNetworkList_To_v1_ClusterNetworkList(in *api.ClusterNetworkList, out *ClusterNetworkList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]ClusterNetwork, 0)
-	} else {
-		out.Items = *(*[]ClusterNetwork)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]ClusterNetwork)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -130,11 +126,7 @@ func Convert_v1_EgressNetworkPolicyList_To_api_EgressNetworkPolicyList(in *Egres
 
 func autoConvert_api_EgressNetworkPolicyList_To_v1_EgressNetworkPolicyList(in *api.EgressNetworkPolicyList, out *EgressNetworkPolicyList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]EgressNetworkPolicy, 0)
-	} else {
-		out.Items = *(*[]EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]EgressNetworkPolicy)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -196,11 +188,7 @@ func Convert_v1_EgressNetworkPolicySpec_To_api_EgressNetworkPolicySpec(in *Egres
 }
 
 func autoConvert_api_EgressNetworkPolicySpec_To_v1_EgressNetworkPolicySpec(in *api.EgressNetworkPolicySpec, out *EgressNetworkPolicySpec, s conversion.Scope) error {
-	if in.Egress == nil {
-		out.Egress = make([]EgressNetworkPolicyRule, 0)
-	} else {
-		out.Egress = *(*[]EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
-	}
+	out.Egress = *(*[]EgressNetworkPolicyRule)(unsafe.Pointer(&in.Egress))
 	return nil
 }
 
@@ -244,11 +232,7 @@ func Convert_v1_HostSubnetList_To_api_HostSubnetList(in *HostSubnetList, out *ap
 
 func autoConvert_api_HostSubnetList_To_v1_HostSubnetList(in *api.HostSubnetList, out *HostSubnetList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]HostSubnet, 0)
-	} else {
-		out.Items = *(*[]HostSubnet)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]HostSubnet)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -290,11 +274,7 @@ func Convert_v1_NetNamespaceList_To_api_NetNamespaceList(in *NetNamespaceList, o
 
 func autoConvert_api_NetNamespaceList_To_v1_NetNamespaceList(in *api.NetNamespaceList, out *NetNamespaceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]NetNamespace, 0)
-	} else {
-		out.Items = *(*[]NetNamespace)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]NetNamespace)(unsafe.Pointer(&in.Items))
 	return nil
 }
 

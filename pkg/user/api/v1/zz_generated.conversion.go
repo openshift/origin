@@ -49,11 +49,7 @@ func Convert_v1_Group_To_api_Group(in *Group, out *api.Group, s conversion.Scope
 
 func autoConvert_api_Group_To_v1_Group(in *api.Group, out *Group, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if in.Users == nil {
-		out.Users = make(OptionalNames, 0)
-	} else {
-		out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
-	}
+	out.Users = *(*OptionalNames)(unsafe.Pointer(&in.Users))
 	return nil
 }
 
@@ -73,11 +69,7 @@ func Convert_v1_GroupList_To_api_GroupList(in *GroupList, out *api.GroupList, s 
 
 func autoConvert_api_GroupList_To_v1_GroupList(in *api.GroupList, out *GroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]Group, 0)
-	} else {
-		out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]Group)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -146,7 +138,7 @@ func autoConvert_api_IdentityList_To_v1_IdentityList(in *api.IdentityList, out *
 			}
 		}
 	} else {
-		out.Items = make([]Identity, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -170,16 +162,8 @@ func Convert_v1_User_To_api_User(in *User, out *api.User, s conversion.Scope) er
 func autoConvert_api_User_To_v1_User(in *api.User, out *User, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.FullName = in.FullName
-	if in.Identities == nil {
-		out.Identities = make([]string, 0)
-	} else {
-		out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
-	}
-	if in.Groups == nil {
-		out.Groups = make([]string, 0)
-	} else {
-		out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
-	}
+	out.Identities = *(*[]string)(unsafe.Pointer(&in.Identities))
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
 	return nil
 }
 
@@ -229,11 +213,7 @@ func Convert_v1_UserList_To_api_UserList(in *UserList, out *api.UserList, s conv
 
 func autoConvert_api_UserList_To_v1_UserList(in *api.UserList, out *UserList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]User, 0)
-	} else {
-		out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]User)(unsafe.Pointer(&in.Items))
 	return nil
 }
 

@@ -99,7 +99,7 @@ func autoConvert_api_AppliedClusterResourceQuotaList_To_v1_AppliedClusterResourc
 			}
 		}
 	} else {
-		out.Items = make([]AppliedClusterResourceQuota, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -169,7 +169,7 @@ func autoConvert_api_ClusterResourceQuotaList_To_v1_ClusterResourceQuotaList(in 
 			}
 		}
 	} else {
-		out.Items = make([]ClusterResourceQuota, 0)
+		out.Items = nil
 	}
 	return nil
 }
