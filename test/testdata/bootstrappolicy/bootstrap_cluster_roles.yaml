@@ -3547,6 +3547,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - namespaces
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - events
     verbs:
     - create

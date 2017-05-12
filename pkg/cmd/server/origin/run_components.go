@@ -12,7 +12,6 @@ import (
 	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/flowcontrol"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
@@ -24,19 +23,15 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildpodcontroller "github.com/openshift/origin/pkg/build/controller/buildpod"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -44,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/controller/shared"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
@@ -241,69 +235,6 @@ func (c *MasterConfig) RunDNSServer() {
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
 	c.ProjectCache.Run()
-}
-
-// RunBuildController starts the build sync loop for builds and buildConfig processing.
-func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) error {
-	// initialize build controller
-	dockerImage := c.ImageFor("docker-builder")
-	stiImage := c.ImageFor("sti-builder")
-
-	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
-	codec := kapi.Codecs.LegacyCodec(groupVersion)
-
-	pluginInitializer := kubeadmission.NewPluginInitializer(
-		c.KubeClientsetInternal(),
-		c.Informers.InternalKubernetesInformers(),
-		nil, // api authorizer, only used by PSP
-		nil, // cloud config
-	)
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
-	if err != nil {
-		return err
-	}
-
-	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
-	if err != nil {
-		return err
-	}
-	buildOverrides, err := buildoverrides.NewBuildOverrides(c.Options.AdmissionConfig.PluginConfig)
-	if err != nil {
-		return err
-	}
-
-	osclient, internalKubeClientset, externalKubeClientset := c.BuildControllerClients()
-	factory := buildcontrollerfactory.BuildControllerFactory{
-		KubeClient:         internalKubeClientset,
-		ExternalKubeClient: externalKubeClientset,
-		OSClient:           osclient,
-		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
-		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
-		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image: dockerImage,
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: codec,
-		},
-		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: stiImage,
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:            codec,
-			AdmissionControl: admissionControl,
-		},
-		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: codec,
-		},
-		BuildDefaults:  buildDefaults,
-		BuildOverrides: buildOverrides,
-	}
-
-	controller := factory.Create()
-	controller.Run()
-	deleteController := factory.CreateDeleteController()
-	deleteController.Run()
-	return nil
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
