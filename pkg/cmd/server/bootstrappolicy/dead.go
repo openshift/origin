@@ -49,5 +49,7 @@ func init() {
 
 	// these were moved under system:openshift:controller:*
 	addDeadClusterRole("system:build-controller")
+	addDeadClusterRole("system:deploymentconfig-controller")
+	addDeadClusterRole("system:deployment-controller")
 
 }
