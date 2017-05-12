@@ -1,6 +1,7 @@
 package swagger
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"net"
 	"reflect"
@@ -111,6 +112,57 @@ func TestCustomMarshaller_Issue96(t *testing.T) {
    }
   }
  }`)
+}
+
+// complexCustomMarshaler uses custom marshaling to output structured JSON that does not match its struct.
+type Complex struct {
+	Children ComplexCustomMarshaler `json:"children,omitempty"`
+}
+type ComplexCustomMarshaler struct {
+	Items map[string]int
+}
+type ComplexChild struct {
+	Name  string `json:"name,omitempty"`
+	Value int    `json:"value,omitempty"`
+}
+
+func (c ComplexCustomMarshaler) MarshalJSON() ([]byte, error) {
+	output := []ComplexChild{}
+	for k, v := range c.Items {
+		output = append(output, ComplexChild{Name: k, Value: v})
+	}
+	return json.Marshal(output)
+}
+func (_ ComplexCustomMarshaler) MarshalJSONSchema() reflect.Type {
+	return reflect.TypeOf([]ComplexChild{})
+}
+
+func TestComplexCustomMarshaller(t *testing.T) {
+	testJsonFromStruct(t, Complex{}, `{
+  "swagger.Complex": {
+    "id": "swagger.Complex",
+    "properties": {
+    "children": {
+      "type": "array",
+      "items": {
+       "$ref": "swagger.ComplexChild"
+      }
+     }
+    }
+  },
+  "swagger.ComplexChild": {
+    "id": "swagger.ComplexChild",
+    "properties": {
+    "name": {
+     "type": "string"
+    },
+    "value": {
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   }
+  }`)
 }
 
 // clear && go test -v -test.run TestPrimitiveTypes ...swagger
