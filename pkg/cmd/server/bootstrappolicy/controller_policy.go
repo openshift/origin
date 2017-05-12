@@ -46,12 +46,14 @@ func eventsRule() rbac.PolicyRule {
 
 func init() {
 	addControllerRole(rbac.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + "build-controller"},
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraBuildControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
-			rbac.NewRule("get", "list", "watch", "update").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "update", "delete").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
+			rbac.NewRule("get").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs").RuleOrDie(),
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline").RuleOrDie(),
 			rbac.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
 			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+			rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			eventsRule(),
 		},
 	})

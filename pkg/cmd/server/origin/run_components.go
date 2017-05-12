@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/admission"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/flowcontrol"
@@ -28,19 +27,15 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
-	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildpodcontroller "github.com/openshift/origin/pkg/build/controller/buildpod"
 	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -48,7 +43,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/controller/shared"
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
@@ -252,6 +246,7 @@ func (c *MasterConfig) RunProjectCache() {
 	c.ProjectCache.Run()
 }
 
+<<<<<<< HEAD
 // RunBuildController starts the build sync loop for builds and buildConfig processing.
 func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) error {
 	// initialize build controller
@@ -318,6 +313,8 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 	return nil
 }
 
+=======
+>>>>>>> 6f6552550b... rewire build controller initialization to use a controller init func
 // RunBuildPodController starts the build/pod status sync loop for build status
 func (c *MasterConfig) RunBuildPodController() {
 	buildInfomer := c.Informers.Builds().Informer()
