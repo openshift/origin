@@ -994,9 +994,14 @@ func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, k
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
-// DeploymentControllerClients returns the deployment controller client objects
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
+// DeploymentConfigClients returns deploymentConfig and deployment client objects
+func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetinternal.Interface) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
+}
+
+// DeployerControllerClients returns the deployer controller client objects
+func (c *MasterConfig) DeployerControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
+	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeployerControllerServiceAccountName)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -1019,7 +1024,11 @@ func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetin
 
 // DeploymentConfigControllerClients returns the deploymentConfig controller client objects
 func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
+	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, internalKubeClientset, externalKubeClientset
 }
 
 // DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object

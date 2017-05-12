@@ -341,16 +341,16 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 	factory.Create().Run()
 }
 
-// RunDeploymentController starts the deployment controller process.
-func (c *MasterConfig) RunDeploymentController() {
+// RunDeployerController starts the deployment controller process.
+func (c *MasterConfig) RunDeployerController() {
 	// TODO these should be external
 	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
 	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	_, internalKubeClientset, externalKubeClientset := c.DeploymentControllerClients()
+	_, internalKubeClientset, externalKubeClientset := c.DeployerControllerClients()
 
 	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		glog.Fatalf("Unable to initialize deployment controller: %v", err)
+		glog.Fatalf("Unable to initialize deployer controller: %v", err)
 	}
 	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
 	env := clientcmd.EnvVars(

@@ -755,7 +755,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		oc.RunBuildConfigChangeController()
 	}
 
-	oc.RunDeploymentController()
+	oc.RunDeployerController()
 	oc.RunDeploymentConfigController()
 	oc.RunDeploymentTriggerController()
 	oc.RunImageTriggerController()
