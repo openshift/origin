@@ -33,7 +33,7 @@ func (c *customBuildUpdater) Update(namespace string, build *buildapi.Build) err
 	return c.UpdateFunc(namespace, build)
 }
 
-func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
+func mockPod(status kapi.PodPhase, exitCode int, startTime *metav1.Time) *kapi.Pod {
 	return &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "data-build-build",
@@ -51,6 +51,7 @@ func mockPod(status kapi.PodPhase, exitCode int) *kapi.Pod {
 					},
 				},
 			},
+			StartTime: startTime,
 		},
 	}
 }
@@ -206,7 +207,7 @@ func TestHandlePod(t *testing.T) {
 			}
 		}
 		ctrl := mockBuildPodController(build, tc.buildUpdater)
-		pod := mockPod(tc.podStatus, tc.exitCode)
+		pod := mockPod(tc.podStatus, tc.exitCode, curtime)
 		if tc.matchID {
 			build.Name = "name"
 		}
@@ -259,7 +260,7 @@ func TestHandleBuildPodDeletionOK(t *testing.T) {
 			return nil
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err != nil {
@@ -281,7 +282,7 @@ func TestHandlePipelineBuildPodDeletionOK(t *testing.T) {
 			return nil
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err != nil {
@@ -302,7 +303,7 @@ func TestHandleBuildPodDeletionOKFinishedBuild(t *testing.T) {
 			return nil
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err != nil {
@@ -323,7 +324,7 @@ func TestHandleBuildPodDeletionOKErroneousBuild(t *testing.T) {
 			return nil
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err != nil {
@@ -357,7 +358,7 @@ func newErrIndexer(err error) cache.Indexer {
 func TestHandleBuildPodDeletionBuildGetError(t *testing.T) {
 	ctrl := mockBuildPodController(nil, &customBuildUpdater{})
 	ctrl.buildStore.Indexer = newErrIndexer(errors.New("random"))
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err == nil {
 		t.Error("Expected random error, but got none!")
@@ -375,7 +376,7 @@ func TestHandleBuildPodDeletionBuildNotExists(t *testing.T) {
 			return nil
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err != nil {
@@ -393,7 +394,7 @@ func TestHandleBuildPodDeletionBuildUpdateError(t *testing.T) {
 			return errors.New("random")
 		},
 	})
-	pod := mockPod(kapi.PodSucceeded, 0)
+	pod := mockPod(kapi.PodSucceeded, 0, nil)
 
 	err := ctrl.HandleBuildPodDeletion(pod)
 	if err == nil {
