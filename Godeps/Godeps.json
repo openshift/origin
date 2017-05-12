@@ -1415,6 +1415,11 @@
 			"Rev": "d6023ce2651d8eafb5c75bb0c7167536102ec9f5"
 		},
 		{
+			"ImportPath": "github.com/fatih/structs",
+			"Comment": "v1.0",
+			"Rev": "a720dfa8df582c51dee1b36feabb906bde1588bd"
+		},
+		{
 			"ImportPath": "github.com/flynn/go-shlex",
 			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
 		},
