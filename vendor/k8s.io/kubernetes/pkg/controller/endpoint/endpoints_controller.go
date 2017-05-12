@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"time"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -498,8 +499,11 @@ func (e *EndpointController) syncService(key string) error {
 		}
 	}
 
-	if reflect.DeepEqual(currentEndpoints.Subsets, subsets) &&
-		reflect.DeepEqual(currentEndpoints.Labels, service.Labels) {
+	createEndpoints := len(currentEndpoints.ResourceVersion) == 0
+
+	if !createEndpoints &&
+		apiequality.Semantic.DeepEqual(currentEndpoints.Subsets, subsets) &&
+		apiequality.Semantic.DeepEqual(currentEndpoints.Labels, service.Labels) {
 		glog.V(5).Infof("endpoints are equal for %s/%s, skipping update", service.Namespace, service.Name)
 		return nil
 	}
@@ -515,7 +519,6 @@ func (e *EndpointController) syncService(key string) error {
 	}
 
 	glog.V(4).Infof("Update endpoints for %v/%v, ready: %d not ready: %d", service.Namespace, service.Name, readyEps, notReadyEps)
-	createEndpoints := len(currentEndpoints.ResourceVersion) == 0
 	if createEndpoints {
 		// No previous endpoints, create them
 		_, err = e.client.Core().Endpoints(service.Namespace).Create(newEndpoints)
