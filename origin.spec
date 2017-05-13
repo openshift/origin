@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d0d3098961ce6f7386a7a0613bebd638178155c5
+%global commit f4d8d2c144618322f4be338100a8a18f4dbe1aff
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.72 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d0d3098
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.73 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f4d8d2c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.73
+Version:        3.6.75
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -591,6 +591,78 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Sat May 13 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.75-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 272d713
+  (tdawson@redhat.com)
+- Fix extended networking test that could potentially wait forever
+  (danw@redhat.com)
+- dockerhelper.Helper.DockerRoot(): don't swallow error. (vsemushi@redhat.com)
+- synchronize origin authorization resources to rbac ones (deads@redhat.com)
+- UPSTREAM: 44798: Cinder: Automatically Generate Zone if Availability in
+  Storage Class is not Configured (ppospisi@redhat.com)
+- bump(github.com/fatih/structs):v1.0 (ccoleman@redhat.com)
+- UPSTREAM: 44760: Fix issue #44757: Flaky Test_AttachDetachControllerRecovery
+  (mawong@redhat.com)
+- UPSTREAM: 43289: Attach/detach controller: fix potential race in constructor
+  (mawong@redhat.com)
+- controller manager options not passed to quota (decarr@redhat.com)
+- UPSTREAM: 45685: fix quota resync (decarr@redhat.com)
+- Add projected volume plugin into correct SCCs (pmorie@redhat.com)
+- adding X-Forwarded-For header to reencrypt route (jtanenba@redhat.com)
+- UPSTREAM: 39732: Fix issue #34242: Attach/detach should recover from a crash
+  (mawong@redhat.com)
+- UPSTREAM: 44452: Implement LRU for AWS device allocator (mawong@redhat.com)
+- UPSTREAM: 42033: fix TODO: find and add active pods for dswp
+  (mawong@redhat.com)
+- UPSTREAM: 44566: WaitForCacheSync before running attachdetach controller
+  (mawong@redhat.com)
+- UPSTREAM: 44781: Ensure desired state of world populator runs before volume
+  reconstructor (mawong@redhat.com)
+- DRY out script cleanup code (skuznets@redhat.com)
+- Automatically determine which type of jUnit report to generate
+  (skuznets@redhat.com)
+- Disable swap in Go build (skuznets@redhat.com)
+- ensure build start time is always set (bparees@redhat.com)
+- cluster up: set docker cgroup driver on kubelet config (cewong@redhat.com)
+- UPSTREAM: 45515: Ignore openrc group (cewong@redhat.com)
+- add clients for roles and rolebindings (deads@redhat.com)
+- Sanitize certificates from routes in the router (ccoleman@redhat.com)
+- Hold startup until etcd has stabilized cluster version (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  01350df90ab02d53767fbcbf10a85027f5e7d079 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  862164ee901780063c9e5de26ab37c9d5af071ec (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  787e8dd90e35aa30639e60ac295dd05032caf380 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e7a16eb9d963ef00c3fba7d9807fef43b691167f (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a90c5c804db9a36245bf973e5300bc5f86342d20 (dmcphers+openshiftbot@redhat.com)
+- strip proxy credentials when logging proxy env variables (bparees@redhat.com)
+- switch the RC controller to the upstream launch mechanism (deads@redhat.com)
+- fix local resource output oc set (jvallejo@redhat.com)
+- bump(github.com/gophercloud): b06120d13e262ceaf890ef38ee30898813696af0
+  (hchen@redhat.com)
+- UPSTREAM: 41498: cinder: Add support for the KVM virtio-scsi driver
+  (hchen@redhat.com)
+- UPSTREAM: 44082: use AvailabilityZone instead of Availability
+  (hchen@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  5d863bfc266dcae304ebd527b420c00cc9b08511 (bparees@redhat.com)
+- Include DefaultTolerationSeconds admission plugin but off by default.
+  (avagarwa@redhat.com)
+- retry build instantiation and clone on conflict (jminter@redhat.com)
+- UPSTREAM: 44639: Set fed apiserver to bind to 8443 instead of 443
+  (marun@redhat.com)
+- UPSTREAM: 45505: expose the controller initializers (deads@redhat.com)
+- UPSTREAM: 44625: Retry secret reference addition on conflict
+  (jliggitt@redhat.com)
+- UPSTREAM: google/cadvisor: 1642: cAdvisor fs metrics should appear in
+  /metrics (ccoleman@redhat.com)
+- UPSTREAM: 40423: Support for v1/v2/autoprobe openstack cinder blockstorage
+  (hchen@redhat.com)
+- Force to specify not empty secret for metrics endpoint (agladkov@redhat.com)
+
 * Tue May 09 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.73-1
 - master: zero kubelet readonly port to match node
   (stefan.schimanski@gmail.com)
