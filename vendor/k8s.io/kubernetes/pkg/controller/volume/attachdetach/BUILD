@@ -23,12 +23,14 @@ go_library(
         "//pkg/controller/volume/attachdetach/populator:go_default_library",
         "//pkg/controller/volume/attachdetach/reconciler:go_default_library",
         "//pkg/controller/volume/attachdetach/statusupdater:go_default_library",
+        "//pkg/controller/volume/attachdetach/util:go_default_library",
         "//pkg/util/io:go_default_library",
         "//pkg/util/mount:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/util/operationexecutor:go_default_library",
         "//pkg/volume/util/volumehelper:go_default_library",
         "//vendor:github.com/golang/glog",
+        "//vendor/k8s.io/apimachinery/pkg/labels:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/types",
         "//vendor:k8s.io/apimachinery/pkg/util/runtime",
         "//vendor:k8s.io/client-go/kubernetes/typed/core/v1",
@@ -44,9 +46,14 @@ go_test(
     library = ":go_default_library",
     tags = ["automanaged"],
     deps = [
+        "//pkg/api/v1:go_default_library",
         "//pkg/client/informers/informers_generated/externalversions:go_default_library",
         "//pkg/controller:go_default_library",
+        "//pkg/controller/volume/attachdetach/cache:go_default_library",
         "//pkg/controller/volume/attachdetach/testing:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/labels:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 
@@ -66,6 +73,7 @@ filegroup(
         "//pkg/controller/volume/attachdetach/reconciler:all-srcs",
         "//pkg/controller/volume/attachdetach/statusupdater:all-srcs",
         "//pkg/controller/volume/attachdetach/testing:all-srcs",
+        "//pkg/controller/volume/attachdetach/util:all-srcs",
     ],
     tags = ["automanaged"],
 )
