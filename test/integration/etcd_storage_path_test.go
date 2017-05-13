@@ -24,7 +24,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -842,14 +841,18 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	if err != nil {
 		t.Fatalf("error getting master config: %#v", err)
 	}
-	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
+	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"}                        // remove most admission checks to make testing easier
+	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
+	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
+		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
+	}
 	masterConfig.EnableTemplateServiceBroker = true
 	if etcdServer.V3Client == nil {
 		masterConfig.KubernetesMasterConfig.APIServerArguments = serverapi.ExtendedArguments{"storage-backend": []string{"etcd2"}}
 	}
 	masterConfig.EtcdClientInfo.URLs[0] = testutil.GetEtcdURL()
 
-	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
+	kubeConfigFile, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %#v", err)
 	}
@@ -873,13 +876,6 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 
 	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatalf("error creating test namespace: %#v", err)
-	}
-	if err := testserver.WaitForServiceAccounts(
-		kubeClient,
-		testNamespace,
-		[]string{bootstrappolicy.DefaultServiceAccountName, bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DeployerServiceAccountName},
-	); err != nil {
-		t.Fatalf("error creating test namespace service accounts: %#v", err)
 	}
 
 	kindSeen := sets.NewString()
