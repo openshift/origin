@@ -75,12 +75,16 @@ type TriggersOptions struct {
 	Filenames []string
 	Selector  string
 	All       bool
+	Output    string
 
 	Builder *resource.Builder
 	Infos   []*resource.Info
 
 	Encoder runtime.Encoder
 
+	Cmd *cobra.Command
+
+	Local       bool
 	ShortOutput bool
 	Mapper      meta.RESTMapper
 
@@ -138,6 +142,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	cmd.Flags().BoolVar(&options.RemoveAll, "remove-all", options.RemoveAll, "If true, remove all triggers.")
 	cmd.Flags().BoolVar(&options.Auto, "auto", options.Auto, "If true, enable all triggers, or just the specified trigger")
 	cmd.Flags().BoolVar(&options.Manual, "manual", options.Manual, "If true, set all triggers to manual, or just the specified trigger")
+	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
 
 	cmd.Flags().BoolVar(&options.FromConfig, "from-config", options.FromConfig, "If set, configuration changes will result in a change")
 	cmd.Flags().StringVarP(&options.ContainerNames, "containers", "c", options.ContainerNames, "Comma delimited list of container names this trigger applies to on deployments; defaults to the name of the only container")
@@ -148,6 +153,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	options.FromGitLab = cmd.Flags().Bool("from-gitlab", false, "If true, a GitLab webhook - a secret value will be generated automatically")
 	options.FromBitbucket = cmd.Flags().Bool("from-bitbucket", false, "If true, a Bitbucket webhook - a secret value will be generated automatically")
 
+	kcmdutil.AddDryRunFlag(cmd)
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
 	return cmd
@@ -174,6 +180,8 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	if !cmd.Flags().Lookup("from-bitbucket").Changed {
 		o.FromBitbucket = nil
 	}
+
+	o.Cmd = cmd
 
 	if len(o.FromImage) > 0 {
 		ref, err := imageapi.ParseDockerImageReference(o.FromImage)
@@ -208,11 +216,15 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		ResourceTypeOrNameArgs(o.All, args...).
 		Flatten()
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) > 0 {
-		o.PrintObject = func(infos []*resource.Info) error {
-			return f.PrintResourceInfos(cmd, infos, o.Out)
-		}
+	if !o.Local {
+		o.Builder = o.Builder.
+			SelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, args...)
+	}
+
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObject = func(infos []*resource.Info) error {
+		return f.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -278,7 +290,7 @@ func (o *TriggersOptions) Run() error {
 		infos = loaded
 	}
 
-	if o.PrintTable && o.PrintObject == nil {
+	if o.PrintTable && len(o.Output) == 0 {
 		return o.printTriggers(infos)
 	}
 
@@ -292,7 +304,7 @@ func (o *TriggersOptions) Run() error {
 	if singleItemImplied && len(patches) == 0 {
 		return fmt.Errorf("%s/%s is not a deployment config or build config", infos[0].Mapping.Resource, infos[0].Name)
 	}
-	if o.PrintObject != nil {
+	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
 	}
 

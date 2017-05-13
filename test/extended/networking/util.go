@@ -8,6 +8,7 @@ import (
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
@@ -94,6 +95,24 @@ func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contNa
 	})
 }
 
+func waitForEndpoint(c kclientset.Interface, ns, name string) error {
+	for t := time.Now(); time.Since(t) < time.Minute; time.Sleep(poll) {
+		endpoint, err := c.Core().Endpoints(ns).Get(name, metav1.GetOptions{})
+		if kapierrs.IsNotFound(err) {
+			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
+			continue
+		}
+		Expect(err).NotTo(HaveOccurred())
+		if len(endpoint.Subsets) == 0 || len(endpoint.Subsets[0].Addresses) == 0 {
+			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
+			continue
+		} else {
+			return nil
+		}
+	}
+	return fmt.Errorf("Failed to get endpoints for %s/%s", ns, name)
+}
+
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
 	e2e.LaunchWebserverPod(f, serviceName, nodeName)
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
@@ -125,7 +144,7 @@ func launchWebserverService(f *e2e.Framework, serviceName string, nodeName strin
 	serviceClient := f.ClientSet.CoreV1().Services(f.Namespace.Name)
 	_, err = serviceClient.Create(service)
 	expectNoError(err)
-	expectNoError(f.WaitForAnEndpoint(serviceName))
+	expectNoError(waitForEndpoint(f.ClientSet, f.Namespace.Name, serviceName))
 	createdService, err := serviceClient.Get(serviceName, metav1.GetOptions{})
 	expectNoError(err)
 	serviceAddr = fmt.Sprintf("%s:%d", createdService.Spec.ClusterIP, servicePort)

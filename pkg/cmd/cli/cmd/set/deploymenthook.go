@@ -69,6 +69,8 @@ type DeploymentHookOptions struct {
 	Selector  string
 	All       bool
 
+	Output string
+
 	ShortOutput bool
 	Local       bool
 	Mapper      meta.RESTMapper
@@ -79,6 +81,8 @@ type DeploymentHookOptions struct {
 	Mid    bool
 	Post   bool
 	Remove bool
+
+	Cmd *cobra.Command
 
 	Command     []string
 	Environment []string
@@ -130,6 +134,7 @@ func NewCmdDeploymentHook(fullName string, f *clientcmd.Factory, out, errOut io.
 	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, set deployment hook will NOT contact api-server but run locally.")
 
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
+	kcmdutil.AddDryRunFlag(cmd)
 
 	return cmd
 }
@@ -149,6 +154,8 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 		return err
 	}
 
+	o.Cmd = cmd
+
 	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
@@ -166,11 +173,9 @@ func (o *DeploymentHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comman
 
 	}
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) != 0 || o.Local {
-		o.PrintObject = func(infos []*resource.Info) error {
-			return f.PrintResourceInfos(cmd, infos, o.Out)
-		}
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObject = func(infos []*resource.Info) error {
+		return f.PrintResourceInfos(cmd, infos, o.Out)
 	}
 
 	o.Encoder = f.JSONEncoder()
@@ -256,7 +261,7 @@ func (o *DeploymentHookOptions) Run() error {
 		return fmt.Errorf("%s/%s is not a deployment config or does not have an applicable strategy", infos[0].Mapping.Resource, infos[0].Name)
 	}
 
-	if o.PrintObject != nil {
+	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
 		return o.PrintObject(infos)
 	}
 

@@ -87,8 +87,7 @@ func convert_api_Subjects_To_rbac_Subjects(in []api.ObjectReference) ([]rbac.Sub
 	subjects := make([]rbac.Subject, 0, len(in))
 	for _, subject := range in {
 		s := rbac.Subject{
-			Name:     subject.Name,
-			APIGroup: rbac.GroupName,
+			Name: subject.Name,
 		}
 
 		switch subject.Kind {
@@ -96,8 +95,10 @@ func convert_api_Subjects_To_rbac_Subjects(in []api.ObjectReference) ([]rbac.Sub
 			s.Kind = rbac.ServiceAccountKind
 			s.Namespace = subject.Namespace
 		case UserKind, SystemUserKind:
+			s.APIGroup = rbac.GroupName
 			s.Kind = rbac.UserKind
 		case GroupKind, SystemGroupKind:
+			s.APIGroup = rbac.GroupName
 			s.Kind = rbac.GroupKind
 		default:
 			return nil, fmt.Errorf("invalid kind for origin subject: %q", subject.Kind)

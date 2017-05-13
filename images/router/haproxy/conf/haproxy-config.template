@@ -417,6 +417,7 @@ backend be_tcp:{{$cfgIdx}}
 backend be_secure:{{$cfgIdx}}
   mode http
   option redispatch
+  option forwardfor
     {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
       {{- with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
   balance {{ $balanceAlgo }}

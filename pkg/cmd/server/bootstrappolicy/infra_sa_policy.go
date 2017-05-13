@@ -26,9 +26,6 @@ const (
 	InfraBuildControllerServiceAccountName = "build-controller"
 	BuildControllerRoleName                = "system:build-controller"
 
-	InfraReplicationControllerServiceAccountName = "replication-controller"
-	ReplicationControllerRoleName                = "system:replication-controller"
-
 	InfraReplicaSetControllerServiceAccountName = "replicaset-controller"
 	ReplicaSetControllerRoleName                = "system:replicaset-controller"
 
@@ -280,51 +277,6 @@ func init() {
 				},
 				{
 					APIGroups: []string{""},
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = InfraSAs.addServiceAccount(
-		InfraReplicationControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ReplicationControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// ReplicationManager.rcController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
-				{
-					// TODO: audit/remove those, 1.0 controllers needed get, update
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// ReplicationManager.syncReplicationController() -> updateReplicaCount()
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("replicationcontrollers/status"),
-				},
-				// ReplicationManager.podController.ListWatch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("pods"),
-				},
-				// ReplicationManager.podControl (RealPodControl)
-				{
-					Verbs:     sets.NewString("create", "delete", "patch"),
-					Resources: sets.NewString("pods"),
-				},
-				// ReplicationManager.podControl.recorder
-				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
 				},

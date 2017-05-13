@@ -1,9 +1,12 @@
 package validation
 
 import (
+	"bytes"
+	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -135,6 +138,35 @@ fKSS26HocZpiN0e7vO0XoJfh4VkOIn7BGNwxiDr9cIRL4ZHhZ0/kRQuXCHHYbTdq
 9mKv
 -----END CERTIFICATE-----`
 
+	testValidInFutureCertWithWhitespace = `
+	
+	
+-----BEGIN CERTIFICATE-----
+MIIDjzCCAnegAwIBAgIJAJcdKWMFNUEGMA0GCSqGSIb3DQEBCwUAMF0xCzAJBgNV
+BAYTAlVTMQswCQYDVQQIDAJDQTERMA8GA1UECgwIU2VjdXJpdHkxEzARBgNVBAsM
+ClNlbGZTaWduZXIxGTAXBgNVBAMMEHNlbGYuc2lnbmVyLnRlc3QwIBcNMzgwMTAx
+MDgwMDAyWhgPMjA1ODAxMDEwODAwMDJaMF0xCzAJBgNVBAYTAlVTMQswCQYDVQQI
+DAJDQTERMA8GA1UECgwIU2VjdXJpdHkxEzARBgNVBAsMClNlbGZTaWduZXIxGTAX
+BgNVBAMMEHNlbGYuc2lnbmVyLnRlc3QwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+ggEKAoIBAQDBAtP5vHkVS9qZNmI9QKj7B/ATt2+Fw+f4xD+6Q2+1sOkLH3x6+D85
+5A+xAAvQdz5qf+yfvtNOhWqmIG5Zh0TzaiA5lw2U0YL4FT4Z4nbYAPMO45lctvRH
+nXBeSO7N/JiFBlvMPqP4gsimstEgiNm225KlQRHOqMfOEAC15pyUrE643Gs0DCVR
+L1tZuwdfBUpybxAPDWpgx7CNTc0beuNXooroMU1dCdM+BjYHYfSCnoNwa4qp130e
+6vRWnzlhfXbFTsCVCe4y6edF/+M3PegIx0+PhkgeSOxd2+nBsiatrG5ZyiP5iaRK
+2278nFERyUQ1SbhicDrhlU9TQAMcTMAvAgMBAAGjUDBOMB0GA1UdDgQWBBQ28jRf
+N/CCqVyOU8mOZpG8ow86WjAfBgNVHSMEGDAWgBQ28jRfN/CCqVyOU8mOZpG8ow86
+WjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQC+Nu8pEUB7agGHUU/e
+1NHI84guwKKA2qNnkQZKn6h49AA/bPjKr9SFQHNxFFMyrVInt1Ez9sRNviArQc+w
+DToHY+T/3WUVcQIQnRW3m4r6UUsxKZjtrSBD2Dhr6nL9hVVtGIfimuuxxJt1JItJ
+UaOY+Kq4gtWOJMcV5xTEaPmkphAgwoZzjZj7Z9SZwVLGopJa8kB3EvlkxUO3DmSp
+9Lq3AhHRYgwWcjcd9UC9NyXQ9hBTV2iPBSvc2I4vmYQwnOutBEeNM0IPQQk7f2VL
+fKSS26HocZpiN0e7vO0XoJfh4VkOIn7BGNwxiDr9cIRL4ZHhZ0/kRQuXCHHYbTdq
+9mKv
+-----END CERTIFICATE-----
+
+
+`
+
 	testValidInFutureKey = `-----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDBAtP5vHkVS9qZ
 NmI9QKj7B/ATt2+Fw+f4xD+6Q2+1sOkLH3x6+D855A+xAAvQdz5qf+yfvtNOhWqm
@@ -163,6 +195,41 @@ ixqHY7XPppfljvt/G5d9iMjbbMV3Z7TgM//gK4ECgYBkSU6B77LnXtb0QPTsBdq6
 XdzRo+/NffATcVvoof1Gnjhe/qt0kby66wR42JJMK/q4BKAN0kitfkzOPC4HVoF4
 DOGy/dMN+k0W2RgJ5JKR3g==
 -----END PRIVATE KEY-----`
+
+	testValidInFutureKeyWithWhitespace = `
+	
+	
+-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDBAtP5vHkVS9qZ
+NmI9QKj7B/ATt2+Fw+f4xD+6Q2+1sOkLH3x6+D855A+xAAvQdz5qf+yfvtNOhWqm
+IG5Zh0TzaiA5lw2U0YL4FT4Z4nbYAPMO45lctvRHnXBeSO7N/JiFBlvMPqP4gsim
+stEgiNm225KlQRHOqMfOEAC15pyUrE643Gs0DCVRL1tZuwdfBUpybxAPDWpgx7CN
+Tc0beuNXooroMU1dCdM+BjYHYfSCnoNwa4qp130e6vRWnzlhfXbFTsCVCe4y6edF
+/+M3PegIx0+PhkgeSOxd2+nBsiatrG5ZyiP5iaRK2278nFERyUQ1SbhicDrhlU9T
+QAMcTMAvAgMBAAECggEAWYJvPd0bJjY0XWNsMc3fz/NBclNao+VTmfmhOEd38gHm
+QaNLflfMMpPCdyp3UClMx+UlnnvH0R1sdTiLFHf4EQ7BfRPBV6fGHjjzwNtWlBv0
+nI4OnIG4TdIEv6UBIoQnU2G8hr7yGhjE5xH8jCMLHJM9see4U2fQqY6gVbtqGEP1
+w29IhoYcCPsqIhBYlmOaxvEBA12SKjZEaLT4dTImcvNsYuNAHbKpS1m6nA7KaqLN
+hkFJ5oKPlsMT2bFCaHzB7Es/90FgkLk3EULx9G5uV+26FcovhSKI/j4kkBZ57BZG
+rGuMScjxGLolY7dv0PlQvSzDmsA4EEzEQECy5kJFAQKBgQDv7jhEBsuKs9t6UOBF
+QBsmAsTs5I9UoQd5ZBy1QoOxmN5aLjNNfFd86LBomC/oF0AZpEKfHA+Ha8ttdJNX
+vjkSIbfJKYfd4J/A4J7Wna3RPExu0wqN3g2xiPNeyYmzd8H2ER1t850YzFbT8f7M
+pSQbbqWkjLzRw3wUBVQao/PlrwKBgQDN8CPWZuKzIhSsBLKtG41evnSCMOoSWRRQ
+VmLnxIa7x8Ng/v8T39S4Tzpx50uq0ZAoegmI5aMvJEwayMShZdHt++DIjNfnayXS
+yQ6Cr+FqObeZX1B25eChiyN/O/RPx1zJ6eW0FUKlTheYIv4u+D0AwzmyaySeAEyo
+ZhiOnS3tgQKBgD9y3NhIf70fURQonRZTHJrRsqf+zVSQ/PwCGIFqpI7roSlx/Ekq
+b6xtkHEohcq3k1D0mlWfQxAJ1pMMeAaFHGyKFCMTY4WuaDDGddrFefjSHFhWYP0h
+Ure3Qry3ST33lohvADxaZxnut6t23G3b4g+LFCzOtwQ10PMucY5V+yKrAoGAfAyc
+OckN46Oy2g+WZYoENT76RXYbeWPpRZ9TwpJyKmjheur/UcRxiXhIF1ahEMtdT9R7
+K9hP3NS7dyLatvHza6xesc+NOlwjk34C3Jv/Z5JO0vdEK+q6zfRXNIwz1V6cuQ/I
+ixqHY7XPppfljvt/G5d9iMjbbMV3Z7TgM//gK4ECgYBkSU6B77LnXtb0QPTsBdq6
+7hvEPH4lhnpcXRemfq3Q0/GYeACSoAPUGxy8LwT50pagaIf6ZG1esMFiALFsJWer
+XdzRo+/NffATcVvoof1Gnjhe/qt0kby66wR42JJMK/q4BKAN0kitfkzOPC4HVoF4
+DOGy/dMN+k0W2RgJ5JKR3g==
+-----END PRIVATE KEY-----
+
+
+`
 
 	testSelfSignedCert = `-----BEGIN CERTIFICATE-----
 MIIDjTCCAnWgAwIBAgIJAKM4rr3VRQARMA0GCSqGSIb3DQEBCwUAMF0xCzAJBgNV
@@ -269,6 +336,8 @@ EodWld0L6StnRQ1kAIif0wAuQ//JVOBpCi93wykYPbdJ15A8qmqiS4bAbFdKCXph
 sP3gunYZT8RCrfAqJG/Is1RgChq2USckxvD4h8Q65J4VVRDkxvuLpjSh8ZJlI1xG
 r2RUXNnvSmi8ubzDBls=
 -----END CERTIFICATE-----
+
+
 -----BEGIN CERTIFICATE-----
 MIIFpjCCA46gAwIBAgIJANRKflwkpS0cMA0GCSqGSIb3DQEBCwUAMGAxCzAJBgNV
 BAYTAlVTMQswCQYDVQQIDAJDQTERMA8GA1UECgwIU2VjdXJpdHkxGzAZBgNVBAsM
@@ -302,6 +371,74 @@ AkefO2oUf6dnu9JScZiEztIcr8IMfY7q+YOQKjDuH3gG2+SE6PPC46ajq0MoFeJU
 qA0au8ygoLaCLhYK+HnzGRVAYqc4hb4LKNhIbAveHLOTUKNeAFADxq8REsPkpeM7
 G0k/6pTJTZwfsA==
 -----END CERTIFICATE-----`
+
+	testIntCACertificateChainCanonical = `-----BEGIN CERTIFICATE-----
+MIIFqjCCA5KgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwYDELMAkGA1UEBhMCVVMx
+CzAJBgNVBAgMAkNBMREwDwYDVQQKDAhTZWN1cml0eTEbMBkGA1UECwwST3BlblNo
+aWZ0MyB0ZXN0IENBMRQwEgYDVQQDDAtyb290LmNhLm9yZzAeFw0xNjExMDMwMDE3
+MTNaFw0zNjExMDMwMDE3MTNaMGgxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDQTER
+MA8GA1UECgwIU2VjdXJpdHkxGzAZBgNVBAsMEk9wZW5TaGlmdDMgdGVzdCBDQTEc
+MBoGA1UEAwwTaW50ZXJtZWRpYXRlLmNhLm9yZzCCAiIwDQYJKoZIhvcNAQEBBQAD
+ggIPADCCAgoCggIBALrPYF7ah6vwSknXQj9IeoCXGnsMtin0UCFb5jsvDnoKrYqh
+46/XMfiPGz/gr6wqkAis2n31/7H2oHUxgI5AjnWOzpyRRl2/NurVXYDaLCKiMsTm
+nt54d90VG5Yl4oFwzT7Az2xBBeJMTUyW4tB+66RCenlAq3AxO3Sp50Z4N1Cm34qI
+hg0/Wbs6VuzdKsyU5Tux0LrplF656A9BkpcOqvJmO6g9dKTA4KmhRyC+fxAk0p8d
++WLuvumYQ19ta2ZjJxdCoVpaNMIsQ+ZyUTuq2VtIFLJVl/7Q5oZX1LDurtf0Ho/O
+TQq4L4sWQjYFXTCibU+logeg+qhPtO3kSuXcJBlaO1NqteA8sVQ2AQY48HNIr8VN
+ZsGFX+gmAZYesL62kFckKm39fsbuYQ/4mPHdgzYCuiNGFceoHcA/RBc42A4F7v9X
+Owm/OVccOnQTAZsZUUKj5cq16Is8K8j7hYJPIyfR2RIE7X52C1U7KLyra+Ld20ix
+JO1j59TmyQhBElEz1OZq3qX2TbpHG1sVjHyhZmbAjJDwpXCwZOPt/Icg9Qs6125X
+Rrr1zyTU/jr3TBBmdcBn4BFvtkWvAGndzNC1kun05vwEfqyQIfY/hbAWyZlPkWqP
+DETVGCN7ZQ21BPSaDsT29mD519FyMAbPAZxlou+yk//VeSgRh+N58SFKU/G/AgMB
+AAGjZjBkMB0GA1UdDgQWBBSJpW4a7QM2MkPIdhDrAIEEGc2RgzAfBgNVHSMEGDAW
+gBRS9nnAAIUE7lGEcTXwhJ6lsndnSTASBgNVHRMBAf8ECDAGAQH/AgEAMA4GA1Ud
+DwEB/wQEAwIBhjANBgkqhkiG9w0BAQsFAAOCAgEAcKzpwgek+Bq+xLo77wQAL84V
+ezU1d+/bHWn/1pICbBpAmK6uuyeAKal/gZv7LVcpue4Wk+/WbAx8jUXi53pN7Qp+
+oYMLF4eXiqolOO9lgSEoYyiO6qjXWKuiFlGOYsDzLeEWv6FhP3gpMXvMNidSFmLt
+qsUcsEtlFU9+Aub6msOsjKdsSQQMnj0Pfd4m35D6T3ZqW7swaEcvd72kbT6rkI2T
+aVt6dfEQS1qQrMOBYTr/5DUxkCaysYOGAd/eqfK3h00JcsllpoM1F8nYKSqrilLI
+Zts8rZg7GFbF76vJTEsYagrarhEg76p4Hdl2ZRr54+JA5Y7IEJBtA7UscXFiYR03
++2+1x9bYIcXR3uDa2WK20NsbDznO8rfbrX5m/X9McT7fbn+TE9MjKGaOMqwGoZdS
+1hxwUeDqu6hf5qdETkqCaKCjIGBb8fg1cKmQXAAKTIS+6iI3iaF/bRTTa3gICZN7
+FDdPRjMJDZ/k4cicAipzjKx2NQkiA59Q8z2aa5ahTWF2kz0YcdHtVDjIeDDR/KzT
+EodWld0L6StnRQ1kAIif0wAuQ//JVOBpCi93wykYPbdJ15A8qmqiS4bAbFdKCXph
+sP3gunYZT8RCrfAqJG/Is1RgChq2USckxvD4h8Q65J4VVRDkxvuLpjSh8ZJlI1xG
+r2RUXNnvSmi8ubzDBls=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIFpjCCA46gAwIBAgIJANRKflwkpS0cMA0GCSqGSIb3DQEBCwUAMGAxCzAJBgNV
+BAYTAlVTMQswCQYDVQQIDAJDQTERMA8GA1UECgwIU2VjdXJpdHkxGzAZBgNVBAsM
+Ek9wZW5TaGlmdDMgdGVzdCBDQTEUMBIGA1UEAwwLcm9vdC5jYS5vcmcwHhcNMTYx
+MTAzMDAxNzEyWhcNMzYxMTAzMDAxNzEyWjBgMQswCQYDVQQGEwJVUzELMAkGA1UE
+CAwCQ0ExETAPBgNVBAoMCFNlY3VyaXR5MRswGQYDVQQLDBJPcGVuU2hpZnQzIHRl
+c3QgQ0ExFDASBgNVBAMMC3Jvb3QuY2Eub3JnMIICIjANBgkqhkiG9w0BAQEFAAOC
+Ag8AMIICCgKCAgEAojn1uV7bB37377bjZdwFvZpdk69fUgYGM2MlT/bdKGgLFXIx
+8kUSjk8H84RiiZiPlyE+orTOdzv8umicW92qGF1y+rlLIAgTCdpEaiRvELCD4hsl
+5fLK2686SbB1lQZzhi1ounFph7q0R6plfG762xdnGMLnsXDaYYz1kWWyDbJbd5DL
+grttZxfDsRwIDwiHVEsu5thOkL/C06/ipHQC9iDgnaeIeAp2UhLUblitgoeBLKLH
++zu4cgKvQnSosIBIT11mQGrPe3B72/HBXSNAl7yuiCYnTantnLQxEHV4y9iQzmZ+
+/F9ryZuBWMU49KKA952C5InDtjAjZjgdoqPRmiHMDoYqlnZdoMgYZPmEGhCnNMni
+pvB6qSwFa6l1xC4nlcYjyfkZzdg30P7dZwbtwG52e8tXHxwTm9LKbb3sCj2EAZSo
+6h87NKxZX4o1WZbwPaNPVEVrlev7mdJsjZt9Qthzurm1Vcs9b1kDwEmyty4ssmPW
+F+UhPxSDZR28utTzFv99g94qmnjxzBoiAip2wAGdU4tzc1Cvh1njQYXhElJZpjlU
+RBQAeRvhKRQjnuripuZvTs29sIzLRuBKuY2u4xkDXVpvl3H+3CoFsN9oQ38qyZo/
+uEeMHLuSMVDQycKHXJolMZOTHdB2O6CbhmYOkViG2cGHBpswLZ4IlgJ6ARsCAwEA
+AaNjMGEwHQYDVR0OBBYEFFL2ecAAhQTuUYRxNfCEnqWyd2dJMB8GA1UdIwQYMBaA
+FFL2ecAAhQTuUYRxNfCEnqWyd2dJMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/
+BAQDAgGGMA0GCSqGSIb3DQEBCwUAA4ICAQAcDKBGtSxnt/hZpRjrti2NDlwcn9SS
+ojkkKHnu4GdtO+8AHPfCHfUA5Ba1ydiddpxcR3tvjPCsfWTtmpoQ4wVFPGsMELqu
+elC/H3jEZxn1I+FdLFRB3QvBFQ3VvtbS6NemvMupWBxmimlOmp0woMW3wfH9MnPt
+EF5OFkcjhRKq1/bkzpKLkBpCQ/IIAm9ATgJmc9rADQxXbGvwHVpjORLOD55jOAl0
+m5nFvawpKnJUVGKQ40MbHAz6tI5crSFJnA7VUWPfeCuQT04X9t3GNARUYnFxNBex
+/K7A/Of6CPqMNlXgeYieQyVJ/rbNtDLXne8uZhSUGd55B35QJ1HUxOJ/KcTC1Fw9
+1jUBMkyco1wBvv/xtBUulzKpMOh7Dq5ABGa+lh9mANP822CmLO1DrQDmsjPiTEU0
+n81Ir0FXVt12gXYtmWqDyILPrbcKImuiSojoH3rAD2sdnTNmgFQcBWQj/6TG+5Tm
+tSefyc9/CCsmIw0zrOVLfxs23k/Wts1acqTldWP5dY3MEyWrVOW6XakgYvPHdZa2
+AkefO2oUf6dnu9JScZiEztIcr8IMfY7q+YOQKjDuH3gG2+SE6PPC46ajq0MoFeJU
+qA0au8ygoLaCLhYK+HnzGRVAYqc4hb4LKNhIbAveHLOTUKNeAFADxq8REsPkpeM7
+G0k/6pTJTZwfsA==
+-----END CERTIFICATE-----
+`
 
 	testCertificateWithIntCA = `-----BEGIN CERTIFICATE-----
 MIIGbzCCBFegAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwaDELMAkGA1UEBhMCVVMx
@@ -1290,6 +1427,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 	tests := []struct {
 		name           string
 		route          *api.Route
+		expectRoute    *api.Route
 		expectedErrors int
 	}{
 		{
@@ -1720,6 +1858,20 @@ func TestExtendedValidateRoute(t *testing.T) {
 			expectedErrors: 0,
 		},
 		{
+			name: "future validity date 2038 cert with whitespace",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					Host: "self.signer.test",
+					TLS: &api.TLSConfig{
+						Termination: api.TLSTerminationEdge,
+						Certificate: testValidInFutureCertWithWhitespace,
+						Key:         testValidInFutureKeyWithWhitespace,
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
 			name: "future validity date 2038 cert with different host",
 			route: &api.Route{
 				Spec: api.RouteSpec{
@@ -1916,13 +2068,173 @@ func TestExtendedValidateRoute(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "valid destination CA with whitespace",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChain,
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "unexpected key type",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChain,
+						Key: "-----BEGIN UNRECOGNIZED-----\n-----END UNRECOGNIZED-----\n",
+					},
+				},
+			},
+			expectRoute: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChainCanonical,
+						Key: "",
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "invalid PEM data silently dropped (bad trailer)",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChain,
+						Key: "-----BEGIN UNRECOGNIZED-----\n----END UNRECOGNIZED-----\n",
+					},
+				},
+			},
+			expectRoute: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChainCanonical,
+						Key: "",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "EC PARAMETERS silently dropped",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChain,
+						Key: "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
+					},
+				},
+			},
+			expectRoute: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:              api.TLSTerminationReencrypt,
+						DestinationCACertificate: testIntCACertificateChainCanonical,
+						Key: "",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "EC PARAMETERS silently dropped and CA rewritten",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationEdge,
+						CACertificate: testIntCACertificateChain,
+						Key:           "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
+					},
+				},
+			},
+			expectRoute: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationEdge,
+						CACertificate: testIntCACertificateChainCanonical,
+						Key:           "",
+					},
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "invalid key returns error",
+			route: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationEdge,
+						CACertificate: testIntCACertificateChain,
+						Key:           "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n",
+					},
+				},
+			},
+			expectRoute: &api.Route{
+				Spec: api.RouteSpec{
+					TLS: &api.TLSConfig{
+						Termination:   api.TLSTerminationEdge,
+						CACertificate: testIntCACertificateChainCanonical,
+						Key:           "",
+					},
+				},
+			},
+			expectedErrors: 1,
+		},
 	}
 
 	for _, tc := range tests {
 		errs := ExtendedValidateRoute(tc.route)
-
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
+		}
+
+		if len(errs) == 0 {
+			if tc.expectRoute != nil {
+				if e, a := tc.expectRoute, tc.route; !reflect.DeepEqual(e, a) {
+					t.Errorf("Test case %s got unexpected route differences: %s", tc.name, diff.ObjectReflectDiff(e, a))
+				}
+			}
+
+			if tls := tc.route.Spec.TLS; tls != nil {
+				data, err := sanitizePEM([]byte(tls.CACertificate))
+				if err != nil {
+					t.Errorf("Test case %s should have sanitized CA, got %v", tc.name, err)
+				}
+				if e, a := data, []byte(tls.CACertificate); !bytes.Equal(e, a) {
+					t.Errorf("Test case %s should have sanitized CA, got\n%s\n%s", tc.name, e, a)
+				}
+				data, err = sanitizePEM([]byte(tls.Certificate))
+				if err != nil {
+					t.Errorf("Test case %s should have sanitized certificate, got %v", tc.name, err)
+				}
+				if e, a := data, []byte(tls.Certificate); !bytes.Equal(e, a) {
+					t.Errorf("Test case %s should have sanitized certificate, got\n%s\n%s", tc.name, e, a)
+				}
+				data, err = sanitizePEM([]byte(tls.DestinationCACertificate))
+				if err != nil {
+					t.Errorf("Test case %s should have sanitized destination CA, got %v", tc.name, err)
+				}
+				if e, a := data, []byte(tls.DestinationCACertificate); !bytes.Equal(e, a) {
+					t.Errorf("Test case %s should have sanitized destination CA, got\n%s\n%s", tc.name, e, a)
+				}
+				data, err = sanitizePEM([]byte(tls.Key))
+				if err != nil {
+					t.Errorf("Test case %s should have sanitized key, got %v", tc.name, err)
+				}
+				if e, a := data, []byte(tls.Key); !bytes.Equal(e, a) {
+					t.Errorf("Test case %s should have sanitized key, got\n%s\n%s", tc.name, e, a)
+				}
+			}
 		}
 	}
 }

@@ -118,7 +118,7 @@ func (c *BuildPodController) Run(workers int, stopCh <-chan struct{}) {
 
 // HandlePod updates the state of the build based on the pod state
 func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
-	glog.V(5).Infof("Handling update of build pod %s/%s", pod.Namespace, pod.Name)
+	glog.V(5).Infof("Handling update of build pod %s/%s in phase %s", pod.Namespace, pod.Name, pod.Status.Phase)
 	build, exists, err := bc.getBuildForPod(pod)
 	if err != nil {
 		glog.V(4).Infof("Error getting build for pod %s/%s: %v", pod.Namespace, pod.Name, err)
@@ -128,7 +128,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(5).Infof("No build found for pod %s/%s", pod.Namespace, pod.Name)
 		return nil
 	}
-
+	glog.V(5).Infof("build %s/%s is in phase %s", build.Name, build.Namespace, build.Status.Phase)
 	nextStatus := build.Status.Phase
 	currentReason := build.Status.Reason
 
@@ -206,8 +206,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		glog.V(4).Infof("Updating build %s/%s status %s -> %s%s", build.Namespace, build.Name, build.Status.Phase, nextStatus, reason)
 		build.Status.Phase = nextStatus
 		if build.Status.Phase == buildapi.BuildPhaseRunning {
-			now := metav1.Now()
-			build.Status.StartTimestamp = &now
+			build.Status.StartTimestamp = pod.Status.StartTime
 			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildStartedEventReason, fmt.Sprintf(buildapi.BuildStartedEventMessage, build.Namespace, build.Name))
 		}
 	}
@@ -218,7 +217,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 	// build previously.
 	buildWasComplete := build.Status.CompletionTimestamp != nil
 	if !buildWasComplete && buildutil.IsBuildComplete(build) && build.Status.Phase != buildapi.BuildPhaseCancelled {
-		needsUpdate = common.SetBuildCompletionTimeAndDuration(build)
+		needsUpdate = common.SetBuildCompletionTimeAndDuration(build, pod.Status.StartTime) || needsUpdate
 	}
 	if needsUpdate {
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {
@@ -276,7 +275,7 @@ func (bc *BuildPodController) HandleBuildPodDeletion(pod *kapi.Pod) error {
 		build.Status.Phase = nextStatus
 		build.Status.Reason = buildapi.StatusReasonBuildPodDeleted
 		build.Status.Message = buildapi.StatusMessageBuildPodDeleted
-		common.SetBuildCompletionTimeAndDuration(build)
+		common.SetBuildCompletionTimeAndDuration(build, pod.Status.StartTime)
 		bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, build.Namespace, build.Name))
 
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {

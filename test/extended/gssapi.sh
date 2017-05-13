@@ -3,8 +3,6 @@
 # Extended tests for logging in using GSSAPI
 source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 
-starttime="$(date +%s)"
-
 project_name='gssapiproxy'
 test_name="test-extended/${project_name}"
 
@@ -32,14 +30,9 @@ os::test::junit::declare_suite_start "${test_name}"
 os::cmd::expect_success_and_text 'oc version' 'GSSAPI Kerberos SPNEGO'
 
 function cleanup() {
-    out=$?
-    set +e
-    cleanup_openshift
-
-    os::test::junit::generate_oscmd_report
-
-    endtime=$(date +%s); echo "$0 took $((endtime - starttime)) seconds"
-    exit $out
+    return_code=$?
+    os::cleanup::all "${return_code}"
+    exit "${return_code}"
 }
 trap "cleanup" EXIT
 

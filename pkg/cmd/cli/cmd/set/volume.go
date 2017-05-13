@@ -107,6 +107,7 @@ type VolumeOptions struct {
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
+	Cmd                    *cobra.Command
 
 	// Resource selection
 	Selector  string
@@ -122,6 +123,7 @@ type VolumeOptions struct {
 	Name        string
 	Containers  string
 	Confirm     bool
+	Local       bool
 	Output      string
 	PrintObject func([]*resource.Info) error
 
@@ -180,6 +182,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().BoolVar(&opts.Add, "add", false, "If true, add volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.Remove, "remove", false, "If true, remove volume and/or volume mounts for containers")
 	cmd.Flags().BoolVar(&opts.List, "list", false, "If true, list volumes and volume mounts for containers")
+	cmd.Flags().BoolVar(&opts.Local, "local", false, "If true, set image will NOT contact api-server but run locally.")
 
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Name of the volume. If empty, auto generated for add operation")
 	cmd.Flags().StringVarP(&opts.Containers, "containers", "c", "*", "The names of containers in the selected pod templates to change - may use wildcards")
@@ -198,6 +201,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 	cmd.Flags().StringVar(&addOpts.ClaimMode, "claim-mode", "ReadWriteOnce", "Set the access mode of the claim to be created. Valid values are ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
 	cmd.Flags().StringVar(&addOpts.Source, "source", "", "Details of volume source as json string. This can be used if the required volume type is not supported by --type option. (e.g.: '{\"gitRepo\": {\"repository\": <git-url>, \"revision\": <commit-hash>}}')")
 
+	kcmdutil.AddDryRunFlag(cmd)
 	kcmdutil.AddPrinterFlags(cmd)
 	cmd.MarkFlagFilename("filename", "yaml", "yml", "json")
 
@@ -372,12 +376,11 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	mapper, typer := f.Object()
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
-	if len(v.Output) > 0 {
-		v.PrintObject = func(infos []*resource.Info) error {
-			return f.PrintResourceInfos(cmd, infos, v.Out)
-		}
+	v.PrintObject = func(infos []*resource.Info) error {
+		return f.PrintResourceInfos(cmd, infos, v.Out)
 	}
 
+	v.Cmd = cmd
 	v.DefaultNamespace = cmdNamespace
 	v.ExplicitNamespace = explicit
 	v.Out = out
@@ -426,9 +429,13 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
-		SelectorParam(v.Selector).
-		ResourceTypeOrNameArgs(v.All, args...).
 		Flatten()
+
+	if !v.Local {
+		b = b.
+			SelectorParam(v.Selector).
+			ResourceTypeOrNameArgs(v.All, args...)
+	}
 
 	singleItemImplied := false
 	infos, err := b.Do().IntoSingleItemImplied(&singleItemImplied).Infos()
@@ -471,7 +478,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 	if patchError != nil {
 		return patchError
 	}
-	if v.PrintObject != nil {
+	if len(v.Output) > 0 || v.Local || kcmdutil.GetDryRunFlag(v.Cmd) {
 		return v.PrintObject(infos)
 	}
 

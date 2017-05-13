@@ -116,10 +116,10 @@ type StartOptions struct {
 }
 
 // NewHelper creates a new OpenShift helper
-func NewHelper(client *docker.Client, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
+func NewHelper(client *docker.Client, dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
 	return &Helper{
 		client:        client,
-		dockerHelper:  dockerhelper.NewHelper(client, nil),
+		dockerHelper:  dockerHelper,
 		execHelper:    dockerexec.NewExecHelper(client, containerName),
 		hostHelper:    hostHelper,
 		runHelper:     run.NewRunHelper(client),
@@ -730,6 +730,19 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		nodeCfg.DNSIP = ""
 	}
 	nodeCfg.DNSBindAddress = ""
+
+	if h.supportsCgroupDriver() {
+		// Set the cgroup driver from the current docker
+		cgroupDriver, err := h.dockerHelper.CgroupDriver()
+		if err != nil {
+			return err
+		}
+		if nodeCfg.KubeletArguments == nil {
+			nodeCfg.KubeletArguments = configapi.ExtendedArguments{}
+		}
+		nodeCfg.KubeletArguments["cgroup-driver"] = []string{cgroupDriver}
+	}
+
 	cfgBytes, err = configapilatest.WriteYAML(nodeCfg)
 	if err != nil {
 		return err
@@ -783,4 +796,26 @@ func getUsedPorts(data string) map[int]struct{} {
 	}
 	glog.V(2).Infof("Used ports in container: %#v", ports)
 	return ports
+}
+
+func (h *Helper) supportsCgroupDriver() bool {
+	script := `#!/bin/bash
+
+# Exit with an error
+set -e
+
+# Ensure we have a link to the openshift binary named kubelet
+if [[ ! -f /usr/bin/kubelet ]]; then
+   ln -s /usr/bin/openshift /usr/bin/kubelet
+fi
+
+kubelet --help | grep -- "--cgroup-driver"
+`
+	rc, err := h.runHelper.New().Image(h.image).
+		DiscardContainer().
+		Entrypoint("/bin/bash").
+		Command("-c", script).
+		Run()
+
+	return rc == 0 && err == nil
 }

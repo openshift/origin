@@ -144,9 +144,8 @@ function os::test::junit::reconcile_output() {
 }
 readonly -f os::test::junit::reconcile_output
 
-# os::test::junit::generate_oscmd_report generats an XML jUnit report
-# for the `os::cmd` suite from the raw test output. This function should
-# be trapped on EXIT.
+# os::test::junit::generate_report determines which type of report is to
+# be generated and does so from the raw output of the tests.
 #
 # Globals:
 #  - JUNIT_REPORT_OUTPUT
@@ -155,62 +154,51 @@ readonly -f os::test::junit::reconcile_output
 #  None
 # Returns:
 #  None
-function os::test::junit::generate_oscmd_report() {
+function os::test::junit::generate_report() {
     if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
           -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-          # we can't generate a report
-          return
+        # we can't generate a report
+        return
     fi
 
-    # get the jUnit output file into a workable state in case we
-    # crashed in the middle of testing something
-    os::test::junit::reconcile_output
-
-    # check that we didn't mangle jUnit output
-    os::test::junit::check_test_counters
-
-    # use the junitreport tool to generate us a report
-    os::test::junit::generate_report "oscmd"
-
-    junitreport summarize <"${ARTIFACT_DIR}/report.xml"
-}
-
-# os::test::junit::generate_gotest_report generats an XML jUnit report
-# for the `go test` suite from the raw test output.
-#
-# Globals:
-#  - JUNIT_REPORT_OUTPUT
-#  - ARTIFACT_DIR
-# Arguments:
-#  None
-# Returns:
-#  None
-function os::test::junit::generate_gotest_report() {
-    if [[ -z "${JUNIT_REPORT_OUTPUT:-}" ||
-          -n "${JUNIT_REPORT_OUTPUT:-}" && ! -s "${JUNIT_REPORT_OUTPUT:-}" ]]; then
-          # we can't generate a report
-          return
+    if grep -q "=== END TEST CASE ===" "${JUNIT_REPORT_OUTPUT}"; then
+        os::test::junit::reconcile_output
+        os::test::junit::check_test_counters
+        os::test::junit::internal::generate_report "oscmd"
+    else
+        os::test::junit::internal::generate_report "gotest"
     fi
-    os::test::junit::generate_report "gotest"
-
-    os::log::info "Full output from \`go test\` logged at ${JUNIT_REPORT_OUTPUT}"
-    os::log::info "jUnit XML report placed at ${ARTIFACT_DIR}/report.xml"
 }
 
-# os::test::junit::generate_report generats an XML jUnit report
-# for either `os::cmd` or `go test`, based on the passed argument.
-# If the `junitreport` binary is not present, it will be built.
+# os::test::junit::internal::generate_report generats an XML jUnit
+# report for either `os::cmd` or `go test`, based on the passed
+# argument. If the `junitreport` binary is not present, it will be built.
 #
 # Globals:
 #  - JUNIT_REPORT_OUTPUT
 #  - ARTIFACT_DIR
 # Arguments:
 #  - 1: specify which type of tests command output should junitreport read
-function os::test::junit::generate_report() {
+# Returns:
+#  export JUNIT_REPORT_NUM_FAILED
+function os::test::junit::internal::generate_report() {
+    local report_type="$1"
     os::util::ensure::built_binary_exists 'junitreport'
-    junitreport --type "${1}"         \
-                --suites nested                       \
-                --roots github.com/openshift/origin   \
-                --output "${ARTIFACT_DIR}/report.xml" \
+
+    local report_file
+    report_file="$( mktemp --tmpdir="${ARTIFACT_DIR}" "${report_type}_report_XXXXX" --suffix ".xml" )"
+    os::log::info "jUnit XML report placed at $( os::util::repository_relative_path ${report_file} )"
+    junitreport --type "${report_type}"             \
+                --suites nested                     \
+                --roots github.com/openshift/origin \
+                --output "${report_file}"           \
                 <"${JUNIT_REPORT_OUTPUT}"
+
+    local summary
+    summary=$( junitreport summarize <"${report_file}" )
+
+    JUNIT_REPORT_NUM_FAILED="$( grep -oE "[0-9]+ failed" <<<"${summary}" )"
+    export JUNIT_REPORT_NUM_FAILED
+
+    echo "${summary}"
 }

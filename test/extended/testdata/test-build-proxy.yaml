@@ -1,0 +1,92 @@
+kind: List
+apiVersion: v1
+metadata: {}
+items:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: origin-ruby-sample
+    creationTimestamp: 
+  spec: {}
+  status:
+    dockerImageRepository: ''
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: 127.0.0.1:3128
+        httpsProxy: 127.0.0.1:3128
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: HTTPS_PROXY
+          value: 127.0.0.1:3128
+        - name: HTTP_PROXY
+          value: 127.0.0.1:3128
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-s2i-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: sample-docker-build-noproxy
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: imageChange
+      imageChange: {}
+    source:
+      type: Git
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+        httpProxy: http://gituser:password@proxy1.com
+        httpsProxy: https://gituser:password@proxy2.com
+        noProxy: github.com
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: centos/ruby-22-centos7
+        env:
+        - name: SOME_HTTP_PROXY
+          value: https://envuser:password@proxy3.com
+        - name: SOME_HTTPS_PROXY
+          value: https://envuser:password@proxy4.com

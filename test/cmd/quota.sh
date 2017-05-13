@@ -29,7 +29,10 @@ os::cmd::expect_success 'oc new-project asmail --as=deads@deads.io'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n bar --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n foo --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n asmail --as deads@deads.io -o name' "for-deads-email-by-annotation"
-os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*1[0-9]"
+# the point of the test is to make sure that clusterquota is counting correct and secrets are auto-created and countable
+# the create_dockercfg controller can issue multiple creates if the token controller doesn't fill them in, but the creates are duplicates
+# since an annotation tracks the intended secrets to be created.  That results in multi-counting quota until reconciliation runs
+os::cmd::try_until_text 'oc describe appliedclusterresourcequota/for-deads-by-annotation -n bar --as deads' "secrets.*(1[0-9]|20|21|22)"
 os::cmd::expect_success 'oc delete project foo'
 os::cmd::try_until_not_text 'oc get clusterresourcequota/for-deads-by-annotation -o jsonpath="{.status.namespaces[*].namespace}"' 'foo'
 os::cmd::expect_success 'oc delete project bar'

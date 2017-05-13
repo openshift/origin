@@ -2,41 +2,14 @@
 
 # This command checks that the built commands can function together for
 # simple scenarios.  It does not require Docker so it can run in travis.
-STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::util::environment::setup_time_vars
 
-function cleanup()
-{
-    out=$?
-    set +e
-
-    os::cleanup::dump_etcd
-
-    pkill -P $$
-    kill_all_processes
-
-    # pull information out of the server log so that we can get failure management in jenkins to highlight it and
-    # really have it smack people in their logs.  This is a severe correctness problem
-    grep -a5 "CACHE.*ALTERED" ${LOG_DIR}/openshift.log
-
-    # we keep a JSON dump of etcd data so we do not need to keep the binary store
-    local sudo="${USE_SUDO:+sudo}"
-    ${sudo} rm -rf "${ETCD_DATA_DIR}"
-
-    if go tool -n pprof >/dev/null 2>&1; then
-        os::log::debug "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
-        go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
-    fi
-
-    os::test::junit::generate_oscmd_report
-
-    ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-    os::log::info "Exiting with ${out}"
-    exit $out
+function cleanup() {
+  return_code=$?
+  os::cleanup::all "${return_code}"
+  exit "${return_code}"
 }
-
-trap "exit" INT TERM
 trap "cleanup" EXIT
 
 function find_tests() {
@@ -52,8 +25,7 @@ function find_tests() {
     done
 
     if [[ "${#selected_tests[@]}" -eq 0 ]]; then
-        os::log::error "No tests were selected due to invalid regex."
-        return 1
+        os::log::fatal "No tests were selected due to invalid regex."
     else
         echo "${selected_tests[@]}"
     fi

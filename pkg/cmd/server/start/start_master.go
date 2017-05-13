@@ -17,8 +17,11 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	restclient "k8s.io/client-go/rest"
+	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
@@ -27,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
+	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -449,11 +453,13 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
+			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
+		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -474,16 +480,15 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// verify we can connect to etcd with the provided config
-	// TODO(post-1.6.1-rebase): uncomment etcd3 support
-	//if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd2" {
-	if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
-		return err
+	if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd3" {
+		if _, err := etcd.GetAndTestEtcdClientV3(oc.Options.EtcdClientInfo); err != nil {
+			return err
+		}
+	} else {
+		if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
+			return err
+		}
 	}
-	//} else {
-	//if _, err := etcd.GetAndTestEtcdClientV3(oc.Options.EtcdClientInfo); err != nil {
-	//return err
-	//}
-	//}
 
 	// Must start policy caching immediately
 	oc.Informers.StartCore(utilwait.NeverStop)
@@ -602,10 +607,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunSecurityAllocationController()
 
 	if kc != nil {
-		_, _, _, rcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicationControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for replication controller: %v", err)
-		}
 		_, _, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
 		if err != nil {
 			glog.Fatalf("Could not get client for replication controller: %v", err)
@@ -687,10 +688,79 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			glog.Fatalf("Could not get client for garbage collector controller: %v", err)
 		}
 
+		rootClientBuilder := controller.SimpleControllerClientBuilder{
+			ClientConfig: &oc.PrivilegedLoopbackClientConfig,
+		}
+		saClientBuilder := controller.SAControllerClientBuilder{
+			ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
+			CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+			AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+			Namespace:            "kube-system",
+		}
+		availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
+		if err != nil {
+			return err
+		}
+
+		controllerContext := kctrlmgr.ControllerContext{
+			ClientBuilder:      saClientBuilder,
+			InformerFactory:    oc.Informers.KubernetesInformers(),
+			Options:            *controllerManagerOptions,
+			AvailableResources: availableResources,
+			Stop:               utilwait.NeverStop,
+		}
+		controllerInitializers := kctrlmgr.NewControllerInitializers()
+
+		// TODO remove this.  Using it now to control the migration
+		allowedControllers := sets.NewString(
+			// "endpoint",
+			"replicationcontroller",
+			// "podgc",
+			// "resourcequota",
+			// "namespace",
+			// "serviceaccount",
+			// "garbagecollector",
+			// "daemonset",
+			// "job",
+			// "deployment",
+			// "replicaset",
+			// "horizontalpodautoscaling",
+			// "disruption",
+			// "statefuleset",
+			// "cronjob",
+			// "certificatesigningrequests",
+			// "ttl",
+			// "bootstrapsigner",
+			// "tokencleaner",
+		)
+
+		for controllerName, initFn := range controllerInitializers {
+			// TODO remove this.  Only call one to start to prove the principle
+			if !allowedControllers.Has(controllerName) {
+				glog.Warningf("%q is skipped", controllerName)
+				continue
+			}
+			if !controllerContext.IsControllerEnabled(controllerName) {
+				glog.Warningf("%q is disabled", controllerName)
+				continue
+			}
+
+			glog.V(1).Infof("Starting %q", controllerName)
+			started, err := initFn(controllerContext)
+			if err != nil {
+				glog.Errorf("Error starting %q", controllerName)
+				return err
+			}
+			if !started {
+				glog.Warningf("Skipping %q", controllerName)
+				continue
+			}
+			glog.Infof("Started %q", controllerName)
+		}
+
 		// no special order
 		kc.RunNodeController()
 		kc.RunScheduler()
-		kc.RunReplicationController(rcClient)
 		kc.RunReplicaSetController(rsClient)
 		kc.RunDeploymentController(deploymentClient)
 		kc.RunGarbageCollectorController(garbageCollectorControllerClient, garbageCollectorControllerConfig)
@@ -753,9 +823,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
+	oc.RunOriginToRBACSyncControllers()
 
 	// initializes quota docs used by admission
-	oc.RunResourceQuotaManager(nil)
+	oc.RunResourceQuotaManager(controllerManagerOptions)
 	oc.RunClusterQuotaReconciliationController()
 	oc.RunClusterQuotaMappingController()
 

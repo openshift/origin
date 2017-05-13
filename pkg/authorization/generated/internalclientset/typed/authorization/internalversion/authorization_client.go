@@ -7,7 +7,11 @@ import (
 
 type AuthorizationInterface interface {
 	RESTClient() rest.Interface
+	ClusterRolesGetter
+	ClusterRoleBindingsGetter
 	PoliciesGetter
+	RolesGetter
+	RoleBindingsGetter
 }
 
 // AuthorizationClient is used to interact with features provided by the authorization.openshift.io group.
@@ -15,8 +19,24 @@ type AuthorizationClient struct {
 	restClient rest.Interface
 }
 
+func (c *AuthorizationClient) ClusterRoles() ClusterRoleInterface {
+	return newClusterRoles(c)
+}
+
+func (c *AuthorizationClient) ClusterRoleBindings() ClusterRoleBindingInterface {
+	return newClusterRoleBindings(c)
+}
+
 func (c *AuthorizationClient) Policies(namespace string) PolicyInterface {
 	return newPolicies(c, namespace)
+}
+
+func (c *AuthorizationClient) Roles(namespace string) RoleInterface {
+	return newRoles(c, namespace)
+}
+
+func (c *AuthorizationClient) RoleBindings(namespace string) RoleBindingInterface {
+	return newRoleBindings(c, namespace)
 }
 
 // NewForConfig creates a new AuthorizationClient for the given config.

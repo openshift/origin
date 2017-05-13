@@ -8,8 +8,16 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// ClusterRoles returns a ClusterRoleInformer.
+	ClusterRoles() ClusterRoleInformer
+	// ClusterRoleBindings returns a ClusterRoleBindingInformer.
+	ClusterRoleBindings() ClusterRoleBindingInformer
 	// Policies returns a PolicyInformer.
 	Policies() PolicyInformer
+	// Roles returns a RoleInformer.
+	Roles() RoleInformer
+	// RoleBindings returns a RoleBindingInformer.
+	RoleBindings() RoleBindingInformer
 }
 
 type version struct {
@@ -21,7 +29,27 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
+// ClusterRoles returns a ClusterRoleInformer.
+func (v *version) ClusterRoles() ClusterRoleInformer {
+	return &clusterRoleInformer{factory: v.SharedInformerFactory}
+}
+
+// ClusterRoleBindings returns a ClusterRoleBindingInformer.
+func (v *version) ClusterRoleBindings() ClusterRoleBindingInformer {
+	return &clusterRoleBindingInformer{factory: v.SharedInformerFactory}
+}
+
 // Policies returns a PolicyInformer.
 func (v *version) Policies() PolicyInformer {
 	return &policyInformer{factory: v.SharedInformerFactory}
+}
+
+// Roles returns a RoleInformer.
+func (v *version) Roles() RoleInformer {
+	return &roleInformer{factory: v.SharedInformerFactory}
+}
+
+// RoleBindings returns a RoleBindingInformer.
+func (v *version) RoleBindings() RoleBindingInformer {
+	return &roleBindingInformer{factory: v.SharedInformerFactory}
 }

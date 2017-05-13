@@ -1071,7 +1071,7 @@ func (c *ClientStartConfig) Clients() (*client.Client, kclientset.Interface, err
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *CommonStartConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.dockerClient, c.HostHelper(), c.openshiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
+		c.openshiftHelper = openshift.NewHelper(c.dockerClient, c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
 	}
 	return c.openshiftHelper
 }

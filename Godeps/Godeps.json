@@ -1415,6 +1415,11 @@
 			"Rev": "d6023ce2651d8eafb5c75bb0c7167536102ec9f5"
 		},
 		{
+			"ImportPath": "github.com/fatih/structs",
+			"Comment": "v1.0",
+			"Rev": "a720dfa8df582c51dee1b36feabb906bde1588bd"
+		},
+		{
 			"ImportPath": "github.com/flynn/go-shlex",
 			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
 		},
@@ -2012,115 +2017,123 @@
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/blockstorage/v1/apiversions",
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/blockstorage/v1/volumes",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
+		},
+		{
+			"ImportPath": "github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes",
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/common/extensions",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/volumeattach",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/flavors",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/images",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/compute/v2/servers",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tenants",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v2/tokens",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/trusts",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/identity/v3/tokens",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/routers",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/members",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/monitors",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/pools",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas/vips",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/listeners",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/loadbalancers",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/monitors",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/lbaas_v2/pools",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/networking/v2/ports",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/openstack/utils",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gophercloud/gophercloud/pagination",
-			"Rev": "12f19e5e04d617182cffa5c11f189ef0013b9791"
+			"Rev": "b06120d13e262ceaf890ef38ee30898813696af0"
 		},
 		{
 			"ImportPath": "github.com/gorilla/context",
@@ -2800,117 +2813,117 @@
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api/describe",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/api/validation",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build/strategies",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build/strategies/layered",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build/strategies/onbuild",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/build/strategies/sti",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/docker",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/errors",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/ignore",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/empty",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/file",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/git",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scripts",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/tar",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/test",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/glog",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/interrupt",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/status",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/util/user",
 			"Comment": "v1.1.5-31-g191ae3b",
-			"Rev": "191ae3b6e99e84bc76419e18d3086dc3a3d2a49d"
+			"Rev": "5d863bfc266dcae304ebd527b420c00cc9b08511"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

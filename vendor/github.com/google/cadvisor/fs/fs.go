@@ -294,6 +294,7 @@ func (self *RealFsInfo) GetLabelsForDevice(device string) ([]string, error) {
 func (self *RealFsInfo) GetMountpointForDevice(dev string) (string, error) {
 	p, ok := self.partitions[dev]
 	if !ok {
+		glog.Warningf("unable to find partition %q in %#v (%#v)", dev, self.partitions, self.labels)
 		return "", fmt.Errorf("no partition info for device %q", dev)
 	}
 	return p.mountpoint, nil

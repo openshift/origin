@@ -27,6 +27,8 @@ import (
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
+const conflictRetries = 3
+
 // GeneratorFatalError represents a fatal error while generating a build.
 // An operation that fails because of a fatal error should not be retried.
 type GeneratorFatalError struct {
@@ -248,6 +250,21 @@ func updateBuildArgs(oldArgs *[]kapi.EnvVar, newArgs []kapi.EnvVar) []kapi.EnvVa
 
 // Instantiate returns a new Build object based on a BuildRequest object
 func (g *BuildGenerator) Instantiate(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	var build *buildapi.Build
+	var err error
+
+	for i := 0; i < conflictRetries; i++ {
+		build, err = g.instantiate(ctx, request)
+		if err == nil || !errors.IsConflict(err) {
+			break
+		}
+		glog.V(4).Infof("instantiate returned conflict, try %d/%d", i+1, conflictRetries)
+	}
+
+	return build, err
+}
+
+func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {
@@ -374,6 +391,21 @@ func (g *BuildGenerator) updateImageTriggers(ctx apirequest.Context, bc *buildap
 
 // Clone returns clone of a Build
 func (g *BuildGenerator) Clone(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	var build *buildapi.Build
+	var err error
+
+	for i := 0; i < conflictRetries; i++ {
+		build, err = g.clone(ctx, request)
+		if err == nil || !errors.IsConflict(err) {
+			break
+		}
+		glog.V(4).Infof("clone returned conflict, try %d/%d", i+1, conflictRetries)
+	}
+
+	return build, err
+}
+
+func (g *BuildGenerator) clone(ctx apirequest.Context, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	glog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
 	build, err := g.Client.GetBuild(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {

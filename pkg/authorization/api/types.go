@@ -81,6 +81,8 @@ type IsPersonalSubjectAccessReview struct {
 	metav1.TypeMeta
 }
 
+// +genclient=true
+
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
 	metav1.TypeMeta
@@ -90,6 +92,8 @@ type Role struct {
 	// Rules holds all the PolicyRules for this Role
 	Rules []PolicyRule
 }
+
+// +genclient=true
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
@@ -342,6 +346,9 @@ type RoleList struct {
 	Items []Role
 }
 
+// +genclient=true
+// +nonNamespaced=true
+
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
 	metav1.TypeMeta
@@ -351,6 +358,9 @@ type ClusterRole struct {
 	// Rules holds all the PolicyRules for this ClusterRole
 	Rules []PolicyRule
 }
+
+// +genclient=true
+// +nonNamespaced=true
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given

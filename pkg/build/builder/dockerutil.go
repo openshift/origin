@@ -16,10 +16,12 @@ import (
 	dockertypes "github.com/docker/engine-api/types"
 	docker "github.com/fsouza/go-dockerclient"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/kubernetes/pkg/credentialprovider"
-	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	"github.com/openshift/source-to-image/pkg/tar"
+	s2iutil "github.com/openshift/source-to-image/pkg/util"
+
+	"k8s.io/kubernetes/pkg/credentialprovider"
+	"k8s.io/kubernetes/pkg/util/interrupt"
 
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerclient"
@@ -281,7 +283,12 @@ func tagImage(dockerClient DockerClient, image, name string) error {
 // removed after it terminates.
 func dockerRun(client DockerClient, createOpts docker.CreateContainerOptions, attachOpts docker.AttachToContainerOptions) error {
 	// Create a new container.
-	glog.V(4).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", createOpts.Name, createOpts.Config, createOpts.HostConfig)
+	// First strip any inlined proxy credentials from the *proxy* env variables,
+	// before logging the env variables.
+	if glog.Is(4) {
+		redactedOpts := SafeForLoggingDockerCreateOptions(&createOpts)
+		glog.V(4).Infof("Creating container with options {Name:%q Config:%+v HostConfig:%+v} ...", redactedOpts.Name, redactedOpts.Config, redactedOpts.HostConfig)
+	}
 	c, err := client.CreateContainer(createOpts)
 	if err != nil {
 		return fmt.Errorf("create container %q: %v", createOpts.Name, err)
@@ -482,4 +489,24 @@ func GetDockerClient() (client *docker.Client, endpoint string, err error) {
 		endpoint = "unix:///var/run/docker.sock"
 	}
 	return
+}
+
+// SafeForLoggingDockerConfig returns a copy of a docker config struct
+// where any proxy credentials in the env section of the config
+// have been redacted.
+func SafeForLoggingDockerConfig(config *docker.Config) *docker.Config {
+	origEnv := config.Env
+	newConfig := *config
+	newConfig.Env = s2iutil.SafeForLoggingEnv(origEnv)
+	return &newConfig
+}
+
+// SafeForLoggingDockerCreateOptions returns a copy of a docker
+// create container options struct where any proxy credentials in the env section of
+// the config have been redacted.
+func SafeForLoggingDockerCreateOptions(opts *docker.CreateContainerOptions) *docker.CreateContainerOptions {
+	origConfig := opts.Config
+	newOpts := *opts
+	newOpts.Config = SafeForLoggingDockerConfig(origConfig)
+	return &newOpts
 }
