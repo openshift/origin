@@ -10,17 +10,15 @@ os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
 function cleanup() {
-	out=$?
-	set +e
+	return_code=$?
 
 	# this is a domain socket. CI falls over it.
 	rm -f "${BASETMPDIR}/dockershim.sock"
 
-	echo "Complete"
-	exit $out
+	os::cleanup::all "${return_code}"
+	exit "${return_code}"
 }
-
-trap cleanup EXIT SIGINT
+trap "cleanup" EXIT
 
 export GOMAXPROCS="$(grep "processor" -c /proc/cpuinfo 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || 1)"
 
@@ -124,7 +122,6 @@ test_end_time=$(date +%s%3N)
 test_duration=$((test_end_time - test_start_time))
 
 echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration / 1000)).$((test_duration % 1000))s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
-os::test::junit::generate_gotest_report
 
 popd &>/dev/null
 

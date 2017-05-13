@@ -40,35 +40,17 @@ function os::test::extended::setup () {
 		export TEST_REPORT_DIR="${ARTIFACT_DIR}"
 	fi
 
-	# TODO: we shouldn't have to do this much work just to get tests to run against a real
-	#   cluster, until then
-	if [[ -n "${TEST_ONLY-}" ]]; then
-		function cleanup() {
-			out=$?
-			os::cleanup::dump_container_logs
-			os::test::junit::generate_oscmd_report
-			os::log::info "Exiting"
-			return $out
-		}
-		trap "exit" INT TERM
-		trap "cleanup" EXIT
+	function cleanup() {
+		return_code=$?
+		os::cleanup::all "${return_code}"
+		exit "${return_code}"
+	}
+	trap "cleanup" EXIT
 
-		os::log::info "Not starting server"
+	if [[ -n "${TEST_ONLY-}" ]]; then
+		os::log::info "Running tests against existing cluster..."
 		return 0
 	fi
-
-	function cleanup() {
-		out=$?
-		cleanup_openshift
-
-		os::test::junit::generate_oscmd_report
-
-		os::log::info "Exiting"
-		return $out
-	}
-
-	trap "exit" INT TERM
-	trap "cleanup" EXIT
 
 	os::util::ensure::built_binary_exists 'openshift'
 

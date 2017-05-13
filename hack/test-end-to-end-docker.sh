@@ -2,7 +2,6 @@
 
 # This script tests the high level end-to-end functionality demonstrated
 # as part of the examples/sample-app
-STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::log::info "Starting containerized end-to-end test"
@@ -19,42 +18,12 @@ if [[ -n "${JUNIT_REPORT:-}" ]]; then
 	export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
 fi
 
-function cleanup()
-{
-	out=$?
-	echo
-	if [ $out -ne 0 ]; then
-		echo "[FAIL] !!!!! Test Failed !!!!"
-	else
-		os::log::info "Test Succeeded"
-	fi
-	echo
-
-	set +e
-	os::cleanup::dump_container_logs
-
-	# pull information out of the server log so that we can get failure management in jenkins to highlight it and
-	# really have it smack people in their logs.  This is a severe correctness problem
-    grep -ra5 "CACHE.*ALTERED" ${LOG_DIR}/containers
-
-	os::cleanup::dump_etcd
-
-	os::cleanup::dump_events
-
-	if [[ -z "${SKIP_TEARDOWN-}" ]]; then
-		os::cleanup::containers
-	fi
-
-	truncate_large_logs
-	os::test::junit::generate_oscmd_report
-	set -e
-
-	os::log::info "Exiting"
-	ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"
-	exit $out
+function cleanup() {
+	return_code=$?
+	os::cleanup::all "${return_code}"
+	exit "${return_code}"
 }
-
-trap "cleanup" EXIT INT TERM
+trap "cleanup" EXIT
 
 os::log::system::start
 

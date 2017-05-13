@@ -6,18 +6,11 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 
-function cleanup()
-{
-	out=$?
-	kill $OS_PID
-
-	os::test::junit::generate_oscmd_report
-
-	os::log::info "Exiting"
-	exit $out
+function cleanup() {
+	return_code=$?
+	os::cleanup::all "${return_code}"
+	exit "${return_code}"
 }
-
-trap "exit" INT TERM
 trap "cleanup" EXIT
 
 
