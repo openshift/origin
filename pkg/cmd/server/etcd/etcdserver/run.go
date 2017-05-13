@@ -70,6 +70,7 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 		glog.Fatalf("Unable to start etcd: %v", err)
 	}
 
+	ready := make(chan struct{})
 	go func() {
 		defer e.Close()
 
@@ -80,6 +81,7 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 			for min := semver.Must(semver.NewVersion("3.0.0")); e.Server.ClusterVersion() == nil || e.Server.ClusterVersion().LessThan(*min); {
 				time.Sleep(25 * time.Millisecond)
 			}
+			close(ready)
 			glog.Infof("Started etcd at %s", etcdServerConfig.Address)
 		case <-time.After(60 * time.Second):
 			glog.Warning("etcd took too long to start, stopped")
@@ -87,6 +89,7 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 		}
 		glog.Fatalf("etcd has returned an error: %v", <-e.Err())
 	}()
+	<-ready
 }
 
 // addressToURLs turns a host:port comma delimited list into an array valid
