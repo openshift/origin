@@ -108,7 +108,7 @@ var (
 func (h *Helper) DockerRoot() (string, error) {
 	info, err := h.dockerInfo()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return info.DockerRootDir, nil
 }
