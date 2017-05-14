@@ -52,9 +52,9 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 				case api.TestResultFail:
 					currentTest.MarkFailed("", output)
 				}
-
 				currentSuite.AddTestCase(currentTest)
 			}
+
 			currentTest = &api.TestCase{}
 			currentTestResult = api.TestResultFail
 			currentTestOutput = []string{}
@@ -75,8 +75,8 @@ func (p *testOutputParser) Parse(input *bufio.Scanner) (*api.TestSuites, error) 
 		}
 
 		if properties, matched := p.suiteParser.ExtractProperties(line); matched {
-			for name := range properties {
-				currentSuite.AddProperty(name, properties[name])
+			for name, value := range properties {
+				currentSuite.AddProperty(name, value)
 			}
 			isTestOutput = false
 		}

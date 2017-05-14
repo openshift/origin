@@ -3,4 +3,4 @@
 === RUN TestTwo
 --- PASS: TestTwo (0.10 seconds)
 PASS
-ok  	package/name 2.160s
+ok  	package/name	2.160s

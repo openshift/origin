@@ -21,12 +21,8 @@ func TestMarksTestBeginning(t *testing.T) {
 			testLine: "=== RUN 1234",
 		},
 		{
-			name:     "url",
-			testLine: "=== RUN github.com/maintainer/repository/package/file",
-		},
-		{
 			name:     "failed print",
-			testLine: "some other text=== RUN github.com/maintainer/repository/package/file",
+			testLine: "some other text=== RUN TestName",
 		},
 	}
 
@@ -53,11 +49,6 @@ func TestExtractTestName(t *testing.T) {
 			name:         "numeric",
 			testLine:     "=== RUN 1234",
 			expectedName: "1234",
-		},
-		{
-			name:         "url",
-			testLine:     "=== RUN github.com/maintainer/repository/package/file",
-			expectedName: "github.com/maintainer/repository/package/file",
 		},
 		{
 			name:         "basic end",
@@ -150,12 +141,12 @@ func TestExtractDuration(t *testing.T) {
 		expectedDuration string
 	}{
 		{
-			name:             "basic",
+			name:             "go1.3 timing",
 			testLine:         "--- PASS: Test (0.10 seconds)",
 			expectedDuration: "0.10s", // we make the conversion to time.Duration-parseable units internally
 		},
 		{
-			name:             "go1.5.1 timing",
+			name:             "go1.4+ timing",
 			testLine:         "--- PASS: TestTwo (0.03s)",
 			expectedDuration: "0.03s",
 		},
@@ -186,7 +177,7 @@ func TestExtractSuiteName(t *testing.T) {
 	}{
 		{
 			name: "basic",
-			testLine: "ok  	package/name 0.160s",
+			testLine: "ok  	package/name	0.160s",
 			expectedName: "package/name",
 		},
 		{
@@ -196,22 +187,22 @@ func TestExtractSuiteName(t *testing.T) {
 		},
 		{
 			name: "numeric",
-			testLine: "ok  	1234 0.160s",
+			testLine: "ok  	1234	0.160s",
 			expectedName: "1234",
 		},
 		{
 			name: "url",
-			testLine: "ok  	github.com/maintainer/repository/package/file 0.160s",
+			testLine: "ok  	github.com/maintainer/repository/package/file	0.160s",
 			expectedName: "github.com/maintainer/repository/package/file",
 		},
 		{
 			name: "with coverage",
-			testLine: `ok  	package/name 0.400s  coverage: 10.0% of statements`,
+			testLine: `ok  	package/name	0.400s	coverage: 10.0% of statements`,
 			expectedName: "package/name",
 		},
 		{
 			name: "failed print",
-			testLine: `some other textok  	package/name 0.400s  coverage: 10.0% of statements`,
+			testLine: `some other textok  	package/name	0.400s	coverage: 10.0% of statements`,
 			expectedName: "package/name",
 		},
 	}
@@ -241,7 +232,7 @@ func TestSuiteProperties(t *testing.T) {
 		},
 		{
 			name: "with package declaration",
-			testLine: `ok  	package/name 0.400s  coverage: 10.0% of statements`,
+			testLine: `ok  	package/name 0.400s	coverage: 10.0% of statements`,
 			expectedProperties: map[string]string{coveragePropertyName: "10.0"},
 		},
 		{
@@ -270,23 +261,23 @@ func TestMarksCompletion(t *testing.T) {
 	}{
 		{
 			name: "basic",
-			testLine: "ok  	package/name 0.160s",
+			testLine: "ok  	package/name	0.160s",
 		},
 		{
 			name: "numeric",
-			testLine: "ok  	1234 0.160s",
+			testLine: "ok  	1234	0.160s",
 		},
 		{
 			name: "url",
-			testLine: "ok  	github.com/maintainer/repository/package/file 0.160s",
+			testLine: "ok  	github.com/maintainer/repository/package/file	0.160s",
 		},
 		{
 			name: "with coverage",
-			testLine: `ok  	package/name 0.400s  coverage: 10.0% of statements`,
+			testLine: `ok  	package/name	0.400s	coverage: 10.0% of statements`,
 		},
 		{
 			name: "failed print",
-			testLine: `some other textok  	package/name 0.400s  coverage: 10.0% of statements`,
+			testLine: `some other textok  	package/name	0.400s	coverage: 10.0% of statements`,
 		},
 	}
 

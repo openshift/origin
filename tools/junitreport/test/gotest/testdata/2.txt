@@ -8,4 +8,4 @@
 --- PASS: TestTwo (0.13 seconds)
 FAIL
 exit status 1
-FAIL	package/name 0.150s
+FAIL	package/name	0.150s
