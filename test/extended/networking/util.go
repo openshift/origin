@@ -96,7 +96,7 @@ func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contNa
 }
 
 func waitForEndpoint(c kclientset.Interface, ns, name string) error {
-	for t := time.Now(); time.Since(t) < time.Minute; time.Sleep(poll) {
+	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(poll) {
 		endpoint, err := c.Core().Endpoints(ns).Get(name, metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
