@@ -191,7 +191,10 @@ type TLSConfig struct {
 	CACertificate string `json:"caCertificate,omitempty" protobuf:"bytes,4,opt,name=caCertificate"`
 
 	// destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
-	// termination this file should be provided in order to have routers use it for health checks on the secure connection
+	// termination this file should be provided in order to have routers use it for health checks on the secure connection.
+	// If this field is not specified, the router may provide its own destination CA and perform hostname validation using
+	// the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically
+	// verify.
 	DestinationCACertificate string `json:"destinationCACertificate,omitempty" protobuf:"bytes,5,opt,name=destinationCACertificate"`
 
 	// insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While

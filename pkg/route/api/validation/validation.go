@@ -352,12 +352,9 @@ func validateTLS(route *routeapi.Route, fldPath *field.Path) field.ErrorList {
 	}
 
 	switch tls.Termination {
-	// reencrypt must specify destination ca cert
+	// reencrypt may specify destination ca cert
 	// cert, key, cacert may not be specified because the route may be a wildcard
 	case routeapi.TLSTerminationReencrypt:
-		if len(tls.DestinationCACertificate) == 0 {
-			result = append(result, field.Required(fldPath.Child("destinationCACertificate"), ""))
-		}
 	//passthrough term should not specify any cert
 	case routeapi.TLSTerminationPassthrough:
 		if len(tls.Certificate) > 0 {

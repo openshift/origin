@@ -5,11 +5,12 @@ import (
 	"strings"
 )
 
-// ServiceUnit is an encapsulation of a service, the endpoints that back that service, and the routes
-// that point to the service.  This is the data that drives the creation of the router configuration files
+// ServiceUnit represents a service and its endpoints.
 type ServiceUnit struct {
 	// Name corresponds to a service name & namespace.  Uniquely identifies the ServiceUnit
 	Name string
+	// Hostname is the name of this service.
+	Hostname string
 	// EndpointTable are endpoints that back the service, this translates into a final backend
 	// implementation for routers.
 	EndpointTable []Endpoint
@@ -29,6 +30,9 @@ type ServiceAliasConfig struct {
 	TLSTermination routeapi.TLSTerminationType
 	// Certificates used for securing this backend.  Keyed by the cert id
 	Certificates map[string]Certificate
+	// VerifyServiceHostname is true if the backend service(s) are expected to have serving certificates that sign for
+	// the name "service.namespace.svc".
+	VerifyServiceHostname bool
 	// Indicates the status of configuration that needs to be persisted.  Right now this only
 	// includes the certificates and is not an indicator of being written to the underlying
 	// router implementation
