@@ -485,7 +485,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"jee,java",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "ImageStreamTag",
@@ -501,7 +501,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:8.1,jee,java",
               "version": "8.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -517,7 +517,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:9.0,jee,java",
               "version": "9.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -533,7 +533,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.0,jee,java",
               "version": "10.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -549,7 +549,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.1,jee,java",
               "version": "10.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -5597,7 +5597,7 @@ parameters:
   description: The source URL for the application
   displayName: Source URL
   required: true
-  value: https://github.com/bparees/openshift-jee-sample.git
+  value: https://github.com/openshift/openshift-jee-sample.git
 - name: GIT_SOURCE_REF
   description: The source Ref for the application
   displayName: Source Ref
