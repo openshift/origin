@@ -52,11 +52,12 @@ func (fakeAuthorizer) Authorize(a authorizer.Attributes) (bool, string, error) {
 
 func TestGCAdmission(t *testing.T) {
 	tests := []struct {
-		name     string
-		username string
-		resource schema.GroupVersionResource
-		oldObj   runtime.Object
-		newObj   runtime.Object
+		name        string
+		username    string
+		resource    schema.GroupVersionResource
+		subresource string
+		oldObj      runtime.Object
+		newObj      runtime.Object
 
 		expectedAllowed bool
 	}{
@@ -175,6 +176,15 @@ func TestGCAdmission(t *testing.T) {
 			expectedAllowed: true,
 		},
 		{
+			name:            "non-pod-deleter, update status, objectref change",
+			username:        "non-pod-deleter",
+			resource:        api.SchemeGroupVersion.WithResource("pods"),
+			subresource:     "status",
+			oldObj:          &api.Pod{},
+			newObj:          &api.Pod{ObjectMeta: metav1.ObjectMeta{OwnerReferences: []metav1.OwnerReference{{Name: "first"}}}},
+			expectedAllowed: true,
+		},
+		{
 			name:            "non-pod-deleter, update, objectref change",
 			username:        "non-pod-deleter",
 			resource:        api.SchemeGroupVersion.WithResource("pods"),
@@ -191,9 +201,19 @@ func TestGCAdmission(t *testing.T) {
 			expectedAllowed: true,
 		},
 	}
+	// the pods/status endpoint is ignored by this plugin since old kubelets
+	// corrupt them.  the pod status strategy ensures status updates cannot mutate
+	// ownerRef.
+	whiteList := []whiteListItem{
+		{
+			groupResource: schema.GroupResource{Resource: "pods"},
+			subresource:   "status",
+		},
+	}
 	gcAdmit := &gcPermissionsEnforcement{
 		Handler:    admission.NewHandler(admission.Create, admission.Update),
 		authorizer: fakeAuthorizer{},
+		whiteList:  whiteList,
 	}
 
 	for _, tc := range tests {
@@ -202,7 +222,7 @@ func TestGCAdmission(t *testing.T) {
 			operation = admission.Update
 		}
 		user := &user.DefaultInfo{Name: tc.username}
-		attributes := admission.NewAttributesRecord(tc.newObj, tc.oldObj, schema.GroupVersionKind{}, metav1.NamespaceDefault, "foo", tc.resource, "", operation, user)
+		attributes := admission.NewAttributesRecord(tc.newObj, tc.oldObj, schema.GroupVersionKind{}, metav1.NamespaceDefault, "foo", tc.resource, tc.subresource, operation, user)
 
 		err := gcAdmit.Admit(attributes)
 		switch {
