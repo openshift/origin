@@ -191,7 +191,7 @@ func TestControllerHandlesStaleEvents(t *testing.T) {
 		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Deploy(),
+		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -248,7 +248,7 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Deploy(),
+		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -361,7 +361,7 @@ func TestControllerUnidlesProperly(t *testing.T) {
 		scaleNamespacer:     fakeExternalClient.Extensions(),
 		endpointsNamespacer: fakeClient.Core(),
 		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Deploy(),
+		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -702,7 +702,7 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 			scaleNamespacer:     fakeExternalClient.Extensions(),
 			endpointsNamespacer: fakeClient.Core(),
 			rcNamespacer:        fakeClient.Core(),
-			dcNamespacer:        fakeDeployClient.Deploy(),
+			dcNamespacer:        fakeDeployClient.Apps(),
 		}
 
 		var retry bool

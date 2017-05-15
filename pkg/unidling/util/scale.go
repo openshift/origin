@@ -15,7 +15,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 
