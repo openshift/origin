@@ -1,28 +1,28 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	"github.com/openshift/origin/pkg/deploy/generated/clientset/scheme"
+	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	"github.com/openshift/origin/pkg/sdn/generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 )
 
-type DeployV1Interface interface {
+type NetworkV1Interface interface {
 	RESTClient() rest.Interface
-	DeploymentConfigsGetter
+	ClusterNetworksGetter
 }
 
-// DeployV1Client is used to interact with features provided by the apps.openshift.io group.
-type DeployV1Client struct {
+// NetworkV1Client is used to interact with features provided by the network.openshift.io group.
+type NetworkV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *DeployV1Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
-	return newDeploymentConfigs(c, namespace)
+func (c *NetworkV1Client) ClusterNetworks(namespace string) ClusterNetworkInterface {
+	return newClusterNetworks(c, namespace)
 }
 
-// NewForConfig creates a new DeployV1Client for the given config.
-func NewForConfig(c *rest.Config) (*DeployV1Client, error) {
+// NewForConfig creates a new NetworkV1Client for the given config.
+func NewForConfig(c *rest.Config) (*NetworkV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func NewForConfig(c *rest.Config) (*DeployV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DeployV1Client{client}, nil
+	return &NetworkV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new DeployV1Client for the given config and
+// NewForConfigOrDie creates a new NetworkV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *DeployV1Client {
+func NewForConfigOrDie(c *rest.Config) *NetworkV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -44,9 +44,9 @@ func NewForConfigOrDie(c *rest.Config) *DeployV1Client {
 	return client
 }
 
-// New creates a new DeployV1Client for the given RESTClient.
-func New(c rest.Interface) *DeployV1Client {
-	return &DeployV1Client{c}
+// New creates a new NetworkV1Client for the given RESTClient.
+func New(c rest.Interface) *NetworkV1Client {
+	return &NetworkV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -64,7 +64,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *DeployV1Client) RESTClient() rest.Interface {
+func (c *NetworkV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

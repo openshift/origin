@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/sdn/generated/clientset"
-	sdnv1 "github.com/openshift/origin/pkg/sdn/generated/clientset/typed/sdn/v1"
-	fakesdnv1 "github.com/openshift/origin/pkg/sdn/generated/clientset/typed/sdn/v1/fake"
+	networkv1 "github.com/openshift/origin/pkg/sdn/generated/clientset/typed/network/v1"
+	fakenetworkv1 "github.com/openshift/origin/pkg/sdn/generated/clientset/typed/network/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -44,12 +44,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// SdnV1 retrieves the SdnV1Client
-func (c *Clientset) SdnV1() sdnv1.SdnV1Interface {
-	return &fakesdnv1.FakeSdnV1{Fake: &c.Fake}
+// NetworkV1 retrieves the NetworkV1Client
+func (c *Clientset) NetworkV1() networkv1.NetworkV1Interface {
+	return &fakenetworkv1.FakeNetworkV1{Fake: &c.Fake}
 }
 
-// Sdn retrieves the SdnV1Client
-func (c *Clientset) Sdn() sdnv1.SdnV1Interface {
-	return &fakesdnv1.FakeSdnV1{Fake: &c.Fake}
+// Network retrieves the NetworkV1Client
+func (c *Clientset) Network() networkv1.NetworkV1Interface {
+	return &fakenetworkv1.FakeNetworkV1{Fake: &c.Fake}
 }

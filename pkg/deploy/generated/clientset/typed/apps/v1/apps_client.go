@@ -1,28 +1,28 @@
 package v1
 
 import (
-	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
-	"github.com/openshift/origin/pkg/sdn/generated/clientset/scheme"
+	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	"github.com/openshift/origin/pkg/deploy/generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 )
 
-type SdnV1Interface interface {
+type AppsV1Interface interface {
 	RESTClient() rest.Interface
-	ClusterNetworksGetter
+	DeploymentConfigsGetter
 }
 
-// SdnV1Client is used to interact with features provided by the network.openshift.io group.
-type SdnV1Client struct {
+// AppsV1Client is used to interact with features provided by the apps.openshift.io group.
+type AppsV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SdnV1Client) ClusterNetworks(namespace string) ClusterNetworkInterface {
-	return newClusterNetworks(c, namespace)
+func (c *AppsV1Client) DeploymentConfigs(namespace string) DeploymentConfigInterface {
+	return newDeploymentConfigs(c, namespace)
 }
 
-// NewForConfig creates a new SdnV1Client for the given config.
-func NewForConfig(c *rest.Config) (*SdnV1Client, error) {
+// NewForConfig creates a new AppsV1Client for the given config.
+func NewForConfig(c *rest.Config) (*AppsV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func NewForConfig(c *rest.Config) (*SdnV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SdnV1Client{client}, nil
+	return &AppsV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new SdnV1Client for the given config and
+// NewForConfigOrDie creates a new AppsV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *SdnV1Client {
+func NewForConfigOrDie(c *rest.Config) *AppsV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -44,9 +44,9 @@ func NewForConfigOrDie(c *rest.Config) *SdnV1Client {
 	return client
 }
 
-// New creates a new SdnV1Client for the given RESTClient.
-func New(c rest.Interface) *SdnV1Client {
-	return &SdnV1Client{c}
+// New creates a new AppsV1Client for the given RESTClient.
+func New(c rest.Interface) *AppsV1Client {
+	return &AppsV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -64,7 +64,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SdnV1Client) RESTClient() rest.Interface {
+func (c *AppsV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

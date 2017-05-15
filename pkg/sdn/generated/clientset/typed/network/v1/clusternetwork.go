@@ -35,7 +35,7 @@ type clusterNetworks struct {
 }
 
 // newClusterNetworks returns a ClusterNetworks
-func newClusterNetworks(c *SdnV1Client, namespace string) *clusterNetworks {
+func newClusterNetworks(c *NetworkV1Client, namespace string) *clusterNetworks {
 	return &clusterNetworks{
 		client: c.RESTClient(),
 		ns:     namespace,

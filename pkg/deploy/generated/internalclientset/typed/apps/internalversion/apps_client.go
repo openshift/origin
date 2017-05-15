@@ -1,26 +1,26 @@
 package internalversion
 
 import (
-	"github.com/openshift/origin/pkg/sdn/generated/internalclientset/scheme"
+	"github.com/openshift/origin/pkg/deploy/generated/internalclientset/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
-type SdnInterface interface {
+type AppsInterface interface {
 	RESTClient() rest.Interface
-	ClusterNetworksGetter
+	DeploymentConfigsGetter
 }
 
-// SdnClient is used to interact with features provided by the network.openshift.io group.
-type SdnClient struct {
+// AppsClient is used to interact with features provided by the apps.openshift.io group.
+type AppsClient struct {
 	restClient rest.Interface
 }
 
-func (c *SdnClient) ClusterNetworks(namespace string) ClusterNetworkInterface {
-	return newClusterNetworks(c, namespace)
+func (c *AppsClient) DeploymentConfigs(namespace string) DeploymentConfigInterface {
+	return newDeploymentConfigs(c, namespace)
 }
 
-// NewForConfig creates a new SdnClient for the given config.
-func NewForConfig(c *rest.Config) (*SdnClient, error) {
+// NewForConfig creates a new AppsClient for the given config.
+func NewForConfig(c *rest.Config) (*AppsClient, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -29,12 +29,12 @@ func NewForConfig(c *rest.Config) (*SdnClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SdnClient{client}, nil
+	return &AppsClient{client}, nil
 }
 
-// NewForConfigOrDie creates a new SdnClient for the given config and
+// NewForConfigOrDie creates a new AppsClient for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *SdnClient {
+func NewForConfigOrDie(c *rest.Config) *AppsClient {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -42,13 +42,13 @@ func NewForConfigOrDie(c *rest.Config) *SdnClient {
 	return client
 }
 
-// New creates a new SdnClient for the given RESTClient.
-func New(c rest.Interface) *SdnClient {
-	return &SdnClient{c}
+// New creates a new AppsClient for the given RESTClient.
+func New(c rest.Interface) *AppsClient {
+	return &AppsClient{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	g, err := scheme.Registry.Group("network.openshift.io")
+	g, err := scheme.Registry.Group("apps.openshift.io")
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SdnClient) RESTClient() rest.Interface {
+func (c *AppsClient) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

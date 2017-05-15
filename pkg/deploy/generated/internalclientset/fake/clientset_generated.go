@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
-	deployinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
-	fakedeployinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion/fake"
+	appsinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
+	fakeappsinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -44,7 +44,7 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// Deploy retrieves the DeployClient
-func (c *Clientset) Deploy() deployinternalversion.DeployInterface {
-	return &fakedeployinternalversion.FakeDeploy{Fake: &c.Fake}
+// Apps retrieves the AppsClient
+func (c *Clientset) Apps() appsinternalversion.AppsInterface {
+	return &fakeappsinternalversion.FakeApps{Fake: &c.Fake}
 }
