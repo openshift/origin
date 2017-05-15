@@ -20,8 +20,8 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against routes.
-func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator) (*REST, *StatusREST, error) {
-	strategy := rest.NewStrategy(allocator)
+func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarClient rest.SubjectAccessReviewInterface) (*REST, *StatusREST, error) {
+	strategy := rest.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{
 		Copier:            kapi.Scheme,

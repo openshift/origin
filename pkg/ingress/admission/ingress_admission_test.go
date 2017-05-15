@@ -5,13 +5,22 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/origin/pkg/ingress/admission/api"
 )
 
-func TestAdmission(t *testing.T) {
+type fakeAuthorizer struct {
+	allow bool
+	err   error
+}
 
+func (a *fakeAuthorizer) Authorize(authorizer.Attributes) (bool, string, error) {
+	return a.allow, "", a.err
+}
+
+func TestAdmission(t *testing.T) {
 	var newIngress *kextensions.Ingress
 	var oldIngress *kextensions.Ingress
 
@@ -21,6 +30,7 @@ func TestAdmission(t *testing.T) {
 		oldHost, newHost string
 		op               admission.Operation
 		admit            bool
+		allow            bool
 	}{
 		{
 			admit:    true,
@@ -52,6 +62,15 @@ func TestAdmission(t *testing.T) {
 			testName: "changing hostname should fail",
 		},
 		{
+			admit:    true,
+			allow:    true,
+			config:   emptyConfig(),
+			op:       admission.Update,
+			newHost:  "foo.com",
+			oldHost:  "bar.com",
+			testName: "changing hostname should succeed if the user has permission",
+		},
+		{
 			admit:    false,
 			config:   nil,
 			op:       admission.Update,
@@ -74,6 +93,22 @@ func TestAdmission(t *testing.T) {
 			newHost:  "foo.com",
 			testName: "add new hostname with upstream rules",
 		},
+		{
+			admit:    false,
+			allow:    false,
+			config:   emptyConfig(),
+			op:       admission.Create,
+			newHost:  "foo.com",
+			testName: "setting the host should require permission",
+		},
+		{
+			admit:    true,
+			allow:    true,
+			config:   emptyConfig(),
+			op:       admission.Create,
+			newHost:  "foo.com",
+			testName: "setting the host should pass if user has permission",
+		},
 	}
 	for _, test := range tests {
 		if len(test.newHost) > 0 {
@@ -94,6 +129,7 @@ func TestAdmission(t *testing.T) {
 			}
 		}
 		handler := NewIngressAdmission(test.config)
+		handler.SetAuthorizer(&fakeAuthorizer{allow: test.allow})
 
 		if len(test.oldHost) > 0 {
 			//Provides the previous state of an ingress object

@@ -940,6 +940,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - routes/custom-host
+    verbs:
+    - create
+  - apiGroups:
+    - route.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
     - routes/status
     verbs:
     - get
@@ -1317,6 +1325,14 @@ items:
     - patch
     - update
     - watch
+  - apiGroups:
+    - route.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes/custom-host
+    verbs:
+    - create
   - apiGroups:
     - route.openshift.io
     - ""

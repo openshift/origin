@@ -7,10 +7,15 @@ import (
 	"io"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/ingress/admission/api"
 )
@@ -31,8 +36,11 @@ func init() {
 
 type ingressAdmission struct {
 	*admission.Handler
-	config *api.IngressAdmissionConfig
+	config     *api.IngressAdmissionConfig
+	authorizer authorizer.Authorizer
 }
+
+var _ = oadmission.WantsAuthorizer(&ingressAdmission{})
 
 func NewIngressAdmission(config *api.IngressAdmissionConfig) *ingressAdmission {
 	return &ingressAdmission{
@@ -60,19 +68,77 @@ func readConfig(reader io.Reader) (*api.IngressAdmissionConfig, error) {
 	return config, nil
 }
 
+func (r *ingressAdmission) SetAuthorizer(a authorizer.Authorizer) {
+	r.authorizer = a
+}
+
+func (r *ingressAdmission) Validate() error {
+	if r.authorizer == nil {
+		return fmt.Errorf("%s needs an Openshift Authorizer", IngressAdmission)
+	}
+	return nil
+}
+
 func (r *ingressAdmission) Admit(a admission.Attributes) error {
-	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") && a.GetOperation() == admission.Update {
-		if r.config == nil || r.config.AllowHostnameChanges == false {
-			oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
-			if !ok {
-				return nil
+	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") {
+		switch a.GetOperation() {
+		case admission.Create:
+			if ingress, ok := a.GetObject().(*kextensions.Ingress); ok {
+				// if any rules have a host, check whether the user has permission to set them
+				for i, rule := range ingress.Spec.Rules {
+					if len(rule.Host) > 0 {
+						attr := authorizer.AttributesRecord{
+							User:            a.GetUserInfo(),
+							Verb:            "create",
+							Namespace:       a.GetNamespace(),
+							Resource:        "routes",
+							Subresource:     "custom-host",
+							APIGroup:        "route.openshift.io",
+							ResourceRequest: true,
+						}
+						kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
+						allow, _, err := r.authorizer.Authorize(attr)
+						if err != nil {
+							return errors.NewInvalid(kind, ingress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules").Index(i), err)})
+						}
+						if !allow {
+							return errors.NewInvalid(kind, ingress.Name, field.ErrorList{field.Forbidden(field.NewPath("spec", "rules").Index(i), "you do not have permission to set host fields in ingress rules")})
+						}
+						break
+					}
+				}
 			}
-			newIngress, ok := a.GetObject().(*kextensions.Ingress)
-			if !ok {
-				return nil
-			}
-			if !haveHostnamesChanged(oldIngress, newIngress) {
-				return fmt.Errorf("cannot change hostname")
+		case admission.Update:
+			if r.config == nil || r.config.AllowHostnameChanges == false {
+				oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
+				if !ok {
+					return nil
+				}
+				newIngress, ok := a.GetObject().(*kextensions.Ingress)
+				if !ok {
+					return nil
+				}
+				if !haveHostnamesChanged(oldIngress, newIngress) {
+					attr := authorizer.AttributesRecord{
+						User:            a.GetUserInfo(),
+						Verb:            "update",
+						Namespace:       a.GetNamespace(),
+						Name:            a.GetName(),
+						Resource:        "routes",
+						Subresource:     "custom-host",
+						APIGroup:        "route.openshift.io",
+						ResourceRequest: true,
+					}
+					kind := schema.GroupKind{Group: a.GetResource().Group, Kind: a.GetResource().Resource}
+					allow, _, err := r.authorizer.Authorize(attr)
+					if err != nil {
+						return errors.NewInvalid(kind, newIngress.Name, field.ErrorList{field.InternalError(field.NewPath("spec", "rules"), err)})
+					}
+					if allow {
+						return nil
+					}
+					return fmt.Errorf("cannot change hostname")
+				}
 			}
 		}
 	}
