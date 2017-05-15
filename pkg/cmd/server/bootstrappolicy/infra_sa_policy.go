@@ -33,7 +33,6 @@ const (
 	InfraServiceAccountControllerServiceAccountName            = "serviceaccount-controller"
 	InfraServiceAccountPullSecretsControllerServiceAccountName = "serviceaccount-pull-secrets-controller"
 	InfraServiceAccountTokensControllerServiceAccountName      = "serviceaccount-tokens-controller"
-	InfraBuildPodControllerServiceAccountName                  = "build-pod-controller"
 	InfraBuildConfigChangeControllerServiceAccountName         = "build-config-change-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"

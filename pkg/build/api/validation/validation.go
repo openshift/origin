@@ -9,7 +9,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/util/labelselector"
 	kpath "k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -23,6 +22,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageapivalidation "github.com/openshift/origin/pkg/image/api/validation"
+	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -79,26 +79,6 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	}
 
 	return allErrs
-}
-
-func diffBuildSpec(newer buildapi.BuildSpec, older buildapi.BuildSpec) (string, error) {
-	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
-	newerObj := &buildapi.Build{Spec: newer}
-	olderObj := &buildapi.Build{Spec: older}
-
-	newerJSON, err := runtime.Encode(codec, newerObj)
-	if err != nil {
-		return "", fmt.Errorf("error encoding newer: %v", err)
-	}
-	olderJSON, err := runtime.Encode(codec, olderObj)
-	if err != nil {
-		return "", fmt.Errorf("error encoding older: %v", err)
-	}
-	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.Build{})
-	if err != nil {
-		return "", fmt.Errorf("error creating a strategic patch: %v", err)
-	}
-	return string(patch), nil
 }
 
 // refKey returns a key for the given ObjectReference. If the ObjectReference
@@ -751,4 +731,57 @@ func ValidateNodeSelector(nodeSelector map[string]string, fldPath *field.Path) f
 		}
 	}
 	return allErrs
+}
+
+func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
+	newerObj := &buildapi.Build{Spec: newer}
+	olderObj := &buildapi.Build{Spec: older}
+	diffBytes, err := CreateBuildPatch(olderObj, newerObj)
+	if err != nil {
+		return "", err
+	}
+	return string(diffBytes), nil
+}
+
+func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
+	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
+
+	newerJSON, err := runtime.Encode(codec, newer)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding newer: %v", err)
+	}
+	olderJSON, err := runtime.Encode(codec, older)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding older: %v", err)
+	}
+	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.Build{})
+	if err != nil {
+		return nil, fmt.Errorf("error creating a strategic patch: %v", err)
+	}
+	return patch, nil
+}
+
+func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, error) {
+	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
+	versionedBuild, err := kapi.Scheme.ConvertToVersion(build, v1.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	buildJSON, err := runtime.Encode(codec, versionedBuild)
+	if err != nil {
+		return nil, err
+	}
+	patchedJSON, err := strategicpatch.StrategicMergePatch(buildJSON, patch, &v1.Build{})
+	if err != nil {
+		return nil, err
+	}
+	patchedVersionedBuild, err := runtime.Decode(codec, patchedJSON)
+	if err != nil {
+		return nil, err
+	}
+	patchedBuild, err := kapi.Scheme.ConvertToVersion(patchedVersionedBuild, buildapi.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	return patchedBuild.(*buildapi.Build), nil
 }

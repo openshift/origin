@@ -657,20 +657,6 @@ items:
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
-    name: system:openshift:controller:build-pod-controller
-  roleRef:
-    name: system:openshift:controller:build-pod-controller
-  subjects:
-  - kind: ServiceAccount
-    name: build-pod-controller
-    namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:build-pod-controller
-- apiVersion: v1
-  groupNames: null
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
     name: system:openshift:controller:build-config-change-controller
   roleRef:
     name: system:openshift:controller:build-config-change-controller

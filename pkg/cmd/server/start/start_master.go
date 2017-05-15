@@ -821,7 +821,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	)
 	if configapi.IsBuildEnabled(&oc.Options) {
 		allowedOpenshiftControllers.Insert("build")
-		allowedOpenshiftControllers.Insert("build-pod")
 		allowedOpenshiftControllers.Insert("build-config-change")
 	}
 	if oc.Options.TemplateServiceBrokerConfig != nil {

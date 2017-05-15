@@ -5,14 +5,17 @@ import (
 	"path/filepath"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/namer"
 	"github.com/openshift/origin/pkg/version"
-	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 const (
@@ -23,6 +26,12 @@ const (
 	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
 	sourceSecretMountPath          = "/var/run/secrets/openshift.io/source"
+)
+
+var (
+	// BuildControllerRefKind contains the schema.GroupVersionKind for builds.
+	// This is used in the ownerRef of builder pods.
+	BuildControllerRefKind = buildapiv1.SchemeGroupVersion.WithKind("Build")
 )
 
 // FatalError is an error which can't be retried.
@@ -215,4 +224,17 @@ func getContainerVerbosity(containerEnv []kapi.EnvVar) (verbosity string) {
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildapi.Build) map[string]string {
 	return map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}
+}
+
+func setOwnerReference(pod *kapi.Pod, build *buildapi.Build) {
+	t := true
+	pod.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion: BuildControllerRefKind.GroupVersion().String(),
+			Kind:       BuildControllerRefKind.Kind,
+			Name:       build.Name,
+			UID:        build.UID,
+			Controller: &t,
+		},
+	}
 }

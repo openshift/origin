@@ -98,7 +98,6 @@ func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controll
 		Codec: codec,
 	}
 	ret["build"] = buildControllerConfig.RunController
-	ret["build-pod"] = controller.RunBuildPodController
 	ret["build-config-change"] = controller.RunBuildConfigChangeController
 
 	// initialize apps.openshift.io controllers
