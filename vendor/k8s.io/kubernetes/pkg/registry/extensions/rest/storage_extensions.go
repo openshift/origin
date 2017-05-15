@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	extensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
+	horizontalpodautoscalerstore "k8s.io/kubernetes/pkg/registry/autoscaling/horizontalpodautoscaler/storage"
 	expcontrollerstore "k8s.io/kubernetes/pkg/registry/extensions/controller/storage"
 	daemonstore "k8s.io/kubernetes/pkg/registry/extensions/daemonset/storage"
 	deploymentstore "k8s.io/kubernetes/pkg/registry/extensions/deployment/storage"
@@ -67,6 +68,12 @@ func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorag
 	controllerStorage := expcontrollerstore.NewStorage(restOptionsGetter)
 	storage["replicationcontrollers"] = controllerStorage.ReplicationController
 	storage["replicationcontrollers/scale"] = controllerStorage.Scale
+
+	if apiResourceConfigSource.ResourceEnabled(version.WithResource("horizontalpodautoscalers")) {
+		hpaStorage, hpaStatusStorage := horizontalpodautoscalerstore.NewREST(restOptionsGetter)
+		storage["horizontalpodautoscalers"] = hpaStorage
+		storage["horizontalpodautoscalers/status"] = hpaStatusStorage
+	}
 
 	if apiResourceConfigSource.ResourceEnabled(version.WithResource("thirdpartyresources")) {
 		thirdPartyResourceStorage := thirdpartyresourcestore.NewREST(restOptionsGetter)
