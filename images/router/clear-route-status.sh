@@ -84,9 +84,14 @@ if [[ ${#} -ne 2 || "${@}" == *" help "* ]]; then
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
-    printf "%s\n%s\n" "Command line JSON processor 'jq' not found." "please install 'jq' to use this script."
+    printf "%s\n%s\n" "Command line JSON processor 'jq' not found." "please install 'jq' version greater than 1.4 to use this script."
     exit 1
 fi
+
+if ! echo | jq '."status"."ingress"|=map(select(.routerName != "test"))' >/dev/null 2>&1; then
+    printf "%s\n%s\n" "Command line JSON processor 'jq' version is incorrect." "Please install 'jq' version greater than 1.4 to use this script"
+    exit 1
+fi    
 
 oc proxy > /dev/null &
 PROXY_PID="${!}"
