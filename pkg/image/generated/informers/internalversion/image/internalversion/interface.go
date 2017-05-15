@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Images returns a ImageInformer.
 	Images() ImageInformer
+	// ImageStreams returns a ImageStreamInformer.
+	ImageStreams() ImageStreamInformer
 }
 
 type version struct {
@@ -24,4 +26,9 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // Images returns a ImageInformer.
 func (v *version) Images() ImageInformer {
 	return &imageInformer{factory: v.SharedInformerFactory}
+}
+
+// ImageStreams returns a ImageStreamInformer.
+func (v *version) ImageStreams() ImageStreamInformer {
+	return &imageStreamInformer{factory: v.SharedInformerFactory}
 }
