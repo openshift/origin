@@ -8,14 +8,12 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 )
 
 // NumServiceAccountUpdateRetries controls the number of times we will retry on conflict errors.
@@ -30,30 +28,17 @@ type DockercfgDeletedControllerOptions struct {
 }
 
 // NewDockercfgDeletedController returns a new *DockercfgDeletedController.
-func NewDockercfgDeletedController(cl kclientset.Interface, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
+func NewDockercfgDeletedController(cl kclientset.Interface, secretInformer kinternalinformers.SecretInformer, options DockercfgDeletedControllerOptions) *DockercfgDeletedController {
 	e := &DockercfgDeletedController{
-		client: cl,
+		client:           cl,
+		secretController: secretInformer.Informer().GetController(),
 	}
-
-	dockercfgSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg))
-	_, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String()}
-				return e.client.Core().Secrets(api.NamespaceAll).List(opts)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				opts := metav1.ListOptions{FieldSelector: dockercfgSelector.String(), ResourceVersion: options.ResourceVersion}
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(opts)
-			},
-		},
-		&api.Secret{},
-		options.Resync,
+	secretInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			DeleteFunc: e.secretDeleted,
 		},
+		options.Resync,
 	)
-
 	return e
 }
 
@@ -88,6 +73,9 @@ func (e *DockercfgDeletedController) Stop() {
 func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 	dockercfgSecret, ok := obj.(*api.Secret)
 	if !ok {
+		return
+	}
+	if dockercfgSecret.Type != api.SecretTypeDockercfg {
 		return
 	}
 	if _, exists := dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey]; !exists {

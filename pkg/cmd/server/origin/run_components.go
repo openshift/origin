@@ -165,11 +165,24 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	serviceaccountcontrollers.NewDockercfgDeletedController(
+		c.KubeClientsetInternal(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
+
+	serviceaccountcontrollers.NewDockercfgTokenDeletedController(
+		c.KubeClientsetInternal(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
 
 	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
+		c.KubeClientsetInternal(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		serviceaccountcontrollers.DockercfgControllerOptions{
+			DockerURLsIntialized: dockerURLsIntialized,
+		},
+	)
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
@@ -178,7 +191,8 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DockercfgController:  dockercfgController,
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	secretInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets()
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), secretInformer, dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

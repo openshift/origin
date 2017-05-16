@@ -13,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
@@ -42,7 +43,11 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 	})
 	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 
-	controller := NewDockerRegistryServiceController(kubeclient, DockerRegistryServiceControllerOptions{
+	informer := internalversion.NewSharedInformerFactory(kubeclient, 3*time.Minute)
+	stopChan := make(chan struct{})
+	go informer.Core().InternalVersion().Secrets().Informer().Run(stopChan)
+
+	controller := NewDockerRegistryServiceController(kubeclient, informer.Core().InternalVersion().Secrets(), DockerRegistryServiceControllerOptions{
 		Resync:               10 * time.Minute,
 		RegistryNamespace:    registryNamespace,
 		RegistryServiceName:  registryName,

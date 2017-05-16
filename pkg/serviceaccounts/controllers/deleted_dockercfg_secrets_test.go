@@ -4,12 +4,14 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
 func TestDockercfgDeletion(t *testing.T) {
@@ -55,8 +57,9 @@ func TestDockercfgDeletion(t *testing.T) {
 		rand.Seed(1)
 
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
+		informer := internalversion.NewSharedInformerFactory(client, 3*time.Minute)
 
-		controller := NewDockercfgDeletedController(client, DockercfgDeletedControllerOptions{})
+		controller := NewDockercfgDeletedController(client, informer.Core().InternalVersion().Secrets(), DockercfgDeletedControllerOptions{})
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)
