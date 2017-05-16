@@ -130,6 +130,8 @@ type Policy struct {
 
 type RoleBindingsByName map[string]*RoleBinding
 
+// +genclient=true
+
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
 type PolicyBinding struct {
@@ -381,6 +383,9 @@ type ClusterRoleBinding struct {
 
 type ClusterRolesByName map[string]*ClusterRole
 
+// +genclient=true
+// +nonNamespaced=true
+
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
 type ClusterPolicy struct {
@@ -396,6 +401,9 @@ type ClusterPolicy struct {
 }
 
 type ClusterRoleBindingsByName map[string]*ClusterRoleBinding
+
+// +genclient=true
+// +nonNamespaced=true
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace

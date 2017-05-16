@@ -600,26 +600,26 @@ func (c *MasterConfig) RunTemplateController() {
 func (c *MasterConfig) RunOriginToRBACSyncControllers() {
 	clusterRoles := authorizationsync.NewOriginToRBACClusterRoleController(
 		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoles(),
-		c.AuthorizationInformers.Authorization().InternalVersion().ClusterRoles(),
+		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go clusterRoles.Run(5, utilwait.NeverStop)
 	clusterRoleBindings := authorizationsync.NewOriginToRBACClusterRoleBindingController(
 		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoleBindings(),
-		c.AuthorizationInformers.Authorization().InternalVersion().ClusterRoleBindings(),
+		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicyBindings(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go clusterRoleBindings.Run(5, utilwait.NeverStop)
 
 	roles := authorizationsync.NewOriginToRBACRoleController(
 		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().Roles(),
-		c.AuthorizationInformers.Authorization().InternalVersion().Roles(),
+		c.AuthorizationInformers.Authorization().InternalVersion().Policies(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go roles.Run(5, utilwait.NeverStop)
 	roleBindings := authorizationsync.NewOriginToRBACRoleBindingController(
 		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().RoleBindings(),
-		c.AuthorizationInformers.Authorization().InternalVersion().RoleBindings(),
+		c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go roleBindings.Run(5, utilwait.NeverStop)

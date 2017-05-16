@@ -10,6 +10,14 @@ type FakeAuthorizationV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeAuthorizationV1) ClusterPolicies() v1.ClusterPolicyInterface {
+	return &FakeClusterPolicies{c}
+}
+
+func (c *FakeAuthorizationV1) ClusterPolicyBindings() v1.ClusterPolicyBindingInterface {
+	return &FakeClusterPolicyBindings{c}
+}
+
 func (c *FakeAuthorizationV1) ClusterRoles() v1.ClusterRoleInterface {
 	return &FakeClusterRoles{c}
 }
@@ -20,6 +28,10 @@ func (c *FakeAuthorizationV1) ClusterRoleBindings() v1.ClusterRoleBindingInterfa
 
 func (c *FakeAuthorizationV1) Policies(namespace string) v1.PolicyInterface {
 	return &FakePolicies{c, namespace}
+}
+
+func (c *FakeAuthorizationV1) PolicyBindings(namespace string) v1.PolicyBindingInterface {
+	return &FakePolicyBindings{c, namespace}
 }
 
 func (c *FakeAuthorizationV1) Roles(namespace string) v1.RoleInterface {
