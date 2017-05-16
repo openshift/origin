@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -255,5 +256,255 @@ func TestImageStream(t *testing.T) {
 		if !reflect.DeepEqual(is, test.expectedIs) {
 			t.Errorf("%s: image stream mismatch, expected %+v, got %+v", test.name, test.expectedIs, is)
 		}
+	}
+}
+
+func TestNameSuggestions_SuggestName(t *testing.T) {
+	tests := map[string]struct {
+		nameSuggestions NameSuggestions
+		expectedName    string
+		expectedSuccess bool
+	}{
+		"good suggestion from first": {
+			nameSuggestions: []NameSuggester{&suggestWith{"foo", true}, &suggestWith{"", false}},
+			expectedName:    "foo",
+			expectedSuccess: true,
+		},
+		"good suggestion from second": {
+			nameSuggestions: []NameSuggester{&suggestWith{"foo", false}, &suggestWith{"bar", true}},
+			expectedName:    "bar",
+			expectedSuccess: true,
+		},
+		"no good suggestions": {
+			nameSuggestions: []NameSuggester{&suggestWith{"foo", false}, &suggestWith{"bar", false}},
+			expectedName:    "",
+			expectedSuccess: false,
+		},
+		"nil suggestion": {
+			nameSuggestions: []NameSuggester{nil, &suggestWith{"bar", true}},
+			expectedName:    "bar",
+			expectedSuccess: true,
+		},
+	}
+
+	for name, test := range tests {
+		suggestedName, success := test.nameSuggestions.SuggestName()
+		if suggestedName != test.expectedName {
+			t.Errorf("%s expected name %s but recieved %s", name, test.expectedName, suggestedName)
+		}
+		if success != test.expectedSuccess {
+			t.Errorf("%s expected success condition %t but recieved %t", name, test.expectedSuccess, success)
+		}
+	}
+}
+
+type suggestWith struct {
+	name    string
+	success bool
+}
+
+func (s *suggestWith) SuggestName() (string, bool) {
+	return s.name, s.success
+}
+
+func TestIsParameterizableValue(t *testing.T) {
+	tests := []struct {
+		val            string
+		expectedReturn bool
+	}{
+		// Note, parens are also allowable here.  These tests
+		// are set up with braces and parens are substituted in the loop
+		// to test both cases since they are handled the same.
+		{"foo", false},
+		{"{foo}", false},
+		{"$foo}", false},
+		{"foo}", false},
+		{"{foo", false},
+		{"${foo", true},
+		{"${foo}", true},
+	}
+
+	for _, test := range tests {
+		if retVal := IsParameterizableValue(test.val); retVal != test.expectedReturn {
+			t.Errorf("IsParameterizableValue with %s expected %t", test.val, test.expectedReturn)
+		}
+
+		// sub in parens and run again
+		replaced := strings.Replace(test.val, "{", "(", -1)
+		replaced = strings.Replace(replaced, "}", ")", -1)
+
+		if retVal := IsParameterizableValue(replaced); retVal != test.expectedReturn {
+			t.Errorf("IsParameterizableValue with %s expected %t", replaced, test.expectedReturn)
+		}
+	}
+
+}
+
+func TestNameFromGitURL(t *testing.T) {
+	gitURL, err := url.Parse("https://github.com/openshift/origin.git")
+	if err != nil {
+		t.Fatalf("failed parsing git url: %v", err)
+	}
+
+	emptyHostURL, err := url.Parse("https://")
+	if err != nil {
+		t.Fatalf("failed parsing empty host url: %v", err)
+	}
+
+	hostPortURL, err := url.Parse("https://www.example.com:80")
+	if err != nil {
+		t.Fatalf("failed parsing host port url: %v", err)
+	}
+
+	nonStandardHostPortURL, err := url.Parse("https://www.example.com:8888")
+	if err != nil {
+		t.Fatalf("failed parsing host port url: %v", err)
+	}
+
+	hostURL, err := url.Parse("https://www.example.com")
+	if err != nil {
+		t.Fatalf("failed parsing host url: %v", err)
+	}
+
+	tests := map[string]struct {
+		url             *url.URL
+		expectedName    string
+		expectedSuccess bool
+	}{
+		"nil url":                {url: nil, expectedName: "", expectedSuccess: false},
+		"git url":                {url: gitURL, expectedName: "origin", expectedSuccess: true},
+		"empty host":             {url: emptyHostURL, expectedName: "", expectedSuccess: false},
+		"host port":              {url: hostPortURL, expectedName: "www.example.com", expectedSuccess: true},
+		"non standard host port": {url: nonStandardHostPortURL, expectedName: "www.example.com", expectedSuccess: true},
+		"host": {url: hostURL, expectedName: "www.example.com", expectedSuccess: true},
+	}
+
+	for name, test := range tests {
+		parsedName, success := nameFromGitURL(test.url)
+		if parsedName != test.expectedName {
+			t.Errorf("%s expected name to be %s but got %s", name, test.expectedName, parsedName)
+		}
+		if success != test.expectedSuccess {
+			t.Errorf("%s expected success to be %t", name, test.expectedSuccess)
+		}
+	}
+}
+
+func TestContainerPortsFromString(t *testing.T) {
+	tests := map[string]struct {
+		portString    string
+		expectedPorts []kapi.ContainerPort
+		expectedError string
+	}{
+		"single port": {
+			portString: "80",
+			expectedPorts: []kapi.ContainerPort{
+				{ContainerPort: 80, HostPort: 0},
+			},
+		},
+		"single port with separator and no host port": {
+			portString:    "80:",
+			expectedPorts: nil,
+			expectedError: "is not valid: you must specify one (container) or two (container:host) port numbers",
+		},
+		"single port with multiple separators": {
+			portString:    "80:81:82",
+			expectedPorts: nil,
+			expectedError: "is not valid: you must specify one (container) or two (container:host) port numbers",
+		},
+		"single port with host port": {
+			portString: "80:80",
+			expectedPorts: []kapi.ContainerPort{
+				{ContainerPort: 80, HostPort: 80},
+			},
+		},
+		"multiple port": {
+			portString: "80:80,443:443",
+			expectedPorts: []kapi.ContainerPort{
+				{ContainerPort: 80, HostPort: 80},
+				{ContainerPort: 443, HostPort: 443},
+			},
+		},
+		"not a number container": {
+			portString:    "abc:80",
+			expectedPorts: nil,
+			expectedError: "is not valid: you must specify one (container) or two (container:host) port numbers",
+		},
+		"not a number host": {
+			portString:    "80:abc",
+			expectedPorts: nil,
+			expectedError: "is not valid: you must specify one (container) or two (container:host) port numbers",
+		},
+		"empty string": {
+			portString:    "",
+			expectedPorts: nil,
+			expectedError: "is not valid: you must specify one (container) or two (container:host) port numbers",
+		},
+	}
+
+	for name, test := range tests {
+		ports, err := ContainerPortsFromString(test.portString)
+		if !reflect.DeepEqual(ports, test.expectedPorts) {
+			t.Errorf("%s expected ports to be %#v but got %#v", name, test.expectedPorts, ports)
+		}
+		checkError(err, test.expectedError, name, t)
+	}
+}
+
+func TestLabelsFromSpec(t *testing.T) {
+	tests := map[string]struct {
+		spec                 []string
+		expectedLabels       map[string]string
+		expectedRemoveLabels []string
+		expectedError        string
+	}{
+		"empty spec": {
+			expectedLabels: map[string]string{},
+		},
+		"spec with =": {
+			spec:           []string{"foo=bar"},
+			expectedLabels: map[string]string{"foo": "bar"},
+		},
+		"invalid label spec": {
+			spec:          []string{"foo=bar=foobar"},
+			expectedError: "invalid label spec",
+		},
+		"spec with -": {
+			spec:                 []string{"foo-"},
+			expectedLabels:       map[string]string{},
+			expectedRemoveLabels: []string{"foo"},
+		},
+		"unknown label spec": {
+			spec:          []string{"foo:bar"},
+			expectedError: "unknown label spec",
+		},
+		"modify and remove": {
+			spec:          []string{"foo=bar", "foo-"},
+			expectedError: "can not both modify and remove a label in the same command",
+		},
+	}
+	for name, test := range tests {
+		labels, removeLabels, err := LabelsFromSpec(test.spec)
+		checkError(err, test.expectedError, name, t)
+
+		if !reflect.DeepEqual(labels, test.expectedLabels) {
+			t.Errorf("%s expected labels %#v but got %#v", name, test.expectedLabels, labels)
+		}
+		if !reflect.DeepEqual(removeLabels, test.expectedRemoveLabels) {
+			t.Errorf("%s expected to remove labels %#v but got %#v", name, test.expectedRemoveLabels, removeLabels)
+		}
+
+	}
+}
+
+func checkError(err error, expectedError string, name string, t *testing.T) {
+	if err != nil && expectedError == "" {
+		t.Errorf("%s expected no error but got %v", name, err)
+	}
+	if err == nil && expectedError != "" {
+		t.Errorf("%s expected error %s but got none", name, expectedError)
+	}
+	if err != nil && expectedError != "" && !strings.Contains(err.Error(), expectedError) {
+		t.Errorf("%s expected error to contain %s but got %s", name, expectedError, err.Error())
 	}
 }
