@@ -10,13 +10,10 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -43,7 +40,7 @@ type DockerRegistryServiceControllerOptions struct {
 }
 
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
-func NewDockerRegistryServiceController(cl kclientset.Interface, secretInformer kinternalinformers.SecretInformer, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
+func NewDockerRegistryServiceController(cl kclientset.Interface, secretInformer kinternalinformers.SecretInformer, serviceInformer kinternalinformers.ServiceInformer, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
 		client:                cl,
 		dockercfgController:   options.DockercfgController,
@@ -56,33 +53,32 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, secretInformer 
 		secretLister:     secretInformer.Lister(),
 		secretCache:      secretInformer.Informer().GetStore(),
 		secretController: secretInformer.Informer().GetController(),
+
+		serviceCache:      serviceInformer.Informer().GetStore(),
+		serviceController: serviceInformer.Informer().GetController(),
 	}
 
-	e.serviceCache, e.serviceController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
-				return e.client.Core().Services(options.RegistryNamespace).List(opts)
-			},
-			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
-				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
-			},
-		},
-		&kapi.Service{},
-		options.Resync,
+	serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := obj.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := cur.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := obj.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 		},
+		options.Resync,
 	)
+
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 

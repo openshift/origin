@@ -179,6 +179,7 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
 		c.KubeClientsetInternal(),
 		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts(),
 		serviceaccountcontrollers.DockercfgControllerOptions{
 			DockerURLsIntialized: dockerURLsIntialized,
 		},
@@ -192,7 +193,8 @@ func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
 		DockerURLsIntialized: dockerURLsIntialized,
 	}
 	secretInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets()
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), secretInformer, dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	serviceInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services()
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), secretInformer, serviceInformer, dockerRegistryControllerOptions).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.

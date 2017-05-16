@@ -43,17 +43,28 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 	})
 	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 
-	informer := internalversion.NewSharedInformerFactory(kubeclient, 3*time.Minute)
 	stopChan := make(chan struct{})
-	go informer.Core().InternalVersion().Secrets().Informer().Run(stopChan)
+	informer := internalversion.NewSharedInformerFactory(kubeclient, 3*time.Minute)
 
-	controller := NewDockerRegistryServiceController(kubeclient, informer.Core().InternalVersion().Secrets(), DockerRegistryServiceControllerOptions{
-		Resync:               10 * time.Minute,
-		RegistryNamespace:    registryNamespace,
-		RegistryServiceName:  registryName,
-		DockercfgController:  &DockercfgController{},
-		DockerURLsIntialized: make(chan struct{}),
-	})
+	go informer.Core().InternalVersion().Secrets().Informer().Run(stopChan)
+	for !informer.Core().InternalVersion().Secrets().Informer().HasSynced() {
+	}
+
+	go informer.Core().InternalVersion().Services().Informer().Run(stopChan)
+	for !informer.Core().InternalVersion().Services().Informer().HasSynced() {
+	}
+
+	controller := NewDockerRegistryServiceController(
+		kubeclient,
+		informer.Core().InternalVersion().Secrets(),
+		informer.Core().InternalVersion().Services(),
+		DockerRegistryServiceControllerOptions{
+			Resync:               10 * time.Minute,
+			RegistryNamespace:    registryNamespace,
+			RegistryServiceName:  registryName,
+			DockercfgController:  &DockercfgController{},
+			DockerURLsIntialized: make(chan struct{}),
+		})
 
 	return kubeclient, fakeWatch, controller
 }
