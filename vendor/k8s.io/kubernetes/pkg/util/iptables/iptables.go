@@ -19,9 +19,12 @@ package iptables
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	godbus "github.com/godbus/dbus"
 	"github.com/golang/glog"
@@ -322,6 +325,27 @@ func (runner *runner) RestoreAll(data []byte, flush FlushFlag, counters RestoreC
 	return runner.restoreInternal(args, data, flush, counters)
 }
 
+// Basically duplicate iptables 1.6.x xtables_lock() function.  We don't bother
+// trying to acquire the 1.4.x-style lock socket since both F25 and RHEL7
+// use the lockfile approach.
+func grabIptablesLock() (*os.File, error) {
+	// First acquire the iptables 1.6.x lockfile (eg, Fedora 25+ and RHEL7)
+	fd, err := os.OpenFile("/run/xtables.lock", os.O_CREATE, 0600)
+	if err != nil {
+		// Ignore errors opening the lockfile like xtables_lock() does
+		return nil, nil
+	}
+
+	// Try to grab it for 5 seconds before giving up
+	for i := 0; i < 5; i++ {
+		if err := syscall.Flock(int(fd.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+			return fd, nil
+		}
+		time.Sleep(time.Second)
+	}
+	return nil, fmt.Errorf("timed out after 5 seconds trying to acquire the iptables lock")
+}
+
 // restoreInternal is the shared part of Restore/RestoreAll
 func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFlag, counters RestoreCountersFlag) error {
 	runner.mu.Lock()
@@ -333,6 +357,19 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 	if counters {
 		args = append(args, "--counters")
 	}
+
+	// Grab the iptables lock to prevent iptables-restore and iptables
+	// from stepping on each other.  iptables-restore 1.6.2 will have
+	// a --wait option like iptables itself, but that's not widely deployed.
+	fd, err := grabIptablesLock()
+	if err != nil {
+		return err
+	}
+	defer func(lockFile *os.File) {
+		if lockFile != nil {
+			fd.Close()
+		}
+	}(fd)
 
 	// run the command and return the output or an error including the output and error
 	glog.V(4).Infof("running iptables-restore %v", args)
