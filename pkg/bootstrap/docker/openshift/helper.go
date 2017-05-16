@@ -33,16 +33,17 @@ import (
 )
 
 const (
-	defaultNodeName        = "localhost"
-	initialStatusCheckWait = 4 * time.Second
-	serverUpTimeout        = 35
-	serverConfigPath       = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig     = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig       = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	DefaultDNSPort         = 53
-	AlternateDNSPort       = 8053
-	cmdDetermineNodeHost   = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	OpenShiftContainer     = "origin"
+	defaultNodeName         = "localhost"
+	initialStatusCheckWait  = 4 * time.Second
+	serverUpTimeout         = 35
+	serverConfigPath        = "/var/lib/origin/openshift.local.config"
+	serverMasterConfig      = serverConfigPath + "/master/master-config.yaml"
+	serverNodeConfig        = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
+	serviceCatalogExtension = serverConfigPath + "/master/servicecatalog-extension.js"
+	DefaultDNSPort          = 53
+	AlternateDNSPort        = 8053
+	cmdDetermineNodeHost    = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer      = "origin"
 )
 
 var (
@@ -114,6 +115,7 @@ type StartOptions struct {
 	NoProxy                  []string
 	KubeconfigContents       string
 	DockerRoot               string
+	ServiceCatalog           bool
 }
 
 // NewHelper creates a new OpenShift helper
@@ -707,6 +709,41 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			})
 		}
 		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
+	}
+
+	if opt.ServiceCatalog {
+		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
+			TemplateNamespaces: []string{"openshift"},
+		}
+		if cfg.AssetConfig == nil {
+			cfg.AssetConfig = &configapi.AssetConfig{}
+		}
+		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtension)
+
+		extension := `
+window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
+  service_catalog_landing_page: true,
+  template_service_broker: true,
+  pod_presets: true
+};
+
+window.OPENSHIFT_CONFIG.additionalServers = [{
+  hostPort: "%s",
+  prefix: "/apis"
+}];
+`
+
+		extension = fmt.Sprintf(extension, CatalogHost(opt.RoutingSuffix, opt.ServerIP))
+
+		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
+		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
+		if err != nil {
+			return err
+		}
+		err = h.hostHelper.UploadFileToContainer(extensionPath, serviceCatalogExtension)
+		if err != nil {
+			return err
+		}
 	}
 
 	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"

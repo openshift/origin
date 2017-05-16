@@ -32,6 +32,10 @@
 // examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
+// examples/service-catalog/register-broker.json
+// examples/service-catalog/register.sh
+// examples/service-catalog/service-catalog.yaml
+// examples/service-catalog/steps.txt
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
@@ -12686,6 +12690,420 @@ func examplesPrometheusPrometheusYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesServiceCatalogRegisterBrokerJson = []byte(`{
+  "apiVersion": "servicecatalog.k8s.io/v1alpha1",
+  "kind": "Broker",
+  "metadata": {
+    "name": "template-broker"
+  },
+  "spec": {
+    "url": "https://kubernetes.default.svc:443/brokers/template.openshift.io"
+  }
+}
+`)
+
+func examplesServiceCatalogRegisterBrokerJsonBytes() ([]byte, error) {
+	return _examplesServiceCatalogRegisterBrokerJson, nil
+}
+
+func examplesServiceCatalogRegisterBrokerJson() (*asset, error) {
+	bytes, err := examplesServiceCatalogRegisterBrokerJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/register-broker.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesServiceCatalogRegisterSh = []byte(`curl -k -H "Content-Type:application/json" -X POST --data @register-broker.json  https://apiserver-service-catalog.172.30.1.2.nip.io:6443/apis/servicecatalog.k8s.io/v1alpha1/brokers
+`)
+
+func examplesServiceCatalogRegisterShBytes() ([]byte, error) {
+	return _examplesServiceCatalogRegisterSh, nil
+}
+
+func examplesServiceCatalogRegisterSh() (*asset, error) {
+	bytes, err := examplesServiceCatalogRegisterShBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/register.sh", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesServiceCatalogServiceCatalogYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: service-catalog
+objects:
+
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: template-broker-caller-binding
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  groupNames:
+  - system:unauthenticated
+  - system:authenticated
+  - system:anonymous
+
+
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: namespace-viewer
+  rules:
+  - apiGroups:
+    resources:
+    - namespaces
+    verbs:
+    - list
+    - watch
+    - get
+
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-namespace-binding
+  roleRef:
+    name: namespace-viewer
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+
+- kind: PolicyBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog:default
+  policyRef:
+    name: default
+    namespace: service-catalog
+
+
+- kind: Role
+  apiVersion: v1
+  metadata:
+    name: endpoint-accessor
+  rules:
+  - apiGroups:
+    resources:
+    - endpoints
+    verbs:
+    - list
+    - watch
+    - get
+    - create
+    - update
+
+
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: endpointer-accessor-binding
+  roleRef:
+    name: endpoint-accessor
+    namespace: service-catalog
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: admin-binding
+  roleRef:
+    name: admin
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+
+
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: apiserver
+    name: apiserver
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: apiserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apiserver
+      spec:
+        containers:
+        - args:
+          - --admission-control
+          - KubernetesNamespaceLifecycle
+          - --storage-type
+          - etcd
+          - --secure-port
+          - "6443"
+          - --insecure-bind-address
+          - 0.0.0.0
+          - --insecure-port
+          - "8081"
+          - --etcd-servers
+          - http://localhost:2379
+          - -v
+          - "10"
+          - --cors-allowed-origins
+          - ${CORS_ALLOWED_ORIGIN}
+          - --disable-auth
+          image: quay.io/kubernetes-service-catalog/apiserver:${SERVICE_CATALOG_TAG}
+          imagePullPolicy: IfNotPresent
+          name: apiserver
+          ports:
+          - containerPort: 6443
+            protocol: TCP
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/run/kubernetes-service-catalog
+            name: apiserver-ssl
+            readOnly: true
+        - env:
+          - name: ETCD_DATA_DIR
+            value: /data-dir
+          image: quay.io/coreos/etcd
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /data-dir
+            name: data-dir
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: apiserver-ssl
+          secret:
+            defaultMode: 420
+            secretName: apiserver-ssl
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            - key: tls.key
+              path: apiserver.key
+        - emptyDir: {}
+          name: data-dir
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'apiserver-ssl'
+  spec:
+    type: ClusterIP
+    clusterIP: ${SERVICE_CATALOG_SERVICE_IP}
+    ports:
+    - name: insecure
+      port: 80
+      protocol: TCP
+      targetPort: 8081
+    - name: secure
+      port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: apiserver
+    sessionAffinity: None
+
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: apiserver
+  spec:
+    host: ${SERVICE_CATALOG_ROUTE_HOSTNAME}
+    port:
+      targetPort: secure
+    tls:
+      termination: passthrough
+    to:
+      kind: Service
+      name: apiserver
+      weight: 100
+  wildcardPolicy: None
+
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: controller-manager
+    name: controller-manager
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: controller-manager
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: controller-manager
+      spec:
+        containers:
+        - args:
+          - -v
+          - "5"
+          - --service-catalog-api-server-url
+          - http://$(APISERVER_SERVICE_HOST):$(APISERVER_SERVICE_PORT)
+          - --leader-election-namespace
+          - service-catalog
+          image: quay.io/kubernetes-service-catalog/controller-manager:${SERVICE_CATALOG_TAG}
+          imagePullPolicy: IfNotPresent
+          name: controller-manager
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /etc/service-catalog-ssl
+            name: service-catalog-ssl
+            readOnly: true
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: service-catalog-ssl
+          secret:
+            defaultMode: 420
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            secretName: apiserver-ssl
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: controller-manager
+  spec:
+    ports:
+    - port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
+    type: ClusterIP
+
+parameters:
+- description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
+  displayName: CORS Allowed Origin
+  name: CORS_ALLOWED_ORIGIN
+  required: true
+  value: 10.192.213.116
+- description: Tag of the service catalog images to use for apiserver and controller-manager
+  displayName: Service catalog image tag
+  name: SERVICE_CATALOG_TAG
+  required: true
+  value: canary
+- description: Cluster ip address for the service catalog service
+  displayName: Service Catalog Service IP
+  name: SERVICE_CATALOG_SERVICE_IP
+  required: true
+  value: 172.30.1.2
+- description: Hostname for the service catalog route
+  displayName: Service Catalog Route Host
+  name: SERVICE_CATALOG_ROUTE_HOSTNAME
+  required: true
+  value: apiserver-service-catalog.172.30.1.2.nip.io
+`)
+
+func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
+	return _examplesServiceCatalogServiceCatalogYaml, nil
+}
+
+func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
+	bytes, err := examplesServiceCatalogServiceCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/service-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _examplesServiceCatalogStepsTxt = []byte(`1) ensure local config has template broker enabled:
+templateServiceBrokerConfig:
+  templateNamespaces:
+  - openshift
+
+2) add extensions:
+assetConfig:
+  extensionScripts:
+    - /tmp/config/extension.js
+
+3) add extension file:
+window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
+  service_catalog_landing_page: true,
+  template_service_broker: true,
+  pod_presets: true
+};
+
+window.OPENSHIFT_CONFIG.additionalServers = [{
+  hostPort: "apiserver-service-catalog.127.0.0.1.nip.io",
+  prefix: "/apis"
+}];
+
+
+3) start cluster
+
+4) oc new-project service-catalog
+
+5) fix cors_allowed_origin ip in service-catalog.yaml to be external ip
+
+6) provision the SC template:
+
+oc new-app -f ../service-catalog/service-catalog.yaml -p SERVICE_CATALOG_ROUTE_HOSTNAME=apiserver-service-catalog.127.0.0.1.nip.io
+
+6) run the examples/service-catalog/register.sh script to register the broker
+
+7) in browser, hit the service catalog
+https://apiserver-service-catalog.127.0.0.1.nip.io/apis/servicecatalog.k8s.io/v1alpha1/brokers
+
+8) login to openshift
+
+`)
+
+func examplesServiceCatalogStepsTxtBytes() ([]byte, error) {
+	return _examplesServiceCatalogStepsTxt, nil
+}
+
+func examplesServiceCatalogStepsTxt() (*asset, error) {
+	bytes, err := examplesServiceCatalogStepsTxtBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/steps.txt", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
 # To require that all images running on the platform be imported first, you may uncomment the
@@ -12807,6 +13225,10 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
+	"examples/service-catalog/register-broker.json": examplesServiceCatalogRegisterBrokerJson,
+	"examples/service-catalog/register.sh": examplesServiceCatalogRegisterSh,
+	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"examples/service-catalog/steps.txt": examplesServiceCatalogStepsTxt,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
@@ -12898,6 +13320,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
 			"rails-postgresql-persistent.json": &bintree{examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+		}},
+		"service-catalog": &bintree{nil, map[string]*bintree{
+			"register-broker.json": &bintree{examplesServiceCatalogRegisterBrokerJson, map[string]*bintree{}},
+			"register.sh": &bintree{examplesServiceCatalogRegisterSh, map[string]*bintree{}},
+			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
+			"steps.txt": &bintree{examplesServiceCatalogStepsTxt, map[string]*bintree{}},
 		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{
