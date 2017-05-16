@@ -39,9 +39,9 @@ docker build -t openshift/origin images/origin
 docker build -t openshift/origin-haproxy-router images/router/haproxy/
 ```
 
-### Deploying Images
+## Deploying Images
 
-#### Use local registry
+### Use local registry
 
 ```
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
@@ -58,13 +58,13 @@ echo "INSECURE_REGISTRY='--insecure-registry <host IP>:5000'"  >> /etc/sysconfig
 
 ```
 
-#### Restart docker
+### Restart docker
 
 ```
 systemctl restart docker
 ```
 
-#### Push images
+### Push images
 
 ```
 docker tag openshift/origin localhost:5000/openshift/origin
