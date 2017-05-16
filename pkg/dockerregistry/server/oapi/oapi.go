@@ -19,8 +19,6 @@ type RegistryClient interface {
 	Client() (ClientInterface, error)
 	// UserClient returns the user client.
 	UserClient(token string) (ClientInterface, error)
-	// SafeClientConfig returns a client config without authentication info.
-	SafeClientConfig() restclient.Config
 }
 
 type ClientInterface interface {
@@ -207,7 +205,7 @@ func (c *registryClient) UserClient(token string) (ClientInterface, error) {
 		return nil, err
 	}
 
-	cfg := c.SafeClientConfig()
+	cfg := c.safeClientConfig()
 	cfg.BearerToken = token
 
 	oc, err := client.New(&cfg)
@@ -218,7 +216,7 @@ func (c *registryClient) UserClient(token string) (ClientInterface, error) {
 	return NewAPIClient(oc, kc.Core()), nil
 }
 
-// SafeClientConfig returns a client config without authentication info.
-func (с *registryClient) SafeClientConfig() restclient.Config {
+// safeClientConfig returns a client config without authentication info.
+func (с *registryClient) safeClientConfig() restclient.Config {
 	return clientcmd.AnonymousClientConfig(с.config.OpenShiftConfig())
 }

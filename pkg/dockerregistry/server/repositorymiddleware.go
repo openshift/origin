@@ -166,10 +166,6 @@ func newRepositoryWithClient(
 ) (distribution.Repository, error) {
 	registryConfig := ConfigurationFrom(ctx)
 
-	if registryConfig.Metrics.Enabled {
-		registryOSClient = metrics.NewOAPIClient(registryOSClient)
-	}
-
 	registryAddr := os.Getenv(DockerRegistryURLEnvVar)
 	if len(registryAddr) == 0 {
 		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)

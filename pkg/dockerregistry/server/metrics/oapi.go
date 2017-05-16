@@ -14,8 +14,8 @@ type oapiClient struct {
 	client oapi.ClientInterface
 }
 
-// NewOAPIClient wraps c with the Prometheus instrumentation.
-func NewOAPIClient(c oapi.ClientInterface) oapi.ClientInterface {
+// newOAPIClient wraps c with the Prometheus instrumentation.
+func newOAPIClient(c oapi.ClientInterface) oapi.ClientInterface {
 	return &oapiClient{
 		client: c,
 	}
@@ -172,4 +172,28 @@ type oapiClientSubjectAccessReviews struct {
 func (c *oapiClientSubjectAccessReviews) Create(policy *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
 	defer NewTimer(MasterAPIRequests, []string{"subjectaccessreviews.create"}).Stop()
 	return c.client.Create(policy)
+}
+
+type registryClient struct {
+	client oapi.RegistryClient
+}
+
+func NewRegistryClient(client oapi.RegistryClient) oapi.RegistryClient {
+	return &registryClient{client: client}
+}
+
+func (c *registryClient) Client() (oapi.ClientInterface, error) {
+	client, err := c.client.Client()
+	if err != nil {
+		return nil, err
+	}
+	return newOAPIClient(client), nil
+}
+
+func (c *registryClient) UserClient(token string) (oapi.ClientInterface, error) {
+	client, err := c.client.UserClient(token)
+	if err != nil {
+		return nil, err
+	}
+	return newOAPIClient(client), nil
 }
