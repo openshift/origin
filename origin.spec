@@ -174,6 +174,7 @@ Requires:         openvswitch >= %{openvswitch_version}
 Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         bind-utils
+Requires:         glibc-common
 Requires:         ethtool
 Requires:         procps-ng
 Requires:         iproute
