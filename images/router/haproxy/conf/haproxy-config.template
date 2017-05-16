@@ -64,10 +64,20 @@ defaults
 {{- else }}
   timeout client 30s
 {{- end }}
+{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_CLIENT_FIN_TIMEOUT" "")) }}
+  timeout client-fin {{env "ROUTER_CLIENT_FIN_TIMEOUT" "1s"}}
+{{- else }}
+  timeout client-fin 1s
+{{- end }}
 {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_TIMEOUT" "")) }}
   timeout server {{env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s"}}
 {{- else }}
   timeout server 30s
+{{- end }}
+{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT" "")) }}
+  timeout server-fin {{env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT" "1s"}}
+{{- else }}
+  timeout server-fin 1s
 {{- end }}
 {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
   timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
