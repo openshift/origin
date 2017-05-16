@@ -1,18 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"time"
 
+	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/kubernetes/pkg/api"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
-	"golang.org/x/net/context"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/apimachinery/pkg/runtime/serializer/protobuf"
-	"k8s.io/kubernetes/pkg/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -23,17 +25,21 @@ import (
 func main() {
 	var endpoint, keyFile, certFile, caFile string
 	flag.StringVar(&endpoint, "endpoint", "https://127.0.0.1:4001", "Etcd endpoint.")
-	flag.StringVar(&keyFile, "key-file", "", "TLS client key.")
-	flag.StringVar(&certFile, "cert-file", "", "TLS client certificate.")
-	flag.StringVar(&caFile, "ca-file", "", "Server TLS CA certificate.")
+	flag.StringVar(&keyFile, "key", "", "TLS client key.")
+	flag.StringVar(&certFile, "cert", "", "TLS client certificate.")
+	flag.StringVar(&caFile, "cacert", "", "Server TLS CA certificate.")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Fprintf(os.Stderr, "ERROR: you need to specify action ls [<key>] or get <key>\n")
+		fmt.Fprint(os.Stderr, "ERROR: you need to specify action: dump or ls [<key>] or get <key>\n")
 		os.Exit(1)
 	}
 	if flag.Arg(0) == "get" && flag.NArg() == 1 {
-		fmt.Fprintf(os.Stderr, "ERROR: you need to specify <key> for get operation\n")
+		fmt.Fprint(os.Stderr, "ERROR: you need to specify <key> for get operation\n")
+		os.Exit(1)
+	}
+	if flag.Arg(0) == "dump" && flag.NArg() != 1 {
+		fmt.Fprint(os.Stderr, "ERROR: you cannot specify positional arguments with dump\n")
 		os.Exit(1)
 	}
 	action := flag.Arg(0)
@@ -74,6 +80,11 @@ func main() {
 		err = listKeys(client, key)
 	case "get":
 		err = getKey(client, key)
+	case "dump":
+		err = dump(client)
+	default:
+		fmt.Fprintf(os.Stderr, "ERROR: invalid action: %s\n", action)
+		os.Exit(1)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s-ing %s: %v\n", action, key, err)
@@ -85,38 +96,97 @@ func listKeys(client *clientv3.Client, key string) error {
 	var resp *clientv3.GetResponse
 	var err error
 	if len(key) == 0 {
-		resp, err = client.Get(context.TODO(), "/", clientv3.WithFromKey(), clientv3.WithKeysOnly())
+		resp, err = clientv3.NewKV(client).Get(context.Background(), "/", clientv3.WithFromKey(), clientv3.WithKeysOnly())
 	} else {
-		resp, err = client.Get(context.TODO(), key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
+		resp, err = clientv3.NewKV(client).Get(context.Background(), key, clientv3.WithPrefix(), clientv3.WithKeysOnly())
 	}
 	if err != nil {
 		return err
 	}
-	for _, ev := range resp.Kvs {
-		fmt.Printf("%s\n", ev.Key)
+
+	for _, kv := range resp.Kvs {
+		fmt.Println(string(kv.Key))
 	}
+
 	return nil
 }
 
 func getKey(client *clientv3.Client, key string) error {
-	resp, err := client.Get(context.TODO(), key)
+	resp, err := clientv3.NewKV(client).Get(context.Background(), key)
 	if err != nil {
 		return err
 	}
-	ps := protobuf.NewSerializer(api.Scheme, api.Scheme, "application/vnd.kubernetes.protobuf")
-	js := json.NewSerializer(json.DefaultMetaFactory, api.Scheme, api.Scheme, true)
-	for _, ev := range resp.Kvs {
-		obj, gvk, err := ps.Decode(ev.Value, nil, nil)
+
+	decoder := api.Codecs.UniversalDeserializer()
+	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, api.Scheme, api.Scheme, true)
+
+	for _, kv := range resp.Kvs {
+		obj, gvk, err := decoder.Decode(kv.Value, nil, nil)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: unable to decode %s: %v\n", ev.Key, err)
+			fmt.Fprintf(os.Stderr, "WARN: unable to decode %s: %v\n", kv.Key, err)
 			continue
 		}
 		fmt.Println(gvk)
-		err = js.Encode(obj, os.Stdout)
+		err = encoder.Encode(obj, os.Stdout)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: unable to decode %s: %v\n", ev.Key, err)
+			fmt.Fprintf(os.Stderr, "WARN: unable to decode %s: %v\n", kv.Key, err)
 			continue
 		}
 	}
+
 	return nil
+}
+
+func dump(client *clientv3.Client) error {
+	response, err := clientv3.NewKV(client).Get(context.Background(), "/", clientv3.WithPrefix(), clientv3.WithSort(clientv3.SortByKey, clientv3.SortDescend))
+	if err != nil {
+		return err
+	}
+
+	kvData := []etcd3kv{}
+	decoder := api.Codecs.UniversalDeserializer()
+	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, api.Scheme, api.Scheme, false)
+	objJSON := &bytes.Buffer{}
+
+	for _, kv := range response.Kvs {
+		obj, _, err := decoder.Decode(kv.Value, nil, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: error decoding value %s: %v\n", string(kv.Value), err)
+			continue
+		}
+		objJSON.Reset()
+		if err := encoder.Encode(obj, objJSON); err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: error encoding object %#v as JSON: %v", obj, err)
+			continue
+		}
+		kvData = append(
+			kvData,
+			etcd3kv{
+				Key:            string(kv.Key),
+				Value:          string(objJSON.Bytes()),
+				CreateRevision: kv.CreateRevision,
+				ModRevision:    kv.ModRevision,
+				Version:        kv.Version,
+				Lease:          kv.Lease,
+			},
+		)
+	}
+
+	jsonData, err := json.MarshalIndent(kvData, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(jsonData))
+
+	return nil
+}
+
+type etcd3kv struct {
+	Key            string `json:"key,omitempty"`
+	Value          string `json:"value,omitempty"`
+	CreateRevision int64  `json:"create_revision,omitempty"`
+	ModRevision    int64  `json:"mod_revision,omitempty"`
+	Version        int64  `json:"version,omitempty"`
+	Lease          int64  `json:"lease,omitempty"`
 }
