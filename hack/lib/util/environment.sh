@@ -286,7 +286,6 @@ function os::util::environment::setup_images_vars() {
             export USE_IMAGES
         fi
     fi
-	export OPENSHIFT_ROUTER_IMAGE="$( component=haproxy-router eval "echo ${USE_IMAGES}" )"
 	export MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY="${MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY:-3}"
 }
 readonly -f os::util::environment::setup_images_vars
