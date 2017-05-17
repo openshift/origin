@@ -54,6 +54,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
+	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -397,6 +398,7 @@ var (
 		"PodPreset",
 		"LimitRanger",
 		"ServiceAccount",
+		noderestriction.PluginName,
 		"SecurityContextConstraint",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
@@ -408,7 +410,6 @@ var (
 		"DefaultTolerationSeconds",
 		"Initializers",
 		"GenericAdmissionWebhook",
-		"NodeRestriction",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -441,6 +442,7 @@ var (
 		"PodPreset",
 		"LimitRanger",
 		"ServiceAccount",
+		noderestriction.PluginName,
 		"SecurityContextConstraint",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
@@ -452,7 +454,6 @@ var (
 		"DefaultTolerationSeconds",
 		"Initializers",
 		"GenericAdmissionWebhook",
-		"NodeRestriction",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
