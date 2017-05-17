@@ -37,6 +37,7 @@ import (
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
+	"k8s.io/apiserver/pkg/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
@@ -740,4 +741,10 @@ func readCAorNil(file string) ([]byte, error) {
 		return nil, nil
 	}
 	return ioutil.ReadFile(file)
+}
+
+func newMasterLeases(storage storage.Interface) election.Leases {
+	// leaseTTL is in seconds, i.e. 15 means 15 seconds; do NOT do 15*time.Second!
+	leaseTTL := uint64((master.DefaultEndpointReconcilerInterval + 5*time.Second) / time.Second) // add 5 seconds for wiggle room
+	return election.NewLeases(storage, "/masterleases/", leaseTTL)
 }

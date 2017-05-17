@@ -375,13 +375,12 @@ var globalClusterAdminUsers = sets.NewString("system:admin")
 var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:masters")
 
 // This list includes the admins from above, plus users or groups known to have global view access
-var globalClusterReaderUsers = sets.NewString("system:serviceaccount:openshift-infra:namespace-controller", "system:admin")
+var globalClusterReaderUsers = sets.NewString("system:admin")
 var globalClusterReaderGroups = sets.NewString("system:cluster-readers", "system:cluster-admins", "system:masters")
 
 // this list includes any other users who can get DeploymentConfigs
 var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:openshift-infra:unidling-controller",
-	"system:serviceaccount:openshift-infra:garbage-collector-controller",
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
 )
@@ -1599,7 +1598,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1626,7 +1625,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:garbage-collector-controller", "system:serviceaccount:hammer-project:builder", "system:serviceaccount:openshift-infra:namespace-controller", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

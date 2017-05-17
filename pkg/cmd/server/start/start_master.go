@@ -16,19 +16,11 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/capabilities"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -606,205 +598,106 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunServiceAccountPullSecretsControllers()
 	oc.RunSecurityAllocationController()
 
-	if kc != nil {
-		_, _, _, rsClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraReplicaSetControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for replication controller: %v", err)
+	_, _, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
+	}
+
+	_, _, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for attach detach controller: %v", err)
+	}
+
+	_, _, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for pod gc controller: %v", err)
+	}
+
+	rootClientBuilder := controller.SimpleControllerClientBuilder{
+		ClientConfig: &oc.PrivilegedLoopbackClientConfig,
+	}
+	saClientBuilder := controller.SAControllerClientBuilder{
+		ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
+		CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+		AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+		Namespace:            "kube-system",
+	}
+	availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
+	if err != nil {
+		return err
+	}
+
+	controllerContext := kctrlmgr.ControllerContext{
+		ClientBuilder:      saClientBuilder,
+		InformerFactory:    oc.Informers.KubernetesInformers(),
+		Options:            *controllerManagerOptions,
+		AvailableResources: availableResources,
+		Stop:               utilwait.NeverStop,
+	}
+	controllerInitializers := kctrlmgr.NewControllerInitializers()
+
+	// TODO I think this should become a blacklist kept in sync during rebases with a unit test.
+	allowedControllers := sets.NewString(
+		"endpoint",
+		"replicationcontroller",
+		"podgc",
+		"namespace",
+		"garbagecollector",
+		"daemonset",
+		"job",
+		"deployment",
+		"replicaset",
+		"horizontalpodautoscaling",
+		"disruption",
+		"statefuleset",
+		"cronjob",
+		"certificatesigningrequests",
+
+		// not used in openshift.  Yet?
+		// "ttl",
+		// "bootstrapsigner",
+		// "tokencleaner",
+
+		// These controllers need to have their own init functions until we extend the upstream controller config
+		// TODO we have a different set of managed names which need to be plumbed through.
+		// "serviceaccount",
+		// TODO this controller takes different evaluators.
+		// "resourcequota",
+	)
+
+	for controllerName, initFn := range controllerInitializers {
+		// TODO remove this.  Only call one to start to prove the principle
+		if !allowedControllers.Has(controllerName) {
+			glog.Warningf("%q is skipped", controllerName)
+			continue
 		}
-		_, _, _, deploymentClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDeploymentControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for deployment controller: %v", err)
+		if !controllerContext.IsControllerEnabled(controllerName) {
+			glog.Warningf("%q is disabled", controllerName)
+			continue
 		}
 
-		// TODO there has to be a better way to do this!
-		// Make a copy of the client config because we need to modify it
-		jobClientConfig := oc.PrivilegedLoopbackClientConfig
-		jobClientConfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: "batch", Version: "v2alpha1"}
-		_, _, _, jobClient, err := oc.GetServiceAccountClientsWithConfig(bootstrappolicy.InfraJobControllerServiceAccountName, jobClientConfig)
+		glog.V(1).Infof("Starting %q", controllerName)
+		started, err := initFn(controllerContext)
 		if err != nil {
-			glog.Fatalf("Could not get client for job controller: %v", err)
-		}
-
-		_, hpaOClient, _, hpaKClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraHPAControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for HPA controller: %v", err)
-		}
-
-		_, _, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
-		}
-
-		_, _, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for attach detach controller: %v", err)
-		}
-
-		_, _, _, daemonSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDaemonSetControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for daemonset controller: %v", err)
-		}
-
-		_, _, _, disruptionClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraDisruptionControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
-		}
-
-		_, _, _, gcClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGCControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for pod gc controller: %v", err)
-		}
-
-		_, _, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for pod gc controller: %v", err)
-		}
-
-		_, _, _, statefulSetClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraStatefulSetControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for pet set controller: %v", err)
-		}
-
-		_, _, _, certificateSigningClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraCertificateSigningControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for disruption budget controller: %v", err)
-		}
-
-		namespaceControllerClientConfig, _, _, namespaceControllerKubeClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraNamespaceControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for namespace controller: %v", err)
-		}
-		// TODO: should use a dynamic RESTMapper built from the discovery results.
-		restMapper := kapi.Registry.RESTMapper()
-		namespaceControllerClientPool := dynamic.NewClientPool(namespaceControllerClientConfig, restMapper, dynamic.LegacyAPIPathResolverFunc)
-
-		_, _, _, endpointControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraEndpointControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for endpoint controller: %v", err)
-		}
-
-		garbageCollectorControllerConfig, garbageCollectorControllerClient, _, _, err := oc.GetServiceAccountClients(bootstrappolicy.InfraGarbageCollectorControllerServiceAccountName)
-		if err != nil {
-			glog.Fatalf("Could not get client for garbage collector controller: %v", err)
-		}
-
-		rootClientBuilder := controller.SimpleControllerClientBuilder{
-			ClientConfig: &oc.PrivilegedLoopbackClientConfig,
-		}
-		saClientBuilder := controller.SAControllerClientBuilder{
-			ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
-			CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-			AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
-			Namespace:            "kube-system",
-		}
-		availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
-		if err != nil {
+			glog.Errorf("Error starting %q", controllerName)
 			return err
 		}
-
-		controllerContext := kctrlmgr.ControllerContext{
-			ClientBuilder:      saClientBuilder,
-			InformerFactory:    oc.Informers.KubernetesInformers(),
-			Options:            *controllerManagerOptions,
-			AvailableResources: availableResources,
-			Stop:               utilwait.NeverStop,
+		if !started {
+			glog.Warningf("Skipping %q", controllerName)
+			continue
 		}
-		controllerInitializers := kctrlmgr.NewControllerInitializers()
-
-		// TODO remove this.  Using it now to control the migration
-		allowedControllers := sets.NewString(
-			// "endpoint",
-			"replicationcontroller",
-			// "podgc",
-			// "resourcequota",
-			// "namespace",
-			// "serviceaccount",
-			// "garbagecollector",
-			// "daemonset",
-			// "job",
-			// "deployment",
-			// "replicaset",
-			// "horizontalpodautoscaling",
-			// "disruption",
-			// "statefuleset",
-			// "cronjob",
-			// "certificatesigningrequests",
-			// "ttl",
-			// "bootstrapsigner",
-			// "tokencleaner",
-		)
-
-		for controllerName, initFn := range controllerInitializers {
-			// TODO remove this.  Only call one to start to prove the principle
-			if !allowedControllers.Has(controllerName) {
-				glog.Warningf("%q is skipped", controllerName)
-				continue
-			}
-			if !controllerContext.IsControllerEnabled(controllerName) {
-				glog.Warningf("%q is disabled", controllerName)
-				continue
-			}
-
-			glog.V(1).Infof("Starting %q", controllerName)
-			started, err := initFn(controllerContext)
-			if err != nil {
-				glog.Errorf("Error starting %q", controllerName)
-				return err
-			}
-			if !started {
-				glog.Warningf("Skipping %q", controllerName)
-				continue
-			}
-			glog.Infof("Started %q", controllerName)
-		}
-
-		// no special order
-		kc.RunNodeController()
-		kc.RunScheduler()
-		kc.RunReplicaSetController(rsClient)
-		kc.RunDeploymentController(deploymentClient)
-		kc.RunGarbageCollectorController(garbageCollectorControllerClient, garbageCollectorControllerConfig)
-
-		extensionsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, extensions.GroupName)) > 0
-
-		batchEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, batch.GroupName)) > 0
-		if extensionsEnabled || batchEnabled {
-			kc.RunJobController(jobClient)
-		}
-		if batchEnabled {
-			kc.RunCronJobController(jobClient)
-		}
-		// TODO: enable this check once the HPA controller can use the autoscaling API if the extensions API is disabled
-		autoscalingEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, autoscaling.GroupName)) > 0
-		if extensionsEnabled || autoscalingEnabled {
-			kc.RunHPAController(hpaOClient, hpaKClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace)
-		}
-		if extensionsEnabled {
-			kc.RunDaemonSetsController(daemonSetClient)
-		}
-
-		policyEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, policy.GroupName)) > 0
-		if policyEnabled {
-			kc.RunDisruptionBudgetController(disruptionClient)
-		}
-
-		kc.RunEndpointController(endpointControllerClient)
-		kc.RunNamespaceController(namespaceControllerKubeClient, namespaceControllerClientPool, oc.Informers.KubernetesInformers().Core().V1().Namespaces())
-		kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
-		kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
-		kc.RunGCController(gcClient)
-
-		kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
-
-		kc.RunCertificateSigningController(certificateSigningClient)
-
-		appsEnabled := len(configapi.GetEnabledAPIVersionsForGroup(kc.Options, apps.GroupName)) > 0
-		if appsEnabled {
-			kc.RunStatefulSetController(statefulSetClient)
-		}
-
-		glog.Infof("Started Kubernetes Controllers")
+		glog.Infof("Started %q", controllerName)
 	}
+
+	// These controllers are special-cased upstream.  We'll need custom init functions for them downstream.
+	// As we make them less special, we should re-visit this
+	kc.RunNodeController()
+	kc.RunScheduler()
+	kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
+	kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
+	kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
+
+	glog.Infof("Started Kubernetes Controllers")
 
 	// no special order
 	if configapi.IsBuildEnabled(&oc.Options) {
