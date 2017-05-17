@@ -841,27 +841,38 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred(),
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
-			deploymentConfig, deploymentsv1, _, err := deploymentInfo(oc, "history-limit")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			// sanity check to ensure that the following asertion on the amount of old deployments is valid
-			o.Expect(*deploymentConfig.Spec.RevisionHistoryLimit).To(o.Equal(int32(revisionHistoryLimit)))
+			var pollErr error
+			err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+				deploymentConfig, deploymentsv1, _, err := deploymentInfo(oc, "history-limit")
+				if err != nil {
+					pollErr = err
+					return false, nil
+				}
 
-			// we need to filter out any deployments that we don't care about,
-			// namely the active deployment and any newer deployments
-			// TODO: get rid of ugly conversion by porting the deploymentconfig controller to v1 RCs
-			deployments := make([]*kapi.ReplicationController, len(deploymentsv1))
-			for i := range deploymentsv1 {
-				deployments[i] = &kapi.ReplicationController{}
-				v1.Convert_v1_ReplicationController_To_api_ReplicationController(deploymentsv1[i], deployments[i], nil)
-			}
-			oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
+				// we need to filter out any deployments that we don't care about,
+				// namely the active deployment and any newer deployments
+				// TODO: get rid of ugly conversion by porting the deploymentconfig controller to v1 RCs
+				deployments := make([]*kapi.ReplicationController, len(deploymentsv1))
+				for i := range deploymentsv1 {
+					deployments[i] = &kapi.ReplicationController{}
+					v1.Convert_v1_ReplicationController_To_api_ReplicationController(deploymentsv1[i], deployments[i], nil)
+				}
+				oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
-			// we should not have more deployments than acceptable
-			o.Expect(len(oldDeployments)).To(o.BeNumerically("==", revisionHistoryLimit))
+				// we should not have more deployments than acceptable
+				if len(oldDeployments) != revisionHistoryLimit {
+					pollErr = fmt.Errorf("expected len of old deployments: %d to equal dc revisionHistoryLimit: %d", len(oldDeployments), revisionHistoryLimit)
+					return false, nil
+				}
 
-			// the deployments we continue to keep should be the latest ones
-			for _, deployment := range oldDeployments {
-				o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
+				// the deployments we continue to keep should be the latest ones
+				for _, deployment := range oldDeployments {
+					o.Expect(deployutil.DeploymentVersionFor(&deployment)).To(o.BeNumerically(">=", iterations-revisionHistoryLimit))
+				}
+				return true, nil
+			})
+			if err == wait.ErrWaitTimeout {
+				o.Expect(pollErr).NotTo(o.HaveOccurred())
 			}
 		})
 	})
