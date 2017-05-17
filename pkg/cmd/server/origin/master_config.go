@@ -950,25 +950,6 @@ func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// SdnClient returns the sdn client object
-// It must have the capability to get/list/watch/create/delete
-// HostSubnets. And have the capability to get ClusterNetwork.
-func (c *MasterConfig) SdnClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-// DeploymentClient returns the deployment client object
-func (c *MasterConfig) DeploymentClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DNSServerClient returns the DNS server client object
-// It must have the following capabilities:
-//   list, watch all services in all namespaces
-func (c *MasterConfig) DNSServerClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
 // BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() kclientsetinternal.Interface {
 	return c.PrivilegedLoopbackKubernetesClientsetInternal
@@ -1001,11 +982,6 @@ func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Cli
 // BuildConfigChangeControllerClients returns the build config change controller client objects
 func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// ImageChangeControllerClient returns the openshift client object
-func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // ImageImportControllerClient returns the deployment client object
