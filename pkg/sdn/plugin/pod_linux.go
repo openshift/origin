@@ -95,7 +95,7 @@ func maybeAddMacvlan(pod *kapi.Pod, netns string) error {
 	}
 
 	privileged := false
-	for _, container := range pod.Spec.Containers {
+	for _, container := range append(pod.Spec.Containers, pod.Spec.InitContainers...) {
 		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
 			privileged = true
 			break
