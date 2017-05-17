@@ -196,8 +196,9 @@ func (vmap *nodeVNIDMap) watchNetNamespaces() {
 				vmap.policy.UpdateNetNamespace(netns, oldNetID)
 			}
 		case cache.Deleted:
-			vmap.policy.DeleteNetNamespace(netns)
+			// Unset VNID first so further operations don't see the deleted VNID
 			vmap.unsetVNID(netns.NetName)
+			vmap.policy.DeleteNetNamespace(netns)
 		}
 		return nil
 	})
