@@ -14,6 +14,10 @@ func (c *FakeBuild) Builds(namespace string) internalversion.BuildResourceInterf
 	return &FakeBuilds{c, namespace}
 }
 
+func (c *FakeBuild) BuildConfigs(namespace string) internalversion.BuildConfigInterface {
+	return &FakeBuildConfigs{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeBuild) RESTClient() rest.Interface {

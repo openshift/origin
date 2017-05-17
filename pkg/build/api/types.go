@@ -963,6 +963,8 @@ type ImageLabel struct {
 	Value string
 }
 
+// +genclient=true
+
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {
 	metav1.TypeMeta
