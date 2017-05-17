@@ -1,62 +1,90 @@
 package servicebroker
 
 import (
-	"k8s.io/apiserver/pkg/authentication/user"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/golang/glog"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	authclient "github.com/openshift/origin/pkg/auth/client"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller/shared"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/serviceaccounts"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
+	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
 )
 
 type Broker struct {
-	secretsGetter      internalversion.SecretsGetter
-	localSAR           client.LocalSubjectAccessReviewsNamespacer
+	oc                 *client.Client
+	kc                 kclientset.Interface
 	templateclient     internalversiontemplate.TemplateInterface
 	restconfig         restclient.Config
-	lister             cache.StoreToTemplateLister
+	lister             templatelister.TemplateLister
 	templateNamespaces map[string]struct{}
+	ready              chan struct{}
 }
 
-func NewBroker(restconfig restclient.Config, localSAR client.LocalSubjectAccessReviewsNamespacer, secretsGetter internalversion.SecretsGetter, informers shared.InformerFactory, namespaces []string) *Broker {
+func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, infraNamespace string, informer templateinformer.TemplateInformer, namespaces []string) *Broker {
 	templateNamespaces := map[string]struct{}{}
 	for _, namespace := range namespaces {
 		templateNamespaces[namespace] = struct{}{}
 	}
 
-	return &Broker{
-		secretsGetter:      secretsGetter,
-		localSAR:           localSAR,
-		templateclient:     templateclientset.NewForConfigOrDie(&restconfig).Template(),
-		restconfig:         restconfig,
-		lister:             informers.Templates().Lister(),
+	b := &Broker{
+		lister:             informer.Lister(),
 		templateNamespaces: templateNamespaces,
+		ready:              make(chan struct{}),
 	}
+
+	go func() {
+		// the broker is initialised asynchronously because fetching the service
+		// account token requires the main API server to be running
+
+		glog.Infof("Template service broker: waiting for authentication token")
+
+		restconfig, oc, kc, _, err := serviceaccounts.Clients(
+			privrestconfig,
+			&serviceaccounts.ClientLookupTokenRetriever{Client: privkc},
+			infraNamespace,
+			bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName,
+		)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize: %v", err))
+			return
+		}
+
+		b.oc = oc
+		b.kc = kc
+		b.templateclient = templateclientset.NewForConfigOrDie(restconfig).Template()
+
+		glog.Infof("Template service broker: waiting for informer sync")
+
+		for !informer.Informer().HasSynced() {
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		glog.Infof("Template service broker: ready")
+
+		close(b.ready)
+	}()
+
+	return b
 }
 
-func (b *Broker) getClientsForUsername(username string) (kclientset.Interface, client.Interface, templateclientset.Interface, error) {
-	u := &user.DefaultInfo{Name: username}
+func (b *Broker) WaitForReady() error {
+	timer := time.NewTimer(10 * time.Second)
+	defer timer.Stop()
 
-	oc, err := authclient.NewImpersonatingOpenShiftClient(u, b.restconfig)
-	if err != nil {
-		return nil, nil, nil, err
+	select {
+	case <-b.ready:
+		return nil
+	case <-timer.C:
+		return errors.New("timeout waiting for broker to be ready")
 	}
-
-	kc, err := authclient.NewImpersonatingKubernetesClientset(u, b.restconfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	impersonatingConfig := authclient.NewImpersonatingConfig(u, b.restconfig)
-	templateclient, err := templateclientset.NewForConfig(&impersonatingConfig)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return kc, oc, templateclient, nil
 }

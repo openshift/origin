@@ -38,5 +38,8 @@ func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controll
 	deploymentTrigger := controller.DeploymentTriggerControllerConfig{Codec: codec}
 	ret["deploymenttrigger"] = deploymentTrigger.RunController
 
+	templateInstance := controller.TemplateInstanceControllerConfig{}
+	ret["templateinstance"] = templateInstance.RunController
+
 	return ret, nil
 }

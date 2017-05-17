@@ -9,6 +9,8 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller/shared"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type ControllerContext struct {
@@ -16,6 +18,8 @@ type ControllerContext struct {
 
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
+
+	TemplateInformers templateinformer.SharedInformerFactory
 
 	DeprecatedOpenshiftInformers shared.InformerFactory
 
@@ -34,6 +38,7 @@ type ControllerClientBuilder interface {
 	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
 	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
 	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
+	OpenshiftTemplateClient(name string) (templateclient.Interface, error)
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -75,4 +80,12 @@ func (b OpenshiftControllerClientBuilder) DeprecatedOpenshiftClientOrDie(name st
 		glog.Fatal(err)
 	}
 	return client
+}
+
+func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (templateclient.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return templateclient.NewForConfig(clientConfig)
 }

@@ -8,6 +8,7 @@ import (
 	deployercontroller "github.com/openshift/origin/pkg/deploy/controller/deployer"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
+	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 )
 
 type DeployerControllerConfig struct {
@@ -23,6 +24,9 @@ type DeploymentConfigControllerConfig struct {
 
 type DeploymentTriggerControllerConfig struct {
 	Codec runtime.Codec
+}
+
+type TemplateInstanceControllerConfig struct {
 }
 
 func (c *DeployerControllerConfig) RunController(ctx ControllerContext) (bool, error) {
@@ -83,6 +87,34 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 		ctx.DeprecatedOpenshiftInformers.ImageStreams().Informer(),
 		deprecatedOcTriggerClient,
 		c.Codec,
+	).Run(5, ctx.Stop)
+
+	return true, nil
+}
+
+func (c *TemplateInstanceControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+	saName := bootstrappolicy.InfraTemplateInstanceControllerServiceAccountName
+
+	internalKubeClient, err := ctx.ClientBuilder.KubeInternalClient(saName)
+	if err != nil {
+		return true, err
+	}
+
+	deprecatedOcClient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(saName)
+	if err != nil {
+		return true, err
+	}
+
+	templateClient, err := ctx.ClientBuilder.OpenshiftTemplateClient(saName)
+	if err != nil {
+		return true, err
+	}
+
+	go templatecontroller.NewTemplateInstanceController(
+		deprecatedOcClient,
+		internalKubeClient,
+		templateClient.Template(),
+		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)
 
 	return true, nil

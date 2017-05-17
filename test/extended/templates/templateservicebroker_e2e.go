@@ -43,7 +43,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	g.BeforeEach(func() {
 		var err error
 
-		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
@@ -55,7 +55,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: cli.Namespace() + "templateservicebroker-client-binding",
+				Name: cli.Namespace() + "templateservicebroker-client",
 			},
 			RoleRef: kapi.ObjectReference{
 				Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,

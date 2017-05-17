@@ -695,6 +695,34 @@ items:
   userNames:
   - system:serviceaccount:openshift-infra:deployment-trigger-controller
 - apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:template-instance-controller
+  roleRef:
+    name: system:openshift:controller:template-instance-controller
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:template-instance-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: edit
+  roleRef:
+    name: edit
+  subjects:
+  - kind: ServiceAccount
+    name: template-instance-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:template-instance-controller
+- apiVersion: v1
   groupNames:
   - system:masters
   kind: ClusterRoleBinding
