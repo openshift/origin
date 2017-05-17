@@ -159,6 +159,10 @@
                     }
                   },
                   {
+                    "name": "MYSQL_ROOT_PASSWORD",
+                    "value": "${MYSQL_ROOT_PASSWORD}"
+                  },
+                  {
                     "name": "MYSQL_DATABASE",
                     "value": "${MYSQL_DATABASE}"
                   }
