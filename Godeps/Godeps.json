@@ -567,6 +567,38 @@
 			"Rev": "52e4358cbd540cc31f72ea5e0bd4762c98011b84"
 		},
 		{
+			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/docker/reference",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/manifest",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/signature",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/transports",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/types",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/version",
+			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+		},
+		{
+			"ImportPath": "github.com/containers/storage/pkg/homedir",
+			"Rev": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/alarm",
 			"Comment": "v3.1.0",
 			"Rev": "8ba2897a21e4fc51b298ca553d251318425f93ae"
@@ -1420,10 +1452,6 @@
 			"Rev": "a720dfa8df582c51dee1b36feabb906bde1588bd"
 		},
 		{
-			"ImportPath": "github.com/flynn/go-shlex",
-			"Rev": "3f9db97f856818214da2e1057f8ad84803971cff"
-		},
-		{
 			"ImportPath": "github.com/fsnotify/fsnotify",
 			"Comment": "v1.3.1-1-gf12c623",
 			"Rev": "f12c6236fe7b5cf6bcf30e5935d08cb079d78334"
@@ -2180,56 +2208,6 @@
 			"Rev": "3573b8b52aa7b37b9358d966a898feb387f62437"
 		},
 		{
-			"ImportPath": "github.com/containers/image/signature",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/types",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/docker/reference",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/manifest",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/transports",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/image/version",
-			"Rev": "c07f8fdceeda1517556602778a61ba94894e7c02"
-		},
-		{
-			"ImportPath": "github.com/containers/storage/pkg/homedir",
-			"Rev": "5cbbc6bafb45bd7ef10486b673deb3b81bb3b787"
-		},
-		{
-			"ImportPath": "github.com/mtrmac/gpgme",
-			"Rev": "b2432428689ca58c2b8e8dea9449d3295cf96fc9"
-		},
-		{
-			"ImportPath": "github.com/opencontainers/go-digest",
-			"Rev": "a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb"
-		},
-		{
-			"ImportPath": "github.com/opencontainers/image-spec/specs-go/v1",
-			"Comment": "v1.0.0-rc3-110-g00850ec",
-			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
-		},
-		{
-			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
-			"Comment": "v1.0.0-rc3-110-g00850ec",
-			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
 			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
@@ -2493,6 +2471,10 @@
 			"Rev": "31f0106b4474f14bc441575c19d3a5fa21aa1f6c"
 		},
 		{
+			"ImportPath": "github.com/mtrmac/gpgme",
+			"Rev": "b2432428689ca58c2b8e8dea9449d3295cf96fc9"
+		},
+		{
 			"ImportPath": "github.com/mvdan/xurls",
 			"Comment": "v0.8.0-14-g1b768d7",
 			"Rev": "1b768d7c393abd8e8dda1458385a57becd4b2d4e"
@@ -2709,6 +2691,20 @@
 			"ImportPath": "github.com/onsi/gomega/types",
 			"Comment": "v1.0-122-gd59fa0a",
 			"Rev": "d59fa0ac68bb5dd932ee8d24eed631cdd519efc3"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/go-digest",
+			"Rev": "a6d0ee40d4207ea02364bd3b9e8e77b9159ba1eb"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/image-spec/specs-go/v1",
+			"Comment": "v1.0.0-rc3-110-g00850ec",
+			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
@@ -3377,7 +3373,7 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
@@ -3393,27 +3389,27 @@
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp/armor",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp/elgamal",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp/errors",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp/packet",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/openpgp/s2k",
-			"Rev": "1f22c0103821b9390939b6776727195525381532"
+			"Rev": "d172538b2cfce0c13cee31e647d0367aa8cd2486"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/pkcs12",

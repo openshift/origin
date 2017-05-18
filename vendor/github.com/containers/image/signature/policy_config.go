@@ -255,13 +255,8 @@ var _ json.Unmarshaler = (*prInsecureAcceptAnything)(nil)
 func (pr *prInsecureAcceptAnything) UnmarshalJSON(data []byte) error {
 	*pr = prInsecureAcceptAnything{}
 	var tmp prInsecureAcceptAnything
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type": &tmp.Type,
 	}); err != nil {
 		return err
 	}
@@ -290,13 +285,8 @@ var _ json.Unmarshaler = (*prReject)(nil)
 func (pr *prReject) UnmarshalJSON(data []byte) error {
 	*pr = prReject{}
 	var tmp prReject
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type": &tmp.Type,
 	}); err != nil {
 		return err
 	}
@@ -465,24 +455,15 @@ func (pr *prSignedBaseLayer) UnmarshalJSON(data []byte) error {
 	*pr = prSignedBaseLayer{}
 	var tmp prSignedBaseLayer
 	var baseLayerIdentity json.RawMessage
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		case "baseLayerIdentity":
-			return &baseLayerIdentity
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type":              &tmp.Type,
+		"baseLayerIdentity": &baseLayerIdentity,
 	}); err != nil {
 		return err
 	}
 
 	if tmp.Type != prTypeSignedBaseLayer {
 		return InvalidPolicyFormatError(fmt.Sprintf("Unexpected policy requirement type \"%s\"", tmp.Type))
-	}
-	if baseLayerIdentity == nil {
-		return InvalidPolicyFormatError(fmt.Sprintf("baseLayerIdentity not specified"))
 	}
 	bli, err := newPolicyReferenceMatchFromJSON(baseLayerIdentity)
 	if err != nil {
@@ -541,13 +522,8 @@ var _ json.Unmarshaler = (*prmMatchExact)(nil)
 func (prm *prmMatchExact) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchExact{}
 	var tmp prmMatchExact
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type": &tmp.Type,
 	}); err != nil {
 		return err
 	}
@@ -576,13 +552,8 @@ var _ json.Unmarshaler = (*prmMatchRepoDigestOrExact)(nil)
 func (prm *prmMatchRepoDigestOrExact) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchRepoDigestOrExact{}
 	var tmp prmMatchRepoDigestOrExact
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type": &tmp.Type,
 	}); err != nil {
 		return err
 	}
@@ -611,13 +582,8 @@ var _ json.Unmarshaler = (*prmMatchRepository)(nil)
 func (prm *prmMatchRepository) UnmarshalJSON(data []byte) error {
 	*prm = prmMatchRepository{}
 	var tmp prmMatchRepository
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type": &tmp.Type,
 	}); err != nil {
 		return err
 	}
@@ -656,15 +622,9 @@ var _ json.Unmarshaler = (*prmExactReference)(nil)
 func (prm *prmExactReference) UnmarshalJSON(data []byte) error {
 	*prm = prmExactReference{}
 	var tmp prmExactReference
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		case "dockerReference":
-			return &tmp.DockerReference
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type":            &tmp.Type,
+		"dockerReference": &tmp.DockerReference,
 	}); err != nil {
 		return err
 	}
@@ -704,15 +664,9 @@ var _ json.Unmarshaler = (*prmExactRepository)(nil)
 func (prm *prmExactRepository) UnmarshalJSON(data []byte) error {
 	*prm = prmExactRepository{}
 	var tmp prmExactRepository
-	if err := paranoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		case "dockerRepository":
-			return &tmp.DockerRepository
-		default:
-			return nil
-		}
+	if err := paranoidUnmarshalJSONObjectExactFields(data, map[string]interface{}{
+		"type":             &tmp.Type,
+		"dockerRepository": &tmp.DockerRepository,
 	}); err != nil {
 		return err
 	}
