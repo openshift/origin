@@ -55,8 +55,8 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		OSClient:           deprecatedOpenshiftClient,
 		BuildUpdater:       buildclient.NewOSClientBuildClient(deprecatedOpenshiftClient),
 		BuildLister:        buildclient.NewOSClientBuildClient(deprecatedOpenshiftClient),
-		BuildConfigGetter:  buildclient.NewOSClientBuildConfigClient(osclient),
-		BuildDeleter:       buildclient.NewBuildDeleter(osclient),
+		BuildConfigGetter:  buildclient.NewOSClientBuildConfigClient(deprecatedOpenshiftClient),
+		BuildDeleter:       buildclient.NewBuildDeleter(deprecatedOpenshiftClient),
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: c.DockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)

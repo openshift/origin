@@ -439,8 +439,17 @@ func TestHandle_noop(t *testing.T) {
 			continue
 		}
 
+		hasPatch := func(actions []clientgotesting.Action) bool {
+			for _, a := range actions {
+				if a.GetVerb() == "patch" {
+					return true
+				}
+			}
+			return false
+		}
+
 		// Expect only patching for ownerRefs
-		if len(client.Actions()) != 1 {
+		if len(client.Actions()) != 1 && hasPatch(client.Actions()) {
 			t.Errorf("%s: unexpected %d actions: %#+v", test.name, len(client.Actions()), client.Actions())
 		}
 	}

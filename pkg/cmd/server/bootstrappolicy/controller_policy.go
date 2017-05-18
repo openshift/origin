@@ -45,6 +45,7 @@ func eventsRule() rbac.PolicyRule {
 }
 
 func init() {
+	// build-controller
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraBuildControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
@@ -58,15 +59,17 @@ func init() {
 		},
 	})
 
+	// deployer-controller
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeployerControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
-			rbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
-			rbac.NewRule("create", "get", "list", "watch", "update", "delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+			rbac.NewRule("create", "get", "list", "watch", "patch", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			eventsRule(),
 		},
 	})
 
+	// deploymentconfig-controller
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeploymentConfigControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
@@ -74,6 +77,19 @@ func init() {
 			rbac.NewRule("create", "get", "list", "watch", "update", "delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			rbac.NewRule("update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/status").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// deployment-trigger-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeploymentTriggerControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
+
+			rbac.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/instantiate").RuleOrDie(),
 			eventsRule(),
 		},
 	})

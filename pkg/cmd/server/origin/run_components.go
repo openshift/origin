@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"path"
 	"sync"
 	"time"
 
@@ -30,7 +29,6 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	buildclient "github.com/openshift/origin/pkg/build/client"
@@ -39,13 +37,8 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployercontroller "github.com/openshift/origin/pkg/deploy/controller/deployer"
-	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
-	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
 	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
@@ -246,75 +239,6 @@ func (c *MasterConfig) RunProjectCache() {
 	c.ProjectCache.Run()
 }
 
-<<<<<<< HEAD
-// RunBuildController starts the build sync loop for builds and buildConfig processing.
-func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) error {
-	// initialize build controller
-	dockerImage := c.ImageFor("docker-builder")
-	stiImage := c.ImageFor("sti-builder")
-
-	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
-	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
-	codec := kapi.Codecs.LegacyCodec(groupVersion)
-
-	pluginInitializer := kubeadmission.NewPluginInitializer(
-		c.KubeClientsetInternal(),
-		c.Informers.InternalKubernetesInformers(),
-		nil, // api authorizer, only used by PSP
-		nil, // cloud config
-	)
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
-	if err != nil {
-		return err
-	}
-
-	buildDefaults, err := builddefaults.NewBuildDefaults(c.Options.AdmissionConfig.PluginConfig)
-	if err != nil {
-		return err
-	}
-	buildOverrides, err := buildoverrides.NewBuildOverrides(c.Options.AdmissionConfig.PluginConfig)
-	if err != nil {
-		return err
-	}
-
-	osclient, internalKubeClientset, externalKubeClientset := c.BuildControllerClients()
-	factory := buildcontrollerfactory.BuildControllerFactory{
-		KubeClient:         internalKubeClientset,
-		ExternalKubeClient: externalKubeClientset,
-		OSClient:           osclient,
-		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
-		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
-		BuildConfigGetter:  buildclient.NewOSClientBuildConfigClient(osclient),
-		BuildDeleter:       buildclient.NewBuildDeleter(osclient),
-
-		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
-			Image: dockerImage,
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: codec,
-		},
-		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: stiImage,
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:            codec,
-			AdmissionControl: admissionControl,
-		},
-		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
-			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec: codec,
-		},
-		BuildDefaults:  buildDefaults,
-		BuildOverrides: buildOverrides,
-	}
-
-	controller := factory.Create()
-	controller.Run()
-	deleteController := factory.CreateDeleteController()
-	deleteController.Run()
-	return nil
-}
-
-=======
->>>>>>> 6f6552550b... rewire build controller initialization to use a controller init func
 // RunBuildPodController starts the build/pod status sync loop for build status
 func (c *MasterConfig) RunBuildPodController() {
 	buildInfomer := c.Informers.Builds().Informer()
@@ -339,59 +263,6 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 		BuildDeleter:            buildclient.NewBuildDeleter(bcClient),
 	}
 	factory.Create().Run()
-}
-
-// RunDeployerController starts the deployment controller process.
-func (c *MasterConfig) RunDeployerController() {
-	// TODO these should be external
-	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
-	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	_, internalKubeClientset, externalKubeClientset := c.DeployerControllerClients()
-
-	_, kclientConfig, err := configapi.GetInternalKubeClient(c.Options.MasterClients.OpenShiftLoopbackKubeConfig, c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		glog.Fatalf("Unable to initialize deployer controller: %v", err)
-	}
-	// TODO eliminate these environment variables once service accounts provide a kubeconfig that includes all of this info
-	env := clientcmd.EnvVars(
-		kclientConfig.Host,
-		kclientConfig.CAData,
-		kclientConfig.Insecure,
-		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
-	)
-
-	controller := deployercontroller.NewDeployerController(
-		rcInformer,
-		podInformer,
-		internalKubeClientset,
-		externalKubeClientset,
-		bootstrappolicy.DeployerServiceAccountName,
-		c.ImageFor("deployer"),
-		env,
-		c.ExternalVersionCodec,
-	)
-	go controller.Run(5, utilwait.NeverStop)
-}
-
-// RunDeploymentConfigController starts the deployment config controller process.
-func (c *MasterConfig) RunDeploymentConfigController() {
-	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers()
-	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	osclient, kclientInternal, kclientExternal := c.DeploymentConfigControllerClients()
-
-	controller := deployconfigcontroller.NewDeploymentConfigController(dcInfomer, rcInformer, podInformer, osclient, kclientInternal, kclientExternal, c.ExternalVersionCodec)
-	go controller.Run(5, utilwait.NeverStop)
-}
-
-// RunDeploymentTriggerController starts the deployment trigger controller process.
-func (c *MasterConfig) RunDeploymentTriggerController() {
-	dcInfomer := c.Informers.DeploymentConfigs().Informer()
-	rcInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer()
-	osclient := c.DeploymentTriggerControllerClient()
-
-	controller := triggercontroller.NewDeploymentTriggerController(dcInfomer, rcInformer, nil, osclient, c.ExternalVersionCodec)
-	go controller.Run(5, utilwait.NeverStop)
 }
 
 // TODO: remove when generated informers exist

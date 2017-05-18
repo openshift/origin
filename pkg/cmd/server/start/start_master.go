@@ -653,7 +653,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		"statefuleset",
 		"cronjob",
 		"certificatesigningrequests",
-
 		// not used in openshift.  Yet?
 		// "ttl",
 		// "bootstrapsigner",
@@ -715,7 +714,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	}
 	openshiftControllerInitializers, err := oc.NewOpenshiftControllerInitializers()
 
-	allowedOpenshiftControllers := sets.NewString()
+	allowedOpenshiftControllers := sets.NewString(
+		"deployer",
+		"deploymentconfig",
+		"deploymenttrigger",
+	)
 	if configapi.IsBuildEnabled(&oc.Options) {
 		allowedOpenshiftControllers.Insert("build")
 	}
@@ -739,7 +742,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		glog.V(1).Infof("Starting %q", controllerName)
 		started, err := initFn(openshiftControllerContext)
 		if err != nil {
-			glog.Errorf("Error starting %q", controllerName)
+			glog.Fatalf("Error starting %q", controllerName)
 			return err
 		}
 		if !started {
@@ -755,9 +758,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		oc.RunBuildConfigChangeController()
 	}
 
-	oc.RunDeployerController()
-	oc.RunDeploymentConfigController()
-	oc.RunDeploymentTriggerController()
 	oc.RunImageTriggerController()
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()

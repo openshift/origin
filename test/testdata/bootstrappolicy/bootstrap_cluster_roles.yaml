@@ -3487,10 +3487,19 @@ items:
     resources:
     - builds
     verbs:
+    - delete
     - get
     - list
     - update
     - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    verbs:
+    - get
   - apiGroups:
     - ""
     - build.openshift.io
@@ -3555,7 +3564,6 @@ items:
     - get
     - list
     - patch
-    - update
     - watch
   - apiGroups:
     - ""
@@ -3563,8 +3571,6 @@ items:
     resources:
     - replicationcontrollers
     verbs:
-    - create
-    - delete
     - get
     - list
     - update
@@ -3625,6 +3631,60 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:deployment-trigger-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/instantiate
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null

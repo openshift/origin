@@ -681,6 +681,20 @@ items:
   userNames:
   - system:serviceaccount:openshift-infra:deploymentconfig-controller
 - apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:deployment-trigger-controller
+  roleRef:
+    name: system:openshift:controller:deployment-trigger-controller
+  subjects:
+  - kind: ServiceAccount
+    name: deployment-trigger-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:deployment-trigger-controller
+- apiVersion: v1
   groupNames:
   - system:masters
   kind: ClusterRoleBinding
