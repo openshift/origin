@@ -234,3 +234,17 @@ func TestEventQueue_ResyncsShouldNotCausePanics(t *testing.T) {
 		t.Fatalf("expected Resync() to not add a duplicate item to the event queue, but it did")
 	}
 }
+
+func TestEventQueue_ResyncsShouldNotRestoreDeletedItems(t *testing.T) {
+	q := NewEventQueue(keyFunc)
+	q.Add(cacheable{"foo", 10})
+	q.Delete(cacheable{key: "foo"})
+
+	q.Resync()
+
+	items := q.List()
+
+	if len(items) > 0 {
+		t.Fatalf("expected the list to be empty after an Add then Delete then Resync, but it was not")
+	}
+}

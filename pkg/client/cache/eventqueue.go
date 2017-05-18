@@ -152,6 +152,11 @@ func (eq *EventQueue) handleEvent(obj interface{}, newEventType watch.EventType)
 	case watchEventEffectDelete:
 		delete(eq.events, key)
 		eq.queue = eq.queueWithout(key)
+		// A delete means we added and deleted _before_ we popped, we need to clean up the store here
+		if err := eq.store.Delete(obj); err != nil {
+			panic(fmt.Sprintf("Delete of key not in store from handleEvent(): %v", key))
+		}
+
 	}
 	return nil
 }
