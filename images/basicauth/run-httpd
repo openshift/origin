@@ -1,0 +1,24 @@
+#!/bin/bash -e
+
+# assumes running as user with access to /etc/authserver directory
+
+SECRET_DIR=/etc/secret-volume
+
+for file in cert key ca conf; do
+	if [[ ! -e "${SECRET_DIR}/${file}" ]]; then
+		echo "Missing required file in secret: ${file}"
+		exit 255
+	fi
+done
+cp "${SECRET_DIR}/cert" /etc/authserver/server.crt
+cp "${SECRET_DIR}/key" /etc/authserver/server.key
+cp "${SECRET_DIR}/ca" /etc/authserver/ca.crt
+cp "${SECRET_DIR}/conf" /etc/authserver/include.conf
+if [[ -e "${SECRET_DIR}/conf-dir" ]]; then
+	mkdir /etc/authserver/conf
+	pushd /etc/authserver/conf
+	tar zfx "${SECRET_DIR}/conf-dir"
+	popd
+fi
+
+/usr/sbin/httpd -f /etc/httpd/conf/httpd.conf -D FOREGROUND
