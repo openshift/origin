@@ -290,16 +290,8 @@ func (eq *EventQueue) Pop() (watch.EventType, interface{}, error) {
 		key := eq.queue[0]
 		eq.queue = eq.queue[1:]
 
-		eventType, ok := eq.events[key]
-		if ok {
-			delete(eq.events, key)
-		} else {
-			// The event type has been removed by a previous call to
-			// Pop().  Since the object has already been seen and has
-			// not been deleted, and callers will need to be
-			// idempotent, watch.Modified can be safely assumed.
-			eventType = watch.Modified
-		}
+		eventType := eq.events[key]
+		delete(eq.events, key)
 
 		// Track the last replace key immediately after the store
 		// state has been changed to prevent subsequent errors from
@@ -400,6 +392,7 @@ func (eq *EventQueue) Resync() error {
 	for _, id := range eq.store.ListKeys() {
 		if !inQueue.Has(id) {
 			eq.queue = append(eq.queue, id)
+			eq.events[id] = watch.Modified
 		}
 	}
 

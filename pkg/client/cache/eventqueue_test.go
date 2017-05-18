@@ -216,3 +216,21 @@ func TestEventQueue_PopAfterResyncShouldBeTypeModified(t *testing.T) {
 		t.Fatalf("Expected resynced event to be of type watch.Modified, got %q", eventType)
 	}
 }
+
+func TestEventQueue_ResyncsShouldNotCausePanics(t *testing.T) {
+	q := NewEventQueue(keyFunc)
+	q.Add(cacheable{"foo", 10})
+	q.Pop()
+
+	q.Resync()
+
+	q.Delete(cacheable{key: "foo"})
+
+	q.Pop()
+
+	items := q.List()
+
+	if len(items) > 0 {
+		t.Fatalf("expected Resync() to not add a duplicate item to the event queue, but it did")
+	}
+}
