@@ -38,7 +38,7 @@ func TestSubjects(t *testing.T) {
 			"system:serviceaccount:adze:second", "system:serviceaccount:foo:default", "system:serviceaccount:other:first",
 			"system:serviceaccount:kube-system:deployment-controller", "system:serviceaccount:kube-system:endpoint-controller", "system:serviceaccount:kube-system:generic-garbage-collector",
 			"system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:kube-system:persistent-volume-binder", "system:serviceaccount:kube-system:statefulset-controller",
-			"system:admin", "system:kube-scheduler"),
+			"system:admin", "system:kube-scheduler", "system:serviceaccount:openshift-infra:build-controller"),
 		expectedGroups: sets.NewString("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
 	test.clusterPolicies = newDefaultClusterPolicies()
