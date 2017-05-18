@@ -242,6 +242,17 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		t.Fatalf("Couldn't create jenkins template: %v", err)
 	}
 
+	if includeControllers {
+		clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+
 	return
 }
 
