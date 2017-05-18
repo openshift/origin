@@ -1,0 +1,25 @@
+{
+    "kind": "Service",
+    "apiVersion": "v1",
+    "metadata": {
+        "name": "hello-openshift",
+        "creationTimestamp": null,
+        "labels": {
+            "app": "hello-openshift"
+        }
+    },
+    "spec": {
+        "ports": [
+            {
+                "protocol": "TCP",
+                "port": 8080
+            }
+        ],
+        "selector": {
+            "app": "hello-openshift"
+        },
+        "type": "ClusterIP",
+        "portalIP": "",
+        "sessionAffinity": "None"
+    }
+}
