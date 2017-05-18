@@ -965,7 +965,9 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 	if len(build.OwnerReferences) == 0 || build.OwnerReferences[0].Kind != "BuildConfig" || build.OwnerReferences[0].Name != bc.Name {
 		t.Errorf("generated build does not have OwnerReference to parent BuildConfig")
 	}
-
+	if build.OwnerReferences[0].Controller == nil || !*build.OwnerReferences[0].Controller {
+		t.Errorf("generated build does not have OwnerReference to parent BuildConfig marked as a controller relationship")
+	}
 	// Test long name
 	bc.Name = strings.Repeat("a", 100)
 	build, err = generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
