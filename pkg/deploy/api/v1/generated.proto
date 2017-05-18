@@ -270,6 +270,11 @@ message DeploymentRequest {
   // Force will try to force a new deployment to run. If the deployment config is paused,
   // then setting this to true will return an Invalid error.
   optional bool force = 3;
+
+  // ExcludeTriggers instructs the instantiator to avoid processing the specified triggers.
+  // This field overrides the triggers from latest and allows clients to control specific
+  // logic. This field is ignored if not specified.
+  repeated string excludeTriggers = 4;
 }
 
 // DeploymentStrategy describes how to perform a deployment.
@@ -309,6 +314,9 @@ message DeploymentTriggerImageChangeParams {
   optional bool automatic = 1;
 
   // ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
+  // If multiple triggers point to the same containers, the resulting behavior is undefined. Future
+  // API versions will make this a validation error. If ContainerNames does not point to a valid container,
+  // the trigger will be ignored. Future API versions will make this a validation error.
   repeated string containerNames = 2;
 
   // From is a reference to an image stream tag to watch for changes. From.Name is the only

@@ -25539,7 +25539,7 @@
       "items": {
        "type": "string"
       },
-      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod."
+      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error."
      },
      "from": {
       "$ref": "v1.ObjectReference",
@@ -27492,8 +27492,19 @@
      "force": {
       "type": "boolean",
       "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error."
+     },
+     "excludeTriggers": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.DeploymentTriggerType"
+      },
+      "description": "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified."
      }
     }
+   },
+   "v1.DeploymentTriggerType": {
+    "id": "v1.DeploymentTriggerType",
+    "properties": {}
    },
    "v1.DeploymentLog": {
     "id": "v1.DeploymentLog",

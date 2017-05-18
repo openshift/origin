@@ -3038,6 +3038,73 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
+    name: system:imagetrigger-controller
+  rules:
+  - apiGroups:
+    - image.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - extensions
+    - apps
+    attributeRestrictions: null
+    resources:
+    - deployments
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - statefulsets
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - cronjobs
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - apps.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - build.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    verbs:
+    - create
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
     name: system:node-bootstrapper
   rules:
   - apiGroups:

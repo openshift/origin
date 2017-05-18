@@ -3,8 +3,6 @@ package controller
 import (
 	"time"
 
-	"github.com/golang/glog"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -114,9 +112,7 @@ func (b *scheduled) HandleTimed(key, value interface{}) {
 		b.scheduler.Remove(key, value)
 		return
 	}
-	glog.V(5).Infof("DEBUG: checking %s", key)
 	if b.rateLimiter != nil && !b.rateLimiter.TryAccept() {
-		glog.V(5).Infof("DEBUG: check of %s exceeded rate limit, will retry later", key)
 		return
 	}
 	namespace, name, _ := cache.SplitMetaNamespaceKey(key.(string))
@@ -139,7 +135,6 @@ func (b *scheduled) Importing(stream *api.ImageStream) {
 	if !b.enabled {
 		return
 	}
-	glog.V(5).Infof("DEBUG: stream %s was just imported", stream.Name)
 	// Push the current key back to the end of the queue because it's just been imported
 	key, _ := cache.MetaNamespaceKeyFunc(stream)
 	b.scheduler.Delay(key)

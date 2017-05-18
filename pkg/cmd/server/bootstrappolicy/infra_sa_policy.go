@@ -10,17 +10,21 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
+	// we need the conversions registered for our init block
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	_ "github.com/openshift/origin/pkg/authorization/api/install"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
-
-	// we need the conversions registered for our init block
-	_ "github.com/openshift/origin/pkg/authorization/api/install"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 const (
 	InfraBuildControllerServiceAccountName = "build-controller"
 	BuildControllerRoleName                = "system:build-controller"
+
+	InfraImageTriggerControllerServiceAccountName = "imagetrigger-controller"
+	ImageTriggerControllerRoleName                = "system:imagetrigger-controller"
 
 	InfraDeploymentConfigControllerServiceAccountName = "deploymentconfig-controller"
 	DeploymentConfigControllerRoleName                = "system:deploymentconfig-controller"
@@ -167,6 +171,57 @@ func init() {
 				{
 					Verbs:     sets.NewString("create", "update", "patch"),
 					Resources: sets.NewString("events"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = InfraSAs.addServiceAccount(
+		InfraImageTriggerControllerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ImageTriggerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				// List Watch
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					APIGroups: []string{imageapi.GroupName, imageapi.LegacyGroupName},
+					Resources: sets.NewString("imagestreams"),
+				},
+				// Spec update on triggerable resources
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{extensionsGroup},
+					Resources: sets.NewString("daemonsets"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{extensionsGroup, appsGroup},
+					Resources: sets.NewString("deployments"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{appsGroup},
+					Resources: sets.NewString("statefulsets"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{batchGroup},
+					Resources: sets.NewString("cronjobs"),
+				},
+				{
+					Verbs:     sets.NewString("get", "update"),
+					APIGroups: []string{deployapi.GroupName, deployapi.LegacyGroupName},
+					Resources: sets.NewString("deploymentconfigs"),
+				},
+				{
+					Verbs:     sets.NewString("create"),
+					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
+					Resources: sets.NewString("buildconfigs/instantiate"),
 				},
 			},
 		},
