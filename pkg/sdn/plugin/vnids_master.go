@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -274,29 +275,30 @@ func (master *OsdnMaster) VnidStartMaster() error {
 		return err
 	}
 
-	go utilwait.Forever(master.watchNamespaces, 0)
+	master.watchNamespaces()
 	go utilwait.Forever(master.watchNetNamespaces, 0)
 	return nil
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	RunEventQueue(master.kClient.Core().RESTClient(), Namespaces, func(delta cache.Delta) error {
-		ns := delta.Object.(*kapi.Namespace)
-		name := ns.ObjectMeta.Name
+	RegisterSharedInformerEventHandlers(master.informers.InternalKubernetesInformers(),
+		master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, Namespaces)
+}
 
-		log.V(5).Infof("Watch %s event for Namespace %q", delta.Type, name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			if err := master.vnids.assignVNID(master.osClient, name); err != nil {
-				return fmt.Errorf("error assigning netid: %v", err)
-			}
-		case cache.Deleted:
-			if err := master.vnids.revokeVNID(master.osClient, name); err != nil {
-				return fmt.Errorf("error revoking netid: %v", err)
-			}
-		}
-		return nil
-	})
+func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
+	ns := obj.(*kapi.Namespace)
+	log.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+	if err := master.vnids.assignVNID(master.osClient, ns.Name); err != nil {
+		log.Errorf("Error assigning netid: %v", err)
+	}
+}
+
+func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
+	ns := obj.(*kapi.Namespace)
+	log.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
+	if err := master.vnids.revokeVNID(master.osClient, ns.Name); err != nil {
+		log.Errorf("Error revoking netid: %v", err)
+	}
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {

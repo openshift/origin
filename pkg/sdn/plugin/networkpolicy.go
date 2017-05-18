@@ -16,9 +16,11 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 )
@@ -35,6 +37,9 @@ type networkPolicyPlugin struct {
 	lock        sync.Mutex
 	namespaces  map[uint32]*npNamespace
 	kNamespaces map[string]kapi.Namespace
+	pods        map[ktypes.UID]kapi.Pod
+
+	kubeInformers kinternalinformers.SharedInformerFactory
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -46,9 +51,6 @@ type npNamespace struct {
 	inUse    bool
 
 	policies map[ktypes.UID]*npPolicy
-
-	pods         map[ktypes.UID]kapi.Pod
-	stopPodWatch chan struct{}
 }
 
 // npPolicy is a parsed version of a single NetworkPolicy object
@@ -64,6 +66,7 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 	return &networkPolicyPlugin{
 		namespaces:  make(map[uint32]*npNamespace),
 		kNamespaces: make(map[string]kapi.Namespace),
+		pods:        make(map[ktypes.UID]kapi.Pod),
 	}
 }
 
@@ -73,6 +76,7 @@ func (np *networkPolicyPlugin) Name() string {
 
 func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.node = node
+	np.kubeInformers = node.kubeInformers
 	np.vnids = newNodeVNIDMap(np, node.osClient)
 	if err := np.vnids.Start(); err != nil {
 		return err
@@ -95,7 +99,8 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 		return err
 	}
 
-	go utilwait.Forever(np.watchNamespaces, 0)
+	np.watchNamespaces()
+	np.watchPods()
 	go utilwait.Forever(np.watchNetworkPolicies, 0)
 	return nil
 }
@@ -247,92 +252,6 @@ func (np *networkPolicyPlugin) UnrefVNID(vnid uint32) {
 	np.syncNamespace(npns)
 }
 
-// watchPods watches Pod changes in npns until stopPodWatch is triggered. pods
-// and stopPodWatch are passed in as arguments rather than being read from npns
-// because it's possible another thread will already have cancelled the watch
-// (and changed the npns fields) before this function runs.
-func (np *networkPolicyPlugin) watchPods(npns *npNamespace, pods map[ktypes.UID]kapi.Pod, stopPodWatch chan struct{}) {
-	RunNamespacedPodEventQueue(np.node.kClient.Core().RESTClient(), npns.name, stopPodWatch, func(delta cache.Delta) error {
-		pod := delta.Object.(*kapi.Pod)
-		glog.V(5).Infof("Watch %s event for Pod %s/%s", delta.Type, pod.Namespace, pod.Name)
-
-		// We don't want to grab np.namespacesLock for every Pod.Status change...
-		// But it's safe to look up oldPod without locking here because no other
-		// threads modify this map.
-		oldPod, podExisted := pods[pod.UID]
-		if pod.Status.PodIP == "" {
-			delta.Type = cache.Deleted
-		}
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			if podExisted && oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels) {
-				return nil
-			}
-		case cache.Deleted:
-			if !podExisted {
-				return nil
-			}
-		}
-
-		glog.V(5).Infof("Re-checking policies after pod %s", delta.Type)
-		np.lock.Lock()
-		defer np.lock.Unlock()
-
-		// RunNamespacedPodEventQueue() will call this function at least once more
-		// after the watch is stopped, so verify that our watch is still running
-		// before changing anything.
-		if stopPodWatch != npns.stopPodWatch {
-			return nil
-		}
-
-		if delta.Type == cache.Deleted {
-			delete(pods, pod.UID)
-		} else {
-			pods[pod.UID] = *pod
-		}
-
-		changed := false
-		for _, npp := range npns.policies {
-			if npp.watchesPods {
-				if np.updateNetworkPolicy(npns, &npp.policy) {
-					changed = true
-				}
-			}
-		}
-		if changed {
-			np.syncNamespace(npns)
-		}
-
-		return nil
-	})
-}
-
-func (np *networkPolicyPlugin) podWatchUntilStopped(npns *npNamespace) {
-	pods := npns.pods
-	stop := npns.stopPodWatch
-	go utilwait.Until(func() { np.watchPods(npns, pods, stop) }, 0, stop)
-}
-
-func (np *networkPolicyPlugin) updatePodWatch(npns *npNamespace) {
-	watchesPods := false
-	for _, npp := range npns.policies {
-		if npp.watchesPods {
-			watchesPods = true
-			break
-		}
-	}
-
-	if watchesPods && (npns.stopPodWatch == nil) {
-		npns.pods = make(map[ktypes.UID]kapi.Pod)
-		npns.stopPodWatch = make(chan struct{})
-		np.podWatchUntilStopped(npns)
-	} else if !watchesPods && (npns.stopPodWatch != nil) {
-		close(npns.stopPodWatch)
-		npns.stopPodWatch = nil
-		npns.pods = nil
-	}
-}
-
 func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
 	vnids := []uint32{}
 	sel, err := metav1.LabelSelectorAsSelector(lsel)
@@ -359,8 +278,8 @@ func (np *networkPolicyPlugin) selectPods(npns *npNamespace, lsel *metav1.LabelS
 		glog.Errorf("ValidateNetworkPolicy() failure! Invalid PodSelector: %v", err)
 		return ips
 	}
-	for _, pod := range npns.pods {
-		if sel.Matches(labels.Set(pod.Labels)) {
+	for _, pod := range np.pods {
+		if (npns.name == pod.Namespace) && sel.Matches(labels.Set(pod.Labels)) {
 			ips = append(ips, pod.Status.PodIP)
 		}
 	}
@@ -459,7 +378,6 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ex
 
 	oldNPP, existed := npns.policies[policy.UID]
 	npns.policies[policy.UID] = npp
-	np.updatePodWatch(npns)
 
 	changed := !existed || !reflect.DeepEqual(oldNPP.flows, npp.flows)
 	if !changed {
@@ -535,51 +453,114 @@ func namespaceIsIsolated(ns *kapi.Namespace) bool {
 	}
 }
 
+func (np *networkPolicyPlugin) watchPods() {
+	RegisterSharedInformerEventHandlers(np.kubeInformers,
+		np.handleAddOrUpdatePod, np.handleDeletePod, Pods)
+}
+
+func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventType watch.EventType) {
+	pod := obj.(*kapi.Pod)
+	glog.V(5).Infof("Watch %s event for Pod %q", eventType, getPodFullName(pod))
+
+	// Ignore pods with HostNetwork=true, SDN is not involved in this case
+	if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+		return
+	}
+	if pod.Status.PodIP == "" {
+		glog.Warningf("PodIP is not set for pod %q", getPodFullName(pod))
+		return
+	}
+
+	// We don't want to grab np.Lock for every Pod.Status change...
+	// But it's safe to look up oldPod without locking here because no other
+	// threads modify this map.
+	oldPod, podExisted := np.pods[pod.UID]
+	if podExisted && oldPod.Status.PodIP == pod.Status.PodIP && reflect.DeepEqual(oldPod.Labels, pod.Labels) {
+		return
+	}
+
+	np.lock.Lock()
+	defer np.lock.Unlock()
+
+	np.pods[pod.UID] = *pod
+	np.refreshNetworkPolicies(Pods)
+}
+
+func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
+	pod := obj.(*kapi.Pod)
+	glog.V(5).Infof("Watch %s event for Pod %q", watch.Deleted, getPodFullName(pod))
+
+	_, podExisted := np.pods[pod.UID]
+	if !podExisted {
+		return
+	}
+
+	np.lock.Lock()
+	defer np.lock.Unlock()
+
+	delete(np.pods, pod.UID)
+	np.refreshNetworkPolicies(Pods)
+}
+
 func (np *networkPolicyPlugin) watchNamespaces() {
-	RunEventQueue(np.node.kClient.Core().RESTClient(), Namespaces, func(delta cache.Delta) error {
-		ns := delta.Object.(*kapi.Namespace)
+	RegisterSharedInformerEventHandlers(np.kubeInformers,
+		np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, Namespaces)
+}
 
-		glog.V(5).Infof("Watch %s event for Namespace %q", delta.Type, ns.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			// Don't grab the lock yet since this may block
-			vnid, err := np.vnids.WaitAndGetVNID(ns.Name)
-			if err != nil {
-				return err
-			}
+func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
+	ns := obj.(*kapi.Namespace)
+	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+	// Don't grab the lock yet since this may block
+	vnid, err := np.vnids.WaitAndGetVNID(ns.Name)
+	if err != nil {
+		glog.Error(err)
+		return
+	}
 
-			np.lock.Lock()
-			defer np.lock.Unlock()
-			np.kNamespaces[ns.Name] = *ns
-			if npns, exists := np.namespaces[vnid]; exists {
-				npns.isolated = namespaceIsIsolated(ns)
-				np.syncNamespace(npns)
-			}
-			// else the NetNamespace doesn't exist yet, but we will initialize
-			// npns.isolated from the kapi.Namespace when it's created
+	np.lock.Lock()
+	defer np.lock.Unlock()
+	np.kNamespaces[ns.Name] = *ns
+	if npns, exists := np.namespaces[vnid]; exists {
+		npns.isolated = namespaceIsIsolated(ns)
+		np.syncNamespace(npns)
+	}
+	// else the NetNamespace doesn't exist yet, but we will initialize
+	// npns.isolated from the kapi.Namespace when it's created
 
-		case cache.Deleted:
-			np.lock.Lock()
-			defer np.lock.Unlock()
-			delete(np.kNamespaces, ns.Name)
+	np.refreshNetworkPolicies(Namespaces)
+}
 
-			// We don't need to np.syncNamespace() because if the NetNamespace
-			// still existed, it will be deleted as part of deleting the Namespace.
-		}
+func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
+	ns := obj.(*kapi.Namespace)
+	glog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
+	np.lock.Lock()
+	defer np.lock.Unlock()
+	delete(np.kNamespaces, ns.Name)
 
-		for _, npns := range np.namespaces {
-			changed := false
-			for _, npp := range npns.policies {
-				if npp.watchesNamespaces {
-					if np.updateNetworkPolicy(npns, &npp.policy) {
-						changed = true
-					}
+	// We don't need to np.syncNamespace() because if the NetNamespace
+	// still existed, it will be deleted as part of deleting the Namespace.
+
+	np.refreshNetworkPolicies(Namespaces)
+}
+
+func (np *networkPolicyPlugin) refreshNetworkPolicies(watchResourceName ResourceName) {
+	for _, npns := range np.namespaces {
+		changed := false
+		for _, npp := range npns.policies {
+			if ((watchResourceName == Namespaces) && npp.watchesNamespaces) ||
+				((watchResourceName == Pods) && npp.watchesPods) {
+				if np.updateNetworkPolicy(npns, &npp.policy) {
+					changed = true
+					break
 				}
 			}
-			if changed {
-				np.syncNamespace(npns)
-			}
 		}
-		return nil
-	})
+		if changed {
+			np.syncNamespace(npns)
+		}
+	}
+}
+
+func getPodFullName(pod *kapi.Pod) string {
+	return fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 }

@@ -8,10 +8,12 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/controller/shared"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
@@ -22,9 +24,13 @@ type OsdnMaster struct {
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
+	informers       shared.InformerFactory
+
+	// Holds Node IP used in creating host subnet for a node
+	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface) error {
+func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers shared.InformerFactory) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
@@ -32,8 +38,10 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	log.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
-		kClient:  kClient,
-		osClient: osClient,
+		kClient:           kClient,
+		osClient:          osClient,
+		informers:         informers,
+		hostSubnetNodeIPs: map[ktypes.UID]string{},
 	}
 
 	var err error
