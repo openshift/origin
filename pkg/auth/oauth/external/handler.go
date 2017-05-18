@@ -214,8 +214,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) handleError(err error, w http.ResponseWriter, req *http.Request) {
-	handled, err := h.errorHandler.AuthenticationError(err, w, req)
-	if handled {
+	if handled, _ := h.errorHandler.AuthenticationError(err, w, req); handled {
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)
