@@ -194,7 +194,7 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
 	validationResults.Append(ValidateAuditConfig(config.AuditConfig, fldPath.Child("auditConfig")))
 	validationResults.Append(ValidateMasterAuthConfig(config.AuthConfig, fldPath.Child("authConfig")))
-	validationResults.Append(ValidateAggregatorConfig(config.AuthConfig, fldPath.Child("aggregatorConfig")))
+	validationResults.Append(ValidateAggregatorConfig(config.AggregatorConfig, fldPath.Child("aggregatorConfig")))
 
 	return validationResults
 }

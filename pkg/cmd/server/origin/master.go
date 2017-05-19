@@ -172,7 +172,7 @@ var excludedV1Types = sets.NewString()
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig) {
+func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig, stopCh <-chan struct{}) {
 	var (
 		messages []string
 		err      error
@@ -193,7 +193,28 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 	for _, s := range messages {
 		glog.Infof(s, c.Options.ServingInfo.BindAddress)
 	}
-	go kmaster.GenericAPIServer.PrepareRun().Run(utilwait.NeverStop)
+
+	apiserver := kmaster.GenericAPIServer.PrepareRun()
+
+	// presence of the key indicates whether or not to enable the aggregator
+	if len(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile) == 0 {
+		go apiserver.Run(utilwait.NeverStop)
+
+		// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+		cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+		return
+	}
+
+	aggregatorConfig, err := c.createAggregatorConfig(*kc.Master.GenericConfig)
+	if err != nil {
+		glog.Fatalf("Failed to create aggregator config: %v", err)
+	}
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, apiserver.GenericAPIServer, kc.Informers.InternalKubernetesInformers(), stopCh)
+	if err != nil {
+		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
+		glog.Fatalf("Failed to create aggregator server: %v", err)
+	}
+	go aggregatorServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
