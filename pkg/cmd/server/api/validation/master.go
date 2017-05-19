@@ -192,10 +192,9 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 	}
 
 	validationResults.Append(ValidateControllerConfig(config.ControllerConfig, fldPath.Child("controllerConfig")))
-
 	validationResults.Append(ValidateAuditConfig(config.AuditConfig, fldPath.Child("auditConfig")))
-
 	validationResults.Append(ValidateMasterAuthConfig(config.AuthConfig, fldPath.Child("authConfig")))
+	validationResults.Append(ValidateAggregatorConfig(config.AuthConfig, fldPath.Child("aggregatorConfig")))
 
 	return validationResults
 }
@@ -222,6 +221,14 @@ func ValidateMasterAuthConfig(config api.MasterAuthConfig, fldPath *field.Path) 
 	if len(config.RequestHeader.ExtraHeaderPrefixes) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("requestHeader.extraHeaderPrefixes"), "must be specified for a secure connection"))
 	}
+
+	return validationResults
+}
+
+func ValidateAggregatorConfig(config api.AggregatorConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
 
 	return validationResults
 }

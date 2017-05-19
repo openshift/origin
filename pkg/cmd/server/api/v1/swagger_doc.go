@@ -36,6 +36,15 @@ func (AdmissionPluginConfig) SwaggerDoc() map[string]string {
 	return map_AdmissionPluginConfig
 }
 
+var map_AggregatorConfig = map[string]string{
+	"":                "AggregatorConfig holds information required to make the aggregator function.",
+	"proxyClientInfo": "ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers",
+}
+
+func (AggregatorConfig) SwaggerDoc() map[string]string {
+	return map_AggregatorConfig
+}
+
 var map_AllowAllPasswordIdentityProvider = map[string]string{
 	"": "AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords",
 }
@@ -481,6 +490,7 @@ var map_MasterConfig = map[string]string{
 	"":                            "MasterConfig holds the necessary configuration options for the OpenShift master",
 	"servingInfo":                 "ServingInfo describes how to start serving",
 	"authConfig":                  "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"aggregatorConfig":            "AggregatorConfig has options for configuring the aggregator component of the API server.",
 	"corsAllowedOrigins":          "CORSAllowedOrigins",
 	"apiLevels":                   "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"masterPublicURL":             "MasterPublicURL is how clients can access the OpenShift API server",

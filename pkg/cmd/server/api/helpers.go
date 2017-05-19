@@ -246,6 +246,9 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 		refs = append(refs, &config.AuthConfig.RequestHeader.ClientCA)
 	}
 
+	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.CertFile)
+	refs = append(refs, &config.AggregatorConfig.ProxyClientInfo.KeyFile)
+
 	refs = append(refs, &config.ServiceAccountConfig.MasterCA)
 	refs = append(refs, &config.ServiceAccountConfig.PrivateKeyFile)
 	for i := range config.ServiceAccountConfig.PublicKeyFiles {
