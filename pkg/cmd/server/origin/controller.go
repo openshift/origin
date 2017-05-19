@@ -3,6 +3,9 @@ package origin
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
+
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/util/cert"
@@ -10,7 +13,7 @@ import (
 	kubecontroller "k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/golang/glog"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/origin/controller"
 )
@@ -117,8 +120,33 @@ func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controll
 	deploymentTrigger := controller.DeploymentTriggerControllerConfig{Codec: codec}
 	ret["openshift.io/deploymenttrigger"] = deploymentTrigger.RunController
 
+	// initialize other controllers
+	imageTrigger := controller.ImageTriggerControllerConfig{
+		HasBuilderEnabled: c.Options.DisabledFeatures.Has(configapi.FeatureBuilder),
+		// TODO: make these consts in configapi
+		HasDeploymentsEnabled:  c.Options.DisabledFeatures.Has("triggers.image.openshift.io/deployments"),
+		HasDaemonSetsEnabled:   c.Options.DisabledFeatures.Has("triggers.image.openshift.io/daemonsets"),
+		HasStatefulSetsEnabled: c.Options.DisabledFeatures.Has("triggers.image.openshift.io/statefulsets"),
+		HasCronJobsEnabled:     c.Options.DisabledFeatures.Has("triggers.image.openshift.io/cronjobs"),
+	}
+	ret["openshift.io/image-trigger"] = imageTrigger.RunController
+
+	imageImport := controller.ImageImportControllerOptions{
+		MaxScheduledImageImportsPerMinute: c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute,
+		ResyncPeriod:                      10 * time.Minute,
+
+		DisableScheduledImport:                     c.Options.ImagePolicyConfig.DisableScheduledImport,
+		ScheduledImageImportMinimumIntervalSeconds: c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds,
+	}
+	ret["openshift.io/image-import"] = imageImport.RunController
+
 	templateInstance := controller.TemplateInstanceControllerConfig{}
 	ret["openshift.io/templateinstance"] = templateInstance.RunController
+
+	serviceServingCert := controller.ServiceServingCertsControllerOptions{
+		Signer: c.Options.ControllerConfig.ServiceServingCert.Signer,
+	}
+	ret["openshift.io/service-serving-cert"] = serviceServingCert.RunController
 
 	return ret, nil
 }

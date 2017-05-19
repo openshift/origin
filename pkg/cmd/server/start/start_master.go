@@ -794,7 +794,11 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		"openshift.io/deployer",
 		"openshift.io/deploymentconfig",
 		"openshift.io/deploymenttrigger",
+		"openshift.io/image-trigger",
+		"openshift.io/image-import",
+		"openshift.io/service-serving-cert",
 	)
+
 	if configapi.IsBuildEnabled(&oc.Options) {
 		allowedControllers.Insert("openshift.io/build")
 		allowedControllers.Insert("openshift.io/build-config-change")
@@ -827,8 +831,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		glog.Infof("Started %q", controllerName)
 	}
 
-	oc.RunImageTriggerController()
-	oc.RunImageImportController()
 	oc.RunSDNController()
 	oc.RunOriginToRBACSyncControllers()
 
@@ -837,11 +839,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	oc.RunClusterQuotaReconciliationController()
 	oc.RunClusterQuotaMappingController()
 
-	_, _, serviceServingCertClient, _, err := oc.GetServiceAccountClients(bootstrappolicy.ServiceServingCertServiceAccountName)
-	if err != nil {
-		glog.Fatalf("Could not get client: %v", err)
-	}
-	oc.RunServiceServingCertController(serviceServingCertClient)
 	oc.RunUnidlingController()
 
 	_, _, ingressIPClientInternal, ingressIPClientExternal, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceIngressIPControllerServiceAccountName)
