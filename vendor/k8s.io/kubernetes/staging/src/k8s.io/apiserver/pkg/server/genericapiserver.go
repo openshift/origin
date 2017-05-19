@@ -43,6 +43,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/server/healthz"
+	"k8s.io/apiserver/pkg/server/mux"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/apiserver/pkg/server/routes"
 	restclient "k8s.io/client-go/rest"
@@ -124,6 +125,12 @@ type GenericAPIServer struct {
 	// "Outputs"
 	Handler         http.Handler
 	InsecureHandler http.Handler
+	// FallThroughHandler is the final HTTP handler in the chain.
+	// It comes after all filters and the API handling
+	FallThroughHandler *mux.PathRecorderMux
+
+	// listedPathProvider is a lister which provides the set of paths to show at /
+	listedPathProvider routes.ListedPathProvider
 
 	// Map storing information about all groups to be exposed in discovery response.
 	// The map is from name to the group.
@@ -148,6 +155,63 @@ type GenericAPIServer struct {
 	healthzLock    sync.Mutex
 	healthzChecks  []healthz.HealthzChecker
 	healthzCreated bool
+}
+
+// DelegationTarget is an interface which allows for composition of API servers with top level handling that works
+// as expected.
+type DelegationTarget interface {
+	// UnprotectedHandler returns a handler that is NOT protected by a normal chain
+	UnprotectedHandler() http.Handler
+
+	// RequestContextMapper returns the existing RequestContextMapper.  Because we cannot rewire all existing
+	// uses of this function, this will be used in any delegating API server
+	RequestContextMapper() apirequest.RequestContextMapper
+
+	// PostStartHooks returns the post-start hooks that need to be combined
+	PostStartHooks() map[string]postStartHookEntry
+
+	// HealthzChecks returns the healthz checks that need to be combined
+	HealthzChecks() []healthz.HealthzChecker
+
+	// ListedPaths returns the paths for supporting an index
+	ListedPaths() []string
+}
+
+func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
+	return s.HandlerContainer.ServeMux
+}
+func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
+	return s.postStartHooks
+}
+func (s *GenericAPIServer) HealthzChecks() []healthz.HealthzChecker {
+	return s.healthzChecks
+}
+func (s *GenericAPIServer) ListedPaths() []string {
+	return s.listedPathProvider.ListedPaths()
+}
+
+var EmptyDelegate = emptyDelegate{
+	requestContextMapper: apirequest.NewRequestContextMapper(),
+}
+
+type emptyDelegate struct {
+	requestContextMapper apirequest.RequestContextMapper
+}
+
+func (s emptyDelegate) UnprotectedHandler() http.Handler {
+	return http.NotFoundHandler()
+}
+func (s emptyDelegate) PostStartHooks() map[string]postStartHookEntry {
+	return map[string]postStartHookEntry{}
+}
+func (s emptyDelegate) HealthzChecks() []healthz.HealthzChecker {
+	return []healthz.HealthzChecker{}
+}
+func (s emptyDelegate) ListedPaths() []string {
+	return []string{}
+}
+func (s emptyDelegate) RequestContextMapper() apirequest.RequestContextMapper {
+	return s.requestContextMapper
 }
 
 func init() {
@@ -181,7 +245,7 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.openAPIConfig != nil {
 		routes.OpenAPI{
 			Config: s.openAPIConfig,
-		}.Install(s.HandlerContainer)
+		}.Install(s.HandlerContainer, s.FallThroughHandler)
 	}
 
 	s.installHealthz()
@@ -247,6 +311,11 @@ func (s *GenericAPIServer) EffectiveSecurePort() int {
 // installAPIResources is a private method for installing the REST storage backing each api groupversionresource
 func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *APIGroupInfo) error {
 	for _, groupVersion := range apiGroupInfo.GroupMeta.GroupVersions {
+		if len(apiGroupInfo.VersionedResourcesStorageMap[groupVersion.Version]) == 0 {
+			glog.Warningf("Skipping API %v because it has no resources.", groupVersion)
+			continue
+		}
+
 		apiGroupVersion := s.getAPIGroupVersion(apiGroupInfo, groupVersion, apiPrefix)
 		if len(apiGroupVersion.Storage) == 0 {
 			continue

@@ -12,7 +12,7 @@ import (
 )
 
 func TestInitializeOpenshiftAPIVersionRouteHandler(t *testing.T) {
-	apiContainer := mux.NewAPIContainer(http.NewServeMux(), api.Codecs)
+	apiContainer := mux.NewAPIContainer(http.NewServeMux(), api.Codecs, mux.NewPathRecorderMux())
 	initAPIVersionRoute(apiContainer, "oapi", "v1")
 
 	wss := apiContainer.RegisteredWebServices()
