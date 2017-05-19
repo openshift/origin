@@ -28,13 +28,13 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 	)
 
 	g.BeforeEach(func() {
-		image := os.Getenv("OPENSHIFT_ROUTER_IMAGE")
-		if len(image) == 0 {
-			g.Skip("Skipping HAProxy router tests, OPENSHIFT_ROUTER_IMAGE is unset")
+		imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
+		if len(imagePrefix) == 0 {
+			imagePrefix = "openshift/origin"
 		}
 		err := oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:router", oc.Username()).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
-		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+image).Execute()
+		err = oc.Run("new-app").Args("-f", configPath, "-p", "IMAGE="+imagePrefix+"-haproxy-router").Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

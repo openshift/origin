@@ -37,8 +37,6 @@ import (
 )
 
 const (
-	defaultRouterImage = "openshift/origin-haproxy-router"
-
 	defaultNamespace = "router-namespace"
 
 	tcWaitSeconds = 1
@@ -356,12 +354,6 @@ func TestRouter(t *testing.T) {
 		if err := waitForRoute(tc.routerUrl, tc.routeAlias, tc.protocol, nil, tc.expectedResponse); err != nil {
 			t.Errorf("TC %s failed: %v", tc.name, err)
 
-			// The following is related to the workaround above, q.v.
-			if getRouterImage() != defaultRouterImage {
-				t.Errorf("You may need to add an entry to /etc/hosts so that the"+
-					" hostname of the router (%s) resolves its the IP address, (%s).",
-					tc.routeAlias, routeAddress)
-			}
 			if strings.Contains(err.Error(), "unavailable the entire time") {
 				break
 			}
@@ -1439,16 +1431,13 @@ func cleanUp(t *testing.T, dockerCli *dockerClient.Client, routerId string) {
 	})
 }
 
-// getRouterImage is a utility that provides the router image to use by checking to see if OPENSHIFT_ROUTER_IMAGE is set
-// or by using the default image
+// getRouterImage is a utility that provides the router image to use by checking to see if OS_IMAGE_PREFIX is set
 func getRouterImage() string {
-	i := os.Getenv("OPENSHIFT_ROUTER_IMAGE")
-
-	if len(i) == 0 {
-		i = defaultRouterImage
+	imagePrefix := os.Getenv("OS_IMAGE_PREFIX")
+	if len(imagePrefix) == 0 {
+		imagePrefix = "openshift/origin"
 	}
-
-	return i
+	return imagePrefix + "-haproxy-router"
 }
 
 // getRouteAddress checks for the OPENSHIFT_ROUTE_ADDRESS environment
