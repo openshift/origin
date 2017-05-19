@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -275,10 +274,7 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 // Update the status of the provided deployment config. Additional conditions will override any other condition in the
 // deployment config status.
 func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentConfig, deployments []*kapi.ReplicationController, additional ...deployapi.DeploymentCondition) error {
-	newStatus, err := c.calculateStatus(*config, deployments, additional...)
-	if err != nil {
-		return err
-	}
+	newStatus := calculateStatus(config, deployments, additional...)
 
 	// NOTE: We should update the status of the deployment config only if we need to, otherwise
 	// we hotloop between updates.
@@ -305,36 +301,33 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	return nil
 }
 
-func (c *DeploymentConfigController) calculateStatus(config deployapi.DeploymentConfig, deployments []*kapi.ReplicationController, additional ...deployapi.DeploymentCondition) (deployapi.DeploymentConfigStatus, error) {
-	selector := labels.Set(config.Spec.Selector).AsSelector()
-	// TODO: Replace with using rc.status.availableReplicas that comes with the next rebase.
-	pods, err := c.podLister.Pods(config.Namespace).List(selector)
-	if err != nil {
-		return config.Status, err
-	}
-	available := deployutil.GetAvailablePods(pods, config.Spec.MinReadySeconds)
-
-	// UpdatedReplicas represents the replicas that use the deployment config template which means
+func calculateStatus(config *deployapi.DeploymentConfig, rcs []*kapi.ReplicationController, additional ...deployapi.DeploymentCondition) deployapi.DeploymentConfigStatus {
+	// UpdatedReplicas represents the replicas that use the current deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
 	latestReplicas := int32(0)
-	latestExists, latestRC := deployutil.LatestDeploymentInfo(&config, deployments)
+	latestExists, latestRC := deployutil.LatestDeploymentInfo(config, rcs)
 	if !latestExists {
 		latestRC = nil
 	} else {
 		latestReplicas = deployutil.GetStatusReplicaCountForDeployments([]*kapi.ReplicationController{latestRC})
 	}
 
-	total := deployutil.GetReplicaCountForDeployments(deployments)
+	available := deployutil.GetAvailableReplicaCountForReplicationControllers(rcs)
+	total := deployutil.GetReplicaCountForDeployments(rcs)
+	unavailableReplicas := total - available
+	if unavailableReplicas < 0 {
+		unavailableReplicas = 0
+	}
 
 	status := deployapi.DeploymentConfigStatus{
 		LatestVersion:       config.Status.LatestVersion,
 		Details:             config.Status.Details,
 		ObservedGeneration:  config.Generation,
-		Replicas:            deployutil.GetStatusReplicaCountForDeployments(deployments),
+		Replicas:            deployutil.GetStatusReplicaCountForDeployments(rcs),
 		UpdatedReplicas:     latestReplicas,
 		AvailableReplicas:   available,
-		ReadyReplicas:       deployutil.GetReadyReplicaCountForReplicationControllers(deployments),
-		UnavailableReplicas: total - available,
+		ReadyReplicas:       deployutil.GetReadyReplicaCountForReplicationControllers(rcs),
+		UnavailableReplicas: unavailableReplicas,
 		Conditions:          config.Status.Conditions,
 	}
 
@@ -343,10 +336,10 @@ func (c *DeploymentConfigController) calculateStatus(config deployapi.Deployment
 		deployutil.SetDeploymentCondition(&status, cond)
 	}
 
-	return status, nil
+	return status
 }
 
-func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController) {
+func updateConditions(config *deployapi.DeploymentConfig, newStatus *deployapi.DeploymentConfigStatus, latestRC *kapi.ReplicationController) {
 	// Availability condition.
 	if newStatus.AvailableReplicas >= config.Spec.Replicas-deployutil.MaxUnavailable(config) && newStatus.AvailableReplicas > 0 {
 		minAvailability := deployutil.NewDeploymentCondition(deployapi.DeploymentAvailable, kapi.ConditionTrue, "", "Deployment config has minimum availability.")
@@ -364,7 +357,7 @@ func updateConditions(config deployapi.DeploymentConfig, newStatus *deployapi.De
 			condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionUnknown, "", msg)
 			deployutil.SetDeploymentCondition(newStatus, *condition)
 		case deployapi.DeploymentStatusRunning:
-			if deployutil.IsProgressing(config, *newStatus) {
+			if deployutil.IsProgressing(config, newStatus) {
 				deployutil.RemoveDeploymentCondition(newStatus, deployapi.DeploymentProgressing)
 				msg := fmt.Sprintf("replication controller %q is progressing", latestRC.Name)
 				condition := deployutil.NewDeploymentCondition(deployapi.DeploymentProgressing, kapi.ConditionTrue, deployapi.ReplicationControllerUpdatedReason, msg)
