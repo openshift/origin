@@ -66,7 +66,7 @@ kubeletArguments:
 EOF
   fi
 
-  # ensure the configuration is readable outside of the container
+  # Ensure the configuration is readable outside of the container
   chmod -R ga+rX "${node_config_path}"
 
   # Deploy the node config

@@ -42,8 +42,9 @@
 # ------------------
 #
 # When making changes to the deployment of a dind cluster or making
-# breaking golang changes, the 'restart' command will ensure that an
-# existing cluster is cleaned up before deploying a new cluster.
+# breaking golang changes, the -r argument to the start command will
+# ensure that an existing cluster is cleaned up before deploying a new
+# cluster.
 #
 # Running Tests
 # -------------
@@ -90,8 +91,9 @@ function start() {
   echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" > "${config_root}/additional-args"
   copy-runtime "${origin_root}" "${config_root}/"
 
-  local volumes="-v ${config_root}:${deployed_config_root}"
-  local run_cmd="${DOCKER_CMD} run -dt ${volumes}  --privileged"
+  local volumes run_cmd
+  volumes="-v ${config_root}:${deployed_config_root}"
+  run_cmd="${DOCKER_CMD} run -dt ${volumes}  --privileged"
 
   # Create containers
   ${run_cmd} --name="${MASTER_NAME}" --hostname="${MASTER_NAME}" "${MASTER_IMAGE}" > /dev/null
@@ -216,20 +218,20 @@ function wait-for-cluster() {
   local config_root=$1
   local expected_node_count=$2
 
-  # Increment the node count to ensure that the sdn node also reports readiness
-  (( expected_node_count++ ))
+  # Increment the node count to ensure that the sdn node on the master also reports readiness
+  (( expected_node_count += 1 ))
 
-  local kubeconfig
+  local kubeconfig oc
   kubeconfig="$(get-admin-config "${config_root}")"
-  local oc
   oc="$(os::util::find::built_binary oc)"
 
   # wait for healthz to report ok before trying to get nodes
   os::util::wait-for-condition "ok" "${oc} get --config=${kubeconfig} --raw=/healthz" "120"
 
-  local msg="${expected_node_count} nodes to report readiness"
-  local condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
-  local timeout=120
+  local msg condition timeout
+  msg="${expected_node_count} nodes to report readiness"
+  condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
+  timeout=120
   os::util::wait-for-condition "${msg}" "${condition}" "${timeout}"
 }
 
@@ -250,6 +252,7 @@ function nodes-are-ready() {
   {{end}}
 {{end}}
 EOF
+
   # Remove formatting before use
   template="$(echo "${template}" | tr -d '\n' | sed -e 's/} \+/}/g')"
   local count
@@ -377,19 +380,14 @@ case "${1:-""}" in
 start accepts the following options:
 
  -n [net plugin]   the name of the network plugin to deploy
-
  -N                number of nodes in the cluster
-
  -b                build origin before starting the cluster
-
  -i                build container images before starting the cluster
-
  -r                remove an existing cluster
-
  -s                skip waiting for nodes to become ready
 
 Any of the arguments that would be used in creating openshift master can be passed
-as is to the script  after '--' ex: setting host subnet to 3
+as is to the script after '--' ex: setting host subnet to 3
 ./dind-cluster.sh start -- --host-subnet-length=3
 "
     exit 2
