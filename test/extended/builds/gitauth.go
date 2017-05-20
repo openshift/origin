@@ -80,6 +80,9 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 
 		g.By("starting a test build")
 		br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
+		if !br.BuildSuccess {
+			exutil.DumpDeploymentLogs(gitServerDeploymentConfigName, oc)
+		}
 		br.AssertSuccess()
 	}
 
