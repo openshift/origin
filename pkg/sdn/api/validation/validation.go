@@ -13,7 +13,14 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
-// ValidateClusterNetwork tests if required fields in the ClusterNetwork are set.
+var defaultClusterNetwork *sdnapi.ClusterNetwork
+
+// SetDefaultClusterNetwork sets the expected value of the default ClusterNetwork record
+func SetDefaultClusterNetwork(cn sdnapi.ClusterNetwork) {
+	defaultClusterNetwork = &cn
+}
+
+// ValidateClusterNetwork tests if required fields in the ClusterNetwork are set, and ensures that the "default" ClusterNetwork can only be set to the correct values
 func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&clusterNet.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
@@ -21,9 +28,11 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
 	} else {
-		ones, bitSize := clusterIPNet.Mask.Size()
-		if uint32(bitSize-ones) <= clusterNet.HostSubnetLength {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length is greater than cluster Mask"))
+		maskLen, addrLen := clusterIPNet.Mask.Size()
+		if clusterNet.HostSubnetLength > uint32(addrLen-maskLen) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length is too large for clusterNetwork"))
+		} else if clusterNet.HostSubnetLength < 2 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
 		}
 	}
 
@@ -39,47 +48,27 @@ func ValidateClusterNetwork(clusterNet *sdnapi.ClusterNetwork) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cluster network overlaps with service network"))
 	}
 
-	return allErrs
-}
+	if clusterNet.Name == sdnapi.ClusterNetworkDefault && defaultClusterNetwork != nil {
+		if clusterNet.Network != defaultClusterNetwork.Network {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, "cannot change the default ClusterNetwork record via API."))
+		}
+		if clusterNet.HostSubnetLength != defaultClusterNetwork.HostSubnetLength {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "cannot change the default ClusterNetwork record via API."))
+		}
+		if clusterNet.ServiceNetwork != defaultClusterNetwork.ServiceNetwork {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, "cannot change the default ClusterNetwork record via API."))
+		}
+		if clusterNet.PluginName != defaultClusterNetwork.PluginName {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("pluginName"), clusterNet.PluginName, "cannot change the default ClusterNetwork record via API."))
+		}
+	}
 
-func validateNewNetwork(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) *field.Error {
-	oldNet, err := netutils.ParseCIDRMask(old.Network)
-	if err != nil {
-		// Shouldn't happen, but if the existing value is invalid, then any change should be an improvement...
-		return nil
-	}
-	oldSize, _ := oldNet.Mask.Size()
-	newNet, err := netutils.ParseCIDRMask(obj.Network)
-	if err != nil {
-		return field.Invalid(field.NewPath("network"), obj.Network, err.Error())
-	}
-	newSize, _ := newNet.Mask.Size()
-	// oldSize/newSize is, eg the "16" in "10.1.0.0/16", so "newSize < oldSize" means
-	// the new network is larger
-	if newSize < oldSize && newNet.Contains(oldNet.IP) {
-		return nil
-	} else {
-		return field.Invalid(field.NewPath("network"), obj.Network, "cannot change the cluster's network CIDR to a value that does not include the existing network.")
-	}
+	return allErrs
 }
 
 func ValidateClusterNetworkUpdate(obj *sdnapi.ClusterNetwork, old *sdnapi.ClusterNetwork) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClusterNetwork(obj)...)
-
-	if obj.Network != old.Network {
-		err := validateNewNetwork(obj, old)
-		if err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
-	if obj.HostSubnetLength != old.HostSubnetLength {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), obj.HostSubnetLength, "cannot change the cluster's hostSubnetLength midflight."))
-	}
-	if obj.ServiceNetwork != old.ServiceNetwork && old.ServiceNetwork != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), obj.ServiceNetwork, "cannot change the cluster's serviceNetwork CIDR midflight."))
-	}
-
 	return allErrs
 }
 

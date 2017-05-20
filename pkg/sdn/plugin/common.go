@@ -15,6 +15,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -87,6 +88,66 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	}
 
 	return nil
+}
+
+func (ni *NetworkInfo) checkHostNetworks(hostIPNets []*net.IPNet) error {
+	errList := []error{}
+	for _, ipNet := range hostIPNets {
+		if ipNet.Contains(ni.ClusterNetwork.IP) {
+			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
+		}
+		if ni.ClusterNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
+		}
+		if ipNet.Contains(ni.ServiceNetwork.IP) {
+			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
+		}
+		if ni.ServiceNetwork.Contains(ipNet.IP) {
+			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
+		}
+	}
+	return kerrors.NewAggregate(errList)
+}
+
+func (ni *NetworkInfo) checkClusterObjects(subnets []osapi.HostSubnet, pods []kapi.Pod, services []kapi.Service) error {
+	var errList []error
+
+	for _, subnet := range subnets {
+		subnetIP, _, _ := net.ParseCIDR(subnet.Subnet)
+		if subnetIP == nil {
+			errList = append(errList, fmt.Errorf("failed to parse network address: %s", subnet.Subnet))
+		} else if !ni.ClusterNetwork.Contains(subnetIP) {
+			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", subnet.Subnet, ni.ClusterNetwork.String()))
+		}
+		if len(errList) >= 10 {
+			break
+		}
+	}
+	for _, pod := range pods {
+		if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
+			continue
+		}
+		if pod.Status.PodIP != "" && !ni.ClusterNetwork.Contains(net.ParseIP(pod.Status.PodIP)) {
+			errList = append(errList, fmt.Errorf("existing pod %s:%s with IP %s is not part of cluster network %s", pod.Namespace, pod.Name, pod.Status.PodIP, ni.ClusterNetwork.String()))
+			if len(errList) >= 10 {
+				break
+			}
+		}
+	}
+	for _, svc := range services {
+		svcIP := net.ParseIP(svc.Spec.ClusterIP)
+		if svcIP != nil && !ni.ServiceNetwork.Contains(svcIP) {
+			errList = append(errList, fmt.Errorf("existing service %s:%s with IP %s is not part of service network %s", svc.Namespace, svc.Name, svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
+			if len(errList) >= 10 {
+				break
+			}
+		}
+	}
+
+	if len(errList) >= 10 {
+		errList = append(errList, fmt.Errorf("too many errors... truncating"))
+	}
+	return kerrors.NewAggregate(errList)
 }
 
 func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {

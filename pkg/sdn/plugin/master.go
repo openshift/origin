@@ -10,11 +10,13 @@ import (
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/controller/shared"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapivalidation "github.com/openshift/origin/pkg/sdn/api/validation"
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
@@ -50,49 +52,49 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 		return err
 	}
 
-	createConfig := false
-	updateConfig := false
-	cn, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
-	if err == nil {
-		if master.networkInfo.ClusterNetwork.String() != cn.Network ||
-			networkConfig.HostSubnetLength != cn.HostSubnetLength ||
-			master.networkInfo.ServiceNetwork.String() != cn.ServiceNetwork ||
-			networkConfig.NetworkPluginName != cn.PluginName {
-			updateConfig = true
+	configCN := &osapi.ClusterNetwork{
+		TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
+		ObjectMeta: metav1.ObjectMeta{Name: osapi.ClusterNetworkDefault},
+
+		Network:          networkConfig.ClusterNetworkCIDR,
+		HostSubnetLength: networkConfig.HostSubnetLength,
+		ServiceNetwork:   networkConfig.ServiceNetworkCIDR,
+		PluginName:       networkConfig.NetworkPluginName,
+	}
+	osapivalidation.SetDefaultClusterNetwork(*configCN)
+
+	existingCN, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
+	if err != nil {
+		if !kapierrors.IsNotFound(err) {
+			return err
+		}
+		if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
+			return err
+		}
+
+		if _, err = master.osClient.ClusterNetwork().Create(configCN); err != nil {
+			return err
+		}
+		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(configCN))
+
+		if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
+			log.Errorf("WARNING: cluster contains objects incompatible with new ClusterNetwork: %v", err)
 		}
 	} else {
-		cn = &osapi.ClusterNetwork{
-			TypeMeta:   metav1.TypeMeta{Kind: "ClusterNetwork"},
-			ObjectMeta: metav1.ObjectMeta{Name: osapi.ClusterNetworkDefault},
-		}
-		createConfig = true
-	}
-	if createConfig || updateConfig {
-		if err = master.validateNetworkConfig(); err != nil {
-			return err
-		}
-		size, len := master.networkInfo.ClusterNetwork.Mask.Size()
-		if networkConfig.HostSubnetLength < 1 || networkConfig.HostSubnetLength >= uint32(len-size) {
-			return fmt.Errorf("invalid HostSubnetLength %d for network %s (must be from 1 to %d)", networkConfig.HostSubnetLength, networkConfig.ClusterNetworkCIDR, len-size)
-		}
-		cn.Network = master.networkInfo.ClusterNetwork.String()
-		cn.HostSubnetLength = networkConfig.HostSubnetLength
-		cn.ServiceNetwork = master.networkInfo.ServiceNetwork.String()
-		cn.PluginName = networkConfig.NetworkPluginName
-	}
-
-	if createConfig {
-		cn, err := master.osClient.ClusterNetwork().Create(cn)
+		configChanged, err := clusterNetworkChanged(configCN, existingCN)
 		if err != nil {
 			return err
 		}
-		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(cn))
-	} else if updateConfig {
-		cn, err := master.osClient.ClusterNetwork().Update(cn)
-		if err != nil {
-			return err
+		if configChanged {
+			configCN.TypeMeta = existingCN.TypeMeta
+			configCN.ObjectMeta = existingCN.ObjectMeta
+			if _, err = master.osClient.ClusterNetwork().Update(configCN); err != nil {
+				return err
+			}
+			log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(configCN))
+		} else {
+			log.V(5).Infof("No change to ClusterNetwork %s", clusterNetworkToString(configCN))
 		}
-		log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(cn))
 	}
 
 	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {
@@ -115,58 +117,64 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	return nil
 }
 
-func (master *OsdnMaster) validateNetworkConfig() error {
+func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
 	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
 	if err != nil {
 		return err
 	}
+	return master.networkInfo.checkHostNetworks(hostIPNets)
+}
 
-	ni := master.networkInfo
-	errList := []error{}
-
-	// Ensure cluster and service network don't overlap with host networks
-	for _, ipNet := range hostIPNets {
-		if ipNet.Contains(ni.ClusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
-		}
-		if ni.ClusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
-		}
-		if ipNet.Contains(ni.ServiceNetwork.IP) {
-			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
-		}
-		if ni.ServiceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
-		}
+func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
+	var subnets []osapi.HostSubnet
+	var pods []kapi.Pod
+	var services []kapi.Service
+	if subnetList, err := master.osClient.HostSubnets().List(metav1.ListOptions{}); err == nil {
+		subnets = subnetList.Items
+	}
+	if podList, err := master.kClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+		pods = podList.Items
+	}
+	if serviceList, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+		services = serviceList.Items
 	}
 
-	// Ensure each host subnet is within the cluster network
-	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})
-	if err != nil {
-		return fmt.Errorf("error in initializing/fetching subnets: %v", err)
+	return master.networkInfo.checkClusterObjects(subnets, pods, services)
+}
+
+func clusterNetworkChanged(obj *osapi.ClusterNetwork, old *osapi.ClusterNetwork) (bool, error) {
+	changed := false
+
+	if old.Network != obj.Network {
+		changed = true
+
+		_, newNet, err := net.ParseCIDR(obj.Network)
+		if err != nil {
+			return true, err
+		}
+		newSize, _ := newNet.Mask.Size()
+		oldBase, oldNet, err := net.ParseCIDR(old.Network)
+		if err != nil {
+			// Shouldn't happen, but if the existing value is invalid, then any change should be an improvement...
+		} else {
+			oldSize, _ := oldNet.Mask.Size()
+
+			// oldSize and newSize are, eg the "16" in "10.1.0.0/16", so
+			// "newSize < oldSize" means the new network is larger
+			if !(newSize < oldSize && newNet.Contains(oldBase)) {
+				return true, fmt.Errorf("cannot change clusterNetworkCIDR to a value that does not include the existing network.")
+			}
+		}
 	}
-	for _, sub := range subnets.Items {
-		subnetIP, _, _ := net.ParseCIDR(sub.Subnet)
-		if subnetIP == nil {
-			errList = append(errList, fmt.Errorf("failed to parse network address: %s", sub.Subnet))
-			continue
-		}
-		if !ni.ClusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", sub.Subnet, ni.ClusterNetwork.String()))
-		}
+	if old.HostSubnetLength != obj.HostSubnetLength {
+		return true, fmt.Errorf("cannot change the hostSubnetLength of an already-deployed cluster")
+	}
+	if old.ServiceNetwork != obj.ServiceNetwork {
+		return true, fmt.Errorf("cannot change the serviceNetworkCIDR of an already-deployed cluster")
+	}
+	if old.PluginName != obj.PluginName {
+		changed = true
 	}
 
-	// Ensure each service is within the services network
-	services, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-	for _, svc := range services.Items {
-		svcIP := net.ParseIP(svc.Spec.ClusterIP)
-		if svcIP != nil && !ni.ServiceNetwork.Contains(svcIP) {
-			errList = append(errList, fmt.Errorf("existing service with IP: %s is not part of service network: %s", svc.Spec.ClusterIP, ni.ServiceNetwork.String()))
-		}
-	}
-
-	return kerrors.NewAggregate(errList)
+	return changed, nil
 }
