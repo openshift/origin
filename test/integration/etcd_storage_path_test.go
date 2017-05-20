@@ -845,7 +845,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
 		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
-	masterConfig.EnableTemplateServiceBroker = true
+	masterConfig.TemplateServiceBrokerConfig = &serverapi.TemplateServiceBrokerConfig{}
 	if etcdServer.V3Client == nil {
 		masterConfig.KubernetesMasterConfig.APIServerArguments = serverapi.ExtendedArguments{"storage-backend": []string{"etcd2"}}
 	}

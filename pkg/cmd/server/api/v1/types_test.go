@@ -128,7 +128,6 @@ dnsConfig:
   allowRecursiveQueries: false
   bindAddress: ""
   bindNetwork: ""
-enableTemplateServiceBroker: false
 etcdClientInfo:
   ca: ""
   certFile: ""
@@ -491,6 +490,7 @@ servingInfo:
     keyFile: ""
     names: null
   requestTimeoutSeconds: 0
+templateServiceBrokerConfig: null
 volumeConfig:
   dynamicProvisioningEnabled: false
 `

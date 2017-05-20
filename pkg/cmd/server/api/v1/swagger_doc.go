@@ -487,7 +487,7 @@ var map_MasterConfig = map[string]string{
 	"volumeConfig":                "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
 	"jenkinsPipelineConfig":       "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
 	"auditConfig":                 "AuditConfig holds information related to auditing capabilities.",
-	"enableTemplateServiceBroker": "EnableTemplateServiceBroker is a temporary switch which enables TemplateServiceBroker.",
+	"templateServiceBrokerConfig": "TemplateServiceBrokerConfig holds information related to the template service broker.  The broker is enabled if TemplateServiceBrokerConfig is non-nil.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {
@@ -858,6 +858,15 @@ var map_StringSourceSpec = map[string]string{
 
 func (StringSourceSpec) SwaggerDoc() map[string]string {
 	return map_StringSourceSpec
+}
+
+var map_TemplateServiceBrokerConfig = map[string]string{
+	"":                   "TemplateServiceBrokerConfig holds information related to the template service broker",
+	"templateNamespaces": "TemplateNamespaces indicates the namespace(s) in which the template service broker looks for templates to serve to the catalog.",
+}
+
+func (TemplateServiceBrokerConfig) SwaggerDoc() map[string]string {
+	return map_TemplateServiceBrokerConfig
 }
 
 var map_TokenConfig = map[string]string{

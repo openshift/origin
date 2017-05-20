@@ -144,11 +144,14 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		return api.InternalServerError(err)
 	}
 
-	template, err := b.lister.GetTemplateByUID(preq.ServiceID)
+	template, err := b.lister.GetByUID(preq.ServiceID)
 	if err != nil {
 		return api.BadRequest(err)
 	}
 	if template == nil {
+		return api.BadRequest(kerrors.NewNotFound(templateapi.Resource("templates"), preq.ServiceID))
+	}
+	if _, ok := b.templateNamespaces[template.Namespace]; !ok {
 		return api.BadRequest(kerrors.NewNotFound(templateapi.Resource("templates"), preq.ServiceID))
 	}
 

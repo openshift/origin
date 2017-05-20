@@ -736,7 +736,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	}
 	oc.RunIngressIPController(ingressIPClientInternal, ingressIPClientExternal)
 
-	if oc.Options.EnableTemplateServiceBroker {
+	if oc.Options.TemplateServiceBrokerConfig != nil {
 		oc.RunTemplateController()
 	}
 
