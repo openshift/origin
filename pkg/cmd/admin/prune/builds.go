@@ -13,6 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/prune"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -156,7 +157,7 @@ func (o PruneBuildsOptions) Run() error {
 	buildDeleter := &describingBuildDeleter{w: w}
 
 	if o.Confirm {
-		buildDeleter.delegate = prune.NewBuildDeleter(o.OSClient)
+		buildDeleter.delegate = buildclient.NewBuildDeleter(o.OSClient)
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove builds")
 	}
@@ -168,11 +169,11 @@ func (o PruneBuildsOptions) Run() error {
 // If a delegate exists, its DeleteBuild function is invoked prior to returning.
 type describingBuildDeleter struct {
 	w             io.Writer
-	delegate      prune.BuildDeleter
+	delegate      buildclient.BuildDeleter
 	headerPrinted bool
 }
 
-var _ prune.BuildDeleter = &describingBuildDeleter{}
+var _ buildclient.BuildDeleter = &describingBuildDeleter{}
 
 func (p *describingBuildDeleter) DeleteBuild(build *buildapi.Build) error {
 	if !p.headerPrinted {

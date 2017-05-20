@@ -991,6 +991,14 @@ type BuildConfigSpec struct {
 
 	// CommonSpec is the desired build specification
 	CommonSpec
+
+	// SuccessfulBuildsHistoryLimit is the number of old successful builds to retain.
+	// This field is a pointer to allow for differentiation between an explicit zero and not specified.
+	SuccessfulBuildsHistoryLimit *int32
+
+	// FailedBuildsHistoryLimit is the number of old failed builds to retain.
+	// This field is a pointer to allow for differentiation between an explicit zero and not specified.
+	FailedBuildsHistoryLimit *int32
 }
 
 // BuildRunPolicy defines the behaviour of how the new builds are executed

@@ -6,19 +6,13 @@ import (
 	"github.com/golang/glog"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 )
 
 type Pruner interface {
 	// Prune is responsible for actual removal of builds identified as candidates
 	// for pruning based on pruning algorithm.
-	Prune(deleter BuildDeleter) error
-}
-
-// BuildDeleter knows how to delete builds from OpenShift.
-type BuildDeleter interface {
-	// DeleteBuild removes the build from OpenShift's storage.
-	DeleteBuild(build *buildapi.Build) error
+	Prune(deleter buildclient.BuildDeleter) error
 }
 
 // pruner is an object that knows how to prune a data set
@@ -74,7 +68,7 @@ func NewPruner(options PrunerOptions) Pruner {
 }
 
 // Prune will visit each item in the prunable set and invoke the associated BuildDeleter.
-func (p *pruner) Prune(deleter BuildDeleter) error {
+func (p *pruner) Prune(deleter buildclient.BuildDeleter) error {
 	builds, err := p.resolver.Resolve()
 	if err != nil {
 		return err
@@ -85,23 +79,4 @@ func (p *pruner) Prune(deleter BuildDeleter) error {
 		}
 	}
 	return nil
-}
-
-// buildDeleter removes a build from OpenShift.
-type buildDeleter struct {
-	builds client.BuildsNamespacer
-}
-
-var _ BuildDeleter = &buildDeleter{}
-
-// NewBuildDeleter creates a new buildDeleter.
-func NewBuildDeleter(builds client.BuildsNamespacer) BuildDeleter {
-	return &buildDeleter{
-		builds: builds,
-	}
-}
-
-func (p *buildDeleter) DeleteBuild(build *buildapi.Build) error {
-	glog.V(4).Infof("Deleting build %q", build.Name)
-	return p.builds.Builds(build.Namespace).Delete(build.Name)
 }

@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildclient "github.com/openshift/origin/pkg/build/client"
 )
 
 type mockDeleteRecorder struct {
@@ -16,7 +17,7 @@ type mockDeleteRecorder struct {
 	err error
 }
 
-var _ BuildDeleter = &mockDeleteRecorder{}
+var _ buildclient.BuildDeleter = &mockDeleteRecorder{}
 
 func (m *mockDeleteRecorder) DeleteBuild(build *buildapi.Build) error {
 	m.set.Insert(build.Name)

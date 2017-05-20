@@ -72737,6 +72737,11 @@
       "type": "integer",
       "format": "int64"
      },
+     "failedBuildsHistoryLimit": {
+      "description": "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained.",
+      "type": "integer",
+      "format": "int32"
+     },
      "nodeSelector": {
       "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored.",
       "type": "object",
@@ -72775,6 +72780,11 @@
      "strategy": {
       "description": "strategy defines how to perform a build.",
       "$ref": "#/definitions/v1.BuildStrategy"
+     },
+     "successfulBuildsHistoryLimit": {
+      "description": "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained.",
+      "type": "integer",
+      "format": "int32"
      },
      "triggers": {
       "description": "triggers determine how new Builds can be launched from a BuildConfig. If no triggers are defined, a new build can only occur as a result of an explicit client build creation.",

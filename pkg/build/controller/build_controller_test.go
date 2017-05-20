@@ -28,6 +28,24 @@ func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buil
 	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
 }
 
+type okBuildDeleter struct{}
+
+func (okc *okBuildDeleter) DeleteBuild(*buildapi.Build) error {
+	return nil
+}
+
+type okBuildConfigGetter struct {
+	BuildConfig *buildapi.BuildConfig
+}
+
+func (okc *okBuildConfigGetter) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	if okc.BuildConfig != nil {
+		return okc.BuildConfig, nil
+	} else {
+		return &buildapi.BuildConfig{}, nil
+	}
+}
+
 type errBuildUpdater struct{}
 
 func (ec *errBuildUpdater) Update(namespace string, build *buildapi.Build) error {
@@ -153,6 +171,8 @@ func mockBuildController() *BuildController {
 	return &BuildController{
 		BuildUpdater:      &okBuildUpdater{},
 		BuildLister:       &okBuildLister{},
+		BuildDeleter:      &okBuildDeleter{},
+		BuildConfigGetter: &okBuildConfigGetter{},
 		PodManager:        &okPodManager{},
 		BuildStrategy:     &okStrategy{},
 		ImageStreamClient: &okImageStreamClient{},

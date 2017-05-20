@@ -5,6 +5,9 @@
 // test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
 // test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
 // test/extended/testdata/build-extended/jvm-runner.yaml
+// test/extended/testdata/build-pruning/failed-build-config.yaml
+// test/extended/testdata/build-pruning/imagestream.yaml
+// test/extended/testdata/build-pruning/successful-build-config.yaml
 // test/extended/testdata/build-quota/.s2i/bin/assemble
 // test/extended/testdata/build-quota/Dockerfile
 // test/extended/testdata/build-secrets/Dockerfile
@@ -448,6 +451,125 @@ func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-extended/jvm-runner.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  failedBuildsHistoryLimit: 2
+  triggers: {}
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/non-working-example.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'myphp:latest'
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+`)
+
+func testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningFailedBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningFailedBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/failed-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningImagestreamYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: myphp
+`)
+
+func testExtendedTestdataBuildPruningImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningImagestreamYaml, nil
+}
+
+func testExtendedTestdataBuildPruningImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningImagestreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  successfulBuildsHistoryLimit: 2
+  triggers: {}
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'myphp:latest'
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+`)
+
+func testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19194,6 +19316,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
 	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
 	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
+	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
+	"test/extended/testdata/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml,
 	"test/extended/testdata/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildQuotaS2iBinAssemble,
 	"test/extended/testdata/build-quota/Dockerfile": testExtendedTestdataBuildQuotaDockerfile,
 	"test/extended/testdata/build-secrets/Dockerfile": testExtendedTestdataBuildSecretsDockerfile,
@@ -19485,6 +19610,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"bc-scripts-in-the-image.yaml": &bintree{testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml, map[string]*bintree{}},
 					"jvm-runner-with-scripts.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml, map[string]*bintree{}},
 					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
+				}},
+				"build-pruning": &bintree{nil, map[string]*bintree{
+					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
+					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
+					"successful-build-config.yaml": &bintree{testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
 				}},
 				"build-quota": &bintree{nil, map[string]*bintree{
 					".s2i": &bintree{nil, map[string]*bintree{

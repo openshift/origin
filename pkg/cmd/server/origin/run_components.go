@@ -289,6 +289,9 @@ func (c *MasterConfig) RunBuildController(informers shared.InformerFactory) erro
 		OSClient:           osclient,
 		BuildUpdater:       buildclient.NewOSClientBuildClient(osclient),
 		BuildLister:        buildclient.NewOSClientBuildClient(osclient),
+		BuildConfigGetter:  buildclient.NewOSClientBuildConfigClient(osclient),
+		BuildDeleter:       buildclient.NewBuildDeleter(osclient),
+
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: dockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
@@ -334,6 +337,9 @@ func (c *MasterConfig) RunBuildConfigChangeController() {
 		KubeClient:              internalKubeClientset,
 		ExternalKubeClient:      externalKubeClientset,
 		BuildConfigInstantiator: bcInstantiator,
+		BuildLister:             buildclient.NewOSClientBuildClient(bcClient),
+		BuildConfigGetter:       buildclient.NewOSClientBuildConfigClient(bcClient),
+		BuildDeleter:            buildclient.NewBuildDeleter(bcClient),
 	}
 	factory.Create().Run()
 }

@@ -26,6 +26,8 @@ import (
 type BuildController struct {
 	BuildUpdater      buildclient.BuildUpdater
 	BuildLister       buildclient.BuildLister
+	BuildConfigGetter buildclient.BuildConfigGetter
+	BuildDeleter      buildclient.BuildDeleter
 	PodManager        podManager
 	BuildStrategy     BuildStrategy
 	ImageStreamClient imageStreamClient
@@ -85,7 +87,7 @@ func (bc *BuildController) CancelBuild(build *buildapi.Build) error {
 
 	glog.V(4).Infof("Build %s/%s was successfully cancelled.", build.Namespace, build.Name)
 
-	common.HandleBuildCompletion(build, bc.RunPolicies)
+	common.HandleBuildCompletion(build, bc.BuildLister, bc.BuildConfigGetter, bc.BuildDeleter, bc.RunPolicies)
 
 	return nil
 }

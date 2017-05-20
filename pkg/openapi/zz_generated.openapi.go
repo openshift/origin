@@ -2456,6 +2456,20 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"successfulBuildsHistoryLimit": {
+							SchemaProps: spec.SchemaProps{
+								Description: "successfulBuildsHistoryLimit is the number of old successful builds to retain. If not specified, all successful builds are retained.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"failedBuildsHistoryLimit": {
+							SchemaProps: spec.SchemaProps{
+								Description: "failedBuildsHistoryLimit is the number of old failed builds to retain. If not specified, all failed builds are retained.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
 					},
 					Required: []string{"triggers", "strategy", "nodeSelector"},
 				},
