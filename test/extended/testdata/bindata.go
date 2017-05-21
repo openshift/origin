@@ -4368,7 +4368,7 @@ var _testExtendedTestdataJenkinsPluginCreateJobXml = []byte(`<?xml version='1.0'
 		"source": {
 		    "type": "Git",
 		    "git": {
-			"uri": "https://github.com/gabemontero/forcepull-extended-test-builder.git"
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
 		    }
 		},
 		"strategy": {
@@ -4544,7 +4544,7 @@ var _testExtendedTestdataJenkinsPluginDeleteJobXml = []byte(`<?xml version='1.0'
 		"source": {
 		    "type": "Git",
 		    "git": {
-			"uri": "https://github.com/gabemontero/forcepull-extended-test-builder.git"
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
 		    }
 		},
 		"strategy": {

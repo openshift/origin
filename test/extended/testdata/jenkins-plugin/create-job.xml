@@ -51,7 +51,7 @@
 		"source": {
 		    "type": "Git",
 		    "git": {
-			"uri": "https://github.com/gabemontero/forcepull-extended-test-builder.git"
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
 		    }
 		},
 		"strategy": {
