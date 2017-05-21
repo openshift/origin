@@ -982,10 +982,96 @@ func LatestObservedTagGeneration(stream *ImageStream, tag string) int64 {
 }
 
 var (
-	reMinorSemantic    = regexp.MustCompile(`^[\d]+\.[\d]+$`)
-	reMinorReplacement = regexp.MustCompile(`[\d]+\.[\d]+`)
-	reMinorWithPatch   = regexp.MustCompile(`^[\d]+\.[\d]+-\w+$`)
+	reMinorSemantic  = regexp.MustCompile(`^[\d]+\.[\d]+$`)
+	reMinorWithPatch = regexp.MustCompile(`^([\d]+\.[\d]+)-\w+$`)
 )
+
+type tagPriority int
+
+const (
+	// the "latest" tag
+	tagPriorityLatest tagPriority = iota
+
+	// a semantic minor version ("5.1", "v5.1", "v5.1-rc1")
+	tagPriorityMinor
+
+	// a full semantic version ("5.1.3-other", "v5.1.3-other")
+	tagPriorityFull
+
+	// other tags
+	tagPriorityOther
+)
+
+type prioritizedTag struct {
+	tag      string
+	priority tagPriority
+	semver   semver.Version
+}
+
+func prioritizeTag(tag string) prioritizedTag {
+	if tag == DefaultImageTag {
+		return prioritizedTag{
+			tag:      tag,
+			priority: tagPriorityLatest,
+		}
+	}
+
+	short := strings.TrimLeft(tag, "v")
+
+	// 5.1.3
+	if v, err := semver.Parse(short); err == nil {
+		return prioritizedTag{
+			tag:      tag,
+			priority: tagPriorityFull,
+			semver:   v,
+		}
+	}
+
+	// 5.1
+	if reMinorSemantic.MatchString(short) {
+		if v, err := semver.Parse(short + ".0"); err == nil {
+			return prioritizedTag{
+				tag:      tag,
+				priority: tagPriorityMinor,
+				semver:   v,
+			}
+		}
+	}
+
+	// 5.1-rc1
+	if match := reMinorWithPatch.FindStringSubmatch(short); match != nil {
+		if v, err := semver.Parse(strings.Replace(short, match[1], match[1]+".0", 1)); err == nil {
+			return prioritizedTag{
+				tag:      tag,
+				priority: tagPriorityMinor,
+				semver:   v,
+			}
+		}
+	}
+
+	// other
+	return prioritizedTag{
+		tag:      tag,
+		priority: tagPriorityOther,
+	}
+}
+
+type prioritizedTags []prioritizedTag
+
+func (t prioritizedTags) Len() int      { return len(t) }
+func (t prioritizedTags) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+func (t prioritizedTags) Less(i, j int) bool {
+	if t[i].priority != t[j].priority {
+		return t[i].priority < t[j].priority
+	}
+
+	if t[i].priority == tagPriorityOther {
+		return t[i].tag < t[j].tag
+	}
+
+	cmp := t[i].semver.Compare(t[j].semver)
+	return cmp > 0 // the newer tag has a higher priority
+}
 
 // PrioritizeTags orders a set of image tags with a few conventions:
 //
@@ -996,57 +1082,14 @@ var (
 //
 // The method updates the tags in place.
 func PrioritizeTags(tags []string) {
-	remaining := tags
-	finalTags := make([]string, 0, len(tags))
+	ptags := make(prioritizedTags, len(tags))
 	for i, tag := range tags {
-		if tag == DefaultImageTag {
-			tags[0], tags[i] = tags[i], tags[0]
-			finalTags = append(finalTags, tags[0])
-			remaining = tags[1:]
-			break
-		}
+		ptags[i] = prioritizeTag(tag)
 	}
-
-	exact := make(map[string]string)
-	var minor, micro semver.Versions
-	other := make([]string, 0, len(remaining))
-	for _, tag := range remaining {
-		short := strings.TrimLeft(tag, "v")
-		v, err := semver.Parse(short)
-		switch {
-		case err == nil:
-			exact[v.String()] = tag
-			micro = append(micro, v)
-			continue
-		case reMinorSemantic.MatchString(short):
-			if v, err = semver.Parse(short + ".0"); err == nil {
-				exact[v.String()] = tag
-				minor = append(minor, v)
-				continue
-			}
-		case reMinorWithPatch.MatchString(short):
-			repl := reMinorReplacement.FindString(short)
-			if v, err = semver.Parse(strings.Replace(short, repl, repl+".0", 1)); err == nil {
-				exact[v.String()] = tag
-				minor = append(minor, v)
-				continue
-			}
-		}
-		other = append(other, tag)
+	sort.Sort(ptags)
+	for i, pt := range ptags {
+		tags[i] = pt.tag
 	}
-	sort.Sort(sort.Reverse(minor))
-	sort.Sort(sort.Reverse(micro))
-	sort.Sort(sort.StringSlice(other))
-	for _, v := range minor {
-		finalTags = append(finalTags, exact[v.String()])
-	}
-	for _, v := range micro {
-		finalTags = append(finalTags, exact[v.String()])
-	}
-	for _, v := range other {
-		finalTags = append(finalTags, v)
-	}
-	copy(tags, finalTags)
 }
 
 func LabelForStream(stream *ImageStream) string {
