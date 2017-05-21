@@ -12,7 +12,7 @@ import (
 
 // FakeClusterNetworks implements ClusterNetworkInterface
 type FakeClusterNetworks struct {
-	Fake *FakeSdn
+	Fake *FakeNetwork
 	ns   string
 }
 

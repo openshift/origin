@@ -12,7 +12,7 @@ import (
 
 // FakeDeploymentConfigs implements DeploymentConfigInterface
 type FakeDeploymentConfigs struct {
-	Fake *FakeDeployV1
+	Fake *FakeAppsV1
 	ns   string
 }
 

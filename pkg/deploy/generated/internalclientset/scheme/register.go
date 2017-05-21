@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	deploy "github.com/openshift/origin/pkg/deploy/api/install"
+	apps "github.com/openshift/origin/pkg/deploy/api/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +25,6 @@ func init() {
 
 // Install registers the API group and adds types to a scheme
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
-	deploy.Install(groupFactoryRegistry, registry, scheme)
+	apps.Install(groupFactoryRegistry, registry, scheme)
 
 }

@@ -52,7 +52,7 @@ import (
 	deploycontroller "github.com/openshift/origin/pkg/deploy/controller/deployment"
 	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
 	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
+	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/dns"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	imagetriggercontroller "github.com/openshift/origin/pkg/image/controller/trigger"
