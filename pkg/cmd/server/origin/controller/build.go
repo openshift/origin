@@ -29,6 +29,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers(),
 		nil, // api authorizer, only used by PSP
 		nil, // cloud config
+		nil, // quota registry
 	)
 	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
 	if err != nil {
