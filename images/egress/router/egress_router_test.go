@@ -209,6 +209,10 @@ func TestEgressRouterBad(t *testing.T) {
 		}
 		out, err := cmd.CombinedOutput()
 		out_lines := strings.Split(string(out), "\n")
+
+		if len(out_lines) < 2 {
+			continue
+		}
 		got := out_lines[len(out_lines)-2]
 		if err == nil {
 			t.Fatalf("test %d expected error %q but got output %q", n+1, test.err, got)
