@@ -10,9 +10,11 @@ STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 source "${OS_ROOT}/contrib/node/install-sdn.sh"
 
+PLATFORM=$(os::build::host_platform)
+
 if [[ "${OS_RELEASE:-}" == "n" ]]; then
 	# Use local binaries
-	imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
+	imagedir="${OS_OUTPUT_BINPATH}/${PLATFORM}"
 	# identical to build-cross.sh
 	os::build::os_version_vars
 	if [[ -z "${OS_RELEASE_LOCAL:-}" ]]; then
@@ -37,7 +39,7 @@ else
 	fi
 
 	# Extract the release archives to a staging area.
-	os::build::detect_local_release_tars "linux-64bit"
+	os::build::detect_local_release_tars $(os::build::host_platform_friendly)
 
 	echo "Building images from release tars for commit ${OS_RELEASE_COMMIT}:"
 	echo " primary: $(basename ${OS_PRIMARY_RELEASE_TAR})"
@@ -66,6 +68,7 @@ function ln_or_cp {
 function image-build() {
 	local tag=$1
 	local dir=$2
+        local dockerfile=${3:-}
 	local dest="${tag}"
 	local extra=
 	if [[ ! "${tag}" == *":"* ]]; then
@@ -79,9 +82,9 @@ function image-build() {
 	STARTTIME="$(date +%s)"
 
 	# build the image
-	if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
+	if ! os::build::image "${dir}" "${dest}" "${dockerfile}" "${extra}"; then
 		os::log::warning "Retrying build once"
-		if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
+		if ! os::build::image "${dir}" "${dest}" "${dockerfile}" "${extra}"; then
 			return 1
 		fi
 	fi
@@ -98,9 +101,17 @@ function image() {
 	local tag=$1
 	local dir=$2
 	local out
+
+	local DOCKERFILE="Dockerfile"
+	HOST_ARCH=$(os::build::host_arch)
+	if [[ "${HOST_ARCH}" != "amd64" ]]; then
+		DOCKERFILE+=".${HOST_ARCH}"
+		tag+="-${HOST_ARCH}"
+	fi
+
 	mkdir -p "${BASETMPDIR}"
 	out="$( mktemp "${BASETMPDIR}/imagelogs.XXXXX" )"
-	if ! image-build "${tag}" "${dir}" > "${out}" 2>&1; then
+	if ! image-build "${tag}" "${dir}" "${DOCKERFILE}" > "${out}" 2>&1; then
 		sed -e "s|^|$1: |" "${out}" 1>&2
 		os::log::error "Failed to build $1"
 		return 1
@@ -141,9 +152,12 @@ image "${tag_prefix}-recycler"              images/recycler
 image "${tag_prefix}-docker-builder"        images/builder/docker/docker-builder
 image "${tag_prefix}-sti-builder"           images/builder/docker/sti-builder
 image "${tag_prefix}-f5-router"             images/router/f5
-image "openshift/node"                      images/node
+image openshift/node                        images/node
+
 # images that depend on "openshift/node"
-image "openshift/openvswitch"               images/openvswitch
+if [[ ${PLATFORM} != "linux/ppc64le" ]];then
+	image "openshift/openvswitch"               images/openvswitch
+fi
 
 # extra images (not part of infrastructure)
 image "openshift/hello-openshift"           examples/hello-openshift

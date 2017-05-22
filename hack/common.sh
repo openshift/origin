@@ -20,6 +20,11 @@ function os::build::host_platform() {
 }
 readonly -f os::build::host_platform
 
+function os::build::host_arch() {
+  echo "$(go env GOHOSTARCH)"
+}
+readonly -f os::build::host_arch
+
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
   local platform=${1:-}
@@ -753,7 +758,7 @@ function os::build::image() {
         extra_tag="-t '${extra_tag}'"
       fi
       if [[ -n "${dockerfile}" ]]; then
-        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
+        eval "imagebuilder -f '${directory}/${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
         return $?
       fi
       eval "imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
@@ -766,7 +771,7 @@ function os::build::image() {
   fi
 
   if [[ -n "${dockerfile}" ]]; then
-    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    eval "docker build -f '${directory}/${dockerfile}' -t '${tag}' ${options} '${directory}'"
     if [[ -n "${extra_tag}" ]]; then
       docker tag "${tag}" "${extra_tag}"
     fi
