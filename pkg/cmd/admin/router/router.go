@@ -786,6 +786,13 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	for i := range objects {
 		switch t := objects[i].(type) {
 		case *kapi.Service:
+			if t.Annotations == nil {
+				t.Annotations = make(map[string]string)
+			}
+			t.Annotations["prometheus.io/scrape"] = "true"
+			t.Annotations["prometheus.io/port"] = "1935"
+			t.Annotations["prometheus.io/username"] = cfg.StatsUsername
+			t.Annotations["prometheus.io/password"] = cfg.StatsPassword
 			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {
