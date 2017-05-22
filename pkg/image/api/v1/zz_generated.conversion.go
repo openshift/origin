@@ -34,6 +34,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_api_ImageLayer_To_v1_ImageLayer,
 		Convert_v1_ImageList_To_api_ImageList,
 		Convert_api_ImageList_To_v1_ImageList,
+		Convert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy,
+		Convert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy,
 		Convert_v1_ImageSignature_To_api_ImageSignature,
 		Convert_api_ImageSignature_To_v1_ImageSignature,
 		Convert_v1_ImageStream_To_api_ImageStream,
@@ -299,6 +301,24 @@ func autoConvert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList
 
 func Convert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList, s conversion.Scope) error {
 	return autoConvert_api_ImageList_To_v1_ImageList(in, out, s)
+}
+
+func autoConvert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy(in *ImageLookupPolicy, out *api.ImageLookupPolicy, s conversion.Scope) error {
+	out.Local = in.Local
+	return nil
+}
+
+func Convert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy(in *ImageLookupPolicy, out *api.ImageLookupPolicy, s conversion.Scope) error {
+	return autoConvert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy(in, out, s)
+}
+
+func autoConvert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy(in *api.ImageLookupPolicy, out *ImageLookupPolicy, s conversion.Scope) error {
+	out.Local = in.Local
+	return nil
+}
+
+func Convert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy(in *api.ImageLookupPolicy, out *ImageLookupPolicy, s conversion.Scope) error {
+	return autoConvert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy(in, out, s)
 }
 
 func autoConvert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *api.ImageSignature, s conversion.Scope) error {
@@ -615,12 +635,18 @@ func autoConvert_api_ImageStreamMapping_To_v1_ImageStreamMapping(in *api.ImageSt
 }
 
 func autoConvert_v1_ImageStreamSpec_To_api_ImageStreamSpec(in *ImageStreamSpec, out *api.ImageStreamSpec, s conversion.Scope) error {
+	if err := Convert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy(&in.LookupPolicy, &out.LookupPolicy, s); err != nil {
+		return err
+	}
 	out.DockerImageRepository = in.DockerImageRepository
 	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/origin/pkg/image/api/v1.TagReference vs map[string]github.com/openshift/origin/pkg/image/api.TagReference)
 	return nil
 }
 
 func autoConvert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *api.ImageStreamSpec, out *ImageStreamSpec, s conversion.Scope) error {
+	if err := Convert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy(&in.LookupPolicy, &out.LookupPolicy, s); err != nil {
+		return err
+	}
 	out.DockerImageRepository = in.DockerImageRepository
 	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/api.TagReference vs []github.com/openshift/origin/pkg/image/api/v1.TagReference)
 	return nil
@@ -650,6 +676,9 @@ func autoConvert_v1_ImageStreamTag_To_api_ImageStreamTag(in *ImageStreamTag, out
 		out.Tag = nil
 	}
 	out.Generation = in.Generation
+	if err := Convert_v1_ImageLookupPolicy_To_api_ImageLookupPolicy(&in.LookupPolicy, &out.LookupPolicy, s); err != nil {
+		return err
+	}
 	out.Conditions = *(*[]api.TagEventCondition)(unsafe.Pointer(&in.Conditions))
 	if err := Convert_v1_Image_To_api_Image(&in.Image, &out.Image, s); err != nil {
 		return err
@@ -674,6 +703,9 @@ func autoConvert_api_ImageStreamTag_To_v1_ImageStreamTag(in *api.ImageStreamTag,
 	}
 	out.Generation = in.Generation
 	out.Conditions = *(*[]TagEventCondition)(unsafe.Pointer(&in.Conditions))
+	if err := Convert_api_ImageLookupPolicy_To_v1_ImageLookupPolicy(&in.LookupPolicy, &out.LookupPolicy, s); err != nil {
+		return err
+	}
 	if err := Convert_api_Image_To_v1_Image(&in.Image, &out.Image, s); err != nil {
 		return err
 	}

@@ -76325,6 +76325,18 @@
      }
     }
    },
+   "v1.ImageLookupPolicy": {
+    "description": "ImageLookupPolicy describes how an image stream can be used to override the image references used by pods, builds, and other resources in a namespace.",
+    "required": [
+     "local"
+    ],
+    "properties": {
+     "local": {
+      "description": "local will change the docker short image references (like \"mysql\" or \"php:latest\") on objects in this namespace to the image ID whenever they match this image stream, instead of reaching out to a remote registry. The name will be fully qualified to an image ID if found. The tag's referencePolicy is taken into account on the replaced value. Only works within the current namespace.",
+      "type": "boolean"
+     }
+    }
+   },
    "v1.ImageSignature": {
     "description": "ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims as long as the signature is trusted. Based on this information it is possible to restrict runnable images to those matching cluster-wide policy. Mandatory fields should be parsed by clients doing image verification. The others are parsed from signature's content by the server. They serve just an informative purpose.",
     "required": [
@@ -76610,11 +76622,15 @@
     "description": "ImageStreamSpec represents options for ImageStreams.",
     "properties": {
      "dockerImageRepository": {
-      "description": "DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+      "description": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
       "type": "string"
      },
+     "lookupPolicy": {
+      "description": "lookupPolicy controls how other resources reference images within this namespace.",
+      "$ref": "#/definitions/v1.ImageLookupPolicy"
+     },
      "tags": {
-      "description": "Tags map arbitrary string values to specific image locators",
+      "description": "tags map arbitrary string values to specific image locators",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.TagReference"
@@ -76646,6 +76662,7 @@
     "required": [
      "tag",
      "generation",
+     "lookupPolicy",
      "image"
     ],
     "properties": {
@@ -76654,31 +76671,35 @@
       "type": "string"
      },
      "conditions": {
-      "description": "Conditions is an array of conditions that apply to the image stream tag.",
+      "description": "conditions is an array of conditions that apply to the image stream tag.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.TagEventCondition"
       }
      },
      "generation": {
-      "description": "Generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or Conditions will be filled out indicating any error.",
+      "description": "generation is the current generation of the tagged image - if tag is provided and this value is not equal to the tag generation, a user has requested an import that has not completed, or conditions will be filled out indicating any error.",
       "type": "integer",
       "format": "int64"
      },
      "image": {
-      "description": "Image associated with the ImageStream and tag.",
+      "description": "image associated with the ImageStream and tag.",
       "$ref": "#/definitions/v1.Image"
      },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds",
       "type": "string"
      },
+     "lookupPolicy": {
+      "description": "lookupPolicy indicates whether this tag will handle image references in this namespace.",
+      "$ref": "#/definitions/v1.ImageLookupPolicy"
+     },
      "metadata": {
       "description": "Standard object's metadata.",
       "$ref": "#/definitions/v1.ObjectMeta"
      },
      "tag": {
-      "description": "Tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
+      "description": "tag is the spec tag associated with this image stream tag, and it may be null if only pushes have occurred to this image stream.",
       "$ref": "#/definitions/v1.TagReference"
      }
     }

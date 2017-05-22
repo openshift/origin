@@ -614,20 +614,25 @@ func ResolveLatestTaggedImage(stream *ImageStream, tag string) (string, bool) {
 	if len(tag) == 0 {
 		tag = DefaultImageTag
 	}
+	return ResolveTagReference(stream, tag, LatestTaggedImage(stream, tag))
+}
 
-	// retrieve event
-	latest := LatestTaggedImage(stream, tag)
+// ResolveTagReference applies the tag reference rules for a stream, tag, and tag event for
+// that tag. It returns true if the tag is
+func ResolveTagReference(stream *ImageStream, tag string, latest *TagEvent) (string, bool) {
 	if latest == nil {
 		return "", false
 	}
-	return ResolveTagReference(stream, tag, latest)
+	return ResolveReferenceForTagEvent(stream, tag, latest), true
 }
 
-func ResolveTagReference(stream *ImageStream, tag string, latest *TagEvent) (string, bool) {
+// ResolveReferenceForTagEvent applies the tag reference rules for a stream, tag, and tag event for
+// that tag.
+func ResolveReferenceForTagEvent(stream *ImageStream, tag string, latest *TagEvent) string {
 	// retrieve spec policy - if not found, we use the latest spec
 	ref, ok := stream.Spec.Tags[tag]
 	if !ok {
-		return latest.DockerImageReference, true
+		return latest.DockerImageReference
 	}
 
 	switch ref.ReferencePolicy.Type {
@@ -638,23 +643,23 @@ func ResolveTagReference(stream *ImageStream, tag string, latest *TagEvent) (str
 		if len(local) == 0 || len(latest.Image) == 0 {
 			// fallback to the originating reference if no local docker registry defined or we
 			// lack an image ID
-			return latest.DockerImageReference, true
+			return latest.DockerImageReference
 		}
 
 		ref, err := ParseDockerImageReference(local)
 		if err != nil {
 			// fallback to the originating reference if the reported local repository spec is not valid
-			return latest.DockerImageReference, true
+			return latest.DockerImageReference
 		}
 
 		// create a local pullthrough URL
 		ref.Tag = ""
 		ref.ID = latest.Image
-		return ref.Exact(), true
+		return ref.Exact()
 
 	// the default policy is to use the originating image
 	default:
-		return latest.DockerImageReference, true
+		return latest.DockerImageReference
 	}
 }
 

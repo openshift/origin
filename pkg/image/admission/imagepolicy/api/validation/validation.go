@@ -27,6 +27,12 @@ func Validate(config *api.ImagePolicyConfig) field.ErrorList {
 		}
 	}
 
+	for i, rule := range config.ResolutionRules {
+		if len(rule.TargetResource.Resource) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath(api.PluginName, "resolutionRules").Index(i).Child("targetResource", "resource"), "a target resource name or '*' must be provided"))
+		}
+	}
+
 	// if you don't attempt resolution, you'll never be able to pass any rule that logically requires it
 	if config.ResolveImages == api.DoNotAttempt {
 		for i, rule := range config.ExecutionRules {

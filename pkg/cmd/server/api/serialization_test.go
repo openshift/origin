@@ -318,6 +318,15 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 		},
 		func(obj *imagepolicyapi.ImagePolicyConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)
+			if obj.ResolutionRules == nil {
+				obj.ResolutionRules = []imagepolicyapi.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Resource: "pods"}, LocalNames: true},
+					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
+					{TargetResource: metav1.GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
+					{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
+					{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
+				}
+			}
 			for i := range obj.ExecutionRules {
 				if len(obj.ExecutionRules[i].OnResources) == 0 {
 					obj.ExecutionRules[i].OnResources = []schema.GroupResource{{Resource: "pods"}}

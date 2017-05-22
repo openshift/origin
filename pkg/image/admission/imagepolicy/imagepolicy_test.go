@@ -16,6 +16,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
@@ -437,12 +438,14 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 	testCases := []struct {
 		client *testclient.Fake
+		policy api.ImageResolutionType
 		attrs  admission.Attributes
 		admit  bool
 		expect runtime.Object
 	}{
 		// fails resolution
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(),
 			attrs: admission.NewAttributesRecord(
 				&kapi.Pod{
@@ -461,6 +464,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves images in the integrated registry without altering their ref (avoids looking up the tag)
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				image1,
 			),
@@ -486,6 +490,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves images in the integrated registry without altering their ref (avoids looking up the tag)
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				image1,
 			),
@@ -511,6 +516,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				image1,
 			),
@@ -544,6 +550,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves builds with image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				&imageapi.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -580,6 +587,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				&imageapi.ImageStreamTag{
 					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
@@ -616,6 +624,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 		// resolves builds with image stream images
 		{
+			policy: api.RequiredRewrite,
 			client: testclient.NewSimpleFake(
 				&imageapi.ImageStreamImage{
 					ObjectMeta: metav1.ObjectMeta{Name: "test@sha256:0000000000000000000000000000000000000000000000000000000000000001", Namespace: "default"},
@@ -650,11 +659,238 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
+		// resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
+		{
+			policy: api.RequiredRewrite,
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "DockerImage", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
+		{
+			policy: api.RequiredRewrite,
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// if the tag is not found, but the stream is and resolves, resolve to the tag
+		{
+			policy: api.AttemptRewrite,
+			client: (func() *testclient.Fake {
+				fake := &testclient.Fake{}
+				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
+				})
+				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &imageapi.ImageStream{
+						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+						Spec: imageapi.ImageStreamSpec{
+							LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+						},
+						Status: imageapi.ImageStreamStatus{
+							DockerImageRepository: "integrated.registry:5000/default/test",
+						},
+					}, nil
+				})
+				return fake
+			})(),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "integrated.registry:5000/default/test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// if the tag is not found, but the stream is and doesn't resolve, use the original value
+		{
+			policy: api.AttemptRewrite,
+			client: (func() *testclient.Fake {
+				fake := &testclient.Fake{}
+				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
+				})
+				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &imageapi.ImageStream{
+						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+						Spec: imageapi.ImageStreamSpec{
+							LookupPolicy: imageapi.ImageLookupPolicy{Local: false},
+						},
+						Status: imageapi.ImageStreamStatus{
+							DockerImageRepository: "integrated.registry:5000/default/test",
+						},
+					}, nil
+				})
+				return fake
+			})(),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// if the tag is not found, the stream resolves, but the registry is not installed, don't match
+		{
+			policy: api.AttemptRewrite,
+			client: (func() *testclient.Fake {
+				fake := &testclient.Fake{}
+				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
+				})
+				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &imageapi.ImageStream{
+						ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
+						Spec: imageapi.ImageStreamSpec{
+							LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+						},
+						Status: imageapi.ImageStreamStatus{
+							DockerImageRepository: "",
+						},
+					}, nil
+				})
+				return fake
+			})(),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for i, test := range testCases {
 		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
 		p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
-			ResolveImages: api.RequiredRewrite,
+			ResolveImages: test.policy,
+			ResolutionRules: []api.ImageResolutionPolicyRule{
+				{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}},
+			},
 			ExecutionRules: []api.ImageExecutionPolicyRule{
 				{ImageCondition: api.ImageCondition{OnResources: onResources}},
 			},
@@ -685,6 +921,99 @@ func TestAdmissionResolveImages(t *testing.T) {
 
 		if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
 			t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
+		}
+	}
+}
+
+func TestResolutionConfig(t *testing.T) {
+	testCases := []struct {
+		config   *api.ImagePolicyConfig
+		resource schema.GroupResource
+		attrs    rules.ImagePolicyAttributes
+
+		resolve bool
+		fail    bool
+		rewrite bool
+	}{
+		{
+			config:  &api.ImagePolicyConfig{ResolveImages: api.AttemptRewrite},
+			resolve: true,
+			rewrite: true,
+		},
+		// requires local rewrite for local names
+		{
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				},
+			},
+			resolve: true,
+			rewrite: false,
+		},
+		// wildcard resource matches
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
+				},
+			},
+			resolve: true,
+			rewrite: true,
+		},
+		// group mismatch fails
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "*"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "other"},
+			resolve:  false,
+			rewrite:  false,
+		},
+		// resource mismatch fails
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "test", Resource: "other"},
+			resolve:  false,
+			rewrite:  false,
+		},
+		// resource match succeeds
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "test", Resource: "self"},
+			resolve:  true,
+			rewrite:  true,
+		},
+	}
+
+	for i, test := range testCases {
+		c := resolutionConfig{test.config}
+		if c.RequestsResolution(test.resource) != test.resolve {
+			t.Errorf("%d: request resolution != %t", i, test.resolve)
+		}
+		if c.FailOnResolutionFailure(test.resource) != test.fail {
+			t.Errorf("%d: resolution failure != %t", i, test.fail)
+		}
+		if c.RewriteImagePullSpec(&test.attrs, test.resource) != test.rewrite {
+			t.Errorf("%d: rewrite != %t", i, test.rewrite)
 		}
 	}
 }

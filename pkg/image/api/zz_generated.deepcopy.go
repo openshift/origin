@@ -37,6 +37,7 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageImportStatus, InType: reflect.TypeOf(&ImageImportStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageLayer, InType: reflect.TypeOf(&ImageLayer{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageList, InType: reflect.TypeOf(&ImageList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageLookupPolicy, InType: reflect.TypeOf(&ImageLookupPolicy{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageSignature, InType: reflect.TypeOf(&ImageSignature{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageStream, InType: reflect.TypeOf(&ImageStream{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_api_ImageStreamImage, InType: reflect.TypeOf(&ImageStreamImage{})},
@@ -403,6 +404,15 @@ func DeepCopy_api_ImageList(in interface{}, out interface{}, c *conversion.Clone
 				}
 			}
 		}
+		return nil
+	}
+}
+
+func DeepCopy_api_ImageLookupPolicy(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ImageLookupPolicy)
+		out := out.(*ImageLookupPolicy)
+		*out = *in
 		return nil
 	}
 }

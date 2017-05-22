@@ -131,10 +131,7 @@ func TestDescribers(t *testing.T) {
 	}{
 		{&BuildDescriber{c, fakeKube}, "bar"},
 		{&BuildConfigDescriber{c, fakeKube, ""}, "bar"},
-		{&ImageDescriber{c}, "bar"},
 		{&ImageStreamDescriber{c}, "bar"},
-		{&ImageStreamTagDescriber{c}, "bar:latest"},
-		{&ImageStreamImageDescriber{c}, "bar@sha256:other"},
 		{&RouteDescriber{c, fakeKube}, "bar"},
 		{&ProjectDescriber{c, fakeKube}, "bar"},
 		{&PolicyDescriber{c}, "bar"},
@@ -148,6 +145,25 @@ func TestDescribers(t *testing.T) {
 			t.Errorf("unexpected error for %v: %v", test.d, err)
 		}
 		if !strings.Contains(out, "Name:") || !strings.Contains(out, "Labels:") {
+			t.Errorf("unexpected out: %s", out)
+		}
+	}
+
+	// omits labels if they are not set to avoid confusing end users
+	testCases = []struct {
+		d    kprinters.Describer
+		name string
+	}{
+		{&ImageDescriber{c}, "bar"},
+		{&ImageStreamTagDescriber{c}, "bar:latest"},
+		{&ImageStreamImageDescriber{c}, "bar@sha256:other"},
+	}
+	for _, test := range testCases {
+		out, err := test.d.Describe("foo", test.name, kprinters.DescriberSettings{})
+		if err != nil {
+			t.Errorf("unexpected error for %v: %v", test.d, err)
+		}
+		if !strings.Contains(out, "Name:") || strings.Contains(out, "Labels:") {
 			t.Errorf("unexpected out: %s", out)
 		}
 	}

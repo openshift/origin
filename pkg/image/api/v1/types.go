@@ -160,10 +160,23 @@ type ImageStream struct {
 
 // ImageStreamSpec represents options for ImageStreams.
 type ImageStreamSpec struct {
-	// DockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server
+	// lookupPolicy controls how other resources reference images within this namespace.
+	LookupPolicy ImageLookupPolicy `json:"lookupPolicy,omitempty" protobuf:"bytes,3,opt,name=lookupPolicy"`
+	// dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server
 	DockerImageRepository string `json:"dockerImageRepository,omitempty" protobuf:"bytes,1,opt,name=dockerImageRepository"`
-	// Tags map arbitrary string values to specific image locators
+	// tags map arbitrary string values to specific image locators
 	Tags []TagReference `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
+}
+
+// ImageLookupPolicy describes how an image stream can be used to override the image references
+// used by pods, builds, and other resources in a namespace.
+type ImageLookupPolicy struct {
+	// local will change the docker short image references (like "mysql" or
+	// "php:latest") on objects in this namespace to the image ID whenever they match
+	// this image stream, instead of reaching out to a remote registry. The name will
+	// be fully qualified to an image ID if found. The tag's referencePolicy is taken
+	// into account on the replaced value. Only works within the current namespace.
+	Local bool `json:"local" protobuf:"varint,3,opt,name=local"`
 }
 
 // TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.
@@ -297,20 +310,24 @@ type ImageStreamTag struct {
 	// Standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Tag is the spec tag associated with this image stream tag, and it may be null
+	// tag is the spec tag associated with this image stream tag, and it may be null
 	// if only pushes have occurred to this image stream.
 	Tag *TagReference `json:"tag" protobuf:"bytes,2,opt,name=tag"`
 
-	// Generation is the current generation of the tagged image - if tag is provided
+	// generation is the current generation of the tagged image - if tag is provided
 	// and this value is not equal to the tag generation, a user has requested an
-	// import that has not completed, or Conditions will be filled out indicating any
+	// import that has not completed, or conditions will be filled out indicating any
 	// error.
 	Generation int64 `json:"generation" protobuf:"varint,3,opt,name=generation"`
 
-	// Conditions is an array of conditions that apply to the image stream tag.
+	// lookupPolicy indicates whether this tag will handle image references in this
+	// namespace.
+	LookupPolicy ImageLookupPolicy `json:"lookupPolicy" protobuf:"varint,6,opt,name=lookupPolicy"`
+
+	// conditions is an array of conditions that apply to the image stream tag.
 	Conditions []TagEventCondition `json:"conditions,omitempty" protobuf:"bytes,4,rep,name=conditions"`
 
-	// Image associated with the ImageStream and tag.
+	// image associated with the ImageStream and tag.
 	Image Image `json:"image" protobuf:"bytes,5,opt,name=image"`
 }
 

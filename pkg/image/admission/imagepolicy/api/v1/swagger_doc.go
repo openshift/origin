@@ -43,13 +43,24 @@ func (ImageExecutionPolicyRule) SwaggerDoc() map[string]string {
 }
 
 var map_ImagePolicyConfig = map[string]string{
-	"":               "ImagePolicyConfig is the configuration for control of images running on the platform.",
-	"resolveImages":  "ResolveImages indicates what kind of image resolution should be done.  If a rewriting policy is chosen, then the image pull specs will be updated.",
-	"executionRules": "ExecutionRules determine whether the use of an image is allowed in an object with a pod spec. By default, these rules only apply to pods, but may be extended to other resource types. If all execution rules are negations, the default behavior is allow all. If any execution rule is an allow, the default behavior is to reject all.",
+	"":                "ImagePolicyConfig is the configuration for control of images running on the platform.",
+	"resolveImages":   "ResolveImages indicates the default image resolution behavior.  If a rewriting policy is chosen, then the image pull specs will be updated.",
+	"resolutionRules": "ResolutionRules allows more specific image resolution rules to be applied per resource. If empty, it defaults to allowing local image stream lookups - \"mysql\" will map to the image stream tag \"mysql:latest\" in the current namespace if the stream supports it.",
+	"executionRules":  "ExecutionRules determine whether the use of an image is allowed in an object with a pod spec. By default, these rules only apply to pods, but may be extended to other resource types. If all execution rules are negations, the default behavior is allow all. If any execution rule is an allow, the default behavior is to reject all.",
 }
 
 func (ImagePolicyConfig) SwaggerDoc() map[string]string {
 	return map_ImagePolicyConfig
+}
+
+var map_ImageResolutionPolicyRule = map[string]string{
+	"":               "ImageResolutionPolicyRule describes resolution rules based on resource.",
+	"targetResource": "TargetResource is the identified group and resource. If Resource is *, this rule will apply to all resources in that group.",
+	"localNames":     "LocalNames will allow single segment names to be interpreted as namespace local image stream tags, but only if the target image stream tag has the \"resolveLocalNames\" field set.",
+}
+
+func (ImageResolutionPolicyRule) SwaggerDoc() map[string]string {
+	return map_ImageResolutionPolicyRule
 }
 
 var map_ValueCondition = map[string]string{

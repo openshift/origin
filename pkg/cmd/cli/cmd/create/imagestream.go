@@ -24,7 +24,13 @@ var (
 		Create a new image stream
 
 		Image streams allow you to track, tag, and import images from other registries. They also define an
-		access controlled destination that you can push images to.`)
+		access controlled destination that you can push images to. An image stream can reference images
+		from many different registries and control how those images are referenced by pods, deployments,
+		and builds.
+
+		If --resolve-local is passed, the image stream will be used as the source when pods reference
+		it by name. For example, if stream 'mysql' resolves local names, a pod that points to
+		'mysql:latest' will use the image the image stream points to under the "latest" tag.`)
 
 	imageStreamExample = templates.Examples(`
 		# Create a new image stream
@@ -45,7 +51,13 @@ type CreateImageStreamOptions struct {
 
 // NewCmdCreateImageStream is a macro command to create a new image stream
 func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	o := &CreateImageStreamOptions{Out: out}
+	o := &CreateImageStreamOptions{
+		Out: out,
+		IS: &imageapi.ImageStream{
+			ObjectMeta: metav1.ObjectMeta{},
+			Spec:       imageapi.ImageStreamSpec{},
+		},
+	}
 
 	cmd := &cobra.Command{
 		Use:     name + " NAME",
@@ -60,17 +72,13 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 		Aliases: []string{"is"},
 	}
 
+	cmd.Flags().BoolVar(&o.IS.Spec.LookupPolicy.Local, "lookup-local", false, "If true, the image stream will be the source for any top-level image reference in this project.")
 	cmdutil.AddPrinterFlags(cmd)
 	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
 func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	o.IS = &imageapi.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{},
-		Spec:       imageapi.ImageStreamSpec{},
-	}
-
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {

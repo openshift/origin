@@ -16,6 +16,7 @@ type ImagePolicyAttributes struct {
 	Image              *imageapi.Image
 	ExcludedRules      sets.String
 	IntegratedRegistry bool
+	LocalRewrite       bool
 }
 
 type RegistryMatcher interface {
