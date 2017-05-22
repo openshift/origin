@@ -156,7 +156,7 @@ func LoadEnvironmentFile(filename string, stdin io.Reader) (Environment, error) 
 	// godotenv successfuly returns empty map when given path to a directory,
 	// remove this once https://github.com/joho/godotenv/pull/22 is merged
 	if info, err := os.Stat(filename); err == nil && info.IsDir() {
-		return nil, fmt.Errorf("Cannot read varaiables from %q: is a directory", filename)
+		return nil, fmt.Errorf("Cannot read variables from %q: is a directory", filename)
 	} else if err != nil {
 		return nil, fmt.Errorf("Cannot stat %q: %s", filename, err)
 	}
