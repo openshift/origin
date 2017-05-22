@@ -1,0 +1,12 @@
+apiVersion: authorization.openshift.io/v1
+kind: RoleBinding
+metadata:
+  name: wardle-auth-reader
+  namespace: kube-system
+roleRef:
+  name: extension-apiserver-authentication-reader
+  namespace: kube-system
+subjects:
+- kind: ServiceAccount
+  name: apiserver
+  namespace: wardle
