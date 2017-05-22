@@ -52,6 +52,7 @@ REQUIRED_BINS=(
   "k8s.io/kubernetes/test/e2e/generated"
   "github.com/onsi/ginkgo/ginkgo"
   "github.com/jteeuwen/go-bindata/go-bindata"
+  "github.com/kubernetes-incubator/cluster-capacity/cmd/hypercc"
   "./..."
 )
 
