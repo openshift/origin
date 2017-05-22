@@ -23,12 +23,18 @@ import (
 )
 
 const (
-	InfraBuildControllerServiceAccountName             = "build-controller"
-	InfraImageTriggerControllerServiceAccountName      = "imagetrigger-controller"
-	ImageTriggerControllerRoleName                     = "system:imagetrigger-controller"
-	InfraDeploymentConfigControllerServiceAccountName  = "deploymentconfig-controller"
-	InfraDeploymentTriggerControllerServiceAccountName = "deployment-trigger-controller"
-	InfraDeployerControllerServiceAccountName          = "deployer-controller"
+	InfraBuildControllerServiceAccountName                     = "build-controller"
+	InfraImageTriggerControllerServiceAccountName              = "imagetrigger-controller"
+	ImageTriggerControllerRoleName                             = "system:imagetrigger-controller"
+	InfraDeploymentConfigControllerServiceAccountName          = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName         = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName                  = "deployer-controller"
+	InfraOriginNamespaceServiceAccountName                     = "origin-namespace-controller"
+	InfraServiceAccountControllerServiceAccountName            = "serviceaccount-controller"
+	InfraServiceAccountPullSecretsControllerServiceAccountName = "serviceaccount-pull-secrets-controller"
+	InfraServiceAccountTokensControllerServiceAccountName      = "serviceaccount-tokens-controller"
+	InfraBuildPodControllerServiceAccountName                  = "build-pod-controller"
+	InfraBuildConfigChangeControllerServiceAccountName         = "build-config-change-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
