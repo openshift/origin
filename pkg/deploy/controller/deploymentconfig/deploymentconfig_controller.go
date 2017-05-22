@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -428,7 +429,10 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 			continue
 		}
 
-		err := c.rn.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
+		policy := metav1.DeletePropagationBackground
+		err := c.rn.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, &metav1.DeleteOptions{
+			PropagationPolicy: &policy,
+		})
 		if err != nil && !kapierrors.IsNotFound(err) {
 			deletionErrors = append(deletionErrors, err)
 		}

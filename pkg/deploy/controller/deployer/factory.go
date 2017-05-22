@@ -30,8 +30,8 @@ const (
 	storeSyncedPollPeriod = 100 * time.Millisecond
 )
 
-// NewDeploymentController creates a new DeploymentController.
-func NewDeploymentController(
+// NewDeployerController creates a new DeploymentController.
+func NewDeployerController(
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	podInformer kcoreinformers.PodInformer,
 	internalKubeClientset kclientset.Interface,

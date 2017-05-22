@@ -42,7 +42,7 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	rcInformer := informerFactory.Core().InternalVersion().ReplicationControllers()
 	podInformer := informerFactory.Core().InternalVersion().Pods()
 
-	c := NewDeploymentController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
+	c := NewDeployerController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
 	c.podListerSynced = alwaysReady
 	c.rcListerSynced = alwaysReady
 
@@ -121,6 +121,9 @@ func TestHandle_createPodOk(t *testing.T) {
 		pod := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod)
 		createdPod = pod
 		return true, pod, nil
+	})
+	client.AddReactor("patch", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
@@ -436,8 +439,18 @@ func TestHandle_noop(t *testing.T) {
 			continue
 		}
 
-		if len(client.Actions()) > 0 {
-			t.Errorf("%s: unexpected actions: %v", test.name, client.Actions())
+		hasPatch := func(actions []clientgotesting.Action) bool {
+			for _, a := range actions {
+				if a.GetVerb() == "patch" {
+					return true
+				}
+			}
+			return false
+		}
+
+		// Expect only patching for ownerRefs
+		if len(client.Actions()) != 1 && hasPatch(client.Actions()) {
+			t.Errorf("%s: unexpected %d actions: %#+v", test.name, len(client.Actions()), client.Actions())
 		}
 	}
 }

@@ -959,6 +959,11 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	if err != nil {
 		panic(err)
 	}
+	openshiftControllerRoles, err := GetOpenshiftControllerBootstrapClusterRoles()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
 
 	// Eventually openshift controllers and kube controllers have different prefixes
 	// so we will only need to check conflicts on the "normal" cluster roles
@@ -990,6 +995,7 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	finalClusterRoles := []authorizationapi.ClusterRole{}
 	finalClusterRoles = append(finalClusterRoles, openshiftClusterRoles...)
 	finalClusterRoles = append(finalClusterRoles, openshiftSAClusterRoles...)
+	finalClusterRoles = append(finalClusterRoles, openshiftControllerRoles...)
 	finalClusterRoles = append(finalClusterRoles, kubeSAClusterRoles...)
 	for i := range kubeClusterRoles {
 		if !clusterRoleConflicts.Has(kubeClusterRoles[i].Name) {
@@ -1189,7 +1195,12 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 	if err != nil {
 		panic(err)
 	}
-	kubeSAClusterRoleBindings, err := GetKubeControllerBootstrapClusterRoleBindings()
+	kubeControllerClusterRoleBindings, err := GetKubeControllerBootstrapClusterRoleBindings()
+	// coder error
+	if err != nil {
+		panic(err)
+	}
+	openshiftControllerClusterRoleBindings, err := GetOpenshiftControllerBootstrapClusterRoleBindings()
 	// coder error
 	if err != nil {
 		panic(err)
@@ -1220,7 +1231,8 @@ func GetBootstrapClusterRoleBindings() []authorizationapi.ClusterRoleBinding {
 
 	finalClusterRoleBindings := []authorizationapi.ClusterRoleBinding{}
 	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftClusterRoleBindings...)
-	finalClusterRoleBindings = append(finalClusterRoleBindings, kubeSAClusterRoleBindings...)
+	finalClusterRoleBindings = append(finalClusterRoleBindings, kubeControllerClusterRoleBindings...)
+	finalClusterRoleBindings = append(finalClusterRoleBindings, openshiftControllerClusterRoleBindings...)
 	for i := range kubeClusterRoleBindings {
 		if !clusterRoleBindingConflicts.Has(kubeClusterRoleBindings[i].Name) {
 			finalClusterRoleBindings = append(finalClusterRoleBindings, kubeClusterRoleBindings[i])
@@ -1263,6 +1275,10 @@ func GetKubeControllerBootstrapClusterRoleBindings() ([]authorizationapi.Cluster
 	return convertClusterRoleBindings(bootstrappolicy.ControllerRoleBindings())
 }
 
+func GetOpenshiftControllerBootstrapClusterRoleBindings() ([]authorizationapi.ClusterRoleBinding, error) {
+	return convertClusterRoleBindings(ControllerRoleBindings())
+}
+
 func convertClusterRoleBindings(in []rbac.ClusterRoleBinding) ([]authorizationapi.ClusterRoleBinding, error) {
 	out := []authorizationapi.ClusterRoleBinding{}
 	errs := []error{}
@@ -1285,6 +1301,10 @@ func GetKubeBootstrapClusterRoles() ([]authorizationapi.ClusterRole, error) {
 
 func GetKubeControllerBootstrapClusterRoles() ([]authorizationapi.ClusterRole, error) {
 	return convertClusterRoles(bootstrappolicy.ControllerRoles())
+}
+
+func GetOpenshiftControllerBootstrapClusterRoles() ([]authorizationapi.ClusterRole, error) {
+	return convertClusterRoles(ControllerRoles())
 }
 
 func convertClusterRoles(in []rbac.ClusterRole) ([]authorizationapi.ClusterRole, error) {

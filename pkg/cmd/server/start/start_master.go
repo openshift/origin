@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
@@ -652,7 +653,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		"statefuleset",
 		"cronjob",
 		"certificatesigningrequests",
-
 		// not used in openshift.  Yet?
 		// "ttl",
 		// "bootstrapsigner",
@@ -699,19 +699,65 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 	glog.Infof("Started Kubernetes Controllers")
 
-	// no special order
+	openshiftControllerContext := origincontrollers.ControllerContext{
+		KubeControllerContext: controllerContext,
+		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
+			ControllerClientBuilder: controller.SAControllerClientBuilder{
+				ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
+				CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+				AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+			},
+		},
+		DeprecatedOpenshiftInformers: oc.Informers,
+		Stop: controllerContext.Stop,
+	}
+	openshiftControllerInitializers, err := oc.NewOpenshiftControllerInitializers()
+
+	allowedOpenshiftControllers := sets.NewString(
+		"deployer",
+		"deploymentconfig",
+		"deploymenttrigger",
+	)
 	if configapi.IsBuildEnabled(&oc.Options) {
-		if err := oc.RunBuildController(oc.Informers); err != nil {
-			glog.Fatalf("Could not start build controller: %v", err)
+		allowedOpenshiftControllers.Insert("build")
+	}
+
+	if err != nil {
+		glog.Errorf("Could not start build controller: %v", err)
+		return err
+	}
+
+	for controllerName, initFn := range openshiftControllerInitializers {
+		// TODO remove this.  Only call one to start to prove the principle
+		if !allowedOpenshiftControllers.Has(controllerName) {
+			glog.Warningf("%q is skipped", controllerName)
+			continue
+		}
+		if !openshiftControllerContext.IsControllerEnabled(controllerName) {
+			glog.Warningf("%q is disabled", controllerName)
+			continue
+		}
+
+		glog.V(1).Infof("Starting %q", controllerName)
+		started, err := initFn(openshiftControllerContext)
+		if err != nil {
+			glog.Fatalf("Error starting %q", controllerName)
 			return err
 		}
+		if !started {
+			glog.Warningf("Skipping %q", controllerName)
+			continue
+		}
+		glog.Infof("Started %q", controllerName)
+	}
+
+	// no special order
+	if configapi.IsBuildEnabled(&oc.Options) {
 		oc.RunBuildPodController()
 		oc.RunBuildConfigChangeController()
 	}
 
-	oc.RunDeploymentController()
-	oc.RunDeploymentConfigController()
-	oc.RunDeploymentTriggerController()
 	oc.RunImageTriggerController()
 	oc.RunImageImportController()
 	oc.RunOriginNamespaceController()

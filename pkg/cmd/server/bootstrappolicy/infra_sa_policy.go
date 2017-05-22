@@ -17,20 +17,18 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+
+	// we need the conversions registered for our init block
+	_ "github.com/openshift/origin/pkg/authorization/api/install"
 )
 
 const (
-	InfraBuildControllerServiceAccountName = "build-controller"
-	BuildControllerRoleName                = "system:build-controller"
-
-	InfraImageTriggerControllerServiceAccountName = "imagetrigger-controller"
-	ImageTriggerControllerRoleName                = "system:imagetrigger-controller"
-
-	InfraDeploymentConfigControllerServiceAccountName = "deploymentconfig-controller"
-	DeploymentConfigControllerRoleName                = "system:deploymentconfig-controller"
-
-	InfraDeploymentControllerServiceAccountName = "deployment-controller"
-	DeploymentControllerRoleName                = "system:deployment-controller"
+	InfraBuildControllerServiceAccountName             = "build-controller"
+	InfraImageTriggerControllerServiceAccountName      = "imagetrigger-controller"
+	ImageTriggerControllerRoleName                     = "system:imagetrigger-controller"
+	InfraDeploymentConfigControllerServiceAccountName  = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName          = "deployer-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
@@ -127,57 +125,10 @@ func (r *InfraServiceAccounts) AllRoles() []authorizationapi.ClusterRole {
 }
 
 func init() {
+	var err error
+
 	InfraSAs.serviceAccounts = sets.String{}
 	InfraSAs.saToRole = map[string]authorizationapi.ClusterRole{}
-
-	var err error
-	err = InfraSAs.addServiceAccount(
-		InfraBuildControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: BuildControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// BuildControllerFactory.buildLW
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "watch"),
-					Resources: sets.NewString("builds"),
-				},
-				// BuildController.BuildUpdater (OSClientBuildClient)
-				{
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("builds"),
-				},
-				// Create permission on virtual build type resources allows builds of those types to be updated
-				{
-					Verbs:     sets.NewString("create"),
-					Resources: sets.NewString("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline"),
-					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
-				},
-				// BuildController.ImageStreamClient (ControllerClient)
-				{
-					Verbs:     sets.NewString("get"),
-					Resources: sets.NewString("imagestreams"),
-				},
-				// BuildController.PodManager (ControllerClient)
-				// BuildDeleteController.PodManager (ControllerClient)
-				// BuildControllerFactory.buildDeleteLW
-				{
-					Verbs:     sets.NewString("get", "list", "create", "delete"),
-					Resources: sets.NewString("pods"),
-				},
-				// BuildController.Recorder (EventBroadcaster)
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
 
 	err = InfraSAs.addServiceAccount(
 		InfraImageTriggerControllerServiceAccountName,
@@ -222,81 +173,6 @@ func init() {
 					Verbs:     sets.NewString("create"),
 					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
 					Resources: sets.NewString("buildconfigs/instantiate"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = InfraSAs.addServiceAccount(
-		InfraDeploymentConfigControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: DeploymentConfigControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// DeploymentControllerFactory.deploymentLW
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// DeploymentControllerFactory.deploymentClient
-				{
-					Verbs:     sets.NewString("get", "update"),
-					Resources: sets.NewString("replicationcontrollers"),
-				},
-				// DeploymentController.podClient
-				{
-					Verbs:     sets.NewString("get", "list", "create", "watch", "delete", "update"),
-					Resources: sets.NewString("pods"),
-				},
-				// DeploymentController.recorder (EventBroadcaster)
-				{
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = InfraSAs.addServiceAccount(
-		InfraDeploymentControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: DeploymentControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				{
-					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("get", "list", "watch", "update"),
-					Resources: sets.NewString("deployments"),
-				},
-				{
-					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("update"),
-					Resources: sets.NewString("deployments/status"),
-				},
-				{
-					APIGroups: []string{extensions.GroupName},
-					Verbs:     sets.NewString("list", "watch", "get", "create", "patch", "update", "delete"),
-					Resources: sets.NewString("replicasets"),
-				},
-				{
-					APIGroups: []string{""},
-					// TODO: remove "update" once
-					// https://github.com/kubernetes/kubernetes/issues/36897 is resolved.
-					Verbs:     sets.NewString("get", "list", "watch", "update"),
-					Resources: sets.NewString("pods"),
-				},
-				{
-					APIGroups: []string{""},
-					Verbs:     sets.NewString("create", "update", "patch"),
-					Resources: sets.NewString("events"),
 				},
 			},
 		},

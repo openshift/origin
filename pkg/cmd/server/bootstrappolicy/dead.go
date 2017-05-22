@@ -46,4 +46,10 @@ func init() {
 	addDeadClusterRole("system:gc-controller")
 	addDeadClusterRole("system:certificate-signing-controller")
 	addDeadClusterRole("system:statefulset-controller")
+
+	// these were moved under system:openshift:controller:*
+	addDeadClusterRole("system:build-controller")
+	addDeadClusterRole("system:deploymentconfig-controller")
+	addDeadClusterRole("system:deployment-controller")
+
 }

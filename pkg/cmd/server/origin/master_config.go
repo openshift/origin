@@ -49,6 +49,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
@@ -75,6 +76,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -960,6 +962,22 @@ func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
+func (c *MasterConfig) GetOpenShiftClientEnvVars() ([]kapi.EnvVar, error) {
+	_, kclientConfig, err := configapi.GetInternalKubeClient(
+		c.Options.MasterClients.OpenShiftLoopbackKubeConfig,
+		c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return clientcmd.EnvVars(
+		kclientConfig.Host,
+		kclientConfig.CAData,
+		kclientConfig.Insecure,
+		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
+	), nil
+}
+
 // BuildControllerClients returns the build controller client objects
 func (c *MasterConfig) BuildControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
 	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraBuildControllerServiceAccountName)
@@ -989,18 +1007,13 @@ func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentConfigInstantiateClients returns the clients used by the instantiate endpoint.
 func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, kclientsetinternal.Interface) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
-// DeploymentControllerClients returns the deployment controller client objects
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return osClient, internalKubeClientset, externalKubeClientset
+// DeploymentConfigClients returns deploymentConfig and deployment client objects
+func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetinternal.Interface) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
 // ImageTriggerControllerClients returns the trigger controller client objects
@@ -1010,21 +1023,6 @@ func (c *MasterConfig) ImageTriggerControllerClients() (*osclient.Client, kclien
 		glog.Fatal(err)
 	}
 	return osClient, internalKubeClientset, externalKubeClientset
-}
-
-// DeploymentConfigClients returns deploymentConfig and deployment client objects
-func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DeploymentConfigControllerClients returns the deploymentConfig controller client objects
-func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object
-func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
 }
 
 // DeploymentLogClient returns the deployment log client object

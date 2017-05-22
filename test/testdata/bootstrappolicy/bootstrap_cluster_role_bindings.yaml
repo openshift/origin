@@ -639,6 +639,62 @@ items:
   userNames:
   - system:serviceaccount:kube-system:certificate-controller
 - apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:build-controller
+  roleRef:
+    name: system:openshift:controller:build-controller
+  subjects:
+  - kind: ServiceAccount
+    name: build-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:build-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:deployer-controller
+  roleRef:
+    name: system:openshift:controller:deployer-controller
+  subjects:
+  - kind: ServiceAccount
+    name: deployer-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:deployer-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:deploymentconfig-controller
+  roleRef:
+    name: system:openshift:controller:deploymentconfig-controller
+  subjects:
+  - kind: ServiceAccount
+    name: deploymentconfig-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:deploymentconfig-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:deployment-trigger-controller
+  roleRef:
+    name: system:openshift:controller:deployment-trigger-controller
+  subjects:
+  - kind: ServiceAccount
+    name: deployment-trigger-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:deployment-trigger-controller
+- apiVersion: v1
   groupNames:
   - system:masters
   kind: ClusterRoleBinding
