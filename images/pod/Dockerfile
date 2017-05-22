@@ -6,11 +6,16 @@
 #
 # The standard name for this image is openshift/origin-pod
 #
-FROM scratch
+FROM openshift/origin-source
 
-COPY bin/pod /pod
+RUN INSTALL_PKGS="origin-pod" && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all
+
+LABEL io.k8s.display-name="OpenShift Origin Pod Infrastructure" \
+      io.k8s.description="This is a component of OpenShift Origin and holds on to the shared Linux namespaces within a Pod." \
+      io.openshift.tags="openshift,pod"
 
 USER 1001
-LABEL io.k8s.display-name="OpenShift Origin Pod Infrastructure" \
-      io.k8s.description="This is a component of OpenShift Origin and holds on to the shared Linux namespaces within a Pod."
-ENTRYPOINT ["/pod"]
+ENTRYPOINT ["/usr/bin/pod"]

@@ -13,7 +13,8 @@
 FROM openshift/origin
 
 LABEL io.k8s.display-name="OpenShift Origin Deployer" \
-      io.k8s.description="This is a component of OpenShift Origin and executes the user deployment process to roll out new containers. It may be used as a base image for building your own custom deployer image."
+      io.k8s.description="This is a component of OpenShift Origin and executes the user deployment process to roll out new containers. It may be used as a base image for building your own custom deployer image." \
+      io.openshift.tags="openshift,deployer"
 # The deployer doesn't require a root user.
 USER 1001
 ENTRYPOINT ["/usr/bin/openshift-deploy"]

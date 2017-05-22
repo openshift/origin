@@ -13,5 +13,6 @@
 FROM openshift/origin
 
 LABEL io.k8s.display-name="OpenShift Origin Docker Builder" \
-      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing Docker image builds."
+      io.k8s.description="This is a component of OpenShift Origin and is responsible for executing Docker image builds." \
+      io.openshift.tags="openshift,builder"
 ENTRYPOINT ["/usr/bin/openshift-docker-build"]

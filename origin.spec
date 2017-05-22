@@ -312,6 +312,13 @@ install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_ma
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
+install -d %{buildroot}/usr/local/bin/
+
+# Install node scripts
+install -p -m 0755 images/node/scripts/* %{buildroot}/usr/local/bin/
+
+# Install openvswitch scripts
+install -p -m 0755 images/openvswitch/scripts/ovs-run.sh %{buildroot}/usr/local/bin/
 
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
@@ -474,6 +481,8 @@ fi
 %config(noreplace) %{_sysconfdir}/origin/node
 %ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
+/usr/local/bin/docker
+/usr/local/bin/origin-node-run.sh
 
 %post node
 %systemd_post %{name}-node.service
@@ -496,6 +505,7 @@ fi
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
 /opt/cni/bin/*
+/usr/local/bin/ovs-run.sh
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
