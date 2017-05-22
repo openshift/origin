@@ -41,7 +41,6 @@ func NewREST(scheme *runtime.Scheme, optsGetter generic.RESTOptionsGetter) *REST
 		},
 		PredicateFunc:     apiservice.MatchAPIService,
 		QualifiedResource: apiregistration.Resource("apiservices"),
-		WatchCacheSize:    100,
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
