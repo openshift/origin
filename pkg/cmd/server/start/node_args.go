@@ -71,6 +71,8 @@ type NodeArgs struct {
 	ClusterDNS           net.IP
 	// DNSBindAddr is provided for the all-in-one start only and is not exposed via a flag
 	DNSBindAddr string
+	// RecursiveResolvConf
+	RecursiveResolvConf string
 
 	// NetworkPluginName is the network plugin to be called for configuring networking for pods.
 	NetworkPluginName string
@@ -85,6 +87,8 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 	if components {
 		args.Components.Bind(flags, prefix+"%s", "The set of node components to")
 	}
+
+	flags.StringVar(&args.RecursiveResolvConf, prefix+"recursive-resolv-conf", args.RecursiveResolvConf, "An optional upstream resolv.conf that will override the DNS config.")
 
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 
@@ -102,6 +106,8 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 // BindNodeNetworkArgs binds the options to the flags with prefix + default flag names
 func BindNodeNetworkArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string) {
 	args.Components.Bind(flags, "%s", "The set of network components to")
+
+	flags.StringVar(&args.RecursiveResolvConf, prefix+"recursive-resolv-conf", args.RecursiveResolvConf, "An optional upstream resolv.conf that will override the DNS config.")
 
 	flags.StringVar(&args.NetworkPluginName, prefix+"network-plugin", args.NetworkPluginName, "The network plugin to be called for configuring networking for pods.")
 }
@@ -191,6 +197,8 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		DNSBindAddress: args.DNSBindAddr,
 		DNSDomain:      args.ClusterDomain,
 		DNSIP:          dnsIP,
+
+		DNSRecursiveResolvConf: args.RecursiveResolvConf,
 
 		MasterKubeConfig: admin.DefaultNodeKubeConfigFile(args.ConfigDir.Value()),
 

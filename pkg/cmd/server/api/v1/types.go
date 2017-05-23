@@ -53,6 +53,11 @@ type NodeConfig struct {
 	// system, this value should be set to the upstream nameservers dnsmasq resolves with.
 	DNSNameservers []string `json:"dnsNameservers"`
 
+	// DNSRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server.
+	// Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra
+	// nameservers to DNSNameservers if set.
+	DNSRecursiveResolvConf string `json:"dnsRecursiveResolvConf"`
+
 	// Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead
 	DeprecatedNetworkPluginName string `json:"networkPluginName,omitempty"`
 

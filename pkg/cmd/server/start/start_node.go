@@ -301,8 +301,9 @@ func (o NodeOptions) createNodeConfig() (string, error) {
 		DNSBindAddress:      o.NodeArgs.DNSBindAddr,
 		DNSDomain:           o.NodeArgs.ClusterDomain,
 		DNSIP:               dnsIP,
-		ListenAddr:          o.NodeArgs.ListenArg.ListenAddr,
-		NetworkPluginName:   o.NodeArgs.NetworkPluginName,
+		DNSRecursiveResolvConf: o.NodeArgs.RecursiveResolvConf,
+		ListenAddr:             o.NodeArgs.ListenArg.ListenAddr,
+		NetworkPluginName:      o.NodeArgs.NetworkPluginName,
 
 		APIServerURL:     masterAddr.String(),
 		APIServerCAFiles: []string{admin.DefaultCABundleFile(o.NodeArgs.MasterCertDir)},
