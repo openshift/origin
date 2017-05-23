@@ -60,7 +60,6 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 	go deployconfigcontroller.NewDeploymentConfigController(
 		ctx.DeprecatedOpenshiftInformers.DeploymentConfigs().Informer(),
 		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Pods(),
 		deprecatedOcDcClient,
 		internalDcKubeClient,
 		ctx.ClientBuilder.ClientOrDie(saName),

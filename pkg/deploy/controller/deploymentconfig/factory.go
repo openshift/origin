@@ -34,7 +34,6 @@ const (
 func NewDeploymentConfigController(
 	dcInformer cache.SharedIndexInformer,
 	rcInformer kcoreinformers.ReplicationControllerInformer,
-	podInformer kcoreinformers.PodInformer,
 	oc osclient.Interface,
 	internalKubeClientset kclientset.Interface,
 	externalKubeClientset kclientsetexternal.Interface,
@@ -50,10 +49,8 @@ func NewDeploymentConfigController(
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
-		rcLister:        rcInformer.Lister(),
-		rcListerSynced:  rcInformer.Informer().HasSynced,
-		podLister:       podInformer.Lister(),
-		podListerSynced: podInformer.Informer().HasSynced,
+		rcLister:       rcInformer.Lister(),
+		rcListerSynced: rcInformer.Informer().HasSynced,
 
 		recorder: recorder,
 		codec:    codec,
@@ -72,11 +69,6 @@ func NewDeploymentConfigController(
 		DeleteFunc: c.deleteReplicationController,
 	})
 
-	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		UpdateFunc: c.updatePod,
-		DeleteFunc: c.deletePod,
-	})
-
 	return c
 }
 
@@ -88,7 +80,7 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 	glog.Infof("Starting deploymentconfig controller")
 
 	// Wait for the rc and dc stores to sync before starting any work in this controller.
-	if !cache.WaitForCacheSync(stopCh, c.dcStoreSynced, c.rcListerSynced, c.podListerSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.dcStoreSynced, c.rcListerSynced) {
 		return
 	}
 
@@ -176,37 +168,6 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 		}
 	}
 	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
-		c.enqueueDeploymentConfig(dc)
-	}
-}
-
-func (c *DeploymentConfigController) updatePod(old, cur interface{}) {
-	curPod := cur.(*kapi.Pod)
-	oldPod := old.(*kapi.Pod)
-	if curPod.ResourceVersion == oldPod.ResourceVersion {
-		return
-	}
-
-	if dc, err := c.dcStore.GetConfigForPod(curPod); err == nil && dc != nil {
-		c.enqueueDeploymentConfig(dc)
-	}
-}
-
-func (c *DeploymentConfigController) deletePod(obj interface{}) {
-	pod, ok := obj.(*kapi.Pod)
-	if !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %+v", obj))
-			return
-		}
-		pod, ok = tombstone.Obj.(*kapi.Pod)
-		if !ok {
-			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod: %+v", obj))
-			return
-		}
-	}
-	if dc, err := c.dcStore.GetConfigForPod(pod); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
