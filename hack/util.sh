@@ -16,6 +16,7 @@ function find_files() {
 		-o -wholename './pkg/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
+		-o -wholename './cmd/service-catalog/*' \
 		-o -wholename '*/vendor/*' \
 		-o -wholename './cmd/cluster-capacity/*' \
 		-o -wholename './assets/bower_components/*' \

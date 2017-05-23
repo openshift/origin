@@ -101,6 +101,7 @@ function list_test_packages_under() {
               -o -path '*assets/node_modules' \
               -o -path '*test/*'              \
               -o -path '*cmd/cluster-capacity' \
+              -o -path '*cmd/service-catalog' \
         \) -prune                             \
     \) -name '*_test.go' | xargs -n1 dirname | sort -u | xargs -n1 printf "${OS_GO_PACKAGE}/%s\n"
 }
