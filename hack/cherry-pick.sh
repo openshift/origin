@@ -24,6 +24,7 @@ if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
   exit 1
 fi
 
+lastrev="${NO_REBASE-}"
 if [[ -z "${NO_REBASE-}" ]]; then
   lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
 fi
