@@ -44,10 +44,41 @@ function haproxyHealthCheck() {
 }
 
 
-# How many times to retry removal of the iptables rules (if requested at all)
-# It will sleep for 1/2 a second between attempts, so the time is retries / 2 secs
-retries=20
+# Pull the ports we are listening on
+ports=$(grep -E '^\s*bind\s+:[[:digit:]]+\w' "$config_file" | cut -f2 -d: | paste -d, -s)
 
+# This ACK eating rule came from https://www.haproxy.com/blog/truly-seamless-reloads-with-haproxy-no-more-hacks/
+# The rule is:
+#        \! --u32 '0>>22&0x3C@12>>26&0x3C@0&0x0=0:0'
+#
+# The variables in the state machine (man iptables-extensions)
+#   A == The pointer into the header
+#   C == A uint32 we can load from A and manipulate
+#
+#   0        -- Load bytes 0-3 into C
+#   >> 22    -- Right shift C 22 bits to get to IP header length (in 32 bit words, so we need to multiply by 4... so we shift less)
+#   &  0x3C  -- Mask C with 0x3C (0011 1100) to drop the surrounding junk (masking out the low bits since we are multiplying as above)
+#   @  12    -- Set A = C + 12 (so skip the IP header length in C and 12 bytes more) to land at the TCP data offset, and load 4 bytes into C
+#   >> 26    -- Shift C as above (multiplied by 4 again) to get the TCP data offset
+#   &  0x3C  -- Mask C with 0x3C (0011 1100) to drop the surrounding junk (masking out the low bits since we are multiplying as above)
+#   @  0     -- Set A = C + 0 (so skip the TCP offset length held in C) to land at the TCP payload and load 4 bytes into C
+#               This step may cause it to fail if there are not 4 bytes of payload to load (since any access outside the packet range fails)
+#               We want the failure, because it means it is a short packet.  The next rules will cause the match to always succeed... which
+#               means we will ignore the packet.
+#   &  0x0   -- Mask C with 0x0 (i.e. set it to 0)
+#   =  0:0   -- And compare C to 0 (which will always succeed, so we ignore the packet)
+readonly ack_eater_comment='Eat empty ACKs while reloading haproxy'
+readonly ack_eater_rule=(-p tcp                                                   # Apply to TCP packets only
+                         -m multiport --dports "${ports}"                         # On http and https ports (as determined above)
+                         --tcp-flags SYN,PSH,ACK,FIN,RST ACK                      # Must be an ACK, and none of the other listed flags can be set (so, pure ACKs)
+                         -m u32 ! --u32 '0>>22&0x3C@12>>26&0x3C@0&0x0=0:0'        # That does NOT match this u32 rule (see above)
+                         -j DROP                                                  # If it does not match the u32 rule, drop it
+                         -m comment --comment "${ack_eater_comment}"              # And put a human readable comment on it
+                         )
+
+# How many times to retry removal of the iptables rules (if requested at all)
+# It will sleep for 1/2 a second between attempts, so the time is iptables_retries / 2 secs
+readonly iptables_retries=20
 
 # sort the path based map files for the haproxy map_beg function
 for mapfile in "$haproxy_conf_dir"/*.map; do
@@ -60,13 +91,11 @@ reload_status=0
 installed_iptables=0
 if [ -n "$old_pids" ]; then
   if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 'true' || "$DROP_SYN_DURING_RESTART" == '1' ]]; then
-    # We install the syn eater so that connections that come in during the restart don't
+    # We install the syn eater, well... now it's an ACK eater, so that connections that come in during the restart don't
     # go onto the wrong socket, which is then closed.
-    ports=$(grep -E '^\s*bind\s+:[[:digit:]]+\w' "$config_file" | cut -f2 -d: | paste -d, -s)
     if [ -n "$ports" ]; then
       # If this doesn't insert, we don't care, we still want to reload
-      /usr/sbin/iptables -I INPUT -p tcp -m multiport --dports $ports --syn -j DROP \
-			 -m comment --comment "Eat SYNs while reloading haproxy" || :
+      /usr/sbin/iptables -I INPUT "${ack_eater_rule[@]}" || :
       installed_iptables=1
 
       # The sleep is needed to let the socket drain before the new
@@ -86,25 +115,24 @@ if [ -n "$old_pids" ]; then
   reload_status=$?
 
   if [[ "$installed_iptables" == 1 ]]; then
-    # We NEVER want to leave the syn eater in place after the reload or haproxy
+    # We NEVER want to leave the ack eater in place after the reload or haproxy
     # will never get new connections.  So try to remove it twenty times, and if
     # that fails, log the error and return failure so the pod logs a fatal error.
     i=0
-    while (( i++ < retries )) ; do
-      /usr/sbin/iptables -D INPUT -p tcp -m multiport --dports $ports --syn -j DROP \
-                         -m comment --comment "Eat SYNs while reloading haproxy" || :
+    while (( i++ < iptables_retries )) ; do
+      /usr/sbin/iptables -D INPUT "${ack_eater_rule[@]}" || :
 
       # Test the condition and end the loop if the rule has been removed
-      /usr/sbin/iptables -L INPUT | grep -F '/* Eat SYNs while reloading haproxy */' || break
+      /usr/sbin/iptables -L INPUT | grep -F "/* ${ack_eater_comment} */" || break
 
       >&2 echo "Unable to remove SYN eating rule, attempt $i.  Will retry..."
 
       # But sleep for a bit before retrying
       sleep 0.5
     done
-    if (( i >= retries )); then
+    if (( i >= iptables_retries )); then
       # We failed to remove the rule... log failure and exit to signal the caller
-      >&2 echo "Unable to remove the iptables SYN eating rule.  Aborting after $retries retries"
+      >&2 echo "Unable to remove the iptables SYN eating rule.  Aborting after ${iptables_retries} retries"
       exit 1
     fi
   fi
