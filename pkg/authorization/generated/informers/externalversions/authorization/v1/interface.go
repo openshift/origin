@@ -8,12 +8,18 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// ClusterPolicies returns a ClusterPolicyInformer.
+	ClusterPolicies() ClusterPolicyInformer
+	// ClusterPolicyBindings returns a ClusterPolicyBindingInformer.
+	ClusterPolicyBindings() ClusterPolicyBindingInformer
 	// ClusterRoles returns a ClusterRoleInformer.
 	ClusterRoles() ClusterRoleInformer
 	// ClusterRoleBindings returns a ClusterRoleBindingInformer.
 	ClusterRoleBindings() ClusterRoleBindingInformer
 	// Policies returns a PolicyInformer.
 	Policies() PolicyInformer
+	// PolicyBindings returns a PolicyBindingInformer.
+	PolicyBindings() PolicyBindingInformer
 	// Roles returns a RoleInformer.
 	Roles() RoleInformer
 	// RoleBindings returns a RoleBindingInformer.
@@ -29,6 +35,16 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
+// ClusterPolicies returns a ClusterPolicyInformer.
+func (v *version) ClusterPolicies() ClusterPolicyInformer {
+	return &clusterPolicyInformer{factory: v.SharedInformerFactory}
+}
+
+// ClusterPolicyBindings returns a ClusterPolicyBindingInformer.
+func (v *version) ClusterPolicyBindings() ClusterPolicyBindingInformer {
+	return &clusterPolicyBindingInformer{factory: v.SharedInformerFactory}
+}
+
 // ClusterRoles returns a ClusterRoleInformer.
 func (v *version) ClusterRoles() ClusterRoleInformer {
 	return &clusterRoleInformer{factory: v.SharedInformerFactory}
@@ -42,6 +58,11 @@ func (v *version) ClusterRoleBindings() ClusterRoleBindingInformer {
 // Policies returns a PolicyInformer.
 func (v *version) Policies() PolicyInformer {
 	return &policyInformer{factory: v.SharedInformerFactory}
+}
+
+// PolicyBindings returns a PolicyBindingInformer.
+func (v *version) PolicyBindings() PolicyBindingInformer {
+	return &policyBindingInformer{factory: v.SharedInformerFactory}
 }
 
 // Roles returns a RoleInformer.

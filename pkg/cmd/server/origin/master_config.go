@@ -49,6 +49,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
@@ -75,6 +76,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -950,25 +952,6 @@ func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// SdnClient returns the sdn client object
-// It must have the capability to get/list/watch/create/delete
-// HostSubnets. And have the capability to get ClusterNetwork.
-func (c *MasterConfig) SdnClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-// DeploymentClient returns the deployment client object
-func (c *MasterConfig) DeploymentClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DNSServerClient returns the DNS server client object
-// It must have the following capabilities:
-//   list, watch all services in all namespaces
-func (c *MasterConfig) DNSServerClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
 // BuildLogClient returns the build log client object
 func (c *MasterConfig) BuildLogClient() kclientsetinternal.Interface {
 	return c.PrivilegedLoopbackKubernetesClientsetInternal
@@ -977,6 +960,22 @@ func (c *MasterConfig) BuildLogClient() kclientsetinternal.Interface {
 // BuildConfigWebHookClient returns the webhook client object
 func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
+}
+
+func (c *MasterConfig) GetOpenShiftClientEnvVars() ([]kapi.EnvVar, error) {
+	_, kclientConfig, err := configapi.GetInternalKubeClient(
+		c.Options.MasterClients.OpenShiftLoopbackKubeConfig,
+		c.Options.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return clientcmd.EnvVars(
+		kclientConfig.Host,
+		kclientConfig.CAData,
+		kclientConfig.Insecure,
+		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
+	), nil
 }
 
 // BuildControllerClients returns the build controller client objects
@@ -1003,28 +1002,13 @@ func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, k
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
-// ImageChangeControllerClient returns the openshift client object
-func (c *MasterConfig) ImageChangeControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
 // ImageImportControllerClient returns the deployment client object
 func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// DeploymentConfigInstantiateClients returns the clients used by the instantiate endpoint.
 func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, kclientsetinternal.Interface) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DeploymentControllerClients returns the deployment controller client objects
-func (c *MasterConfig) DeploymentControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return osClient, internalKubeClientset, externalKubeClientset
 }
 
 // DeploymentConfigClients returns deploymentConfig and deployment client objects
@@ -1032,14 +1016,13 @@ func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetin
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
-// DeploymentConfigControllerClients returns the deploymentConfig controller client objects
-func (c *MasterConfig) DeploymentConfigControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// DeploymentTriggerControllerClient returns the deploymentConfig trigger controller client object
-func (c *MasterConfig) DeploymentTriggerControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
+// ImageTriggerControllerClients returns the trigger controller client objects
+func (c *MasterConfig) ImageTriggerControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
+	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return osClient, internalKubeClientset, externalKubeClientset
 }
 
 // DeploymentLogClient returns the deployment log client object

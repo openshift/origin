@@ -12,24 +12,20 @@ FROM openshift/origin-base
 
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/manifest.json system-container/service.template system-container/tmpfiles.template /exports/
-COPY bin/openshift /usr/bin/openshift
-RUN ln -s /usr/bin/openshift /usr/bin/oc && \
-    ln -s /usr/bin/openshift /usr/bin/oadm && \
-    ln -s /usr/bin/openshift /usr/bin/origin && \
-    ln -s /usr/bin/openshift /usr/bin/kubectl && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-deploy && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-recycle && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-router && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-docker-build && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-sti-build && \
-    ln -s /usr/bin/openshift /usr/bin/openshift-f5-router && \
+RUN INSTALL_PKGS="origin" && \
+    yum install -y ${INSTALL_PKGS} && \
+    rpm -V ${INSTALL_PKGS} && \
+    yum clean all && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift
 
 LABEL io.k8s.display-name="OpenShift Origin Application Platform" \
-      io.k8s.description="OpenShift Origin is a platform for developing, building, and deploying containerized applications. See https://docs.openshift.org/latest for more on running OpenShift Origin."
+      io.k8s.description="OpenShift Origin is a platform for developing, building, and deploying containerized applications." \
+      io.openshift.tags="openshift,core"
+
 ENV HOME=/root \
     OPENSHIFT_CONTAINERIZED=true \
     KUBECONFIG=/var/lib/origin/openshift.local.config/master/admin.kubeconfig
+
 WORKDIR /var/lib/origin
 EXPOSE 8443 53
 

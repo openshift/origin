@@ -10,12 +10,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	autoscaling_v1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batch_v1 "k8s.io/kubernetes/pkg/apis/batch/v1"
+	extensions_v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
@@ -200,14 +202,35 @@ func TestStorageMigration(t *testing.T) {
 	}
 
 	// Ensure it is accessible from both APIs
-	hpa, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpaName, metav1.GetOptions{})
+	autoscalingHPA, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpaName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("Error reading HPA from the autoscaling client: %#v", err)
 	}
 
+	extensionsHPA := &extensions_v1beta1.HorizontalPodAutoscaler{}
+	err = kubeClient.Extensions().RESTClient().Get().
+		Namespace(ns).
+		Resource("horizontalpodautoscalers").
+		Name(hpaName).
+		VersionedParams(&metav1.GetOptions{}, kapi.ParameterCodec).
+		Do().
+		Into(extensionsHPA)
+	if err != nil {
+		t.Errorf("Error reading HPA from the extensions client: %#v", err)
+	}
+
+	// Ensure that both versions of the same object are equal when converted
+	convertedExtensionsHPA := &autoscaling.HorizontalPodAutoscaler{}
+	if err := kapi.Scheme.Convert(extensionsHPA, convertedExtensionsHPA, nil); err != nil {
+		t.Fatalf("Conversion error from extensions.HPA to autoscaling.HPA: %v", err)
+	}
+	if !kapi.Semantic.DeepEqual(autoscalingHPA.Spec, convertedExtensionsHPA.Spec) {
+		t.Errorf("Extensions HPA and autoscaling HPA representation differ: %v", diff.ObjectDiff(convertedExtensionsHPA.Spec, autoscalingHPA.Spec))
+	}
+
 	// Update the HPA
-	hpa.Spec.MinReplicas = kutil.Int32Ptr(2)
-	if _, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Update(hpa); err != nil {
+	autoscalingHPA.Spec.MinReplicas = kutil.Int32Ptr(2)
+	if _, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Update(autoscalingHPA); err != nil {
 		t.Errorf("Error updating HPA: %#v", err)
 	}
 

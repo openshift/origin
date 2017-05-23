@@ -103,7 +103,7 @@
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "4"
+              "name": "6"
             }
           },
           {
@@ -136,6 +136,22 @@
             "from": {
               "kind": "DockerImage",
               "name": "centos/nodejs-4-centos7:latest"
+            }
+          },
+          {
+            "name": "6",
+            "annotations": {
+              "openshift.io/display-name": "Node.js 6",
+              "description": "Build and run Node.js 6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/6/README.md.",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:6,nodejs",
+              "version": "6",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/nodejs-6-centos7:latest"
             }
           }
         ]
@@ -407,7 +423,7 @@
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"jee,java",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "ImageStreamTag",
@@ -423,7 +439,7 @@
               "tags": "builder,wildfly,java",
               "supports":"wildfly:8.1,jee,java",
               "version": "8.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -439,7 +455,7 @@
               "tags": "builder,wildfly,java",
               "supports":"wildfly:9.0,jee,java",
               "version": "9.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -455,7 +471,7 @@
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.0,jee,java",
               "version": "10.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -471,7 +487,7 @@
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.1,jee,java",
               "version": "10.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",

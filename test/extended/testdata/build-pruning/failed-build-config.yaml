@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  failedBuildsHistoryLimit: 2
+  triggers: {}
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/non-working-example.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'myphp:latest'
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:

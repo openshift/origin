@@ -4,12 +4,18 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	restclient "k8s.io/client-go/rest"
+	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -106,14 +112,57 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	// We don't want to proceed with the rest of the test until those are available
 	openshiftConfig.BuildControllerClients()
 
+	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
+	// TODO have this simply start the particular controller it wants multiple times
+	controllerManagerOptions := cmapp.NewCMServer()
+	rootClientBuilder := controller.SimpleControllerClientBuilder{
+		ClientConfig: &openshiftConfig.PrivilegedLoopbackClientConfig,
+	}
+	saClientBuilder := controller.SAControllerClientBuilder{
+		ClientConfig:         restclient.AnonymousClientConfig(&openshiftConfig.PrivilegedLoopbackClientConfig),
+		CoreClient:           openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+		AuthenticationClient: openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+		Namespace:            "kube-system",
+	}
+	availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	controllerContext := kctrlmgr.ControllerContext{
+		ClientBuilder:      saClientBuilder,
+		InformerFactory:    openshiftConfig.Informers.KubernetesInformers(),
+		Options:            *controllerManagerOptions,
+		AvailableResources: availableResources,
+		Stop:               wait.NeverStop,
+	}
+
+	openshiftControllerContext := origincontrollers.ControllerContext{
+		KubeControllerContext: controllerContext,
+		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
+			ControllerClientBuilder: controller.SAControllerClientBuilder{
+				ClientConfig:         restclient.AnonymousClientConfig(&openshiftConfig.PrivilegedLoopbackClientConfig),
+				CoreClient:           openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+				AuthenticationClient: openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+			},
+		},
+		DeprecatedOpenshiftInformers: openshiftConfig.Informers,
+		Stop: controllerContext.Stop,
+	}
+	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()
+
 	for i := 0; i < counts.BuildControllers; i++ {
-		openshiftConfig.RunBuildController(openshiftConfig.Informers)
+		_, err := openshiftControllerInitializers["build"](openshiftControllerContext)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	for i := 0; i < counts.BuildPodControllers; i++ {
 		openshiftConfig.RunBuildPodController()
 	}
 	for i := 0; i < counts.ImageChangeControllers; i++ {
-		openshiftConfig.RunBuildImageChangeTriggerController()
+		openshiftConfig.RunImageTriggerController()
 	}
 	for i := 0; i < counts.ConfigChangeControllers; i++ {
 		openshiftConfig.RunBuildConfigChangeController()

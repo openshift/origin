@@ -1439,3 +1439,34 @@ func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Buil
 	o.ExpectWithOffset(1, expectedEvent).NotTo(o.BeNil(), "Did not find a %q event on build %s/%s", reason, build.Namespace, build.Name)
 	o.ExpectWithOffset(1, expectedEvent.Message).To(o.Equal(fmt.Sprintf(message, build.Namespace, build.Name)))
 }
+
+type podExecutor struct {
+	client  *CLI
+	podName string
+}
+
+// NewPodExecutor returns an executor capable of running commands in a Pod.
+func NewPodExecutor(oc *CLI, name, image string) (*podExecutor, error) {
+	out, err := oc.Run("run").Args(name, "--labels", "name="+name, "--image", image, "--restart", "Never", "--command", "--", "/bin/bash", "-c", "sleep infinity").Output()
+	if err != nil {
+		return nil, fmt.Errorf("error: %v\n(%s)", err, out)
+	}
+	_, err = WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), ParseLabelsOrDie("name="+name), CheckPodIsReadyFn, 1, 3*time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	return &podExecutor{client: oc, podName: name}, nil
+}
+
+// Exec executes a single command or a bash script in the running pod. It returns the
+// command output and error if the command finished with non-zero status code or the
+// command took longer then 3 minutes to run.
+func (r *podExecutor) Exec(script string) (string, error) {
+	var out string
+	waitErr := wait.PollImmediate(1*time.Second, 3*time.Minute, func() (bool, error) {
+		var err error
+		out, err = r.client.Run("exec").Args(r.podName, "--", "/bin/bash", "-c", script).Output()
+		return true, err
+	})
+	return out, waitErr
+}

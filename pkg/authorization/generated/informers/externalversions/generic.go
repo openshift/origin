@@ -36,12 +36,18 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=Authorization, Version=V1
+	case v1.SchemeGroupVersion.WithResource("clusterpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().ClusterPolicies().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("clusterpolicybindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().ClusterPolicyBindings().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("clusterroles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().ClusterRoles().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("clusterrolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().ClusterRoleBindings().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("policies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().Policies().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("policybindings"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().PolicyBindings().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("roles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().Roles().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("rolebindings"):

@@ -281,11 +281,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedGVK:      gvkP("", "v1", "HostSubnet"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1"}, "network": "192.168.0.0/24", "serviceNetwork": "192.168.1.0/24"}`,
+		stub:             `{"metadata": {"name": "cn1"}, "network": "192.168.0.0/24", "hostsubnetlength": 4, "serviceNetwork": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1",
 	},
 	gvr("network.openshift.io", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1g"}, "network": "192.168.0.0/24", "serviceNetwork": "192.168.1.0/24"}`,
+		stub:             `{"metadata": {"name": "cn1g"}, "network": "192.168.0.0/24", "hostsubnetlength": 4, "serviceNetwork": "192.168.1.0/24"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
 		expectedGVK:      gvkP("", "v1", "ClusterNetwork"), // expect the legacy group to be persisted
 	},
@@ -494,6 +494,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("extensions", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment1",
+	},
+	gvr("extensions", "v1beta1", "horizontalpodautoscalers"): {
+		stub:             `{"metadata": {"name": "hpa1"}, "spec": {"maxReplicas": 3, "scaleRef": {"kind": "something", "name": "cross"}}}`,
+		expectedEtcdPath: "kubernetes.io/horizontalpodautoscalers/etcdstoragepathtestnamespace/hpa1",
+		expectedGVK:      gvkP("autoscaling", "v1", "HorizontalPodAutoscaler"),
 	},
 	gvr("extensions", "v1beta1", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
@@ -792,12 +797,6 @@ var kindWhiteList = sets.NewString(
 	// github.com/openshift/origin/pkg/image/api
 	"DockerImage",
 	// --
-
-	// github.com/openshift/origin/pkg/kubecompat/apis/extensions/v1beta1
-	// HPAs are still stored encoded as extensions/v1beta1. We will convert them to autoscaling as
-	// part of the 3.7 upgrade.
-	"extensions/v1beta1, Kind=HorizontalPodAutoscaler",
-	// --
 )
 
 // namespace used for all tests, do not change this
@@ -846,7 +845,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
 		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
-	masterConfig.EnableTemplateServiceBroker = true
+	masterConfig.TemplateServiceBrokerConfig = &serverapi.TemplateServiceBrokerConfig{}
 	if etcdServer.V3Client == nil {
 		masterConfig.KubernetesMasterConfig.APIServerArguments = serverapi.ExtendedArguments{"storage-backend": []string{"etcd2"}}
 	}
@@ -893,12 +892,8 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 
 		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			if kindWhiteList.Has(gvk.String()) {
-				kindSeen.Insert(gvk.String())
-			} else {
-				kindSeen.Insert(kind)
-			}
-			if kindWhiteList.Has(kind) || kindWhiteList.Has(gvk.String()) {
+			kindSeen.Insert(kind)
+			if kindWhiteList.Has(kind) {
 				// t.Logf("skipping test for %s from %s because its GVK %s is whitelisted and has no mapping", kind, pkgPath, gvk)
 			} else {
 				t.Errorf("no mapping found for %s from %s but its GVK %s is not whitelisted", kind, pkgPath, gvk)

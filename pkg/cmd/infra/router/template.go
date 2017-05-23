@@ -57,20 +57,21 @@ type TemplateRouterOptions struct {
 }
 
 type TemplateRouter struct {
-	RouterName              string
-	RouterCanonicalHostname string
-	WorkingDir              string
-	TemplateFile            string
-	ReloadScript            string
-	ReloadInterval          time.Duration
-	DefaultCertificate      string
-	DefaultCertificatePath  string
-	DefaultCertificateDir   string
-	ExtendedValidation      bool
-	RouterService           *ktypes.NamespacedName
-	BindPortsAfterSync      bool
-	MaxConnections          string
-	MetricsType             string
+	RouterName               string
+	RouterCanonicalHostname  string
+	WorkingDir               string
+	TemplateFile             string
+	ReloadScript             string
+	ReloadInterval           time.Duration
+	DefaultCertificate       string
+	DefaultCertificatePath   string
+	DefaultCertificateDir    string
+	DefaultDestinationCAPath string
+	ExtendedValidation       bool
+	RouterService            *ktypes.NamespacedName
+	BindPortsAfterSync       bool
+	MaxConnections           string
+	MetricsType              string
 }
 
 // reloadInterval returns how often to run the router reloads. The interval
@@ -92,6 +93,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultCertificate, "default-certificate", util.Env("DEFAULT_CERTIFICATE", ""), "The contents of a default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.DefaultCertificatePath, "default-certificate-path", util.Env("DEFAULT_CERTIFICATE_PATH", ""), "A path to default certificate to use for routes that don't expose a TLS server cert; in PEM format")
 	flag.StringVar(&o.DefaultCertificateDir, "default-certificate-dir", util.Env("DEFAULT_CERTIFICATE_DIR", ""), "A path to a directory that contains a file named tls.crt. If tls.crt is not a PEM file which also contains a private key, it is first combined with a file named tls.key in the same directory. The PEM-format contents are then used as the default certificate. Only used if default-certificate and default-certificate-path are not specified.")
+	flag.StringVar(&o.DefaultDestinationCAPath, "default-destination-ca-path", util.Env("DEFAULT_DESTINATION_CA_PATH", "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"), "A path to a PEM file containing the default CA bundle to use with re-encrypt routes. This CA should sign for certificates in the Kubernetes DNS space (service.namespace.svc).")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
@@ -128,6 +130,13 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		Long:  routerLong,
 		Run: func(c *cobra.Command, args []string) {
 			options.RouterSelection.Namespace = cmdutil.GetFlagString(c, "namespace")
+			// if the user did not specify a destination ca path, and the file does not exist, disable the default in order
+			// to preserve backwards compatibility with older clusters
+			if !c.Flags().Lookup("default-destination-ca-path").Changed && util.Env("DEFAULT_DESTINATION_CA_PATH", "") == "" {
+				if _, err := os.Stat(options.TemplateRouter.DefaultDestinationCAPath); err != nil {
+					options.TemplateRouter.DefaultDestinationCAPath = ""
+				}
+			}
 			cmdutil.CheckErr(options.Complete())
 			cmdutil.CheckErr(options.Validate())
 			cmdutil.CheckErr(options.Run())
@@ -196,7 +205,11 @@ func (o *TemplateRouterOptions) Validate() error {
 	if len(o.TemplateFile) == 0 {
 		return errors.New("template file must be specified")
 	}
-
+	if len(o.TemplateRouter.DefaultDestinationCAPath) != 0 {
+		if _, err := os.Stat(o.TemplateRouter.DefaultDestinationCAPath); err != nil {
+			return fmt.Errorf("unable to load default destination CA certificate: %v", err)
+		}
+	}
 	if len(o.ReloadScript) == 0 {
 		return errors.New("reload script must be specified")
 	}
@@ -269,22 +282,23 @@ func (o *TemplateRouterOptions) Run() error {
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{
-		WorkingDir:             o.WorkingDir,
-		TemplatePath:           o.TemplateFile,
-		ReloadScriptPath:       o.ReloadScript,
-		ReloadInterval:         o.ReloadInterval,
-		ReloadCallbacks:        reloadCallbacks,
-		DefaultCertificate:     o.DefaultCertificate,
-		DefaultCertificatePath: o.DefaultCertificatePath,
-		DefaultCertificateDir:  o.DefaultCertificateDir,
-		StatsPort:              o.StatsPort,
-		StatsUsername:          o.StatsUsername,
-		StatsPassword:          o.StatsPassword,
-		PeerService:            o.RouterService,
-		BindPortsAfterSync:     o.BindPortsAfterSync,
-		IncludeUDP:             o.RouterSelection.IncludeUDP,
-		AllowWildcardRoutes:    o.RouterSelection.AllowWildcardRoutes,
-		MaxConnections:         o.MaxConnections,
+		WorkingDir:               o.WorkingDir,
+		TemplatePath:             o.TemplateFile,
+		ReloadScriptPath:         o.ReloadScript,
+		ReloadInterval:           o.ReloadInterval,
+		ReloadCallbacks:          reloadCallbacks,
+		DefaultCertificate:       o.DefaultCertificate,
+		DefaultCertificatePath:   o.DefaultCertificatePath,
+		DefaultCertificateDir:    o.DefaultCertificateDir,
+		DefaultDestinationCAPath: o.DefaultDestinationCAPath,
+		StatsPort:                o.StatsPort,
+		StatsUsername:            o.StatsUsername,
+		StatsPassword:            o.StatsPassword,
+		PeerService:              o.RouterService,
+		BindPortsAfterSync:       o.BindPortsAfterSync,
+		IncludeUDP:               o.RouterSelection.IncludeUDP,
+		AllowWildcardRoutes:      o.RouterSelection.AllowWildcardRoutes,
+		MaxConnections:           o.MaxConnections,
 	}
 
 	oc, kc, err := o.Config.Clients()

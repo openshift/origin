@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // all build strategy types
@@ -206,7 +207,8 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	projectEditorClient, _, _, err = testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
+	var kubeClient kclientset.Interface
+	projectEditorClient, kubeClient, _, err = testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -222,6 +224,12 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	}
 	if err := testutil.WaitForPolicyUpdate(projectEditorClient, namespace, "create", buildapi.Resource(authorizationapi.DockerBuildResource), true); err != nil {
 		t.Fatalf(err.Error())
+	}
+
+	if includeControllers {
+		if err := testserver.WaitForServiceAccounts(kubeClient, namespace, []string{"builder"}); err != nil {
+			t.Fatalf(err.Error())
+		}
 	}
 
 	// we need a template that doesn't create service accounts or rolebindings so editors can create
@@ -240,6 +248,17 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	_, err = clusterAdminClient.Templates("openshift").Create(template)
 	if err != nil {
 		t.Fatalf("Couldn't create jenkins template: %v", err)
+	}
+
+	if includeControllers {
+		clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 	}
 
 	return

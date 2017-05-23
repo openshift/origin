@@ -23,7 +23,8 @@ function haproxyHealthCheck() {
 
   local end_ts=$((start_ts + wait_time))
 
-  echo " - Checking HAProxy /healthz on port $port ..."
+  local proxy_proto="${ROUTER_USE_PROXY_PROTOCOL:-FALSE}"
+  echo " - Proxy protocol '${proxy_proto}'.  Checking HAProxy /healthz on port $port ..."
   while true; do
     local httpcode=$(curl $timeout_opts -s -o /dev/null -I -w "%{http_code}" http://localhost:${port}/healthz)
 

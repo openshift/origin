@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/client/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -96,7 +97,7 @@ func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contNa
 }
 
 func waitForEndpoint(c kclientset.Interface, ns, name string) error {
-	for t := time.Now(); time.Since(t) < time.Minute; time.Sleep(poll) {
+	for t := time.Now(); time.Since(t) < 3*time.Minute; time.Sleep(poll) {
 		endpoint, err := c.Core().Endpoints(ns).Get(name, metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			e2e.Logf("Endpoint %s/%s is not ready yet", ns, name)
@@ -115,13 +116,22 @@ func waitForEndpoint(c kclientset.Interface, ns, name string) error {
 
 func launchWebserverService(f *e2e.Framework, serviceName string, nodeName string) (serviceAddr string) {
 	e2e.LaunchWebserverPod(f, serviceName, nodeName)
+
 	// FIXME: make e2e.LaunchWebserverPod() set the label when creating the pod
-	podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
-	pod, err := podClient.Get(serviceName, metav1.GetOptions{})
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		podClient := f.ClientSet.CoreV1().Pods(f.Namespace.Name)
+		pod, err := podClient.Get(serviceName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if pod.ObjectMeta.Labels == nil {
+			pod.ObjectMeta.Labels = make(map[string]string)
+		}
+		pod.ObjectMeta.Labels["name"] = "web"
+		_, err = podClient.Update(pod)
+		return err
+	})
 	expectNoError(err)
-	pod.ObjectMeta.Labels = make(map[string]string)
-	pod.ObjectMeta.Labels["name"] = "web"
-	podClient.Update(pod)
 
 	servicePort := 8080
 	service := &kapiv1.Service{

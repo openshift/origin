@@ -1576,12 +1576,17 @@ func TestPrioritizeTags(t *testing.T) {
 			tags:     []string{"1.1-beta1", "1.2-rc1", "1.1-rc1", "1.1-beta2", "1.2-beta1", "1.2-alpha1", "1.2-beta4", "latest"},
 			expected: []string{"latest", "1.2-rc1", "1.2-beta4", "1.2-beta1", "1.2-alpha1", "1.1-rc1", "1.1-beta2", "1.1-beta1"},
 		},
+		{
+			tags:     []string{"7.1", "v7.1", "7.1.0"},
+			expected: []string{"7.1", "v7.1", "7.1.0"},
+		},
 	}
 
-	for i, tc := range tests {
+	for _, tc := range tests {
+		t.Log("sorting", tc.tags)
 		PrioritizeTags(tc.tags)
 		if !reflect.DeepEqual(tc.tags, tc.expected) {
-			t.Errorf("%d: unexpected order: %v", i, tc.tags)
+			t.Errorf("got %v, want %v", tc.tags, tc.expected)
 		}
 	}
 }

@@ -55,11 +55,39 @@ readonly -f os::cleanup::all
 #  None
 function os::cleanup::dump_etcd() {
 	if [[ -n "${API_SCHEME:-}" && -n "${API_HOST:-}" && -n "${ETCD_PORT:-}" ]]; then
-		os::log::info "[CLEANUP] Dumping etcd contents to $( os::util::repository_relative_path "${ARTIFACT_DIR}/etcd_dump.json" )"
-		os::util::curl_etcd "/v2/keys/?recursive=true" > "${ARTIFACT_DIR}/etcd_dump.json"
+		local dump_dir="${ARTIFACT_DIR}/etcd"
+		mkdir -p "${dump_dir}"
+		os::log::info "[CLEANUP] Dumping etcd contents to $( os::util::repository_relative_path "${dump_dir}" )"
+		os::util::curl_etcd "/v2/keys/?recursive=true" > "${dump_dir}/v2_dump.json"
+		os::cleanup::internal::dump_etcd_v3 > "${dump_dir}/v3_dump.json"
 	fi
 }
 readonly -f os::cleanup::dump_etcd
+
+# os::cleanup::internal::dump_etcd_v3 dumps the full contents of etcd v3 to a file.
+#
+# Globals:
+#  - ARTIFACT_DIR
+#  - API_SCHEME
+#  - API_HOST
+#  - ETCD_PORT
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::cleanup::internal::dump_etcd_v3() {
+	local full_url="${API_SCHEME}://${API_HOST}:${ETCD_PORT}"
+
+	local etcd_client_cert="${MASTER_CONFIG_DIR}/master.etcd-client.crt"
+	local etcd_client_key="${MASTER_CONFIG_DIR}/master.etcd-client.key"
+	local ca_bundle="${MASTER_CONFIG_DIR}/ca-bundle.crt"
+
+	os::util::ensure::built_binary_exists 'etcdhelper' >&2
+
+	etcdhelper --cert "${etcd_client_cert}" --key "${etcd_client_key}" \
+	           --cacert "${ca_bundle}" --endpoint "${full_url}" dump
+}
+readonly -f os::cleanup::internal::dump_etcd_v3
 
 # os::cleanup::prune_etcd removes the etcd data store from disk.
 #
@@ -105,7 +133,7 @@ function os::cleanup::containers() {
 	os::log::info "[CLEANUP] Removing docker containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Removing ${id}"
-		docker stop "${id}" >/dev/null
+		docker rm --volumes "${id}" >/dev/null
 	done
 }
 readonly -f os::cleanup::containers

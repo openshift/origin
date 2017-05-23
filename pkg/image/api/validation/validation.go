@@ -7,10 +7,8 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/validation/path"
-	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -290,9 +288,10 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *api.ImageStreamTag) field.Erro
 	oldISTCopy := *oldIST
 	newISTCopy.Annotations, oldISTCopy.Annotations = nil, nil
 	newISTCopy.Tag, oldISTCopy.Tag = nil, nil
+	newISTCopy.LookupPolicy = oldISTCopy.LookupPolicy
 	newISTCopy.Generation = oldISTCopy.Generation
 	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
-		glog.Infof("objects differ: ", diff.ObjectDiff(oldISTCopy, newISTCopy))
+		//glog.Infof("objects differ: ", diff.ObjectDiff(oldISTCopy, newISTCopy))
 		result = append(result, field.Invalid(field.NewPath("metadata"), "", "may not update fields other than metadata.annotations"))
 	}
 

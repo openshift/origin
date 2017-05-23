@@ -264,7 +264,7 @@ when CLIENT_DATA {
               SSL::disable
               HTTP::disable
             }
-            else if { [class match $servername_lower equals ssl_reencrypt_servername_dg] } {
+            elseif { [class match $servername_lower equals ssl_reencrypt_servername_dg] } {
               pool [class match -value $servername_lower equals ssl_reencrypt_servername_dg]
               SSL::enable serverside
             }

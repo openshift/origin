@@ -540,7 +540,7 @@ func (d *ImageDescriber) Describe(namespace, name string, settings kprinters.Des
 		return "", err
 	}
 
-	return describeImage(image, "")
+	return DescribeImage(image, "")
 }
 
 func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) error {
@@ -561,13 +561,23 @@ func describeImageSignature(s imageapi.ImageSignature, out *tabwriter.Writer) er
 	return nil
 }
 
-func describeImage(image *imageapi.Image, imageName string) (string, error) {
+func DescribeImage(image *imageapi.Image, imageName string) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
-		formatMeta(out, image.ObjectMeta)
-		formatString(out, "Docker Image", image.DockerImageReference)
 		if len(imageName) > 0 {
 			formatString(out, "Image Name", imageName)
 		}
+		formatString(out, "Docker Image", image.DockerImageReference)
+		formatString(out, "Name", image.Name)
+		if !image.CreationTimestamp.IsZero() {
+			formatTime(out, "Created", image.CreationTimestamp.Time)
+		}
+		if len(image.Labels) > 0 {
+			formatMapStringString(out, "Labels", image.Labels)
+		}
+		if len(image.Annotations) > 0 {
+			formatAnnotations(out, image.ObjectMeta, "")
+		}
+
 		switch l := len(image.DockerImageLayers); l {
 		case 0:
 			// legacy case, server does not know individual layers
@@ -674,7 +684,7 @@ func (d *ImageStreamTagDescriber) Describe(namespace, name string, settings kpri
 		return "", err
 	}
 
-	return describeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
+	return DescribeImage(&imageStreamTag.Image, imageStreamTag.Image.Name)
 }
 
 // ImageStreamImageDescriber generates information about a ImageStreamImage (Image).
@@ -694,7 +704,7 @@ func (d *ImageStreamImageDescriber) Describe(namespace, name string, settings kp
 		return "", err
 	}
 
-	return describeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
+	return DescribeImage(&imageStreamImage.Image, imageStreamImage.Image.Name)
 }
 
 // ImageStreamDescriber generates information about a ImageStream (Image).
@@ -709,7 +719,10 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinte
 	if err != nil {
 		return "", err
 	}
+	return DescribeImageStream(imageStream)
+}
 
+func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
 		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
@@ -1008,6 +1021,7 @@ func (d *TemplateDescriber) DescribeParameters(params []templateapi.Parameter, o
 		formatString(out, indent+"Required", p.Required)
 		if len(p.Generate) == 0 {
 			formatString(out, indent+"Value", p.Value)
+			out.Write([]byte("\n"))
 			continue
 		}
 		if len(p.Value) > 0 {
@@ -1038,14 +1052,19 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 			continue
 		}
 
-		meta := metav1.ObjectMeta{}
-		meta.Name, _ = d.MetadataAccessor.Name(obj)
-		gvk, _, err := d.ObjectTyper.ObjectKinds(obj)
-		if err != nil {
-			fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, "<unknown>", meta.Name))
-			continue
+		name, _ := d.MetadataAccessor.Name(obj)
+		groupKind := "<unknown>"
+		if gvk, _, err := d.ObjectTyper.ObjectKinds(obj); err == nil {
+			gk := gvk[0].GroupKind()
+			groupKind = gk.String()
+		} else {
+			if unstructured, ok := obj.(*unstructured.Unstructured); ok {
+				gvk := unstructured.GroupVersionKind()
+				gk := gvk.GroupKind()
+				groupKind = gk.String()
+			}
 		}
-		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, gvk[0].Kind, meta.Name))
+		fmt.Fprintf(out, fmt.Sprintf("%s%s\t%s\n", indent, groupKind, name))
 		//meta.Annotations, _ = d.MetadataAccessor.Annotations(obj)
 		//meta.Labels, _ = d.MetadataAccessor.Labels(obj)
 		/*if len(meta.Labels) > 0 {
@@ -1067,7 +1086,7 @@ func (d *TemplateDescriber) Describe(namespace, name string, settings kprinters.
 
 func (d *TemplateDescriber) DescribeTemplate(template *templateapi.Template) (string, error) {
 	// TODO: write error?
-	_ = runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme)
+	_ = runtime.DecodeList(template.Objects, unstructured.UnstructuredJSONScheme)
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, template.ObjectMeta)

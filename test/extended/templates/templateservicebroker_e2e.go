@@ -13,6 +13,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -32,6 +33,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
 		template           *templateapi.Template
+		privatetemplate    *templateapi.Template
 		clusterrolebinding *authorizationapi.ClusterRoleBinding
 		brokercli          client.Client
 		service            *api.Service
@@ -42,6 +44,13 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		var err error
 
 		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "private",
+			},
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
@@ -78,11 +87,12 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		catalog, err := brokercli.Catalog(context.Background())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		for _, service = range catalog.Services {
-			if service.ID == string(template.UID) {
+		for _, s := range catalog.Services {
+			o.Expect(s.ID).NotTo(o.BeEquivalentTo(privatetemplate.UID))
+			if s.ID == string(template.UID) {
+				service = s
 				o.Expect(service.Plans).NotTo(o.BeEmpty())
 				plan = &service.Plans[0]
-				break
 			}
 		}
 		o.Expect(service.ID).To(o.BeEquivalentTo(template.UID))
@@ -91,6 +101,17 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	provision := func() {
 		g.By("provisioning a service")
 		_, err := brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
+			ServiceID: string(privatetemplate.UID),
+			PlanID:    plan.ID,
+			Parameters: map[string]string{
+				templateapi.NamespaceParameterKey:         cli.Namespace(),
+				templateapi.RequesterUsernameParameterKey: cli.Username(),
+			},
+		})
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(err.Error()).To(o.ContainSubstring("not found"))
+
+		_, err = brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
 			Parameters: map[string]string{
@@ -121,6 +142,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 				Name:      secret.Name,
 				UID:       secret.UID,
 			},
+			BindingIDs: []string{},
 		}))
 
 		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{
@@ -137,12 +159,12 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		o.Expect(templateInstance.Status.Conditions[0].Type).To(o.Equal(templateapi.TemplateInstanceReady))
 		o.Expect(templateInstance.Status.Conditions[0].Status).To(o.Equal(kapi.ConditionTrue))
 
-		o.Expect(secret.Type).To(o.Equal(kapi.SecretTypeOpaque))
+		o.Expect(secret.Type).To(o.Equal(v1.SecretTypeOpaque))
 		o.Expect(secret.Data).To(o.Equal(map[string][]byte{
 			"DATABASE_USER": []byte("test"),
 		}))
 
-		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))

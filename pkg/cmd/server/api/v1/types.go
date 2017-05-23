@@ -271,8 +271,10 @@ type MasterConfig struct {
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig `json:"auditConfig"`
 
-	// EnableTemplateServiceBroker is a temporary switch which enables TemplateServiceBroker.
-	EnableTemplateServiceBroker bool `json:"enableTemplateServiceBroker"`
+	// TemplateServiceBrokerConfig holds information related to the template
+	// service broker.  The broker is enabled if TemplateServiceBrokerConfig is
+	// non-nil.
+	TemplateServiceBrokerConfig *TemplateServiceBrokerConfig `json:"templateServiceBrokerConfig"`
 }
 
 // MasterAuthConfig configures authentication options in addition to the standard
@@ -1348,4 +1350,12 @@ type DefaultAdmissionConfig struct {
 
 	// Disable turns off an admission plugin that is enabled by default.
 	Disable bool `json:"disable"`
+}
+
+// TemplateServiceBrokerConfig holds information related to the template
+// service broker
+type TemplateServiceBrokerConfig struct {
+	// TemplateNamespaces indicates the namespace(s) in which the template service
+	// broker looks for templates to serve to the catalog.
+	TemplateNamespaces []string `json:"templateNamespaces"`
 }

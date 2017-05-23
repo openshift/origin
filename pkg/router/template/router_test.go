@@ -16,8 +16,8 @@ import (
 // TestCreateServiceUnit tests creating a service unit and finding it in router state
 func TestCreateServiceUnit(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	suKey := "test"
-	router.CreateServiceUnit("test")
+	suKey := "ns/test"
+	router.CreateServiceUnit(suKey)
 
 	if _, ok := router.FindServiceUnit(suKey); !ok {
 		t.Errorf("Unable to find serivce unit %s after creation", suKey)
@@ -27,7 +27,7 @@ func TestCreateServiceUnit(t *testing.T) {
 // TestDeleteServiceUnit tests that deleted service units no longer exist in state
 func TestDeleteServiceUnit(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	suKey := "test"
+	suKey := "ns/test"
 	router.CreateServiceUnit(suKey)
 
 	if _, ok := router.FindServiceUnit(suKey); !ok {
@@ -44,7 +44,7 @@ func TestDeleteServiceUnit(t *testing.T) {
 // TestAddEndpoints test adding endpoints to service units
 func TestAddEndpoints(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	suKey := "test"
+	suKey := "nsl/test"
 	router.CreateServiceUnit(suKey)
 
 	if _, ok := router.FindServiceUnit(suKey); !ok {
@@ -83,7 +83,7 @@ func TestAddEndpoints(t *testing.T) {
 // Test that AddEndpoints returns true and false correctly for changed endpoints.
 func TestAddEndpointDuplicates(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	suKey := "test"
+	suKey := "ns/test"
 	router.CreateServiceUnit(suKey)
 	if _, ok := router.FindServiceUnit(suKey); !ok {
 		t.Fatalf("Unable to find service unit %s after creation", suKey)
@@ -154,7 +154,7 @@ func TestAddEndpointDuplicates(t *testing.T) {
 // TestDeleteEndpoints tests removing endpoints from service units
 func TestDeleteEndpoints(t *testing.T) {
 	router := NewFakeTemplateRouter()
-	suKey := "test"
+	suKey := "ns/test"
 	router.CreateServiceUnit(suKey)
 
 	if _, ok := router.FindServiceUnit(suKey); !ok {
@@ -361,12 +361,13 @@ func TestAddRoute(t *testing.T) {
 	expectedSUs := map[string]ServiceUnit{
 		suName: {
 			Name:          suName,
+			Hostname:      "TestService.foo.svc",
 			EndpointTable: []Endpoint{},
 		},
 	}
 
 	if !reflect.DeepEqual(expectedSUs, router.serviceUnits) {
-		t.Fatalf("Expected %v service units, got %v", expectedSUs, router.serviceUnits)
+		t.Fatalf("Unexpected service units:\nwant: %#v\n got: %#v", expectedSUs, router.serviceUnits)
 	}
 
 	routeKey := router.routeKey(route)
@@ -476,7 +477,7 @@ func TestRemoveRoute(t *testing.T) {
 			Host: "host",
 		},
 	}
-	suKey := "test"
+	suKey := "bar/test"
 
 	router.CreateServiceUnit(suKey)
 	router.AddRoute(route)

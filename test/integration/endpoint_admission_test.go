@@ -7,7 +7,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -90,7 +89,7 @@ func TestEndpointAdmission(t *testing.T) {
 	testOne(t, clusterAdminKubeClient, "default", "external", true)
 
 	// Endpoint controller service account
-	_, serviceAccountClient, _, err := testutil.GetClientForServiceAccount(clusterAdminKubeClient, *clientConfig, bootstrappolicy.DefaultOpenShiftInfraNamespace, bootstrappolicy.InfraEndpointControllerServiceAccountName)
+	_, serviceAccountClient, _, err := testutil.GetClientForServiceAccount(clusterAdminKubeClient, *clientConfig, "kube-system", "endpoint-controller")
 	if err != nil {
 		t.Fatalf("error getting endpoint controller service account: %v", err)
 	}

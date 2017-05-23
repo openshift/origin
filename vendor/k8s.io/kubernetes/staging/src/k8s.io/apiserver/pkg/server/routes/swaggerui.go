@@ -24,7 +24,7 @@ import (
 type SwaggerUI struct{}
 
 // Install adds the SwaggerUI webservice to the given mux.
-func (l SwaggerUI) Install(c *mux.APIContainer) {
+func (l SwaggerUI) Install(c *mux.PathRecorderMux) {
 	// OpenShift never exposes swagger-ui. Commenting this out to remove the
 	// bindata import to save space.
 	/*

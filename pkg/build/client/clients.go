@@ -8,7 +8,7 @@ import (
 
 // BuildConfigGetter provides methods for getting BuildConfigs
 type BuildConfigGetter interface {
-	Get(namespace, name string) (*buildapi.BuildConfig, error)
+	Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error)
 }
 
 // BuildConfigUpdater provides methods for updating BuildConfigs
@@ -86,6 +86,29 @@ func NewOSClientBuildClonerClient(client osclient.Interface) *OSClientBuildClone
 // Clone generates new build for given build name
 func (c OSClientBuildClonerClient) Clone(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	return c.Client.Builds(namespace).Clone(request)
+}
+
+// BuildDeleter knows how to delete builds from OpenShift.
+type BuildDeleter interface {
+	// DeleteBuild removes the build from OpenShift's storage.
+	DeleteBuild(build *buildapi.Build) error
+}
+
+// buildDeleter removes a build from OpenShift.
+type buildDeleter struct {
+	builds osclient.BuildsNamespacer
+}
+
+// NewBuildDeleter creates a new buildDeleter.
+func NewBuildDeleter(builds osclient.BuildsNamespacer) BuildDeleter {
+	return &buildDeleter{
+		builds: builds,
+	}
+}
+
+// DeleteBuild deletes a build from OpenShift.
+func (p *buildDeleter) DeleteBuild(build *buildapi.Build) error {
+	return p.builds.Builds(build.Namespace).Delete(build.Name)
 }
 
 // BuildConfigInstantiator provides methods for instantiating builds from build configs

@@ -18,6 +18,11 @@ type ImagePolicyConfig struct {
 	// then the image pull specs will be updated.
 	ResolveImages ImageResolutionType
 
+	// ResolutionRules allows more specific image resolution rules to be applied per resource. If
+	// empty, it defaults to allowing local image stream lookups - "mysql" will map to the image stream
+	// tag "mysql:latest" in the current namespace if the stream supports it.
+	ResolutionRules []ImageResolutionPolicyRule
+
 	// ExecutionRules determine whether the use of an image is allowed in an object with a pod spec.
 	// By default, these rules only apply to pods, but may be extended to other resource types.
 	ExecutionRules []ImageExecutionPolicyRule
@@ -38,6 +43,17 @@ var (
 	// don't attempt resolution
 	DoNotAttempt ImageResolutionType = "DoNotAttempt"
 )
+
+// ImageResolutionPolicyRule describes resolution rules based on resource.
+type ImageResolutionPolicyRule struct {
+	// TargetResource is the identified group and resource. If Resource is *, this rule will apply
+	// to all resources in that group.
+	TargetResource metav1.GroupResource
+	// LocalNames will allow single segment names to be interpreted as namespace local image
+	// stream tags, but only if the target image stream tag has the "resolveLocalNames" field
+	// set.
+	LocalNames bool
+}
 
 // ImageExecutionPolicyRule determines whether a provided image may be used on the platform.
 type ImageExecutionPolicyRule struct {

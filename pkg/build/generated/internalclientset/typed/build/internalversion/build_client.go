@@ -8,6 +8,7 @@ import (
 type BuildInterface interface {
 	RESTClient() rest.Interface
 	BuildsGetter
+	BuildConfigsGetter
 }
 
 // BuildClient is used to interact with features provided by the build.openshift.io group.
@@ -17,6 +18,10 @@ type BuildClient struct {
 
 func (c *BuildClient) Builds(namespace string) BuildResourceInterface {
 	return newBuilds(c, namespace)
+}
+
+func (c *BuildClient) BuildConfigs(namespace string) BuildConfigInterface {
+	return newBuildConfigs(c, namespace)
 }
 
 // NewForConfig creates a new BuildClient for the given config.

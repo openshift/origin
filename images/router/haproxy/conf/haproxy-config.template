@@ -5,6 +5,7 @@
 */}}
 {{- define "/var/lib/haproxy/conf/haproxy.config" }}
 {{- $workingDir := .WorkingDir }}
+{{- $defaultDestinationCA := .DefaultDestinationCA }}
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
@@ -474,20 +475,23 @@ backend be_secure:{{$cfgIdx}}
       {{- if ne $weight 0 }}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-            {{- if $endpoint.NoHealthCheck }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}} ssl
+            {{- if $cfg.VerifyServiceHostname }} verifyhost {{ $serviceUnit.Hostname }}
+            {{- end }}
+            {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
             {{- else }}
+              {{- if gt (len $defaultDestinationCA) 0 }} verify required ca-file {{ $defaultDestinationCA }}
+              {{- else }} verify none
+              {{- end }}
+            {{- end }}
+            {{- if not $endpoint.NoHealthCheck }}
               {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{$healthIntv}} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }} check inter {{$healthIntv}}
+                {{- else }} check inter 5000ms
                 {{- end }}
               {{- else }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} ssl check inter 5000ms verify required ca-file {{$workingDir}}/cacerts/{{$cfgIdx}}.pem cookie {{$endpoint.IdHash}} weight {{$weight}}
+                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}}
+                {{- else }} check inter 5000ms
                 {{- end }}
               {{- end }}{{/* end get health interval annotation */}}
             {{- end }}{{/* end else no health check */}}
@@ -500,7 +504,7 @@ backend be_secure:{{$cfgIdx}}
 {{- else }}
 # Avoiding binding ports until routing configuration has been synchronized.
 {{- end }}{{/* end bind ports after sync */}}
-{{- end }}{{/* end haproxy config template */}}
+{{ end }}{{/* end haproxy config template */}}
 
 {{/*--------------------------------- END OF HAPROXY CONFIG, BELOW ARE MAPPING FILES ------------------------*/}}
 {{/*

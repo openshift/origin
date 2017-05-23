@@ -60,6 +60,13 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 		host, err := hostname(hostURL.Host)
 		o.Expect(err).NotTo(o.HaveOccurred())
+		if ip := net.ParseIP(host); ip == nil {
+			// we have a hostname, not an IP, but need to prefix
+			// nip.io addresses with an IP
+			ips, err := net.LookupIP(host)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			host = ips[0].String()
+		}
 		routeSuffix := fmt.Sprintf("%s.%s", host, hostNameSuffix)
 
 		g.By(fmt.Sprintf("calling oc new-app -f %q -p ROUTE_SUFFIX=%s", gitServerYaml, routeSuffix))
@@ -80,6 +87,9 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 
 		g.By("starting a test build")
 		br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
+		if !br.BuildSuccess {
+			exutil.DumpDeploymentLogs(gitServerDeploymentConfigName, oc)
+		}
 		br.AssertSuccess()
 	}
 

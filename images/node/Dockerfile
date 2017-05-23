@@ -10,12 +10,6 @@
 #
 FROM openshift/origin
 
-COPY centos-paas-sig-openshift-origin36.repo /etc/yum.repos.d/
-COPY usr/bin/* /usr/bin/
-COPY opt/cni/bin/* /opt/cni/bin/
-COPY etc/cni/net.d/* /etc/cni/net.d/
-COPY conf/openshift-sdn-ovs.conf /usr/lib/systemd/system/origin-node.service.d/
-COPY scripts/* /usr/local/bin/
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/manifest.json system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
@@ -29,7 +23,9 @@ RUN INSTALL_PKGS="libmnl libnetfilter_conntrack conntrack-tools openvswitch \
     mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d
 
 LABEL io.k8s.display-name="OpenShift Origin Node" \
-      io.k8s.description="This is a component of OpenShift Origin and contains the software for individual nodes when using SDN."
+      io.k8s.description="This is a component of OpenShift Origin and contains the software for individual nodes when using SDN." \
+      io.openshift.tags="openshift,node"
+
 VOLUME /etc/origin/node
 ENV KUBECONFIG=/etc/origin/node/node.kubeconfig
 

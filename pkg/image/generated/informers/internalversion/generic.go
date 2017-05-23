@@ -38,6 +38,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=Image, Version=InternalVersion
 	case api.SchemeGroupVersion.WithResource("images"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Image().InternalVersion().Images().Informer()}, nil
+	case api.SchemeGroupVersion.WithResource("imagestreams"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Image().InternalVersion().ImageStreams().Informer()}, nil
 
 	}
 

@@ -1096,7 +1096,7 @@ func TestValidateTLS(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
+			expectedErrors: 0,
 		},
 		{
 			name: "Edge termination OK with certs",
@@ -1250,7 +1250,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 				},
 			},
 			change:         func(route *api.Route) { route.Spec.Host = "" },
-			expectedErrors: 1,
+			expectedErrors: 0, // now controlled by rbac
 		},
 		{
 			route: &api.Route{
@@ -1268,7 +1268,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 				},
 			},
 			change:         func(route *api.Route) { route.Spec.Host = "other" },
-			expectedErrors: 1,
+			expectedErrors: 0, // now controlled by rbac
 		},
 		{
 			route: &api.Route{
@@ -1521,7 +1521,7 @@ func TestExtendedValidateRoute(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 1,
+			expectedErrors: 0,
 		},
 		{
 			name: "Edge termination OK with certs without host",

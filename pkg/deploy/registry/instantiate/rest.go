@@ -66,7 +66,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	// We need to process the deployment config before we can determine if it is possible to trigger
 	// a deployment.
 	if req.Latest {
-		if err := processTriggers(config, r.isn, req.Force); err != nil {
+		if err := processTriggers(config, r.isn, req.Force, req.ExcludeTriggers); err != nil {
 			return nil, err
 		}
 	}
@@ -109,7 +109,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 // processTriggers will go over all deployment triggers that require processing and update
 // the deployment config accordingly. This contains the work that the image change controller
 // had been doing up to the point we got the /instantiate endpoint.
-func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreamsNamespacer, force bool) error {
+func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreamsNamespacer, force bool, exclude []deployapi.DeploymentTriggerType) error {
 	errs := []error{}
 
 	// Process any image change triggers.
@@ -123,6 +123,10 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 		// Forced deployments should always try to resolve the images in the template.
 		// On the other hand, paused deployments or non-automatic triggers shouldn't.
 		if !force && (config.Spec.Paused || !params.Automatic) {
+			continue
+		}
+
+		if containsTriggerType(exclude, trigger.Type) {
 			continue
 		}
 
@@ -154,7 +158,18 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 			if !names.Has(container.Name) {
 				continue
 			}
-
+			if container.Image != latestReference {
+				// Update the image
+				container.Image = latestReference
+				// Log the last triggered image ID
+				params.LastTriggeredImage = latestReference
+			}
+		}
+		for i := range config.Spec.Template.Spec.InitContainers {
+			container := &config.Spec.Template.Spec.InitContainers[i]
+			if !names.Has(container.Name) {
+				continue
+			}
 			if container.Image != latestReference {
 				// Update the image
 				container.Image = latestReference
@@ -169,6 +184,15 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 	}
 
 	return nil
+}
+
+func containsTriggerType(types []deployapi.DeploymentTriggerType, triggerType deployapi.DeploymentTriggerType) bool {
+	for _, t := range types {
+		if t == triggerType {
+			return true
+		}
+	}
+	return false
 }
 
 // canTrigger determines if we can trigger a new deployment for config based on the various deployment triggers.

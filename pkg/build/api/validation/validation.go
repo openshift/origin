@@ -148,6 +148,14 @@ func ValidateBuildConfig(config *buildapi.BuildConfig) field.ErrorList {
 			"run policy must Parallel, Serial, or SerialLatestOnly"))
 	}
 
+	if config.Spec.SuccessfulBuildsHistoryLimit != nil {
+		allErrs = append(allErrs, validation.ValidateNonnegativeField(int64(*config.Spec.SuccessfulBuildsHistoryLimit), specPath.Child("successfulBuildsHistoryLimit"))...)
+	}
+
+	if config.Spec.FailedBuildsHistoryLimit != nil {
+		allErrs = append(allErrs, validation.ValidateNonnegativeField(int64(*config.Spec.FailedBuildsHistoryLimit), specPath.Child("failedBuildsHistoryLimit"))...)
+	}
+
 	allErrs = append(allErrs, validateCommonSpec(&config.Spec.CommonSpec, specPath)...)
 
 	return allErrs

@@ -63,9 +63,12 @@ To clear only the status set by a specific router on all routes in all namespace
 router_name is the name in the deployment config, not the name of the pod. If the router is running it will
 immediately update any cleared status.
 
-To clear the whole status field of the route by route name 
+To clear the status field of a route or all routes in a given namespace
 ./clear-route-status.sh [namespace] [route-name | ALL]
 
+
+Example Usage
+--------------
 To clear the status of all routes in all namespaces:
 oc get namespaces | awk '{if (NR!=1) print \$1}' | xargs -n 1 -I %% ./clear-route-status.sh %% ALL
 
@@ -84,9 +87,14 @@ if [[ ${#} -ne 2 || "${@}" == *" help "* ]]; then
 fi
 
 if ! command -v jq >/dev/null 2>&1; then
-    printf "%s\n%s\n" "Command line JSON processor 'jq' not found." "please install 'jq' to use this script."
+    printf "%s\n%s\n" "Command line JSON processor 'jq' not found." "please install 'jq' version greater than 1.4 to use this script."
     exit 1
 fi
+
+if ! echo | jq '."status"."ingress"|=map(select(.routerName != "test"))' >/dev/null 2>&1; then
+    printf "%s\n%s\n" "Command line JSON processor 'jq' version is incorrect." "Please install 'jq' version greater than 1.4 to use this script"
+    exit 1
+fi    
 
 oc proxy > /dev/null &
 PROXY_PID="${!}"

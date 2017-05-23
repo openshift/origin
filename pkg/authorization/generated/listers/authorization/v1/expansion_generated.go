@@ -2,6 +2,14 @@
 
 package v1
 
+// ClusterPolicyListerExpansion allows custom methods to be added to
+// ClusterPolicyLister.
+type ClusterPolicyListerExpansion interface{}
+
+// ClusterPolicyBindingListerExpansion allows custom methods to be added to
+// ClusterPolicyBindingLister.
+type ClusterPolicyBindingListerExpansion interface{}
+
 // ClusterRoleListerExpansion allows custom methods to be added to
 // ClusterRoleLister.
 type ClusterRoleListerExpansion interface{}
@@ -17,6 +25,14 @@ type PolicyListerExpansion interface{}
 // PolicyNamespaceListerExpansion allows custom methods to be added to
 // PolicyNamespaeLister.
 type PolicyNamespaceListerExpansion interface{}
+
+// PolicyBindingListerExpansion allows custom methods to be added to
+// PolicyBindingLister.
+type PolicyBindingListerExpansion interface{}
+
+// PolicyBindingNamespaceListerExpansion allows custom methods to be added to
+// PolicyBindingNamespaeLister.
+type PolicyBindingNamespaceListerExpansion interface{}
 
 // RoleListerExpansion allows custom methods to be added to
 // RoleLister.

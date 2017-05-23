@@ -192,6 +192,8 @@ type ImageStreamList struct {
 	Items []ImageStream
 }
 
+// +genclient=true
+
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image
 // repository on a registry.
@@ -207,10 +209,23 @@ type ImageStream struct {
 
 // ImageStreamSpec represents options for ImageStreams.
 type ImageStreamSpec struct {
+	// lookupPolicy controls how other resources reference images within this namespace.
+	LookupPolicy ImageLookupPolicy
 	// Optional, if specified this stream is backed by a Docker repository on this server
 	DockerImageRepository string
 	// Tags map arbitrary string values to specific image locators
 	Tags map[string]TagReference
+}
+
+// ImageLookupPolicy describes how an image stream can be used to override the image references
+// used by pods, builds, and other resources in a namespace.
+type ImageLookupPolicy struct {
+	// local will change the docker short image references (like "mysql" or
+	// "php:latest") on objects in this namespace to the image ID whenever they match
+	// this image stream, instead of reaching out to a remote registry. The name will
+	// be fully qualified to an image ID if found. The tag's referencePolicy is taken
+	// into account on the replaced value. Only works within the current namespace.
+	Local bool
 }
 
 // TagReference specifies optional annotations for images using this tag and an optional reference to
@@ -365,6 +380,10 @@ type ImageStreamTag struct {
 
 	// Conditions is an array of conditions that apply to the image stream tag.
 	Conditions []TagEventCondition
+
+	// LookupPolicy indicates whether this tag will handle image references in this
+	// namespace.
+	LookupPolicy ImageLookupPolicy
 
 	// The Image associated with the ImageStream and tag.
 	Image Image

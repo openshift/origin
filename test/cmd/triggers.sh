@@ -109,4 +109,32 @@ os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world --from-ima
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'image.*ruby-hello-world:latest \(ruby-hello-world\).*true'
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/triggers/annotations"
+## Deployment configs
+
+os::cmd::expect_success 'oc create deployment test --image=busybox'
+
+# error conditions
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-github' 'does not support GitHub web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-webhook' 'does not support web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-gitlab' 'does not support GitLab web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-bitbucket' 'does not support Bitbucket web hooks'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest' 'you must specify --containers when setting --from-image'
+os::cmd::expect_failure_and_text 'oc set triggers deploy/test --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: busybox\)'
+# print
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|gitlab|bitbucket'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'gitlab'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'bitbucket'
+# remove all
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --remove-all' 'updated'
+os::cmd::expect_success_and_not_text 'oc set triggers deploy/test' 'webhook|github|image|gitlab|bitbucket'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*false'
+# auto
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --auto' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'config.*true'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test --from-image=ruby-hello-world:latest -c busybox' 'updated'
+os::cmd::expect_success_and_text 'oc set triggers deploy/test' 'image.*ruby-hello-world:latest \(busybox\).*true'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end

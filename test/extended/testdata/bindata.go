@@ -5,6 +5,9 @@
 // test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
 // test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
 // test/extended/testdata/build-extended/jvm-runner.yaml
+// test/extended/testdata/build-pruning/failed-build-config.yaml
+// test/extended/testdata/build-pruning/imagestream.yaml
+// test/extended/testdata/build-pruning/successful-build-config.yaml
 // test/extended/testdata/build-quota/.s2i/bin/assemble
 // test/extended/testdata/build-quota/Dockerfile
 // test/extended/testdata/build-secrets/Dockerfile
@@ -99,6 +102,7 @@
 // test/extended/testdata/ldap/ldapserver-service.json
 // test/extended/testdata/long_names/Dockerfile
 // test/extended/testdata/long_names/fixture.json
+// test/extended/testdata/reencrypt-serving-cert.yaml
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
@@ -114,6 +118,7 @@
 // test/extended/testdata/samplepipeline-withenvs.yaml
 // test/extended/testdata/scoped-router.yaml
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
+// test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/statusfail-assemble/.s2i/bin/assemble
 // test/extended/testdata/statusfail-failedassemble.yaml
 // test/extended/testdata/statusfail-fetchbuilderimage.yaml
@@ -446,6 +451,125 @@ func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-extended/jvm-runner.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningFailedBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  failedBuildsHistoryLimit: 2
+  triggers: {}
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/non-working-example.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'myphp:latest'
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+`)
+
+func testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningFailedBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningFailedBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/failed-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningImagestreamYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: myphp
+`)
+
+func testExtendedTestdataBuildPruningImagestreamYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningImagestreamYaml, nil
+}
+
+func testExtendedTestdataBuildPruningImagestreamYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningImagestreamYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/imagestream.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+  labels:
+    app: myphp
+  annotations:
+    openshift.io/generated-by: OpenShiftWebConsole
+spec:
+  successfulBuildsHistoryLimit: 2
+  triggers: {}
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'myphp:latest'
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+`)
+
+func testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/successful-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -3746,7 +3870,7 @@ var _testExtendedTestdataIncrementalAuthBuildJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/bparees/incremental-app.git"
+            "uri": "https://github.com/openshift/incremental-app.git"
           }
         },
         "strategy": {
@@ -3790,7 +3914,7 @@ var _testExtendedTestdataIncrementalAuthBuildJson = []byte(`{
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/bparees/incremental-app.git"
+            "uri": "https://github.com/openshift/incremental-app.git"
           }
         },
         "strategy": {
@@ -4244,7 +4368,7 @@ var _testExtendedTestdataJenkinsPluginCreateJobXml = []byte(`<?xml version='1.0'
 		"source": {
 		    "type": "Git",
 		    "git": {
-			"uri": "https://github.com/gabemontero/forcepull-extended-test-builder.git"
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
 		    }
 		},
 		"strategy": {
@@ -4420,7 +4544,7 @@ var _testExtendedTestdataJenkinsPluginDeleteJobXml = []byte(`<?xml version='1.0'
 		"source": {
 		    "type": "Git",
 		    "git": {
-			"uri": "https://github.com/gabemontero/forcepull-extended-test-builder.git"
+			"uri": "https://github.com/openshift/ruby-hello-world.git"
 		    }
 		},
 		"strategy": {
@@ -5496,6 +5620,114 @@ func testExtendedTestdataLong_namesFixtureJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataReencryptServingCertYaml = []byte(`apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: serving-cert
+    labels:
+      app: serving-cert
+  spec:
+    containers:
+    - image: nginx:latest
+      name: serve
+      command:
+        - /usr/sbin/nginx
+      args:
+        - -c
+        - /etc/nginx/nginx.conf
+      ports:
+      - containerPort: 8443
+        protocol: TCP
+      volumeMounts:
+      - name: cert
+        mountPath: /etc/serving-cert
+      - name: conf
+        mountPath: /etc/nginx
+      - name: tmp
+        mountPath: /var/cache/nginx
+      - name: tmp
+        mountPath: /var/run
+    volumes:
+    - name: conf
+      configMap:
+        name: serving-cert
+    - name: cert
+      secret:
+        secretName: serving-cert
+    - name: tmp
+      emptyDir: {}
+    - name: tmp2
+      emptyDir: {}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: serving-cert
+  data:
+    nginx.conf: |
+      daemon off;
+      events { }
+      http {
+        server {
+            listen 8443;
+            ssl    on;
+            ssl_certificate     /etc/serving-cert/tls.crt;
+            ssl_certificate_key    /etc/serving-cert/tls.key;
+            server_name  "*.svc";
+            location / {
+                root   /usr/share/nginx/html;
+                index  index.html index.htm;
+            }
+            error_page   500 502 503 504  /50x.html;
+            location = /50x.html {
+                root   /usr/share/nginx/html;
+            }
+        }
+      }
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: serving-cert
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+  spec:
+    selector:
+      app: serving-cert
+    ports:
+      - port: 443
+        name: https
+        targetPort: 8443
+        protocol: TCP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: serving-cert
+  spec:
+    tls:
+      termination: Reencrypt
+      # no destination CA certificate needed
+    to:
+      kind: Service
+      name: serving-cert
+`)
+
+func testExtendedTestdataReencryptServingCertYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataReencryptServingCertYaml, nil
+}
+
+func testExtendedTestdataReencryptServingCertYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataReencryptServingCertYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/reencrypt-serving-cert.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataRolesEmptyRoleYaml = []byte(`apiVersion: v1
 kind: Role
 metadata:
@@ -6388,6 +6620,65 @@ func testExtendedTestdataServiceServingCertNginxServingCertConf() (*asset, error
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/service-serving-cert/nginx-serving-cert.conf", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataSignerBuildconfigYaml = []byte(`kind: List
+apiVersion: v1
+items:
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: signer
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: signer-build
+  spec:
+    triggers:
+      - type: ConfigChange
+    source:
+      dockerfile: |
+        FROM openshift/origin:latest
+        RUN yum install -y skopeo && yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
+        RUN echo $'%echo Generating openpgp key ...\n\
+            Key-Type: DSA \n\
+            Key-Length: 1024 \n\
+            Subkey-Type: ELG-E \n\
+            Subkey-Length: 1024 \n\
+            Name-Real: Joe Tester \n\
+            Name-Comment: with stupid passphrase \n\
+            Name-Email: joe@foo.bar \n\
+            Expire-Date: 0 \n\
+            Creation-Date: 2017-01-01 \n\
+            %commit \n\
+            %echo done \n' >> dummy_key.conf
+    strategy:
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: DockerImage
+          name: openshift/origin:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: signer:latest
+`)
+
+func testExtendedTestdataSignerBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataSignerBuildconfigYaml, nil
+}
+
+func testExtendedTestdataSignerBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataSignerBuildconfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/signer-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -12948,7 +13239,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "4"
+              "name": "6"
             }
           },
           {
@@ -12981,6 +13272,22 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/nodejs-4-centos7:latest"
+            }
+          },
+          {
+            "name": "6",
+            "annotations": {
+              "openshift.io/display-name": "Node.js 6",
+              "description": "Build and run Node.js 6 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-nodejs-container/blob/master/6/README.md.",
+              "iconClass": "icon-nodejs",
+              "tags": "builder,nodejs",
+              "supports":"nodejs:6,nodejs",
+              "version": "6",
+              "sampleRepo": "https://github.com/openshift/nodejs-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/nodejs-6-centos7:latest"
             }
           }
         ]
@@ -13252,7 +13559,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "iconClass": "icon-wildfly",
               "tags": "builder,wildfly,java",
               "supports":"jee,java",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "ImageStreamTag",
@@ -13268,7 +13575,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:8.1,jee,java",
               "version": "8.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -13284,7 +13591,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:9.0,jee,java",
               "version": "9.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -13300,7 +13607,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.0,jee,java",
               "version": "10.0",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -13316,7 +13623,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
               "tags": "builder,wildfly,java",
               "supports":"wildfly:10.1,jee,java",
               "version": "10.1",
-              "sampleRepo": "https://github.com/bparees/openshift-jee-sample.git"
+              "sampleRepo": "https://github.com/openshift/openshift-jee-sample.git"
             },
             "from": {
               "kind": "DockerImage",
@@ -18343,7 +18650,7 @@ parameters:
   description: The source URL for the application
   displayName: Source URL
   required: true
-  value: https://github.com/bparees/openshift-jee-sample.git
+  value: https://github.com/openshift/openshift-jee-sample.git
 - name: GIT_SOURCE_REF
   description: The source Ref for the application
   displayName: Source Ref
@@ -19025,6 +19332,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
 	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
 	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
+	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
+	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
+	"test/extended/testdata/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml,
 	"test/extended/testdata/build-quota/.s2i/bin/assemble": testExtendedTestdataBuildQuotaS2iBinAssemble,
 	"test/extended/testdata/build-quota/Dockerfile": testExtendedTestdataBuildQuotaDockerfile,
 	"test/extended/testdata/build-secrets/Dockerfile": testExtendedTestdataBuildSecretsDockerfile,
@@ -19119,6 +19429,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/ldap/ldapserver-service.json": testExtendedTestdataLdapLdapserverServiceJson,
 	"test/extended/testdata/long_names/Dockerfile": testExtendedTestdataLong_namesDockerfile,
 	"test/extended/testdata/long_names/fixture.json": testExtendedTestdataLong_namesFixtureJson,
+	"test/extended/testdata/reencrypt-serving-cert.yaml": testExtendedTestdataReencryptServingCertYaml,
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
@@ -19134,6 +19445,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/samplepipeline-withenvs.yaml": testExtendedTestdataSamplepipelineWithenvsYaml,
 	"test/extended/testdata/scoped-router.yaml": testExtendedTestdataScopedRouterYaml,
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
+	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataStatusfailAssembleS2iBinAssemble,
 	"test/extended/testdata/statusfail-failedassemble.yaml": testExtendedTestdataStatusfailFailedassembleYaml,
 	"test/extended/testdata/statusfail-fetchbuilderimage.yaml": testExtendedTestdataStatusfailFetchbuilderimageYaml,
@@ -19315,6 +19627,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"jvm-runner-with-scripts.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml, map[string]*bintree{}},
 					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
 				}},
+				"build-pruning": &bintree{nil, map[string]*bintree{
+					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
+					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
+					"successful-build-config.yaml": &bintree{testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
+				}},
 				"build-quota": &bintree{nil, map[string]*bintree{
 					".s2i": &bintree{nil, map[string]*bintree{
 						"bin": &bintree{nil, map[string]*bintree{
@@ -19473,6 +19790,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataLong_namesDockerfile, map[string]*bintree{}},
 					"fixture.json": &bintree{testExtendedTestdataLong_namesFixtureJson, map[string]*bintree{}},
 				}},
+				"reencrypt-serving-cert.yaml": &bintree{testExtendedTestdataReencryptServingCertYaml, map[string]*bintree{}},
 				"roles": &bintree{nil, map[string]*bintree{
 					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
@@ -19498,6 +19816,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"service-serving-cert": &bintree{nil, map[string]*bintree{
 					"nginx-serving-cert.conf": &bintree{testExtendedTestdataServiceServingCertNginxServingCertConf, map[string]*bintree{}},
 				}},
+				"signer-buildconfig.yaml": &bintree{testExtendedTestdataSignerBuildconfigYaml, map[string]*bintree{}},
 				"statusfail-assemble": &bintree{nil, map[string]*bintree{
 					".s2i": &bintree{nil, map[string]*bintree{
 						"bin": &bintree{nil, map[string]*bintree{

@@ -10,6 +10,7 @@ import (
 type BuildV1Interface interface {
 	RESTClient() rest.Interface
 	BuildsGetter
+	BuildConfigsGetter
 }
 
 // BuildV1Client is used to interact with features provided by the build.openshift.io group.
@@ -19,6 +20,10 @@ type BuildV1Client struct {
 
 func (c *BuildV1Client) Builds(namespace string) BuildResourceInterface {
 	return newBuilds(c, namespace)
+}
+
+func (c *BuildV1Client) BuildConfigs(namespace string) BuildConfigInterface {
+	return newBuildConfigs(c, namespace)
 }
 
 // NewForConfig creates a new BuildV1Client for the given config.

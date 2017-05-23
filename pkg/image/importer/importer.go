@@ -632,7 +632,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 			continue
 		}
 		// we do not preserve manifests of legacy images
-		importDigest.Image, err = schema0ToImage(image, importDigest.Name)
+		importDigest.Image, err = schema0ToImage(image)
 		if err != nil {
 			importDigest.Err = err
 			continue
@@ -651,7 +651,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 			continue
 		}
 		// we do not preserve manifests of legacy images
-		importTag.Image, err = schema0ToImage(image, "")
+		importTag.Image, err = schema0ToImage(image)
 		if err != nil {
 			importTag.Err = err
 			continue

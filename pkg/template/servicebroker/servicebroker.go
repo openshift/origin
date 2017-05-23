@@ -15,22 +15,27 @@ import (
 )
 
 type Broker struct {
-	secretsGetter     internalversion.SecretsGetter
-	localSAR          client.LocalSubjectAccessReviewsNamespacer
-	templateclient    internalversiontemplate.TemplateInterface
-	restconfig        restclient.Config
-	lister            cache.StoreToTemplateLister
-	templateNamespace string
+	secretsGetter      internalversion.SecretsGetter
+	localSAR           client.LocalSubjectAccessReviewsNamespacer
+	templateclient     internalversiontemplate.TemplateInterface
+	restconfig         restclient.Config
+	lister             cache.StoreToTemplateLister
+	templateNamespaces map[string]struct{}
 }
 
-func NewBroker(restconfig restclient.Config, localSAR client.LocalSubjectAccessReviewsNamespacer, secretsGetter internalversion.SecretsGetter, informers shared.InformerFactory, templateNamespace string) *Broker {
+func NewBroker(restconfig restclient.Config, localSAR client.LocalSubjectAccessReviewsNamespacer, secretsGetter internalversion.SecretsGetter, informers shared.InformerFactory, namespaces []string) *Broker {
+	templateNamespaces := map[string]struct{}{}
+	for _, namespace := range namespaces {
+		templateNamespaces[namespace] = struct{}{}
+	}
+
 	return &Broker{
-		secretsGetter:     secretsGetter,
-		localSAR:          localSAR,
-		templateclient:    templateclientset.NewForConfigOrDie(&restconfig).Template(),
-		restconfig:        restconfig,
-		lister:            informers.Templates().Lister(),
-		templateNamespace: templateNamespace,
+		secretsGetter:      secretsGetter,
+		localSAR:           localSAR,
+		templateclient:     templateclientset.NewForConfigOrDie(&restconfig).Template(),
+		restconfig:         restconfig,
+		lister:             informers.Templates().Lister(),
+		templateNamespaces: templateNamespaces,
 	}
 }
 

@@ -32,6 +32,8 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
+	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
+	clientgoclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -41,8 +43,6 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	authzcache "github.com/openshift/origin/pkg/authorization/authorizer/cache"
-	authzremote "github.com/openshift/origin/pkg/authorization/authorizer/remote"
 	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
@@ -296,7 +296,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		}
 
 		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+		handler = apiserverfilters.WithPanicRecovery(handler)
 		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, contextMapper, kc.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
@@ -310,32 +310,32 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 }
 
 func (c *MasterConfig) RunHealth() error {
-	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs)
+	postGoRestfulMux := genericmux.NewPathRecorderMux()
+	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs, postGoRestfulMux)
 
-	healthz.InstallHandler(&apiContainer.NonSwaggerRoutes, healthz.PingHealthz)
+	healthz.InstallHandler(postGoRestfulMux, healthz.PingHealthz)
 	initReadinessCheckRoute(apiContainer, "/healthz/ready", func() bool { return true })
-	genericroutes.Profiling{}.Install(apiContainer)
-	genericroutes.MetricsWithReset{}.Install(apiContainer)
+	genericroutes.Profiling{}.Install(postGoRestfulMux)
+	genericroutes.MetricsWithReset{}.Install(postGoRestfulMux)
 
 	// TODO: replace me with a service account for controller manager
-	authn, err := serverauthenticator.NewRemoteAuthenticator(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication(), c.APIClientCAs, 5*time.Minute, 10)
+	tokenReview := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
+	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, c.APIClientCAs, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-	authz, err := authzremote.NewAuthorizer(c.PrivilegedLoopbackOpenShiftClient)
+	sarClient := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
+	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-	authz, err = authzcache.NewAuthorizer(authz, 5*time.Minute, 10)
-	if err != nil {
-		return err
-	}
+
 	// we use direct bypass to allow readiness and health to work regardless of the master health
-	authz = serverhandlers.NewBypassAuthorizer(authz, "/healthz", "/healthz/ready")
+	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
 	contextMapper := c.getRequestContextMapper()
 	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
 	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
-	handler = apiserverfilters.WithPanicRecovery(handler, contextMapper)
+	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
 	handler = apirequest.WithRequestContext(handler, contextMapper)
 
@@ -506,7 +506,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 	// TODO(sttts): use upstream version route
 	initVersionRoute(apiContainer.Container, "/version/openshift")
 
-	if c.Options.EnableTemplateServiceBroker {
+	if c.Options.TemplateServiceBrokerConfig != nil {
 		openservicebrokerserver.Route(
 			apiContainer.Container,
 			templateapi.ServiceBrokerRoot,
@@ -515,14 +515,14 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 				c.PrivilegedLoopbackOpenShiftClient,
 				c.PrivilegedLoopbackKubernetesClientsetInternal.Core(),
 				c.Informers,
-				c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace,
+				c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
 			),
 		)
 	}
 
 	// Set up OAuth metadata only if we are configured to use OAuth
 	if c.Options.OAuthConfig != nil {
-		initOAuthAuthorizationServerMetadataRoute(apiContainer, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+		initOAuthAuthorizationServerMetadataRoute(server.FallThroughHandler, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
 	}
 
 	return messages, nil
@@ -561,7 +561,7 @@ func writeJSON(resp *restful.Response, json []byte) {
 // initOAuthAuthorizationServerMetadataRoute initializes an HTTP endpoint for OAuth 2.0 Authorization Server Metadata discovery
 // https://tools.ietf.org/id/draft-ietf-oauth-discovery-04.html#rfc.section.2
 // masterPublicURL should be internally and externally routable to allow all users to discover this information
-func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIContainer, path, masterPublicURL string) {
+func initOAuthAuthorizationServerMetadataRoute(mux *genericmux.PathRecorderMux, path, masterPublicURL string) {
 	// Build OAuth metadata once
 	metadata, err := json.MarshalIndent(discovery.Get(masterPublicURL, OpenShiftOAuthAuthorizeURL(masterPublicURL), OpenShiftOAuthTokenURL(masterPublicURL)), "", "  ")
 	if err != nil {
@@ -569,23 +569,11 @@ func initOAuthAuthorizationServerMetadataRoute(apiContainer *genericmux.APIConta
 		return
 	}
 
-	// Create temporary container because we only have a mux for secret routes
-	secretContainer := restful.NewContainer()
-	secretContainer.ServeMux = apiContainer.UnlistedRoutes
-
-	// Set up a service to return the OAuth metadata.
-	ws := new(restful.WebService)
-	ws.Path(path)
-	ws.Doc("OAuth 2.0 Authorization Server Metadata")
-	ws.Route(
-		ws.GET("/").To(func(_ *restful.Request, resp *restful.Response) {
-			writeJSON(resp, metadata)
-		}).
-			Doc("get the server's OAuth 2.0 Authorization Server Metadata").
-			Operation("getOAuthAuthorizationServerMetadata").
-			Produces(restful.MIME_JSON))
-
-	secretContainer.Add(ws)
+	mux.UnlistedHandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(metadata)
+	})
 }
 
 func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.Storage {
@@ -630,11 +618,6 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 
 	checkStorageErr(err)
 	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
-
-	routeAllocator := c.RouteAllocator()
-
-	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator)
-	checkStorageErr(err)
 
 	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.RESTOptionsGetter)
 	checkStorageErr(err)
@@ -720,6 +703,10 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	imageStreamImportStorage := imagestreamimport.NewREST(importerFn, imageStreamRegistry, internalImageStreamStorage, imageStorage, c.ImageStreamImportSecretClient(), importTransport, insecureImportTransport, importerDockerClientFn, c.Options.ImagePolicyConfig.AllowedRegistriesForImport, c.RegistryNameFn, c.ImageStreamImportSARClient().SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
+
+	routeAllocator := c.RouteAllocator()
+	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.RESTOptionsGetter, routeAllocator, subjectAccessReviewRegistry)
+	checkStorageErr(err)
 
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
@@ -907,7 +894,7 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 		"routes/status": routeStatusStorage,
 	}
 
-	if c.Options.EnableTemplateServiceBroker {
+	if c.Options.TemplateServiceBrokerConfig != nil {
 		templateInstanceStorage, err := templateinstanceetcd.NewREST(c.RESTOptionsGetter, c.PrivilegedLoopbackOpenShiftClient)
 		checkStorageErr(err)
 		brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.RESTOptionsGetter)

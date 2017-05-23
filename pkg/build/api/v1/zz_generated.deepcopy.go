@@ -179,6 +179,16 @@ func DeepCopy_v1_BuildConfigSpec(in interface{}, out interface{}, c *conversion.
 		if err := DeepCopy_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, c); err != nil {
 			return err
 		}
+		if in.SuccessfulBuildsHistoryLimit != nil {
+			in, out := &in.SuccessfulBuildsHistoryLimit, &out.SuccessfulBuildsHistoryLimit
+			*out = new(int32)
+			**out = **in
+		}
+		if in.FailedBuildsHistoryLimit != nil {
+			in, out := &in.FailedBuildsHistoryLimit, &out.FailedBuildsHistoryLimit
+			*out = new(int32)
+			**out = **in
+		}
 		return nil
 	}
 }

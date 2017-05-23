@@ -331,6 +331,13 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 			return false, nil
 		}
 
+		healthStatus := 0
+		client.Discovery().RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
+		if healthStatus != http.StatusOK {
+			glog.Errorf("Server isn't healthy yet.  Waiting a little while.")
+			return false, nil
+		}
+
 		discoveryClient = client.Discovery()
 		return true, nil
 	})
@@ -560,8 +567,7 @@ func StartControllers(controllers map[string]InitFunc, s *options.CMServer, root
 				cloud,
 				ProbeAttachableVolumePlugins(s.VolumeConfiguration),
 				s.DisableAttachDetachReconcilerSync,
-				s.ReconcilerSyncLoopPeriod.Duration,
-			)
+				s.ReconcilerSyncLoopPeriod.Duration)
 		if attachDetachControllerErr != nil {
 			return fmt.Errorf("failed to start attach/detach controller: %v", attachDetachControllerErr)
 		}

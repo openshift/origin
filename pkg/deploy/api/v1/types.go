@@ -267,6 +267,9 @@ type DeploymentTriggerImageChangeParams struct {
 	// inside the pod template.
 	Automatic bool `json:"automatic,omitempty" protobuf:"varint,1,opt,name=automatic"`
 	// ContainerNames is used to restrict tag updates to the specified set of container names in a pod.
+	// If multiple triggers point to the same containers, the resulting behavior is undefined. Future
+	// API versions will make this a validation error. If ContainerNames does not point to a valid container,
+	// the trigger will be ignored. Future API versions will make this a validation error.
 	ContainerNames []string `json:"containerNames,omitempty" protobuf:"bytes,2,rep,name=containerNames"`
 	// From is a reference to an image stream tag to watch for changes. From.Name is the only
 	// required subfield - if From.Namespace is blank, the namespace of the current deployment
@@ -405,6 +408,10 @@ type DeploymentRequest struct {
 	// Force will try to force a new deployment to run. If the deployment config is paused,
 	// then setting this to true will return an Invalid error.
 	Force bool `json:"force" protobuf:"varint,3,opt,name=force"`
+	// ExcludeTriggers instructs the instantiator to avoid processing the specified triggers.
+	// This field overrides the triggers from latest and allows clients to control specific
+	// logic. This field is ignored if not specified.
+	ExcludeTriggers []DeploymentTriggerType `json:"excludeTriggers,omitempty" protobuf:"bytes,4,rep,name=excludeTriggers,casttype=DeploymentTriggerType"`
 }
 
 // DeploymentLog represents the logs for a deployment

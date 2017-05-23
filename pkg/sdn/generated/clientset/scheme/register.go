@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	sdnv1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	networkv1 "github.com/openshift/origin/pkg/sdn/api/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +32,6 @@ func init() {
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
 func AddToScheme(scheme *runtime.Scheme) {
-	sdnv1.AddToScheme(scheme)
+	networkv1.AddToScheme(scheme)
 
 }

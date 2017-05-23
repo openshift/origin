@@ -42,10 +42,14 @@ func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache
 		AddFunc:    c.addDeploymentConfig,
 		UpdateFunc: c.updateDeploymentConfig,
 	})
-	streamInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.addImageStream,
-		UpdateFunc: c.updateImageStream,
-	})
+
+	if streamInformer != nil {
+		c.triggerFromImages = true
+		streamInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc:    c.addImageStream,
+			UpdateFunc: c.updateImageStream,
+		})
+	}
 
 	c.dcLister.Indexer = dcInformer.GetIndexer()
 	c.dcListerSynced = dcInformer.HasSynced

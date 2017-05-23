@@ -32,7 +32,10 @@ func NewAPIServerCommand(name, fullName string, out io.Writer) *cobra.Command {
 			logs.InitLogs()
 			defer logs.FlushLogs()
 
-			if err := apiserverapp.Run(apiServerOptions); err != nil {
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+
+			if err := apiserverapp.Run(apiServerOptions, stopCh); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}

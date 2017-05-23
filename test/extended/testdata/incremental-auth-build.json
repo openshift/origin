@@ -34,7 +34,7 @@
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/bparees/incremental-app.git"
+            "uri": "https://github.com/openshift/incremental-app.git"
           }
         },
         "strategy": {
@@ -78,7 +78,7 @@
         "source": {
           "type": "Git",
           "git": {
-            "uri": "https://github.com/bparees/incremental-app.git"
+            "uri": "https://github.com/openshift/incremental-app.git"
           }
         },
         "strategy": {

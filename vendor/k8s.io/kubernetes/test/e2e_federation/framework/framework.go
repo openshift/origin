@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubernetes/federation/client/clientset_generated/federation_clientset"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	. "github.com/onsi/ginkgo"
@@ -40,33 +41,40 @@ import (
 type Framework struct {
 	*framework.Framework
 
+	// To make sure that this framework cleans up after itself, no matter what,
+	// we install a Cleanup action before each test and clear it after.  If we
+	// should abort, the AfterSuite hook should run all Cleanup actions.
+	cleanupHandle framework.CleanupActionHandle
+
 	FederationClientset *federation_clientset.Clientset
 	FederationNamespace *v1.Namespace
 }
 
 func NewDefaultFederatedFramework(baseName string) *Framework {
-	options := framework.FrameworkOptions{
-		ClientQPS:   20,
-		ClientBurst: 50,
-	}
+	f := &Framework{}
 
-	f := &Framework{&framework.Framework{
-		BaseName:                 baseName,
-		AddonResourceConstraints: make(map[string]framework.ResourceConstraint),
-		Options:                  options,
-		ClientSet:                nil,
-	}, nil, &v1.Namespace{}}
-
-	BeforeEach(f.BeforeEach)
-	BeforeEach(f.FederationBeforeEach)
+	// Register the federation cleanup before initializing the default
+	// e2e framework to ensure it gets called before the default
+	// framework's cleanup.
 	AfterEach(f.FederationAfterEach)
-	AfterEach(f.AfterEach)
+
+	f.Framework = framework.NewDefaultFramework(baseName)
+	f.Framework.SkipNamespaceCreation = true
+
+	// Register the federation setup after initializing the default
+	// e2e framework to ensure it gets called after the default
+	// framework's setup.
+	BeforeEach(f.FederationBeforeEach)
 
 	return f
 }
 
 // FederationBeforeEach checks for federation apiserver is ready and makes a namespace.
 func (f *Framework) FederationBeforeEach() {
+	// The fact that we need this feels like a bug in ginkgo.
+	// https://github.com/onsi/ginkgo/issues/222
+	f.cleanupHandle = framework.AddCleanupAction(f.FederationAfterEach)
+
 	if f.FederationClientset == nil {
 		By("Creating a release 1.5 federation Clientset")
 		var err error
@@ -122,6 +130,8 @@ func (f *Framework) deleteFederationNs() {
 
 // FederationAfterEach deletes the namespace, after reading its events.
 func (f *Framework) FederationAfterEach() {
+	framework.RemoveCleanupAction(f.cleanupHandle)
+
 	// DeleteNamespace at the very end in defer, to avoid any
 	// expectation failures preventing deleting the namespace.
 	defer func() {
@@ -221,4 +231,21 @@ func (f *Framework) GetUnderlyingFederatedContexts() []E2EContext {
 	}
 
 	return e2eContexts
+}
+
+func (f *Framework) GetRegisteredClusters() ClusterSlice {
+	if framework.TestContext.FederationConfigFromCluster {
+		return registeredClustersFromSecrets(f)
+	} else {
+		return registeredClustersFromConfig(f)
+	}
+}
+
+func (f *Framework) GetClusterClients() []kubeclientset.Interface {
+	clusters := f.GetRegisteredClusters()
+	var clusterClients []kubeclientset.Interface
+	for _, c := range clusters {
+		clusterClients = append(clusterClients, c.Clientset)
+	}
+	return clusterClients
 }

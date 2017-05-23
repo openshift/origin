@@ -71,7 +71,6 @@ var (
 	  # Tag an external Docker image and request pullthrough for it.
 	  %[1]s tag --source=docker openshift/origin:latest yourproject/ruby:tip --reference-policy=local
 
-
 	  # Remove the specified spec tag from an image stream.
 	  %[1]s tag openshift/origin:latest -d`)
 )

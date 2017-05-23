@@ -481,6 +481,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	obj, _ := kapi.Scheme.Copy(bc)
 	bcCopy := obj.(*buildapi.BuildConfig)
 	serviceAccount := getServiceAccount(bcCopy, g.DefaultServiceAccountName)
+	t := true
 	build := &buildapi.Build{
 		Spec: buildapi.BuildSpec{
 			CommonSpec: buildapi.CommonSpec{
@@ -504,6 +505,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 					Kind:       "BuildConfig", // BuildConfig.Kind is not populated
 					Name:       bcCopy.Name,
 					UID:        bcCopy.UID,
+					Controller: &t,
 				},
 			},
 		},

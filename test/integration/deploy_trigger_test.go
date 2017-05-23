@@ -508,6 +508,8 @@ out:
 		}
 	}
 
+	timeout = time.After(30 * time.Second)
+
 	t.Log("Should trigger a new deployment in response to the second imagestream update")
 	secondImage := "sampleimage"
 	secondPullSpec := "samplepullspec"

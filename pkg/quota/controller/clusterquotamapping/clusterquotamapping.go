@@ -95,13 +95,14 @@ func (c *ClusterQuotaMappingController) GetClusterQuotaMapper() ClusterQuotaMapp
 
 func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	defer c.namespaceQueue.ShutDown()
+	defer c.quotaQueue.ShutDown()
 
-	// Wait for the stores to sync before starting any work in this controller.
-	ready := make(chan struct{})
-	go c.waitForSyncedStores(ready, stopCh)
-	select {
-	case <-ready:
-	case <-stopCh:
+	glog.Infof("Starting ClusterQuotaMappingController controller")
+	defer glog.Infof("Shutting down ClusterQuotaMappingController controller")
+
+	if !cache.WaitForCacheSync(stopCh, c.namespacesSynced, c.quotasSynced) {
+		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 		return
 	}
 
@@ -112,9 +113,6 @@ func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{})
 	}
 
 	<-stopCh
-	glog.Infof("Shutting down quota mapping controller")
-	c.namespaceQueue.ShutDown()
-	c.quotaQueue.ShutDown()
 }
 
 func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourceQuota) error {
@@ -299,20 +297,6 @@ func (c *ClusterQuotaMappingController) namespaceWorker() {
 			return
 		}
 	}
-}
-
-func (c *ClusterQuotaMappingController) waitForSyncedStores(ready chan<- struct{}, stopCh <-chan struct{}) {
-	defer utilruntime.HandleCrash()
-
-	for !c.namespacesSynced() || !c.quotasSynced() {
-		glog.V(4).Infof("Waiting for the caches to sync before starting the quota mapping controller workers")
-		select {
-		case <-time.After(100 * time.Millisecond):
-		case <-stopCh:
-			return
-		}
-	}
-	close(ready)
 }
 
 func (c *ClusterQuotaMappingController) deleteNamespace(obj interface{}) {

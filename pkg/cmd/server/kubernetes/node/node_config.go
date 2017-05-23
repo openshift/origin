@@ -12,7 +12,9 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	clientgoclientset "k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/util/cert"
@@ -34,7 +36,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -89,7 +90,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, err
 	}
-	kubeClient, _, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	kubeClient, privilegedKubeConfig, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +100,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
 	eventClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	clientgoClientSet, err := clientgoclientset.NewForConfig(privilegedKubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -186,6 +191,36 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	containerized := cmdutil.Env("OPENSHIFT_CONTAINERIZED", "") == "true"
 	server.Containerized = containerized
 
+	// force the authentication and authorization
+	// Setup auth
+	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+	server.Authentication = componentconfig.KubeletAuthentication{
+		X509: componentconfig.KubeletX509Authentication{
+			ClientCAFile: options.ServingInfo.ClientCA,
+		},
+		Webhook: componentconfig.KubeletWebhookAuthentication{
+			Enabled:  true,
+			CacheTTL: metav1.Duration{authnTTL},
+		},
+		Anonymous: componentconfig.KubeletAnonymousAuthentication{
+			Enabled: true,
+		},
+	}
+	authzTTL, err := time.ParseDuration(options.AuthConfig.AuthorizationCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+	server.Authorization = componentconfig.KubeletAuthorization{
+		Mode: componentconfig.KubeletAuthorizationModeWebhook,
+		Webhook: componentconfig.KubeletWebhookAuthorization{
+			CacheAuthorizedTTL:   metav1.Duration{authzTTL},
+			CacheUnauthorizedTTL: metav1.Duration{authzTTL},
+		},
+	}
+
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
@@ -203,7 +238,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU)
+
+	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod)
+
+	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU, internalKubeInformers)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}
@@ -240,31 +278,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	deps.KubeClient = externalKubeClient
 	deps.EventClient = kv1core.New(eventClient.CoreV1().RESTClient())
 
-	// Setup auth
-	authnTTL, err := time.ParseDuration(options.AuthConfig.AuthenticationCacheTTL)
+	deps.Auth, err = kubeletapp.BuildAuth(types.NodeName(options.NodeName), clientgoClientSet, server.KubeletConfiguration)
 	if err != nil {
 		return nil, err
 	}
-	authn, err := serverauthenticator.NewRemoteAuthenticator(kubeClient.Authentication(), clientCAs, authnTTL, options.AuthConfig.AuthenticationCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	authzAttr, err := newAuthorizerAttributesGetter(options.NodeName)
-	if err != nil {
-		return nil, err
-	}
-
-	authzTTL, err := time.ParseDuration(options.AuthConfig.AuthorizationCacheTTL)
-	if err != nil {
-		return nil, err
-	}
-	authz, err := newAuthorizer(originClient, authzTTL, options.AuthConfig.AuthorizationCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	deps.Auth = kubeletserver.NewKubeletAuth(authn, authzAttr, authz)
 
 	// TODO: could be cleaner
 	if configapi.UseTLS(options.ServingInfo) {
@@ -296,8 +313,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	if err != nil {
 		return nil, fmt.Errorf("SDN proxy initialization failed: %v", err)
 	}
-
-	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod)
 
 	config := &NodeConfig{
 		BindAddress: options.ServingInfo.BindAddress,

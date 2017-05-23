@@ -47,8 +47,11 @@ type BuildPodController struct {
 
 	queue workqueue.RateLimitingInterface
 
-	buildStore  oscache.StoreToBuildLister
-	podInformer kcoreinformers.PodInformer
+	buildStore        oscache.StoreToBuildLister
+	buildLister       buildclient.BuildLister
+	buildConfigGetter buildclient.BuildConfigGetter
+	buildDeleter      buildclient.BuildDeleter
+	podInformer       kcoreinformers.PodInformer
 
 	buildStoreSynced func() bool
 	podStoreSynced   func() bool
@@ -64,13 +67,19 @@ func NewBuildPodController(buildInformer cache.SharedIndexInformer, podInformer 
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(extkc.Core().RESTClient()).Events("")})
 
 	buildListerUpdater := buildclient.NewOSClientBuildClient(oc)
+	buildConfigGetter := buildclient.NewOSClientBuildConfigClient(oc)
+	buildDeleter := buildclient.NewBuildDeleter(oc)
+
 	c := &BuildPodController{
-		buildUpdater: buildListerUpdater,
-		secretClient: intkc.Core(), // TODO: Replace with cache client
-		podClient:    intkc.Core(),
-		podInformer:  podInformer,
-		queue:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		recorder:     eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-pod-controller"}),
+		buildUpdater:      buildListerUpdater,
+		buildLister:       buildListerUpdater,
+		buildConfigGetter: buildConfigGetter,
+		buildDeleter:      buildDeleter,
+		secretClient:      intkc.Core(), // TODO: Replace with cache client
+		podClient:         intkc.Core(),
+		podInformer:       podInformer,
+		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		recorder:          eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-pod-controller"}),
 	}
 
 	c.runPolicies = policy.GetAllRunPolicies(buildListerUpdater, buildListerUpdater)
@@ -235,7 +244,7 @@ func (bc *BuildPodController) HandlePod(pod *kapi.Pod) error {
 		case buildapi.BuildPhaseError, buildapi.BuildPhaseFailed:
 			bc.recorder.Eventf(build, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, build.Namespace, build.Name))
 		}
-		common.HandleBuildCompletion(build, bc.runPolicies)
+		common.HandleBuildCompletion(build, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter, bc.runPolicies)
 	}
 
 	return nil
@@ -281,7 +290,7 @@ func (bc *BuildPodController) HandleBuildPodDeletion(pod *kapi.Pod) error {
 		if err := bc.buildUpdater.Update(build.Namespace, build); err != nil {
 			return fmt.Errorf("Failed to update build %s/%s: %v", build.Namespace, build.Name, err)
 		}
-		common.HandleBuildCompletion(build, bc.runPolicies)
+		common.HandleBuildCompletion(build, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter, bc.runPolicies)
 	}
 	return nil
 }
