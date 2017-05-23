@@ -1,4 +1,4 @@
-// +build containers_image_openpgp
+// +build containers_image_openpgp !cgo !linux
 
 package signature
 
