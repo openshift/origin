@@ -133,7 +133,7 @@ function os::cleanup::containers() {
 	os::log::info "[CLEANUP] Removing docker containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Removing ${id}"
-		docker stop "${id}" >/dev/null
+		docker rm --volumes "${id}" >/dev/null
 	done
 }
 readonly -f os::cleanup::containers
