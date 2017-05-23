@@ -22,7 +22,7 @@ const (
 	VerbAll        = "*"
 	NonResourceAll = "*"
 
-	ScopesKey           = "authorization.openshift.io/scopes"
+	ScopesKey           = "scopes.authorization.openshift.io"
 	ScopesAllNamespaces = "*"
 
 	UserKind           = "User"
