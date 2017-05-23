@@ -15,7 +15,7 @@ parameters:
 - description: The location of the proxy image
   name: IMAGE_PROXY
   value: registry.svc.ci.openshift.org/ci/oauth-proxy:latest
-- description: The location of the proxy image
+- description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
   value: registry.svc.ci.openshift.org/ci/prometheus:latest
 - description: The session secret for the proxy
