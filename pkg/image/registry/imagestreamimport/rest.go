@@ -100,30 +100,28 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if !ok {
 		return nil, kapierrors.NewBadRequest("unable to get user from context")
 	}
-	isCreateImage, err := r.sarClient.Create(
+	isCreateImage, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
 		&authorizationapi.SubjectAccessReview{
-			User: user.GetName(),
 			Action: authorizationapi.Action{
 				Verb:     "create",
 				Group:    api.GroupName,
 				Resource: "images",
 			},
 		},
-	)
+	))
 	if err != nil {
 		return nil, err
 	}
 
-	isCreateImageStreamMapping, err := r.sarClient.Create(
+	isCreateImageStreamMapping, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
 		&authorizationapi.SubjectAccessReview{
-			User: user.GetName(),
 			Action: authorizationapi.Action{
 				Verb:     "create",
 				Group:    api.GroupName,
 				Resource: "imagestreammapping",
 			},
 		},
-	)
+	))
 	if err != nil {
 		return nil, err
 	}
