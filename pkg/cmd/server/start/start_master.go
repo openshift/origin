@@ -447,12 +447,14 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 	}
 
 	return nil

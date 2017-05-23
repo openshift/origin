@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	jsschema "github.com/lestrrat/go-jsschema"
-
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 const (
@@ -111,7 +111,7 @@ func (b *Broker) Catalog() *api.Response {
 	var services []*api.Service
 
 	for namespace := range b.templateNamespaces {
-		templates, err := b.lister.ListByNamespace(namespace)
+		templates, err := b.lister.Templates(namespace).List(labels.Everything())
 		if err != nil {
 			return api.InternalServerError(err)
 		}

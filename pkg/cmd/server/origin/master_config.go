@@ -97,6 +97,8 @@ import (
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
 	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
@@ -185,6 +187,7 @@ type MasterConfig struct {
 	Informers shared.InformerFactory
 
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	TemplateInformers      templateinformer.SharedInformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -225,6 +228,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	customListerWatchers := shared.DefaultListerWatcherOverrides{}
 	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
@@ -236,6 +243,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetInternal, defaultInformerResyncPeriod)
 	externalkubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
 	authorizationInformers := authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod)
+	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
 	imageTemplate := variable.NewDefaultImageTemplate()
@@ -346,6 +354,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 		Informers:              informerFactory,
 		AuthorizationInformers: authorizationInformers,
+		TemplateInformers:      templateInformers,
 	}
 
 	// ensure that the limit range informer will be started
