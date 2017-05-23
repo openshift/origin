@@ -25,7 +25,8 @@ func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
 	}
 
 	restOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1}
-	storageInterface, _ := restOptions.Decorator(kapi.Scheme, restOptions.StorageConfig, 0, nil, "masterleases", nil, nil, nil, nil)
+	watchCacheDisabled := 0
+	storageInterface, _ := restOptions.Decorator(kapi.Scheme, restOptions.StorageConfig, &watchCacheDisabled, nil, "masterleases", nil, nil, nil, nil)
 	defer server.Terminate(t)
 
 	masterLeases := newMasterLeases(storageInterface)

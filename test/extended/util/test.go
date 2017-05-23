@@ -293,10 +293,9 @@ var (
 		`\[Feature:Downgrade\]`,
 
 		// upstream flakes
-		`should provide basic identity`, // Basic StatefulSet functionality
-		`Scaling down before scale up is finished should wait until current pod will be running and ready before it will be removed`, // Basic StatefulSet functionality
-		`validates resource limits of pods that are allowed to run`,                                                                  // SchedulerPredicates
-		`should idle the service and DeploymentConfig properly`,                                                                      // idling with a single service and DeploymentConfig [Conformance]
+		`should provide basic identity`,                             // Basic StatefulSet functionality
+		`validates resource limits of pods that are allowed to run`, // SchedulerPredicates
+		`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
 	}
 	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 
