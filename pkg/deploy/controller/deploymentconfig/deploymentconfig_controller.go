@@ -68,10 +68,6 @@ type DeploymentConfigController struct {
 	rcLister kcorelisters.ReplicationControllerLister
 	// rcListerSynced makes sure the rc shared informer is synced before reconcling any deployment config.
 	rcListerSynced func() bool
-	// podLister can list/get pods from a shared informer's cache
-	podLister kcorelisters.PodLister
-	// podListerSynced makes sure the pod shared informer is synced before reconcling any deployment config.
-	podListerSynced func() bool
 
 	// codec is used to build deployments from configs.
 	codec runtime.Codec

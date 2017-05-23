@@ -381,10 +381,8 @@ func TestHandleScenarios(t *testing.T) {
 
 		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
 		rcInformer := kubeInformerFactory.Core().InternalVersion().ReplicationControllers()
-		podInformer := kubeInformerFactory.Core().InternalVersion().Pods()
-		c := NewDeploymentConfigController(dcInformer, rcInformer, podInformer, oc, kc, kfakeexternal.NewSimpleClientset(), codec)
+		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, kfakeexternal.NewSimpleClientset(), codec)
 		c.dcStoreSynced = alwaysReady
-		c.podListerSynced = alwaysReady
 		c.rcListerSynced = alwaysReady
 
 		for i := range toStore {

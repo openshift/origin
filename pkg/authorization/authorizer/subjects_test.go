@@ -48,7 +48,6 @@ func TestSubjects(t *testing.T) {
 			"system:kube-scheduler",
 			"system:serviceaccount:openshift-infra:build-controller",
 			"system:serviceaccount:openshift-infra:deployer-controller",
-			"system:serviceaccount:openshift-infra:deploymentconfig-controller",
 		),
 		expectedGroups: sets.NewString("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}
