@@ -25,7 +25,7 @@ go_library(
         "//vendor:google.golang.org/grpc",
         "//vendor:google.golang.org/grpc/codes",
         "//vendor:k8s.io/apimachinery/pkg/types",
-        "//vendor:k8s.io/client-go/util/clock",
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
     ],
 )
 
@@ -45,9 +45,9 @@ go_test(
         "//pkg/util/term:go_default_library",
         "//vendor:github.com/stretchr/testify/assert",
         "//vendor:github.com/stretchr/testify/require",
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
         "//vendor:k8s.io/client-go/pkg/api",
         "//vendor:k8s.io/client-go/rest",
-        "//vendor:k8s.io/client-go/util/clock",
     ],
 )
 
