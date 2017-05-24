@@ -13,7 +13,7 @@ export OS_BUILD_ENV_PRESERVE=_output/local
 context="${OS_ROOT}/_output/buildenv-context"
 
 # Clean existing output.
-rm -rf "${OS_LOCAL_RELEASEPATH}"
+rm -rf "${OS_OUTPUT_RELEASEPATH}"
 rm -rf "${context}"
 mkdir -p "${context}"
 mkdir -p "${OS_OUTPUT}"
@@ -28,6 +28,6 @@ trap "os::build::environment::cleanup ${container}" EXIT
   echo "++ Building release ${OS_GIT_VERSION}"
 )
 os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
-echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
+echo "${OS_GIT_COMMIT}" > "${OS_OUTPUT_RELEASEPATH}/.commit"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

@@ -290,7 +290,7 @@ function os::build::place_bins() {
 
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::get_version_vars
-      mkdir -p "${OS_LOCAL_RELEASEPATH}"
+      mkdir -p "${OS_OUTPUT_RELEASEPATH}"
     fi
 
     os::build::export_targets "$@"
@@ -398,7 +398,7 @@ function os::build::archive_zip() {
     pushd "${release_binpath}" &> /dev/null
       sha256sum "${file}"
     popd &>/dev/null
-    zip "${OS_LOCAL_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
+    zip "${OS_OUTPUT_RELEASEPATH}/${archive_name}" -qj "${release_binpath}/${file}"
   done
 }
 readonly -f os::build::archive_zip
@@ -412,9 +412,9 @@ function os::build::archive_tar() {
   pushd "${release_binpath}" &> /dev/null
   find . -type f -exec sha256sum {} \;
   if [[ -n "$(which bsdtar)" ]]; then
-    bsdtar -czf "${OS_LOCAL_RELEASEPATH}/${archive_name}" -s ",^\.,${base_name}," $@
+    bsdtar -czf "${OS_OUTPUT_RELEASEPATH}/${archive_name}" -s ",^\.,${base_name}," $@
   else
-    tar -czf --xattrs-exclude='LIBARCHIVE.xattr.security.selinux' "${OS_LOCAL_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
+    tar -czf --xattrs-exclude='LIBARCHIVE.xattr.security.selinux' "${OS_OUTPUT_RELEASEPATH}/${archive_name}" --transform="s,^\.,${base_name}," $@
   fi
   popd &>/dev/null
 }
@@ -484,7 +484,7 @@ readonly -f os::build::extract_tar
 # os::build::release_sha calculates a SHA256 checksum over the contents of the
 # built release directory.
 function os::build::release_sha() {
-  pushd "${OS_LOCAL_RELEASEPATH}" &> /dev/null
+  pushd "${OS_OUTPUT_RELEASEPATH}" &> /dev/null
   sha256sum * > CHECKSUM
   popd &> /dev/null
 }
@@ -503,7 +503,7 @@ function os::build::make_openshift_binary_symlinks() {
 readonly -f os::build::make_openshift_binary_symlinks
 
 # os::build::detect_local_release_tars verifies there is only one primary and one
-# image binaries release tar in OS_LOCAL_RELEASEPATH for the given platform specified by
+# image binaries release tar in OS_OUTPUT_RELEASEPATH for the given platform specified by
 # argument 1, exiting if more than one of either is found.
 #
 # If the tars are discovered, their full paths are exported to the following env vars:
@@ -513,36 +513,36 @@ readonly -f os::build::make_openshift_binary_symlinks
 function os::build::detect_local_release_tars() {
   local platform="$1"
 
-  if [[ ! -d "${OS_LOCAL_RELEASEPATH}" ]]; then
-    echo "There are no release artifacts in ${OS_LOCAL_RELEASEPATH}"
+  if [[ ! -d "${OS_OUTPUT_RELEASEPATH}" ]]; then
+    echo "There are no release artifacts in ${OS_OUTPUT_RELEASEPATH}"
     return 2
   fi
-  if [[ ! -f "${OS_LOCAL_RELEASEPATH}/.commit" ]]; then
-    echo "There is no release .commit identifier ${OS_LOCAL_RELEASEPATH}"
+  if [[ ! -f "${OS_OUTPUT_RELEASEPATH}/.commit" ]]; then
+    echo "There is no release .commit identifier ${OS_OUTPUT_RELEASEPATH}"
     return 2
   fi
-  local primary=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
+  local primary=$(find ${OS_OUTPUT_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-server-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${primary}" | wc -l) -ne 1 || -z "${primary}" ]]; then
-    echo "There should be exactly one ${platform} server tar in $OS_LOCAL_RELEASEPATH"
+    echo "There should be exactly one ${platform} server tar in $OS_OUTPUT_RELEASEPATH"
     [[ -z "${WARN-}" ]] && return 2
   fi
 
-  local client=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
+  local client=$(find ${OS_OUTPUT_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-client-tools-*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${client}" | wc -l) -ne 1 || -z "${client}" ]]; then
-    echo "There should be exactly one ${platform} client tar in $OS_LOCAL_RELEASEPATH"
+    echo "There should be exactly one ${platform} client tar in $OS_OUTPUT_RELEASEPATH"
     [[ -n "${WARN-}" ]] || return 2
   fi
 
-  local image=$(find ${OS_LOCAL_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}* \( -name *.tar.gz -or -name *.zip \))
+  local image=$(find ${OS_OUTPUT_RELEASEPATH} -maxdepth 1 -type f -name openshift-origin-image*-${platform}* \( -name *.tar.gz -or -name *.zip \))
   if [[ $(echo "${image}" | wc -l) -ne 1 || -z "${image}" ]]; then
-    echo "There should be exactly one ${platform} image tar in $OS_LOCAL_RELEASEPATH"
+    echo "There should be exactly one ${platform} image tar in $OS_OUTPUT_RELEASEPATH"
     [[ -n "${WARN-}" ]] || return 2
   fi
 
   export OS_PRIMARY_RELEASE_TAR="${primary}"
   export OS_IMAGE_RELEASE_TAR="${image}"
   export OS_CLIENT_RELEASE_TAR="${client}"
-  export OS_RELEASE_COMMIT="$(cat ${OS_LOCAL_RELEASEPATH}/.commit)"
+  export OS_RELEASE_COMMIT="$(cat ${OS_OUTPUT_RELEASEPATH}/.commit)"
 }
 readonly -f os::build::detect_local_release_tars
 

@@ -97,7 +97,7 @@ os::build::release_sha
 if [[ "${OS_GIT_TREE_STATE:-dirty}" == "clean"  ]]; then
 	# only when we are building from a clean state can we claim to
 	# have created a valid set of binaries that can resemble a release
-	echo "${OS_GIT_COMMIT}" > "${OS_LOCAL_RELEASEPATH}/.commit"
+	echo "${OS_GIT_COMMIT}" > "${OS_OUTPUT_RELEASEPATH}/.commit"
 fi
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
