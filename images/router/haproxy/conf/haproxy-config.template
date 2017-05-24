@@ -289,6 +289,12 @@ backend be_edge_http:{{$cfgIdx}}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{- end }}
     {{- end }}
+    {{- with $whiteList := index $cfg.Annotations "haproxy.router.openshift.io/whitelist" }}
+      {{- if (matchPattern "([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?( ([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?)*" $whiteList) }}
+  acl whitelist src {{$whiteList}}
+  tcp-request content reject if !whitelist
+      {{- end }}
+    {{- end }}
     {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
@@ -375,6 +381,12 @@ backend be_tcp:{{$cfgIdx}}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
       {{- end }}
     {{- end }}
+    {{- with $whiteList := index $cfg.Annotations "haproxy.router.openshift.io/whitelist" }}
+      {{- if (matchPattern "([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?( ([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?)*" $whiteList) }}
+  acl whitelist src {{$whiteList}}
+  tcp-request content reject if !whitelist
+      {{- end }}
+    {{- end }}
     {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout tunnel  {{$value}}
@@ -442,6 +454,12 @@ backend be_secure:{{$cfgIdx}}
   balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
       {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
+      {{- end }}
+    {{- end }}
+    {{- with $whiteList := index $cfg.Annotations "haproxy.router.openshift.io/whitelist" }}
+      {{- if (matchPattern "([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?( ([0-9]?[0-9]?[0-9].){3}[0-9]?[0-9]?[0-9](/[0-9]?[0-9]?[0-9])?)*" $whiteList) }}
+  acl whitelist src {{$whiteList}}
+  tcp-request content reject if !whitelist
       {{- end }}
     {{- end }}
     {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
