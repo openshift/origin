@@ -6,17 +6,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/storage"
 
-	// we need the conversions registered for our init block
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	_ "github.com/openshift/origin/pkg/authorization/api/install"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	// we need the conversions registered for our init block
 	_ "github.com/openshift/origin/pkg/authorization/api/install"
@@ -56,6 +56,16 @@ const (
 
 	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
 	NodeBootstrapRoleName                = "system:node-bootstrapper"
+
+	// template instance controller watches for TemplateInstance object creation
+	// and instantiates templates as a result.
+	InfraTemplateInstanceControllerServiceAccountName = "template-instance-controller"
+
+	// template service broker is an open service broker-compliant API
+	// implementation which serves up OpenShift templates.  It uses the
+	// TemplateInstance backend for most of the heavy lifting.
+	InfraTemplateServiceBrokerServiceAccountName = "template-service-broker"
+	TemplateServiceBrokerControllerRoleName      = "system:openshift:template-service-broker"
 )
 
 type InfraServiceAccounts struct {
@@ -588,4 +598,45 @@ func init() {
 		panic(err)
 	}
 
+	err = InfraSAs.addServiceAccount(
+		InfraTemplateServiceBrokerServiceAccountName,
+		authorizationapi.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: TemplateServiceBrokerControllerRoleName,
+			},
+			Rules: []authorizationapi.PolicyRule{
+				{
+					APIGroups: []string{authorization.GroupName},
+					Verbs:     sets.NewString("create"),
+					Resources: sets.NewString("subjectaccessreviews"),
+				},
+				{
+					APIGroups: []string{templateapi.GroupName},
+					Verbs:     sets.NewString("get", "create", "update", "delete"),
+					Resources: sets.NewString("brokertemplateinstances"),
+				},
+				{
+					APIGroups: []string{templateapi.GroupName},
+					// "assign" is required for the API server to accept creation of
+					// TemplateInstance objects with the requester username set to an
+					// identity which is not the API caller.
+					Verbs:     sets.NewString("get", "create", "delete", "assign"),
+					Resources: sets.NewString("templateinstances"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("get", "list", "create", "delete"),
+					Resources: sets.NewString("secrets"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list"),
+					Resources: sets.NewString("services"),
+				},
+			},
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -109,14 +109,14 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				},
 			},
 			{
-				by:              "checking adminuser can create a privileged object",
+				by:              "checking adminuser can't create a privileged object",
 				user:            adminuser,
 				namespace:       cli.Namespace(),
 				objects:         []runtime.Object{dummyrolebinding},
-				expectCondition: templateapi.TemplateInstanceReady,
+				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
 					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
-					return err == nil
+					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
 		}

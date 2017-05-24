@@ -18,6 +18,10 @@ const validUUID = "decd59a9-1dd2-453e-942e-2deba96bfa96"
 
 type fakeBroker api.Response
 
+func (b *fakeBroker) WaitForReady() error {
+	return nil
+}
+
 func (b *fakeBroker) Catalog() *api.Response {
 	r := api.Response(*b)
 	return &r

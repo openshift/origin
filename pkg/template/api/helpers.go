@@ -45,5 +45,16 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 	}
 
 	return nil
+}
 
+func FilterTemplateInstanceCondition(conditions []TemplateInstanceCondition, condType TemplateInstanceConditionType) []TemplateInstanceCondition {
+	newConditions := make([]TemplateInstanceCondition, 0, len(conditions)+1)
+
+	for _, c := range conditions {
+		if c.Type != condType {
+			newConditions = append(newConditions, c)
+		}
+	}
+
+	return newConditions
 }

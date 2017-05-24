@@ -92,6 +92,19 @@ func init() {
 			eventsRule(),
 		},
 	})
+
+	// template-instance-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateInstanceControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(templateGroup).Resources("subjectaccessreviews").RuleOrDie(),
+			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
+		},
+	})
+
+	controllerRoleBindings = append(controllerRoleBindings,
+		rbac.NewClusterBinding(EditRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie())
 }
 
 // ControllerRoles returns the cluster roles used by controllers

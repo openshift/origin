@@ -512,9 +512,9 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 			templateapi.ServiceBrokerRoot,
 			templateservicebroker.NewBroker(
 				c.PrivilegedLoopbackClientConfig,
-				c.PrivilegedLoopbackOpenShiftClient,
-				c.PrivilegedLoopbackKubernetesClientsetInternal.Core(),
-				c.Informers,
+				c.PrivilegedLoopbackKubernetesClientsetInternal,
+				c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
+				c.TemplateInformers.Template().InternalVersion().Templates(),
 				c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
 			),
 		)
@@ -895,12 +895,13 @@ func (c *MasterConfig) GetRestStorage() map[schema.GroupVersion]map[string]rest.
 	}
 
 	if c.Options.TemplateServiceBrokerConfig != nil {
-		templateInstanceStorage, err := templateinstanceetcd.NewREST(c.RESTOptionsGetter, c.PrivilegedLoopbackOpenShiftClient)
+		templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.RESTOptionsGetter, c.PrivilegedLoopbackKubernetesClientsetInternal)
 		checkStorageErr(err)
 		brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.RESTOptionsGetter)
 		checkStorageErr(err)
 
 		storage[templateapiv1.SchemeGroupVersion]["templateinstances"] = templateInstanceStorage
+		storage[templateapiv1.SchemeGroupVersion]["templateinstances/status"] = templateInstanceStatusStorage
 		storage[templateapiv1.SchemeGroupVersion]["brokertemplateinstances"] = brokerTemplateInstanceStorage
 	}
 
