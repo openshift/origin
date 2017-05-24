@@ -203,3 +203,24 @@ function os::util::host_platform() {
 	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 readonly -f os::util::host_platform
+
+# os::util::ln_or_cp creates link to file if the FS supports hardlinks, otherwise
+# copies the file.
+#
+# Globals:
+#  None
+# Arguments:
+#  - 1: source file to copy
+#  - 2: destination file
+# Returns:
+#  None
+function os::util::ln_or_cp() {
+	local src_file=$1
+	local dst_dir=$2
+	if os::build::is_hardlink_supported "${dst_dir}" ; then
+		ln -f "${src_file}" "${dst_dir}"
+	else
+		cp -pf "${src_file}" "${dst_dir}"
+	fi
+}
+readonly -f os::util::ln_or_cp
