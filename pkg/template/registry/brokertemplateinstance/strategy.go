@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/template/api/validation"
 )
 
-// brokerTemplateInstanceStrategy implements behavior for Templates
+// brokerTemplateInstanceStrategy implements behavior for BrokerTemplateInstances
 type brokerTemplateInstanceStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
