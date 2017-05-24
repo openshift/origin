@@ -2480,7 +2480,10 @@ func (gce *GCECloud) CreateDisk(name string, diskType string, zone string, sizeG
 	}
 
 	createOp, err := gce.service.Disks.Insert(gce.projectID, zone, diskToCreate).Do()
-	if err != nil {
+	if isGCEError(err, "alreadyExists") {
+		glog.Warningf("GCE PD %q already exists, reusing", name)
+		return nil
+	} else if err != nil {
 		return err
 	}
 
