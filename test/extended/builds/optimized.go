@@ -7,7 +7,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -34,7 +33,7 @@ USER 1001
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 	})
 
-	g.It("should succeed as an admin [Conformance]", func() {
+	g.It("should succeed [Conformance]", func() {
 		g.By("creating a build directly")
 		build, err := oc.AdminClient().Builds(oc.Namespace()).Create(&buildapi.Build{
 			ObjectMeta: metav1.ObjectMeta{
@@ -73,28 +72,5 @@ USER 1001
 		o.Expect(s).To(o.ContainSubstring("--> Committing changes to "))
 		o.Expect(s).To(o.ContainSubstring("Build complete, no image push requested"))
 		e2e.Logf("Build logs:\n%s", result)
-	})
-
-	g.It("should fail as a normal user [Conformance]", func() {
-		g.By("creating a build directly")
-		_, err := oc.Client().Builds(oc.Namespace()).Create(&buildapi.Build{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "optimized",
-			},
-			Spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Dockerfile: &testDockerfile,
-					},
-					Strategy: buildapi.BuildStrategy{
-						DockerStrategy: &buildapi.DockerBuildStrategy{
-							ImageOptimizationPolicy: &skipLayers,
-						},
-					},
-				},
-			},
-		})
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(kapierrs.IsForbidden(err)).To(o.BeTrue(), "Unexpected error: %v", err)
 	})
 })

@@ -467,6 +467,7 @@ items:
     attributeRestrictions: null
     resources:
     - builds/docker
+    - builds/optimizeddocker
     verbs:
     - create
 - apiVersion: v1

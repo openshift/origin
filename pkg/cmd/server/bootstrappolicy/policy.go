@@ -253,7 +253,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
-				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.DockerBuildResource).RuleOrDie(),
+				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(authorizationapi.DockerBuildResource, authorizationapi.OptimizedDockerBuildResource).RuleOrDie(),
 			},
 		},
 		{
