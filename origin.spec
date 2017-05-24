@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6049dcf03ac6d446ee5d517472432bc0beea8f3d
+%global commit 63c838040d8986039f62e1f87aa33f7869dea8cd
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.82 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6049dcf
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.83 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=63c8380
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.83
+Version:        3.6.84
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -601,6 +601,16 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed May 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.84-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1e51f34
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  da9b22af7370bdc2778f3a4057e4042ee1c6d893 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  be03a8d99aa5117b6dcf1188fc88ff9d5a727ad2 (dmcphers+openshiftbot@redhat.com)
+- combine router template sections for edge and reencrypt routes
+  (jtanenba@redhat.com)
+
 * Wed May 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.83-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console e6acfff
   (tdawson@redhat.com)
