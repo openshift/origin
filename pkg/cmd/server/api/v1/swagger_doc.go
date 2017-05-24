@@ -133,11 +133,23 @@ func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
 
 var map_ControllerConfig = map[string]string{
 	"":                   "ControllerConfig holds configuration values for controllers",
+	"election":           "Election defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
 	"serviceServingCert": "ServiceServingCert holds configuration for service serving cert signer which creates cert/key pairs for pods fulfilling a service to serve with.",
 }
 
 func (ControllerConfig) SwaggerDoc() map[string]string {
 	return map_ControllerConfig
+}
+
+var map_ControllerElectionConfig = map[string]string{
+	"":              "ControllerElectionConfig contains configuration values for deciding how a controller will be elected to act as leader.",
+	"lockName":      "LockName is the resource name used to act as the lock for determining which controller instance should lead.",
+	"lockNamespace": "LockNamespace is the resource namespace used to act as the lock for determining which controller instance should lead. It defaults to \"kube-system\"",
+	"lockResource":  "LockResource is the group and resource name to use to coordinate for the controller lock. If unset, defaults to \"endpoints\".",
+}
+
+func (ControllerElectionConfig) SwaggerDoc() map[string]string {
+	return map_ControllerElectionConfig
 }
 
 var map_DNSConfig = map[string]string{
@@ -257,6 +269,16 @@ var map_GrantConfig = map[string]string{
 
 func (GrantConfig) SwaggerDoc() map[string]string {
 	return map_GrantConfig
+}
+
+var map_GroupResource = map[string]string{
+	"":         "GroupResource points to a resource by its name and API group.",
+	"group":    "Group is the name of an API group",
+	"resource": "Resource is the name of a resource.",
+}
+
+func (GroupResource) SwaggerDoc() map[string]string {
+	return map_GroupResource
 }
 
 var map_HTPasswdPasswordIdentityProvider = map[string]string{
@@ -463,8 +485,8 @@ var map_MasterConfig = map[string]string{
 	"apiLevels":                   "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"masterPublicURL":             "MasterPublicURL is how clients can access the OpenShift API server",
 	"controllers":                 "Controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
-	"pauseControllers":            "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them.",
-	"controllerLeaseTTL":          "ControllerLeaseTTL enables controller election, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1.",
+	"pauseControllers":            "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: Will be removed in 3.7.",
+	"controllerLeaseTTL":          "ControllerLeaseTTL enables controller election against etcd, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: use controllerConfig.lockServiceName to force leader election via config, and the\n  appropriate leader election flags in controllerArguments. Will be removed in 3.9.",
 	"admissionConfig":             "AdmissionConfig contains admission control plugin configuration.",
 	"controllerConfig":            "ControllerConfig holds configuration values for controllers",
 	"disabledFeatures":            "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
