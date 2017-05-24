@@ -145,6 +145,7 @@ type initFederationOptions struct {
 	dnsProviderConfig                string
 	etcdImage                        string
 	etcdPVCapacity                   string
+	etcdPVStorageClass               string
 	etcdPersistentStorage            bool
 	dryRun                           bool
 	apiServerOverridesString         string
@@ -165,6 +166,7 @@ func (o *initFederationOptions) Bind(flags *pflag.FlagSet, defaultServerImage, d
 	flags.StringVar(&o.dnsProviderConfig, "dns-provider-config", "", "Config file path on local file system for configuring DNS provider.")
 	flags.StringVar(&o.etcdImage, "etcd-image", defaultEtcdImage, "Image to use for etcd server.")
 	flags.StringVar(&o.etcdPVCapacity, "etcd-pv-capacity", "10Gi", "Size of persistent volume claim to be used for etcd.")
+	flags.StringVar(&o.etcdPVStorageClass, "etcd-pv-storage-class", "", "The storage class of the persistent volume claim used for etcd.   Must be provided if a default storage class is not enabled for the host cluster.")
 	flags.BoolVar(&o.etcdPersistentStorage, "etcd-persistent-storage", true, "Use persistent volume for etcd. Defaults to 'true'.")
 	flags.BoolVar(&o.dryRun, "dry-run", false, "dry run without sending commands to server.")
 	flags.StringVar(&o.apiServerOverridesString, "apiserver-arg-overrides", "", "comma separated list of federation-apiserver arguments to override: Example \"--arg1=value1,--arg2=value2...\"")
@@ -324,7 +326,7 @@ func (i *initFederation) Run(cmdOut io.Writer, config util.AdminConfig) error {
 	// stores its data.
 	var pvc *api.PersistentVolumeClaim
 	if i.options.etcdPersistentStorage {
-		pvc, err = createPVC(hostClientset, i.commonOptions.FederationSystemNamespace, svc.Name, i.options.etcdPVCapacity, i.options.dryRun)
+		pvc, err = createPVC(hostClientset, i.commonOptions.FederationSystemNamespace, svc.Name, i.options.etcdPVCapacity, i.options.etcdPVStorageClass, i.options.dryRun)
 		if err != nil {
 			return err
 		}
@@ -620,20 +622,24 @@ func createControllerManagerKubeconfigSecret(clientset client.Interface, namespa
 	return util.CreateKubeconfigSecret(clientset, config, namespace, kubeconfigName, dryRun)
 }
 
-func createPVC(clientset client.Interface, namespace, svcName, etcdPVCapacity string, dryRun bool) (*api.PersistentVolumeClaim, error) {
+func createPVC(clientset client.Interface, namespace, svcName, etcdPVCapacity, etcdPVStorageClass string, dryRun bool) (*api.PersistentVolumeClaim, error) {
 	capacity, err := resource.ParseQuantity(etcdPVCapacity)
 	if err != nil {
 		return nil, err
 	}
 
+	annotations := map[string]string{}
+	if len(etcdPVStorageClass) > 0 {
+		annotations["volume.beta.kubernetes.io/storage-class"] = etcdPVStorageClass
+
+	}
+
 	pvc := &api.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-etcd-claim", svcName),
-			Namespace: namespace,
-			Labels:    componentLabel,
-			Annotations: map[string]string{
-				"volume.alpha.kubernetes.io/storage-class": "yes",
-			},
+			Name:        fmt.Sprintf("%s-etcd-claim", svcName),
+			Namespace:   namespace,
+			Labels:      componentLabel,
+			Annotations: annotations,
 		},
 		Spec: api.PersistentVolumeClaimSpec{
 			AccessModes: []api.PersistentVolumeAccessMode{
