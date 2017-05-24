@@ -125,7 +125,8 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			for i := 0; i < 2; i++ {
 				testPodName = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
-				if _, err := d.KubeClient.Core().Pods(nsName).Create(GetTestPod(testPodName, node.Name)); err != nil {
+				pod := GetTestPod(util.NetworkDiagDefaultTestPodImage, testPodName, node.Name)
+				if _, err := d.KubeClient.Core().Pods(nsName).Create(pod); err != nil {
 					errList = append(errList, fmt.Errorf("Creating network diagnostic test pod '%s/%s' on node %q failed: %v", nsName, testPodName, node.Name, err))
 					continue
 				}

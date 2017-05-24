@@ -16,9 +16,8 @@ import (
 const (
 	networkDiagTestPodSelector = "network-diag-pod-name"
 
-	testPodImage   = "docker.io/openshift/hello-openshift"
-	testPodPort    = 9876
-	testTargetPort = 8080
+	testServicePort = 9876
+	testPodPort     = 8080
 )
 
 func GetNetworkDiagnosticsPod(diagnosticsImage, command, podName, nodeName string) *kapi.Pod {
@@ -91,7 +90,7 @@ func GetNetworkDiagnosticsPod(diagnosticsImage, command, podName, nodeName strin
 	return pod
 }
 
-func GetTestPod(podName, nodeName string) *kapi.Pod {
+func GetTestPod(testPodImage, podName, nodeName string) *kapi.Pod {
 	gracePeriod := int64(0)
 
 	return &kapi.Pod{
@@ -110,6 +109,11 @@ func GetTestPod(podName, nodeName string) *kapi.Pod {
 					Name:            podName,
 					Image:           testPodImage,
 					ImagePullPolicy: kapi.PullIfNotPresent,
+					Command: []string{
+						"socat", "-T", "1", "-d",
+						fmt.Sprintf("tcp-l:%d,reuseaddr,fork,crlf", testPodPort),
+						"system:\"echo 'HTTP/1.0 200 OK'; echo 'Content-Type: text/plain'; echo; echo 'Hello OpenShift'\"",
+					},
 				},
 			},
 		},
@@ -127,8 +131,8 @@ func GetTestService(serviceName, podName, nodeName string) *kapi.Service {
 			Ports: []kapi.ServicePort{
 				{
 					Protocol:   kapi.ProtocolTCP,
-					Port:       testPodPort,
-					TargetPort: intstr.FromInt(testTargetPort),
+					Port:       testServicePort,
+					TargetPort: intstr.FromInt(testPodPort),
 				},
 			},
 		},
