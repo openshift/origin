@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5f6c2ee65901e5861a65b79a462915bbff631af4
+%global commit 6049dcf03ac6d446ee5d517472432bc0beea8f3d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.81 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=5f6c2ee
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.82 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6049dcf
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.82
+Version:        3.6.83
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -601,6 +601,13 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Wed May 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.83-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console e6acfff
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1801153c4a7406622f15938b62e59e2299b885b2 (dmcphers+openshiftbot@redhat.com)
+- Make HAProxy's log format configurable (yhlou@travelsky.com)
+
 * Wed May 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.82-1
 - Enable leader election on endpoints for controllers (ccoleman@redhat.com)
 - Add defaults and env control of the fin timeouts in the router
