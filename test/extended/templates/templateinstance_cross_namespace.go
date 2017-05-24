@@ -19,13 +19,22 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[templates] templateinstance cross-namespace test", func() {
+var _ = g.Describe("[templates][Conformance] templateinstance cross-namespace test", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		cli  = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		cli2 = exutil.NewCLI("templates2", exutil.KubeConfigPath())
 	)
+
+	g.BeforeEach(func() {
+		isEnabled, err := tsbIsEnabled(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if !isEnabled {
+			g.Skip("template service broker not enabled")
+		}
+	})
 
 	g.It("should create and delete objects across namespaces", func() {
 		err := cli2.AsAdmin().Run("adm").Args("policy", "add-role-to-user", "admin", cli.Username()).Execute()

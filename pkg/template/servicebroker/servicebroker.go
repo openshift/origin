@@ -72,7 +72,7 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 
 		extrouteclientset, err := extrouteclientset.NewForConfig(restconfig)
 		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize template clientset: %v", err))
+			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize route clientset: %v", err))
 			return
 		}
 
