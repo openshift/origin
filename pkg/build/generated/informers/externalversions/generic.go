@@ -38,6 +38,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=Build, Version=V1
 	case v1.SchemeGroupVersion.WithResource("builds"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Build().V1().Builds().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("buildconfigs"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Build().V1().BuildConfigs().Informer()}, nil
 
 	}
 

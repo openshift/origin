@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/deploy/generated/clientset"
-	appsv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/apps/v1"
-	fakeappsv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/apps/v1/fake"
+	deployv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/deploy/v1"
+	fakedeployv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/deploy/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -44,12 +44,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// AppsV1 retrieves the AppsV1Client
-func (c *Clientset) AppsV1() appsv1.AppsV1Interface {
-	return &fakeappsv1.FakeAppsV1{Fake: &c.Fake}
+// DeployV1 retrieves the DeployV1Client
+func (c *Clientset) DeployV1() deployv1.DeployV1Interface {
+	return &fakedeployv1.FakeDeployV1{Fake: &c.Fake}
 }
 
-// Apps retrieves the AppsV1Client
-func (c *Clientset) Apps() appsv1.AppsV1Interface {
-	return &fakeappsv1.FakeAppsV1{Fake: &c.Fake}
+// Deploy retrieves the DeployV1Client
+func (c *Clientset) Deploy() deployv1.DeployV1Interface {
+	return &fakedeployv1.FakeDeployV1{Fake: &c.Fake}
 }
