@@ -20,6 +20,14 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 			if len(obj.Controllers) == 0 {
 				obj.Controllers = ControllersAll
 			}
+			if election := obj.ControllerConfig.Election; election != nil {
+				if len(election.LockNamespace) == 0 {
+					election.LockNamespace = "kube-system"
+				}
+				if len(election.LockResource.Group) == 0 && len(election.LockResource.Resource) == 0 {
+					election.LockResource.Resource = "endpoints"
+				}
+			}
 			if obj.ServingInfo.RequestTimeoutSeconds == 0 {
 				obj.ServingInfo.RequestTimeoutSeconds = 60 * 60
 			}

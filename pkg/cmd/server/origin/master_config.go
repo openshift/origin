@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	etcdclient "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kutilrand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/admission"
@@ -73,7 +71,6 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -105,7 +102,6 @@ import (
 	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
-	"github.com/openshift/origin/pkg/util/leaderlease"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -194,11 +190,6 @@ type MasterConfig struct {
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
 // provided options
 func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
-	client, err := etcd.MakeEtcdClient(options.EtcdClientInfo)
-	if err != nil {
-		return nil, err
-	}
-
 	restOptsGetter, err := originrest.StorageOptions(options)
 	if err != nil {
 		return nil, err
@@ -319,8 +310,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		return nil, err
 	}
 
-	plug, plugStart := newControllerPlug(options, client)
-
 	config := &MasterConfig{
 		Options: options,
 
@@ -343,9 +332,6 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		KubeAdmissionControl: kubeAdmission,
 
 		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
-
-		ControllerPlug:      plug,
-		ControllerPlugStart: plugStart,
 
 		ImageFor:       imageTemplate.ExpandOrDie,
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
@@ -651,27 +637,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	}
 
 	return admission.NewChainHandler(plugins...), nil
-}
-
-func newControllerPlug(options configapi.MasterConfig, client etcdclient.Client) (plug.Plug, func()) {
-	switch {
-	case options.ControllerLeaseTTL > 0:
-		// TODO: replace with future API for leasing from Kube
-		id := fmt.Sprintf("master-%s", kutilrand.String(8))
-		leaser := leaderlease.NewEtcd(
-			client,
-			path.Join(options.EtcdStorageConfig.OpenShiftStoragePrefix, "leases/controllers"),
-			id,
-			uint64(options.ControllerLeaseTTL),
-		)
-		leased := plug.NewLeased(leaser)
-		return leased, func() {
-			glog.V(2).Infof("Attempting to acquire controller lease as %s, renewing every %d seconds", id, options.ControllerLeaseTTL)
-			go leased.Run()
-		}
-	default:
-		return plug.New(!options.PauseControllers), func() {}
-	}
 }
 
 func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccount.ServiceAccountTokenGetter, error) {

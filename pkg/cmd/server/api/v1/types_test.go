@@ -118,6 +118,7 @@ auditConfig:
 authConfig:
   requestHeader: null
 controllerConfig:
+  election: null
   serviceServingCert:
     signer: null
 controllerLeaseTTL: 0
