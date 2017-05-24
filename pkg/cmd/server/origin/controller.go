@@ -17,12 +17,12 @@ import (
 
 // NewOpenShiftControllerPreStartInitializers returns list of initializers for controllers
 // that needed to be run before any other controller is started.
-// Typically this has to done for the serviceaccount-tokens controller as it provides
+// Typically this has to done for the serviceaccount-token controller as it provides
 // tokens to other controllers.
 func (c *MasterConfig) NewOpenShiftControllerPreStartInitializers() (map[string]controller.InitFunc, error) {
 	ret := map[string]controller.InitFunc{}
 
-	saTokens := controller.ServiceAccountTokensControllerOptions{
+	saToken := controller.ServiceAccountTokenControllerOptions{
 		RootClientBuilder: kubecontroller.SimpleControllerClientBuilder{
 			ClientConfig: &c.PrivilegedLoopbackClientConfig,
 		},
@@ -35,17 +35,17 @@ func (c *MasterConfig) NewOpenShiftControllerPreStartInitializers() (map[string]
 
 	var err error
 
-	saTokens.PrivateKey, err = serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
+	saToken.PrivateKey, err = serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("error reading signing key for Service Account Token Manager: %v", err)
 	}
 
 	if len(c.Options.ServiceAccountConfig.MasterCA) > 0 {
-		saTokens.RootCA, err = ioutil.ReadFile(c.Options.ServiceAccountConfig.MasterCA)
+		saToken.RootCA, err = ioutil.ReadFile(c.Options.ServiceAccountConfig.MasterCA)
 		if err != nil {
 			return nil, fmt.Errorf("error reading master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
 		}
-		if _, err := cert.ParseCertsPEM(saTokens.RootCA); err != nil {
+		if _, err := cert.ParseCertsPEM(saToken.RootCA); err != nil {
 			return nil, fmt.Errorf("error parsing master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
 		}
 	}
@@ -63,13 +63,14 @@ func (c *MasterConfig) NewOpenShiftControllerPreStartInitializers() (map[string]
 		// if we have a rootCA bundle add that too.  The rootCA will be used when hitting the default master service, since those are signed
 		// using a different CA by default.  The rootCA's key is more closely guarded than ours and if it is compromised, that power could
 		// be used to change the trusted signers for every pod anyway, so we're already effectively trusting it.
-		if len(saTokens.RootCA) > 0 {
-			saTokens.ServiceServingCA = append(saTokens.ServiceServingCA, saTokens.RootCA...)
-			saTokens.ServiceServingCA = append(saTokens.ServiceServingCA, []byte("\n")...)
+		if len(saToken.RootCA) > 0 {
+			saToken.ServiceServingCA = append(saToken.ServiceServingCA, saToken.RootCA...)
+			saToken.ServiceServingCA = append(saToken.ServiceServingCA, []byte("\n")...)
 		}
-		saTokens.ServiceServingCA = append(saTokens.ServiceServingCA, serviceServingCA...)
+		saToken.ServiceServingCA = append(saToken.ServiceServingCA, serviceServingCA...)
 	}
-	ret["serviceaccount-tokens"] = saTokens.RunController
+	// this matches the upstream name
+	ret["serviceaccount-token"] = saToken.RunController
 
 	return ret, nil
 }
@@ -77,13 +78,14 @@ func (c *MasterConfig) NewOpenShiftControllerPreStartInitializers() (map[string]
 func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controller.InitFunc, error) {
 	ret := map[string]controller.InitFunc{}
 
+	// TODO this overrides an upstream controller, so move this to where we initialize upstream controllers
 	serviceAccount := controller.ServiceAccountControllerOptions{
 		ManagedNames: c.Options.ServiceAccountConfig.ManagedNames,
 	}
 	ret["serviceaccount"] = serviceAccount.RunController
 
-	ret["serviceaccount-pull-secrets"] = controller.RunServiceAccountPullSecretsController
-	ret["origin-namespace"] = controller.RunOriginNamespaceController
+	ret["openshift.io/serviceaccount-pull-secrets"] = controller.RunServiceAccountPullSecretsController
+	ret["openshift.io/origin-namespace"] = controller.RunOriginNamespaceController
 
 	// initialize build controller
 	storageVersion := c.Options.EtcdStorageConfig.OpenShiftStorageVersion
@@ -97,8 +99,9 @@ func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controll
 		AdmissionPluginConfig: c.Options.AdmissionConfig.PluginConfig,
 		Codec: codec,
 	}
-	ret["build"] = buildControllerConfig.RunController
-	ret["build-config-change"] = controller.RunBuildConfigChangeController
+
+	ret["openshift.io/build"] = buildControllerConfig.RunController
+	ret["openshift.io/build-config-change"] = controller.RunBuildConfigChangeController
 
 	// initialize apps.openshift.io controllers
 	vars, err := c.GetOpenShiftClientEnvVars()
@@ -106,16 +109,16 @@ func (c *MasterConfig) NewOpenshiftControllerInitializers() (map[string]controll
 		return nil, err
 	}
 	deployer := controller.DeployerControllerConfig{ImageName: c.ImageFor("deployer"), Codec: codec, ClientEnvVars: vars}
-	ret["deployer"] = deployer.RunController
+	ret["openshift.io/deployer"] = deployer.RunController
 
 	deploymentConfig := controller.DeploymentConfigControllerConfig{Codec: codec}
-	ret["deploymentconfig"] = deploymentConfig.RunController
+	ret["openshift.io/deploymentconfig"] = deploymentConfig.RunController
 
 	deploymentTrigger := controller.DeploymentTriggerControllerConfig{Codec: codec}
-	ret["deploymenttrigger"] = deploymentTrigger.RunController
+	ret["openshift.io/deploymenttrigger"] = deploymentTrigger.RunController
 
 	templateInstance := controller.TemplateInstanceControllerConfig{}
-	ret["templateinstance"] = templateInstance.RunController
+	ret["openshift.io/templateinstance"] = templateInstance.RunController
 
 	return ret, nil
 }

@@ -153,7 +153,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()
 
 	for i := 0; i < counts.BuildControllers; i++ {
-		_, err := openshiftControllerInitializers["build"](openshiftControllerContext)
+		_, err := openshiftControllerInitializers["openshift.io/build"](openshiftControllerContext)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -162,7 +162,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		openshiftConfig.RunImageTriggerController()
 	}
 	for i := 0; i < counts.ConfigChangeControllers; i++ {
-		_, err := openshiftControllerInitializers["build-config-change"](openshiftControllerContext)
+		_, err := openshiftControllerInitializers["openshift.io/build-config-change"](openshiftControllerContext)
 		if err != nil {
 			t.Fatal(err)
 		}
