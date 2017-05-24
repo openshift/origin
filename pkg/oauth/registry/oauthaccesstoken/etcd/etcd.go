@@ -40,6 +40,7 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthaccesstoken.GetAttrs}

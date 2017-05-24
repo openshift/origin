@@ -19,6 +19,8 @@ type REST struct {
 
 // NewREST returns a RESTStorage object that will work against oauth clients
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
+	strategy := oauthclientauthorization.NewStrategy(clientGetter)
+
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.OAuthClientAuthorization{} },
@@ -26,8 +28,9 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 		PredicateFunc:     oauthclientauthorization.Matcher,
 		QualifiedResource: api.Resource("oauthclientauthorizations"),
 
-		CreateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
-		UpdateStrategy: oauthclientauthorization.NewStrategy(clientGetter),
+		CreateStrategy: strategy,
+		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthclientauthorization.GetAttrs}
