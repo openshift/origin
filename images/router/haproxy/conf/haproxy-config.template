@@ -265,16 +265,20 @@ backend openshift_default
           passed through to the backend pod by just looking at the TCP headers.
 */}}
 {{- range $cfgIdx, $cfg := .State }}
-  {{- if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+  {{- if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt") }}
     {{- if (eq $cfg.TLSTermination "") }}
 
 # Plain http backend
 backend be_http:{{$cfgIdx}}
-    {{- else }}
+    {{- else if (eq $cfg.TLSTermination "edge") }}
 
 # Plain http backend but request is TLS, terminated at edge
 backend be_edge_http:{{$cfgIdx}}
-    {{- end }}
+    {{ else if (eq $cfg.TLSTermination "reencrypt") }}
+
+# Secure backend which requires re-encryption
+backend be_secure:{{$cfgIdx}}
+    {{- end }}{{/* end chceck for router type */}}
   mode http
   option redispatch
   option forwardfor
@@ -293,69 +297,80 @@ backend be_edge_http:{{$cfgIdx}}
       {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
       {{- end }}
-    {{- end }}
+    {{- end }} {{/* end balance algorithm setting. */}}
 
-{{- if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
+    {{- if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
   tcp-request content track-sc2 src
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
+      {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
   tcp-request content reject if { src_conn_cur ge  {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" }} }
-  {{- else }}
+      {{- else }}
   # concurrent TCP connections not restricted
-  {{- end }}
+      {{- end }}
 
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }}
+      {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }}
   tcp-request content reject if { src_conn_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" }} }
-  {{- else }}
+      {{- else }}
   #TCP connection rate not restricted
-  {{- end }}
+      {{- end }}
 
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http")) }}
+      {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http")) }}
   tcp-request content reject if { src_http_req_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http" }} }
-  {{- else }}
+      {{- else }}
   #HTTP request rate not restricted
-  {{- end }}
-{{- end }}
+      {{- end }}
+    {{- end }}
 
   timeout check 5000ms
   http-request set-header X-Forwarded-Host %[req.hdr(host)]
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
-  {{- if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
-    {{- if and (eq $cfg.TLSTermination "edge") (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }}
-  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
-    {{- else }}
-  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
-    {{- end }}
-  {{- end }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
-    {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{- if ne $weight 0 }}
-        {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
-          {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-            {{- if $endpoint.NoHealthCheck }}
+  {{- if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
+  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
+    {{- if and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }} secure
+    {{- end }}
+  {{- end }}{{/* end disable cookies check */}}
+
+
+  {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
+    {{- if ne $weight 0 }}
+      {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
+        {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}}
+          {{- if (eq $cfg.TLSTermination "reencrypt") }} ssl
+            {{- if $cfg.VerifyServiceHostname }} verifyhost {{ $serviceUnit.Hostname }}
+            {{- end }}
+            {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
             {{- else }}
-              {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{$healthIntv}} cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- end }}
-              {{- else }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms cookie {{$endpoint.IdHash}} weight {{$weight}}
-                {{- end }}
+              {{- if gt (len $defaultDestinationCA) 0 }} verify required ca-file {{ $defaultDestinationCA }}
+              {{- else }} verify none
               {{- end }}
             {{- end }}
-          {{- end }}
-        {{- end }}
-      {{- end }}{{/* end if weight != 0 */}}
-    {{- end }}{{/* end iterate over services */}}
-  {{- end }}{{/* end if tls==edge/none */}}
+
+          {{- else if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
+          {{- end }}{{/* end type specific options*/}}
+
+            {{- if not $endpoint.NoHealthCheck }}
+              {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
+                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }} check inter {{$healthIntv}}
+                {{- else }} check inter 5000ms
+                {{- end }}
+              {{- else }}
+                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}}
+                {{- else }} check inter 5000ms
+                {{- end }}
+              {{- end }}{{/* end get health interval annotation */}}
+            {{- end }}{{/* end else no health check */}}
+
+
+          {{- end }}{{/* end if cg.TLSTermination */}}
+        {{- end }}{{/* end range endpointsForAlias */}}
+      {{- end }}{{/* end get serviceUnit from its name */}}
+  {{- end }}{{/* end range over serviceUnitNames */}}
+
+  {{- end }}{{/* end if tls==edge/none/reencrypt */}}
 
   {{- if eq $cfg.TLSTermination "passthrough" }}
 
@@ -403,101 +418,7 @@ backend be_tcp:{{$cfgIdx}}
       {{- if ne $weight 0 }}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-            {{- if $endpoint.NoHealthCheck }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
-            {{- else }}
-              {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{$healthIntv}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{$weight}}
-                {{- end }}
-              {{- else }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}} weight {{$weight}}
-                {{- else }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} check inter 5000ms weight {{$weight}}
-                {{- end }}
-              {{- end }}
-            {{- end }}
-          {{- end }}{{/* end range endpointsForAlias */}}
-        {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
-      {{- end }}{{/* end if weight != 0 */}}
-    {{- end }}{{/* end iterate over services*/}}
-  {{- end }}{{/*end tls==passthrough*/}}
-
-  {{- if eq $cfg.TLSTermination "reencrypt" }}
-
-# Secure backend which requires re-encryption
-backend be_secure:{{$cfgIdx}}
-  mode http
-  option redispatch
-  option forwardfor
-    {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
-      {{- with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
-  balance {{ $balanceAlgo }}
-      {{- end }}
-    {{- else }}
-      {{- if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
-  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
-      {{- else }}
-  balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
-      {{- end }}
-    {{- end }}
-    {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
-      {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
-  timeout server  {{$value}}
-      {{- end }}
-    {{- end }}
-
-{{- if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
-  stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
-  tcp-request content track-sc2 src
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
-  tcp-request content reject if { src_conn_cur ge  {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" }} }
-  {{- else }}
-  # concurrent TCP connections not restricted
-  {{- end }}
-
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp")) }}
-  tcp-request content reject if { src_conn_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" }} }
-  {{- else }}
-  #TCP connection rate not restricted
-  {{- end }}
-
-  {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http")) }}
-  tcp-request content reject if { src_http_req_rate ge {{ index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.rate-http" }} }
-  {{- else }}
-  #HTTP request rate not restricted
-  {{- end }}
-{{- end }}
-
-  timeout check 5000ms
-  http-request set-header X-Forwarded-Host %[req.hdr(host)]
-  http-request set-header X-Forwarded-Port %[dst_port]
-  http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
-  http-request set-header X-Forwarded-Proto https if { ssl_fc }
-  http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
-  {{- if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
-    {{- if ne $cfg.InsecureEdgeTerminationPolicy "Allow" }}
-  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly secure
-    {{- else }}
-  cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
-    {{- end }}
-  {{- end }}
-    {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
-      {{- if ne $weight 0 }}
-        {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
-          {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
-  server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} cookie {{$endpoint.IdHash}} weight {{$weight}} ssl
-            {{- if $cfg.VerifyServiceHostname }} verifyhost {{ $serviceUnit.Hostname }}
-            {{- end }}
-            {{- if gt (len (index $cfg.Certificates (printf "%s_pod" $cfg.Host)).Contents) 0 }} verify required ca-file {{ $workingDir }}/cacerts/{{$cfgIdx}}.pem
-            {{- else }}
-              {{- if gt (len $defaultDestinationCA) 0 }} verify required ca-file {{ $defaultDestinationCA }}
-              {{- else }} verify none
-              {{- end }}
-            {{- end }}
             {{- if not $endpoint.NoHealthCheck }}
               {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
                 {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }} check inter {{$healthIntv}}
@@ -510,10 +431,11 @@ backend be_secure:{{$cfgIdx}}
               {{- end }}{{/* end get health interval annotation */}}
             {{- end }}{{/* end else no health check */}}
           {{- end }}{{/* end range endpointsForAlias */}}
-        {{- end }}{{/* end get serviceUnit from its name */}}
+        {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
       {{- end }}{{/* end if weight != 0 */}}
-    {{- end }}{{/* end range over serviceUnitNames */}}
-  {{- end }}{{/* end tls==reencrypt */}}
+    {{- end }}{{/* end iterate over services*/}}
+  {{- end }}{{/*end tls==passthrough*/}}
+
 {{- end }}{{/* end loop over routes */}}
 {{- else }}
 # Avoiding binding ports until routing configuration has been synchronized.
