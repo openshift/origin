@@ -386,6 +386,7 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:openshift-infra:unidling-controller",
 	"system:serviceaccount:openshift-infra:deployment-trigger-controller",
 	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
+	"system:serviceaccount:openshift-infra:template-instance-controller",
 )
 
 type resourceAccessReviewTest struct {
@@ -1601,7 +1602,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1628,7 +1629,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.ResourceAccessReviewResponse{
 			Namespace: namespace,
-			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
+			Users:     sets.NewString("harold", "system:serviceaccount:kube-system:generic-garbage-collector", "system:serviceaccount:kube-system:namespace-controller", "system:serviceaccount:openshift-infra:template-instance-controller", "system:serviceaccount:hammer-project:builder", "system:admin"),
 			Groups:    sets.NewString("system:cluster-admins", "system:masters", "system:cluster-readers", "system:serviceaccounts:hammer-project"),
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

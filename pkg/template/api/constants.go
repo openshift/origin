@@ -43,4 +43,8 @@ const (
 	// ServiceMetadataIconClass is the key for the template iconClass as returned
 	// in the services.metadata map from a service broker catalog response
 	ServiceMetadataIconClass = "console.openshift.io/iconClass"
+
+	// TemplateUIDIndex is the name of an index on the generated template lister,
+	// initialised and used by the template service broker.
+	TemplateUIDIndex = "templateuid"
 )

@@ -48,7 +48,7 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: cli.Namespace() + "templateservicebroker-client-binding",
+				Name: cli.Namespace() + "templateservicebroker-client",
 			},
 			RoleRef: kapi.ObjectReference{
 				Name: bootstrappolicy.TemplateServiceBrokerClientRoleName,

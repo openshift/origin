@@ -1,23 +1,22 @@
 package servicebroker
 
 import (
-	"errors"
 	"net/http"
 	"reflect"
 
-	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-func (b *Broker) ensureSecret(impersonatedKC internalversion.SecretsGetter, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
+func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
 	secret := &kapi.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Data:       map[string][]byte{},
@@ -29,14 +28,32 @@ func (b *Broker) ensureSecret(impersonatedKC internalversion.SecretsGetter, name
 		}
 	}
 
-	createdSec, err := impersonatedKC.Secrets(namespace).Create(secret)
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "create",
+		Group:     kapi.GroupName,
+		Resource:  "secrets",
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	createdSec, err := b.kc.Core().Secrets(namespace).Create(secret)
 	if err == nil {
 		*didWork = true
 		return createdSec, nil
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		existingSec, err := impersonatedKC.Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "get",
+			Group:     kapi.GroupName,
+			Resource:  "secrets",
+		}); err != nil {
+			return nil, api.Forbidden(err)
+		}
+
+		existingSec, err := b.kc.Core().Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(secret.Data, existingSec.Data) {
 			return existingSec, nil
 		}
@@ -50,26 +67,44 @@ func (b *Broker) ensureSecret(impersonatedKC internalversion.SecretsGetter, name
 	return nil, api.InternalServerError(err)
 }
 
-func (b *Broker) ensureTemplateInstance(impersonatedTemplateclient internalversiontemplate.TemplateInterface, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, impersonate string, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
+func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
 	templateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Spec: templateapi.TemplateInstanceSpec{
 			Template: *template,
 			Secret:   kapi.LocalObjectReference{Name: secret.Name},
 			Requester: &templateapi.TemplateInstanceRequester{
-				Username: impersonate,
+				Username: u.GetName(),
 			},
 		},
 	}
 
-	createdTemplateInstance, err := impersonatedTemplateclient.TemplateInstances(namespace).Create(templateInstance)
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "create",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	createdTemplateInstance, err := b.templateclient.TemplateInstances(namespace).Create(templateInstance)
 	if err == nil {
 		*didWork = true
 		return createdTemplateInstance, nil
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		existingTemplateInstance, err := impersonatedTemplateclient.TemplateInstances(namespace).Get(templateInstance.Name, metav1.GetOptions{})
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "get",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+		}); err != nil {
+			return nil, api.Forbidden(err)
+		}
+
+		existingTemplateInstance, err := b.templateclient.TemplateInstances(namespace).Get(templateInstance.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(templateInstance.Spec, existingTemplateInstance.Spec) {
 			return existingTemplateInstance, nil
 		}
@@ -138,15 +173,23 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 
 	namespace := preq.Parameters[templateapi.NamespaceParameterKey]
 	impersonate := preq.Parameters[templateapi.RequesterUsernameParameterKey]
-
-	impersonatedKC, _, impersonatedTemplateclient, err := b.getClientsForUsername(impersonate)
-	if err != nil {
-		return api.InternalServerError(err)
-	}
+	u := &user.DefaultInfo{Name: impersonate}
 
 	template, err := b.lister.GetByUID(preq.ServiceID)
 	if err != nil {
 		return api.BadRequest(err)
+	}
+	if template == nil {
+		templates, err := b.lister.List(labels.Everything())
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+		for _, t := range templates {
+			if string(t.UID) == preq.ServiceID {
+				template = t
+				break
+			}
+		}
 	}
 	if template == nil {
 		return api.BadRequest(kerrors.NewNotFound(templateapi.Resource("templates"), preq.ServiceID))
@@ -155,20 +198,26 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		return api.BadRequest(kerrors.NewNotFound(templateapi.Resource("templates"), preq.ServiceID))
 	}
 
-	lsar := authorizationapi.AddUserToLSAR(&user.DefaultInfo{Name: impersonate},
-		&authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{
-				Verb:     "create",
-				Group:    templateapi.GroupName,
-				Resource: "templateinstances",
-			},
-		})
-	lsarResp, err := b.localSAR.LocalSubjectAccessReviews(namespace).Create(lsar)
-	if err != nil || lsarResp == nil || !lsarResp.Allowed {
-		if err == nil {
-			err = errors.New("forbidden")
+	// TODO: enable SAR for template - at the moment I think this doesn't work
+	// properly because group information isn't populated in u.
+	/*
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: template.Namespace,
+			Verb:      "get",
+			Group:     templateapi.GroupName,
+			Resource:  "templates",
+		}); err != nil {
+			return api.Forbidden(err)
 		}
-		return api.Forbidden(kerrors.NewForbidden(templateapi.LegacyResource("templateinstances"), instanceID, err))
+	*/
+
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "create",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+	}); err != nil {
+		return api.Forbidden(err)
 	}
 
 	didWork := false
@@ -178,12 +227,12 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		return resp
 	}
 
-	secret, resp := b.ensureSecret(impersonatedKC.Core(), namespace, instanceID, preq, &didWork)
+	secret, resp := b.ensureSecret(u, namespace, instanceID, preq, &didWork)
 	if resp != nil {
 		return resp
 	}
 
-	templateInstance, resp := b.ensureTemplateInstance(impersonatedTemplateclient.Template(), namespace, instanceID, template, secret, impersonate, &didWork)
+	templateInstance, resp := b.ensureTemplateInstance(u, namespace, instanceID, template, secret, &didWork)
 	if resp != nil {
 		return resp
 	}

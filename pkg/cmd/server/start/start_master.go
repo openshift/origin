@@ -447,12 +447,14 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -709,6 +711,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
+		TemplateInformers:            oc.TemplateInformers,
 		DeprecatedOpenshiftInformers: oc.Informers,
 		Stop: controllerContext.Stop,
 	}
@@ -721,6 +724,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	)
 	if configapi.IsBuildEnabled(&oc.Options) {
 		allowedOpenshiftControllers.Insert("build")
+	}
+	if oc.Options.TemplateServiceBrokerConfig != nil {
+		allowedOpenshiftControllers.Insert("templateinstance")
 	}
 
 	if err != nil {
@@ -781,10 +787,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		glog.Fatalf("Could not get client: %v", err)
 	}
 	oc.RunIngressIPController(ingressIPClientInternal, ingressIPClientExternal)
-
-	if oc.Options.TemplateServiceBrokerConfig != nil {
-		oc.RunTemplateController()
-	}
 
 	glog.Infof("Started Origin Controllers")
 

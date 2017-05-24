@@ -32,9 +32,6 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		edituser2       *userapi.User // project edit
 		viewuser        *userapi.User // project view
 
-		clusterrole        *authorizationapi.ClusterRole
-		clusterrolebinding *authorizationapi.ClusterRoleBinding
-
 		dummytemplateinstance *templateapi.TemplateInstance
 
 		tests []struct {
@@ -119,27 +116,38 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		}
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1
-		clusterrole, err = cli.AdminClient().ClusterRoles().Create(&authorizationapi.ClusterRole{
+		role, err := cli.AdminClient().Roles(cli.Namespace()).Create(&authorizationapi.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: cli.Namespace() + "-impersonate",
+				Name: "impersonater",
 			},
 			Rules: []authorizationapi.PolicyRule{
 				{
-					Verbs:         sets.NewString("impersonate"),
-					APIGroups:     []string{userapi.GroupName},
-					Resources:     sets.NewString(authorizationapi.UserResource),
-					ResourceNames: sets.NewString(edituser1.Name),
+					Verbs:     sets.NewString("assign"),
+					APIGroups: []string{templateapi.GroupName},
+					Resources: sets.NewString("templateinstances"),
 				},
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		_, err = cli.AdminClient().PolicyBindings(cli.Namespace()).Create(&authorizationapi.PolicyBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: cli.Namespace() + "-impersonate",
+				Name: authorizationapi.GetPolicyBindingName(cli.Namespace()),
+			},
+			PolicyRef: kapi.ObjectReference{
+				Name:      "default",
+				Namespace: cli.Namespace(),
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "impersonater-binding",
 			},
 			RoleRef: kapi.ObjectReference{
-				Name: clusterrole.Name,
+				Name:      role.Name,
+				Namespace: cli.Namespace(),
 			},
 			Subjects: []kapi.ObjectReference{
 				{
@@ -157,11 +165,6 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		deleteUser(cli, edituser1)
 		deleteUser(cli, edituser2)
 		deleteUser(cli, viewuser)
-
-		err := cli.AdminClient().ClusterRoles().Delete(clusterrole.Name)
-		o.Expect(err).NotTo(o.HaveOccurred())
-		err = cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
-		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.It("should pass impersonation creation tests", func() {
@@ -197,7 +200,16 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			newtemplateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
+			var newtemplateinstance *templateapi.TemplateInstance
+			for try := 0; try < 3; try++ {
+				newtemplateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
+				if kerrors.IsConflict(err) {
+					templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+					o.Expect(err).NotTo(o.HaveOccurred())
+				} else {
+					break
+				}
+			}
 			if !test.expectCreateUpdateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())

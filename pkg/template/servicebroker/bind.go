@@ -10,9 +10,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 
+	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
@@ -25,10 +27,19 @@ func makeEnvVariableName(str string) string {
 	return strings.ToUpper(strings.Replace(str, "-", "_", -1))
 }
 
-func (b *Broker) getServices(impersonatedKC internalversion.ServicesGetter, namespace, instanceID string) (map[string]string, *api.Response) {
+func (b *Broker) getServices(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
-	serviceList, err := impersonatedKC.Services(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "list",
+		Group:     kapi.GroupName,
+		Resource:  "services",
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	serviceList, err := b.kc.Core().Services(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
 			return nil, api.Forbidden(err)
@@ -59,10 +70,19 @@ func (b *Broker) getServices(impersonatedKC internalversion.ServicesGetter, name
 	return services, nil
 }
 
-func (b *Broker) getSecrets(impersonatedKC internalversion.SecretsGetter, namespace, instanceID string) (map[string]string, *api.Response) {
+func (b *Broker) getSecrets(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
-	secretList, err := impersonatedKC.Secrets(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "list",
+		Group:     kapi.GroupName,
+		Resource:  "secrets",
+	}); err != nil {
+		return nil, api.Forbidden(err)
+	}
+
+	secretList, err := b.kc.Core().Secrets(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
 			return nil, api.Forbidden(err)
@@ -97,11 +117,7 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 	}
 
 	impersonate := breq.Parameters[templateapi.RequesterUsernameParameterKey]
-
-	impersonatedKC, _, _, err := b.getClientsForUsername(impersonate)
-	if err != nil {
-		return api.InternalServerError(err)
-	}
+	u := &user.DefaultInfo{Name: impersonate}
 
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
@@ -122,12 +138,12 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	services, resp := b.getServices(impersonatedKC.Core(), namespace, instanceID)
+	services, resp := b.getServices(u, namespace, instanceID)
 	if resp != nil {
 		return resp
 	}
 
-	secrets, resp := b.getSecrets(impersonatedKC.Core(), namespace, instanceID)
+	secrets, resp := b.getSecrets(u, namespace, instanceID)
 	if resp != nil {
 		return resp
 	}

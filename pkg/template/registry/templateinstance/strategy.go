@@ -13,23 +13,23 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/authorization/util"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
-	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 // templateInstanceStrategy implements behavior for Templates
 type templateInstanceStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	oc *client.Client
+	kc kclientset.Interface
 }
 
-func NewStrategy(oc *client.Client) *templateInstanceStrategy {
-	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, oc}
+func NewStrategy(kc kclientset.Interface) *templateInstanceStrategy {
+	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, kc}
 }
 
 // NamespaceScoped is true for templateinstances.
@@ -39,6 +39,10 @@ func (templateInstanceStrategy) NamespaceScoped() bool {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (templateInstanceStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+	curr := obj.(*templateapi.TemplateInstance)
+	prev := old.(*templateapi.TemplateInstance)
+
+	curr.Status = prev.Status
 }
 
 // Canonicalize normalizes the object after validation.
@@ -55,6 +59,8 @@ func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj run
 			Username: user.GetName(),
 		}
 	}
+
+	templateInstance.Status = templateapi.TemplateInstanceStatus{}
 }
 
 // Validate validates a new templateinstance.
@@ -124,20 +130,48 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 	}
 
 	if templateInstance.Spec.Requester.Username != userinfo.GetName() {
-		sar := authorizationapi.AddUserToSAR(userinfo,
-			&authorizationapi.SubjectAccessReview{
-				Action: authorizationapi.Action{
-					Verb:         "impersonate",
-					Group:        userapi.GroupName,
-					Resource:     authorizationapi.UserResource,
-					ResourceName: templateInstance.Spec.Requester.Username,
-				},
-			})
-		resp, err := s.oc.SubjectAccessReviews().Create(sar)
-		if err != nil || resp == nil || !resp.Allowed {
+		if err := util.Authorize(s.kc.Authorization().SubjectAccessReviews(), userinfo, &authorization.ResourceAttributes{
+			Namespace: templateInstance.Namespace,
+			Verb:      "assign",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+		}); err != nil {
 			return field.ErrorList{field.Forbidden(field.NewPath("spec.impersonateUser"), "impersonation forbidden")}
 		}
 	}
 
 	return nil
+}
+
+type statusStrategy struct {
+	runtime.ObjectTyper
+	names.NameGenerator
+}
+
+var StatusStrategy = statusStrategy{kapi.Scheme, names.SimpleNameGenerator}
+
+func (statusStrategy) NamespaceScoped() bool {
+	return true
+}
+
+func (statusStrategy) AllowCreateOnUpdate() bool {
+	return false
+}
+
+func (statusStrategy) AllowUnconditionalUpdate() bool {
+	return false
+}
+
+func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+	curr := obj.(*templateapi.TemplateInstance)
+	prev := old.(*templateapi.TemplateInstance)
+
+	curr.Spec = prev.Spec
+}
+
+func (statusStrategy) Canonicalize(obj runtime.Object) {
+}
+
+func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+	return validation.ValidateTemplateInstanceUpdate(obj.(*templateapi.TemplateInstance), old.(*templateapi.TemplateInstance))
 }

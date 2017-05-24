@@ -165,6 +165,7 @@ type Response struct {
 }
 
 type Broker interface {
+	WaitForReady() error
 	Catalog() *Response
 	Provision(instanceID string, preq *ProvisionRequest) *Response
 	Deprovision(instanceID string) *Response

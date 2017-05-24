@@ -58,7 +58,6 @@ import (
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
 	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
-	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
@@ -566,10 +565,6 @@ func (c *MasterConfig) RunUnidlingController() {
 	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, kc.Core(), kc.Core(), dcCoreClient, kc.Core(), resyncPeriod)
 
 	cont.Run(utilwait.NeverStop)
-}
-
-func (c *MasterConfig) RunTemplateController() {
-	go templatecontroller.NewTemplateInstanceController(c.PrivilegedLoopbackClientConfig).Run(utilwait.NeverStop)
 }
 
 func (c *MasterConfig) RunOriginToRBACSyncControllers() {
