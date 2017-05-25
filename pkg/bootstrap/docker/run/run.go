@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -125,6 +126,15 @@ func (h *Runner) Privileged() *Runner {
 // Will be ignored in the case of Start
 func (h *Runner) DiscardContainer() *Runner {
 	h.removeContainer = true
+	return h
+}
+
+// User sets the username or UID to use when running the container.
+// Will be ignored if empty string
+func (h *Runner) User(user string) *Runner {
+	if strings.TrimSpace(user) != "" {
+		h.config.User = user
+	}
 	return h
 }
 
