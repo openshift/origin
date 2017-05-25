@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -12,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
 // emptySecretReferences is used by a service account without any secrets
@@ -169,7 +171,8 @@ func TestTokenDeletion(t *testing.T) {
 
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
 
-		controller := NewDockercfgTokenDeletedController(client, DockercfgTokenDeletedControllerOptions{})
+		informer := internalversion.NewSharedInformerFactory(client, 3*time.Minute)
+		controller := NewDockercfgTokenDeletedController(client, informer.Core().InternalVersion().Secrets(), DockercfgTokenDeletedControllerOptions{})
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)

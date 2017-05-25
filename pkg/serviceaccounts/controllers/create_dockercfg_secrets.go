@@ -11,17 +11,15 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -60,25 +58,20 @@ type DockercfgControllerOptions struct {
 }
 
 // NewDockercfgController returns a new *DockercfgController.
-func NewDockercfgController(cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
+func NewDockercfgController(cl kclientset.Interface, secretInformer kinternalinformers.SecretInformer, serviceAccountInformer kinternalinformers.ServiceAccountInformer, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
 		client:               cl,
 		queue:                workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		dockerURLsIntialized: options.DockerURLsIntialized,
+
+		secretCache:      secretInformer.Informer().GetStore(),
+		secretController: secretInformer.Informer().GetController(),
+
+		serviceAccountController: serviceAccountInformer.Informer().GetController(),
+		serviceAccountCache:      NewEtcdMutationCache(serviceAccountInformer.Informer().GetStore()),
 	}
 
-	var serviceAccountCache cache.Store
-	serviceAccountCache, e.serviceAccountController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return e.client.Core().ServiceAccounts(api.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return e.client.Core().ServiceAccounts(api.NamespaceAll).Watch(options)
-			},
-		},
-		&api.ServiceAccount{},
-		options.Resync,
+	serviceAccountInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				serviceAccount := obj.(*api.ServiceAccount)
@@ -92,32 +85,19 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 				e.enqueueServiceAccount(serviceAccount)
 			},
 		},
-	)
-	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
-
-	tokenSecretSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	e.secretCache, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = tokenSecretSelector.String()
-				return e.client.Core().Secrets(api.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = tokenSecretSelector.String()
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
-			},
-		},
-		&api.Secret{},
 		options.Resync,
+	)
+
+	secretInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
 			UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
 			DeleteFunc: e.handleTokenSecretDelete,
 		},
+		options.Resync,
 	)
 
 	e.syncHandler = e.syncServiceAccount
-
 	return e
 }
 
@@ -144,6 +124,9 @@ type DockercfgController struct {
 // token data and triggers re-sync of service account when the data are observed.
 func (e *DockercfgController) handleTokenSecretUpdate(oldObj, newObj interface{}) {
 	secret := newObj.(*api.Secret)
+	if secret.Type != api.SecretTypeServiceAccountToken {
+		return
+	}
 	if secret.Annotations[api.CreatedByAnnotation] != CreateDockercfgSecretsController {
 		return
 	}

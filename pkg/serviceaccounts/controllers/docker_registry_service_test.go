@@ -13,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
 
@@ -42,13 +43,28 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T) (*fake.Clie
 	})
 	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 
-	controller := NewDockerRegistryServiceController(kubeclient, DockerRegistryServiceControllerOptions{
-		Resync:               10 * time.Minute,
-		RegistryNamespace:    registryNamespace,
-		RegistryServiceName:  registryName,
-		DockercfgController:  &DockercfgController{},
-		DockerURLsIntialized: make(chan struct{}),
-	})
+	stopChan := make(chan struct{})
+	informer := internalversion.NewSharedInformerFactory(kubeclient, 3*time.Minute)
+
+	go informer.Core().InternalVersion().Secrets().Informer().Run(stopChan)
+	for !informer.Core().InternalVersion().Secrets().Informer().HasSynced() {
+	}
+
+	go informer.Core().InternalVersion().Services().Informer().Run(stopChan)
+	for !informer.Core().InternalVersion().Services().Informer().HasSynced() {
+	}
+
+	controller := NewDockerRegistryServiceController(
+		kubeclient,
+		informer.Core().InternalVersion().Secrets(),
+		informer.Core().InternalVersion().Services(),
+		DockerRegistryServiceControllerOptions{
+			Resync:               10 * time.Minute,
+			RegistryNamespace:    registryNamespace,
+			RegistryServiceName:  registryName,
+			DockercfgController:  &DockercfgController{},
+			DockerURLsIntialized: make(chan struct{}),
+		})
 
 	return kubeclient, fakeWatch, controller
 }

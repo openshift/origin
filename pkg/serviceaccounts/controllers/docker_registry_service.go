@@ -10,16 +10,16 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	kinternalcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
@@ -40,7 +40,7 @@ type DockerRegistryServiceControllerOptions struct {
 }
 
 // NewDockerRegistryServiceController returns a new *DockerRegistryServiceController.
-func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
+func NewDockerRegistryServiceController(cl kclientset.Interface, secretInformer kinternalinformers.SecretInformer, serviceInformer kinternalinformers.ServiceInformer, options DockerRegistryServiceControllerOptions) *DockerRegistryServiceController {
 	e := &DockerRegistryServiceController{
 		client:                cl,
 		dockercfgController:   options.DockercfgController,
@@ -49,50 +49,39 @@ func NewDockerRegistryServiceController(cl kclientset.Interface, options DockerR
 		serviceName:           options.RegistryServiceName,
 		serviceNamespace:      options.RegistryNamespace,
 		dockerURLsIntialized:  options.DockerURLsIntialized,
+
+		secretLister:     secretInformer.Lister(),
+		secretCache:      secretInformer.Informer().GetStore(),
+		secretController: secretInformer.Informer().GetController(),
+
+		serviceCache:      serviceInformer.Informer().GetStore(),
+		serviceController: serviceInformer.Informer().GetController(),
 	}
 
-	e.serviceCache, e.serviceController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
-				return e.client.Core().Services(options.RegistryNamespace).List(opts)
-			},
-			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
-				opts.FieldSelector = fields.OneTermEqualSelector("metadata.name", options.RegistryServiceName).String()
-				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
-			},
-		},
-		&kapi.Service{},
-		options.Resync,
+	serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := obj.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := cur.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 			DeleteFunc: func(obj interface{}) {
-				e.enqueueRegistryLocationQueue()
+				if svc, ok := obj.(*kapi.Service); ok && svc.Name == options.RegistryServiceName {
+					e.enqueueRegistryLocationQueue()
+				}
 			},
 		},
+		options.Resync,
 	)
+
 	e.servicesSynced = e.serviceController.HasSynced
 	e.syncRegistryLocationHandler = e.syncRegistryLocationChange
 
-	dockercfgOptions := metav1.ListOptions{FieldSelector: fields.SelectorFromSet(map[string]string{kapi.SecretTypeField: string(kapi.SecretTypeDockercfg)}).String()}
-	e.secretCache, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(opts metav1.ListOptions) (runtime.Object, error) {
-				return e.client.Core().Secrets(metav1.NamespaceAll).List(dockercfgOptions)
-			},
-			WatchFunc: func(opts metav1.ListOptions) (watch.Interface, error) {
-				return e.client.Core().Secrets(metav1.NamespaceAll).Watch(dockercfgOptions)
-			},
-		},
-		&kapi.Secret{},
-		options.Resync,
-		cache.ResourceEventHandlerFuncs{},
-	)
 	e.secretsSynced = e.secretController.HasSynced
 	e.syncSecretHandler = e.syncSecretUpdate
 
@@ -113,6 +102,7 @@ type DockerRegistryServiceController struct {
 	servicesSynced              func() bool
 	syncRegistryLocationHandler func(key string) error
 
+	secretLister      kinternalcorelisters.SecretLister
 	secretController  cache.Controller
 	secretCache       cache.Store
 	secretsSynced     func() bool
@@ -268,10 +258,18 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string)
 
 	// we've changed the docker registry URL.  Add items to the work queue for all known secrets
 	// new secrets will already get the updated value.
-	for _, obj := range e.secretCache.List() {
-		key, err := controller.KeyFunc(obj)
+	//
+	secrets, err := e.secretLister.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+	for _, secret := range secrets {
+		if secret.Type != kapi.SecretTypeDockercfg {
+			continue
+		}
+		key, err := controller.KeyFunc(secret)
 		if err != nil {
-			glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+			glog.Errorf("Couldn't get key for secret %+v: %v", secret, err)
 			continue
 		}
 		e.secretsToUpdate.Add(key)
