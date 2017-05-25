@@ -227,10 +227,16 @@ readonly -f os::util::environment::setup_etcd_vars
 #  - export SERVER_CONFIG_DIR
 #  - export MASTER_CONFIG_DIR
 #  - export NODE_CONFIG_DIR
+#  - export KUBE_CACHE_MUTATION_DETECTOR
+#  - export KUBE_PANIC_WATCH_DECODE_ERROR
 function os::util::environment::setup_server_vars() {
     # turn on cache mutation detector every time we start a server
     KUBE_CACHE_MUTATION_DETECTOR="${KUBE_CACHE_MUTATION_DETECTOR:-true}"
     export KUBE_CACHE_MUTATION_DETECTOR
+
+    # panic the server on watch decode errors since they are considered coder mistakes
+    KUBE_PANIC_WATCH_DECODE_ERROR="${KUBE_PANIC_WATCH_DECODE_ERROR:-true}"
+    export KUBE_PANIC_WATCH_DECODE_ERROR
 
     API_BIND_HOST="${API_BIND_HOST:-$(openshift start --print-ip || echo "127.0.0.1")}"
     export API_BIND_HOST
