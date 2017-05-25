@@ -105,7 +105,13 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	}
 
 	//REBASE: add new args to NewServiceAccountsController
-	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientsetExternal(), options).Run(1, utilwait.NeverStop)
+	controller := sacontroller.NewServiceAccountsController(
+		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
+		c.Informers.KubernetesInformers().Core().V1().Namespaces(),
+		c.KubeClientsetExternal(),
+		options,
+	)
+	go controller.Run(1, utilwait.NeverStop)
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -155,7 +161,13 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 		ServiceServingCA: servingServingCABundle,
 	}
 
-	go sacontroller.NewTokensController(c.KubeClientsetExternal(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
+	controller := sacontroller.NewTokensController(
+		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
+		c.Informers.KubernetesInformers().Core().V1().Secrets(),
+		c.KubeClientsetExternal(),
+		options,
+	)
+	go controller.Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers

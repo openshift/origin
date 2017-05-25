@@ -19,9 +19,15 @@ package scheduler
 import (
 	"time"
 
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
@@ -30,10 +36,6 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/schedulercache"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/util"
-
-	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/cache"
 )
 
 // Binder knows how to write a binding.
@@ -73,7 +75,6 @@ type Configurator interface {
 	GetNodeLister() corelisters.NodeLister
 	GetClient() clientset.Interface
 	GetScheduledPodLister() corelisters.PodLister
-	Run()
 
 	Create() (*Config, error)
 	CreateFromProvider(providerName string) (*Config, error)
@@ -158,6 +159,12 @@ func (s *Scheduler) scheduleOne() {
 	dest, err := s.config.Algorithm.Schedule(pod, s.config.NodeLister)
 	if err != nil {
 		glog.V(1).Infof("Failed to schedule pod: %v/%v", pod.Namespace, pod.Name)
+		copied, cerr := api.Scheme.Copy(pod)
+		if cerr != nil {
+			runtime.HandleError(err)
+			return
+		}
+		pod = copied.(*v1.Pod)
 		s.config.Error(pod, err)
 		s.config.Recorder.Eventf(pod, v1.EventTypeWarning, "FailedScheduling", "%v", err)
 		s.config.PodConditionUpdater.Update(pod, &v1.PodCondition{

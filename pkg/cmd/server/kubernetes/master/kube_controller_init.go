@@ -236,6 +236,7 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 		c.SchedulerServer.SchedulerName,
 		c.KubeClient,
 		c.Informers.KubernetesInformers().Core().V1().Nodes(),
+		c.Informers.KubernetesInformers().Core().V1().Pods(),
 		c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
 		c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
 		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),

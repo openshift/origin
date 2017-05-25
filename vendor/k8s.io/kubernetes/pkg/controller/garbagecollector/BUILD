@@ -37,6 +37,7 @@ go_library(
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
         "//vendor:k8s.io/apimachinery/pkg/types",
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
         "//vendor:k8s.io/apimachinery/pkg/util/errors",
         "//vendor:k8s.io/apimachinery/pkg/util/runtime",
         "//vendor:k8s.io/apimachinery/pkg/util/sets",
@@ -45,7 +46,6 @@ go_library(
         "//vendor:k8s.io/client-go/dynamic",
         "//vendor:k8s.io/client-go/kubernetes",
         "//vendor:k8s.io/client-go/tools/cache",
-        "//vendor:k8s.io/client-go/util/clock",
         "//vendor:k8s.io/client-go/util/workqueue",
     ],
 )
