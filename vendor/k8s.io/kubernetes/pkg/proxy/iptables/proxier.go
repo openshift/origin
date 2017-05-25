@@ -1312,7 +1312,7 @@ func (proxier *Proxier) syncProxyRules() {
 	natLines := append(natChains.Bytes(), natRules.Bytes()...)
 	lines := append(filterLines, natLines...)
 
-	glog.V(3).Infof("Restoring iptables rules: %s", lines)
+	glog.V(5).Infof("Restoring iptables rules: %s", lines)
 	err = proxier.iptables.RestoreAll(lines, utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
 		glog.Errorf("Failed to execute iptables-restore: %v\nRules:\n%s", err, lines)
