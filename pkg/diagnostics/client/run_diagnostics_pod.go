@@ -109,7 +109,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 	var scanner *bufio.Scanner
 	var lastError error
 	for times := 1; true; times++ {
-		if times <= 25 {
+		if times <= 50 {
 			readCloser, err := req.Stream()
 			if err != nil {
 				lastError = err
@@ -131,7 +131,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 			time.Sleep(time.Duration(times*100) * time.Millisecond)
 			continue
 		}
-		// after 25 times trying:
+		// tries exhausted
 		r.Warn("DCli2006", err, fmt.Sprintf("Timed out preparing diagnostic pod logs for streaming, so this diagnostic cannot run.\nIt is likely that the image '%s' was not pulled and running yet.\nLast error: (%T[2]) %[2]v", pod.Spec.Containers[0].Image, lastError))
 		return
 	}
