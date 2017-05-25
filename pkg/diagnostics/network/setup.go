@@ -125,7 +125,7 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 			for i := 0; i < 2; i++ {
 				testPodName = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestPodNamePrefix))
 				// Create network diags test pod on the given node for the given namespace
-				pod := GetTestPod(util.NetworkDiagDefaultTestPodImage, testPodName, node.Name)
+				pod := GetTestPod(d.TestPodImage, d.TestPodProtocol, testPodName, node.Name, d.TestPodPort)
 				if _, err := d.KubeClient.Core().Pods(nsName).Create(pod); err != nil {
 					errList = append(errList, fmt.Errorf("Creating network diagnostic test pod '%s/%s' on node %q failed: %v", nsName, testPodName, node.Name, err))
 					continue
@@ -134,7 +134,8 @@ func (d *NetworkDiagnostic) createTestPodAndService(nsList []string) error {
 
 			// Create network diags test service on the given node for the given namespace
 			testServiceName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagTestServiceNamePrefix))
-			if _, err := d.KubeClient.Core().Services(nsName).Create(GetTestService(testServiceName, testPodName, node.Name)); err != nil {
+			service := GetTestService(testServiceName, testPodName, d.TestPodProtocol, node.Name, d.TestPodPort)
+			if _, err := d.KubeClient.Core().Services(nsName).Create(service); err != nil {
 				errList = append(errList, fmt.Errorf("Creating network diagnostic test service '%s/%s' on node %q failed: %v", nsName, testServiceName, node.Name, err))
 				continue
 			}
