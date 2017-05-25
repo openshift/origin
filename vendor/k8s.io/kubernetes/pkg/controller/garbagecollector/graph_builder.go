@@ -204,15 +204,6 @@ var ignoredResources = map[schema.GroupVersionResource]struct{}{
 	schema.GroupVersionResource{Group: "authorization.k8s.io", Version: "v1beta1", Resource: "selfsubjectaccessreviews"}:  {},
 	schema.GroupVersionResource{Group: "authorization.k8s.io", Version: "v1beta1", Resource: "localsubjectaccessreviews"}: {},
 	schema.GroupVersionResource{Group: "apiregistration.k8s.io", Version: "v1alpha1", Resource: "apiservices"}:            {},
-
-	// HACK: add OpenShift resources
-	schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "clusterrolebindings"}: {},
-	schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "clusterroles"}:        {},
-	schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "rolebindings"}:        {},
-	schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "roles"}:               {},
-	schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagestreamtags"}:             {},
-	schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagesignatures"}:             {},
-	schema.GroupVersionResource{Group: "user.openshift.io", Version: "v1", Resource: "useridentitymappings"}:         {},
 }
 
 func (gb *GraphBuilder) enqueueChanges(e *event) {
