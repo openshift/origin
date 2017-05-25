@@ -179,7 +179,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		After: stopOnErr,
 		Op:    configcmd.Create,
 	}
-	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, projectName)); err != nil {
+	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, createdProject.Name)); err != nil {
 		utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, err))
 		// We have to clean up the project if any part of the project request template fails
 		if deleteErr := r.openshiftClient.Projects().Delete(createdProject.Name); deleteErr != nil {
@@ -190,10 +190,10 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 
 	// wait for a rolebinding if we created one
 	if lastRoleBinding != nil {
-		r.waitForRoleBinding(projectName, lastRoleBinding.Name)
+		r.waitForRoleBinding(createdProject.Name, lastRoleBinding.Name)
 	}
 
-	return r.openshiftClient.Projects().Get(projectName, metav1.GetOptions{})
+	return r.openshiftClient.Projects().Get(createdProject.Name, metav1.GetOptions{})
 }
 
 func (r *REST) waitForRoleBinding(namespace, name string) {
