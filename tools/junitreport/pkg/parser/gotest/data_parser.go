@@ -10,13 +10,13 @@ func newTestDataParser() testDataParser {
 	return testDataParser{
 		// testStartPattern matches the line in verbose `go test` output that marks the declaration of a test.
 		// The first submatch of this regex is the name of the test
-		testStartPattern: regexp.MustCompile(`=== RUN\s+(.+)$`),
+		testStartPattern: regexp.MustCompile(`=== RUN\s+([^/]+)$`),
 
 		// testResultPattern matches the line in verbose `go test` output that marks the result of a test.
 		// The first submatch of this regex is the result of the test (PASS, FAIL, or SKIP)
 		// The second submatch of this regex is the name of the test
 		// The third submatch of this regex is the time taken in seconds for the test to finish
-		testResultPattern: regexp.MustCompile(`--- (PASS|FAIL|SKIP):\s+(.+)\s+\((\d+\.\d+)(s| seconds)\)`),
+		testResultPattern: regexp.MustCompile(`--- (PASS|FAIL|SKIP):\s+([^/]+)\s+\((\d+\.\d+)(s| seconds)\)`),
 	}
 }
 
