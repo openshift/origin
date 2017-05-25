@@ -631,6 +631,10 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				},
 			},
 			Rules: []authorizationapi.PolicyRule{
+				// "delete" is required here for compatibility with older deployer images
+				// (see https://github.com/openshift/origin/pull/14322#issuecomment-303968976)
+				// TODO: remove "delete" rule few releases after 3.6
+				authorizationapi.NewRule("delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 				authorizationapi.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 				authorizationapi.NewRule("get", "list", "watch", "create").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 				authorizationapi.NewRule("get").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
