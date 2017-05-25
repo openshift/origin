@@ -288,6 +288,14 @@ func canIdentifyUser(config restclient.Config) bool {
 
 // Namespace implements ClientConfig
 func (config *DirectClientConfig) Namespace() (string, bool, error) {
+	if config.overrides != nil && config.overrides.Context.Namespace != "" {
+		// In the event we have an empty config but we do have a namespace override, we should return
+		// the namespace override instead of having config.ConfirmUsable() return an error. This allows
+		// things like in-cluster clients to execute `kubectl get pods --namespace=foo` and have the
+		// --namespace flag honored instead of being ignored.
+		return config.overrides.Context.Namespace, true, nil
+	}
+
 	if err := config.ConfirmUsable(); err != nil {
 		return "", false, err
 	}
@@ -301,11 +309,7 @@ func (config *DirectClientConfig) Namespace() (string, bool, error) {
 		return api.NamespaceDefault, false, nil
 	}
 
-	overridden := false
-	if config.overrides != nil && config.overrides.Context.Namespace != "" {
-		overridden = true
-	}
-	return configContext.Namespace, overridden, nil
+	return configContext.Namespace, false, nil
 }
 
 // ConfigAccess implements ClientConfig
