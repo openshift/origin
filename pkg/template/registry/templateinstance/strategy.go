@@ -136,7 +136,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 			Group:     templateapi.GroupName,
 			Resource:  "templateinstances",
 		}); err != nil {
-			return field.ErrorList{field.Forbidden(field.NewPath("spec.impersonateUser"), "impersonation forbidden")}
+			return field.ErrorList{field.Forbidden(field.NewPath("spec.impersonateUser"), fmt.Sprintf("impersonation forbidden: %v", err))}
 		}
 	}
 
