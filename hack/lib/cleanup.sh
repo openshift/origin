@@ -307,7 +307,7 @@ readonly -f os::cleanup::dump_pprof_output
 # Returns:
 #  None
 function os::cleanup::truncate_large_logs() {
-	local max_file_size="100M"
+	local max_file_size="200M"
 	os::log::info "[CLEANUP] Truncating log files over ${max_file_size}"
 	for file in $(find "${ARTIFACT_DIR}" "${LOG_DIR}" -type f -name '*.log' \( -size +${max_file_size} \)); do
 		mv "${file}" "${file}.tmp"
