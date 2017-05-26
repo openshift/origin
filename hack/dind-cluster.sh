@@ -106,8 +106,11 @@ function start() {
   local bin_path
   bin_path="$(os::build::get-bin-output-path "${OS_ROOT}")"
   cat >"${rc_file}" <<EOF
-export KUBECONFIG=${admin_config}
-export PATH=\$PATH:${bin_path}
+export KUBECONFIG="${admin_config}"
+export PATH="\$PATH:${bin_path}"
+
+export OPENSHIFT_CLUSTER_ID="${cluster_id}"
+export OPENSHIFT_CONFIG_ROOT="${config_root}"
 
 for file in "${origin_root}/contrib/completions/bash"/* ; do
     source "\${file}"
@@ -548,7 +551,8 @@ DOCKER_CMD="${DOCKER_CMD:-$DEFAULT_DOCKER_CMD}"
 CLUSTER_ID="${OPENSHIFT_CLUSTER_ID:-openshift}"
 
 TMPDIR="${TMPDIR:-"/tmp"}"
-CONFIG_ROOT="${OPENSHIFT_CONFIG_ROOT:-${TMPDIR}/openshift-dind-cluster/${CLUSTER_ID}}"
+CONFIG_BASE="${OPENSHIFT_CONFIG_BASE:-${TMPDIR}/openshift-dind-cluster}"
+CONFIG_ROOT="${OPENSHIFT_CONFIG_ROOT:-${CONFIG_BASE}/${CLUSTER_ID}}"
 DEPLOYED_CONFIG_ROOT="/data"
 
 MASTER_NAME="${CLUSTER_ID}-master"
@@ -771,6 +775,14 @@ refresh accepts the following options:
 
 add-node and resume accept the following option:
  -s                skip waiting for nodes to become ready
+
+The following environment variables are honored:
+ - DOCKER_CMD: The docker command used.  Default: 'sudo docker'
+ - OPENSHIFT_CLUSTER_ID: The name of the cluster (so multiple can be run). Default: 'openshift'
+ - OPENSHIFT_CONFIG_BASE: Where the cluster configs are written, move somewhere persistent if you
+      want to pause and resume across reboots.  Default: '${TMPDIR}/openshift-dind-cluster'
+ - OPENSHIFT_CONFIG_ROOT: Where this specific cluster config is written.
+      Default: '${OPENSHIFT_CONFIG_BASE}/${OPENSHIFT_CLUSTER_ID}'
 "
     exit 2
 esac
