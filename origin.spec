@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 63c838040d8986039f62e1f87aa33f7869dea8cd
+%global commit 04d9a0e082754420cdf43bd0ccfb53e09a87f3bf
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.83 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=63c8380
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.84 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=04d9a0e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.84
+Version:        3.6.85
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -601,6 +601,52 @@ if [ "$1" -eq 0 ] ; then
 fi
 
 %changelog
+* Thu May 25 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.85-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 026b56c
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bc8c8494baa3fc6c16a8158dacf6a5103ece122d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7b5be5192ac6cb18265b1009a9b5091bbd160122 (dmcphers+openshiftbot@redhat.com)
+- Use shared informers in image controllers (maszulik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  674bfa26638c617eadb4faea84a98ccb5a987102 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  49f82e8dce65fd143055c66b7efba2e8dcb5113a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  913018dbb47766f2612da63c2455938de0ed87a4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e3bb0a00c91f4c2f06aba841b442d17b4a34f2ba (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  955f83cd3b71d6cc619e74b5913745d54c62d66b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1fdfcb2d3eec1cb38b0a6baa12415de84b4aeda2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5755f73a66a63969b00e69cf9fe18f8bd65fff8a (dmcphers+openshiftbot@redhat.com)
+- Give docker builders access to optimized image builds (ccoleman@redhat.com)
+- UPSTREAM: containers/image: <carry>: Disable gpgme on windows/mac
+  (ccoleman@redhat.com)
+- React to changes to cache.Indexer (ccoleman@redhat.com)
+- Use shared informers in the scheduler (ccoleman@redhat.com)
+- Use informers for token controller (ccoleman@redhat.com)
+- UPSTREAM: 45933: Use informers in scheduler / token controller
+  (ccoleman@redhat.com)
+- Cherry-pick should support branch argument on NO_REBASE (ccoleman@redhat.com)
+- fix templateinstance SAR check (deads@redhat.com)
+- make route strategy respect the full user (deads@redhat.com)
+- switch to system:masters user for etcd test (deads@redhat.com)
+- Disable RBAC bootstrap-roles post-start hook (stefan.schimanski@gmail.com)
+- UPSTREAM: 45977: kuberuntime: report StartedAt regardless of container states
+  (sjenning@redhat.com)
+- junitreport integration test compatability with older versions of diff-utils
+  (for Mac OSX) (bornemannjs@gmail.com)
+- Don't allow deleted routes in resync list (pcameron@redhat.com)
+- Add then resync then Delete cause Pop() panic (pcameron@redhat.com)
+- UPSTREAM: 46299: Fix in-cluster kubectl --namespace override
+  (andy.goldstein@gmail.com)
+- Add an OPENSHIFT-ADMIN-OUTPUT-RULES chain for admins to use (danw@redhat.com)
+- Set layer size whether it found in cache or not (obulatov@redhat.com)
+
 * Wed May 24 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.84-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1e51f34
   (tdawson@redhat.com)
