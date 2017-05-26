@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"testing"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/client"
@@ -12,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"testing"
 )
 
 const (
@@ -310,7 +311,7 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 	}
 	event = <-buildWatch.ResultChan()
 	if e, a := watchapi.Modified, event.Type; e != a {
-		t.Fatalf("expected watch event type %s, got %s", e, a)
+		t.Fatalf("expected watch event type %s, got %s: %#v", e, a, event.Object)
 	}
 	newBuild = event.Object.(*buildapi.Build)
 	// Make sure the resolution of the build's docker image pushspec didn't mutate the persisted API object
