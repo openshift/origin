@@ -851,10 +851,14 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	}
 	masterConfig.EtcdClientInfo.URLs[0] = testutil.GetEtcdURL()
 
-	kubeConfigFile, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	_, err = testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %#v", err)
 	}
+	// use the loopback config because it identifies as having the group system:masters which is a "magic" do anything group
+	// for upstream kube.
+	kubeConfigFile := masterConfig.MasterClients.OpenShiftLoopbackKubeConfig
+
 	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %#v", err)

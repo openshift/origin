@@ -30,8 +30,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 
+	"k8s.io/apimachinery/pkg/util/clock"
 	clientv1 "k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/util/clock"
+
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"

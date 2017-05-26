@@ -340,6 +340,7 @@ type fakeIndexer struct {
 }
 
 func (*fakeIndexer) Index(indexName string, obj interface{}) ([]interface{}, error) { return nil, nil }
+func (*fakeIndexer) IndexKeys(indexName, indexKey string) ([]string, error)         { return nil, nil }
 func (*fakeIndexer) ListIndexFuncValues(indexName string) []string                  { return nil }
 func (*fakeIndexer) ByIndex(indexName, indexKey string) ([]interface{}, error)      { return nil, nil }
 func (*fakeIndexer) GetIndexers() cache.Indexers                                    { return nil }

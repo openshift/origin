@@ -79,14 +79,16 @@ func (s routeStrategy) allocateHost(ctx apirequest.Context, route *api.Route) fi
 		}
 		res, err := s.sarClient.CreateSubjectAccessReview(
 			ctx,
-			&authorizationapi.SubjectAccessReview{
-				User: user.GetName(),
-				Action: authorizationapi.Action{
-					Verb:     "create",
-					Group:    api.GroupName,
-					Resource: "routes/custom-host",
+			authorizationapi.AddUserToSAR(
+				user,
+				&authorizationapi.SubjectAccessReview{
+					Action: authorizationapi.Action{
+						Verb:     "create",
+						Group:    api.GroupName,
+						Resource: "routes/custom-host",
+					},
 				},
-			},
+			),
 		)
 		if err != nil {
 			return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
@@ -169,14 +171,16 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 	}
 	res, err := s.sarClient.CreateSubjectAccessReview(
 		ctx,
-		&authorizationapi.SubjectAccessReview{
-			User: user.GetName(),
-			Action: authorizationapi.Action{
-				Verb:     "update",
-				Group:    "route.openshift.io",
-				Resource: "routes/custom-host",
+		authorizationapi.AddUserToSAR(
+			user,
+			&authorizationapi.SubjectAccessReview{
+				Action: authorizationapi.Action{
+					Verb:     "update",
+					Group:    "route.openshift.io",
+					Resource: "routes/custom-host",
+				},
 			},
-		},
+		),
 	)
 	if err != nil {
 		return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}

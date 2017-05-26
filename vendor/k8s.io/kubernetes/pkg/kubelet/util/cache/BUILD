@@ -21,8 +21,8 @@ go_test(
     library = ":go_default_library",
     tags = ["automanaged"],
     deps = [
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
         "//vendor:k8s.io/client-go/tools/cache",
-        "//vendor:k8s.io/client-go/util/clock",
     ],
 )
 

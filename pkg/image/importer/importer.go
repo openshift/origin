@@ -347,7 +347,9 @@ func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo d
 		blobSet.Insert(layer.Name)
 
 		if layerSize, ok := isi.digestToLayerSizeCache.Get(layer.Name); ok {
-			size += layerSize.(int64)
+			layerSize := layerSize.(int64)
+			layer.LayerSize = layerSize
+			size += layerSize
 			continue
 		}
 

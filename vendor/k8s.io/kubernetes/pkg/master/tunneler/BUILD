@@ -15,7 +15,7 @@ go_test(
     tags = ["automanaged"],
     deps = [
         "//vendor:github.com/stretchr/testify/assert",
-        "//vendor:k8s.io/client-go/util/clock",
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
     ],
 )
 
@@ -28,8 +28,8 @@ go_library(
         "//pkg/util:go_default_library",
         "//vendor:github.com/golang/glog",
         "//vendor:github.com/prometheus/client_golang/prometheus",
+        "//vendor:k8s.io/apimachinery/pkg/util/clock",
         "//vendor:k8s.io/apimachinery/pkg/util/wait",
-        "//vendor:k8s.io/client-go/util/clock",
     ],
 )
 

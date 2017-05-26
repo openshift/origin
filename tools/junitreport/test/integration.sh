@@ -9,7 +9,7 @@ set -o pipefail
 JUNITREPORT_ROOT=$(dirname "${BASH_SOURCE}")/..
 pushd "${JUNITREPORT_ROOT}" > /dev/null
 
-diff_args='-yd --tabsize=4 --suppress-common-lines'
+diff_args='-ydb --suppress-common-lines'
 
 TMPDIR="/tmp/junitreport/test/integration"
 mkdir -p "${TMPDIR}"

@@ -14,7 +14,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/cert"
-	"k8s.io/client-go/util/flowcontrol"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -105,7 +104,13 @@ func (c *MasterConfig) RunServiceAccountsController() {
 	}
 
 	//REBASE: add new args to NewServiceAccountsController
-	go sacontroller.NewServiceAccountsController(c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(), c.Informers.KubernetesInformers().Core().V1().Namespaces(), c.KubeClientsetExternal(), options).Run(1, utilwait.NeverStop)
+	controller := sacontroller.NewServiceAccountsController(
+		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
+		c.Informers.KubernetesInformers().Core().V1().Namespaces(),
+		c.KubeClientsetExternal(),
+		options,
+	)
+	go controller.Run(1, utilwait.NeverStop)
 }
 
 // RunServiceAccountTokensController starts the service account token controller
@@ -155,7 +160,13 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 		ServiceServingCA: servingServingCABundle,
 	}
 
-	go sacontroller.NewTokensController(c.KubeClientsetExternal(), options).Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
+	controller := sacontroller.NewTokensController(
+		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
+		c.Informers.KubernetesInformers().Core().V1().Secrets(),
+		c.KubeClientsetExternal(),
+		options,
+	)
+	go controller.Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
 }
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
@@ -395,31 +406,27 @@ func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal
 
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
-	osclient := c.ImageImportControllerClient()
+	controller := imagecontroller.NewImageStreamController(c.ImageImportControllerClient(), c.Informers.ImageStreams())
+	scheduledController := imagecontroller.NewScheduledImageStreamController(c.ImageImportControllerClient(), c.Informers.ImageStreams(), imagecontroller.ScheduledImageStreamControllerOptions{
+		Resync: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
 
-	var limiter flowcontrol.RateLimiter = nil
-	if c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute <= 0 {
-		limiter = flowcontrol.NewFakeAlwaysRateLimiter()
-	} else {
-		importRate := float32(c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute) / float32(time.Minute/time.Second)
-		importBurst := c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute * 2
-		limiter = flowcontrol.NewTokenBucketRateLimiter(importRate, importBurst)
-	}
+		Enabled:                  !c.Options.ImagePolicyConfig.DisableScheduledImport,
+		DefaultBucketSize:        4, // TODO: Make this configurable?
+		MaxImageImportsPerMinute: c.Options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute,
+	})
 
-	factory := imagecontroller.ImportControllerFactory{
-		Client:               osclient,
-		ResyncInterval:       10 * time.Minute,
-		MinimumCheckInterval: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
-		ImportRateLimiter:    limiter,
-		ScheduleEnabled:      !c.Options.ImagePolicyConfig.DisableScheduledImport,
-	}
-	controller, scheduledController := factory.Create()
-	controller.Run()
+	// Setup notifier on the main controller so that it informs the scheduled controller when streams are being imported
+	controller.SetNotifier(scheduledController)
+
+	// TODO align with https://github.com/openshift/origin/pull/13579 once it merges
+	stopCh := make(chan struct{})
+	go controller.Run(5, stopCh)
 	if c.Options.ImagePolicyConfig.DisableScheduledImport {
 		glog.V(2).Infof("Scheduled image import is disabled - the 'scheduled' flag on image streams will be ignored")
-	} else {
-		scheduledController.RunUntil(utilwait.NeverStop)
+		return
 	}
+
+	go scheduledController.Run(stopCh)
 }
 
 // RunSecurityAllocationController starts the security allocation controller process.

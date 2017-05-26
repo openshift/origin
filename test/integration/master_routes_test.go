@@ -85,7 +85,6 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/bootstrap-controller",
 	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/extensions/third-party-resources",
-	"/healthz/poststarthook/rbac/bootstrap-roles",
 	"/healthz/ready",
 	"/metrics",
 	"/oapi",
