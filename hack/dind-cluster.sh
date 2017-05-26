@@ -108,6 +108,10 @@ function start() {
   cat >"${rc_file}" <<EOF
 export KUBECONFIG=${admin_config}
 export PATH=\$PATH:${bin_path}
+
+for file in "${origin_root}/contrib/completions/bash"/* ; do
+    source "\${file}"
+done
 EOF
 
   if [[ -n "${wait_for_cluster}" ]]; then
