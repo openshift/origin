@@ -36,6 +36,7 @@ dnsBindAddress: ""
 dnsDomain: ""
 dnsIP: ""
 dnsNameservers: null
+dnsRecursiveResolvConf: ""
 dockerConfig:
   dockerShimRootDirectory: ""
   dockerShimSocket: ""

@@ -286,6 +286,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 		refs = append(refs, &config.ServingInfo.NamedCertificates[i].KeyFile)
 	}
 
+	refs = append(refs, &config.DNSRecursiveResolvConf)
+
 	refs = append(refs, &config.MasterKubeConfig)
 
 	refs = append(refs, &config.VolumeDirectory)
