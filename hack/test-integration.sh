@@ -67,7 +67,7 @@ function exectest() {
 		result=$?
 	elif [[ -n "${junit_report}" ]]; then
 		# run tests and generate jUnit xml
-		out=$("${testexec}" -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>/dev/null | tee -a "${JUNIT_REPORT_OUTPUT}" )
+		out=$("${testexec}" -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1 | tee -a "${JUNIT_REPORT_OUTPUT}" )
 		result=$?
 	else
 		# run tests normally
