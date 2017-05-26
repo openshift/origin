@@ -94,7 +94,9 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 	}
 
 	if buildConfig.Spec.FailedBuildsHistoryLimit != nil {
-		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseFailed })
+		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build buildapi.Build) bool {
+			return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseCancelled || build.Status.Phase == buildapi.BuildPhaseError)
+		})
 		if err != nil {
 			return err
 		}

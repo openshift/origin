@@ -66,16 +66,23 @@ func mockBuild(name string, phase buildapi.BuildPhase, stamp *metav1.Time) build
 	}
 }
 
+// Using a multiple of 4 for length will return a list of buildapi.Build objects
+// that are evenly split between all four below build phases.
 func mockBuildsList(length int) (buildapi.BuildConfig, []buildapi.Build) {
 	var builds []buildapi.Build
-	buildPhaseList := []buildapi.BuildPhase{buildapi.BuildPhaseComplete, buildapi.BuildPhaseFailed}
+	buildPhaseList := []buildapi.BuildPhase{buildapi.BuildPhaseComplete, buildapi.BuildPhaseFailed, buildapi.BuildPhaseError, buildapi.BuildPhaseCancelled}
 	addOrSubtract := []string{"+", "-"}
 
+	j := 0
 	for i := 0; i < length; i++ {
 		duration, _ := time.ParseDuration(fmt.Sprintf("%v%vh", addOrSubtract[i%2], i))
 		startTime := metav1.NewTime(time.Now().Add(duration))
-		build := mockBuild(fmt.Sprintf("myapp-%v", i), buildPhaseList[i%2], &startTime)
+		build := mockBuild(fmt.Sprintf("myapp-%v", i), buildPhaseList[j], &startTime)
 		builds = append(builds, build)
+		j++
+		if j == 4 {
+			j = 0
+		}
 	}
 
 	return mockBuildConfig("myapp"), builds
@@ -105,7 +112,7 @@ func TestSetBuildCompletionTimeAndDuration(t *testing.T) {
 
 func TestHandleBuildPruning(t *testing.T) {
 	var objects []runtime.Object
-	buildconfig, builds := mockBuildsList(10)
+	buildconfig, builds := mockBuildsList(16)
 
 	objects = append(objects, &buildconfig)
 	for index := range builds {
@@ -127,11 +134,13 @@ func TestHandleBuildPruning(t *testing.T) {
 	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulStartingBuilds.Items))
 
-	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseFailed })
+	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool {
+		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
+	})
 	sort.Sort(ByCreationTimestamp(failedStartingBuilds.Items))
 
-	if len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items) != 10 {
-		t.Errorf("should start with 10 builds, but started with %v instead", len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items))
+	if len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items) != 16 {
+		t.Errorf("should start with 16 builds, but started with %v instead", len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items))
 	}
 
 	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigGetter, buildDeleter); err != nil {
@@ -141,7 +150,9 @@ func TestHandleBuildPruning(t *testing.T) {
 	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
 	sort.Sort(ByCreationTimestamp(successfulRemainingBuilds.Items))
 
-	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseFailed })
+	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool {
+		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
+	})
 	sort.Sort(ByCreationTimestamp(failedRemainingBuilds.Items))
 
 	if len(successfulRemainingBuilds.Items)+len(failedRemainingBuilds.Items) != 5 {
