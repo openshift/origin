@@ -182,6 +182,13 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 %description sdn-ovs
 %{summary}
 
+%package federation-services
+Summary:        %{produce_name} Federation Services
+Requires:       %{name} = %{version}-%{release}
+
+%description federation-services
+%{summary}
+
 %package excluder
 Summary:   Exclude openshift packages from updates
 BuildArch: noarch
@@ -240,7 +247,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry
+for bin in oc openshift dockerregistry kubefed
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -255,6 +262,9 @@ install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{nam
 install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
 install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 %endif
+
+# Install federation services
+install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -541,6 +551,7 @@ fi
 %license LICENSE
 %{_bindir}/oc
 %{_bindir}/kubectl
+%{_bindir}/kubefed
 %{_sysconfdir}/bash_completion.d/oc
 %{_mandir}/man1/oc*
 
@@ -599,6 +610,9 @@ fi
 if [ "$1" -eq 0 ] ; then
   /usr/sbin/%{name}-docker-excluder unexclude
 fi
+
+%files federation-services
+%{_bindir}/hyperkube
 
 %changelog
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
