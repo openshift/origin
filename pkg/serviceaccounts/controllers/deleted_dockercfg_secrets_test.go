@@ -10,6 +10,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/controller"
 )
 
 func TestDockercfgDeletion(t *testing.T) {
@@ -55,8 +57,14 @@ func TestDockercfgDeletion(t *testing.T) {
 		rand.Seed(1)
 
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
-
-		controller := NewDockercfgDeletedController(client, DockercfgDeletedControllerOptions{})
+		informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
+		controller := NewDockercfgDeletedController(
+			informerFactory.Core().InternalVersion().Secrets(),
+			client,
+			DockercfgDeletedControllerOptions{},
+		)
+		stopCh := make(chan struct{})
+		informerFactory.Start(stopCh)
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)
@@ -78,5 +86,6 @@ func TestDockercfgDeletion(t *testing.T) {
 		if len(tc.ExpectedActions) > len(client.Actions()) {
 			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(client.Actions()), tc.ExpectedActions[len(client.Actions()):])
 		}
+		close(stopCh)
 	}
 }

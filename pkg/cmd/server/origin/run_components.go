@@ -80,11 +80,8 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 // RunOriginNamespaceController starts the controller that takes part in namespace termination of openshift content
 func (c *MasterConfig) RunOriginNamespaceController() {
 	kclient := c.OriginNamespaceControllerClient()
-	factory := projectcontroller.NamespaceControllerFactory{
-		KubeClient: kclient,
-	}
-	controller := factory.Create()
-	controller.Run()
+	controller := projectcontroller.NewProjectFinalizerController(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(), kclient)
+	go controller.Run(utilwait.NeverStop, 5)
 }
 
 // RunServiceAccountsController starts the service account controller
@@ -171,25 +168,41 @@ func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
 
 // RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
 func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	serviceaccountcontrollers.NewDockercfgDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgDeletedControllerOptions{}).Run()
-	serviceaccountcontrollers.NewDockercfgTokenDeletedController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{}).Run()
+	go serviceaccountcontrollers.NewDockercfgDeletedController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
+	).Run(utilwait.NeverStop)
+	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
+	).Run(utilwait.NeverStop)
 
-	dockerURLsIntialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(c.KubeClientsetInternal(), serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsIntialized: dockerURLsIntialized})
+	dockerURLsInitialized := make(chan struct{})
+	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
+	)
 	go dockercfgController.Run(5, utilwait.NeverStop)
 
 	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		RegistryNamespace:    "default",
-		RegistryServiceName:  "docker-registry",
-		DockercfgController:  dockercfgController,
-		DockerURLsIntialized: dockerURLsIntialized,
+		RegistryNamespace:     "default",
+		RegistryServiceName:   "docker-registry",
+		DockercfgController:   dockercfgController,
+		DockerURLsInitialized: dockerURLsInitialized,
 	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(c.KubeClientsetInternal(), dockerRegistryControllerOptions).Run(10, make(chan struct{}))
+	go serviceaccountcontrollers.NewDockerRegistryServiceController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		c.KubeClientsetInternal(),
+		dockerRegistryControllerOptions,
+	).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
 func (c *MasterConfig) RunAssetServer() {
-
 }
 
 // RunDNSServer starts the DNS server
@@ -246,7 +259,7 @@ func (c *MasterConfig) RunDNSServer() {
 // RunProjectCache populates project cache, used by scheduler and project admission controller.
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
-	c.ProjectCache.Run()
+	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
 // RunBuildPodController starts the build/pod status sync loop for build status
@@ -397,10 +410,20 @@ func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal
 		glog.Fatalf("service serving cert controller failed: %v", err)
 	}
 
-	servingCertController := servingcertcontroller.NewServiceServingCertController(client.Core(), client.Core(), ca, "cluster.local", 2*time.Minute)
+	servingCertController := servingcertcontroller.NewServiceServingCertController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		client.Core(), client.Core(),
+		ca, "cluster.local", 2*time.Minute,
+	)
 	go servingCertController.Run(1, make(chan struct{}))
 
-	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(client.Core(), client.Core(), ca, "cluster.local", 20*time.Minute)
+	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services(),
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		client.Core(),
+		ca, "cluster.local", 20*time.Minute,
+	)
 	go servingCertUpdateController.Run(5, make(chan struct{}))
 }
 
@@ -475,14 +498,14 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to initialize namespaces: %v", err)
 	}
 
-	factory := securitycontroller.AllocationFactory{
-		UIDAllocator: uidAllocator,
-		MCSAllocator: securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
-		Client:       kclient.Core().Namespaces(),
-		// TODO: reuse namespace cache
-	}
-	controller := factory.Create()
-	controller.Run()
+	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(),
+		kclient.Core().Namespaces(),
+		uidAllocator,
+		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
+	)
+	// TODO: scale out
+	go controller.Run(utilwait.NeverStop, 1)
 }
 
 // RunGroupCache starts the group cache
@@ -559,7 +582,13 @@ func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetin
 	if ipNet.IP.IsUnspecified() {
 		return
 	}
-	ingressIPController := ingressip.NewIngressIPController(internalKubeClientset, externalKubeClientset, ipNet, defaultIngressIPSyncPeriod)
+	ingressIPController := ingressip.NewIngressIPController(
+		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services().Informer(),
+		internalKubeClientset,
+		externalKubeClientset,
+		ipNet,
+		defaultIngressIPSyncPeriod,
+	)
 	go ingressIPController.Run(utilwait.NeverStop)
 }
 

@@ -17,12 +17,14 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
 )
 
-func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.FakeWatcher, *watch.FakeWatcher, *ServiceServingCertController) {
+func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}, t *testing.T) ( /*caName*/ string, *fake.Clientset, *watch.RaceFreeFakeWatcher, *watch.RaceFreeFakeWatcher, *ServiceServingCertController, informers.SharedInformerFactory) {
 	certDir, err := ioutil.TempDir("", "serving-cert-unit-")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -41,8 +43,8 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	}
 
 	kubeclient := fake.NewSimpleClientset(startingObjects...)
-	fakeWatch := watch.NewFake()
-	fakeSecretWatch := watch.NewFake()
+	fakeWatch := watch.NewRaceFreeFake()
+	fakeSecretWatch := watch.NewRaceFreeFake()
 	kubeclient.PrependReactor("create", "*", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, action.(clientgotesting.CreateAction).GetObject(), nil
 	})
@@ -52,11 +54,17 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	kubeclient.PrependWatchReactor("services", clientgotesting.DefaultWatchReactor(fakeWatch, nil))
 	kubeclient.PrependWatchReactor("secrets", clientgotesting.DefaultWatchReactor(fakeSecretWatch, nil))
 
-	controller := NewServiceServingCertController(kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute)
+	informerFactory := informers.NewSharedInformerFactory(kubeclient, controller.NoResyncPeriodFunc())
+
+	controller := NewServiceServingCertController(
+		informerFactory.Core().InternalVersion().Services(),
+		informerFactory.Core().InternalVersion().Secrets(),
+		kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute,
+	)
 	controller.serviceHasSynced = func() bool { return true }
 	controller.secretHasSynced = func() bool { return true }
 
-	return caOptions.Name, kubeclient, fakeWatch, fakeSecretWatch, controller
+	return caOptions.Name, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
 }
 
 func checkGeneratedCertificate(t *testing.T, certData []byte, service *kapi.Service) {
@@ -109,7 +117,7 @@ func TestBasicControllerFlow(t *testing.T) {
 	defer close(stopChannel)
 	received := make(chan bool)
 
-	caName, kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
 
@@ -120,6 +128,7 @@ func TestBasicControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	expectedSecretName := "new-secret"
@@ -204,7 +213,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	existingSecret.Type = kapi.SecretTypeTLS
 	existingSecret.Annotations = expectedSecretAnnotations
 
-	caName, kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, kapierrors.NewAlreadyExists(kapi.Resource("secrets"), "new-secret")
 	})
@@ -218,6 +227,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
@@ -281,7 +291,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	existingSecret.Type = kapi.SecretTypeTLS
 	existingSecret.Annotations = map[string]string{ServiceUIDAnnotation: "wrong-uid", ServiceNameAnnotation: serviceName}
 
-	_, kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
+	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, kapierrors.NewAlreadyExists(kapi.Resource("secrets"), "new-secret")
 	})
@@ -295,6 +305,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
@@ -351,7 +362,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	_, kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{}, stopChannel, t)
+	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Secret{}, kapierrors.NewForbidden(kapi.Resource("secrets"), "new-secret", fmt.Errorf("any reason"))
 	})
@@ -365,6 +376,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
@@ -413,7 +425,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	caName, kubeclient, fakeWatch, _, controller := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	kubeclient.PrependReactor("update", "service", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, &kapi.Service{}, kapierrors.NewForbidden(kapi.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
 	})
@@ -433,6 +445,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	serviceToAdd := &kapi.Service{}
@@ -480,7 +493,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	defer close(stopChannel)
 	received := make(chan bool)
 
-	caName, kubeclient, fakeWatch, fakeSecretWatch, controller := controllerSetup([]runtime.Object{}, stopChannel, t)
+	caName, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
 
@@ -491,6 +504,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 
 		return err
 	}
+	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
 	expectedSecretName := "new-secret"

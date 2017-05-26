@@ -17,12 +17,12 @@ os::cmd::expect_success_and_text 'oc whoami --as=system:admin' "system:admin"
 os::cmd::expect_success_and_text 'oc policy can-i --list --as=system:admin' '.*'
 
 os::cmd::expect_success 'oc login -u local-admin -p pw'
-os::cmd::expect_success 'oc new-project foo'
+os::cmd::expect_success 'oc new-project policy-login'
 os::cmd::expect_failure 'oc whoami --as=system:admin'
-os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:foo:default' "system:serviceaccount:foo:default"
+os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:policy-login:default' "system:serviceaccount:policy-login:default"
 os::cmd::expect_failure 'oc whoami --as=system:serviceaccount:another:default'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
-os::cmd::expect_success 'oc delete project foo'
+os::cmd::expect_success 'oc delete project policy-login'
 
 
 # This test validates user level policy
@@ -107,9 +107,9 @@ os::cmd::expect_failure_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testda
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/redis-slave.yaml -o=jsonpath={.status.AllowedBy.name}' 'anyuid'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.AllowedBy.name}' 'privileged'
-os::cmd::expect_success "oc login -u bob -p bob"
+os::cmd::expect_success "oc login -u bob -p bobpassword"
 os::cmd::expect_success_and_text 'oc whoami' 'bob'
-os::cmd::expect_success 'oc new-project bob'
+os::cmd::expect_success 'oc new-project policy-second'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml -o=jsonpath={.status.AllowedBy.name}' 'restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/two_jobs.yaml -o=jsonpath={.status.AllowedBy.name}' 'restrictedrestricted'
@@ -117,22 +117,22 @@ os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testda
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml -ojsonpath={.status.allowedServiceAccounts}' '\[\]'
 os::cmd::expect_failure 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/external-service.yaml'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n bob -o=jsonpath={.status.allowedBy.name}' 'restricted'
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_ROOT}/test/testdata/job.yaml -n bob --no-headers=true' 'Job/hello   <none>'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml -n policy-second -o=jsonpath={.status.allowedBy.name}' 'restricted'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -u bob -f ${OS_ROOT}/test/testdata/job.yaml -n policy-second --no-headers=true' 'Job/hello   <none>'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -f ${OS_ROOT}/test/testdata/job.yaml' ''
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'error: --user and --serviceaccount are mutually exclusive'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z system:serviceaccount:alice:default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/scc_lax.yaml'
-os::cmd::expect_success "oc login -u bob -p bob"
+os::cmd::expect_success "oc login -u bob -p bobpassword"
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -z default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
-os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:bob:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
+os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:policy-second:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'DeploymentConfig/deployment-simple   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
-os::cmd::expect_success 'oc delete project bob'
+os::cmd::expect_success 'oc delete project policy-second'
 
 
 # adjust the cluster-admin role to check defaulting and coverage checks
@@ -175,11 +175,11 @@ os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterr
 os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
 os::cmd::expect_success_and_text "oadm policy add-role-to-user view -z=testserviceaccount" "role \"view\" added: \"testserviceaccount\""
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
-os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "yes"
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
+os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
 os::cmd::expect_success_and_text "oadm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" "cluster role \"cluster-reader\" added: \"testserviceaccount\""
-os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:cmd-policy:testserviceaccount" "yes"
+os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 echo "policy: ok"
 os::test::junit::declare_suite_end
