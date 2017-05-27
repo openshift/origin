@@ -286,6 +286,8 @@ func alive(path string, handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == path {
 			w.Header().Set("Cache-Control", "no-cache")
+			// TODO: Make this a special version endpoint?
+			w.Header().Set("Docker-Registry-Vendor", "openshift")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
