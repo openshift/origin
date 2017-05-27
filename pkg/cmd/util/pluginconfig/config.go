@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	kapiserverinstall "k8s.io/apiserver/pkg/apis/apiserver/install"
 	kapiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
 
@@ -69,27 +70,34 @@ func GetAdmissionConfigurationConfig(pluginName string, cfg configapi.AdmissionP
 		return "", nil
 	}
 
-	var cfgObj runtime.Object
+	var cfgJSON []byte
 	if cfg.Configuration == nil {
 		f, err := os.Open(cfg.Location)
 		if err != nil {
 			return "", err
 		}
-		cfgObj, err = latest.ReadYAML(f)
+		data, err := ioutil.ReadAll(f)
+		if err != nil {
+			return "", err
+		}
+		cfgJSON, err = kyaml.ToJSON(data)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		cfgObj = cfg.Configuration
+		var err error
+		cfgJSON, err = runtime.Encode(latest.Codec, cfg.Configuration)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	// convert into versioned admission plugin configuration
-	cfgJson, err := runtime.Encode(latest.Codec, cfgObj)
 	obj := kapiserverv1alpha1.AdmissionConfiguration{
 		Plugins: []kapiserverv1alpha1.AdmissionPluginConfiguration{
 			{
 				Name:          pluginName,
-				Configuration: runtime.RawExtension{Raw: cfgJson},
+				Configuration: runtime.RawExtension{Raw: cfgJSON},
 			},
 		},
 	}

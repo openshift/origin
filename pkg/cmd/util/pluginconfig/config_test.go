@@ -1,7 +1,9 @@
 package pluginconfig
 
 import (
+	"encoding/json"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"testing"
 
@@ -61,26 +63,7 @@ func TestGetPluginConfig(t *testing.T) {
 	}
 }
 
-func TestGetAdmissionConfigurationConfig(t *testing.T) {
-	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
-	kapiserverv1alpha1.AddToScheme(configapi.Scheme)
-	kapiserverinternal.AddToScheme(configapi.Scheme)
-
-	testConfig := &TestConfig{
-		Item1: "item1value",
-		Item2: []string{"element1", "element2"},
-	}
-
-	cfg := configapi.AdmissionPluginConfig{
-		Location:      "/path/to/my/config",
-		Configuration: testConfig,
-	}
-	fileName, err := GetAdmissionConfigurationConfig("test", cfg)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
+func readAdmissionConfigurationFile(t *testing.T, fileName string, into runtime.Object) *kapiserverinternal.AdmissionConfiguration {
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -104,11 +87,79 @@ func TestGetAdmissionConfigurationConfig(t *testing.T) {
 		t.Fatalf("expected embedded Unknown, got: %#v", admissionConfig.Plugins[0].Configuration)
 	}
 
-	resultConfig := &TestConfig{}
-	err = runtime.DecodeInto(codec, embeddedUnknown.Raw, resultConfig)
+	err = runtime.DecodeInto(codec, embeddedUnknown.Raw, into)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	return admissionConfig
+}
+
+func TestGetAdmissionConfigurationConfigWithConfiguration(t *testing.T) {
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
+	kapiserverv1alpha1.AddToScheme(configapi.Scheme)
+	kapiserverinternal.AddToScheme(configapi.Scheme)
+
+	testConfig := &TestConfig{
+		Item1: "item1value",
+		Item2: []string{"element1", "element2"},
+	}
+
+	cfg := configapi.AdmissionPluginConfig{
+		Configuration: testConfig,
+	}
+	fileName, err := GetAdmissionConfigurationConfig("test", cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	resultConfig := &TestConfig{}
+	admissionConfig := readAdmissionConfigurationFile(t, fileName, resultConfig)
+
+	if !reflect.DeepEqual(testConfig, resultConfig) {
+		t.Errorf("Unexpected config. Expected: %#v. Got: %#v", testConfig, admissionConfig.Plugins[0].Configuration)
+	}
+}
+
+func TestGetAdmissionConfigurationConfigWithLocation(t *testing.T) {
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
+	kapiserverv1alpha1.AddToScheme(configapi.Scheme)
+	kapiserverinternal.AddToScheme(configapi.Scheme)
+
+	f, err := ioutil.TempFile("", "plugin-config.yaml")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer os.Remove(f.Name())
+
+	testConfig := &TestConfig{
+		Item1: "item1value",
+		Item2: []string{"element1", "element2"},
+	}
+
+	testJSON, err := json.Marshal(testConfig)
+	if err != nil {
+		t.Fatalf("unexpected conversion error: %v", err)
+	}
+	if err := ioutil.WriteFile(f.Name(), testJSON, 0644); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	cfg := configapi.AdmissionPluginConfig{
+		Location: f.Name(),
+	}
+	fileName, err := GetAdmissionConfigurationConfig("test", cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	resultConfig := &TestConfig{}
+	admissionConfig := readAdmissionConfigurationFile(t, fileName, resultConfig)
 
 	if !reflect.DeepEqual(testConfig, resultConfig) {
 		t.Errorf("Unexpected config. Expected: %#v. Got: %#v", testConfig, admissionConfig.Plugins[0].Configuration)
