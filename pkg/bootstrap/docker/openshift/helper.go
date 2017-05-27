@@ -88,6 +88,7 @@ type Helper struct {
 	containerName string
 	routingSuffix string
 	serverIP      string
+	version       *semver.Version
 }
 
 // StartOptions represent the parameters sent to the start command
@@ -615,7 +616,10 @@ func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, err
 	return config, nil
 }
 
-func (h *Helper) serverVersion() (semver.Version, error) {
+func (h *Helper) ServerVersion() (semver.Version, error) {
+	if h.version != nil {
+		return *h.version, nil
+	}
 	versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
 		DiscardContainer().
@@ -632,13 +636,16 @@ func (h *Helper) serverVersion() (semver.Version, error) {
 			break
 		}
 	}
-	return semver.Parse(versionStr)
+	version, err := semver.Parse(versionStr)
+	if err == nil {
+		// ignore pre-release portion
+		version.Pre = []semver.PRVersion{}
+		h.version = &version
+	}
+	return version, err
 }
 
 func useDNSIP(version semver.Version) bool {
-	// Ignore pre-release portion
-	version.Pre = []semver.PRVersion{}
-
 	if version.Major == 1 {
 		return version.GTE(version15)
 	}
@@ -720,7 +727,7 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	if err != nil {
 		return err
 	}
-	version, err := h.serverVersion()
+	version, err := h.ServerVersion()
 	if err != nil {
 		return err
 	}
