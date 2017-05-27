@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -65,6 +66,10 @@ func TestDockercfgDeletion(t *testing.T) {
 		)
 		stopCh := make(chan struct{})
 		informerFactory.Start(stopCh)
+		if !cache.WaitForCacheSync(stopCh, controller.secretController.HasSynced) {
+			t.Fatalf("unable to reach cache sync")
+		}
+		client.ClearActions()
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)
