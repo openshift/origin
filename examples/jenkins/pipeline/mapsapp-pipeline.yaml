@@ -59,52 +59,61 @@ objects:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          def project = ""
-          node {
-            project = "${env.PROJECT_NAME}"
-
-            stage('Create NationalParks back-end') {
-              def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
-              def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
-              sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-
-            stage('Create MLBParks back-end') {
-              def mlbParksURL = "${MLBPARKS_GIT_URI}"
-              def mlbParksBranch = "${MLBPARKS_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
-              sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-
-            stage('Create ParksMap front-end') {
-              def parksMapURL = "${PARKSMAP_GIT_URI}"
-              def parksMapBranch = "${PARKSMAP_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
-              sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-          }
-
-          stage('Build Back-ends') {
-            parallel (
-              "nationalparks": {
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                def project = ""
                 node {
-                  openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                  project = "${env.PROJECT_NAME}"
+        
+                  stage('Create NationalParks back-end') {
+                    def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
+                    def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
+                    sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create MLBParks back-end') {
+                    def mlbParksURL = "${MLBPARKS_GIT_URI}"
+                    def mlbParksBranch = "${MLBPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
+                    sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create ParksMap front-end') {
+                    def parksMapURL = "${PARKSMAP_GIT_URI}"
+                    def parksMapBranch = "${PARKSMAP_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
+                    sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
                 }
-              },
-              "mlbparks": {
+        
+                stage('Build Back-ends') {
+                  parallel (
+                    "nationalparks": {
+                      node {
+                        openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                      }
+                    },
+                    "mlbparks": {
+                      node {
+                        openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                      }
+                    }
+                  )
+                }
+        
                 node {
-                  openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                  stage('Build Front-end') {
+                    openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+                  }
                 }
-              }
-            )
-          }
-
-          node {
-            stage('Build Front-end') {
-              openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
-            }
-          }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
     triggers:
     - github:
         secret: ${GITHUB_TRIGGER_SECRET}

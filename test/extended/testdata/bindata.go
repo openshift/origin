@@ -18068,43 +18068,52 @@ objects:
     strategy:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          def appName="${NAME}"
-          def project=""
-          def tag="blue"
-          def altTag="green"
-          def verbose="${VERBOSE}"
-
-          node {
-            project = env.PROJECT_NAME
-            stage("Initialize") {
-              sh "oc get route ${appName} -n ${project} -o jsonpath='{ .spec.to.name }' --loglevel=4 > activeservice"
-              activeService = readFile('activeservice').trim()
-              if (activeService == "${appName}-blue") {
-                tag = "green"
-                altTag = "blue"
-              }
-              sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
-              routeHost = readFile('routehost').trim()
-            }
-
-            stage("Build") {
-              echo "building tag ${tag}"
-              openshiftBuild buildConfig: appName, showBuildLogs: "true", verbose: verbose
-            }
-
-            stage("Deploy Test") {
-              openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag, verbose: verbose
-              openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}", verbose: verbose
-            }
-
-            stage("Test") {
-              input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
-            }
-
-            stage("Go Live") {
-              sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
-            }
-          }
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                def appName="${NAME}"
+                def project=""
+                def tag="blue"
+                def altTag="green"
+                def verbose="${VERBOSE}"
+        
+                node {
+                  project = env.PROJECT_NAME
+                  stage("Initialize") {
+                    sh "oc get route ${appName} -n ${project} -o jsonpath='{ .spec.to.name }' --loglevel=4 > activeservice"
+                    activeService = readFile('activeservice').trim()
+                    if (activeService == "${appName}-blue") {
+                      tag = "green"
+                      altTag = "blue"
+                    }
+                    sh "oc get route ${tag}-${appName} -n ${project} -o jsonpath='{ .spec.host }' --loglevel=4 > routehost"
+                    routeHost = readFile('routehost').trim()
+                  }
+        
+                  stage("Build") {
+                    echo "building tag ${tag}"
+                    openshiftBuild buildConfig: appName, showBuildLogs: "true", verbose: verbose
+                  }
+        
+                  stage("Deploy Test") {
+                    openshiftTag srcStream: appName, srcTag: 'latest', destinationStream: appName, destinationTag: tag, verbose: verbose
+                    openshiftVerifyDeployment deploymentConfig: "${appName}-${tag}", verbose: verbose
+                  }
+        
+                  stage("Test") {
+                    input message: "Test deployment: http://${routeHost}. Approve?", id: "approval"
+                  }
+        
+                  stage("Go Live") {
+                    sh "oc set -n ${project} route-backends ${appName} ${appName}-${tag}=100 ${appName}-${altTag}=0 --loglevel=4"
+                  }
+                }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
       type: JenkinsPipeline
     triggers:
     - github:
@@ -18566,52 +18575,61 @@ objects:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          def project = ""
-          node {
-            project = "${env.PROJECT_NAME}"
-
-            stage('Create NationalParks back-end') {
-              def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
-              def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
-              sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-
-            stage('Create MLBParks back-end') {
-              def mlbParksURL = "${MLBPARKS_GIT_URI}"
-              def mlbParksBranch = "${MLBPARKS_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
-              sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-
-            stage('Create ParksMap front-end') {
-              def parksMapURL = "${PARKSMAP_GIT_URI}"
-              def parksMapBranch = "${PARKSMAP_GIT_REF}"
-              checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
-              sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
-            }
-          }
-
-          stage('Build Back-ends') {
-            parallel (
-              "nationalparks": {
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                def project = ""
                 node {
-                  openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                  project = "${env.PROJECT_NAME}"
+        
+                  stage('Create NationalParks back-end') {
+                    def nationalParksURL = "${NATIONALPARKS_GIT_URI}"
+                    def nationalParksBranch = "${NATIONALPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${nationalParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "nationalparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${nationalParksURL}"]]])
+                    sh "oc new-app -f nationalparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${nationalParksURL} -p GIT_REF=${nationalParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create MLBParks back-end') {
+                    def mlbParksURL = "${MLBPARKS_GIT_URI}"
+                    def mlbParksBranch = "${MLBPARKS_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${mlbParksBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "mlbparks"]], submoduleCfg: [], userRemoteConfigs: [[url: "${mlbParksURL}"]]])
+                    sh "oc new-app -f mlbparks/ose3/pipeline-buildconfig-template.json -p GIT_URI=${mlbParksURL} -p GIT_REF=${mlbParksBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
+        
+                  stage('Create ParksMap front-end') {
+                    def parksMapURL = "${PARKSMAP_GIT_URI}"
+                    def parksMapBranch = "${PARKSMAP_GIT_REF}"
+                    checkout([$class: "GitSCM", branches: [[name: "*/${parksMapBranch}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: "RelativeTargetDirectory", relativeTargetDir: "parksmap"]], submoduleCfg: [], userRemoteConfigs: [[url: "${parksMapURL}"]]])
+                    sh "oc new-app -f parksmap/ose3/pipeline-buildconfig-template.json -p GIT_URI=${parksMapURL} -p GIT_REF=${parksMapBranch} -n ${project} --dry-run -o yaml | oc apply -f - -n ${project}"
+                  }
                 }
-              },
-              "mlbparks": {
+        
+                stage('Build Back-ends') {
+                  parallel (
+                    "nationalparks": {
+                      node {
+                        openshiftBuild buildConfig: "nationalparks-pipeline", namespace: project
+                      }
+                    },
+                    "mlbparks": {
+                      node {
+                        openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                      }
+                    }
+                  )
+                }
+        
                 node {
-                  openshiftBuild buildConfig: "mlbparks-pipeline", namespace: project
+                  stage('Build Front-end') {
+                    openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
+                  }
                 }
-              }
-            )
-          }
-
-          node {
-            stage('Build Front-end') {
-              openshiftBuild buildConfig: "parksmap-pipeline", namespace: project
-            }
-          }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
     triggers:
     - github:
         secret: ${GITHUB_TRIGGER_SECRET}
@@ -18712,33 +18730,42 @@ objects:
     strategy:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          def appName="${APP_NAME}"
-          def project=""
-
-          node {
-            stage("Initialize") {
-              project = env.PROJECT_NAME
-            }
-          }
-
-          node("maven") {
-            stage("Checkout") {
-              git url: "${GIT_SOURCE_URL}", branch: "${GIT_SOURCE_REF}"
-            }
-            stage("Build WAR") {
-              sh "mvn clean package -Popenshift"
-              stash name:"war", includes:"target/ROOT.war"
-            }
-          }
-
-          node {
-            stage("Build Image") {
-              unstash name:"war"
-              sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
-            }
-            stage("Deploy") {
-              openshiftDeploy deploymentConfig: appName, namespace: project
-            }
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                def appName="${APP_NAME}"
+                def project=""
+        
+                node {
+                  stage("Initialize") {
+                    project = env.PROJECT_NAME
+                  }
+                }
+        
+                node("maven") {
+                  stage("Checkout") {
+                    git url: "${GIT_SOURCE_URL}", branch: "${GIT_SOURCE_REF}"
+                  }
+                  stage("Build WAR") {
+                    sh "mvn clean package -Popenshift"
+                    stash name:"war", includes:"target/ROOT.war"
+                  }
+                }
+        
+                node {
+                  stage("Build Image") {
+                    unstash name:"war"
+                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
+                  }
+                  stage("Deploy") {
+                    openshiftDeploy deploymentConfig: appName, namespace: project
+                  }
+                }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
           }
       type: JenkinsPipeline
     triggers:
@@ -19038,14 +19065,23 @@ objects:
     strategy:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          node('nodejs') {
-            stage('build') {
-              openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
-            }
-            stage('deploy') {
-              openshiftDeploy(deploymentConfig: '${NAME}')
-            }
-          }
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                node('nodejs') {
+                    stage('build') {
+                      openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
+                    }
+                    stage('deploy') {
+                      openshiftDeploy(deploymentConfig: '${NAME}')
+                    }
+                  }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
       type: JenkinsPipeline
     triggers:
     - github:

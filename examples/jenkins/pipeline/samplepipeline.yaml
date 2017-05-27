@@ -105,14 +105,23 @@ objects:
     strategy:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
-          node('nodejs') {
-            stage('build') {
-              openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
-            }
-            stage('deploy') {
-              openshiftDeploy(deploymentConfig: '${NAME}')
-            }
-          }
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+                node('nodejs') {
+                    stage('build') {
+                      openshiftBuild(buildConfig: '${NAME}', showBuildLogs: 'true')
+                    }
+                    stage('deploy') {
+                      openshiftDeploy(deploymentConfig: '${NAME}')
+                    }
+                  }
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }          
       type: JenkinsPipeline
     triggers:
     - github:
