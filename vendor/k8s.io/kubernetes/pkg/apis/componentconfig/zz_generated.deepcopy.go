@@ -19,6 +19,7 @@ func init() {
 // to allow building arbitrary schemes.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_GroupResource, InType: reflect.TypeOf(&GroupResource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_IPVar, InType: reflect.TypeOf(&IPVar{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_KubeControllerManagerConfiguration, InType: reflect.TypeOf(&KubeControllerManagerConfiguration{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_KubeProxyConfiguration, InType: reflect.TypeOf(&KubeProxyConfiguration{})},
@@ -35,6 +36,15 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_PortRangeVar, InType: reflect.TypeOf(&PortRangeVar{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_componentconfig_VolumeConfiguration, InType: reflect.TypeOf(&VolumeConfiguration{})},
 	)
+}
+
+func DeepCopy_componentconfig_GroupResource(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*GroupResource)
+		out := out.(*GroupResource)
+		*out = *in
+		return nil
+	}
 }
 
 func DeepCopy_componentconfig_IPVar(in interface{}, out interface{}, c *conversion.Cloner) error {
@@ -59,6 +69,11 @@ func DeepCopy_componentconfig_KubeControllerManagerConfiguration(in interface{},
 		if in.Controllers != nil {
 			in, out := &in.Controllers, &out.Controllers
 			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.GCIgnoredResources != nil {
+			in, out := &in.GCIgnoredResources, &out.GCIgnoredResources
+			*out = make([]GroupResource, len(*in))
 			copy(*out, *in)
 		}
 		return nil
