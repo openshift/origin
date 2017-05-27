@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
@@ -37,8 +38,10 @@ func newController(t *testing.T, client *fake.Clientset, stopCh <-chan struct{})
 		informerFactory.Core().InternalVersion().Services().Informer(),
 		client, kfakeexternal.NewSimpleClientset(), ipNet, 10*time.Minute,
 	)
-	controller.hasSynced = func() bool { return true }
 	informerFactory.Start(stopCh)
+	if !cache.WaitForCacheSync(stopCh, controller.hasSynced) {
+		t.Fatalf("did not sync")
+	}
 	return controller
 }
 
