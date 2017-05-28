@@ -1,10 +1,12 @@
 package shared
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -19,6 +21,8 @@ type InformerFactory interface {
 	Start(stopCh <-chan struct{})
 	// StartCore starts core informers that must initialize in order for the API server to start
 	StartCore(stopCh <-chan struct{})
+
+	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
 
 	ClusterPolicies() ClusterPolicyInformer
 	ClusterPolicyBindings() ClusterPolicyBindingInformer
@@ -57,7 +61,7 @@ func NewInformerFactory(
 	originClient oclient.Interface,
 	customListerWatchers ListerWatcherOverrides,
 	defaultResync time.Duration,
-) InformerFactory {
+) *sharedInformerFactory {
 	return &sharedInformerFactory{
 		internalKubeInformers: internalKubeInformers,
 		kubeInformers:         kubeInformers,
@@ -110,6 +114,22 @@ func (f *sharedInformerFactory) StartCore(stopCh <-chan struct{}) {
 			f.startedCoreInformers[informerType] = true
 		}
 	}
+}
+
+// ForResource unifies the shared informer factory with the generic accessors for GC.
+// TODO: as the shared informer factory begins to look like the generated multi-group kube informer, ensure
+//   this is refactored to let those informers handle ForResource on their own.
+func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	if informer, err := f.kubeInformers.ForResource(resource); err == nil {
+		return informer, nil
+	}
+
+	if resource.Version != runtime.APIVersionInternal {
+		// try a generic informer for internal version
+		return f.ForResource(schema.GroupVersionResource{Group: resource.Group, Resource: resource.Resource, Version: runtime.APIVersionInternal})
+	}
+
+	return nil, fmt.Errorf("no OpenShift shared informer for %s", resource)
 }
 
 func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {
