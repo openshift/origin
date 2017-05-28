@@ -187,6 +187,9 @@ type MasterConfig struct {
 	// oauth token and client certificate authenticators
 	AuthConfig MasterAuthConfig `json:"authConfig"`
 
+	// AggregatorConfig has options for configuring the aggregator component of the API server.
+	AggregatorConfig AggregatorConfig `json:"aggregatorConfig"`
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
@@ -308,6 +311,12 @@ type RequestHeaderAuthenticationOptions struct {
 	GroupHeaders []string `json:"groupHeaders"`
 	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
 	ExtraHeaderPrefixes []string `json:"extraHeaderPrefixes"`
+}
+
+// AggregatorConfig holds information required to make the aggregator function.
+type AggregatorConfig struct {
+	// ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers
+	ProxyClientInfo CertInfo `json:"proxyClientInfo"`
 }
 
 // AuditConfig holds configuration for the audit capabilities

@@ -85,6 +85,10 @@ volumeDirectory: ""
       location: ""
   pluginOrderOverride:
   - plugin
+aggregatorConfig:
+  proxyClientInfo:
+    certFile: ""
+    keyFile: ""
 apiLevels: null
 apiVersion: v1
 assetConfig:

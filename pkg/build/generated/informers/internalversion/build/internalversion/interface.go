@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Builds returns a BuildInformer.
 	Builds() BuildInformer
+	// BuildConfigs returns a BuildConfigInformer.
+	BuildConfigs() BuildConfigInformer
 }
 
 type version struct {
@@ -24,4 +26,9 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // Builds returns a BuildInformer.
 func (v *version) Builds() BuildInformer {
 	return &buildInformer{factory: v.SharedInformerFactory}
+}
+
+// BuildConfigs returns a BuildConfigInformer.
+func (v *version) BuildConfigs() BuildConfigInformer {
+	return &buildConfigInformer{factory: v.SharedInformerFactory}
 }
