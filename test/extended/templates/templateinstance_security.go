@@ -109,6 +109,9 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				},
 			},
 			{
+				// at the moment, an admin cannot create a privileged object
+				// via the template instance controller as the latter only has
+				// global edit permissions.
 				by:              "checking adminuser can't create a privileged object",
 				user:            adminuser,
 				namespace:       cli.Namespace(),

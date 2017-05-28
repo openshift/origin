@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
+	"github.com/golang/glog"
 	jsschema "github.com/lestrrat/go-jsschema"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -14,12 +15,17 @@ import (
 )
 
 const (
-	namespaceTitle               = "Template service broker: namespace"
-	namespaceDescription         = "OpenShift namespace in which to provision service"
+	namespaceTitle       = "Template service broker: namespace"
+	namespaceDescription = "OpenShift namespace in which to provision service"
+
+	// the following should go away with catalog<->broker support for passing
+	// identity information.
 	requesterUsernameTitle       = "Template service broker: requester username"
 	requesterUsernameDescription = "OpenShift user requesting provision/bind"
 )
 
+// Map OpenShift template annotations to open service broker metadata field
+// community standards.
 var annotationMap = map[string]string{
 	oapi.OpenShiftDisplayName:                 api.ServiceMetadataDisplayName,
 	templateapi.IconClassAnnotation:           templateapi.ServiceMetadataIconClass,
@@ -29,6 +35,8 @@ var annotationMap = map[string]string{
 	templateapi.SupportURLAnnotation:          api.ServiceMetadataSupportURL,
 }
 
+// serviceFromTemplate populates an open service broker service response from
+// an OpenShift template.
 func serviceFromTemplate(template *templateapi.Template) *api.Service {
 	metadata := make(map[string]interface{})
 	for srcname, dstname := range annotationMap {
@@ -109,7 +117,11 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 	}
 }
 
+// Catalog returns our service catalog (one service per OpenShift template in
+// configured namespace(s)).
 func (b *Broker) Catalog() *api.Response {
+	glog.V(4).Infof("Template service broker: Catalog")
+
 	var services []*api.Service
 
 	for namespace := range b.templateNamespaces {

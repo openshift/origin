@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/template/api/validation"
 )
 
-// templateInstanceStrategy implements behavior for Templates
+// templateInstanceStrategy implements behavior for TemplateInstances
 type templateInstanceStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
@@ -136,7 +136,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 			Group:     templateapi.GroupName,
 			Resource:  "templateinstances",
 		}); err != nil {
-			return field.ErrorList{field.Forbidden(field.NewPath("spec.impersonateUser"), fmt.Sprintf("impersonation forbidden: %v", err))}
+			return field.ErrorList{field.Forbidden(field.NewPath("spec.requester.username"), fmt.Sprintf("impersonation forbidden: %v", err))}
 		}
 	}
 

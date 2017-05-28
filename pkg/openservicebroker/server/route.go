@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	restful "github.com/emicklei/go-restful"
+	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -16,11 +17,15 @@ import (
 // minimum supported client version
 const minAPIVersionMajor, minAPIVersionMinor = 2, 7
 
+// Route adds the necessary routes to a restful.Container for a given Broker
+// implementing the OSB spec.
 func Route(container *restful.Container, path string, b api.Broker) {
 	shim := func(f func(api.Broker, *restful.Request) *api.Response) func(*restful.Request, *restful.Response) {
 		return func(req *restful.Request, resp *restful.Response) {
 			response := f(b, req)
 			if response.Err != nil {
+				glog.V(2).Infof("Service broker: call to %s returned %v", path, response.Err)
+
 				resp.WriteHeaderAndJson(response.Code, &api.ErrorResponse{Description: response.Err.Error()}, restful.MIME_JSON)
 			} else {
 				resp.WriteHeaderAndJson(response.Code, response.Body, restful.MIME_JSON)

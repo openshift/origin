@@ -47,6 +47,8 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 	return nil
 }
 
+// FilterTemplateInstanceCondition returns a new []TemplateInstanceCondition,
+// ensuring that it does not contain conditions of condType.
 func FilterTemplateInstanceCondition(conditions []TemplateInstanceCondition, condType TemplateInstanceConditionType) []TemplateInstanceCondition {
 	newConditions := make([]TemplateInstanceCondition, 0, len(conditions)+1)
 
