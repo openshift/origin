@@ -21,13 +21,14 @@ import (
 // - ssh
 func ParseRepository(s string) (*url.URL, error) {
 	uri, err := url.Parse(s)
-	if err != nil {
-		return nil, err
+	if err == nil && uri.Scheme != "" && uri.Host != "" {
+		return uri, nil
 	}
 
 	// There are some shortcomings with url.Parse when it comes to GIT, namely wrt
 	// the GIT local/file and ssh protocols - it does not handle implied schema (i.e. no <proto>:// prefix)well;
 	// We handle those caveats here
+	uri = new(url.URL)
 	err = s2igit.New(s2iutil.NewFileSystem()).MungeNoProtocolURL(s, uri)
 	if err != nil {
 		return nil, err
