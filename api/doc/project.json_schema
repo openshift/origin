@@ -1,0 +1,286 @@
+{
+    "$schema": "http://json-schema.org/draft-03/schema", 
+    "required": true, 
+    "type": "object", 
+    "id": "#", 
+    "properties": {
+        "imageRepository": {
+            "items": {
+                "required": true, 
+                "type": "object", 
+                "id": "0", 
+                "properties": {
+                    "url": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "url"
+                    }, 
+                    "name": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "name"
+                    }
+                }
+            }, 
+            "required": true, 
+            "type": "array", 
+            "id": "imageRepository"
+        }, 
+        "buildConfig": {
+            "items": {
+                "required": true, 
+                "type": "object", 
+                "id": "0", 
+                "properties": {
+                    "imageRepository": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "imageRepository"
+                    }, 
+                    "type": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "type"
+                    }, 
+                    "name": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "name"
+                    }, 
+                    "sourceUri": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "sourceUri"
+                    }
+                }
+            }, 
+            "required": true, 
+            "type": "array", 
+            "id": "buildConfig"
+        }, 
+        "description": {
+            "required": true, 
+            "type": "string", 
+            "id": "description"
+        }, 
+        "parameters": {
+            "items": {
+                "required": true, 
+                "type": "object", 
+                "id": "0", 
+                "properties": {
+                    "description": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "description"
+                    }, 
+                    "type": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "type"
+                    }, 
+                    "generate": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "generate"
+                    }, 
+                    "name": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "name"
+                    }
+                }
+            }, 
+            "required": true, 
+            "type": "array", 
+            "id": "parameters"
+        }, 
+        "serviceLinks": {
+            "items": {
+                "required": true, 
+                "type": "object", 
+                "id": "0", 
+                "properties": {
+                    "export": {
+                        "items": {
+                            "required": true, 
+                            "type": "object", 
+                            "id": "0", 
+                            "properties": {
+                                "name": {
+                                    "required": true, 
+                                    "type": "string", 
+                                    "id": "name"
+                                }, 
+                                "value": {
+                                    "required": true, 
+                                    "type": "string", 
+                                    "id": "value"
+                                }
+                            }
+                        }, 
+                        "required": true, 
+                        "type": "array", 
+                        "id": "export"
+                    }, 
+                    "from": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "from"
+                    }, 
+                    "to": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "to"
+                    }
+                }
+            }, 
+            "required": true, 
+            "type": "array", 
+            "id": "serviceLinks"
+        }, 
+        "services": {
+            "items": {
+                "required": true, 
+                "type": "object", 
+                "id": "0", 
+                "properties": {
+                    "description": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "description"
+                    }, 
+                    "labels": {
+                        "required": true, 
+                        "type": "object", 
+                        "id": "labels", 
+                        "properties": {
+                            "name": {
+                                "required": true, 
+                                "type": "string", 
+                                "id": "name"
+                            }
+                        }
+                    }, 
+                    "name": {
+                        "required": true, 
+                        "type": "string", 
+                        "id": "name"
+                    }, 
+                    "deploymentConfig": {
+                        "required": true, 
+                        "type": "object", 
+                        "id": "deploymentConfig", 
+                        "properties": {
+                            "deployment": {
+                                "required": true, 
+                                "type": "object", 
+                                "id": "deployment", 
+                                "properties": {
+                                    "podTemplate": {
+                                        "required": true, 
+                                        "type": "object", 
+                                        "id": "podTemplate", 
+                                        "properties": {
+                                            "containers": {
+                                                "items": {
+                                                    "required": true, 
+                                                    "type": "object", 
+                                                    "id": "0", 
+                                                    "properties": {
+                                                        "image": {
+                                                            "required": true, 
+                                                            "type": "object", 
+                                                            "id": "image", 
+                                                            "properties": {
+                                                                "tag": {
+                                                                    "required": true, 
+                                                                    "type": "string", 
+                                                                    "id": "tag"
+                                                                }, 
+                                                                "name": {
+                                                                    "required": true, 
+                                                                    "type": "string", 
+                                                                    "id": "name"
+                                                                }
+                                                            }
+                                                        }, 
+                                                        "name": {
+                                                            "required": true, 
+                                                            "type": "string", 
+                                                            "id": "name"
+                                                        }, 
+                                                        "env": {
+                                                            "required": true, 
+                                                            "type": "object", 
+                                                            "id": "env", 
+                                                            "properties": {
+                                                                "PGUSER": {
+                                                                    "required": true, 
+                                                                    "type": "string", 
+                                                                    "id": "PGUSER"
+                                                                }, 
+                                                                "PGPASSWORD": {
+                                                                    "required": true, 
+                                                                    "type": "string", 
+                                                                    "id": "PGPASSWORD"
+                                                                }, 
+                                                                "PGDATABASE": {
+                                                                    "required": true, 
+                                                                    "type": "string", 
+                                                                    "id": "PGDATABASE"
+                                                                }
+                                                            }
+                                                        }, 
+                                                        "ports": {
+                                                            "items": {
+                                                                "required": true, 
+                                                                "type": "object", 
+                                                                "id": "0", 
+                                                                "properties": {
+                                                                    "containerPort": {
+                                                                        "required": true, 
+                                                                        "type": "number", 
+                                                                        "id": "containerPort"
+                                                                    }, 
+                                                                    "hostPort": {
+                                                                        "required": true, 
+                                                                        "type": "number", 
+                                                                        "id": "hostPort"
+                                                                    }
+                                                                }
+                                                            }, 
+                                                            "required": true, 
+                                                            "type": "array", 
+                                                            "id": "ports"
+                                                        }
+                                                    }
+                                                }, 
+                                                "required": true, 
+                                                "type": "array", 
+                                                "id": "containers"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }, 
+            "required": true, 
+            "type": "array", 
+            "id": "services"
+        }, 
+        "id": {
+            "required": true, 
+            "type": "string", 
+            "id": "id"
+        }, 
+        "name": {
+            "required": true, 
+            "type": "string", 
+            "id": "name"
+        }
+    }
+}
