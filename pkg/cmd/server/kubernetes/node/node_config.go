@@ -360,13 +360,18 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 			return nil, fmt.Errorf("could not start DNS: failed to add ClusterIP index: %v", err)
 		}
 
+		endpoints, err := dns.NewCachedEndpointsAccessor(internalKubeInformers.Core().InternalVersion().Endpoints())
+		if err != nil {
+			return nil, fmt.Errorf("could not start DNS: failed to add HostnameIP index: %v", err)
+		}
+
 		// TODO: use kubeletConfig.ResolverConfig as an argument to etcd in the event the
 		//   user sets it, instead of passing it to the kubelet.
 		glog.Infof("DNS Bind to %s", options.DNSBindAddress)
 		config.DNSServer = dns.NewServer(
 			dnsConfig,
 			services,
-			internalKubeInformers.Core().InternalVersion().Endpoints().Lister(),
+			endpoints,
 			"node",
 		)
 	}

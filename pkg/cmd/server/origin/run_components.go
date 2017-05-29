@@ -92,14 +92,14 @@ func (c *MasterConfig) RunDNSServer() {
 		glog.Fatalf("Could not start DNS: failed to add ClusterIP index: %v", err)
 	}
 
+	endpoints, err := dns.NewCachedEndpointsAccessor(c.InternalKubeInformers.Core().InternalVersion().Endpoints())
+	if err != nil {
+		glog.Fatalf("Could not start DNS: failed to add endpoints index: %v", err)
+	}
+
 	go func() {
-		s := dns.NewServer(
-			config,
-			services,
-			c.InternalKubeInformers.Core().InternalVersion().Endpoints().Lister(),
-			"apiserver",
-		)
-		err = s.ListenAndServe()
+		s := dns.NewServer(config, services, endpoints, "apiserver")
+		err := s.ListenAndServe()
 		glog.Fatalf("Could not start DNS: %v", err)
 	}()
 
