@@ -147,6 +147,10 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 			Name:  "METRIC_RESOLUTION",
 			Value: "10s",
 		},
+		{
+			Name:  "STARTUP_TIMEOUT",
+			Value: "500",
+		},
 	}
 	podSpec := kapi.PodSpec{
 		DNSPolicy:          kapi.DNSClusterFirst,
