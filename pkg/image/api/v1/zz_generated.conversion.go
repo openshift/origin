@@ -654,12 +654,14 @@ func autoConvert_api_ImageStreamSpec_To_v1_ImageStreamSpec(in *api.ImageStreamSp
 
 func autoConvert_v1_ImageStreamStatus_To_api_ImageStreamStatus(in *ImageStreamStatus, out *api.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	out.PublicDockerImageRepository = in.PublicDockerImageRepository
 	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/origin/pkg/image/api/v1.NamedTagEventList vs map[string]github.com/openshift/origin/pkg/image/api.TagEventList)
 	return nil
 }
 
 func autoConvert_api_ImageStreamStatus_To_v1_ImageStreamStatus(in *api.ImageStreamStatus, out *ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
+	out.PublicDockerImageRepository = in.PublicDockerImageRepository
 	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/api.TagEventList vs []github.com/openshift/origin/pkg/image/api/v1.NamedTagEventList)
 	return nil
 }

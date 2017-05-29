@@ -13,6 +13,7 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	routecache "github.com/openshift/origin/pkg/route/generated/informers/internalversion/route/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -23,7 +24,7 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, routeInformer routecache.RouteInformer, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &api.ImageStream{} },
@@ -37,7 +38,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 		subjectAccessReviewRegistry: subjectAccessReviewRegistry,
 	}
 	// strategy must be able to load image streams across namespaces during tag verification
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier, rest)
+	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, routeInformer, limitVerifier, rest)
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy

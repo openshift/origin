@@ -23,6 +23,13 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	"github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
+	routecache "github.com/openshift/origin/pkg/route/generated/informers/internalversion/route/internalversion"
+)
+
+// TODO: Move this to API or helpers
+const (
+	DefaultRegistryNamespace   = "default"
+	DefaultRegistryServiceName = "docker-registry"
 )
 
 type ResourceGetter interface {
@@ -37,11 +44,12 @@ type Strategy struct {
 	tagVerifier       *TagVerifier
 	limitVerifier     imageadmission.LimitVerifier
 	imageStreamGetter ResourceGetter
+	routeInformer     routecache.RouteInformer
 }
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
+func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, routeInformer routecache.RouteInformer, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
 		ObjectTyper:       kapi.Scheme,
 		NameGenerator:     names.SimpleNameGenerator,
@@ -49,6 +57,7 @@ func NewStrategy(defaultRegistry api.DefaultRegistry, subjectAccessReviewClient 
 		tagVerifier:       &TagVerifier{subjectAccessReviewClient},
 		limitVerifier:     limitVerifier,
 		imageStreamGetter: imageStreamGetter,
+		routeInformer:     routeInformer,
 	}
 }
 
@@ -61,7 +70,8 @@ func (s Strategy) NamespaceScoped() bool {
 func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*api.ImageStream)
 	stream.Status = api.ImageStreamStatus{
-		DockerImageRepository: s.dockerImageRepository(stream),
+		DockerImageRepository:       s.dockerImageRepository(stream),
+		PublicDockerImageRepository: s.publicDockerImageRepository(stream),
 		Tags: make(map[string]api.TagEventList),
 	}
 	stream.Generation = 1
@@ -126,6 +136,37 @@ func (s Strategy) dockerImageRepository(stream *api.ImageStream) string {
 	}
 	ref := api.DockerImageReference{
 		Registry:  registry,
+		Namespace: stream.Namespace,
+		Name:      stream.Name,
+	}
+	return ref.String()
+}
+
+func (s Strategy) publicDockerImageRepository(stream *api.ImageStream) string {
+	// TODO: This can be more effective if we can use FieldSelector, however lister only
+	// support label selector. This also assumes that the route exists in the same namespace
+	// as the docker registry service.
+	for !s.routeInformer.Informer().HasSynced() {
+	}
+	routes, err := s.routeInformer.Lister().Routes(DefaultRegistryNamespace).List(labels.Everything())
+	if err != nil {
+		glog.Infof("Error listing routes in %q namespace: %v", DefaultRegistryNamespace, err)
+		return ""
+	}
+	publicURL := ""
+	for _, route := range routes {
+		if route.Spec.To.Kind == "Service" && route.Spec.To.Name == DefaultRegistryServiceName {
+			publicURL = route.Spec.Host
+			break
+		}
+	}
+	if len(publicURL) == 0 {
+		glog.V(4).Infof("No public route found for %s/%s, skipping setting publicDockerImageRepository", DefaultRegistryNamespace, DefaultRegistryServiceName)
+		return ""
+	}
+	ref := api.DockerImageReference{
+		// TODO: Will this include port by default?
+		Registry:  publicURL,
 		Namespace: stream.Namespace,
 		Name:      stream.Name,
 	}
@@ -483,6 +524,7 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 		stream.Status = oldStream.Status
 	}
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Status.PublicDockerImageRepository = s.publicDockerImageRepository(stream)
 
 	// ensure that users cannot change spec tag generation to any value except 0
 	updateSpecTagGenerationsForUpdate(stream, oldStream)
@@ -521,10 +563,12 @@ func (s Strategy) Decorate(obj runtime.Object) error {
 	switch t := obj.(type) {
 	case *api.ImageStream:
 		t.Status.DockerImageRepository = s.dockerImageRepository(t)
+		t.Status.PublicDockerImageRepository = s.publicDockerImageRepository(t)
 	case *api.ImageStreamList:
 		for i := range t.Items {
 			is := &t.Items[i]
 			is.Status.DockerImageRepository = s.dockerImageRepository(is)
+			is.Status.DockerImageRepository = s.publicDockerImageRepository(is)
 		}
 	default:
 		return kerrors.NewBadRequest(fmt.Sprintf("not an ImageStream nor ImageStreamList: %v", obj))
@@ -617,6 +661,7 @@ func (s InternalStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.O
 	stream := obj.(*api.ImageStream)
 
 	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	stream.Status.PublicDockerImageRepository = s.publicDockerImageRepository(stream)
 	stream.Generation = 1
 	for tag, ref := range stream.Spec.Tags {
 		ref.Generation = &stream.Generation
