@@ -225,12 +225,13 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
-		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		SelectorParam(o.Selector).
-		ResourceTypeOrNameArgs(o.All, args...).
-		Flatten()
+		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames})
 
-	if !o.Local {
+	if o.Local {
+		o.Builder = o.Builder.SelectorParam(o.Selector).
+			ResourceTypeOrNameArgs(o.All, args...).
+			Flatten()
+	} else {
 		o.Builder = o.Builder.
 			SelectorParam(o.Selector).
 			ResourceTypeOrNameArgs(o.All, args...)
