@@ -187,6 +187,10 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
 
+	if err := kmaster.GenericAPIServer.AddPostStartHook("normalize-policy", NormalizePolicyPostStartHook); err != nil {
+		glog.Fatalf("Error registering PostStartHook %q: %v", "normalize-policy", err)
+	}
+
 	c.InstallProtectedAPI(kmaster.GenericAPIServer)
 	messages = append(messages, c.kubernetesAPIMessages(kc)...)
 
