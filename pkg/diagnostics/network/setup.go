@@ -154,23 +154,23 @@ func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 		}
 	}
 
-	if len(errList) > 0 {
-		numValidPods, totalPods, err := d.getNumOfValidTestPods(nsList, validPhases)
-		if err == nil {
-			// Perform network diagnostic checks if we are able to launch
-			// decent number of test pods (at least 50%)
-			if numValidPods >= (totalPods / 2) {
-				d.res.Warn("DNet3002", nil, fmt.Sprintf("Failed to run some network diags test pods: %v, So some network diagnostic checks may be skipped.", kerrors.NewAggregate(errList)))
+	if totalPods, runningPods, err := d.getCountOfTestPods(nsList); err == nil {
+		// Perform network diagnostic checks if we are able to launch decent number of test pods (at least 50%)
+		if runningPods != totalPods {
+			if runningPods >= (totalPods / 2) {
+				d.res.Warn("DNet3002", nil, fmt.Sprintf("Failed to run some network diags test pods: %d, So some network diagnostic checks may be skipped.", (totalPods-runningPods)))
 				return nil
+			} else {
+				errList = append(errList, fmt.Errorf("Failed to run network diags test pods, failed: %d, total: %d", (totalPods-runningPods), totalPods))
 			}
 		}
 	}
 	return kerrors.NewAggregate(errList)
 }
 
-func (d *NetworkDiagnostic) getNumOfValidTestPods(nsList []string, validPhases []kapi.PodPhase) (int, int, error) {
-	validPodCount := 0
+func (d *NetworkDiagnostic) getCountOfTestPods(nsList []string) (int, int, error) {
 	totalPodCount := 0
+	runningPodCount := 0
 	for _, name := range nsList {
 		podList, err := d.getPodList(name, util.NetworkDiagTestPodNamePrefix)
 		if err != nil {
@@ -179,15 +179,12 @@ func (d *NetworkDiagnostic) getNumOfValidTestPods(nsList []string, validPhases [
 		totalPodCount += len(podList.Items)
 
 		for _, pod := range podList.Items {
-			for _, phase := range validPhases {
-				if pod.Status.Phase == phase {
-					validPodCount += 1
-					break
-				}
+			if pod.Status.Phase == kapi.PodRunning {
+				runningPodCount += 1
 			}
 		}
 	}
-	return validPodCount, totalPodCount, nil
+	return totalPodCount, runningPodCount, nil
 }
 
 func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
