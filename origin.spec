@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 04d9a0e082754420cdf43bd0ccfb53e09a87f3bf
+%global commit 90040df2a35fec1ddc1b45552e4ace4da4a161ab
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.84 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=04d9a0e
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.85 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=90040df
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.85
+Version:        3.6.86
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -615,6 +615,93 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue May 30 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.86-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 481a31a
+  (tdawson@redhat.com)
+- Fix service ingress ip controller test flake (ccoleman@redhat.com)
+- Wait for controller startup in test (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  468dcef3f11479886354b89813e7c077092db1e4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  eef308f74c0d8c13102005257ba656328e05d88b (dmcphers+openshiftbot@redhat.com)
+- generated (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ee1e8c341434674a65ec17ef3e7c131a49e18fe2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c7f6b00279648c8b0ed9e1253ccd181b29404246 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 44406: CRI: Stop following container log when container exited.
+  (andy.goldstein@gmail.com)
+- Don't ignore stderr when running integration tests with jUnit
+  (skuznets@redhat.com)
+- add artifacts for aggregation testing (deads@redhat.com)
+- UPSTREAM: 44837: Fix Content-Type error of apis (deads@redhat.com)
+- wire in aggregator (deads@redhat.com)
+- add aggregator config (deads@redhat.com)
+- UPSTREAM: <drop>: regenerate proto (deads@redhat.com)
+- UPSTREAM: 43301: add APIService conditions (deads@redhat.com)
+- Bump largest tolerable log size to 200M (skuznets@redhat.com)
+- Match upstream changes (andy.goldstein@gmail.com)
+- Updated generated completions (miminar@redhat.com)
+- Template service broker documentation and logging updates
+  (jminter@redhat.com)
+- DiagnosticPod: double timeout for pod start (lmeyer@redhat.com)
+- Prevent admin templates from instantiating on older versions
+  (cewong@redhat.com)
+- separate quota evaluation for admission versus reconciliation
+  (deads@redhat.com)
+- UPSTREAM: <drop>: Set the log level for iptables rule dump to 5
+  (bbennett@redhat.com)
+- UPSTREAM: 45427: 45897: GC controller improvements (andy.goldstein@gmail.com)
+- UPSTREAM: revert: 62d77ec: UPSTREAM: <carry>: add OpenShift resources to
+  garbage collector ignore list (andy.goldstein@gmail.com)
+- Match ns controller concurrent syncs default change
+  (andy.goldstein@gmail.com)
+- UPSTREAM: 46437: Up namespace controller workers to 5
+  (andy.goldstein@gmail.com)
+- add best practice try/catch, timeout, specifically with extended tests in
+  mind (gmontero@redhat.com)
+- Add logging to imagechange build trigger (ccoleman@redhat.com)
+- Bug 1454535 - Use created project name over namespace name in project
+  template (mfojtik@redhat.com)
+- UPSTREAM: 46373: don't queue namespaces for deletion if the namespace isn't
+  deleted (deads@redhat.com)
+- Initial support for nested gotests (jliggitt@redhat.com)
+- Further constrain test/cmd/* project creation with prefixes
+  (ccoleman@redhat.com)
+- Don't log profile info on startup (ccoleman@redhat.com)
+- Use shared informers in project auth cache (ccoleman@redhat.com)
+- Rename origin namespace finalizer controller to be more precise
+  (ccoleman@redhat.com)
+- Use shared informers in origin namespace finalizer controller
+  (ccoleman@redhat.com)
+- Rename security allocation controller to be more precise
+  (ccoleman@redhat.com)
+- Use shared informers in security allocator controller (ccoleman@redhat.com)
+- Use shared informers in project cache (ccoleman@redhat.com)
+- Used shared informer for registry secret controllers (ccoleman@redhat.com)
+- Use shared informers for serving cert controller (ccoleman@redhat.com)
+- Use shared informers for ingress ip controller (ccoleman@redhat.com)
+- Add node config option for a resolv.conf to read (ccoleman@redhat.com)
+- UPSTREAM: 46371: reset resultRun on pod restart (sjenning@redhat.com)
+- UPSTREAM: 46305: clear init container status annotations when cleared in
+  status (sjenning@redhat.com)
+- remove obsolete build ict ctrl; transfer legacy error unit tests to new ict
+  ctrl (gmontero@redhat.com)
+- Enable preliminary support for origin federation (marun@redhat.com)
+- UPSTREAM: 46315: Fix provisioned GCE PD not being reused if already exists
+  (mawong@redhat.com)
+- Prefer secure connection during image pruning (miminar@redhat.com)
+- UPSTREAM: 46323: Use beta annotation for fed etcd pvc storage class
+  (marun@redhat.com)
+- UPSTREAM: 46247: Enable customization of federation etcd image
+  (marun@redhat.com)
+- Add `request-timeout` val to `oc login` restclient (jvallejo@redhat.com)
+- UPSTREAM: 46020: Enable customization of federation image (marun@redhat.com)
+- UPSTREAM: 45496: fix pleg relist time (sjenning@redhat.com)
+- admission config: support legacy admission configs without kind
+  (stefan.schimanski@gmail.com)
+- admission config: add failing unit tests (stefan.schimanski@gmail.com)
+
 * Thu May 25 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.85-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 026b56c
   (tdawson@redhat.com)
