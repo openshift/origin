@@ -432,11 +432,6 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		req.Netns = netns
 	}
 
-	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
-	if err != nil {
-		return 0, err
-	}
-
 	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 	if err != nil {
 		return 0, err
@@ -447,9 +442,6 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 	}
 
 	if err := m.ovs.UpdatePod(hostVethName, podIP, contVethMac, vnid); err != nil {
-		return 0, err
-	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
 		return 0, err
 	}
 
