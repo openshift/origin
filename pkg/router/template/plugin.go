@@ -101,11 +101,12 @@ func env(name, defaultValue string) string {
 func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
 	globalFuncs := template.FuncMap{
-		"endpointsForAlias": endpointsForAlias, //returns the list of valid endpoints
-		"env":               env,               //tries to get an environment variable if it can't return a default
-		"matchPattern":      matchPattern,      //anchors provided regular expression and evaluates against given string
-		"isInteger":         isInteger,         //determines if a given variable is an integer
-		"matchValues":       matchValues,       //compares a given string to a list of allowed strings
+		"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
+		"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
+		"env":          env,          //tries to get an environment variable if it can't return a default
+		"matchPattern": matchPattern, //anchors provided regular expression and evaluates against given string
+		"isInteger":    isInteger,    //determines if a given variable is an integer
+		"matchValues":  matchValues,  //compares a given string to a list of allowed strings
 
 		"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 		"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
