@@ -89,6 +89,7 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
 # images that depend on "${tag_prefix}-source"
 image "${tag_prefix}-pod"                   images/pod
+image "${tag_prefix}-cluster-capacity"      images/cluster-capacity
 # images that depend on "${tag_prefix}-base"
 image "${tag_prefix}"                       images/origin
 image "${tag_prefix}-haproxy-router"        images/router/haproxy
