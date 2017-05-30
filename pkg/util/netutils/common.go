@@ -10,6 +10,9 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
+var localHosts []string = []string{"127.0.0.1", "::1", "localhost"}
+var localSubnets []string = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7", "fe80::/10"}
+
 func IPToUint32(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip.To4())
 }
@@ -113,4 +116,35 @@ func ParseCIDRMask(cidr string) (*net.IPNet, error) {
 		return nil, fmt.Errorf("CIDR network specification %q is not in canonical form (should be %s/%d or %s/%d?)", cidr, ip.Mask(net.Mask).String(), maskLen, ip.String(), addrLen)
 	}
 	return net, nil
+}
+
+// IsPrivateAddress returns true if given address in format "<host>[:<port>]" is a localhost or an ip from
+// private network range (e.g. 172.30.0.1, 192.168.0.1).
+func IsPrivateAddress(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// assume indexName is of the form `host` without the port and go on.
+		host = addr
+	}
+	for _, localHost := range localHosts {
+		if host == localHost {
+			return true
+		}
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+
+	for _, subnet := range localSubnets {
+		ipnet, err := ParseCIDRMask(subnet)
+		if err != nil {
+			continue // should not happen
+		}
+		if ipnet.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
