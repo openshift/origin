@@ -27,6 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: egressnetworkpolicy.Strategy,
 		UpdateStrategy: egressnetworkpolicy.Strategy,
+		DeleteStrategy: egressnetworkpolicy.Strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: egressnetworkpolicy.GetAttrs}

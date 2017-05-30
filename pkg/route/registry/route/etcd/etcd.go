@@ -32,6 +32,7 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}

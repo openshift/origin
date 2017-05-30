@@ -27,6 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: rest.Strategy,
 		UpdateStrategy: rest.Strategy,
+		DeleteStrategy: rest.Strategy,
 
 		ReturnDeletedObject: true,
 	}

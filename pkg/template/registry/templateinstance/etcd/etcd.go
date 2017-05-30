@@ -33,6 +33,7 @@ func NewREST(optsGetter restoptions.Getter, kc kclientset.Interface) (*REST, *St
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
+		DeleteStrategy: strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
