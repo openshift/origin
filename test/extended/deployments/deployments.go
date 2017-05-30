@@ -254,7 +254,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 			g.By(fmt.Sprintf("checking the logs for substrings\n%s", out))
 			o.Expect(out).To(o.ContainSubstring("deployment-test-1 to 2"))
 			o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
-			o.Expect(out).To(o.ContainSubstring("--> Success"))
+			// FIXME: In some cases the last log messages is lost because of the journald rate
+			// limiter bug. For this test it should be enough to verify the deployment is marked
+			// as complete. We should uncomment this once the rate-limiter issues are fixed.
+			// o.Expect(out).To(o.ContainSubstring("--> Success"))
 
 			g.By("verifying the deployment is marked complete and scaled to zero")
 			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
@@ -304,7 +307,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(out).To(o.ContainSubstring(fmt.Sprintf("deployment-test-%d up to 1", i+2)))
 				o.Expect(out).To(o.ContainSubstring("--> pre: Success"))
 				o.Expect(out).To(o.ContainSubstring("test pre hook executed"))
-				o.Expect(out).To(o.ContainSubstring("--> Success"))
+				// FIXME: In some cases the last log messages is lost because of the journald rate
+				// limiter bug. For this test it should be enough to verify the deployment is marked
+				// as complete. We should uncomment this once the rate-limiter issues are fixed.
+				// o.Expect(out).To(o.ContainSubstring("--> Success"))
 			}
 		})
 	})
@@ -496,7 +502,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(out).To(o.ContainSubstring("--> Reached 50%"))
 			o.Expect(out).To(o.ContainSubstring("Halfway"))
 			o.Expect(out).To(o.ContainSubstring("Finished"))
-			o.Expect(out).To(o.ContainSubstring("--> Success"))
+			// FIXME: In some cases the last log messages is lost because of the journald rate
+			// limiter bug. For this test it should be enough to verify the deployment is marked
+			// as complete. We should uncomment this once the rate-limiter issues are fixed.
+			// o.Expect(out).To(o.ContainSubstring("--> Success"))
 		})
 	})
 
