@@ -1,0 +1,22 @@
+typemeta:
+  kind: ""
+  apiversion: ""
+port: 10251
+address: 0.0.0.0
+algorithmprovider: DefaultProvider
+policyconfigfile: ""
+enableprofiling: false
+contenttype: application/vnd.kubernetes.protobuf
+kubeapiqps: 50
+kubeapiburst: 100
+schedulername: default-scheduler
+hardpodaffinitysymmetricweight: 1
+failuredomains: kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region
+leaderelection:
+  leaderelect: true
+  leaseduration:
+    duration: 15s
+  renewdeadline:
+    duration: 10s
+  retryperiod:
+    duration: 2s

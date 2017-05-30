@@ -1,0 +1,53 @@
+package: github.com/kubernetes-incubator/cluster-capacity
+import:
+- package: github.com/emicklei/go-restful
+- package: github.com/ghodss/yaml
+- package: github.com/renstrom/dedent
+- package: github.com/spf13/cobra
+- package: github.com/spf13/pflag
+- package: k8s.io/client-go
+  subpackages:
+  - tools/clientcmd
+  - tools/cache
+  - tools/record
+  - rest
+  - util/flowcontrol
+- package: k8s.io/apiserver
+  subpackages:
+  - pkg/admission
+  - pkg/endpoints/request
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/runtime
+  - pkg/api/meta
+  - pkg/apis/meta/v1
+  - pkg/api/resource
+  - pkg/labels
+  - pkg/watch
+  - pkg/runtime/schema
+  - pkg/fields
+  - pkg/types
+  - pkg/conversion
+- package: k8s.io/kubernetes
+  version: v1.6.0
+  subpackages:
+  - pkg/api
+  - pkg/api/testapi
+  - pkg/api/testing
+  - pkg/api/unversioned
+  - pkg/api/validation
+  - pkg/apis/extensions
+  - pkg/client/clientset_generated/internalclientset
+  - pkg/client/clientset_generated/internalclientset/typed/extensions/unversioned
+  - pkg/client/informers/informers_generated/internalversion
+  - pkg/fields
+  - pkg/kubeapiserver/authorizer
+  - pkg/util/yaml
+  - pkg/watch
+  - plugin/cmd/kube-scheduler/app/options
+  - plugin/pkg/scheduler
+  - plugin/pkg/scheduler/algorithmprovider
+  - plugin/pkg/scheduler/api
+  - plugin/pkg/scheduler/api/latest
+  - plugin/pkg/scheduler/factory
+  - plugin/pkg/scheduler/schedulercache

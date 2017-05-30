@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cluster-capacity
+  labels:
+    name: cluster-capacity
+spec:
+  containers:
+  - name: cluster-capacity
+    image: docker.io/gofed/cluster-capacity
+    env:
+    - name: CC_INCLUSTER
+      value: "true"
+    command:
+    - "/bin/sh"
+    - "-ec"
+    - |
+      /bin/genpod --namespace=cluster-capacity >> /pod.yaml
+      /bin/cluster-capacity --podspec=/pod.yaml --default-config /config/default-scheduler.yaml
+  restartPolicy: "OnFailure"
