@@ -35,15 +35,16 @@ type CreateNodeConfigOptions struct {
 
 	NodeConfigDir string
 
-	NodeName            string
-	Hostnames           []string
-	VolumeDir           string
-	ImageTemplate       variable.ImageTemplate
-	AllowDisabledDocker bool
-	DNSBindAddress      string
-	DNSDomain           string
-	DNSIP               string
-	ListenAddr          flagtypes.Addr
+	NodeName               string
+	Hostnames              []string
+	VolumeDir              string
+	ImageTemplate          variable.ImageTemplate
+	AllowDisabledDocker    bool
+	DNSBindAddress         string
+	DNSDomain              string
+	DNSIP                  string
+	DNSRecursiveResolvConf string
+	ListenAddr             flagtypes.Addr
 
 	ClientCertFile    string
 	ClientKeyFile     string

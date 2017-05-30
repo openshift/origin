@@ -122,6 +122,8 @@ var (
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
 	}
 	dockerVersion112 = semver.MustParse("1.12.0")
+
+	openshiftVersion36 = semver.MustParse("3.6.0")
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -917,7 +919,18 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 	if err := c.importObjects(out, openshiftNamespace, templateLocations); err != nil {
 		return err
 	}
-	return c.importObjects(out, "kube-system", adminTemplateLocations)
+	version, err := c.OpenShiftHelper().ServerVersion()
+	if err != nil {
+		return err
+	}
+	if shouldImportAdminTemplates(version) {
+		return c.importObjects(out, "kube-system", adminTemplateLocations)
+	}
+	return nil
+}
+
+func shouldImportAdminTemplates(v semver.Version) bool {
+	return v.GTE(openshiftVersion36)
 }
 
 // InstallLogging will start the installation of logging components

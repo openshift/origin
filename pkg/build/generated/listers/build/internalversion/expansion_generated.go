@@ -9,3 +9,11 @@ type BuildListerExpansion interface{}
 // BuildNamespaceListerExpansion allows custom methods to be added to
 // BuildNamespaeLister.
 type BuildNamespaceListerExpansion interface{}
+
+// BuildConfigListerExpansion allows custom methods to be added to
+// BuildConfigLister.
+type BuildConfigListerExpansion interface{}
+
+// BuildConfigNamespaceListerExpansion allows custom methods to be added to
+// BuildConfigNamespaeLister.
+type BuildConfigNamespaceListerExpansion interface{}

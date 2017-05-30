@@ -14,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
@@ -27,7 +28,13 @@ func makeEnvVariableName(str string) string {
 	return strings.ToUpper(strings.Replace(str, "-", "_", -1))
 }
 
+// getServices returns environment variable style details for all services
+// created by a given template in its namespace.  This API may not currently be
+// considered stable.  TODO: if a template creates a service in another
+// namespace, its details will not currently be returned.
 func (b *Broker) getServices(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
+	glog.V(4).Infof("Template service broker: getServices")
+
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
@@ -70,7 +77,13 @@ func (b *Broker) getServices(u user.Info, namespace, instanceID string) (map[str
 	return services, nil
 }
 
+// getSecrets returns usernames and passwords contained in all BasicAuth secrets
+// created by a given template in its namespace.  This API may not currently be
+// considered stable.  TODO: if a template creates a secret in another
+// namespace, its details will not currently be returned.
 func (b *Broker) getSecrets(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
+	glog.V(4).Infof("Template service broker: getSecrets")
+
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
@@ -107,7 +120,10 @@ func (b *Broker) getSecrets(u user.Info, namespace, instanceID string) (map[stri
 	return secrets, nil
 }
 
+// Bind returns the secrets and services from a provisioned template.
 func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.Response {
+	glog.V(4).Infof("Template service broker: Bind: instanceID %s, bindingID %s", instanceID, bindingID)
+
 	if errs := ValidateBindRequest(breq); len(errs) > 0 {
 		return api.BadRequest(errs.ToAggregate())
 	}
@@ -128,15 +144,27 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		return api.InternalServerError(err)
 	}
 
-	templateInstance, err := b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
+	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
+
+	// since we can, cross-check breq.ServiceID and
+	// templateInstance.Spec.Template.UID.
+
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "get",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+	}); err != nil {
+		return api.Forbidden(err)
+	}
+
+	templateInstance, err := b.templateclient.TemplateInstances(namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
 	if err != nil {
 		return api.InternalServerError(err)
 	}
 	if breq.ServiceID != string(templateInstance.Spec.Template.UID) {
 		return api.BadRequest(errors.New("service_id does not match provisioned service"))
 	}
-
-	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
 	services, resp := b.getServices(u, namespace, instanceID)
 	if resp != nil {
@@ -153,6 +181,10 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 	credentials["services"] = services
 	credentials["secrets"] = secrets
 
+	// The OSB API requires this function to be idempotent (restartable).  If
+	// any actual change was made, per the spec, StatusCreated is returned, else
+	// StatusOK.
+
 	status := http.StatusCreated
 	for _, id := range brokerTemplateInstance.Spec.BindingIDs {
 		if id == bindingID {
@@ -160,7 +192,7 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 			break
 		}
 	}
-	if status == http.StatusCreated {
+	if status == http.StatusCreated { // binding not found; create it
 		brokerTemplateInstance.Spec.BindingIDs = append(brokerTemplateInstance.Spec.BindingIDs, bindingID)
 		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
 		if err != nil {

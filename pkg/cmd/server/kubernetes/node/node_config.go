@@ -10,6 +10,8 @@ import (
 
 	"github.com/golang/glog"
 
+	miekgdns "github.com/miekg/dns"
+
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -346,8 +348,24 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		}
 		dnsConfig.Domain = server.ClusterDomain + "."
 		dnsConfig.Local = "openshift.default.svc." + dnsConfig.Domain
-		if len(options.DNSNameservers) > 0 {
-			dnsConfig.Nameservers = options.DNSNameservers
+
+		// identify override nameservers
+		var nameservers []string
+		for _, s := range options.DNSNameservers {
+			nameservers = append(nameservers, s)
+		}
+		if len(options.DNSRecursiveResolvConf) > 0 {
+			c, err := miekgdns.ClientConfigFromFile(options.DNSRecursiveResolvConf)
+			if err != nil {
+				return nil, fmt.Errorf("could not start DNS, unable to read config file: %v", err)
+			}
+			for _, s := range c.Servers {
+				nameservers = append(nameservers, net.JoinHostPort(s, c.Port))
+			}
+		}
+
+		if len(nameservers) > 0 {
+			dnsConfig.Nameservers = nameservers
 		}
 
 		services, err := dns.NewCachedServiceAccessor(internalKubeInformers.Core().InternalVersion().Services())

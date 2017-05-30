@@ -2,7 +2,7 @@ package internalclientset
 
 import (
 	glog "github.com/golang/glog"
-	appsinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
+	deployinternalversion "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/deploy/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -10,22 +10,22 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	Apps() appsinternalversion.AppsInterface
+	Deploy() deployinternalversion.DeployInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*appsinternalversion.AppsClient
+	*deployinternalversion.DeployClient
 }
 
-// Apps retrieves the AppsClient
-func (c *Clientset) Apps() appsinternalversion.AppsInterface {
+// Deploy retrieves the DeployClient
+func (c *Clientset) Deploy() deployinternalversion.DeployInterface {
 	if c == nil {
 		return nil
 	}
-	return c.AppsClient
+	return c.DeployClient
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +44,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.AppsClient, err = appsinternalversion.NewForConfig(&configShallowCopy)
+	cs.DeployClient, err = deployinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.AppsClient = appsinternalversion.NewForConfigOrDie(c)
+	cs.DeployClient = deployinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +70,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.AppsClient = appsinternalversion.New(c)
+	cs.DeployClient = deployinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -1,0 +1,29 @@
+=== RUN   TestAuthorizer
+=== RUN   TestAuthorizer/allowed_configmap
+=== RUN   TestAuthorizer/allowed_secret_via_pod
+=== RUN   TestAuthorizer/allowed_shared_secret_via_pod
+=== RUN   TestAuthorizer/allowed_shared_secret_via_pvc
+=== RUN   TestAuthorizer/allowed_pvc
+=== RUN   TestAuthorizer/allowed_pv
+=== RUN   TestAuthorizer/disallowed_configmap
+=== RUN   TestAuthorizer/disallowed_secret_via_pod
+=== RUN   TestAuthorizer/disallowed_shared_secret_via_pvc
+=== RUN   TestAuthorizer/disallowed_pvc
+=== RUN   TestAuthorizer/disallowed_pv
+--- PASS: TestAuthorizer (0.00s)
+    --- PASS: TestAuthorizer/allowed_configmap (0.00s)
+    --- PASS: TestAuthorizer/allowed_secret_via_pod (0.00s)
+    --- PASS: TestAuthorizer/allowed_shared_secret_via_pod (0.00s)
+    --- PASS: TestAuthorizer/allowed_shared_secret_via_pvc (0.00s)
+    --- PASS: TestAuthorizer/allowed_pvc (0.00s)
+    --- PASS: TestAuthorizer/allowed_pv (0.00s)
+    --- PASS: TestAuthorizer/disallowed_configmap (0.00s)
+    --- PASS: TestAuthorizer/disallowed_secret_via_pod (0.00s)
+    --- PASS: TestAuthorizer/disallowed_shared_secret_via_pvc (0.00s)
+    --- PASS: TestAuthorizer/disallowed_pvc (0.00s)
+    --- PASS: TestAuthorizer/disallowed_pv (0.00s)
+=== RUN   TestPopulationMemoryUsage
+--- SKIP: TestPopulationMemoryUsage (0.00s)
+	node_authorizer_test.go:169: Skipping large population test. Run with TEST_POPULATION_MEMORY_USAGE=true to output memory profiles.
+PASS
+ok  	k8s.io/kubernetes/plugin/pkg/auth/authorizer/node	0.077s

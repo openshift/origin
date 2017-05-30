@@ -14,8 +14,8 @@ import (
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 	mockKubeClient := &fake.Clientset{}
-	nm := NamespaceController{
-		KubeClient: mockKubeClient,
+	nm := &ProjectFinalizerController{
+		client: mockKubeClient,
 	}
 	now := metav1.Now()
 	testNamespace := &kapi.Namespace{
@@ -31,7 +31,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 			Phase: kapi.NamespaceTerminating,
 		},
 	}
-	err := nm.Handle(testNamespace)
+	err := nm.finalize(testNamespace)
 	if err != nil {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}
@@ -52,8 +52,8 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 
 func TestSyncNamespaceThatIsActive(t *testing.T) {
 	mockKubeClient := &fake.Clientset{}
-	nm := NamespaceController{
-		KubeClient: mockKubeClient,
+	nm := &ProjectFinalizerController{
+		client: mockKubeClient,
 	}
 	testNamespace := &kapi.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +67,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 			Phase: kapi.NamespaceActive,
 		},
 	}
-	err := nm.Handle(testNamespace)
+	err := nm.finalize(testNamespace)
 	if err != nil {
 		t.Errorf("Unexpected error when handling namespace %v", err)
 	}

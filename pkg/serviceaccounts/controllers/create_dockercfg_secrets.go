@@ -11,17 +11,15 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -53,32 +51,23 @@ type DockercfgControllerOptions struct {
 	// If zero, re-list will be delayed as long as possible
 	Resync time.Duration
 
-	// DockerURLsIntialized is used to send a signal to this controller that it has the correct set of docker urls
+	// DockerURLsInitialized is used to send a signal to this controller that it has the correct set of docker urls
 	// This is normally signaled from the DockerRegistryServiceController which watches for updates to the internal
 	// docker registry service.
-	DockerURLsIntialized chan struct{}
+	DockerURLsInitialized chan struct{}
 }
 
 // NewDockercfgController returns a new *DockercfgController.
-func NewDockercfgController(cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
+func NewDockercfgController(serviceAccounts informers.ServiceAccountInformer, secrets informers.SecretInformer, cl kclientset.Interface, options DockercfgControllerOptions) *DockercfgController {
 	e := &DockercfgController{
-		client:               cl,
-		queue:                workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		dockerURLsIntialized: options.DockerURLsIntialized,
+		client: cl,
+		queue:  workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		dockerURLsInitialized: options.DockerURLsInitialized,
 	}
 
-	var serviceAccountCache cache.Store
-	serviceAccountCache, e.serviceAccountController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return e.client.Core().ServiceAccounts(api.NamespaceAll).List(options)
-			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return e.client.Core().ServiceAccounts(api.NamespaceAll).Watch(options)
-			},
-		},
-		&api.ServiceAccount{},
-		options.Resync,
+	serviceAccountCache := serviceAccounts.Informer().GetStore()
+	e.serviceAccountController = serviceAccounts.Informer().GetController()
+	serviceAccounts.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				serviceAccount := obj.(*api.ServiceAccount)
@@ -92,30 +81,31 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 				e.enqueueServiceAccount(serviceAccount)
 			},
 		},
+		options.Resync,
 	)
 	e.serviceAccountCache = NewEtcdMutationCache(serviceAccountCache)
 
-	tokenSecretSelector := fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeServiceAccountToken))
-	e.secretCache, e.secretController = cache.NewInformer(
-		&cache.ListWatch{
-			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = tokenSecretSelector.String()
-				return e.client.Core().Secrets(api.NamespaceAll).List(options)
+	e.secretCache = secrets.Informer().GetIndexer()
+	e.secretController = secrets.Informer().GetController()
+	secrets.Informer().AddEventHandlerWithResyncPeriod(
+		cache.FilteringResourceEventHandler{
+			FilterFunc: func(obj interface{}) bool {
+				switch t := obj.(type) {
+				case *api.Secret:
+					return t.Type == api.SecretTypeServiceAccountToken
+				default:
+					utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
+					return false
+				}
 			},
-			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = tokenSecretSelector.String()
-				return e.client.Core().Secrets(api.NamespaceAll).Watch(options)
+			Handler: cache.ResourceEventHandlerFuncs{
+				AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
+				UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
+				DeleteFunc: e.handleTokenSecretDelete,
 			},
 		},
-		&api.Secret{},
 		options.Resync,
-		cache.ResourceEventHandlerFuncs{
-			AddFunc:    func(cur interface{}) { e.handleTokenSecretUpdate(nil, cur) },
-			UpdateFunc: func(old, cur interface{}) { e.handleTokenSecretUpdate(old, cur) },
-			DeleteFunc: e.handleTokenSecretDelete,
-		},
 	)
-
 	e.syncHandler = e.syncServiceAccount
 
 	return e
@@ -125,9 +115,9 @@ func NewDockercfgController(cl kclientset.Interface, options DockercfgController
 type DockercfgController struct {
 	client kclientset.Interface
 
-	dockerURLLock        sync.Mutex
-	dockerURLs           []string
-	dockerURLsIntialized chan struct{}
+	dockerURLLock         sync.Mutex
+	dockerURLs            []string
+	dockerURLsInitialized chan struct{}
 
 	serviceAccountCache      MutationCache
 	serviceAccountController cache.Controller
@@ -207,6 +197,7 @@ func (e *DockercfgController) enqueueServiceAccountForToken(tokenSecret *api.Sec
 
 func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
+	defer e.queue.ShutDown()
 
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
@@ -216,21 +207,18 @@ func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	case <-stopCh:
 		return
 	}
-	glog.Infof("Dockercfg secret controller initialized, starting.")
 
-	go e.serviceAccountController.Run(stopCh)
-	go e.secretController.Run(stopCh)
-	for !e.serviceAccountController.HasSynced() || !e.secretController.HasSynced() {
-		time.Sleep(100 * time.Millisecond)
+	// Wait for the stores to fill
+	if !cache.WaitForCacheSync(stopCh, e.serviceAccountController.HasSynced, e.secretController.HasSynced) {
+		return
 	}
 
+	glog.V(5).Infof("Starting workers")
 	for i := 0; i < workers; i++ {
 		go wait.Until(e.worker, time.Second, stopCh)
 	}
-
 	<-stopCh
-	glog.Infof("Shutting down dockercfg secret controller")
-	e.queue.ShutDown()
+	glog.V(1).Infof("Shutting down")
 }
 
 func (c *DockercfgController) waitForDockerURLs(ready chan<- struct{}, stopCh <-chan struct{}) {
@@ -238,7 +226,7 @@ func (c *DockercfgController) waitForDockerURLs(ready chan<- struct{}, stopCh <-
 
 	// wait for the initialization to complete to be informed of a stop
 	select {
-	case <-c.dockerURLsIntialized:
+	case <-c.dockerURLsInitialized:
 	case <-stopCh:
 		return
 	}

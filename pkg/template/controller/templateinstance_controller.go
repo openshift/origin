@@ -21,6 +21,8 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client"
@@ -32,6 +34,11 @@ import (
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
 )
 
+// TemplateInstanceController watches for new TemplateInstance objects and
+// instantiates the template contained within, using parameters read from a
+// linked Secret object.  The TemplateInstanceController instantiates objects
+// using its own service account, first verifying that the requester also has
+// permissions to instantiate.
 type TemplateInstanceController struct {
 	oc             client.Interface
 	kc             kclientsetinternal.Interface
@@ -43,6 +50,7 @@ type TemplateInstanceController struct {
 	queue workqueue.RateLimitingInterface
 }
 
+// NewTemplateInstanceController returns a new TemplateInstanceController.
 func NewTemplateInstanceController(oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		oc:             oc,
@@ -67,6 +75,8 @@ func NewTemplateInstanceController(oc client.Interface, kc kclientsetinternal.In
 	return c
 }
 
+// getTemplateInstance returns the TemplateInstance from the shared informer,
+// given its key (dequeued from c.queue).
 func (c *TemplateInstanceController) getTemplateInstance(key string) (*templateapi.TemplateInstance, error) {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -76,6 +86,7 @@ func (c *TemplateInstanceController) getTemplateInstance(key string) (*templatea
 	return c.lister.TemplateInstances(namespace).Get(name)
 }
 
+// copyTemplateInstance returns a deep copy of a TemplateInstance object.
 func (c *TemplateInstanceController) copyTemplateInstance(templateInstance *templateapi.TemplateInstance) (*templateapi.TemplateInstance, error) {
 	templateInstanceCopy, err := kapi.Scheme.DeepCopy(templateInstance)
 	if err != nil {
@@ -85,6 +96,17 @@ func (c *TemplateInstanceController) copyTemplateInstance(templateInstance *temp
 	return templateInstanceCopy.(*templateapi.TemplateInstance), nil
 }
 
+// copyTemplate returns a deep copy of a Template object.
+func (c *TemplateInstanceController) copyTemplate(template *templateapi.Template) (*templateapi.Template, error) {
+	templateCopy, err := kapi.Scheme.DeepCopy(template)
+	if err != nil {
+		return nil, err
+	}
+
+	return templateCopy.(*templateapi.Template), nil
+}
+
+// sync is the actual controller worker function.
 func (c *TemplateInstanceController) sync(key string) error {
 	templateInstance, err := c.getTemplateInstance(key)
 	if apierrors.IsNotFound(err) {
@@ -101,17 +123,22 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
+	glog.V(4).Infof("TemplateInstance controller: syncing %s", key)
+
 	templateInstance, err = c.copyTemplateInstance(templateInstance)
 	if err != nil {
 		return err
 	}
 
-	provisionErr := c.provision(templateInstance)
+	instantiateErr := c.instantiate(templateInstance)
+	if instantiateErr != nil {
+		glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, instantiateErr)
+	}
 
 	templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceReady)
 	templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceInstantiateFailure)
 
-	if provisionErr == nil {
+	if instantiateErr == nil {
 		templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
 			Type:               templateapi.TemplateInstanceReady,
 			Status:             kapi.ConditionTrue,
@@ -125,7 +152,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "Failed",
-			Message:            provisionErr.Error(),
+			Message:            instantiateErr.Error(),
 		})
 	}
 
@@ -137,6 +164,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return err
 }
 
+// Run runs the controller until stopCh is closed, with as many workers as
+// specified.
 func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
@@ -145,6 +174,8 @@ func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
+	glog.V(2).Infof("Starting TemplateInstance controller")
+
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
@@ -152,11 +183,15 @@ func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 	<-stopCh
 }
 
+// runWorker repeatedly calls processNextWorkItem until the latter wants to
+// exit.
 func (c *TemplateInstanceController) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
+// processNextWorkItem reads from the queue and calls the sync worker function.
+// It returns false only when the queue is closed.
 func (c *TemplateInstanceController) processNextWorkItem() bool {
 	key, quit := c.queue.Get()
 	if quit {
@@ -165,17 +200,19 @@ func (c *TemplateInstanceController) processNextWorkItem() bool {
 	defer c.queue.Done(key)
 
 	err := c.sync(key.(string))
-	if err == nil {
+	if err == nil { // for example, success, or the TemplateInstance has gone away
 		c.queue.Forget(key)
 		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("%v failed with: %v", key, err))
-	c.queue.AddRateLimited(key)
+	utilruntime.HandleError(fmt.Errorf("TemplateInstance %v failed with: %v", key, err))
+	c.queue.AddRateLimited(key) // avoid hot looping
 
 	return true
 }
 
+// enqueue adds a TemplateInstance to c.queue.  This function is called on the
+// shared informer goroutine.
 func (c *TemplateInstanceController) enqueue(obj interface{}) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
@@ -186,7 +223,10 @@ func (c *TemplateInstanceController) enqueue(obj interface{}) {
 	c.queue.Add(key)
 }
 
-func (c *TemplateInstanceController) provision(templateInstance *templateapi.TemplateInstance) error {
+// instantiate instantiates the objects contained in a TemplateInstance.  Any
+// parameters for instantiation are contained in the Secret linked to the
+// TemplateInstance.
+func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.TemplateInstance) error {
 	if templateInstance.Spec.Requester == nil || templateInstance.Spec.Requester.Username == "" {
 		return fmt.Errorf("spec.requester.username not set")
 	}
@@ -207,12 +247,13 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 		return err
 	}
 
-	templateCopy, err := kapi.Scheme.DeepCopy(&templateInstance.Spec.Template)
+	template, err := c.copyTemplate(&templateInstance.Spec.Template)
 	if err != nil {
 		return err
 	}
-	template := templateCopy.(*templateapi.Template)
 
+	// We label all objects we create - this is needed by the template service
+	// broker.
 	if template.ObjectLabels == nil {
 		template.ObjectLabels = make(map[string]string)
 	}
@@ -234,6 +275,8 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 		return err
 	}
 
+	glog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
+
 	template, err = c.oc.TemplateConfigs(templateInstance.Namespace).Create(template)
 	if err != nil {
 		return err
@@ -244,6 +287,9 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 		return errs[0]
 	}
 
+	// We add an OwnerReference to all objects we create - this is also needed
+	// by the template service broker for cleanup.  TODO: what about any objects
+	// created by the templateinstance in other namespaces?
 	for _, obj := range template.Objects {
 		meta, _ := meta.Accessor(obj)
 		ref := meta.GetOwnerReferences()
@@ -288,14 +334,19 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 			return obj, nil
 		},
 	}
+
+	// First, do all the SARs to ensure the requester actually has permissions
+	// to create.
+	glog.V(4).Infof("TemplateInstance controller: running SARs for %s/%s", templateInstance.Namespace, templateInstance.Name)
+
 	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
 	if len(errs) > 0 {
 		return utilerrors.NewAggregate(errs)
 	}
 
 	bulk.Op = func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
-		// cmd.Create, but be tolerant to the existence of objects that we created
-		// before.
+		// as cmd.Create, but be tolerant to the existence of objects that we
+		// created before.
 		helper := resource.NewHelper(info.Client, info.Mapping)
 		if len(info.Namespace) > 0 {
 			namespace = info.Namespace
@@ -319,6 +370,11 @@ func (c *TemplateInstanceController) provision(templateInstance *templateapi.Tem
 
 		return createObj, createErr
 	}
+
+	// Second, create the objects, being tolerant if they already exist and are
+	// labelled as having previously been created by us.
+	glog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
+
 	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
 	if len(errs) > 0 {
 		return utilerrors.NewAggregate(errs)

@@ -36,6 +36,15 @@ func (AdmissionPluginConfig) SwaggerDoc() map[string]string {
 	return map_AdmissionPluginConfig
 }
 
+var map_AggregatorConfig = map[string]string{
+	"":                "AggregatorConfig holds information required to make the aggregator function.",
+	"proxyClientInfo": "ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers",
+}
+
+func (AggregatorConfig) SwaggerDoc() map[string]string {
+	return map_AggregatorConfig
+}
+
 var map_AllowAllPasswordIdentityProvider = map[string]string{
 	"": "AllowAllPasswordIdentityProvider provides identities for users authenticating using non-empty passwords",
 }
@@ -481,6 +490,7 @@ var map_MasterConfig = map[string]string{
 	"":                            "MasterConfig holds the necessary configuration options for the OpenShift master",
 	"servingInfo":                 "ServingInfo describes how to start serving",
 	"authConfig":                  "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"aggregatorConfig":            "AggregatorConfig has options for configuring the aggregator component of the API server.",
 	"corsAllowedOrigins":          "CORSAllowedOrigins",
 	"apiLevels":                   "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
 	"masterPublicURL":             "MasterPublicURL is how clients can access the OpenShift API server",
@@ -571,6 +581,7 @@ var map_NodeConfig = map[string]string{
 	"dnsIP":                           "DNSIP is the IP address that pods will use to access cluster DNS. Defaults to the service IP of the Kubernetes master. This IP must be listening on port 53 for compatibility with libc resolvers (which cannot be configured to resolve names from any other port). When running more complex local DNS configurations, this is often set to the local address of a DNS proxy like dnsmasq, which then will consult either the local DNS (see dnsBindAddress) or the master DNS.",
 	"dnsBindAddress":                  "DNSBindAddress is the ip:port to serve DNS on. If this is not set, the DNS server will not be started. Because most DNS resolvers will only listen on port 53, if you select an alternative port you will need a DNS proxy like dnsmasq to answer queries for containers. A common configuration is dnsmasq configured on a node IP listening on 53 and delegating queries for dnsDomain to this process, while sending other queries to the host environments nameservers.",
 	"dnsNameservers":                  "DNSNameservers is a list of ip:port values of recursive nameservers to forward queries to when running a local DNS server if dnsBindAddress is set. If this value is empty, the DNS server will default to the nameservers listed in /etc/resolv.conf. If you have configured dnsmasq or another DNS proxy on the system, this value should be set to the upstream nameservers dnsmasq resolves with.",
+	"dnsRecursiveResolvConf":          "DNSRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server. Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra nameservers to DNSNameservers if set.",
 	"networkPluginName":               "Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead",
 	"networkConfig":                   "NetworkConfig provides network options for the node",
 	"volumeDirectory":                 "VolumeDirectory is the directory that volumes will be stored under",

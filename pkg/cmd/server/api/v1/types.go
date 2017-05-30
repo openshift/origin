@@ -53,6 +53,11 @@ type NodeConfig struct {
 	// system, this value should be set to the upstream nameservers dnsmasq resolves with.
 	DNSNameservers []string `json:"dnsNameservers"`
 
+	// DNSRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server.
+	// Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra
+	// nameservers to DNSNameservers if set.
+	DNSRecursiveResolvConf string `json:"dnsRecursiveResolvConf"`
+
 	// Deprecated and maintained for backward compatibility, use NetworkConfig.NetworkPluginName instead
 	DeprecatedNetworkPluginName string `json:"networkPluginName,omitempty"`
 
@@ -182,6 +187,9 @@ type MasterConfig struct {
 	// oauth token and client certificate authenticators
 	AuthConfig MasterAuthConfig `json:"authConfig"`
 
+	// AggregatorConfig has options for configuring the aggregator component of the API server.
+	AggregatorConfig AggregatorConfig `json:"aggregatorConfig"`
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
@@ -303,6 +311,12 @@ type RequestHeaderAuthenticationOptions struct {
 	GroupHeaders []string `json:"groupHeaders"`
 	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
 	ExtraHeaderPrefixes []string `json:"extraHeaderPrefixes"`
+}
+
+// AggregatorConfig holds information required to make the aggregator function.
+type AggregatorConfig struct {
+	// ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers
+	ProxyClientInfo CertInfo `json:"proxyClientInfo"`
 }
 
 // AuditConfig holds configuration for the audit capabilities

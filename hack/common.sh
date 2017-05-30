@@ -669,6 +669,8 @@ readonly -f os::build::save_version_vars
 function os::build::get_product_vars() {
   export OS_BUILD_LDFLAGS_IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
   export OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS="${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS:-"centos7"}"
+  export OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME="${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME:-"${OS_BUILD_LDFLAGS_IMAGE_PREFIX}-federation"}"
+  export OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE="${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE:-"quay.io/coreos/etcd:v3.1.7"}"
 }
 
 # golang 1.5 wants `-X key=val`, but golang 1.4- REQUIRES `-X key val`
@@ -716,6 +718,8 @@ function os::build::ldflags() {
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitVersion" "${KUBE_GIT_VERSION}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.buildDate" "${buildDate}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/vendor/k8s.io/client-go/pkg/version.gitTreeState" "clean"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.serverImageName" "${OS_BUILD_LDFLAGS_FEDERATION_SERVER_IMAGE_NAME}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/federation/kubefed.defaultEtcdImage" "${OS_BUILD_LDFLAGS_FEDERATION_ETCD_IMAGE}"))
 
   # The -ldflags parameter takes a single string, so join the output.
   echo "${ldflags[*]-}"

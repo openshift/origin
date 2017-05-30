@@ -1,7 +1,7 @@
 package fake
 
 import (
-	network "github.com/openshift/origin/pkg/sdn/api/install"
+	sdn "github.com/openshift/origin/pkg/sdn/api/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +25,6 @@ func init() {
 
 // Install registers the API group and adds types to a scheme
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
-	network.Install(groupFactoryRegistry, registry, scheme)
+	sdn.Install(groupFactoryRegistry, registry, scheme)
 
 }

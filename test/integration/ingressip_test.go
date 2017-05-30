@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
@@ -85,8 +86,10 @@ func TestIngressIPAllocation(t *testing.T) {
 	go generateServiceEvents(t, kc)
 
 	// Start a second controller that will be out of sync with the first
+	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kc, 0)
 	_, ipNet, err := net.ParseCIDR(masterConfig.NetworkConfig.IngressIPNetworkCIDR)
-	c := ingressip.NewIngressIPController(kc, extkc, ipNet, 10*time.Minute)
+	c := ingressip.NewIngressIPController(internalKubeInformers.Core().InternalVersion().Services().Informer(), kc, extkc, ipNet, 10*time.Minute)
+	internalKubeInformers.Start(stopChannel)
 	go c.Run(stopChannel)
 
 	t.Log("waiting for sentinel to be updated with external ip")

@@ -2,8 +2,8 @@ package fake
 
 import (
 	clientset "github.com/openshift/origin/pkg/sdn/generated/internalclientset"
-	networkinternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/network/internalversion"
-	fakenetworkinternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/network/internalversion/fake"
+	sdninternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/sdn/internalversion"
+	fakesdninternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/sdn/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -44,7 +44,7 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// Network retrieves the NetworkClient
-func (c *Clientset) Network() networkinternalversion.NetworkInterface {
-	return &fakenetworkinternalversion.FakeNetwork{Fake: &c.Fake}
+// Sdn retrieves the SdnClient
+func (c *Clientset) Sdn() sdninternalversion.SdnInterface {
+	return &fakesdninternalversion.FakeSdn{Fake: &c.Fake}
 }

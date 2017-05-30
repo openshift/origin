@@ -194,6 +194,11 @@ type NodeConfig struct {
 	// system, this value should be set to the upstream nameservers dnsmasq resolves with.
 	DNSNameservers []string
 
+	// DNSRecursiveResolvConf is a path to a resolv.conf file that contains settings for an upstream server.
+	// Only the nameservers and port fields are used. The file must exist and parse correctly. It adds extra
+	// nameservers to DNSNameservers if set.
+	DNSRecursiveResolvConf string
+
 	// NetworkConfig provides network options for the node
 	NetworkConfig NodeNetworkConfig
 
@@ -318,6 +323,9 @@ type MasterConfig struct {
 	// oauth token and client certificate authenticators
 	AuthConfig MasterAuthConfig
 
+	// AggregatorConfig has options for configuring the aggregator component of the API server.
+	AggregatorConfig AggregatorConfig
+
 	// CORSAllowedOrigins
 	CORSAllowedOrigins []string
 
@@ -436,6 +444,12 @@ type RequestHeaderAuthenticationOptions struct {
 	GroupHeaders []string
 	// ExtraHeaderPrefixes is the set of request header prefixes to inspect for user extra. X-Remote-Extra- is suggested.
 	ExtraHeaderPrefixes []string
+}
+
+// AggregatorConfig holds information required to make the aggregator function.
+type AggregatorConfig struct {
+	// ProxyClientInfo specifies the client cert/key to use when proxying to aggregated API servers
+	ProxyClientInfo CertInfo
 }
 
 // AuditConfig holds configuration for the audit capabilities

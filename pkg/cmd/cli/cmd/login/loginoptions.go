@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +67,8 @@ type LoginOptions struct {
 
 	PathOptions *kclientcmd.PathOptions
 
-	CommandName string
+	CommandName    string
+	RequestTimeout time.Duration
 }
 
 // Gather all required information in a comprehensive order.
@@ -99,6 +101,11 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 	}
 
 	clientConfig := &restclient.Config{}
+
+	// ensure clientConfig has timeout option
+	if o.RequestTimeout > 0 {
+		clientConfig.Timeout = o.RequestTimeout
+	}
 
 	// normalize the provided server to a format expected by config
 	serverNormalized, err := config.NormalizeServerURL(o.Server)

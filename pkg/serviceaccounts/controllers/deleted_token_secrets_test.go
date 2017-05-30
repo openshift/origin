@@ -10,8 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/controller"
 )
 
 // emptySecretReferences is used by a service account without any secrets
@@ -168,8 +171,18 @@ func TestTokenDeletion(t *testing.T) {
 		rand.Seed(1)
 
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
-
-		controller := NewDockercfgTokenDeletedController(client, DockercfgTokenDeletedControllerOptions{})
+		informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
+		controller := NewDockercfgTokenDeletedController(
+			informerFactory.Core().InternalVersion().Secrets(),
+			client,
+			DockercfgTokenDeletedControllerOptions{},
+		)
+		stopCh := make(chan struct{})
+		informerFactory.Start(stopCh)
+		if !cache.WaitForCacheSync(stopCh, controller.secretController.HasSynced) {
+			t.Fatalf("unable to reach cache sync")
+		}
+		client.ClearActions()
 
 		if tc.DeletedSecret != nil {
 			controller.secretDeleted(tc.DeletedSecret)
@@ -191,5 +204,6 @@ func TestTokenDeletion(t *testing.T) {
 		if len(tc.ExpectedActions) > len(client.Actions()) {
 			t.Errorf("%s: %d additional expected actions:%+v", k, len(tc.ExpectedActions)-len(client.Actions()), tc.ExpectedActions[len(client.Actions()):])
 		}
+		close(stopCh)
 	}
 }
