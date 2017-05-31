@@ -89,7 +89,6 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	quotaadmission "github.com/openshift/origin/pkg/quota/admission/resourcequota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
@@ -294,7 +293,8 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
 	// Authorizer as the 2nd arg. It's currently only used by PSP.
-	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, internalkubeInformerFactory, nil, nil)
+	// note: we are passing a combined quota registry here...
+	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, internalkubeInformerFactory, nil, nil, quotaRegistry)
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientsetInternal, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
@@ -385,7 +385,7 @@ var (
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"OwnerReferencesPermissionEnforcement",
-		quotaadmission.PluginName,
+		"ResourceQuota",
 	}
 
 	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
@@ -411,9 +411,9 @@ var (
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
-		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
-		quotaadmission.PluginName,
+		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 	}
 
@@ -450,12 +450,47 @@ var (
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
-		// NOTE: quotaadmission and ClusterResourceQuota must be the last 2 plugins.
+		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
-		quotaadmission.PluginName,
+		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 	}
 )
+
+// replace returns a slice where each instance of the input that is x is replaced with y
+func replace(input []string, x, y string) []string {
+	result := []string{}
+	for i := range input {
+		if input[i] == x {
+			result = append(result, y)
+		} else {
+			result = append(result, input[i])
+		}
+	}
+	return result
+}
+
+// dedupe removes duplicate items from the input list.
+// the last instance of a duplicate is kept in the input list.
+func dedupe(input []string) []string {
+	items := sets.NewString()
+	result := []string{}
+	for i := len(input) - 1; i >= 0; i-- {
+		if items.Has(input[i]) {
+			continue
+		}
+		items.Insert(input[i])
+		result = append([]string{input[i]}, result...)
+	}
+	return result
+}
+
+// fixupAdmissionPlugins fixes the input plugins to handle deprecation and duplicates.
+func fixupAdmissionPlugins(plugins []string) []string {
+	result := replace(plugins, "openshift.io/OriginResourceQuota", "ResourceQuota")
+	result = dedupe(result)
+	return result
+}
 
 func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
 	// check to see if they've taken explicit control of the kube admission chain
@@ -478,6 +513,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclients
 		KubeAdmissionPlugins = options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride
 		hasSeparateKubeAdmissionChain = true
 	}
+	KubeAdmissionPlugins = fixupAdmissionPlugins(KubeAdmissionPlugins)
 
 	kubeAdmissionPluginConfigFilename := ""
 	if options.KubernetesMasterConfig != nil && len(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"]) > 0 {
@@ -490,6 +526,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclients
 		openshiftAdmissionPlugins = options.AdmissionConfig.PluginOrderOverride
 		hasSeparateKubeAdmissionChain = true
 	}
+	openshiftAdmissionPlugins = fixupAdmissionPlugins(openshiftAdmissionPlugins)
 
 	if options.KubernetesMasterConfig != nil && !hasSeparateKubeAdmissionChain {
 		// check for collisions between openshift and kube plugin config
