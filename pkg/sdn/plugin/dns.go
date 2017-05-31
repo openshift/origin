@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	DIG = "dig"
+	DIG    = "dig"
+	GETENT = "getent"
 
 	defaultTTL = 30 * time.Minute
 )
@@ -42,6 +43,9 @@ type DNS struct {
 func CheckDNSResolver() error {
 	if _, err := exec.LookPath(DIG); err != nil {
 		return fmt.Errorf("%s is not installed", DIG)
+	}
+	if _, err := exec.LookPath(GETENT); err != nil {
+		return fmt.Errorf("%s is not installed", GETENT)
 	}
 	return nil
 }
@@ -106,41 +110,23 @@ func (d *DNS) Update() (error, bool) {
 }
 
 func (d *DNS) updateOne(dns string) (error, bool) {
-	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
-	// Output Format:
-	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
-	out, err := d.execer.Command(DIG, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
-	if err != nil || len(out) == 0 {
-		return fmt.Errorf("Failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
-	}
-	outStr := strings.Trim(string(out[:]), "\n")
-
 	res, ok := d.dnsMap[dns]
 	if !ok {
 		// Should not happen, all operations on dnsMap are synchronized by d.lock
 		return fmt.Errorf("DNS value not found in dnsMap for domain: %q", dns), false
 	}
 
-	var minTTL time.Duration
-	var ips []net.IP
-	for _, line := range strings.Split(outStr, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) != 5 {
-			continue
-		}
-
-		ttl, err := time.ParseDuration(fmt.Sprintf("%ss", fields[1]))
+	var (
+		minTTL time.Duration
+		ips    []net.IP
+		err    error
+	)
+	ips, minTTL, err = tryDNSResolver(d.execer, dns)
+	if err != nil {
+		glog.Error(err)
+		ips, minTTL, err = tryLocalResolver(d.execer, dns)
 		if err != nil {
-			glog.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", dns, err, defaultTTL.String())
-			ttl = defaultTTL
-		}
-		if (minTTL.Seconds() == 0) || (minTTL.Seconds() > ttl.Seconds()) {
-			minTTL = ttl
-		}
-
-		ip := net.ParseIP(fields[4])
-		if ip != nil {
-			ips = append(ips, ip)
+			return err, false
 		}
 	}
 
@@ -169,6 +155,72 @@ func (d *DNS) GetMinQueryTime() (time.Time, bool) {
 	}
 
 	return minTime, timeSet
+}
+
+func tryDNSResolver(execer kexec.Interface, dns string) ([]net.IP, time.Duration, error) {
+	var minTTL time.Duration
+	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
+	// Output Format:
+	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
+	out, err := execer.Command(DIG, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
+	if err != nil || len(out) == 0 {
+		return nil, minTTL, fmt.Errorf("Failed to fetch IP addr and TTL value from dns resolver for domain: %q, err: %v", dns, err)
+	}
+	outStr := strings.Trim(string(out[:]), "\n")
+
+	var ips []net.IP
+	for _, line := range strings.Split(outStr, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 5 {
+			continue
+		}
+
+		ttl, err := time.ParseDuration(fmt.Sprintf("%ss", fields[1]))
+		if err != nil {
+			glog.Errorf("Invalid TTL value for domain: %q, err: %v, defaulting ttl=%s", dns, err, defaultTTL.String())
+			ttl = defaultTTL
+		}
+		if (minTTL.Seconds() == 0) || (minTTL.Seconds() > ttl.Seconds()) {
+			minTTL = ttl
+		}
+
+		ip := net.ParseIP(fields[4])
+		if ip != nil {
+			ips = append(ips, ip)
+		}
+	}
+	return ips, minTTL, nil
+}
+
+func tryLocalResolver(execer kexec.Interface, dns string) ([]net.IP, time.Duration, error) {
+	ttl := defaultTTL
+	// Enumerate local hosts db using getent.
+	// Output Format:
+	// <IP addr>	<SocketType>
+	out, err := execer.Command(GETENT, "ahostsv4", dns).CombinedOutput()
+	if err != nil || len(out) == 0 {
+		return nil, ttl, fmt.Errorf("Failed to fetch IP addr from local resolver for domain: %q, err: %v", dns, err)
+	}
+	outStr := strings.Trim(string(out[:]), "\n")
+
+	var ips []net.IP
+	ipMap := make(map[string]struct{})
+	for _, line := range strings.Split(outStr, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) != 2 {
+			continue
+		}
+
+		ipStr := fields[0]
+		if _, ok := ipMap[ipStr]; !ok {
+			ipMap[ipStr] = struct{}{}
+			ip := net.ParseIP(ipStr)
+			if ip != nil {
+				ips = append(ips, ip)
+			}
+		}
+	}
+	return ips, ttl, nil
 }
 
 func ipsEqual(oldips, newips []net.IP) bool {

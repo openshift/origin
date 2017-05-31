@@ -9,6 +9,7 @@ FROM openshift/dind
 ## Install packages
 RUN dnf -y update && dnf -y install\
  bind-utils\
+ glibc-common\
  findutils\
  hostname\
  iproute\
