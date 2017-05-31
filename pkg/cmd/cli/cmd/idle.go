@@ -321,7 +321,7 @@ func getControllerRef(obj runtime.Object, decoder runtime.Decoder) (*kapi.Object
 
 	serializedRef := &kapi.SerializedReference{}
 	if err := runtime.DecodeInto(decoder, []byte(creatorRefRaw), serializedRef); err != nil {
-		return nil, fmt.Errorf("could not decoded pod's creator reference: %v", err)
+		return nil, fmt.Errorf("could not decode pod's creator reference: %v", err)
 	}
 
 	return &serializedRef.Reference, nil
