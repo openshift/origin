@@ -126,7 +126,7 @@ func TestOVSHostSubnet(t *testing.T) {
 		},
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=50", "arp", "nw_dst=10.129.0.0/23", "192.168.1.2->tun_dst"},
+			match: []string{"table=50", "arp", "arp_tpa=10.129.0.0/23", "192.168.1.2->tun_dst"},
 		},
 		flowChange{
 			kind:  flowAdded,
