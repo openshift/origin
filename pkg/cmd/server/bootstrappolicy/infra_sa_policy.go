@@ -373,6 +373,13 @@ func init() {
 					Verbs:     sets.NewString("get"),
 					Resources: sets.NewString("secrets"),
 				},
+				// Cinder provisioner needs to get list of nodes in order
+				// to get list of available zones in the cluster in order to choose a zone
+				// in case it's not configured in corresponding Storage Class
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
+				},
 			},
 		},
 	)
