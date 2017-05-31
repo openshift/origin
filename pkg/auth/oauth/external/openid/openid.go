@@ -266,7 +266,7 @@ func fetchUserInfo(url, accessToken string, transport http.RoundTripper) (map[st
 }
 
 // Decode JWT
-// http://openid.net/specs/draft-jones-json-web-token-07.html
+// https://tools.ietf.org/html/rfc7519
 func decodeJWT(jwt string) (map[string]interface{}, error) {
 	jwtParts := strings.Split(jwt, ".")
 	if len(jwtParts) != 3 {
@@ -279,8 +279,8 @@ func decodeJWT(jwt string) (map[string]interface{}, error) {
 		encodedPayload += strings.Repeat("=", 4-l)
 	}
 
-	// Decode base-64
-	decodedPayload, err := base64.StdEncoding.DecodeString(encodedPayload)
+	// Decode base64url
+	decodedPayload, err := base64.URLEncoding.DecodeString(encodedPayload)
 	if err != nil {
 		return nil, fmt.Errorf("Error decoding payload: %v", err)
 	}
