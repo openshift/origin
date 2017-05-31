@@ -41,7 +41,9 @@ type Reporter interface {
 // ReporterBool implements the Reporter interface for a boolean.
 type ReporterBool bool
 
-func (r ReporterBool) Changed() bool { return bool(r) }
+func (r ReporterBool) Changed() bool {
+	return bool(r)
+}
 
 func AlwaysRequiresMigration(_ *resource.Info) (Reporter, error) {
 	return ReporterBool(true), nil
