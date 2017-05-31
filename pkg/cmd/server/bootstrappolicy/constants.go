@@ -57,6 +57,7 @@ const (
 	BasicUserRoleName          = "basic-user"
 	StatusCheckerRoleName      = "cluster-status"
 	SelfAccessReviewerRoleName = "self-access-reviewer"
+	PodWatcherRoleName         = "pod-watcher"
 
 	RegistryAdminRoleName  = "registry-admin"
 	RegistryViewerRoleName = "registry-viewer"

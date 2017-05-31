@@ -509,6 +509,17 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
+				Name: PodWatcherRoleName,
+				Annotations: map[string]string{
+					roleSystemOnly: roleIsSystemOnly,
+				},
+			},
+			Rules: []authorizationapi.PolicyRule{
+				authorizationapi.NewRule("list", "watch").Groups(authzGroup, legacyAuthzGroup).Resources("pods").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SelfProvisionerRoleName,
 				Annotations: map[string]string{
 					oapi.OpenShiftDescription: "A user that can request projects.",
