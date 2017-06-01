@@ -64,6 +64,7 @@ var (
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
+		"DenyStaticPodExec",
 		"SecurityContextConstraint",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
