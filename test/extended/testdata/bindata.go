@@ -19555,7 +19555,8 @@ objects:
                 node {
                   stage("Build Image") {
                     unstash name:"war"
-                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
+                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}"
+                    openshiftVerifyBuild bldCfg: "${appName}-docker", namespace: project, waitTime: '20', waitUnit: 'min'
                   }
                   stage("Deploy") {
                     openshiftDeploy deploymentConfig: appName, namespace: project
