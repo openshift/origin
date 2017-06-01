@@ -241,7 +241,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 			Rules: []authorizationapi.PolicyRule{
 				{
 					Verbs:           sets.NewString("get"),
-					NonResourceURLs: sets.NewString("/metrics", "/debug/pprof", "/debug/pprof/*"),
+					NonResourceURLs: sets.NewString("/metrics", "/debug/pprof", "/debug/pprof/"),
 				},
 			},
 		},

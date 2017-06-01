@@ -448,7 +448,7 @@ items:
     attributeRestrictions: null
     nonResourceURLs:
     - /debug/pprof
-    - /debug/pprof/*
+    - /debug/pprof/
     - /metrics
     resources: []
     verbs:
