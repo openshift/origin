@@ -143,7 +143,7 @@ else
         # we need to find all of the kubernetes test suites, excluding those we directly whitelisted before, the end-to-end suite, and
         # the go2idl tests which we currently do not support
         # etcd3 isn't supported yet and that test flakes upstream
-        optional_kubernetes_packages="$(find vendor/k8s.io/{apimachinery,apiserver,client-go,kubernetes} -not \(                             \
+        optional_kubernetes_packages="$(find -L vendor/k8s.io/{apimachinery,apiserver,client-go,kube-aggregator,kubernetes} -not \( \
           \(                                                                                          \
             -path "${kubernetes_path}/staging"                                                        \
             -o -path "${kubernetes_path}/pkg/api"                                                     \

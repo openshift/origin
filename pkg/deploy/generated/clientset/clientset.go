@@ -2,7 +2,7 @@ package clientset
 
 import (
 	glog "github.com/golang/glog"
-	deployv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/deploy/v1"
+	appsv1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/apps/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -10,33 +10,33 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	DeployV1() deployv1.DeployV1Interface
+	AppsV1() appsv1.AppsV1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Deploy() deployv1.DeployV1Interface
+	Apps() appsv1.AppsV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*deployv1.DeployV1Client
+	*appsv1.AppsV1Client
 }
 
-// DeployV1 retrieves the DeployV1Client
-func (c *Clientset) DeployV1() deployv1.DeployV1Interface {
+// AppsV1 retrieves the AppsV1Client
+func (c *Clientset) AppsV1() appsv1.AppsV1Interface {
 	if c == nil {
 		return nil
 	}
-	return c.DeployV1Client
+	return c.AppsV1Client
 }
 
-// Deprecated: Deploy retrieves the default version of DeployClient.
+// Deprecated: Apps retrieves the default version of AppsClient.
 // Please explicitly pick a version.
-func (c *Clientset) Deploy() deployv1.DeployV1Interface {
+func (c *Clientset) Apps() appsv1.AppsV1Interface {
 	if c == nil {
 		return nil
 	}
-	return c.DeployV1Client
+	return c.AppsV1Client
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -55,7 +55,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.DeployV1Client, err = deployv1.NewForConfig(&configShallowCopy)
+	cs.AppsV1Client, err = appsv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.DeployV1Client = deployv1.NewForConfigOrDie(c)
+	cs.AppsV1Client = appsv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -81,7 +81,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.DeployV1Client = deployv1.New(c)
+	cs.AppsV1Client = appsv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
