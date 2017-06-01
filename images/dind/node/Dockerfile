@@ -23,6 +23,11 @@ RUN dnf -y update && dnf -y install\
  iptables-services\
  openvswitch
 
+# Upgrade to a newer OVS. (This can go away when the base image is upgraded to F26.)
+RUN dnf -y install dnf-plugins-core &&\
+ dnf -y copr enable danw/origin-dind-ovs &&\
+ dnf -y update openvswitch
+
 # A default deny firewall (either iptables or firewalld) is
 # installed by default on non-cloud fedora and rhel, so all
 # network plugins need to be able to work with one enabled.
