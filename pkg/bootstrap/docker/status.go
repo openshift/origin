@@ -1,8 +1,10 @@
 package docker
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
+	"github.com/openshift/origin/pkg/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -48,7 +51,9 @@ func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		Run: func(c *cobra.Command, args []string) {
 			err := config.Status(f, out)
 			if err != nil {
-				PrintError(err, out)
+				if err.Error() != "" {
+					PrintError(err, out)
+				}
 				os.Exit(1)
 			}
 		},
@@ -92,7 +97,80 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 		return err
 	}
 
-	fmt.Print(status(container, config))
+	fmt.Fprint(out, status(container, config))
+
+	notReady := 0
+
+	eh := exec.NewExecHelper(dockerClient, openshift.OpenShiftContainer)
+
+	stdout, _, _ := eh.Command("oc", "get", "dc", "docker-registry", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
+	if stdout != "1" {
+		fmt.Fprintln(out, "Notice: Docker registry is not yet ready")
+		notReady++
+	}
+
+	stdout, _, _ = eh.Command("oc", "get", "dc", "router", "-n", "default", "-o", "template", "--template", "{{.status.availableReplicas}}").Output()
+	if stdout != "1" {
+		fmt.Fprintln(out, "Notice: Router is not yet ready")
+		notReady++
+	}
+
+	stdout, _, _ = eh.Command("oc", "get", "job", "persistent-volume-setup", "-n", "default", "-o", "template", "--template", "{{.status.succeeded}}").Output()
+	if stdout != "1" {
+		fmt.Fprintln(out, "Notice: Persistent volumes are not yet ready")
+		notReady++
+	}
+
+	stdout, _, _ = eh.Command("oc", "get", "is", "-n", "openshift", "-o", "template", "--template", `{{range .items}}{{if not .status.tags}}notready{{end}}{{end}}`).Output()
+	if len(stdout) > 0 {
+		fmt.Fprintln(out, "Notice: Imagestreams are not yet ready")
+		notReady++
+	}
+
+	insecureCli := http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+		Timeout: 10 * time.Second,
+	}
+
+	ch := make(chan string)
+	go func() {
+		notice := ""
+		if config.AssetConfig.LoggingPublicURL != "" {
+			resp, _ := insecureCli.Get(config.AssetConfig.LoggingPublicURL)
+			if resp == nil || resp.StatusCode != http.StatusFound {
+				notice = "Notice: Logging component is not yet ready"
+			}
+		}
+		ch <- notice
+	}()
+
+	go func() {
+		notice := ""
+		if config.AssetConfig.MetricsPublicURL != "" {
+			resp, _ := insecureCli.Get(config.AssetConfig.MetricsPublicURL + "/status")
+			if resp == nil || resp.StatusCode != http.StatusOK {
+				notice = "Notice: Metrics component is not yet ready"
+			}
+		}
+		ch <- notice
+	}()
+
+	for i := 0; i < 2; i++ {
+		notice := <-ch
+		if notice != "" {
+			fmt.Fprintln(out, notice)
+			notReady++
+		}
+	}
+
+	if notReady > 0 {
+		fmt.Fprintf(out, "\nNotice: %d OpenShift component(s) are not yet ready (see above)\n", notReady)
+		return fmt.Errorf("")
+	}
 
 	return nil
 }
@@ -145,6 +223,7 @@ func status(container *docker.Container, config *api.MasterConfig) string {
 	} else {
 		status = status + fmt.Sprintf("Data will be discarded when cluster is destroyed\n")
 	}
+	status = status + fmt.Sprintf("\n")
 
 	return status
 }
