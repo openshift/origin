@@ -57,7 +57,19 @@ make clean
 
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
-mv "${tito_output_directory}"/* "${OS_OUTPUT}"
+# mv exits prematurely with status 1 in the following scenario: running as root,
+# attempting to move a [directory tree containing a] symlink to a destination on
+# an NFS volume exported with root_squash set.  This can occur when running this
+# script on a Vagrant box.  The error shown is "mv: failed to preserve ownership
+# for $FILE: Operation not permitted".  As a workaround, if
+# ${tito_output_directory} and ${OS_OUTPUT} are on different devices, use cp and
+# rm instead.
+if [[ $(stat -c %d "${tito_output_directory}") == $(stat -c %d "${OS_OUTPUT}") ]]; then
+  mv "${tito_output_directory}"/* "${OS_OUTPUT}"
+else
+  cp -R "${tito_output_directory}"/* "${OS_OUTPUT}"
+  rm -rf "${tito_output_directory}"/*
+fi
 mkdir -p "${OS_OUTPUT_RPMPATH}"
 mv "${tito_tmp_dir}"/*src.rpm "${OS_OUTPUT_RPMPATH}"
 mv "${tito_tmp_dir}"/*/*.rpm "${OS_OUTPUT_RPMPATH}"
