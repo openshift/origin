@@ -7,6 +7,7 @@ import (
 	goruntime "runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -71,6 +72,7 @@ func GetEtcdURL() string {
 
 func (s EtcdTestServer) DumpEtcdOnFailure() {
 	defer func() {
+		time.Sleep(time.Second) // push Terminate's race forward
 		s.Terminate(s.t)
 		os.RemoveAll(s.DataDir)
 	}()
