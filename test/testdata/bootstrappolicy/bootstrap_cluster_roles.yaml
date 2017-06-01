@@ -1975,6 +1975,13 @@ items:
     resources:
     - replicationcontrollers
     verbs:
+    - delete
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
     - get
     - list
     - update
@@ -3624,6 +3631,13 @@ items:
     resources:
     - replicationcontrollers
     verbs:
+    - delete
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
     - get
     - list
     - update
@@ -3655,6 +3669,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
