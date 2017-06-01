@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::golang::verify_go_version
 
-bad_files=$(find_files | xargs gofmt -s -l)
+bad_files=$(os::util::list_go_src_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then
 	echo "!!! gofmt needs to be run on the following files: " >&2
 	echo "${bad_files}"
