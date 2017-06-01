@@ -4,11 +4,7 @@ package plugin
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 
 	sdnapi "github.com/openshift/origin/pkg/sdn/api"
@@ -19,7 +15,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	ksets "k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -233,83 +228,6 @@ func podIsExited(p *kcontainer.Pod) bool {
 	return true
 }
 
-// getNonExitedPods returns a list of pods that have at least one running container.
-func (m *podManager) getNonExitedPods() ([]*kcontainer.Pod, error) {
-	ret := []*kcontainer.Pod{}
-	pods, err := m.host.GetRuntime().GetPods(true)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve pods from runtime: %v", err)
-	}
-	for _, p := range pods {
-		if podIsExited(p) {
-			continue
-		}
-		ret = append(ret, p)
-	}
-	return ret, nil
-}
-
-// ipamGarbageCollection will release unused IPs from dead containers that
-// the CNI plugin was never notified had died.  openshift-sdn uses the CNI
-// host-local IPAM plugin, which stores allocated IPs in a file in
-// /var/lib/cni/network. Each file in this directory has as its name the
-// allocated IP address of the container, and as its contents the container ID.
-// This routine looks for container IDs that are not reported as running by the
-// container runtime, and releases each one's IPAM allocation.
-func (m *podManager) ipamGarbageCollection() {
-	glog.V(2).Infof("Starting IP garbage collection")
-
-	const ipamDir string = "/var/lib/cni/networks/openshift-sdn"
-	files, err := ioutil.ReadDir(ipamDir)
-	if err != nil {
-		glog.Errorf("Failed to list files in CNI host-local IPAM store %v: %v", ipamDir, err)
-		return
-	}
-
-	// gather containerIDs for allocated ips
-	ipContainerIdMap := make(map[string]string)
-	for _, file := range files {
-		// skip non checkpoint file
-		if ip := net.ParseIP(file.Name()); ip == nil {
-			continue
-		}
-
-		content, err := ioutil.ReadFile(filepath.Join(ipamDir, file.Name()))
-		if err != nil {
-			glog.Errorf("Failed to read file %v: %v", file, err)
-		}
-		ipContainerIdMap[file.Name()] = strings.TrimSpace(string(content))
-	}
-
-	// gather infra container IDs of current running Pods
-	runningContainerIDs := ksets.String{}
-	pods, err := m.getNonExitedPods()
-	if err != nil {
-		glog.Errorf("Failed to get pods: %v", err)
-		return
-	}
-	for _, pod := range pods {
-		containerID, err := m.host.GetRuntime().GetPodContainerID(pod)
-		if err != nil {
-			glog.Warningf("Failed to get infra containerID of %q/%q: %v", pod.Namespace, pod.Name, err)
-			continue
-		}
-
-		runningContainerIDs.Insert(strings.TrimSpace(containerID.ID))
-	}
-
-	// release leaked ips
-	for ip, containerID := range ipContainerIdMap {
-		// if the container is not running, release IP
-		if runningContainerIDs.Has(containerID) {
-			continue
-		}
-
-		glog.V(2).Infof("Releasing IP %q allocated to %q.", ip, containerID)
-		m.ipamDel(containerID)
-	}
-}
-
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
 func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
 	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
@@ -319,15 +237,6 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 
 	ipamResult, err := m.ipamAdd(req.Netns, req.ContainerId)
 	if err != nil {
-		// TODO: Remove this hack once we've figured out how to retrieve the netns
-		// of an exited container. Currently, restarting docker will leak a bunch of
-		// ips. This will exhaust available ip space unless we cleanup old ips. At the
-		// same time we don't want to try GC'ing them periodically as that could lead
-		// to a performance regression in starting pods. So on each setup failure, try
-		// GC on the assumption that the kubelet is going to retry pod creation, and
-		// when it does, there will be ips.
-		m.ipamGarbageCollection()
-
 		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.ContainerId, err)
 	}
 	podIP := ipamResult.IP4.IP.IP
