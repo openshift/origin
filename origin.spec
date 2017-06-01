@@ -324,9 +324,6 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
-pushd pkg/sdn/plugin/sdn-cni-plugin
-   install -p -m 0644 80-openshift-sdn.conf %{buildroot}%{_sysconfdir}/cni/net.d
-popd
 pushd pkg/sdn/plugin/bin
    install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
 popd
@@ -503,7 +500,6 @@ fi
 %dir /opt/cni/bin
 %{_bindir}/openshift-sdn-ovs
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
-%{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
 /opt/cni/bin/*
 
 %posttrans sdn-ovs
