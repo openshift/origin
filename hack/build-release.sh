@@ -24,7 +24,7 @@ trap "os::build::environment::cleanup ${container}" EXIT
 # Perform the build and release in Docker.
 (
   OS_GIT_TREE_STATE=clean # set this because we will be pulling from git archive
-  os::build::get_version_vars
+  os::build::version::get_vars
   echo "++ Building release ${OS_GIT_VERSION}"
 )
 os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
