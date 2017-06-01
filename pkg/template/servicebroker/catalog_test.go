@@ -61,7 +61,7 @@ func TestServiceFromTemplate(t *testing.T) {
 				Free:        true,
 				Bindable:    true,
 				Schemas: api.Schema{
-					ServiceInstances: api.ServiceInstances{
+					ServiceInstance: api.ServiceInstances{
 						Create: map[string]*schema.Schema{
 							"parameters": {
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
@@ -94,7 +94,7 @@ func TestServiceFromTemplate(t *testing.T) {
 							},
 						},
 					},
-					ServiceBindings: api.ServiceBindings{
+					ServiceBinding: api.ServiceBindings{
 						Create: map[string]*schema.Schema{
 							"parameters": {
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
