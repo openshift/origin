@@ -237,6 +237,40 @@ func TestAttributeRestrictionsRuleLoss(t *testing.T) {
 	}
 }
 
+// rules with both resources and non-resources should be split during conversion
+func TestResourceAndNonResourceRuleSplit(t *testing.T) {
+	ocr := &authorizationapi.ClusterRole{
+		Rules: []authorizationapi.PolicyRule{
+			{
+				Verbs:           sets.NewString("get", "create"),
+				APIGroups:       []string{"v1", ""},
+				Resources:       sets.NewString("pods", "nodes"),
+				ResourceNames:   sets.NewString("foo", "bar"),
+				NonResourceURLs: sets.NewString("/api", "/health"),
+			},
+		},
+	}
+	ocr2 := &authorizationapi.ClusterRole{}
+	rcr := &rbac.ClusterRole{}
+	if err := authorizationapi.Convert_api_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := authorizationapi.Convert_rbac_ClusterRole_To_api_ClusterRole(rcr, ocr2, nil); err != nil {
+		t.Fatal(err)
+	}
+	// We need to break down the input rules so Covers does not get confused by ResourceNames
+	ocrRulesBrokenDown := []authorizationapi.PolicyRule{}
+	for _, servantRule := range ocr.Rules {
+		ocrRulesBrokenDown = append(ocrRulesBrokenDown, rulevalidation.BreakdownRule(servantRule)...)
+	}
+	if covered, uncoveredRules := rulevalidation.Covers(ocrRulesBrokenDown, ocr2.Rules); !covered {
+		t.Errorf("input rules expected rule split not seen; the uncovered rules are %#v", uncoveredRules)
+	}
+	if covered, uncoveredRules := rulevalidation.Covers(ocr2.Rules, ocr.Rules); !covered {
+		t.Errorf("output rules expected rule split not seen; the uncovered rules are %#v", uncoveredRules)
+	}
+}
+
 var fuzzer = fuzz.New().NilChance(0).Funcs(
 	func(*metav1.TypeMeta, fuzz.Continue) {}, // Ignore TypeMeta
 	func(*runtime.Object, fuzz.Continue) {},  // Ignore AttributeRestrictions since they are deprecated
@@ -248,6 +282,14 @@ var fuzzer = fuzz.New().NilChance(0).Funcs(
 		c.FuzzNoCustom(orb)
 		setRandomOriginRoleBindingData(orb.Subjects, &orb.RoleRef, orb.Namespace, c)
 	},
+	func(or *authorizationapi.Role, c fuzz.Continue) {
+		c.FuzzNoCustom(or)
+		setOriginRuleType(or.Rules, c.RandBool())
+	},
+	func(ocr *authorizationapi.ClusterRole, c fuzz.Continue) {
+		c.FuzzNoCustom(ocr)
+		setOriginRuleType(ocr.Rules, c.RandBool())
+	},
 	func(rcrb *rbac.ClusterRoleBinding, c fuzz.Continue) {
 		c.FuzzNoCustom(rcrb)
 		setRandomRBACRoleBindingData(rcrb.Subjects, &rcrb.RoleRef, "", c)
@@ -258,13 +300,47 @@ var fuzzer = fuzz.New().NilChance(0).Funcs(
 	},
 	func(rr *rbac.Role, c fuzz.Continue) {
 		c.FuzzNoCustom(rr)
+		setRBACRuleType(rr.Rules, c.RandBool())
 		sortAndDeduplicateRBACRulesFields(rr.Rules) // []string <-> sets.String
 	},
 	func(rcr *rbac.ClusterRole, c fuzz.Continue) {
 		c.FuzzNoCustom(rcr)
+		setRBACRuleType(rcr.Rules, c.RandBool())
 		sortAndDeduplicateRBACRulesFields(rcr.Rules) // []string <-> sets.String
 	},
 )
+
+func setOriginRuleType(in []authorizationapi.PolicyRule, isResourceRule bool) {
+	if isResourceRule {
+		for i := range in {
+			rule := &in[i]
+			rule.NonResourceURLs = sets.NewString()
+		}
+	} else {
+		for i := range in {
+			rule := &in[i]
+			rule.APIGroups = []string{}
+			rule.Resources = sets.NewString()
+			rule.ResourceNames = sets.NewString()
+		}
+	}
+}
+
+func setRBACRuleType(in []rbac.PolicyRule, isResourceRule bool) {
+	if isResourceRule {
+		for i := range in {
+			rule := &in[i]
+			rule.NonResourceURLs = []string{}
+		}
+	} else {
+		for i := range in {
+			rule := &in[i]
+			rule.APIGroups = []string{}
+			rule.Resources = []string{}
+			rule.ResourceNames = []string{}
+		}
+	}
+}
 
 func setRandomRBACRoleBindingData(subjects []rbac.Subject, roleRef *rbac.RoleRef, namespace string, c fuzz.Continue) {
 	for i := range subjects {
