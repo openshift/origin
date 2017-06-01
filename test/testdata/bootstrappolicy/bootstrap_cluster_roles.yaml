@@ -1667,6 +1667,7 @@ items:
     resources:
     - storageclasses
     verbs:
+    - get
     - list
   - apiGroups:
     - project.openshift.io
