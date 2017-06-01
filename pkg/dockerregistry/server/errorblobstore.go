@@ -151,7 +151,8 @@ func (f statCrossMountCreateOptions) Apply(v interface{}) error {
 	if err != nil {
 		context.GetLogger(f.ctx).Infof("cannot mount blob %s from repository %s: %v - disabling cross-repo mount",
 			opts.Mount.From.Digest().String(),
-			opts.Mount.From.Name())
+			opts.Mount.From.Name(),
+			err)
 		opts.Mount.ShouldMount = false
 		return nil
 	}

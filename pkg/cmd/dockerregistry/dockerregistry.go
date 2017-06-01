@@ -3,14 +3,17 @@ package dockerregistry
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/docker/go-units"
 	gorillahandlers "github.com/gorilla/handlers"
 
 	"github.com/Sirupsen/logrus/formatters/logstash"
@@ -19,8 +22,10 @@ import (
 	"github.com/docker/distribution/health"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
+	"github.com/docker/distribution/registry/storage"
+	"github.com/docker/distribution/registry/storage/driver/factory"
 	"github.com/docker/distribution/uuid"
-	"github.com/docker/distribution/version"
+	distversion "github.com/docker/distribution/version"
 
 	_ "github.com/docker/distribution/registry/auth/htpasswd"
 	_ "github.com/docker/distribution/registry/auth/token"
@@ -35,7 +40,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3-aws"
 	_ "github.com/docker/distribution/registry/storage/driver/swift"
 
-	"strings"
+	kubeversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -43,10 +48,96 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/prune"
+	"github.com/openshift/origin/pkg/version"
 )
+
+var pruneMode = flag.String("prune", "", "prune blobs from the storage and exit (check, delete)")
+
+func versionFields() log.Fields {
+	return log.Fields{
+		"distribution_version": distversion.Version,
+		"kubernetes_version":   kubeversion.Get(),
+		"openshift_version":    version.Get(),
+	}
+}
+
+// ExecutePruner runs the pruner.
+func ExecutePruner(configFile io.Reader, dryRun bool) {
+	config, _, err := registryconfig.Parse(configFile)
+	if err != nil {
+		log.Fatalf("error parsing configuration file: %s", err)
+	}
+
+	// A lot of installations have the 'debug' log level in their config files,
+	// but it's too verbose for pruning. Therefore we ignore it, but we still
+	// respect overrides using environment variables.
+	config.Loglevel = ""
+	config.Log.Level = configuration.Loglevel(os.Getenv("REGISTRY_LOG_LEVEL"))
+	if len(config.Log.Level) == 0 {
+		config.Log.Level = "warning"
+	}
+
+	ctx := context.Background()
+	ctx, err = configureLogging(ctx, config)
+	if err != nil {
+		log.Fatalf("error configuring logging: %s", err)
+	}
+
+	startPrune := "start prune"
+	var registryOptions []storage.RegistryOption
+	if dryRun {
+		startPrune += " (dry-run mode)"
+	} else {
+		registryOptions = append(registryOptions, storage.EnableDelete)
+	}
+	log.WithFields(versionFields()).Info(startPrune)
+
+	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+
+	storageDriver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
+	if err != nil {
+		log.Fatalf("error creating storage driver: %s", err)
+	}
+
+	registry, err := storage.NewRegistry(ctx, storageDriver, registryOptions...)
+	if err != nil {
+		log.Fatalf("error creating registry: %s", err)
+	}
+
+	stats, err := prune.Prune(ctx, storageDriver, registry, registryClient, dryRun)
+	if err != nil {
+		log.Error(err)
+	}
+	if dryRun {
+		fmt.Printf("Would delete %d blobs\n", stats.Blobs)
+		fmt.Printf("Would free up %s of disk space\n", units.BytesSize(float64(stats.DiskSpace)))
+		fmt.Println("Use -prune=delete to actually delete the data")
+	} else {
+		fmt.Printf("Deleted %d blobs\n", stats.Blobs)
+		fmt.Printf("Freed up %s of disk space\n", units.BytesSize(float64(stats.DiskSpace)))
+	}
+	if err != nil {
+		os.Exit(1)
+	}
+}
 
 // Execute runs the Docker registry.
 func Execute(configFile io.Reader) {
+	if len(*pruneMode) != 0 {
+		var dryRun bool
+		switch *pruneMode {
+		case "delete":
+			dryRun = false
+		case "check":
+			dryRun = true
+		default:
+			log.Fatal("invalid value for the -prune option")
+		}
+		ExecutePruner(configFile, dryRun)
+		return
+	}
+
 	dockerConfig, extraConfig, err := registryconfig.Parse(configFile)
 	if err != nil {
 		log.Fatalf("error parsing configuration file: %s", err)
@@ -64,7 +155,7 @@ func Execute(configFile io.Reader) {
 	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
 	ctx = server.WithRegistryClient(ctx, registryClient)
 
-	log.Infof("version=%s", version.Version)
+	log.WithFields(versionFields()).Info("start registry")
 	// inject a logger into the uuid library. warns us if there is a problem
 	// with uuid generation under low entropy.
 	uuid.Loggerf = context.GetLogger(ctx).Warnf
