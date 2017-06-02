@@ -10,6 +10,7 @@
 #
 FROM openshift/origin
 
+COPY scripts/* /usr/local/bin/
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/manifest.json system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 

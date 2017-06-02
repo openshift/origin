@@ -5,6 +5,7 @@
 #
 FROM openshift/node
 
+COPY scripts/* /usr/local/bin/
 RUN INSTALL_PKGS="openvswitch" && \
     yum install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
