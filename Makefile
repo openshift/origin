@@ -232,7 +232,12 @@ run: build
 # Example:
 #   make clean
 clean:
-	rm -rf $(OUT_DIR)
+	rm -rf $(OUT_DIR) \
+		examples/gitserver/bin/gitserver \
+		examples/hello-openshift/bin/hello-openshift \
+		images/dockerregistry/bin/dockerregistry \
+		images/node/conf \
+		images/node/usr
 .PHONY: clean
 
 # Build a release of OpenShift for linux/amd64 and the images that depend on it.
