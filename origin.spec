@@ -520,12 +520,19 @@ fi
 %files excluder
 /usr/sbin/%{name}-excluder
 
-%post excluder
-if [ "$1" -eq 1 ] ; then
-  %{name}-excluder exclude
+%pretrans excluder
+# we always want to clear this out using the last
+#   versions script.  Otherwise excludes might get left in
+if [ -s /usr/sbin/%{name}-excluder ] ; then
+  /usr/sbin/%{name}-excluder unexclude
 fi
 
+%posttrans excluder
+# we always want to run this after an install or update
+/usr/sbin/%{name}-excluder exclude
+
 %preun excluder
+# If we are the last one, clean things up
 if [ "$1" -eq 0 ] ; then
   /usr/sbin/%{name}-excluder unexclude
 fi
@@ -533,15 +540,22 @@ fi
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
 
+%pretrans docker-excluder
+# we always want to clear this out using the last
+#   versions script.  Otherwise excludes might get left in
+if [ -s /usr/sbin/%{name}-docker-excluder ] ; then
+  /usr/sbin/%{name}-docker-excluder unexclude
+fi
+
 %posttrans docker-excluder
-# we always want to run this, since the
-#   package-list may be different with each version
-%{name}-docker-excluder exclude
+# we always want to run this after an install or update
+/usr/sbin/%{name}-docker-excluder exclude
 
 %preun docker-excluder
-# we always want to clear this out, since the
-#   package-list may be different with each version
-/usr/sbin/%{name}-docker-excluder unexclude
+# If we are the last one, clean things up
+if [ "$1" -eq 0 ] ; then
+  /usr/sbin/%{name}-docker-excluder unexclude
+fi
 
 %changelog
 * Fri Sep 18 2015 Scott Dodson <sdodson@redhat.com> 0.2-9
