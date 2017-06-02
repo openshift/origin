@@ -1689,10 +1689,14 @@ func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kpri
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, cn.ObjectMeta)
-		formatString(out, "Cluster Network", cn.Network)
-		formatString(out, "Host Subnet Length", cn.HostSubnetLength)
 		formatString(out, "Service Network", cn.ServiceNetwork)
 		formatString(out, "Plugin Name", cn.PluginName)
+		fmt.Fprintf(out, "ClusterNetworks:\n")
+		fmt.Fprintf(out, "CIDR\tHost Subnet Length\n")
+		fmt.Fprintf(out, "----\t------------------\n")
+		for _, clusterNetwork := range cn.ClusterNetworks {
+			fmt.Fprintf(out, "%s\t%d\n", clusterNetwork.CIDR, clusterNetwork.HostSubnetLength)
+		}
 		return nil
 	})
 }

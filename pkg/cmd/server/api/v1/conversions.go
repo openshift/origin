@@ -90,6 +90,12 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 			obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 		}
 	}
+	if len(obj.NetworkConfig.ClusterNetworks) == 0 {
+		obj.NetworkConfig.ClusterNetworks = []ClusterNetworkEntry{{CIDR: obj.NetworkConfig.DeprecatedClusterNetworkCIDR, HostSubnetLength: obj.NetworkConfig.DeprecatedHostSubnetLength}}
+
+		obj.NetworkConfig.DeprecatedClusterNetworkCIDR = ""
+		obj.NetworkConfig.DeprecatedHostSubnetLength = 0
+	}
 
 	// TODO Detect cloud provider when not using built-in kubernetes
 	kubeConfig := obj.KubernetesMasterConfig
@@ -97,7 +103,18 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 
 	if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 		cidr := internal.DefaultIngressIPNetworkCIDR
-		if !(internal.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+		cidrOverlap := false
+		if internal.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR) {
+			cidrOverlap = true
+		} else {
+			for _, entry := range obj.NetworkConfig.ClusterNetworks {
+				if internal.CIDRsOverlap(cidr, entry.CIDR) {
+					cidrOverlap = true
+					break
+				}
+			}
+		}
+		if !cidrOverlap {
 			obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 		}
 	}

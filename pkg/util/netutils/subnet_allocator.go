@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+var ErrSubnetAllocatorFull = fmt.Errorf("No subnets available.")
+
 type SubnetAllocator struct {
 	network    *net.IPNet
 	hostBits   uint32
@@ -112,7 +114,7 @@ func (sna *SubnetAllocator) GetNetwork() (*net.IPNet, error) {
 	}
 
 	sna.next = 0
-	return nil, fmt.Errorf("No subnets available.")
+	return nil, ErrSubnetAllocatorFull
 }
 
 func (sna *SubnetAllocator) ReleaseNetwork(ipnet *net.IPNet) error {

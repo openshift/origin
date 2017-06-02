@@ -495,7 +495,11 @@ func TestValidateIngressIPNetworkCIDR(t *testing.T) {
 			NetworkConfig: configapi.MasterNetworkConfig{
 				IngressIPNetworkCIDR: test.cidr,
 				ServiceNetworkCIDR:   test.serviceCIDR,
-				ClusterNetworkCIDR:   test.clusterCIDR,
+				ClusterNetworks: []configapi.ClusterNetworkEntry{
+					{
+						CIDR: test.clusterCIDR,
+					},
+				},
 			},
 		}
 		errors := ValidateIngressIPNetworkCIDR(config, nil)

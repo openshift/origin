@@ -667,10 +667,12 @@ type UserAgentDenyRule struct {
 
 // MasterNetworkConfig to be passed to the compiled in network plugin
 type MasterNetworkConfig struct {
-	NetworkPluginName  string
-	ClusterNetworkCIDR string
-	HostSubnetLength   uint32
-	ServiceNetworkCIDR string
+	NetworkPluginName            string
+	DeprecatedClusterNetworkCIDR string
+	// ClusterNetworks contains a list of cluster networks that defines the global overlay networks L3 space.
+	ClusterNetworks            []ClusterNetworkEntry
+	DeprecatedHostSubnetLength uint32
+	ServiceNetworkCIDR         string
 	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
 	// may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that
 	// CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You
@@ -681,6 +683,15 @@ type MasterNetworkConfig struct {
 	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
 	// nodes, pods, or services.
 	IngressIPNetworkCIDR string
+}
+
+// ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs
+// reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.
+type ClusterNetworkEntry struct {
+	// CIDR defines the total range of a cluster networks address space.
+	CIDR string
+	// HostSubnetLength gives the number of address bits reserved for pod IPs on each node.
+	HostSubnetLength uint32
 }
 
 type ImageConfig struct {

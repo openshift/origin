@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
-func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
+func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetwork) error {
 	subrange := make([]string, 0)
 	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
@@ -39,11 +39,15 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 			log.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
 		}
 	}
-
-	master.subnetAllocator, err = netutils.NewSubnetAllocator(clusterNetwork.String(), hostSubnetLength, subrange)
-	if err != nil {
-		return err
+	var subnetAllocatorList []*netutils.SubnetAllocator
+	for _, cn := range clusterNetworks {
+		subnetAllocator, err := netutils.NewSubnetAllocator(cn.ClusterCIDR.String(), cn.HostSubnetLength, subrange)
+		if err != nil {
+			return err
+		}
+		subnetAllocatorList = append(subnetAllocatorList, subnetAllocator)
 	}
+	master.subnetAllocatorList = subnetAllocatorList
 
 	master.watchNodes()
 	go utilwait.Forever(master.watchSubnets, 0)
@@ -78,26 +82,33 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 		}
 	}
 
-	// Create new subnet
-	sn, err := master.subnetAllocator.GetNetwork()
-	if err != nil {
-		return "", fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
+	// Create new subet
+	for _, possibleSubnet := range master.subnetAllocatorList {
+		sn, err := possibleSubnet.GetNetwork()
+		if err == netutils.ErrSubnetAllocatorFull {
+			// Current subnet exhausted, check the next one
+			continue
+		} else if err != nil {
+			log.Errorf("Error allocating network from subnet: %v", possibleSubnet)
+			continue
+		} else {
+			sub = &networkapi.HostSubnet{
+				TypeMeta:   metav1.TypeMeta{Kind: "HostSubnet"},
+				ObjectMeta: metav1.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
+				Host:       nodeName,
+				HostIP:     nodeIP,
+				Subnet:     sn.String(),
+			}
+			sub, err = master.networkClient.Network().HostSubnets().Create(sub)
+			if err != nil {
+				possibleSubnet.ReleaseNetwork(sn)
+				return "", fmt.Errorf("error allocating node: %s", nodeName)
+			}
+			log.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
+			return nodeIP, nil
+		}
 	}
-
-	sub = &networkapi.HostSubnet{
-		TypeMeta:   metav1.TypeMeta{Kind: "HostSubnet"},
-		ObjectMeta: metav1.ObjectMeta{Name: nodeName, Annotations: hsAnnotations},
-		Host:       nodeName,
-		HostIP:     nodeIP,
-		Subnet:     sn.String(),
-	}
-	sub, err = master.networkClient.Network().HostSubnets().Create(sub)
-	if err != nil {
-		master.subnetAllocator.ReleaseNetwork(sn)
-		return "", fmt.Errorf("error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
-	}
-	log.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
-	return nodeIP, nil
+	return "", fmt.Errorf("error allocating network for node %s: %v", nodeName, err)
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
@@ -270,7 +281,9 @@ func (master *OsdnMaster) watchSubnets() {
 				if err != nil {
 					return fmt.Errorf("error parsing subnet %q for node %q for deletion: %v", subnet, name, err)
 				}
-				master.subnetAllocator.ReleaseNetwork(ipnet)
+				for _, possibleSubnetAllocator := range master.subnetAllocatorList {
+					possibleSubnetAllocator.ReleaseNetwork(ipnet)
+				}
 			}
 		}
 		return nil

@@ -311,7 +311,12 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod, !node.useConnTrack)
+	var cidrList []string
+	for _, cn := range node.networkInfo.ClusterNetworks {
+		cidrList = append(cidrList, cn.ClusterCIDR.String())
+	}
+	nodeIPTables := newNodeIPTables(cidrList, node.iptablesSyncPeriod, !node.useConnTrack)
+
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
@@ -334,7 +339,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	log.V(5).Infof("Starting openshift-sdn pod manager")
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetwork); err != nil {
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
 		return err
 	}
 

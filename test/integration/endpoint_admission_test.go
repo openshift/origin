@@ -62,7 +62,12 @@ func TestEndpointAdmission(t *testing.T) {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},
 	}
-	masterConfig.NetworkConfig.ClusterNetworkCIDR = clusterNetworkCIDR
+	clusterNetworkConfig := []configapi.ClusterNetworkEntry{
+		{
+			CIDR: clusterNetworkCIDR,
+		},
+	}
+	masterConfig.NetworkConfig.ClusterNetworks = clusterNetworkConfig
 	masterConfig.NetworkConfig.ServiceNetworkCIDR = serviceNetworkCIDR
 
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
