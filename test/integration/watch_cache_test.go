@@ -114,8 +114,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 }
 
 func TestDefaultWatchCacheSize(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
@@ -132,8 +131,7 @@ func TestDefaultWatchCacheSize(t *testing.T) {
 }
 
 func TestWatchCacheSizeWithFlag(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
