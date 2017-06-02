@@ -84,6 +84,20 @@ func TestProjectStatus(t *testing.T) {
 				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
 			},
 		},
+		"external name service": {
+			File: "external-name-service.json",
+			Extra: []runtime.Object{
+				&projectapi.Project{
+					ObjectMeta: metav1.ObjectMeta{Name: "example", Namespace: ""},
+				},
+			},
+			ErrFn: func(err error) bool { return err == nil },
+			Contains: []string{
+				"In project example on server https://example.com:8443\n",
+				"svc/external-name-service - external.com",
+				"View details with 'oc describe <resource>/<name>' or list everything with 'oc get all'.",
+			},
+		},
 		"rc with unmountable and missing secrets": {
 			File: "bad_secret_with_just_rc.yaml",
 			Extra: []runtime.Object{
