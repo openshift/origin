@@ -132,6 +132,8 @@ type watchGrpcStream struct {
 	errc chan error
 	// closingc gets the watcherStream of closing watchers
 	closingc chan *watcherStream
+	// wg is Done when all substream goroutines have exited
+	wg sync.WaitGroup
 
 	// resumec closes to signal that all substreams should begin resuming
 	resumec chan struct{}
@@ -406,7 +408,7 @@ func (w *watchGrpcStream) run() {
 		for range closing {
 			w.closeSubstream(<-w.closingc)
 		}
-
+		w.wg.Wait()
 		w.owner.closeStream(w)
 	}()
 
@@ -431,6 +433,7 @@ func (w *watchGrpcStream) run() {
 			}
 
 			ws.donec = make(chan struct{})
+			w.wg.Add(1)
 			go w.serveSubstream(ws, w.resumec)
 
 			// queue up for watcher creation/resume
@@ -576,6 +579,7 @@ func (w *watchGrpcStream) serveSubstream(ws *watcherStream, resumec chan struct{
 		if !resuming {
 			w.closingc <- ws
 		}
+		w.wg.Done()
 	}()
 
 	emptyWr := &WatchResponse{}
@@ -612,10 +616,24 @@ func (w *watchGrpcStream) serveSubstream(ws *watcherStream, resumec chan struct{
 					if ws.initReq.createdNotify {
 						ws.outc <- *wr
 					}
+					// once the watch channel is returned, a current revision
+					// watch must resume at the store revision. This is necessary
+					// for the following case to work as expected:
+					//	wch := m1.Watch("a")
+					//	m2.Put("a", "b")
+					//	<-wch
+					// If the revision is only bound on the first observed event,
+					// if wch is disconnected before the Put is issued, then reconnects
+					// after it is committed, it'll miss the Put.
+					if ws.initReq.rev == 0 {
+						nextRev = wr.Header.Revision
+					}
 				}
+			} else {
+				// current progress of watch; <= store revision
+				nextRev = wr.Header.Revision
 			}
 
-			nextRev = wr.Header.Revision
 			if len(wr.Events) > 0 {
 				nextRev = wr.Events[len(wr.Events)-1].Kv.ModRevision + 1
 			}
@@ -674,6 +692,7 @@ func (w *watchGrpcStream) newWatchClient() (pb.Watch_WatchClient, error) {
 			continue
 		}
 		ws.donec = make(chan struct{})
+		w.wg.Add(1)
 		go w.serveSubstream(ws, w.resumec)
 	}
 
@@ -694,6 +713,10 @@ func (w *watchGrpcStream) waitCancelSubstreams(stopc <-chan struct{}) <-chan str
 		go func(ws *watcherStream) {
 			defer wg.Done()
 			if ws.closing {
+				if ws.initReq.ctx.Err() != nil && ws.outc != nil {
+					close(ws.outc)
+					ws.outc = nil
+				}
 				return
 			}
 			select {
@@ -702,7 +725,11 @@ func (w *watchGrpcStream) waitCancelSubstreams(stopc <-chan struct{}) <-chan str
 				ws.closing = true
 				close(ws.outc)
 				ws.outc = nil
-				go func() { w.closingc <- ws }()
+				w.wg.Add(1)
+				go func() {
+					defer w.wg.Done()
+					w.closingc <- ws
+				}()
 			case <-stopc:
 			}
 		}(w.resuming[i])

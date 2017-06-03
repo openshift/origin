@@ -17,8 +17,6 @@ package etcdserver
 import (
 	"bytes"
 	"encoding/binary"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/coreos/etcd/auth"
@@ -29,9 +27,7 @@ import (
 	"github.com/coreos/etcd/mvcc"
 	"github.com/coreos/etcd/raft"
 
-	"github.com/coreos/go-semver/semver"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -46,10 +42,6 @@ const (
 	// However, if the committed entries are very heavy to apply, the gap might grow.
 	// We should stop accepting new proposals if the gap growing to a certain point.
 	maxGapBetweenApplyAndCommitIndex = 5000
-)
-
-var (
-	newRangeClusterVersion = *semver.Must(semver.NewVersion("3.1.0"))
 )
 
 type RaftKV interface {
@@ -94,11 +86,6 @@ type Authenticator interface {
 }
 
 func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResponse, error) {
-	// TODO: remove this checking when we release etcd 3.2
-	if s.ClusterVersion() == nil || s.ClusterVersion().LessThan(newRangeClusterVersion) {
-		return s.legacyRange(ctx, r)
-	}
-
 	if !r.Serializable {
 		err := s.linearizableReadNotify(ctx)
 		if err != nil {
@@ -110,35 +97,11 @@ func (s *EtcdServer) Range(ctx context.Context, r *pb.RangeRequest) (*pb.RangeRe
 	chk := func(ai *auth.AuthInfo) error {
 		return s.authStore.IsRangePermitted(ai, r.Key, r.RangeEnd)
 	}
-	get := func() { resp, err = s.applyV3Base.Range(noTxn, r) }
+	get := func() { resp, err = s.applyV3Base.Range(nil, r) }
 	if serr := s.doSerialize(ctx, chk, get); serr != nil {
 		return nil, serr
 	}
 	return resp, err
-}
-
-// TODO: remove this func when we release etcd 3.2
-func (s *EtcdServer) legacyRange(ctx context.Context, r *pb.RangeRequest) (*pb.RangeResponse, error) {
-	if r.Serializable {
-		var resp *pb.RangeResponse
-		var err error
-		chk := func(ai *auth.AuthInfo) error {
-			return s.authStore.IsRangePermitted(ai, r.Key, r.RangeEnd)
-		}
-		get := func() { resp, err = s.applyV3Base.Range(noTxn, r) }
-		if serr := s.doSerialize(ctx, chk, get); serr != nil {
-			return nil, serr
-		}
-		return resp, err
-	}
-	result, err := s.processInternalRaftRequest(ctx, pb.InternalRaftRequest{Range: r})
-	if err != nil {
-		return nil, err
-	}
-	if result.err != nil {
-		return nil, result.err
-	}
-	return result.resp.(*pb.RangeResponse), nil
 }
 
 func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) {
@@ -164,11 +127,6 @@ func (s *EtcdServer) DeleteRange(ctx context.Context, r *pb.DeleteRangeRequest) 
 }
 
 func (s *EtcdServer) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse, error) {
-	// TODO: remove this checking when we release etcd 3.2
-	if s.ClusterVersion() == nil || s.ClusterVersion().LessThan(newRangeClusterVersion) {
-		return s.legacyTxn(ctx, r)
-	}
-
 	if isTxnReadonly(r) {
 		if !isTxnSerializable(r) {
 			err := s.linearizableReadNotify(ctx)
@@ -176,30 +134,6 @@ func (s *EtcdServer) Txn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse
 				return nil, err
 			}
 		}
-		var resp *pb.TxnResponse
-		var err error
-		chk := func(ai *auth.AuthInfo) error {
-			return checkTxnAuth(s.authStore, ai, r)
-		}
-		get := func() { resp, err = s.applyV3Base.Txn(r) }
-		if serr := s.doSerialize(ctx, chk, get); serr != nil {
-			return nil, serr
-		}
-		return resp, err
-	}
-	result, err := s.processInternalRaftRequest(ctx, pb.InternalRaftRequest{Txn: r})
-	if err != nil {
-		return nil, err
-	}
-	if result.err != nil {
-		return nil, result.err
-	}
-	return result.resp.(*pb.TxnResponse), nil
-}
-
-// TODO: remove this func when we release etcd 3.2
-func (s *EtcdServer) legacyTxn(ctx context.Context, r *pb.TxnRequest) (*pb.TxnResponse, error) {
-	if isTxnSerializable(r) {
 		var resp *pb.TxnResponse
 		var err error
 		chk := func(ai *auth.AuthInfo) error {
@@ -440,11 +374,13 @@ func (s *EtcdServer) Authenticate(ctx context.Context, r *pb.AuthenticateRequest
 	for {
 		checkedRevision, err := s.AuthStore().CheckPassword(r.Name, r.Password)
 		if err != nil {
-			plog.Errorf("invalid authentication request to user %s was issued", r.Name)
+			if err != auth.ErrAuthNotEnabled {
+				plog.Errorf("invalid authentication request to user %s was issued", r.Name)
+			}
 			return nil, err
 		}
 
-		st, err := s.AuthStore().GenSimpleToken()
+		st, err := s.AuthStore().GenTokenPrefix()
 		if err != nil {
 			return nil, err
 		}
@@ -617,52 +553,10 @@ func (s *EtcdServer) RoleDelete(ctx context.Context, r *pb.AuthRoleDeleteRequest
 	return result.resp.(*pb.AuthRoleDeleteResponse), nil
 }
 
-func (s *EtcdServer) isValidSimpleToken(token string) bool {
-	splitted := strings.Split(token, ".")
-	if len(splitted) != 2 {
-		return false
-	}
-	index, err := strconv.Atoi(splitted[1])
-	if err != nil {
-		return false
-	}
-
-	select {
-	case <-s.applyWait.Wait(uint64(index)):
-		return true
-	case <-s.stop:
-		return true
-	}
-}
-
-func (s *EtcdServer) authInfoFromCtx(ctx context.Context) (*auth.AuthInfo, error) {
-	md, ok := metadata.FromContext(ctx)
-	if !ok {
-		return nil, nil
-	}
-
-	ts, tok := md["token"]
-	if !tok {
-		return nil, nil
-	}
-
-	token := ts[0]
-	if !s.isValidSimpleToken(token) {
-		return nil, ErrInvalidAuthToken
-	}
-
-	authInfo, uok := s.AuthStore().AuthInfoFromToken(token)
-	if !uok {
-		plog.Warningf("invalid auth token: %s", token)
-		return nil, ErrInvalidAuthToken
-	}
-	return authInfo, nil
-}
-
 // doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure.
 func (s *EtcdServer) doSerialize(ctx context.Context, chk func(*auth.AuthInfo) error, get func()) error {
 	for {
-		ai, err := s.authInfoFromCtx(ctx)
+		ai, err := s.AuthInfoFromCtx(ctx)
 		if err != nil {
 			return err
 		}
@@ -697,7 +591,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
 		ID: s.reqIDGen.Next(),
 	}
 
-	authInfo, err := s.authInfoFromCtx(ctx)
+	authInfo, err := s.AuthInfoFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -846,4 +740,15 @@ func (s *EtcdServer) linearizableReadNotify(ctx context.Context) error {
 	case <-s.done:
 		return ErrStopped
 	}
+}
+
+func (s *EtcdServer) AuthInfoFromCtx(ctx context.Context) (*auth.AuthInfo, error) {
+	if s.Cfg.ClientCertAuthEnabled {
+		authInfo := s.AuthStore().AuthInfoFromTLS(ctx)
+		if authInfo != nil {
+			return authInfo, nil
+		}
+	}
+
+	return s.AuthStore().AuthInfoFromCtx(ctx)
 }
