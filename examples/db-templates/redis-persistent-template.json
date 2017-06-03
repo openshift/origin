@@ -120,7 +120,7 @@
             "containers": [
               {
                 "name": "redis",
-                "image": " ",
+                "image": "redis:${REDIS_VERSION}",
                 "ports": [
                   {
                     "containerPort": 6379,
