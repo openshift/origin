@@ -3161,6 +3161,14 @@ items:
     - secrets
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
