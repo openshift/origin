@@ -48,6 +48,7 @@ func NewContext(transport, insecureTransport http.RoundTripper) Context {
 		InsecureTransport: insecureTransport,
 		Challenges:        challenge.NewSimpleManager(),
 		Actions:           []string{"pull"},
+		Retries:           2,
 	}
 }
 
@@ -57,6 +58,7 @@ type Context struct {
 	Challenges        challenge.Manager
 	Scopes            []auth.Scope
 	Actions           []string
+	Retries           int
 }
 
 func (c Context) WithScopes(scopes ...auth.Scope) Context {
@@ -120,6 +122,9 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		t = r.context.InsecureTransport
 	}
 	src := *registry
+	if len(src.Scheme) == 0 {
+		src.Scheme = "https"
+	}
 	// ping the registry to get challenge headers
 	if err, ok := r.pings[src]; ok {
 		if err != nil {
@@ -154,7 +159,10 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 	if err != nil {
 		return nil, err
 	}
-	return NewRetryRepository(repo, 2, 3/2*time.Second), nil
+	if r.context.Retries > 0 {
+		return NewRetryRepository(repo, r.context.Retries, 3/2*time.Second), nil
+	}
+	return repo, nil
 }
 
 func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {

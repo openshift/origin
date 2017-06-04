@@ -176,6 +176,8 @@ oc-expose.1
 oc-extract.1
 oc-get.1
 oc-idle.1
+oc-image-mirror.1
+oc-image.1
 oc-import-app.json.1
 oc-import-image.1
 oc-import.1
