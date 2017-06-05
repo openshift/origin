@@ -39,6 +39,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
 readonly OS_TEST_TARGETS=(
+  test/integration/integration.test
   test/extended/extended.test
 )
 
