@@ -108,7 +108,10 @@ func (s *keyringCredentialStore) Basic(url *url.URL) (string, string) {
 }
 
 func NewCredentialsForSecrets(secrets []kapiv1.Secret) *SecretCredentialStore {
-	return &SecretCredentialStore{secrets: secrets}
+	return &SecretCredentialStore{
+		secrets:           secrets,
+		refreshTokenStore: &refreshTokenStore{},
+	}
 }
 
 func NewLazyCredentialsForSecrets(secretsFn func() ([]kapiv1.Secret, error)) *SecretCredentialStore {
@@ -165,7 +168,13 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 
 func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
 	// TODO: compare this logic to Docker authConfig in v2 configuration
-	value := target.Host + target.Path
+	var value string
+	if len(target.Scheme) == 0 || target.Scheme == "https" {
+		value = target.Host + target.Path
+	} else {
+		// only lookup credential for http that say they are for http
+		value = target.String()
+	}
 
 	// Lookup(...) expects an image (not a URL path).
 	// The keyring strips /v1/ and /v2/ version prefixes,
@@ -188,6 +197,16 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "docker.io")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "docker.io"})
 		}
+
+		// try removing the canonical ports for the given requests
+		if (strings.HasSuffix(target.Host, ":443") && target.Scheme == "https") ||
+			(strings.HasSuffix(target.Host, ":80") && target.Scheme == "http") {
+			host := strings.SplitN(target.Host, ":", 2)[0]
+			glog.V(5).Infof("Being asked for %s, trying %s without port", target, host)
+
+			return basicCredentialsFromKeyring(keyring, &url.URL{Scheme: target.Scheme, Host: host, Path: target.Path})
+		}
+
 		glog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)
 		return "", ""
 	}
