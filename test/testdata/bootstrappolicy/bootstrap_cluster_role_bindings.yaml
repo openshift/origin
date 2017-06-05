@@ -657,6 +657,34 @@ items:
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
+    name: system:openshift:controller:build-pod-controller
+  roleRef:
+    name: system:openshift:controller:build-pod-controller
+  subjects:
+  - kind: ServiceAccount
+    name: build-pod-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:build-pod-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:build-config-change-controller
+  roleRef:
+    name: system:openshift:controller:build-config-change-controller
+  subjects:
+  - kind: ServiceAccount
+    name: build-config-change-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:build-config-change-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
     name: system:openshift:controller:deployer-controller
   roleRef:
     name: system:openshift:controller:deployer-controller
@@ -722,6 +750,48 @@ items:
     namespace: openshift-infra
   userNames:
   - system:serviceaccount:openshift-infra:template-instance-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:origin-namespace-controller
+  roleRef:
+    name: system:openshift:controller:origin-namespace-controller
+  subjects:
+  - kind: ServiceAccount
+    name: origin-namespace-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:origin-namespace-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:serviceaccount-controller
+  roleRef:
+    name: system:openshift:controller:serviceaccount-controller
+  subjects:
+  - kind: ServiceAccount
+    name: serviceaccount-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:serviceaccount-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:serviceaccount-pull-secrets-controller
+  roleRef:
+    name: system:openshift:controller:serviceaccount-pull-secrets-controller
+  subjects:
+  - kind: ServiceAccount
+    name: serviceaccount-pull-secrets-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller
 - apiVersion: v1
   groupNames:
   - system:masters

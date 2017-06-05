@@ -606,36 +606,48 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		controllerManagerOptions = kc.ControllerManager
 	}
 
-	// Start these first, because they provide credentials for other controllers' clients
-	oc.RunServiceAccountsController()
-	oc.RunServiceAccountTokensController(controllerManagerOptions)
+	rootClientBuilder := controller.SimpleControllerClientBuilder{
+		ClientConfig: &oc.PrivilegedLoopbackClientConfig,
+	}
+
+	// openshiftControllerPreContext represents a context used to start controllers that
+	// requires privileged 'rootClientBuilder' iow. have to start before any other
+	// controller starts (including kubernetes controllers).
+	openshiftControllerContext := origincontrollers.ControllerContext{
+		KubeControllerContext: kctrlmgr.ControllerContext{Options: *controllerManagerOptions},
+		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
+			ControllerClientBuilder: controller.SAControllerClientBuilder{
+				ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
+				CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
+				AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
+				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
+			},
+		},
+		TemplateInformers:            oc.TemplateInformers,
+		DeprecatedOpenshiftInformers: oc.Informers,
+		Stop: utilwait.NeverStop,
+	}
+	// We need to start the serviceaccount-tokens controller first as it provides token
+	// generation for other controllers.
+	preStartControllers, err := oc.NewOpenShiftControllerPreStartInitializers()
+	if err != nil {
+		return err
+	}
+	if started, err := preStartControllers["serviceaccount-tokens"](openshiftControllerContext); err != nil {
+		glog.Fatalf("Error starting serviceaccount-tokens controller")
+		return err
+	} else if !started {
+		glog.Warningf("Skipping serviceaccount-tokens controller")
+	}
+	glog.Infof("Started serviceaccount-tokens controller")
+
 	// The service account controllers require informers in order to create service account tokens
 	// for other controllers, which means we need to start their informers (which use the privileged
 	// loopback client) before the other controllers will run.
 	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 
-	// used by admission controllers
-	oc.RunServiceAccountPullSecretsControllers()
 	oc.RunSecurityAllocationController()
 
-	_, _, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
-	if err != nil {
-		glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
-	}
-
-	_, _, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
-	if err != nil {
-		glog.Fatalf("Could not get client for attach detach controller: %v", err)
-	}
-
-	_, _, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
-	if err != nil {
-		glog.Fatalf("Could not get client for pod gc controller: %v", err)
-	}
-
-	rootClientBuilder := controller.SimpleControllerClientBuilder{
-		ClientConfig: &oc.PrivilegedLoopbackClientConfig,
-	}
 	saClientBuilder := controller.SAControllerClientBuilder{
 		ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
 		CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
@@ -654,8 +666,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		AvailableResources: availableResources,
 		Stop:               utilwait.NeverStop,
 	}
-	controllerInitializers := kctrlmgr.NewControllerInitializers()
 
+	controllerInitializers := kctrlmgr.NewControllerInitializers()
 	// TODO I think this should become a blacklist kept in sync during rebases with a unit test.
 	allowedControllers := sets.NewString(
 		"endpoint",
@@ -712,43 +724,48 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	// As we make them less special, we should re-visit this
 	kc.RunNodeController()
 	kc.RunScheduler()
+
+	_, _, _, binderClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeBinderControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for persistent volume binder controller: %v", err)
+	}
+
+	_, _, _, attachDetachControllerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraPersistentVolumeAttachDetachControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for attach detach controller: %v", err)
+	}
+
+	_, _, _, serviceLoadBalancerClient, err := oc.GetServiceAccountClients(bootstrappolicy.InfraServiceLoadBalancerControllerServiceAccountName)
+	if err != nil {
+		glog.Fatalf("Could not get client for pod gc controller: %v", err)
+	}
 	kc.RunPersistentVolumeController(binderClient, oc.Options.PolicyConfig.OpenShiftInfrastructureNamespace, oc.ImageFor("recycler"), bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	kc.RunPersistentVolumeAttachDetachController(attachDetachControllerClient)
 	kc.RunServiceLoadBalancerController(serviceLoadBalancerClient)
 
 	glog.Infof("Started Kubernetes Controllers")
+	openshiftControllerContext.Stop = controllerContext.Stop
 
-	openshiftControllerContext := origincontrollers.ControllerContext{
-		KubeControllerContext: controllerContext,
-		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
-			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
-				CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-				AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
-			},
-		},
-		TemplateInformers:            oc.TemplateInformers,
-		DeprecatedOpenshiftInformers: oc.Informers,
-		Stop: controllerContext.Stop,
-	}
 	openshiftControllerInitializers, err := oc.NewOpenshiftControllerInitializers()
+	if err != nil {
+		return err
+	}
 
 	allowedOpenshiftControllers := sets.NewString(
+		"serviceaccount",
+		"serviceaccount-pull-secrets",
+		"origin-namespace",
 		"deployer",
 		"deploymentconfig",
 		"deploymenttrigger",
 	)
 	if configapi.IsBuildEnabled(&oc.Options) {
 		allowedOpenshiftControllers.Insert("build")
+		allowedOpenshiftControllers.Insert("build-pod")
+		allowedOpenshiftControllers.Insert("build-config-change")
 	}
 	if oc.Options.TemplateServiceBrokerConfig != nil {
 		allowedOpenshiftControllers.Insert("templateinstance")
-	}
-
-	if err != nil {
-		glog.Errorf("Could not start build controller: %v", err)
-		return err
 	}
 
 	for controllerName, initFn := range openshiftControllerInitializers {
@@ -775,15 +792,8 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		glog.Infof("Started %q", controllerName)
 	}
 
-	// no special order
-	if configapi.IsBuildEnabled(&oc.Options) {
-		oc.RunBuildPodController()
-		oc.RunBuildConfigChangeController()
-	}
-
 	oc.RunImageTriggerController()
 	oc.RunImageImportController()
-	oc.RunOriginNamespaceController()
 	oc.RunSDNController()
 	oc.RunOriginToRBACSyncControllers()
 

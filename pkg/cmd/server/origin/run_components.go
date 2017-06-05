@@ -2,7 +2,6 @@ package origin
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"sync"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/util/cert"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -24,15 +22,11 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
-	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildpodcontroller "github.com/openshift/origin/pkg/build/controller/buildpod"
-	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -45,7 +39,6 @@ import (
 	triggerannotations "github.com/openshift/origin/pkg/image/trigger/annotations"
 	triggerbuildconfigs "github.com/openshift/origin/pkg/image/trigger/buildconfigs"
 	triggerdeploymentconfigs "github.com/openshift/origin/pkg/image/trigger/deploymentconfigs"
-	projectcontroller "github.com/openshift/origin/pkg/project/controller"
 	quota "github.com/openshift/origin/pkg/quota"
 	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
@@ -56,7 +49,6 @@ import (
 	"github.com/openshift/origin/pkg/security/uidallocator"
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
 	servingcertcontroller "github.com/openshift/origin/pkg/service/controller/servingcert"
-	serviceaccountcontrollers "github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 
@@ -75,130 +67,6 @@ func (c *MasterConfig) RunProjectAuthorizationCache() {
 	// TODO: look at exposing a configuration option in future to control how often we run this loop
 	period := 1 * time.Second
 	c.ProjectAuthorizationCache.Run(period)
-}
-
-// RunOriginNamespaceController starts the controller that takes part in namespace termination of openshift content
-func (c *MasterConfig) RunOriginNamespaceController() {
-	kclient := c.OriginNamespaceControllerClient()
-	controller := projectcontroller.NewProjectFinalizerController(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(), kclient)
-	go controller.Run(utilwait.NeverStop, 5)
-}
-
-// RunServiceAccountsController starts the service account controller
-func (c *MasterConfig) RunServiceAccountsController() {
-	if len(c.Options.ServiceAccountConfig.ManagedNames) == 0 {
-		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
-		return
-	}
-	options := sacontroller.DefaultServiceAccountsControllerOptions()
-	options.ServiceAccounts = []kapiv1.ServiceAccount{}
-
-	for _, saName := range c.Options.ServiceAccountConfig.ManagedNames {
-		sa := kapiv1.ServiceAccount{}
-		sa.Name = saName
-
-		options.ServiceAccounts = append(options.ServiceAccounts, sa)
-	}
-
-	//REBASE: add new args to NewServiceAccountsController
-	controller := sacontroller.NewServiceAccountsController(
-		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
-		c.Informers.KubernetesInformers().Core().V1().Namespaces(),
-		c.KubeClientsetExternal(),
-		options,
-	)
-	go controller.Run(1, utilwait.NeverStop)
-}
-
-// RunServiceAccountTokensController starts the service account token controller
-func (c *MasterConfig) RunServiceAccountTokensController(cm *cmapp.CMServer) {
-	if len(c.Options.ServiceAccountConfig.PrivateKeyFile) == 0 {
-		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
-		return
-	}
-
-	privateKey, err := serviceaccount.ReadPrivateKey(c.Options.ServiceAccountConfig.PrivateKeyFile)
-	if err != nil {
-		glog.Fatalf("Error reading signing key for Service Account Token Manager: %v", err)
-	}
-	rootCA := []byte{}
-	if len(c.Options.ServiceAccountConfig.MasterCA) > 0 {
-		rootCA, err = ioutil.ReadFile(c.Options.ServiceAccountConfig.MasterCA)
-		if err != nil {
-			glog.Fatalf("Error reading master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
-		}
-		if _, err := cert.ParseCertsPEM(rootCA); err != nil {
-			glog.Fatalf("Error parsing master ca file for Service Account Token Manager: %s: %v", c.Options.ServiceAccountConfig.MasterCA, err)
-		}
-	}
-	servingServingCABundle := []byte{}
-	if c.Options.ControllerConfig.ServiceServingCert.Signer != nil && len(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile) > 0 {
-		servingServingCA, err := ioutil.ReadFile(c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile)
-		if err != nil {
-			glog.Fatalf("Error reading ca file for Service Serving Certificate Signer: %s: %v", c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, err)
-		}
-		if _, err := crypto.CertsFromPEM(servingServingCA); err != nil {
-			glog.Fatalf("Error parsing ca file for Service Serving Certificate Signer: %s: %v", c.Options.ControllerConfig.ServiceServingCert.Signer.CertFile, err)
-		}
-
-		// if we have a rootCA bundle add that too.  The rootCA will be used when hitting the default master service, since those are signed
-		// using a different CA by default.  The rootCA's key is more closely guarded than ours and if it is compromised, that power could
-		// be used to change the trusted signers for every pod anyway, so we're already effectively trusting it.
-		if len(rootCA) > 0 {
-			servingServingCABundle = append(servingServingCABundle, rootCA...)
-			servingServingCABundle = append(servingServingCABundle, []byte("\n")...)
-		}
-		servingServingCABundle = append(servingServingCABundle, servingServingCA...)
-	}
-
-	options := sacontroller.TokensControllerOptions{
-		TokenGenerator:   serviceaccount.JWTTokenGenerator(privateKey),
-		RootCA:           rootCA,
-		ServiceServingCA: servingServingCABundle,
-	}
-
-	controller := sacontroller.NewTokensController(
-		c.Informers.KubernetesInformers().Core().V1().ServiceAccounts(),
-		c.Informers.KubernetesInformers().Core().V1().Secrets(),
-		c.KubeClientsetExternal(),
-		options,
-	)
-	go controller.Run(int(cm.ConcurrentSATokenSyncs), utilwait.NeverStop)
-}
-
-// RunServiceAccountPullSecretsControllers starts the service account pull secret controllers
-func (c *MasterConfig) RunServiceAccountPullSecretsControllers() {
-	go serviceaccountcontrollers.NewDockercfgDeletedController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
-		c.KubeClientsetInternal(),
-		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
-	).Run(utilwait.NeverStop)
-	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
-		c.KubeClientsetInternal(),
-		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
-	).Run(utilwait.NeverStop)
-
-	dockerURLsInitialized := make(chan struct{})
-	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts(),
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
-		c.KubeClientsetInternal(),
-		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
-	)
-	go dockercfgController.Run(5, utilwait.NeverStop)
-
-	dockerRegistryControllerOptions := serviceaccountcontrollers.DockerRegistryServiceControllerOptions{
-		RegistryNamespace:     "default",
-		RegistryServiceName:   "docker-registry",
-		DockercfgController:   dockercfgController,
-		DockerURLsInitialized: dockerURLsInitialized,
-	}
-	go serviceaccountcontrollers.NewDockerRegistryServiceController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
-		c.KubeClientsetInternal(),
-		dockerRegistryControllerOptions,
-	).Run(10, make(chan struct{}))
 }
 
 // RunAssetServer starts the asset server for the OpenShift UI.
@@ -260,32 +128,6 @@ func (c *MasterConfig) RunDNSServer() {
 func (c *MasterConfig) RunProjectCache() {
 	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
 	go c.ProjectCache.Run(utilwait.NeverStop)
-}
-
-// RunBuildPodController starts the build/pod status sync loop for build status
-func (c *MasterConfig) RunBuildPodController() {
-	buildInfomer := c.Informers.Builds().Informer()
-	podInformer := c.Informers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	osclient, kclientInternal, kclientExternal := c.BuildPodControllerClients()
-
-	controller := buildpodcontroller.NewBuildPodController(buildInfomer, podInformer, kclientInternal, kclientExternal, osclient)
-	go controller.Run(5, utilwait.NeverStop)
-}
-
-// RunBuildConfigChangeController starts the build config change trigger controller process.
-func (c *MasterConfig) RunBuildConfigChangeController() {
-	bcClient, internalKubeClientset, externalKubeClientset := c.BuildConfigChangeControllerClients()
-	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(bcClient)
-	factory := buildcontrollerfactory.BuildConfigControllerFactory{
-		Client:                  bcClient,
-		KubeClient:              internalKubeClientset,
-		ExternalKubeClient:      externalKubeClientset,
-		BuildConfigInstantiator: bcInstantiator,
-		BuildLister:             buildclient.NewOSClientBuildClient(bcClient),
-		BuildConfigGetter:       buildclient.NewOSClientBuildConfigClient(bcClient),
-		BuildDeleter:            buildclient.NewBuildDeleter(bcClient),
-	}
-	factory.Create().Run()
 }
 
 // TODO: remove when generated informers exist
