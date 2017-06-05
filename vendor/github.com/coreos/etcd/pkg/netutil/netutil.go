@@ -42,17 +42,17 @@ func resolveTCPAddrDefault(ctx context.Context, addr string) (*net.TCPAddr, erro
 	if serr != nil {
 		return nil, serr
 	}
-	portnum, perr := net.DefaultResolver.LookupPort(ctx, "tcp", port)
+	portnum, perr := net.LookupPort("tcp", port)
 	if perr != nil {
 		return nil, perr
 	}
 
-	var ips []net.IPAddr
+	var ips []net.IP
 	if ip := net.ParseIP(host); ip != nil {
-		ips = []net.IPAddr{{IP: ip}}
+		ips = []net.IP{ip}
 	} else {
 		// Try as a DNS name.
-		ipss, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		ipss, err := net.LookupIP(host)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func resolveTCPAddrDefault(ctx context.Context, addr string) (*net.TCPAddr, erro
 	}
 	// randomize?
 	ip := ips[0]
-	return &net.TCPAddr{IP: ip.IP, Port: portnum, Zone: ip.Zone}, nil
+	return &net.TCPAddr{IP: ip, Port: portnum}, nil
 }
 
 // resolveTCPAddrs is a convenience wrapper for net.ResolveTCPAddr.
