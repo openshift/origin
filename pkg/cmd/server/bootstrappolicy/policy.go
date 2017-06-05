@@ -955,6 +955,12 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		newOriginClusterBinding(DiscoveryRoleBindingName, DiscoveryRoleName).
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
+
+		// Allow the registry management controller to modify images
+		newOriginClusterBinding(RegistryManagementControllerRoleBindingName, ImagePrunerRoleName).
+			SAs(DefaultOpenShiftInfraNamespace, InfraRegistryManagementControllerServiceAccountName).
+			BindingOrDie(),
+
 		// Allow all build strategies by default.
 		// Cluster admins can remove these role bindings, and the reconcile-cluster-role-bindings command
 		// run during an upgrade won't re-add the "system:authenticated" group

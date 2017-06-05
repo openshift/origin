@@ -3841,6 +3841,22 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:registry-management-controller
+  rules:
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    resources:
+    - imagestreams/layers
+    verbs:
+    - get
+    - update
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:

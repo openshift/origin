@@ -134,6 +134,8 @@ const (
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 
 	// Bindings
+	RegistryManagementControllerRoleBindingName = InfraRegistryManagementControllerServiceAccountName + "-binding"
+
 	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
 	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
 	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
