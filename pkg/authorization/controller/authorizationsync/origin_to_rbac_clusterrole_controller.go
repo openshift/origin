@@ -86,6 +86,9 @@ func (c *OriginClusterRoleToRBACClusterRoleController) syncClusterRole(name stri
 		return err
 	}
 
+	// normalize rules before persisting so RBAC's case sensitive authorizer will work
+	NormalizePolicyRules(equivalentClusterRole.Rules)
+
 	// there's one wrinkle.  If `openshift.io/reconcile-protect` is to true, then we must set rbac.authorization.kubernetes.io/autoupdate to false to
 	if equivalentClusterRole.Annotations["openshift.io/reconcile-protect"] == "true" {
 		equivalentClusterRole.Annotations["rbac.authorization.kubernetes.io/autoupdate"] = "false"
