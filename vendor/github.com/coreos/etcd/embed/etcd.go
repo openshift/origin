@@ -160,10 +160,7 @@ func StartEtcd(inCfg *Config) (e *Etcd, err error) {
 			return srv.Serve(e.Peers[i].Listener)
 		}
 		e.Peers[i].close = func(ctx context.Context) error {
-			// gracefully shutdown http.Server
-			// close open listeners, idle connections
-			// until context cancel or time-out
-			return srv.Shutdown(ctx)
+			return nil
 		}
 	}
 
