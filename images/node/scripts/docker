@@ -15,4 +15,8 @@
 # because most installs currently mount /usr/bin/docker from the host into that
 # path.
 
-chroot /rootfs docker "${@}"
+if test -e /rootfs/usr/bin/docker; then
+    exec chroot /rootfs docker "${@}"
+fi
+
+exec /usr/bin/docker "${@}"
