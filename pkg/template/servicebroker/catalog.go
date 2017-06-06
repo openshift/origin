@@ -77,7 +77,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		Free:        true,
 		Bindable:    true,
 		Schemas: api.Schema{
-			ServiceInstances: api.ServiceInstances{
+			ServiceInstance: api.ServiceInstances{
 				Create: map[string]*jsschema.Schema{
 					"parameters": {
 						SchemaRef:  jsschema.SchemaURL,
@@ -87,7 +87,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 					},
 				},
 			},
-			ServiceBindings: api.ServiceBindings{
+			ServiceBinding: api.ServiceBindings{
 				Create: map[string]*jsschema.Schema{
 					"parameters": {
 						SchemaRef: jsschema.SchemaURL,
