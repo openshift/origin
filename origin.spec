@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 90040df2a35fec1ddc1b45552e4ace4da4a161ab
+%global commit 1f71fdde820aa096a6f54a40df7d3782d5be8372
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.85 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=90040df
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.86 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1f71fdd
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.86
+Version:        3.6.97
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -644,6 +644,155 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jun 06 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.97-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 8286ecd
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  52788fbc8480a5fe4f130e53077d64a70a4e361e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  09106a3e4136c360ee21e4f5a0888d138bc77c99 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9ca02da728bbad0aa6bd057e3f8cb545f53c72c1 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c8e8103398755f057175423f8d3a9828f7098a38 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5ecda44cacac97c291add305e4aa826789f9b648 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5068c0779128e0565da1bf8cd3de6f478e76048a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0985844fe88b231f80531a2bb5413b2a5a43b395 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f398ed206b697b9e66a0f87f8171f20d8441e6f8 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  eef932fe99d5e901f32d6a6f38c8c4b27ad9f19a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ae9077e84d54e64ea041556bb5845d1fa90c23af (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d21047eec24b5b45fdd8e662f6fa11e01e35d913 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ecca4ea57ef7807be9a6bc15a81fad0e07bba721 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  380e226f167ebb3c8ef657a68659e325667247ec (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b70413b3570ab5a6e76809c235b50cfe6316f993 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  78bd823d79705b6da452788c19f90d9100fed885 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6fce309ab345f01c60ed1385f7ff6ea15d0b1110 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a7a4737616f2d3cc1cca3cfa7cd87673bfabea6b (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cbe550fb94d7b25ebfae81375599067fb0af0696 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1547af23ae25248fb8ff715e59aa7f56cbcbf73e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8ea0abdffbb46a1a0d2655c68b46ac52d3c06cac (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a8da383db5d71f2e5d810e143fb0ad64369e87dc (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  30c6d4138a03897da25dd6b9be7349f3f99066ad (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 46771: Allow pv-binder-controller to List Nodes/Zones Available in
+  the Cluster (ppospisi@redhat.com)
+- UPSTREAM: 46239: Log out from multiple target portals when using iscsi
+  storage plugin (hchen@redhat.com)
+- Split resource and non-resource rules during conversion (mkhan@redhat.com)
+- correct serialisation of tsb json schemas (jminter@redhat.com)
+- Fixes oc status for external name svc (ffranz@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  fca8df36f90520ee4b02e45131c7f050396c6d73 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 46614: Add `auto_unmount` mount option for glusterfs fuse mount.
+  (hchiramm@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1e873baee3d136bf0ab64ad2e9249a58925b9a50 (dmcphers+openshiftbot@redhat.com)
+- Move docker specific scripts back into image directories (sdodson@redhat.com)
+- UPSTREAM: 46751: Pre-generate SNI test certs (andy.goldstein@gmail.com)
+- UPSTREAM: 45933: Use informers in scheduler / token controller (part 2,
+  fixing tests) (andy.goldstein@gmail.com)
+- Regenerate clientsets (andy.goldstein@gmail.com)
+- Fix verifying generated clientsets (andy.goldstein@gmail.com)
+- Fix unit testing kubernetes staging dir symlinks (andy.goldstein@gmail.com)
+- bump(github.com/openshift/origin-web-console):
+  b9918c6e98a5b13adc6679d3e46f39cffe522cfc (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 46640: Improve validation of active deadline seconds
+  (decarr@redhat.com)
+- “oc expose svc” should use service targetPort number
+  (pcameron@redhat.com)
+- UPSTREAM: 43945: Remove 'beta' from default storage class annotation
+  (jsafrane@redhat.com)
+- UPSTREAM: 46463: AWS: consider instances of all states in DisksAreAttached,
+  not just "running" (mawong@redhat.com)
+- Use base64url to decode id_token (jliggitt@redhat.com)
+- migrate serviceaccount and rest of build controllers to new controller
+  initialization (mfojtik@redhat.com)
+- Auto generated: bash completions for network diagnostics (rpenta@redhat.com)
+- Provide better error message when network diags test pod fails
+  (rpenta@redhat.com)
+- UPSTREAM: 46042: ResourceQuota admission control injects registry
+  (federation) (decarr@redhat.com)
+- OpenShift uses ResourceQuota admission plugin (decarr@redhat.com)
+- UPSTREAM: 46042: ResourceQuota admission control injects registry
+  (decarr@redhat.com)
+- Bug 1417641 - Make network diagnostic test pod image/protocol/port
+  configurable (rpenta@redhat.com)
+- Commit otherwise ignored files to be in sync with cluster capacity repo.
+  (avagarwa@redhat.com)
+- Vendor cluster-capacity in origin. (avagarwa@redhat.com)
+- Update build-images.sh to build cluster-capacity image. (avagarwa@redhat.com)
+- Exclude cluster-capacity from test-go.sh (avagarwa@redhat.com)
+- Remove cmd/cluster-capacity from go vet list. (avagarwa@redhat.com)
+- Build cluster capacity from origin-cluster-capacity rpm.
+  (avagarwa@redhat.com)
+- Update origin.spec to build cluster capacity as a sub rpm.
+  (avagarwa@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b1c04e8ef00995c6a0d22f318110e1a1302cec73 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  35fcf4cc6dd36061bbee649729913c316484de4a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c31218b92a2de7193172b93858633f057c4df118 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  029053efca17a857b4e5c8883acf1419dee8a868 (dmcphers+openshiftbot@redhat.com)
+- Bug 1439142 - Use openshift/origin-deployer image instead of openshift/hello-
+  openshift as network diagnostic test pod. (rpenta@redhat.com)
+- UPSTREAM: 46628: cleanup kubelet new node status test (decarr@redhat.com)
+- UPSTREAM: 46516: kubelet was sending negative allocatable values
+  (decarr@redhat.com)
+- Shuffle endpoints function for the router template : bz1447115
+  (rchopra@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d3aed86aa0c4d2aea355b777f8df6f880815157f (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  09b0e004e368f38f99d949f8078cb60c00f80885 (dmcphers+openshiftbot@redhat.com)
+- updating to include BuildPhaseError and BuildPhaseCancelled
+  (cdaley@redhat.com)
+- Add DC controllerRef to RC (tnozicka@gmail.com)
+- Fix deployment related SA's permissions (tnozicka@gmail.com)
+- UPSTREAM: 46500: Fix standardFinalizers - add missing
+  metav1.FinalizerDeleteDependents (Note: it is in different files from
+  upstream because they moved helpers.go into helper/helpers.go)
+  (tnozicka@gmail.com)
+- UPSTREAM: 45894: Export BaseControllerRefManager (tnozicka@gmail.com)
+- deploy: check the dc conditions instead of relying on deployer logs
+  (mfojtik@redhat.com)
+- UPSTREAM: 46608: fixes kubectl cached discovery on Windows
+  (ffranz@redhat.com)
+- pkg/cmd/server/api/validation/master.go: fix typo in warning message.
+  (vsemushi@redhat.com)
+- Detect cohabitating resources in etcd storage test (mkhan@redhat.com)
+- UPSTREAM: revert: 54d84e6a8db4c07f78fb2823508fed7751ebf1bd: 24153: make
+  optional generic etcd fields optional (mkhan@redhat.com)
+- Set DeleteStrategy for all Openshift resources (mkhan@redhat.com)
+- UPSTREAM: 46390: Require DeleteStrategy for all registry.Store
+  (mkhan@redhat.com)
+- UPSTREAM: 44068: Use Docker API Version instead of docker version (fixup)
+  (dcbw@redhat.com)
+- bump external examples (bparees@redhat.com)
+- Add w.close for watch (song.ruixia@zte.com.cn)
+- Allow basic users to 'get' StorageClasses (mawong@redhat.com)
+- UPSTREAM: 44295: Azure disk: dealing with missing disk probe
+  (hchen@redhat.com)
+- sdn traffic leaking out of the cluster (pcameron@redhat.com)
+
 * Tue May 30 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.86-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 481a31a
   (tdawson@redhat.com)
