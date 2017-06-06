@@ -238,7 +238,7 @@ func ValidateAuditConfig(config api.AuditConfig, fldPath *field.Path) Validation
 
 	if len(config.AuditFilePath) == 0 {
 		// for backwards compatibility reasons we can't error this out
-		validationResults.AddWarnings(field.Required(fldPath.Child("auditFilePath"), "audit can now be logged to a separate file"))
+		validationResults.AddWarnings(field.Required(fldPath.Child("auditFilePath"), "audit can not be logged to a separate file"))
 	}
 	if config.MaximumFileRetentionDays < 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumFileRetentionDays"), config.MaximumFileRetentionDays, "must be greater than or equal to 0"))
