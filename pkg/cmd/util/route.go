@@ -15,7 +15,10 @@ import (
 // UnsecuredRoute will return a route with enough info so that it can direct traffic to
 // the service provided by --service. Callers of this helper are responsible for providing
 // tls configuration, path, and the hostname of the route.
-func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, portString string) (*api.Route, error) {
+// forcePort always sets a port, even when there is only one and it has no name.
+// The kubernetes generator, when no port is present incorrectly selects the service Port
+// instead of the service TargetPort for the route TargetPort.
+func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, portString string, forcePort bool) (*api.Route, error) {
 	if len(routeName) == 0 {
 		routeName = serviceName
 	}
@@ -55,10 +58,16 @@ func UnsecuredRoute(kc kclientset.Interface, namespace, routeName, serviceName, 
 		},
 	}
 
-	// If the service has multiple ports and the user didn't specify --port,
-	// then default the route port to a service port name.
-	if len(port.Name) > 0 && len(portString) == 0 {
-		route.Spec.Port = resolveRoutePort(port.Name)
+	// When route.Spec.Port is not set, the generator will pick a service port.
+
+	// If the user didn't specify --port, and either the service has a port.Name
+	// or forcePort is set, set route.Spec.Port
+	if (len(port.Name) > 0 || forcePort) && len(portString) == 0 {
+		if len(port.Name) == 0 {
+			route.Spec.Port = resolveRoutePort(svc.Spec.Ports[0].TargetPort.String())
+		} else {
+			route.Spec.Port = resolveRoutePort(port.Name)
+		}
 	}
 	// --port uber alles
 	if len(portString) > 0 {
