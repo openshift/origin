@@ -26,6 +26,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: clusterpolicybinding.Strategy,
 		UpdateStrategy: clusterpolicybinding.Strategy,
+		DeleteStrategy: clusterpolicybinding.Strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterpolicybinding.GetAttrs}

@@ -1667,6 +1667,7 @@ items:
     resources:
     - storageclasses
     verbs:
+    - get
     - list
   - apiGroups:
     - project.openshift.io
@@ -1969,6 +1970,13 @@ items:
     creationTimestamp: null
     name: system:deployer
   rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - delete
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3153,6 +3161,14 @@ items:
     - secrets
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -3561,6 +3577,7 @@ items:
     - builds/custom
     - builds/docker
     - builds/jenkinspipeline
+    - builds/optimizeddocker
     - builds/source
     verbs:
     - create
@@ -3586,9 +3603,104 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - namespaces
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:build-pod-controller
+  rules:
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
     verbs:
     - get
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds/custom
+    - builds/docker
+    - builds/jenkinspipeline
+    - builds/optimizeddocker
+    - builds/source
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:build-config-change-controller
+  rules:
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - buildconfigs
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3618,6 +3730,13 @@ items:
     - list
     - patch
     - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - delete
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3655,6 +3774,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -3768,6 +3888,120 @@ items:
     resources:
     - templateinstances/status
     verbs:
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:origin-namespace-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces/finalize
+    - namespaces/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:serviceaccount-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - serviceaccounts
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:serviceaccount-pull-secrets-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - serviceaccounts
+    verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
     - update
 - apiVersion: v1
   kind: ClusterRole

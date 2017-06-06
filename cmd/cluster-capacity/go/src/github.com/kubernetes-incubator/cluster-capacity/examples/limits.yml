@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: hpclimits
+  namespace: cluster-capacity
+spec:
+  limits:
+  - max:
+      cpu: "200m"
+      memory: 200Mi
+    min:
+      cpu: 10m
+      memory: 6Mi
+    type: Pod
+  - default:
+      cpu: 10m
+      memory: 6Mi
+    defaultRequest:
+      cpu: 10m
+      memory: 6Mi
+    max:
+      cpu: "250m"
+      memory: 200Mi
+    min:
+      cpu: 10m
+      memory: 6Mi
+    type: Container

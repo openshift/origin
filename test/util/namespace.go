@@ -43,6 +43,8 @@ func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) e
 	if err != nil {
 		return err
 	}
+	defer w.Stop()
+
 	if err := c.Core().Namespaces().Delete(name, nil); err != nil {
 		return err
 	}

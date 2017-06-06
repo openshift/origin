@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -308,6 +309,21 @@ func genCertificateHostName(hostname string, wildcard bool) string {
 	}
 
 	return hostname
+}
+
+// Returns the list of endpoints for the given route's service
+// action argument further processes the list e.g. shuffle
+// The default action is in-order traversal of internal data structure that stores
+//   the endpoints (does not change the return order if the data structure did not mutate)
+func processEndpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit, action string) []Endpoint {
+	endpoints := endpointsForAlias(alias, svc)
+	if strings.ToLower(action) == "shuffle" {
+		for i := len(endpoints) - 1; i >= 0; i-- {
+			rIndex := rand.Intn(i + 1)
+			endpoints[i], endpoints[rIndex] = endpoints[rIndex], endpoints[i]
+		}
+	}
+	return endpoints
 }
 
 func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {

@@ -1154,6 +1154,7 @@ func describeDeploymentConfigTriggers(config *deployapi.DeploymentConfig) (strin
 func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, exposed ...string) []string {
 	spec := svc.Service.Spec
 	ip := spec.ClusterIP
+	externalName := spec.ExternalName
 	port := describeServicePorts(spec)
 	switch {
 	case len(exposed) > 1:
@@ -1164,8 +1165,10 @@ func describeServiceInServiceGroup(f formatter, svc graphview.ServiceGroup, expo
 		return []string{fmt.Sprintf("%s (all nodes)%s", f.ResourceName(svc.Service), port)}
 	case ip == "None":
 		return []string{fmt.Sprintf("%s (headless)%s", f.ResourceName(svc.Service), port)}
-	case len(ip) == 0:
+	case len(ip) == 0 && len(externalName) == 0:
 		return []string{fmt.Sprintf("%s <initializing>%s", f.ResourceName(svc.Service), port)}
+	case len(ip) == 0:
+		return []string{fmt.Sprintf("%s - %s", f.ResourceName(svc.Service), externalName)}
 	default:
 		return []string{fmt.Sprintf("%s - %s%s", f.ResourceName(svc.Service), ip, port)}
 	}

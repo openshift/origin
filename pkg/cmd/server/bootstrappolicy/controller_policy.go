@@ -51,10 +51,33 @@ func init() {
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("get", "list", "watch", "update", "delete").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
 			rbac.NewRule("get").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs").RuleOrDie(),
-			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline").RuleOrDie(),
+			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/optimizeddocker", "builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline").RuleOrDie(),
 			rbac.NewRule("get").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
 			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
-			rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// build-pod-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraBuildPodControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("create", "get", "list", "watch", "update", "delete").Groups(buildGroup, legacyBuildGroup).Resources("builds").RuleOrDie(),
+			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+			rbac.NewRule("get").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("get").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs").RuleOrDie(),
+			// Needed for strategyrestriction admission
+			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("builds/optimizeddocker", "builds/docker", "builds/source", "builds/custom", "builds/jenkinspipeline").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// build-config-change-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraBuildConfigChangeControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs").RuleOrDie(),
+			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate").RuleOrDie(),
 			eventsRule(),
 		},
 	})
@@ -64,6 +87,11 @@ func init() {
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeployerControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("create", "get", "list", "watch", "patch", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+
+			// "delete" is required here for compatibility with older deployer images
+			// (see https://github.com/openshift/origin/pull/14322#issuecomment-303968976)
+			// TODO: remove "delete" rule few releases after 3.6
+			rbac.NewRule("delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch", "update").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			eventsRule(),
 		},
@@ -73,7 +101,7 @@ func init() {
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeploymentConfigControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
-			rbac.NewRule("create", "get", "list", "watch", "update", "delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+			rbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			rbac.NewRule("update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/status").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
 			eventsRule(),
@@ -103,8 +131,39 @@ func init() {
 		},
 	})
 
+	// template-instance-controller
 	controllerRoleBindings = append(controllerRoleBindings,
 		rbac.NewClusterBinding(EditRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie())
+
+	// origin-namespace-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraOriginNamespaceServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			rbac.NewRule("update").Groups(kapiGroup).Resources("namespaces/finalize", "namespaces/status").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// serviceaccount-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceAccountControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// serviceaccount-pull-secrets-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceAccountPullSecretsControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch", "create", "update").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			eventsRule(),
+		},
+	})
 }
 
 // ControllerRoles returns the cluster roles used by controllers

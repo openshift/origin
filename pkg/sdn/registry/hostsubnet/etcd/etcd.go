@@ -27,6 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: hostsubnet.Strategy,
 		UpdateStrategy: hostsubnet.Strategy,
+		DeleteStrategy: hostsubnet.Strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: hostsubnet.GetAttrs}

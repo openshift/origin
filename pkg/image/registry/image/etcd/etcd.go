@@ -27,6 +27,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 
 		CreateStrategy: image.Strategy,
 		UpdateStrategy: image.Strategy,
+		DeleteStrategy: image.Strategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: image.GetAttrs}

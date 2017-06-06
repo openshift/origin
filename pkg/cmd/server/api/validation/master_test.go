@@ -215,8 +215,9 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 	bothEmpty := configapi.AdmissionPluginConfig{}
 
 	tests := []struct {
-		config      map[string]configapi.AdmissionPluginConfig
-		expectError bool
+		config        map[string]configapi.AdmissionPluginConfig
+		expectError   bool
+		warningFields []string
 	}{
 		{
 			config: map[string]configapi.AdmissionPluginConfig{
@@ -238,15 +239,31 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			config: map[string]configapi.AdmissionPluginConfig{
+				"openshift.io/OriginResourceQuota": configOnly,
+				"two": configOnly,
+			},
+			warningFields: []string{"[openshift.io/OriginResourceQuota]"},
+			expectError:   false,
+		},
 	}
 
 	for _, tc := range tests {
-		errs := ValidateAdmissionPluginConfig(tc.config, nil)
-		if len(errs) > 0 && !tc.expectError {
-			t.Errorf("Unexpected error for %#v: %v", tc.config, errs)
+		results := ValidateAdmissionPluginConfig(tc.config, nil)
+		if len(results.Errors) > 0 && !tc.expectError {
+			t.Errorf("Unexpected error for %#v: %v", tc.config, results.Errors)
 		}
-		if len(errs) == 0 && tc.expectError {
+		if len(results.Errors) == 0 && tc.expectError {
 			t.Errorf("Did not get expected error for: %#v", tc.config)
+		}
+		actualWarnings := sets.NewString()
+		expectedWarnings := sets.NewString(tc.warningFields...)
+		for i := range results.Warnings {
+			actualWarnings.Insert(results.Warnings[i].Field)
+		}
+		if !expectedWarnings.Equal(actualWarnings) {
+			t.Errorf("Expected warnings: %v, actual warnings: %v", expectedWarnings, actualWarnings)
 		}
 	}
 }

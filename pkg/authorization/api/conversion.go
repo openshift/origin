@@ -71,16 +71,39 @@ func convert_api_PolicyRules_To_rbac_PolicyRules(in []PolicyRule) []rbac.PolicyR
 		if rule.AttributeRestrictions != nil {
 			continue
 		}
-		r := rbac.PolicyRule{
-			APIGroups:       rule.APIGroups,
-			Verbs:           rule.Verbs.List(),
-			Resources:       rule.Resources.List(),
-			ResourceNames:   rule.ResourceNames.List(),
-			NonResourceURLs: rule.NonResourceURLs.List(),
+		// We need to split this rule into multiple rules for RBAC
+		if isResourceRule(&rule) && isNonResourceRule(&rule) {
+			r1 := rbac.PolicyRule{
+				Verbs:         rule.Verbs.List(),
+				APIGroups:     rule.APIGroups,
+				Resources:     rule.Resources.List(),
+				ResourceNames: rule.ResourceNames.List(),
+			}
+			r2 := rbac.PolicyRule{
+				Verbs:           rule.Verbs.List(),
+				NonResourceURLs: rule.NonResourceURLs.List(),
+			}
+			rules = append(rules, r1, r2)
+		} else {
+			r := rbac.PolicyRule{
+				APIGroups:       rule.APIGroups,
+				Verbs:           rule.Verbs.List(),
+				Resources:       rule.Resources.List(),
+				ResourceNames:   rule.ResourceNames.List(),
+				NonResourceURLs: rule.NonResourceURLs.List(),
+			}
+			rules = append(rules, r)
 		}
-		rules = append(rules, r)
 	}
 	return rules
+}
+
+func isResourceRule(rule *PolicyRule) bool {
+	return len(rule.APIGroups) > 0 || len(rule.Resources) > 0 || len(rule.ResourceNames) > 0
+}
+
+func isNonResourceRule(rule *PolicyRule) bool {
+	return len(rule.NonResourceURLs) > 0
 }
 
 func convert_api_Subjects_To_rbac_Subjects(in []api.ObjectReference) ([]rbac.Subject, error) {

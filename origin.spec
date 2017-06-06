@@ -189,6 +189,13 @@ Requires:       %{name} = %{version}-%{release}
 %description federation-services
 %{summary}
 
+%package cluster-capacity
+Summary:        %{product_name} Cluster Capacity Analysis Tool
+Requires:       %{name} = %{version}-%{release}
+
+%description cluster-capacity
+%{summary}
+
 %package excluder
 Summary:   Exclude openshift packages from updates
 BuildArch: noarch
@@ -238,6 +245,30 @@ of docker.  Exclude those versions of docker.
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
 %endif
 
+# Build cluster capacity
+%if 0%{make_redistributable}
+# Create Binaries for all supported arches
+%{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
+%else
+# Create Binaries only for building arch
+%ifarch x86_64
+  BUILD_PLATFORM="linux/amd64"
+%endif
+%ifarch %{ix86}
+  BUILD_PLATFORM="linux/386"
+%endif
+%ifarch ppc64le
+  BUILD_PLATFORM="linux/ppc64le"
+%endif
+%ifarch %{arm} aarch64
+  BUILD_PLATFORM="linux/arm64"
+%endif
+%ifarch s390x
+  BUILD_PLATFORM="linux/s390x"
+%endif
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
+%endif
+
 # Generate man pages
 %{os_git_vars} hack/generate-docs.sh
 
@@ -265,6 +296,10 @@ install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir
 
 # Install federation services
 install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
+
+# Install cluster capacity
+install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/_output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
+ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -321,14 +356,6 @@ install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_ma
 %endif
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
-
-install -d %{buildroot}/usr/local/bin/
-
-# Install node scripts
-install -p -m 0755 images/node/scripts/* %{buildroot}/usr/local/bin/
-
-# Install openvswitch scripts
-install -p -m 0755 images/openvswitch/scripts/ovs-run.sh %{buildroot}/usr/local/bin/
 
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
@@ -491,8 +518,6 @@ fi
 %config(noreplace) %{_sysconfdir}/origin/node
 %ghost %config(noreplace) %{_sysconfdir}/origin/node/node-config.yaml
 %ghost %config(noreplace) %{_sysconfdir}/origin/.config_managed
-/usr/local/bin/docker
-/usr/local/bin/origin-node-run.sh
 
 %post node
 %systemd_post %{name}-node.service
@@ -515,7 +540,6 @@ fi
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
 /opt/cni/bin/*
-/usr/local/bin/ovs-run.sh
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
@@ -593,6 +617,11 @@ fi
 
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
+
+%files cluster-capacity
+%{_bindir}/hypercc
+%{_bindir}/cluster-capacity
+
 
 %pretrans docker-excluder
 # we always want to clear this out using the last

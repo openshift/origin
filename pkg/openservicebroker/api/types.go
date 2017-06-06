@@ -1,7 +1,7 @@
 package api
 
 // from https://github.com/openservicebrokerapi/servicebroker/blob/1d301105c66187b5aa2e061a1264ecf3cbc3d2a0/_spec.md
-// and https://github.com/avade/servicebroker/blob/9ef94ce96ca65bfc9ce482d5ea5be0ad62643a84/_spec.md
+// and https://github.com/avade/servicebroker/blob/8c340c610c6085c1aa32144faef0d1600c21576c/_spec.md
 
 import (
 	jsschema "github.com/lestrrat/go-jsschema"
@@ -42,8 +42,8 @@ type Plan struct {
 }
 
 type Schema struct {
-	ServiceInstances ServiceInstances `json:"service-instances,omitempty"`
-	ServiceBindings  ServiceBindings  `json:"service-bindings,omitempty"`
+	ServiceInstance ServiceInstances `json:"service_instance,omitempty"`
+	ServiceBinding  ServiceBindings  `json:"service_binding,omitempty"`
 }
 
 type ServiceInstances struct {

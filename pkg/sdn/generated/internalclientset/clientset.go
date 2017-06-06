@@ -2,7 +2,7 @@ package internalclientset
 
 import (
 	glog "github.com/golang/glog"
-	sdninternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/sdn/internalversion"
+	networkinternalversion "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/network/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -10,22 +10,22 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	Sdn() sdninternalversion.SdnInterface
+	Network() networkinternalversion.NetworkInterface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*sdninternalversion.SdnClient
+	*networkinternalversion.NetworkClient
 }
 
-// Sdn retrieves the SdnClient
-func (c *Clientset) Sdn() sdninternalversion.SdnInterface {
+// Network retrieves the NetworkClient
+func (c *Clientset) Network() networkinternalversion.NetworkInterface {
 	if c == nil {
 		return nil
 	}
-	return c.SdnClient
+	return c.NetworkClient
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -44,7 +44,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.SdnClient, err = sdninternalversion.NewForConfig(&configShallowCopy)
+	cs.NetworkClient, err = networkinternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.SdnClient = sdninternalversion.NewForConfigOrDie(c)
+	cs.NetworkClient = networkinternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -70,7 +70,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.SdnClient = sdninternalversion.New(c)
+	cs.NetworkClient = networkinternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

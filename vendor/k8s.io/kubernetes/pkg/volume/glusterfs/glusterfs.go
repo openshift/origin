@@ -329,15 +329,36 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 
 		}
 
+		mountOptions := volume.JoinMountOptions(b.mountOptions, options)
+
 		// Avoid mount storm, pick a host randomly.
 		// Iterate all hosts until mount succeeds.
 		for _, ip := range addrlist {
-			mountOptions := volume.JoinMountOptions(b.mountOptions, options)
+
 			errs = b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", mountOptions)
 			if errs == nil {
 				glog.Infof("glusterfs: successfully mounted %s", dir)
 				return nil
 			}
+
+			// Give a try without `auto_unmount mount option, because
+			// it could be that gluster fuse client is older version and
+			// mount.glusterfs is unaware of `auto_unmount`.
+			// Use a mount string without `auto_unmount``
+
+			autoMountOptions := make([]string, len(mountOptions))
+			for _, opt := range mountOptions {
+				if opt != "auto_unmount" {
+					autoMountOptions = append(autoMountOptions, opt)
+				}
+			}
+
+			autoerrs := b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", autoMountOptions)
+			if autoerrs == nil {
+				glog.Infof("glusterfs: successfully mounted %s", dir)
+				return nil
+			}
+
 		}
 	}
 
@@ -693,7 +714,10 @@ func (r *glusterfsVolumeProvisioner) Provision() (*v1.PersistentVolume, error) {
 	}
 
 	gidStr := strconv.FormatInt(int64(gid), 10)
-	pv.Annotations = map[string]string{volumehelper.VolumeGidAnnotationKey: gidStr}
+	pv.Annotations = map[string]string{
+		volumehelper.VolumeGidAnnotationKey: gidStr,
+		volume.MountOptionAnnotation:        "auto_unmount",
+	}
 
 	pv.Spec.Capacity = v1.ResourceList{
 		v1.ResourceName(v1.ResourceStorage): resource.MustParse(fmt.Sprintf("%dGi", sizeGB)),

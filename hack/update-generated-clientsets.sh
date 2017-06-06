@@ -34,15 +34,15 @@ function generate_clientset_for() {
 
 verify="${VERIFY:-}"
 
-# remove the old client sets
-for pkg in "${packages[@]}"; do
-  if [[ -z "${verify}" ]]; then
+# remove the old client sets if we're not verifying
+if [[ -z "${verify}" ]]; then
+  for pkg in "${packages[@]}"; do
     go list -f '{{.Dir}}' "${pkg}/generated/clientset/..." "${pkg}/generated/internalclientset/..." | xargs rm -rf
-  fi
-done
+  done
+fi
 
 for pkg in "${packages[@]}"; do
   shortGroup=$(basename "${pkg}")
-  generate_clientset_for "${pkg}" "internalclientset"  --group=${shortGroup} --input=api/ "$@"
-  generate_clientset_for "${pkg}" "clientset" --group=${shortGroup} --version=v1 --input=api/v1 "$@"
+  generate_clientset_for "${pkg}" "internalclientset"  --group=${shortGroup} --input=api/ ${verify} "$@"
+  generate_clientset_for "${pkg}" "clientset" --group=${shortGroup} --version=v1 --input=api/v1 ${verify} "$@"
 done

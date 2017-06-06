@@ -23,12 +23,18 @@ import (
 )
 
 const (
-	InfraBuildControllerServiceAccountName             = "build-controller"
-	InfraImageTriggerControllerServiceAccountName      = "imagetrigger-controller"
-	ImageTriggerControllerRoleName                     = "system:imagetrigger-controller"
-	InfraDeploymentConfigControllerServiceAccountName  = "deploymentconfig-controller"
-	InfraDeploymentTriggerControllerServiceAccountName = "deployment-trigger-controller"
-	InfraDeployerControllerServiceAccountName          = "deployer-controller"
+	InfraBuildControllerServiceAccountName                     = "build-controller"
+	InfraImageTriggerControllerServiceAccountName              = "imagetrigger-controller"
+	ImageTriggerControllerRoleName                             = "system:imagetrigger-controller"
+	InfraDeploymentConfigControllerServiceAccountName          = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName         = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName                  = "deployer-controller"
+	InfraOriginNamespaceServiceAccountName                     = "origin-namespace-controller"
+	InfraServiceAccountControllerServiceAccountName            = "serviceaccount-controller"
+	InfraServiceAccountPullSecretsControllerServiceAccountName = "serviceaccount-pull-secrets-controller"
+	InfraServiceAccountTokensControllerServiceAccountName      = "serviceaccount-tokens-controller"
+	InfraBuildPodControllerServiceAccountName                  = "build-pod-controller"
+	InfraBuildConfigChangeControllerServiceAccountName         = "build-config-change-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
@@ -372,6 +378,13 @@ func init() {
 				{
 					Verbs:     sets.NewString("get"),
 					Resources: sets.NewString("secrets"),
+				},
+				// Cinder provisioner needs to get list of nodes in order
+				// to get list of available zones in the cluster in order to choose a zone
+				// in case it's not configured in corresponding Storage Class
+				{
+					Verbs:     sets.NewString("list", "watch"),
+					Resources: sets.NewString("nodes"),
 				},
 			},
 		},

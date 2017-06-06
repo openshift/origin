@@ -41,6 +41,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry,
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
+	store.DeleteStrategy = strategy
 	store.Decorator = strategy.Decorate
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: imagestream.GetAttrs}

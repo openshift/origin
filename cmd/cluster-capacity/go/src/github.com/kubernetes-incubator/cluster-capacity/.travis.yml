@@ -1,0 +1,6 @@
+language: go
+go:
+- 1.7
+script:
+- make build
+- make test

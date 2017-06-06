@@ -8,6 +8,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -17,9 +18,11 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
+	oscontroller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -68,6 +71,8 @@ type DeploymentConfigController struct {
 	rcLister kcorelisters.ReplicationControllerLister
 	// rcListerSynced makes sure the rc shared informer is synced before reconcling any deployment config.
 	rcListerSynced func() bool
+	// rcControl is used for adopting/releasing replication controllers.
+	rcControl oscontroller.RCControlInterface
 
 	// codec is used to build deployments from configs.
 	codec runtime.Codec
@@ -84,11 +89,29 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		return c.updateStatus(config, []*kapi.ReplicationController{})
 	}
 
-	// Find all deployments owned by the deployment config.
-	selector := deployutil.ConfigSelector(config.Name)
-	existingDeployments, err := c.rcLister.ReplicationControllers(config.Namespace).List(selector)
+	// List all ReplicationControllers to find also those we own but that no longer match our selector.
+	// They will be orphaned by ClaimReplicationControllers().
+	rcList, err := c.rcLister.ReplicationControllers(config.Namespace).List(labels.Everything())
 	if err != nil {
-		return err
+		return fmt.Errorf("error while deploymentConfigController listing replication controllers: %v", err)
+	}
+	selector := deployutil.ConfigSelector(config.Name)
+	// If any adoptions are attempted, we should first recheck for deletion with
+	// an uncached quorum read sometime after listing ReplicationControllers (see Kubernetes #42639).
+	canAdoptFunc := kcontroller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
+		fresh, err := c.dn.DeploymentConfigs(config.Namespace).Get(config.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		if fresh.UID != config.UID {
+			return nil, fmt.Errorf("original DeploymentConfig %v/%v is gone: got uid %v, wanted %v", config.Namespace, config.Name, fresh.UID, config.UID)
+		}
+		return fresh, nil
+	})
+	cm := oscontroller.NewRCControllerRefManager(c.rcControl, config, selector, deployutil.ControllerKind, canAdoptFunc)
+	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
+	if err != nil {
+		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)
 	}
 
 	// In case the deployment config has been marked for deletion, merely update its status with
@@ -125,6 +148,15 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 				if err != nil {
 					return err
 				}
+				// We need to make sure we own that RC or adopt it if possible
+				isOurs, err := cm.ClaimReplicationController(rc)
+				if err != nil {
+					return fmt.Errorf("error while deploymentConfigController claiming the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
+				}
+				if !isOurs {
+					return nil
+				}
+
 				copied, err := deployutil.DeploymentDeepCopy(rc)
 				if err != nil {
 					return err
@@ -157,7 +189,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return c.updateStatus(config, existingDeployments)
 		}
 
-		return c.reconcileDeployments(existingDeployments, config)
+		return c.reconcileDeployments(existingDeployments, config, cm)
 	}
 	// If the config is paused we shouldn't create new deployments for it.
 	if config.Spec.Paused {
@@ -177,10 +209,26 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	}
 	created, err := c.rn.ReplicationControllers(config.Namespace).Create(deployment)
 	if err != nil {
-		// If the deployment was already created, just move on. The cache could be
-		// stale, or another process could have already handled this update.
+		// We need to find out if our controller owns that deployment and report error if not
 		if kapierrors.IsAlreadyExists(err) {
-			return c.updateStatus(config, existingDeployments)
+			rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+			if err != nil {
+				return fmt.Errorf("error while deploymentConfigController getting the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
+			}
+			// We need to make sure we own that RC or adopt it if possible
+			isOurs, err := cm.ClaimReplicationController(rc)
+			if err != nil {
+				return fmt.Errorf("error while deploymentConfigController claiming the replication controller: %v", err)
+			}
+			if isOurs {
+				// If the deployment was already created, just move on. The cache could be
+				// stale, or another process could have already handled this update.
+				return c.updateStatus(config, existingDeployments)
+			} else {
+				err = fmt.Errorf("replication controller %s already exists and deployment config is not allowed to claim it.", deployment.Name)
+				c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %v", config.Status.LatestVersion, err)
+				return c.updateStatus(config, existingDeployments)
+			}
 		}
 		c.recorder.Eventf(config, kapi.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
 		// We don't care about this error since we need to report the create failure.
@@ -208,7 +256,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 // successful deployment, not necessarily the latest in terms of the config
 // version. The active deployment replica count should follow the config, and
 // all other deployments should be scaled to zero.
-func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*kapi.ReplicationController, config *deployapi.DeploymentConfig) error {
+func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*kapi.ReplicationController, config *deployapi.DeploymentConfig, cm *oscontroller.RCControllerRefManager) error {
 	activeDeployment := deployutil.ActiveDeployment(existingDeployments)
 
 	// Reconcile deployments. The active deployment follows the config, and all
@@ -239,6 +287,18 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 				if err != nil {
 					return err
 				}
+				// We need to make sure we own that RC or adopt it if possible
+				isOurs, err := cm.ClaimReplicationController(rc)
+				if err != nil {
+					return fmt.Errorf("error while deploymentConfigController claiming the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
+				}
+				if !isOurs {
+					return fmt.Errorf("deployment config %s/%s (%v) no longer owns replication controller %s/%s (%v)",
+						config.Namespace, config.Name, config.UID,
+						deployment.Namespace, deployment.Name, deployment.UID,
+					)
+				}
+
 				copied, err = deployutil.DeploymentDeepCopy(rc)
 				if err != nil {
 					return err

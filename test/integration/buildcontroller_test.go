@@ -159,13 +159,19 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		}
 	}
 	for i := 0; i < counts.BuildPodControllers; i++ {
-		openshiftConfig.RunBuildPodController()
+		_, err := openshiftControllerInitializers["build-pod"](openshiftControllerContext)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	for i := 0; i < counts.ImageChangeControllers; i++ {
 		openshiftConfig.RunImageTriggerController()
 	}
 	for i := 0; i < counts.ConfigChangeControllers; i++ {
-		openshiftConfig.RunBuildConfigChangeController()
+		_, err := openshiftControllerInitializers["build-config-change"](openshiftControllerContext)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	return clusterAdminClient, clusterAdminKubeClientset
 }
