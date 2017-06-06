@@ -6856,14 +6856,16 @@ items:
 - kind: BuildConfig
   apiVersion: v1
   metadata:
-    name: signer-build
+    name: signer
   spec:
     triggers:
       - type: ConfigChange
     source:
       dockerfile: |
         FROM openshift/origin:latest
-        RUN yum install -y skopeo && yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
+        RUN yum-config-manager --disable origin-local-release ||:
+        RUN yum install -y skopeo && \
+            yum clean all && mkdir -p gnupg && chmod -R 0777 /var/lib/origin
         RUN echo $'%echo Generating openpgp key ...\n\
             Key-Type: DSA \n\
             Key-Length: 1024 \n\
