@@ -59,6 +59,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		blueGreenPipelinePath    = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "bluegreen-pipeline.yaml")
 		clientPluginPipelinePath = exutil.FixturePath("..", "..", "examples", "jenkins", "pipeline", "openshift-client-plugin-pipeline.yaml")
 		envVarsPipelinePath      = exutil.FixturePath("testdata", "samplepipeline-withenvs.yaml")
+		useSnapshotImage         = false
 
 		oc                       = exutil.NewCLI("jenkins-pipeline", exutil.KubeConfigPath())
 		ticker                   *time.Ticker
@@ -69,7 +70,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			// Deploy Jenkins
 			var licensePrefix, pluginName string
 			newAppArgs := []string{"-f", jenkinsTemplatePath}
-			newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
+			newAppArgs, useSnapshotImage = jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			if !useSnapshotImage {
 				newAppArgs, useSnapshotImage = jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
 				licensePrefix = syncLicenseText
@@ -202,7 +203,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			br.AssertSuccess()
 
 			g.By("confirm all the log annotations are there")
-			_, err = jenkins.ProcessLogURLAnnotations(oc, br)
+			err = jenkins.ProcessLogURLAnnotations(oc, br, !useSnapshotImage)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
