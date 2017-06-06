@@ -37,7 +37,7 @@ func (oc *ovsController) getVersionNote() string {
 	if VERSION > 254 {
 		panic("Version too large!")
 	}
-	return fmt.Sprintf("note:%02X.%02X", oc.pluginId, VERSION)
+	return fmt.Sprintf("%02X.%02X", oc.pluginId, VERSION)
 }
 
 func (oc *ovsController) AlreadySetUp() bool {
@@ -47,7 +47,8 @@ func (oc *ovsController) AlreadySetUp() bool {
 	}
 	expectedVersionNote := oc.getVersionNote()
 	for _, flow := range flows {
-		if strings.HasSuffix(flow, expectedVersionNote) && strings.Contains(flow, fmt.Sprintf("table=%d", VERSION_TABLE)) {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err == nil && parsed.Table == VERSION_TABLE && parsed.NoteHasPrefix(expectedVersionNote) {
 			return true
 		}
 	}
@@ -164,7 +165,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
 	// Table 253: rule version note
-	otx.AddFlow("table=%d, actions=%s", VERSION_TABLE, oc.getVersionNote())
+	otx.AddFlow("table=%d, actions=note:%s", VERSION_TABLE, oc.getVersionNote())
 
 	err = otx.EndTransaction()
 	if err != nil {

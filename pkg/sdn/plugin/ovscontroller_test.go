@@ -825,3 +825,47 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v\nOrig: %#v\nNew: %#v", err, origFlows, flows)
 	}
 }
+
+func TestAlreadySetUp(t *testing.T) {
+	testcases := []struct {
+		flow    string
+		note    string
+		success bool
+	}{
+		{
+			// Good note
+			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.03.00.00.00.00",
+			note:    "00.03",
+			success: true,
+		},
+		{
+			// Wrong table
+			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.03.00.00.00.00",
+			note:    "00.03",
+			success: false,
+		},
+		{
+			// No note
+			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=goto_table:50",
+			note:    "00.03",
+			success: false,
+		},
+	}
+
+	for i, tc := range testcases {
+		ovsif := ovs.NewFake(BR)
+		if err := ovsif.AddBridge("fail-mode=secure", "protocols=OpenFlow13"); err != nil {
+			t.Fatalf("(%d) unexpected error from AddBridge: %v", i, err)
+		}
+		oc := NewOVSController(ovsif, 0)
+
+		otx := ovsif.NewTransaction()
+		otx.AddFlow(tc.flow)
+		if err := otx.EndTransaction(); err != nil {
+			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
+		}
+		if success := oc.AlreadySetUp(); success != tc.success {
+			t.Fatalf("(%d) unexpected setup value %v (expected %v)", i, success, tc.success)
+		}
+	}
+}
