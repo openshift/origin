@@ -17,6 +17,7 @@ function find_files() {
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \
+		-o -wholename './cmd/cluster-capacity/*' \
 		-o -wholename './assets/bower_components/*' \
 		\) -prune \
 	\) -name '*.go' | sort -u

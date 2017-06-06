@@ -189,6 +189,13 @@ Requires:       %{name} = %{version}-%{release}
 %description federation-services
 %{summary}
 
+%package cluster-capacity
+Summary:        %{product_name} Cluster Capacity Analysis Tool
+Requires:       %{name} = %{version}-%{release}
+
+%description cluster-capacity
+%{summary}
+
 %package excluder
 Summary:   Exclude openshift packages from updates
 BuildArch: noarch
@@ -238,6 +245,30 @@ of docker.  Exclude those versions of docker.
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
 %endif
 
+# Build cluster capacity
+%if 0%{make_redistributable}
+# Create Binaries for all supported arches
+%{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
+%else
+# Create Binaries only for building arch
+%ifarch x86_64
+  BUILD_PLATFORM="linux/amd64"
+%endif
+%ifarch %{ix86}
+  BUILD_PLATFORM="linux/386"
+%endif
+%ifarch ppc64le
+  BUILD_PLATFORM="linux/ppc64le"
+%endif
+%ifarch %{arm} aarch64
+  BUILD_PLATFORM="linux/arm64"
+%endif
+%ifarch s390x
+  BUILD_PLATFORM="linux/s390x"
+%endif
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
+%endif
+
 # Generate man pages
 %{os_git_vars} hack/generate-docs.sh
 
@@ -265,6 +296,10 @@ install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir
 
 # Install federation services
 install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}/
+
+# Install cluster capacity
+install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/_output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
+ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -582,6 +617,11 @@ fi
 
 %files docker-excluder
 /usr/sbin/%{name}-docker-excluder
+
+%files cluster-capacity
+%{_bindir}/hypercc
+%{_bindir}/cluster-capacity
+
 
 %pretrans docker-excluder
 # we always want to clear this out using the last
