@@ -36,6 +36,15 @@ func TestServiceFromTemplate(t *testing.T) {
 			{
 				Name: "param2",
 			},
+			{
+				Name:     "param3",
+				Generate: "expression",
+			},
+			{
+				Name:     "param4",
+				Generate: "expression",
+				Required: true,
+			},
 		},
 	}
 
@@ -87,6 +96,14 @@ func TestServiceFromTemplate(t *testing.T) {
 										Type:    schema.PrimitiveTypes{schema.StringType},
 									},
 									"param2": {
+										Default: "",
+										Type:    schema.PrimitiveTypes{schema.StringType},
+									},
+									"param3": {
+										Default: "",
+										Type:    schema.PrimitiveTypes{schema.StringType},
+									},
+									"param4": {
 										Default: "",
 										Type:    schema.PrimitiveTypes{schema.StringType},
 									},
