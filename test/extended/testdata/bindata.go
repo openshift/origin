@@ -10721,7 +10721,12 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -10733,7 +10738,10 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mariadb\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -10967,7 +10975,12 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -10979,7 +10992,10 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mariadb\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -11238,7 +11254,12 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
@@ -11251,7 +11272,10 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -11513,7 +11537,12 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
@@ -11526,7 +11555,10 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -11811,7 +11843,12 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -11824,7 +11861,10 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mysql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -12086,7 +12126,12 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -12098,7 +12143,10 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mysql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -12364,7 +12412,11 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
@@ -12376,7 +12428,10 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -12621,7 +12676,11 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
@@ -12633,7 +12692,10 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -12902,7 +12964,10 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-password" : "${REDIS_PASSWORD}"
@@ -12913,7 +12978,10 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -13130,7 +13198,10 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-password" : "${REDIS_PASSWORD}"
@@ -13141,7 +13212,10 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -15133,7 +15207,10 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "host": "www.example.com",
@@ -15640,7 +15717,10 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "host": "www.example.com",
@@ -16096,7 +16176,10 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "host": "www.example.com",
@@ -16592,8 +16675,11 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null
-      },
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+     },
       "spec": {
         "host": "www.example.com",
         "to": {
@@ -17740,7 +17826,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "to": {
@@ -18046,7 +18135,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "to": {

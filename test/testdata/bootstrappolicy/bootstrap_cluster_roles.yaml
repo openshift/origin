@@ -3394,6 +3394,20 @@ items:
     - services
     verbs:
     - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    verbs:
+    - list
+  - apiGroups:
+    - route.openshift.io
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - list
 - apiVersion: v1
   kind: ClusterRole
   metadata:

@@ -24,7 +24,10 @@
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-password" : "${REDIS_PASSWORD}"
@@ -35,7 +38,10 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+        }
       },
       "spec": {
         "ports": [

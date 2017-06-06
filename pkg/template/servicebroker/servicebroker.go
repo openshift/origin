@@ -9,11 +9,12 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
+	extrouteclientset "github.com/openshift/origin/pkg/route/generated/clientset/typed/route/v1"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -24,9 +25,10 @@ import (
 // Broker represents the template service broker.  It implements
 // openservicebroker/api.Broker.
 type Broker struct {
-	oc                 *client.Client
 	kc                 kclientset.Interface
 	templateclient     internalversiontemplate.TemplateInterface
+	extkc              kclientsetexternal.Interface
+	extrouteclient     extrouteclientset.RouteV1Interface
 	restconfig         restclient.Config
 	lister             templatelister.TemplateLister
 	templateNamespaces map[string]struct{}
@@ -57,7 +59,7 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 
 		glog.V(2).Infof("Template service broker: waiting for authentication token")
 
-		restconfig, oc, kc, _, err := serviceaccounts.Clients(
+		restconfig, _, kc, extkc, err := serviceaccounts.Clients(
 			privrestconfig,
 			&serviceaccounts.ClientLookupTokenRetriever{Client: privkc},
 			infraNamespace,
@@ -68,14 +70,21 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 			return
 		}
 
+		extrouteclientset, err := extrouteclientset.NewForConfig(restconfig)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize template clientset: %v", err))
+			return
+		}
+
 		templateclientset, err := templateclientset.NewForConfig(restconfig)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize template clientset: %v", err))
 			return
 		}
 
-		b.oc = oc
 		b.kc = kc
+		b.extkc = extkc
+		b.extrouteclient = extrouteclientset
 		b.templateclient = templateclientset.Template()
 
 		glog.V(2).Infof("Template service broker: waiting for informer sync")

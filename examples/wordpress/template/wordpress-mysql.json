@@ -42,7 +42,10 @@
       "kind": "Route",
       "apiVersion": "v1",
       "metadata": {
-        "name": "wordpress-mysql-example"
+        "name": "wordpress-mysql-example",
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "host": "${APPLICATION_DOMAIN}",
@@ -337,7 +340,7 @@
     {
       "name": "MYSQL_IMAGE",
       "description": "Image to use for mysql",
-      "value": "openshift/mysql-55-centos7"      
+      "value": "openshift/mysql-55-centos7"
     }
   ]
 }

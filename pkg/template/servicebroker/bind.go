@@ -1,123 +1,169 @@
 package servicebroker
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
-	"strconv"
+	"reflect"
 	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-// copied from vendor/k8s.io/kubernetes/pkg/kubelet/envvars/envvars.go
-// TODO: when the API for returning information from the bind call is cleaned up
-// and we're no longer temporarily using the environment variable style, remove
-// this.
-func makeEnvVariableName(str string) string {
-	return strings.ToUpper(strings.Replace(str, "-", "_", -1))
-}
+func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
+	var s []string
 
-// getServices returns environment variable style details for all services
-// created by a given template in its namespace.  This API may not currently be
-// considered stable.  TODO: if a template creates a service in another
-// namespace, its details will not currently be returned.
-func (b *Broker) getServices(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
-	glog.V(4).Infof("Template service broker: getServices")
-
-	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
-
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-		Namespace: namespace,
-		Verb:      "list",
-		Group:     kapi.GroupName,
-		Resource:  "services",
-	}); err != nil {
-		return nil, api.Forbidden(err)
-	}
-
-	serviceList, err := b.kc.Core().Services(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
+	j := jsonpath.New("templateservicebroker")
+	err := j.Parse(expression)
 	if err != nil {
-		if kerrors.IsForbidden(err) {
-			return nil, api.Forbidden(err)
-		}
-
-		return nil, api.InternalServerError(err)
+		return "", fmt.Errorf("failed to parse annotation %s: %v", annotation, err)
 	}
 
-	services := map[string]string{}
-	for _, service := range serviceList.Items {
-		if !kapi.IsServiceIPSet(&service) || len(service.Spec.Ports) == 0 {
-			continue
+	results, err := j.FindResults(obj)
+	if err != nil {
+		return "", fmt.Errorf("FindResults failed on annotation %s: %v", annotation, err)
+	}
+
+	for _, r := range results {
+		// we don't permit individual JSONPath expressions which return multiple
+		// objects as we haven't decided how these should be output
+		if len(r) != 1 {
+			return "", fmt.Errorf("%d JSONPath results found on annotation %s", len(r), annotation)
 		}
 
-		name := makeEnvVariableName(service.Name) + "_SERVICE_HOST"
-		services[name] = service.Spec.ClusterIP
+		result := r[0]
 
-		name = makeEnvVariableName(service.Name) + "_SERVICE_PORT"
-		services[name] = strconv.Itoa(int(service.Spec.Ports[0].Port))
+		// give one shot at dereferencing an interface/pointer.
+		switch result.Kind() {
+		case reflect.Interface, reflect.Ptr:
+			if result.IsNil() {
+				return "", fmt.Errorf("nil kind %s found in JSONPath result on annotation %s", result.Kind(), annotation)
+			}
+			result = result.Elem()
+		}
 
-		for _, port := range service.Spec.Ports {
-			if port.Name != "" {
-				services[name+"_"+makeEnvVariableName(port.Name)] = strconv.Itoa(int(port.Port))
+		switch result.Kind() {
+		// all the simple types
+		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+			reflect.Int64, reflect.Uint, reflect.Uint16, reflect.Uint32,
+			reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64,
+			reflect.Complex64, reflect.Complex128, reflect.String:
+			s = append(s, fmt.Sprint(result.Interface()))
+			continue
+
+		// for now, the only complex type we permit is []byte
+		case reflect.Slice:
+			if result.Type().Elem().Kind() == reflect.Uint8 {
+				if !base64encode {
+					// convert from []byte to string.  Potentially lossy but
+					// "friendly".  Per the golang spec, invalid UTF-8 sequences
+					// will be replaced by 0xFFFD, the Unicode replacement
+					// character
+					s = append(s, string(result.Bytes()))
+
+				} else {
+					b := &bytes.Buffer{}
+					w := base64.NewEncoder(base64.StdEncoding, b)
+					w.Write(result.Bytes())
+					w.Close()
+					s = append(s, b.String())
+				}
+				continue
 			}
 		}
+
+		return "", fmt.Errorf("unrepresentable kind %s found in JSONPath result on annotation %s", result.Kind(), annotation)
 	}
 
-	return services, nil
+	return strings.Join(s, ""), nil
 }
 
-// getSecrets returns usernames and passwords contained in all BasicAuth secrets
-// created by a given template in its namespace.  This API may not currently be
-// considered stable.  TODO: if a template creates a secret in another
-// namespace, its details will not currently be returned.
-func (b *Broker) getSecrets(u user.Info, namespace, instanceID string) (map[string]string, *api.Response) {
-	glog.V(4).Infof("Template service broker: getSecrets")
+// updateCredentialsForObject evaluates all ExposeAnnotationPrefix and
+// Base64ExposeAnnotationPrefix JSONPath annotations on a given object, updating
+// credentials as it goes.  Important: the object must be external ("v1") rather
+// than internal so that lower-case JSONPath expressons (e.g. "{.spec}")
+// evaluate correctly.
+func updateCredentialsForObject(credentials map[string]interface{}, obj runtime.Object) error {
+	meta, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range meta.GetAnnotations() {
+		var prefix string
+
+		for _, p := range []string{templateapi.ExposeAnnotationPrefix, templateapi.Base64ExposeAnnotationPrefix} {
+			if strings.HasPrefix(k, p) {
+				prefix = p
+				break
+			}
+		}
+
+		if prefix != "" && len(k) > len(prefix) {
+			result, err := evaluateJSONPathExpression(obj, k, v, prefix == templateapi.Base64ExposeAnnotationPrefix)
+			if err != nil {
+				return err
+			}
+			credentials[k[len(prefix):]] = result
+		}
+	}
+
+	return nil
+}
+
+// updateCredentials lists objects of a particular type created by a given
+// template in its namespace and calls updateCredentialsForObject for each.
+// TODO: handle objects created in other namespaces as well.
+func (b *Broker) updateCredentials(u user.Info, namespace, instanceID, group, resource string, credentials map[string]interface{}, lister func(metav1.ListOptions) (runtime.Object, error)) *api.Response {
+	glog.V(4).Infof("Template service broker: updateCredentials: group %s, resource: %s", group, resource)
 
 	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "list",
-		Group:     kapi.GroupName,
-		Resource:  "secrets",
+		Group:     group,
+		Resource:  resource,
 	}); err != nil {
-		return nil, api.Forbidden(err)
+		return api.Forbidden(err)
 	}
 
-	secretList, err := b.kc.Core().Secrets(namespace).List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
+	list, err := lister(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
 	if err != nil {
 		if kerrors.IsForbidden(err) {
-			return nil, api.Forbidden(err)
+			return api.Forbidden(err)
 		}
 
-		return nil, api.InternalServerError(err)
+		return api.InternalServerError(err)
 	}
 
-	secrets := map[string]string{}
-	for _, secret := range secretList.Items {
-		if secret.Type != kapi.SecretTypeBasicAuth {
-			continue
-		}
+	err = meta.EachListItem(list, func(obj runtime.Object) error {
+		return updateCredentialsForObject(credentials, obj)
+	})
 
-		name := makeEnvVariableName(secret.Name + "_" + kapi.BasicAuthUsernameKey)
-		secrets[name] = string(secret.Data[kapi.BasicAuthUsernameKey])
-
-		name = makeEnvVariableName(secret.Name + "_" + kapi.BasicAuthPasswordKey)
-		secrets[name] = string(secret.Data[kapi.BasicAuthPasswordKey])
+	if err != nil {
+		return api.InternalServerError(err)
 	}
 
-	return secrets, nil
+	return nil
+
 }
 
 // Bind returns the secrets and services from a provisioned template.
@@ -166,20 +212,35 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		return api.BadRequest(errors.New("service_id does not match provisioned service"))
 	}
 
-	services, resp := b.getServices(u, namespace, instanceID)
-	if resp != nil {
-		return resp
-	}
-
-	secrets, resp := b.getSecrets(u, namespace, instanceID)
-	if resp != nil {
-		return resp
-	}
-
-	// TODO: this API may not currently be considered stable.
 	credentials := map[string]interface{}{}
-	credentials["services"] = services
-	credentials["secrets"] = secrets
+
+	resp := b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "configmaps", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
+		return b.extkc.Core().ConfigMaps(namespace).List(o)
+	})
+	if resp != nil {
+		return resp
+	}
+
+	resp = b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "secrets", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
+		return b.extkc.Core().Secrets(namespace).List(o)
+	})
+	if resp != nil {
+		return resp
+	}
+
+	resp = b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "services", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
+		return b.extkc.Core().Services(namespace).List(o)
+	})
+	if resp != nil {
+		return resp
+	}
+
+	resp = b.updateCredentials(u, namespace, instanceID, routeapi.GroupName, "routes", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
+		return b.extrouteclient.Routes(namespace).List(o)
+	})
+	if resp != nil {
+		return resp
+	}
 
 	// The OSB API requires this function to be idempotent (restartable).  If
 	// any actual change was made, per the spec, StatusCreated is returned, else

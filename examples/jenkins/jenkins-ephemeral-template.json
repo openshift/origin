@@ -22,7 +22,10 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "to": {

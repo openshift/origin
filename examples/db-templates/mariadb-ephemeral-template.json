@@ -23,7 +23,12 @@
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -35,7 +40,10 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mariadb\")].port}"
+        }
       },
       "spec": {
         "ports": [

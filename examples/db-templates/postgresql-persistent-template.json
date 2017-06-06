@@ -24,7 +24,11 @@
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
@@ -36,7 +40,10 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
+        }
       },
       "spec": {
         "ports": [
