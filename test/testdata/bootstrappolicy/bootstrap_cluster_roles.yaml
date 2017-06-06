@@ -677,6 +677,7 @@ items:
     - deployments/scale
     - horizontalpodautoscalers
     - jobs
+    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
