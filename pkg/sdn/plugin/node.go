@@ -29,6 +29,7 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -79,7 +80,7 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32, kubeInformers kinternalinformers.SharedInformerFactory) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory, hostname string, selfIP string, mtu uint32, proxyConfig componentconfig.KubeProxyConfiguration) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
@@ -105,7 +106,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	// we're ready yet
 	os.Remove("/etc/cni/net.d/80-openshift-sdn.conf")
 
-	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, iptablesSyncPeriod.String())
+	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTablesSyncPeriod.Duration.String())
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -129,6 +130,10 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		}
 	}
 
+	if useConnTrack && proxyConfig.Mode != componentconfig.ProxyModeIPTables {
+		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", pluginName, proxyConfig.Mode)
+	}
+
 	ovsif, err := ovs.New(kexec.New(), BR, minOvsVersion)
 	if err != nil {
 		return nil, err
@@ -144,7 +149,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		localIP:            selfIP,
 		hostName:           hostname,
 		useConnTrack:       useConnTrack,
-		iptablesSyncPeriod: iptablesSyncPeriod,
+		iptablesSyncPeriod: proxyConfig.IPTablesSyncPeriod.Duration,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
