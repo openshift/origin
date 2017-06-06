@@ -19,7 +19,7 @@ os::build::detect_local_release_tars $(os::build::host_platform_friendly)
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
 
 # we need to mount RPMs into the container builds for installation
-OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_LOCAL_RPMPATH}/:/srv/origin-local-release/"
+OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
 
 # Create link to file if the FS supports hardlinks, otherwise copy the file
 function ln_or_cp {

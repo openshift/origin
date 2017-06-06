@@ -33,4 +33,10 @@
 # NOTE:   only committed code is built.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+relative_bin_path="$( os::util::repository_relative_path "${OS_OUTPUT_BINPATH}" )"
+relative_release_path="$( os::util::repository_relative_path "${OS_OUTPUT_RELEASEPATH}" )"
+relative_script_path="$( os::util::repository_relative_path "${OS_OUTPUT_SCRIPTPATH}" )"
+default_preserve_paths="${relative_bin_path}:${relative_release_path}:${relative_script_path}"
+export OS_BUILD_ENV_PRESERVE="${OS_BUILD_ENV_PRESERVE:-"${default_preserve_paths}"}"
+
 os::build::environment::run "$@"

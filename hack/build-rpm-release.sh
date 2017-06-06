@@ -58,11 +58,11 @@ make clean
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
 mv "${tito_output_directory}"/* "${OS_OUTPUT}"
-mkdir -p "${OS_LOCAL_RPMPATH}"
-mv "${tito_tmp_dir}"/*src.rpm "${OS_LOCAL_RPMPATH}"
-mv "${tito_tmp_dir}"/*/*.rpm "${OS_LOCAL_RPMPATH}"
+mkdir -p "${OS_OUTPUT_RPMPATH}"
+mv "${tito_tmp_dir}"/*src.rpm "${OS_OUTPUT_RPMPATH}"
+mv "${tito_tmp_dir}"/*/*.rpm "${OS_OUTPUT_RPMPATH}"
 
-repo_path="$( os::util::absolute_path "${OS_LOCAL_RPMPATH}" )"
+repo_path="$( os::util::absolute_path "${OS_OUTPUT_RPMPATH}" )"
 createrepo "${repo_path}"
 
 echo "[${OS_RPM_NAME}-local-release]
