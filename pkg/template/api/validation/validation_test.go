@@ -5,6 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/template/api"
@@ -198,11 +199,12 @@ func TestValidateTemplate(t *testing.T) {
 
 func TestValidateTemplateInstance(t *testing.T) {
 	var tests = []struct {
-		templateInstance api.TemplateInstance
-		isValidExpected  bool
+		templateInstance  api.TemplateInstance
+		expectedErrorType field.ErrorType
 	}{
 		{
-			templateInstance: api.TemplateInstance{},
+			templateInstance:  api.TemplateInstance{},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -211,6 +213,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Namespace: "test",
 				},
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -220,6 +223,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 				},
 				Spec: api.TemplateInstanceSpec{},
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -231,6 +235,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Template: api.Template{},
 				},
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -250,7 +255,6 @@ func TestValidateTemplateInstance(t *testing.T) {
 					},
 				},
 			},
-			isValidExpected: true,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -275,6 +279,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -297,6 +302,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			templateInstance: api.TemplateInstance{
@@ -319,17 +325,25 @@ func TestValidateTemplateInstance(t *testing.T) {
 					},
 				},
 			},
-			isValidExpected: true,
 		},
 	}
 
 	for i, test := range tests {
 		errs := ValidateTemplateInstance(&test.templateInstance)
-		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
-		}
-		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
+		if test.expectedErrorType == "" {
+			if len(errs) != 0 {
+				t.Errorf("%d: Unexpected non-empty error list", i)
+			}
+		} else {
+			if len(errs) == 0 {
+				t.Errorf("%d: Unexpected length error list: %v", i, errs.ToAggregate())
+			} else {
+				for _, err := range errs {
+					if err.Type != test.expectedErrorType {
+						t.Errorf("%d: Unexpected error type: %v", i, errs.ToAggregate())
+					}
+				}
+			}
 		}
 	}
 }
@@ -364,82 +378,95 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 
 	var tests = []struct {
 		modifyTemplateInstance func(*api.TemplateInstance)
-		isValidExpected        bool
+		expectedErrorType      field.ErrorType
 	}{
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Name = "new"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Namespace = "new"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Name = "new"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Name = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Namespace = "new"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Namespace = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Parameters[0].Name = "new"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Parameters[0].Name = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Template.Parameters = nil
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Secret.Name = "new"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Secret.Name = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Secret.Name = ""
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Requester.Username = "new"
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			modifyTemplateInstance: func(new *api.TemplateInstance) {
 				new.Spec.Requester.Username = ""
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 	}
 
@@ -450,11 +477,20 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 		}
 		test.modifyTemplateInstance(newTemplateInstance.(*api.TemplateInstance))
 		errs := ValidateTemplateInstanceUpdate(newTemplateInstance.(*api.TemplateInstance), oldTemplateInstance)
-		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
-		}
-		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
+		if test.expectedErrorType == "" {
+			if len(errs) != 0 {
+				t.Errorf("%d: Unexpected non-empty error list", i)
+			}
+		} else {
+			if len(errs) == 0 {
+				t.Errorf("%d: Unexpected length error list: %v", i, errs.ToAggregate())
+			} else {
+				for _, err := range errs {
+					if err.Type != test.expectedErrorType {
+						t.Errorf("%d: Unexpected error type: %v", i, errs.ToAggregate())
+					}
+				}
+			}
 		}
 	}
 }
@@ -462,7 +498,7 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 func TestValidateBrokerTemplateInstance(t *testing.T) {
 	var tests = []struct {
 		brokerTemplateInstance api.BrokerTemplateInstance
-		isValidExpected        bool
+		expectedErrorType      field.ErrorType
 	}{
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -485,7 +521,6 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
-			isValidExpected: true,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -505,7 +540,6 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
-			isValidExpected: true,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -528,6 +562,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -548,6 +583,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -567,6 +603,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -586,6 +623,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -605,6 +643,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -624,6 +663,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -643,6 +683,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -662,6 +703,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -676,6 +718,7 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			brokerTemplateInstance: api.BrokerTemplateInstance{
@@ -690,16 +733,26 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 					},
 				},
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 	}
 
 	for i, test := range tests {
 		errs := ValidateBrokerTemplateInstance(&test.brokerTemplateInstance)
-		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
-		}
-		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
+		if test.expectedErrorType == "" {
+			if len(errs) != 0 {
+				t.Errorf("%d: Unexpected non-empty error list", i)
+			}
+		} else {
+			if len(errs) == 0 {
+				t.Errorf("%d: Unexpected length error list: %v", i, errs.ToAggregate())
+			} else {
+				for _, err := range errs {
+					if err.Type != test.expectedErrorType {
+						t.Errorf("%d: Unexpected error type: %v", i, errs.ToAggregate())
+					}
+				}
+			}
 		}
 	}
 }
@@ -729,86 +782,91 @@ func TestValidateBrokerTemplateInstanceUpdate(t *testing.T) {
 
 	var tests = []struct {
 		modifyBrokerTemplateInstance func(*api.BrokerTemplateInstance)
-		isValidExpected              bool
+		expectedErrorType            field.ErrorType
 	}{
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Name = "new"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Namespace = "new"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = "new"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = ""
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = "new"
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = ""
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = "new"
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = ""
 			},
+			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = "b@d"
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = []string{validUUID2}
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = nil
 			},
-			isValidExpected: true,
 		},
 		{
 			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = []string{"bad"}
 			},
+			expectedErrorType: field.ErrorTypeInvalid,
 		},
 	}
 
@@ -819,11 +877,20 @@ func TestValidateBrokerTemplateInstanceUpdate(t *testing.T) {
 		}
 		test.modifyBrokerTemplateInstance(newBrokerTemplateInstance.(*api.BrokerTemplateInstance))
 		errs := ValidateBrokerTemplateInstanceUpdate(newBrokerTemplateInstance.(*api.BrokerTemplateInstance), oldBrokerTemplateInstance)
-		if len(errs) != 0 && test.isValidExpected {
-			t.Errorf("%d: Unexpected non-empty error list: %v", i, errs.ToAggregate())
-		}
-		if len(errs) == 0 && !test.isValidExpected {
-			t.Errorf("%d: Unexpected empty error list: %v", i, errs.ToAggregate())
+		if test.expectedErrorType == "" {
+			if len(errs) != 0 {
+				t.Errorf("%d: Unexpected non-empty error list", i)
+			}
+		} else {
+			if len(errs) == 0 {
+				t.Errorf("%d: Unexpected length error list: %v", i, errs.ToAggregate())
+			} else {
+				for _, err := range errs {
+					if err.Type != test.expectedErrorType {
+						t.Errorf("%d: Unexpected error type: %v", i, errs.ToAggregate())
+					}
+				}
+			}
 		}
 	}
 }

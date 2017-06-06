@@ -83,7 +83,7 @@ func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *api.T
 	allErrs = validation.ValidateObjectMetaUpdate(&templateInstance.ObjectMeta, &oldTemplateInstance.ObjectMeta, field.NewPath("metadata"))
 
 	if !kapi.Semantic.DeepEqual(templateInstance.Spec, oldTemplateInstance.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), templateInstance.Spec, "field is immutable"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "field is immutable"))
 	}
 	return
 }
