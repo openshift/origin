@@ -9,29 +9,45 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-os::util::ensure::gopath_binary_exists imagebuilder
-# image builds require RPMs to have been built
-os::build::release::check_for_rpms
-# OS_RELEASE_COMMIT is required by image-build
-os::build::detect_local_release_tars $(os::build::host_platform_friendly)
+if [[ "${OS_RELEASE:-}" == "n" ]]; then
+	# Use local binaries
+	imagedir="${OS_OUTPUT_BINPATH}/linux/amd64"
+	# identical to build-cross.sh
+	os::build::os_version_vars
+	if [[ -z "${OS_RELEASE_LOCAL:-}" ]]; then
+		OS_RELEASE_COMMIT="${OS_GIT_VERSION//+/-}"
+		platform="$(os::build::host_platform)"
+		OS_BUILD_PLATFORMS=("${OS_IMAGE_COMPILE_PLATFORMS[@]:-${platform}}")
+		OS_IMAGE_COMPILE_TARGETS=("${OS_IMAGE_COMPILE_TARGETS[@]:-${OS_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
+		OS_SCRATCH_IMAGE_COMPILE_TARGETS=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]:-${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]}}")
+		readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
 
-# Without this, the dockerregistry lacks gcs+oss storage drivers in non-cross builds.
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
-
-# we need to mount RPMs into the container builds for installation
-OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_LOCAL_RPMPATH}/:/srv/origin-local-release/"
-
-# Create link to file if the FS supports hardlinks, otherwise copy the file
-function ln_or_cp {
-	local src_file=$1
-	local dst_dir=$2
-	if os::build::is_hardlink_supported "${dst_dir}" ; then
-		ln -f "${src_file}" "${dst_dir}"
-	else
-		cp -pf "${src_file}" "${dst_dir}"
+		echo "Building images from source ${OS_RELEASE_COMMIT}:"
+		echo
+		os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS[@]-}" "${OS_SCRATCH_IMAGE_COMPILE_TARGETS[@]-}"
+		os::build::place_bins "${OS_IMAGE_COMPILE_BINARIES[@]}"
+		echo
 	fi
-}
-
+	# Link or copy primary binaries to the appropriate locations.
+	os::util::ln_or_cp "${imagedir}/openshift"       images/origin/bin
+	os::util::ln_or_cp "${imagedir}/pod"             images/pod/bin
+	os::util::ln_or_cp "${imagedir}/hello-openshift" examples/hello-openshift/bin
+	os::util::ln_or_cp "${imagedir}/gitserver"       examples/gitserver/bin
+	os::util::ln_or_cp "${imagedir}/dockerregistry"  images/dockerregistry/bin
+	# Copy SDN scripts into images/node
+	source "${OS_ROOT}/contrib/node/install-sdn.sh"
+	os::provision::install-sdn "${OS_ROOT}" "${imagedir}" "${OS_ROOT}/images/node"
+	mkdir -p images/node/conf/
+	cp -pf "${OS_ROOT}/contrib/systemd/openshift-sdn-ovs.conf" images/node/conf/
+else
+	os::util::ensure::gopath_binary_exists imagebuilder
+	# image builds require RPMs to have been built
+	os::build::release::check_for_rpms
+	# OS_RELEASE_COMMIT is required by image-build
+	os::build::detect_local_release_tars $(os::build::host_platform_friendly)
+	# we need to mount RPMs into the container builds for installation
+	OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_LOCAL_RPMPATH}/:/srv/origin-local-release/"
+fi
 
 # image-build is wrapped to allow output to be captured
 function image-build() {
@@ -44,15 +60,19 @@ function image-build() {
 		# tag to release commit unless we specified a hardcoded tag
 		extra="${tag}:${OS_RELEASE_COMMIT}"
 	fi
+	local dockerfile=
+	if [[ "${OS_RELEASE:-}" == "n" && -f "${dir}/Dockerfile.dev" ]]; then
+		dockerfile="${dir}/Dockerfile.dev"
+	fi
 
 	local STARTTIME
 	local ENDTIME
 	STARTTIME="$(date +%s)"
 
 	# build the image
-	if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
+	if ! os::build::image "${dir}" "${dest}" "${dockerfile}" "${extra}"; then
 		os::log::warning "Retrying build once"
-		if ! os::build::image "${dir}" "${dest}" "" "${extra}"; then
+		if ! os::build::image "${dir}" "${dest}" "${dockerfile}" "${extra}"; then
 			return 1
 		fi
 	fi
@@ -81,8 +101,8 @@ function image() {
 }
 
 # Link or copy image binaries to the appropriate locations.
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
+os::util::ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
+os::util::ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
 
 # determine the correct tag prefix
 tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
