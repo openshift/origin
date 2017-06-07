@@ -82,6 +82,7 @@ os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ip
 os::cmd::expect_success "openshift admin ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 os::log::info "Waiting for Docker registry pod to start"
+os::cmd::expect_success 'oc get dc/docker-registry -o yaml'
 os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
 os::log::info "Waiting for IP failover to deploy"
