@@ -331,7 +331,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 }
 
 func (c *MasterConfig) RunHealth() error {
-	postGoRestfulMux := genericmux.NewPathRecorderMux()
+	postGoRestfulMux := genericmux.NewPathRecorderMux("master-healthz")
 
 	healthz.InstallHandler(postGoRestfulMux, healthz.PingHealthz)
 	initReadinessCheckRoute(postGoRestfulMux, "/healthz/ready", func() bool { return true })
@@ -508,7 +508,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 
 	initControllerRoutes(server.Handler.GoRestfulContainer, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	// TODO(sttts): use upstream healthz checks for the /healthz/ready route
-	initReadinessCheckRoute(server.Handler.PostGoRestfulMux, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+	initReadinessCheckRoute(server.Handler.NonGoRestfulMux, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 	// TODO(sttts): use upstream version route
 	initVersionRoute(server.Handler.GoRestfulContainer, "/version/openshift")
 
@@ -528,7 +528,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 
 	// Set up OAuth metadata only if we are configured to use OAuth
 	if c.Options.OAuthConfig != nil {
-		initOAuthAuthorizationServerMetadataRoute(server.Handler.PostGoRestfulMux, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+		initOAuthAuthorizationServerMetadataRoute(server.Handler.NonGoRestfulMux, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
 	}
 
 	return messages, nil
