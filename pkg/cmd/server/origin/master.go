@@ -182,7 +182,7 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
 
-	kmaster, err := kc.Master.Complete().New()
+	kmaster, err := kc.Master.Complete().New(apiserver.EmptyDelegate)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
@@ -332,10 +332,9 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 
 func (c *MasterConfig) RunHealth() error {
 	postGoRestfulMux := genericmux.NewPathRecorderMux()
-	apiContainer := genericmux.NewAPIContainer(http.NewServeMux(), kapi.Codecs, postGoRestfulMux)
 
 	healthz.InstallHandler(postGoRestfulMux, healthz.PingHealthz)
-	initReadinessCheckRoute(apiContainer, "/healthz/ready", func() bool { return true })
+	initReadinessCheckRoute(postGoRestfulMux, "/healthz/ready", func() bool { return true })
 	genericroutes.Profiling{}.Install(postGoRestfulMux)
 	genericroutes.MetricsWithReset{}.Install(postGoRestfulMux)
 
@@ -354,7 +353,7 @@ func (c *MasterConfig) RunHealth() error {
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
 	contextMapper := c.getRequestContextMapper()
-	handler := serverhandlers.AuthorizationFilter(apiContainer.ServeMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
+	handler := serverhandlers.AuthorizationFilter(postGoRestfulMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
 	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
 	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
@@ -458,7 +457,6 @@ func isPreferredGroupVersion(gv schema.GroupVersion) bool {
 }
 
 func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) ([]string, error) {
-	apiContainer := server.HandlerContainer
 	messages := []string{}
 	storage := c.GetRestStorage()
 	groupVersions := map[string][]string{}
@@ -502,21 +500,21 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 	messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s", api.Prefix, v1.SchemeGroupVersion.Version))
 
 	// fix API doc string
-	for _, service := range apiContainer.Container.RegisteredWebServices() {
+	for _, service := range server.Handler.GoRestfulContainer.RegisteredWebServices() {
 		if service.RootPath() == api.Prefix+"/"+v1.SchemeGroupVersion.Version {
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
 
-	initControllerRoutes(apiContainer, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
+	initControllerRoutes(server.Handler.GoRestfulContainer, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	// TODO(sttts): use upstream healthz checks for the /healthz/ready route
-	initReadinessCheckRoute(apiContainer, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+	initReadinessCheckRoute(server.Handler.PostGoRestfulMux, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 	// TODO(sttts): use upstream version route
-	initVersionRoute(apiContainer.Container, "/version/openshift")
+	initVersionRoute(server.Handler.GoRestfulContainer, "/version/openshift")
 
 	if c.Options.TemplateServiceBrokerConfig != nil {
 		openservicebrokerserver.Route(
-			apiContainer.Container,
+			server.Handler.GoRestfulContainer,
 			templateapi.ServiceBrokerRoot,
 			templateservicebroker.NewBroker(
 				c.PrivilegedLoopbackClientConfig,
@@ -530,7 +528,7 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 
 	// Set up OAuth metadata only if we are configured to use OAuth
 	if c.Options.OAuthConfig != nil {
-		initOAuthAuthorizationServerMetadataRoute(server.FallThroughHandler, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
+		initOAuthAuthorizationServerMetadataRoute(server.Handler.PostGoRestfulMux, oauthMetadataEndpoint, c.Options.OAuthConfig.MasterPublicURL)
 	}
 
 	return messages, nil
@@ -937,28 +935,20 @@ func checkStorageErr(err error) {
 }
 
 // initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
-func initReadinessCheckRoute(apiContainer *genericmux.APIContainer, path string, readyFunc func() bool) {
-	ws := new(restful.WebService).
-		Path(path).
-		Doc("return the readiness state of the master")
-	ws.Route(ws.GET("/").To(func(req *restful.Request, resp *restful.Response) {
+func initReadinessCheckRoute(mux *genericmux.PathRecorderMux, path string, readyFunc func() bool) {
+	mux.HandleFunc(path, func(w http.ResponseWriter, req *http.Request) {
 		if readyFunc() {
-			resp.ResponseWriter.WriteHeader(http.StatusOK)
-			resp.ResponseWriter.Write([]byte("ok"))
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
 
 		} else {
-			resp.ResponseWriter.WriteHeader(http.StatusServiceUnavailable)
+			w.WriteHeader(http.StatusServiceUnavailable)
 		}
-	}).Doc("return the readiness state of the master").
-		Returns(http.StatusOK, "if the master is ready", nil).
-		Returns(http.StatusServiceUnavailable, "if the master is not ready", nil).
-		Produces(restful.MIME_JSON))
-
-	apiContainer.Add(ws)
+	})
 }
 
 // initMetricsRoute initializes an HTTP endpoint for metrics.
-func initMetricsRoute(apiContainer *genericmux.APIContainer, path string) {
+func initMetricsRoute(apiContainer *restful.Container, path string) {
 	ws := new(restful.WebService).
 		Path(path).
 		Doc("return metrics for this process")
