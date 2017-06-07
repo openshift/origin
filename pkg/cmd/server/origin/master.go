@@ -496,16 +496,10 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 		}
 	}
 
-	legacyStorage := LegacyStorage(storage)
-	legacyAPIVersions := []string{}
-	currentAPIVersions := []string{}
-	if configapi.HasOpenShiftAPILevel(c.Options, v1.SchemeGroupVersion.Version) {
-		if err := c.apiLegacyV1(legacyStorage).InstallREST(apiContainer.Container); err != nil {
-			glog.Fatalf("Unable to initialize v1 API: %v", err)
-		}
-		messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s", api.Prefix, v1.SchemeGroupVersion.Version))
-		currentAPIVersions = append(currentAPIVersions, v1.SchemeGroupVersion.Version)
+	if err := server.InstallLegacyAPIGroup(api.Prefix, c.apiLegacyV1(LegacyStorage(storage))); err != nil {
+		glog.Fatalf("Unable to initialize v1 API: %v", err)
 	}
+	messages = append(messages, fmt.Sprintf("Started Origin API at %%s%s/%s", api.Prefix, v1.SchemeGroupVersion.Version))
 
 	// fix API doc string
 	for _, service := range apiContainer.Container.RegisteredWebServices() {
@@ -513,13 +507,6 @@ func (c *MasterConfig) InstallProtectedAPI(server *apiserver.GenericAPIServer) (
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
-
-	// The old API prefix must continue to return 200 (with an empty versions
-	// list) for backwards compatibility, even though we won't service any other
-	// requests through the route. Take care when considering whether to delete
-	// this route.
-	initAPIVersionRoute(apiContainer, api.LegacyPrefix, legacyAPIVersions...)
-	initAPIVersionRoute(apiContainer, api.Prefix, currentAPIVersions...)
 
 	initControllerRoutes(apiContainer, "/controllers", c.Options.Controllers != configapi.ControllersDisabled, c.ControllerPlug)
 	// TODO(sttts): use upstream healthz checks for the /healthz/ready route
@@ -949,26 +936,6 @@ func checkStorageErr(err error) {
 	}
 }
 
-// initAPIVersionRoute initializes the osapi endpoint to behave similar to the upstream api endpoint
-func initAPIVersionRoute(apiContainer *genericmux.APIContainer, prefix string, versions ...string) {
-	versionHandler := apiendpoints.APIVersionHandler(kapi.Codecs, func(req *restful.Request) *metav1.APIVersions {
-		apiVersionsForDiscovery := metav1.APIVersions{
-			// TODO: ServerAddressByClientCIDRs: s.getServerAddressByClientCIDRs(req.Request),
-			Versions: versions,
-		}
-		return &apiVersionsForDiscovery
-	})
-	ws := new(restful.WebService).
-		Path(prefix).
-		Doc("list supported server API versions")
-	ws.Route(ws.GET("/").To(versionHandler).
-		Doc("list supported server API versions").
-		Produces(restful.MIME_JSON).
-		Consumes(restful.MIME_JSON).
-		Operation("get" + strings.Title(prefix[1:]) + "Version"))
-	apiContainer.Add(ws)
-}
-
 // initReadinessCheckRoute initializes an HTTP endpoint for readiness checking
 func initReadinessCheckRoute(apiContainer *genericmux.APIContainer, path string, readyFunc func() bool) {
 	ws := new(restful.WebService).
@@ -1045,7 +1012,17 @@ func (c *MasterConfig) defaultAPIGroupVersion() *apiendpoints.APIGroupVersion {
 }
 
 // apiLegacyV1 returns the resources and codec for API version v1.
-func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiendpoints.APIGroupVersion {
+func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiserver.APIGroupInfo {
+	apiGroupInfo := &apiserver.APIGroupInfo{
+		GroupMeta:                    *kapi.Registry.GroupOrDie(api.GroupName),
+		VersionedResourcesStorageMap: map[string]map[string]rest.Storage{},
+		Scheme: kapi.Scheme,
+		// version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
+		ParameterCodec:              kapi.ParameterCodec,
+		NegotiatedSerializer:        kapi.Codecs,
+		SubresourceGroupVersionKind: map[string]schema.GroupVersionKind{},
+	}
+
 	storage := make(map[string]rest.Storage)
 	for k, v := range all {
 		if excludedV1Types.Has(k) {
@@ -1053,13 +1030,9 @@ func (c *MasterConfig) apiLegacyV1(all map[string]rest.Storage) *apiendpoints.AP
 		}
 		storage[strings.ToLower(k)] = v
 	}
-	version := c.defaultAPIGroupVersion()
-	version.Storage = storage
-	version.GroupVersion = v1.SchemeGroupVersion
-	version.Serializer = kapi.Codecs
-	version.ParameterCodec = runtime.NewParameterCodec(kapi.Scheme)
-	version.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
-	return version
+	apiGroupInfo.VersionedResourcesStorageMap["v1"] = storage
+	apiGroupInfo.SubresourceGroupVersionKind["deploymentconfigs/scale"] = v1beta1extensions.SchemeGroupVersion.WithKind("Scale")
+	return apiGroupInfo
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed

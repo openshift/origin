@@ -78,7 +78,7 @@ const DefaultWatchCacheSize = 1000
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
-var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
+var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
