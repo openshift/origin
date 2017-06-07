@@ -1,6 +1,9 @@
 package htpasswd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPasswordHashes(t *testing.T) {
 	testCases := []struct {
@@ -54,8 +57,8 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "crypt empty",
 			Password: "",
 			Hash:     "lNO4S8u4F4oNo",
-			Match:    false, // TODO: change to true if/when we add crypt support
-			Error:    true,  // TODO: change to false if/when we add crypt support
+			Match:    true,
+			Error:    false,
 		},
 		// htpasswd -d -n -b "username" "password"
 		// username:.zs/E.NK2vwFs
@@ -63,15 +66,15 @@ func TestPasswordHashes(t *testing.T) {
 			Name:     "crypt match",
 			Password: "password",
 			Hash:     ".zs/E.NK2vwFs",
-			Match:    false, // TODO: change to true if/when we add crypt support
-			Error:    true,  // TODO: change to false if/when we add crypt support
+			Match:    true,
+			Error:    false,
 		},
 		{
 			Name:     "crypt mismatch",
 			Password: "mypassword",
 			Hash:     ".zs/E.NK2vwFs",
-			Match:    false, // TODO: change to true if/when we add crypt support
-			Error:    true,  // TODO: change to false if/when we add crypt support
+			Match:    false,
+			Error:    false,
 		},
 		{
 			Name:     "crypt missing salt",
@@ -170,12 +173,23 @@ func TestPasswordHashes(t *testing.T) {
 			Match:    false,
 			Error:    true,
 		},
+
+		{
+			Name:     "crypt() with hash",
+			Password: "blah",
+			Hash:     "$1$HRN2HyTi$zuOdFM3DN1WiR0T/e.FS3.",
+			Match:    true,
+			Error:    false,
+		},
 	}
 
 	for _, testCase := range testCases {
 		match, err := testPassword(testCase.Password, testCase.Hash)
 		if testCase.Error != (err != nil) {
-			t.Errorf("%s: Expected error=%v, got %v", testCase.Name, testCase.Error, err)
+			// For crypt() on non-Linux platforms
+			if !strings.Contains(err.Error(), "not supported on this platform") {
+				t.Errorf("%s: Expected error=%v, got %v", testCase.Name, testCase.Error, err)
+			}
 		}
 		if match != testCase.Match {
 			t.Errorf("%s: Expected match=%v, got %v", testCase.Name, testCase.Match, match)
