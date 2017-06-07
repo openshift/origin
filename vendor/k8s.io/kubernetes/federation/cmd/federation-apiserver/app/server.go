@@ -45,6 +45,8 @@ import (
 	"k8s.io/kubernetes/pkg/generated/openapi"
 	"k8s.io/kubernetes/pkg/kubeapiserver"
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	kubeoptions "k8s.io/kubernetes/pkg/kubeapiserver/options"
+	kubeserver "k8s.io/kubernetes/pkg/kubeapiserver/server"
 	quotainstall "k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/routes"
@@ -82,7 +84,10 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 // stop with the given channel.
 func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
+		return err
+	}
+	if err := kubeoptions.DefaultAdvertiseAddress(s.GenericServerRunOptions, s.InsecureServing); err != nil {
 		return err
 	}
 	if err := s.SecureServing.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String()); err != nil {
@@ -103,7 +108,8 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return err
 	}
-	if err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
+	insecureServingOptions, err := s.InsecureServing.ApplyTo(genericConfig)
+	if err != nil {
 		return err
 	}
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
@@ -236,6 +242,14 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	// TODO: Uncomment this once 1.6 is released.
 	//	installBatchAPIs(m, genericConfig.RESTOptionsGetter)
 	//	installAutoscalingAPIs(m, genericConfig.RESTOptionsGetter)
+
+	// run the insecure server now
+	if insecureServingOptions != nil {
+		insecureHandlerChain := kubeserver.BuildInsecureHandlerChain(m.HandlerContainer.ServeMux, genericConfig)
+		if err := kubeserver.NonBlockingRun(insecureServingOptions, insecureHandlerChain, stopCh); err != nil {
+			return err
+		}
+	}
 
 	err = m.PrepareRun().NonBlockingRun(stopCh)
 	if err == nil {
