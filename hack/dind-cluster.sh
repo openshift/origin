@@ -782,7 +782,7 @@ The following environment variables are honored:
  - OPENSHIFT_CONFIG_BASE: Where the cluster configs are written, move somewhere persistent if you
       want to pause and resume across reboots.  Default: '${TMPDIR}/openshift-dind-cluster'
  - OPENSHIFT_CONFIG_ROOT: Where this specific cluster config is written.
-      Default: '${OPENSHIFT_CONFIG_BASE}/${OPENSHIFT_CLUSTER_ID}'
+      Default: '\${OPENSHIFT_CONFIG_BASE}/\${OPENSHIFT_CLUSTER_ID}'
 "
     exit 2
 esac
