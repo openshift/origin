@@ -245,8 +245,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	}
 
 	// create config from options
-	genericConfig := apiserver.NewConfig().
-		WithSerializer(kapi.Codecs)
+	genericConfig := apiserver.NewConfig(kapi.Codecs)
 
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
