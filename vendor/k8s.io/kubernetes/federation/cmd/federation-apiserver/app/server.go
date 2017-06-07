@@ -99,9 +99,7 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		return utilerrors.NewAggregate(errs)
 	}
 
-	genericConfig := genericapiserver.NewConfig().
-		WithSerializer(api.Codecs)
-
+	genericConfig := genericapiserver.NewConfig(api.Codecs)
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return err
 	}
