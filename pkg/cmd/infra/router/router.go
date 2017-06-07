@@ -2,6 +2,8 @@ package router
 
 import (
 	"fmt"
+	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
@@ -300,4 +302,16 @@ func hostInDomainList(host string, domains sets.String) bool {
 	}
 
 	return false
+}
+
+func startProfiler() {
+	if cmdutil.Env("OPENSHIFT_PROFILE", "") == "web" {
+		go func() {
+			runtime.SetBlockProfileRate(1)
+			profilePort := cmdutil.Env("OPENSHIFT_PROFILE_PORT", "6061")
+			profileHost := cmdutil.Env("OPENSHIFT_PROFILE_HOST", "127.0.0.1")
+			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
+			glog.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
+		}()
+	}
 }

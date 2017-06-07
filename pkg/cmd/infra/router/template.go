@@ -218,6 +218,8 @@ func (o *TemplateRouterOptions) Validate() error {
 
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
+	startProfiler()
+
 	var reloadCallbacks []func()
 	switch {
 	case o.MetricsType == "haproxy" && len(o.ListenAddr) > 0:

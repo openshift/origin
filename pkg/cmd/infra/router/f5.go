@@ -197,6 +197,8 @@ func (o *F5RouterOptions) F5RouteAdmitterFunc() controller.RouteAdmissionFunc {
 
 // Run launches an F5 route sync process using the provided options. It never exits.
 func (o *F5RouterOptions) Run() error {
+	startProfiler()
+
 	cfg := f5plugin.F5PluginConfig{
 		Host:            o.Host,
 		Username:        o.Username,
