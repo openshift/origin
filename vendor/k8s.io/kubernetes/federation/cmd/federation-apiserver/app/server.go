@@ -227,13 +227,13 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		cachesize.SetWatchCacheSizes(s.GenericServerRunOptions.WatchCacheSizes)
 	}
 
-	m, err := genericConfig.Complete().New()
+	m, err := genericConfig.Complete().New(genericapiserver.EmptyDelegate)
 	if err != nil {
 		return err
 	}
 
-	routes.UIRedirect{}.Install(m.FallThroughHandler)
-	routes.Logs{}.Install(m.HandlerContainer)
+	routes.UIRedirect{}.Install(m.Handler.PostGoRestfulMux)
+	routes.Logs{}.Install(m.Handler.GoRestfulContainer)
 
 	installFederationAPIs(m, genericConfig.RESTOptionsGetter)
 	installCoreAPIs(s, m, genericConfig.RESTOptionsGetter)
@@ -245,7 +245,7 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 
 	// run the insecure server now
 	if insecureServingOptions != nil {
-		insecureHandlerChain := kubeserver.BuildInsecureHandlerChain(m.HandlerContainer.ServeMux, genericConfig)
+		insecureHandlerChain := kubeserver.BuildInsecureHandlerChain(m.UnprotectedHandler(), genericConfig)
 		if err := kubeserver.NonBlockingRun(insecureServingOptions, insecureHandlerChain, stopCh); err != nil {
 			return err
 		}
