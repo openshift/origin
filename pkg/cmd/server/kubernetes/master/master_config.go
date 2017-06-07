@@ -124,7 +124,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Features.EnableProfiling = true
 	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
-	server.SecureServing.ServingOptions.BindPort = port
+	server.SecureServing.BindPort = port
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
@@ -222,7 +222,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 // ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
 func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
 		return nil, err
 	}
 	// In origin: certs should be available:
@@ -256,7 +256,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
+	if _, err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
 	if err := s.Audit.ApplyTo(genericConfig); err != nil {

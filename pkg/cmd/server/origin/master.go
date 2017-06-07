@@ -177,7 +177,7 @@ func (c *MasterConfig) Run(kc *kubernetes.MasterConfig, assetConfig *AssetConfig
 		messages []string
 		err      error
 	)
-	kc.Master.GenericConfig.BuildHandlerChainsFunc, messages, err = c.buildHandlerChain(assetConfig)
+	kc.Master.GenericConfig.BuildHandlerChainFunc, messages, err = c.buildHandlerChain(assetConfig)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
@@ -251,7 +251,7 @@ func (c *MasterConfig) kubernetesAPIMessages(kc *kubernetes.MasterConfig) []stri
 	return messages
 }
 
-func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure, insecure http.Handler), []string, error) {
+func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure http.Handler), []string, error) {
 	var messages []string
 	if c.Options.OAuthConfig != nil {
 		messages = append(messages, fmt.Sprintf("Started OAuth2 API at %%s%s", OpenShiftOAuthAPIPrefix))
@@ -266,7 +266,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 	}
 
 	// TODO(sttts): resync with upstream handler chain and re-use upstream filters as much as possible
-	return func(apiHandler http.Handler, kc *apiserver.Config) (secure, insecure http.Handler) {
+	return func(apiHandler http.Handler, kc *apiserver.Config) (secure http.Handler) {
 		contextMapper := c.getRequestContextMapper()
 
 		handler := c.versionSkewFilter(apiHandler, contextMapper)
@@ -326,7 +326,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kc), contextMapper)
 		handler = apirequest.WithRequestContext(handler, contextMapper)
 
-		return handler, nil
+		return handler
 	}, messages, nil
 }
 
