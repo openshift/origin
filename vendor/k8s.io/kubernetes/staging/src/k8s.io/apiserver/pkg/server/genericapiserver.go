@@ -164,7 +164,8 @@ type DelegationTarget interface {
 }
 
 func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
-	return s.Handler.GoRestfulContainer.ServeMux
+	// when we delegate, we need the server we're delegating to choose whether or not to use gorestful
+	return s.Handler.Director
 }
 func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
 	return s.postStartHooks
@@ -231,7 +232,7 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.openAPIConfig != nil {
 		routes.OpenAPI{
 			Config: s.openAPIConfig,
-		}.Install(s.Handler.GoRestfulContainer, s.Handler.PostGoRestfulMux)
+		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
 	}
 
 	s.installHealthz()

@@ -130,7 +130,7 @@ func (c *Config) SkipComplete() completedConfig {
 
 // New returns a new instance of APIAggregator from the given config.
 func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.DelegationTarget, stopCh <-chan struct{}) (*APIAggregator, error) {
-	genericServer, err := c.Config.GenericConfig.SkipComplete().New(delegationTarget) // completion is done in Complete, no need for a second time
+	genericServer, err := c.Config.GenericConfig.SkipComplete().New("kube-aggregator", delegationTarget) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
 	}
@@ -173,8 +173,8 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		codecs: Codecs,
 		lister: s.lister,
 	}
-	s.GenericAPIServer.Handler.PostGoRestfulMux.Handle("/apis", apisHandler)
-	s.GenericAPIServer.Handler.PostGoRestfulMux.UnlistedHandle("/apis/", apisHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle("/apis", apisHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandle("/apis/", apisHandler)
 
 	apiserviceRegistrationController := NewAPIServiceRegistrationController(informerFactory.Apiregistration().InternalVersion().APIServices(), kubeInformers.Core().V1().Services(), s)
 	availableController := statuscontrollers.NewAvailableConditionController(
@@ -226,8 +226,8 @@ func (s *APIAggregator) AddAPIService(apiService *apiregistration.APIService, de
 	}
 	proxyHandler.updateAPIService(apiService, destinationHost)
 	s.proxyHandlers[apiService.Name] = proxyHandler
-	s.GenericAPIServer.Handler.PostGoRestfulMux.Handle(proxyPath, proxyHandler)
-	s.GenericAPIServer.Handler.PostGoRestfulMux.UnlistedHandlePrefix(proxyPath+"/", proxyHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(proxyPath, proxyHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix(proxyPath+"/", proxyHandler)
 
 	// if we're dealing with the legacy group, we're done here
 	if apiService.Name == legacyAPIServiceName {
@@ -248,8 +248,8 @@ func (s *APIAggregator) AddAPIService(apiService *apiregistration.APIService, de
 		delegate:  s.delegateHandler,
 	}
 	// aggregation is protected
-	s.GenericAPIServer.Handler.PostGoRestfulMux.Handle(groupPath, groupDiscoveryHandler)
-	s.GenericAPIServer.Handler.PostGoRestfulMux.UnlistedHandle(groupPath+"/", groupDiscoveryHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(groupPath, groupDiscoveryHandler)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandle(groupPath+"/", groupDiscoveryHandler)
 	s.handledGroups.Insert(apiService.Spec.Group)
 }
 
@@ -263,8 +263,8 @@ func (s *APIAggregator) RemoveAPIService(apiServiceName string) {
 	if apiServiceName == legacyAPIServiceName {
 		proxyPath = "/api"
 	}
-	s.GenericAPIServer.Handler.PostGoRestfulMux.Unregister(proxyPath)
-	s.GenericAPIServer.Handler.PostGoRestfulMux.Unregister(proxyPath + "/")
+	s.GenericAPIServer.Handler.NonGoRestfulMux.Unregister(proxyPath)
+	s.GenericAPIServer.Handler.NonGoRestfulMux.Unregister(proxyPath + "/")
 	delete(s.proxyHandlers, apiServiceName)
 
 	// TODO unregister group level discovery when there are no more versions for the group

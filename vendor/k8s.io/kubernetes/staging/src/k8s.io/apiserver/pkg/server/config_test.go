@@ -45,11 +45,11 @@ func TestNewWithDelegate(t *testing.T) {
 		return fmt.Errorf("delegate failed healthcheck")
 	}))
 
-	delegateServer, err := delegateConfig.SkipComplete().New(EmptyDelegate)
+	delegateServer, err := delegateConfig.SkipComplete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatal(err)
 	}
-	delegateServer.Handler.PostGoRestfulMux.HandleFunc("/foo", func(w http.ResponseWriter, _ *http.Request) {
+	delegateServer.Handler.NonGoRestfulMux.HandleFunc("/foo", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 	})
 
@@ -73,11 +73,11 @@ func TestNewWithDelegate(t *testing.T) {
 		return fmt.Errorf("wrapping failed healthcheck")
 	}))
 
-	wrappingServer, err := wrappingConfig.Complete().New(delegateServer)
+	wrappingServer, err := wrappingConfig.Complete().New("test", delegateServer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	wrappingServer.Handler.PostGoRestfulMux.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
+	wrappingServer.Handler.NonGoRestfulMux.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 	})
 
@@ -104,7 +104,7 @@ func TestNewWithDelegate(t *testing.T) {
     "/healthz/poststarthook/delegate-post-start-hook",
     "/healthz/poststarthook/wrapping-post-start-hook",
     "/healthz/wrapping-health",
-    "/swaggerapi/"
+    "/swaggerapi"
   ]
 }`, t)
 	checkPath(server.URL+"/healthz", http.StatusInternalServerError, `[+]ping ok

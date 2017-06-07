@@ -106,7 +106,7 @@ func setUp(t *testing.T) (*etcdtesting.EtcdTestServer, Config, *assert.Assertion
 func newMaster(t *testing.T) (*GenericAPIServer, *etcdtesting.EtcdTestServer, Config, *assert.Assertions) {
 	etcdserver, config, assert := setUp(t)
 
-	s, err := config.Complete().New(EmptyDelegate)
+	s, err := config.Complete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatalf("Error in bringing up the server: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestInstallAPIGroups(t *testing.T) {
 	config.LegacyAPIGroupPrefixes = sets.NewString("/apiPrefix")
 	config.DiscoveryAddresses = discovery.DefaultAddresses{DefaultAddress: "ExternalAddress"}
 
-	s, err := config.SkipComplete().New(EmptyDelegate)
+	s, err := config.SkipComplete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatalf("Error in bringing up the server: %v", err)
 	}
@@ -302,7 +302,7 @@ func TestPrepareRun(t *testing.T) {
 	assert.NotNil(config.SwaggerConfig)
 	// assert.NotNil(config.OpenAPIConfig)
 
-	server := httptest.NewServer(s.Handler.GoRestfulContainer.ServeMux)
+	server := httptest.NewServer(s.Handler.Director)
 	defer server.Close()
 
 	s.PrepareRun()
@@ -343,13 +343,13 @@ func TestCustomHandlerChain(t *testing.T) {
 		called = true
 	})
 
-	s, err := config.SkipComplete().New(EmptyDelegate)
+	s, err := config.SkipComplete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatalf("Error in bringing up the server: %v", err)
 	}
 
-	s.Handler.PostGoRestfulMux.Handle("/nonswagger", handler)
-	s.Handler.PostGoRestfulMux.Handle("/secret", handler)
+	s.Handler.NonGoRestfulMux.Handle("/nonswagger", handler)
+	s.Handler.NonGoRestfulMux.Handle("/secret", handler)
 
 	type Test struct {
 		handler   http.Handler
@@ -398,7 +398,7 @@ func TestNotRestRoutesHaveAuth(t *testing.T) {
 	kubeVersion := fakeVersion()
 	config.Version = &kubeVersion
 
-	s, err := config.SkipComplete().New(EmptyDelegate)
+	s, err := config.SkipComplete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatalf("Error in bringing up the server: %v", err)
 	}
