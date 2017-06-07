@@ -12,11 +12,6 @@ function ensure-node-config() {
   local deployed_config_path="/var/lib/origin/openshift.local.config/node"
   local deployed_config_file="${deployed_config_path}/node-config.yaml"
 
-  if [[ -f "${deployed_config_file}" ]]; then
-    # Config has already been deployed
-    return
-  fi
-
   local config_path="/data/openshift.local.config"
   local host
   host="$(hostname)"
@@ -25,6 +20,11 @@ function ensure-node-config() {
   fi
   local node_config_path="${config_path}/node-${host}"
   local node_config_file="${node_config_path}/node-config.yaml"
+
+  if [[ -f "${deployed_config_file}" && -f "${node_config_file}" ]]; then
+    # Config has already been deployed and they have not removed the node config to indicate a regen is needed
+    return
+  fi
 
   # If the node config has not been generated
   if [[ ! -f "${node_config_file}" ]]; then
@@ -66,8 +66,13 @@ kubeletArguments:
 EOF
   fi
 
-  # ensure the configuration is readable outside of the container
+  # Ensure the configuration is readable outside of the container
   chmod -R ga+rX "${node_config_path}"
+
+  # Remove any old config in case we are reloading
+  if [[ -d "${deployed_config_path}" ]]; then
+      rm -rf "${deployed_config_path}"
+  fi
 
   # Deploy the node config
   mkdir -p "${deployed_config_path}"
