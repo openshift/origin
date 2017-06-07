@@ -137,7 +137,7 @@ function os::util::environment::setup_tmpdir_vars() {
     VOLUME_DIR="${BASETMPDIR}/volumes"
     export VOLUME_DIR
 
-    BASEOUTDIR="${OS_ROOT}/_output/scripts/${sub_dir}"
+    BASEOUTDIR="${OS_OUTPUT_SCRIPTPATH}/${sub_dir}"
     export BASEOUTDIR
     LOG_DIR="${LOG_DIR:-${BASEOUTDIR}/logs}"
     export LOG_DIR
