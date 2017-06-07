@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"path"
 	"reflect"
@@ -291,10 +292,23 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		GroupCache:            groupCache,
 	}
 
-	// TODO if we want to support WantsAuthorizer, we need to pass in a kube
-	// Authorizer as the 2nd arg. It's currently only used by PSP.
+	// punch through layers to build this in order to get a string for a cloud provider file
+	// TODO refactor us into a forward building flow with a side channel like this
+	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
+	if err != nil {
+		return nil, err
+	}
+
+	var cloudConfig []byte
+	if kubeOptions.CloudProvider.CloudConfigFile != "" {
+		var err error
+		cloudConfig, err = ioutil.ReadFile(kubeOptions.CloudProvider.CloudConfigFile)
+		if err != nil {
+			return nil, fmt.Errorf("Error reading from cloud configuration file %s: %v", kubeOptions.CloudProvider.CloudConfigFile, err)
+		}
+	}
 	// note: we are passing a combined quota registry here...
-	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, internalkubeInformerFactory, nil, nil, quotaRegistry)
+	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, internalkubeInformerFactory, authorizer, cloudConfig, quotaRegistry)
 	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientsetInternal, pluginInitializer, kubePluginInitializer)
 	if err != nil {
 		return nil, err
