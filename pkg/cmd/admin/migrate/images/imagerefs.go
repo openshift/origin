@@ -194,7 +194,7 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 			changed = true
 			t.DockerImageReference = updated
 		}
-		return reporter(changed), nil
+		return migrate.ReporterBool(changed), nil
 	case *imageapi.ImageStream:
 		var info imageChangeInfo
 		if len(t.Spec.DockerImageRepository) > 0 {
@@ -220,30 +220,30 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 				return nil, err
 			}
 			if !updateDockerConfig(v, o.Mappings.MapDockerAuthKey) {
-				return reporter(false), nil
+				return migrate.ReporterBool(false), nil
 			}
 			data, err := json.Marshal(v)
 			if err != nil {
 				return nil, err
 			}
 			t.Data[kapi.DockerConfigKey] = data
-			return reporter(true), nil
+			return migrate.ReporterBool(true), nil
 		case kapi.SecretTypeDockerConfigJson:
 			var v credentialprovider.DockerConfigJson
 			if err := json.Unmarshal(t.Data[kapi.DockerConfigJsonKey], &v); err != nil {
 				return nil, err
 			}
 			if !updateDockerConfig(v.Auths, o.Mappings.MapDockerAuthKey) {
-				return reporter(false), nil
+				return migrate.ReporterBool(false), nil
 			}
 			data, err := json.Marshal(v)
 			if err != nil {
 				return nil, err
 			}
 			t.Data[kapi.DockerConfigJsonKey] = data
-			return reporter(true), nil
+			return migrate.ReporterBool(true), nil
 		default:
-			return reporter(false), nil
+			return migrate.ReporterBool(false), nil
 		}
 	case *buildapi.BuildConfig:
 		var changed bool
@@ -264,7 +264,7 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 		if c := t.Spec.Strategy.SourceStrategy; c != nil && c.From.Kind == "DockerImage" {
 			changed = updateString(&c.From.Name, fn) || changed
 		}
-		return reporter(changed), nil
+		return migrate.ReporterBool(changed), nil
 	default:
 		if o.UpdatePodSpecFn != nil {
 			var changed bool
@@ -278,19 +278,12 @@ func (o *MigrateImageReferenceOptions) transform(obj runtime.Object) (migrate.Re
 			if err != nil {
 				return nil, err
 			}
-			return reporter(changed), nil
+			return migrate.ReporterBool(changed), nil
 		}
 	}
 	// TODO: implement use of the generic PodTemplate accessor from the factory to handle
 	// any object with a pod template
 	return nil, nil
-}
-
-// reporter implements the Reporter interface for a boolean.
-type reporter bool
-
-func (r reporter) Changed() bool {
-	return bool(r)
 }
 
 // imageChangeInfo indicates whether the spec or status of an image stream was changed.

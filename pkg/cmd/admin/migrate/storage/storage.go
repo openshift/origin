@@ -1,4 +1,4 @@
-package images
+package storage
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -189,9 +188,7 @@ func (o MigrateAPIStorageOptions) Validate() error {
 }
 
 func (o MigrateAPIStorageOptions) Run() error {
-	return o.ResourceOptions.Visitor().Visit(func(info *resource.Info) (migrate.Reporter, error) {
-		return o.transform(info.Object)
-	})
+	return o.ResourceOptions.Visitor().Visit(migrate.AlwaysRequiresMigration)
 }
 
 // save invokes the API to alter an object. The reporter passed to this method is the same returned by
@@ -236,17 +233,4 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 		}
 	}
 	return nil
-}
-
-// transform checks image references on the provided object and returns either a reporter (indicating
-// that the object was recognized and whether it was updated) or an error.
-func (o *MigrateAPIStorageOptions) transform(obj runtime.Object) (migrate.Reporter, error) {
-	return reporter(true), nil
-}
-
-// reporter implements the Reporter interface for a boolean.
-type reporter bool
-
-func (r reporter) Changed() bool {
-	return bool(r)
 }
