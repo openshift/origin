@@ -7,7 +7,7 @@
 FROM openshift/origin-base
 
 RUN INSTALL_PKGS="origin-federation-services" && \
-    yum install -y ${INSTALL_PKGS} && \
+    yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all && \
     ln -s /usr/bin/hyperkube /hyperkube
