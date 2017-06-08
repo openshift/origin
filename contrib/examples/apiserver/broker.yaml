@@ -1,0 +1,12 @@
+apiVersion: servicecatalog.k8s.io/v1alpha1
+kind: Broker
+metadata:
+  name: test-broker
+spec:
+  url: http://beefco.de
+  # put the basic auth for the broker in a secret, and reference the secret here.
+  # service-catalog will use the contents of the secret. The secret should have "username"
+  # and "password" keys
+  authSecret:
+    namespace: some-namespace
+    name: secret-name

@@ -1,0 +1,83 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-controller-manager
+  labels:
+    app: {{ template "fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "fullname" . }}-controller-manager
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}-controller-manager
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      containers:
+      - name: controller-manager
+        image: {{ .Values.controllerManager.image }}
+        imagePullPolicy: {{ .Values.controllerManager.imagePullPolicy }}
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+        args:
+        - --port
+        - "8080"
+        {{- if not .Values.useAggregator }}
+        - --service-catalog-api-server-url
+        {{- if .Values.apiserver.insecure }}
+        - http://{{ template "fullname" . }}-apiserver
+        {{- else }}
+        - https://{{ template "fullname" . }}-apiserver
+        {{- end }}
+        {{- end }}
+        - -v
+        - "{{ .Values.controllerManager.verbosity }}"
+        - --resync-interval
+        - {{ .Values.controllerManager.resyncInterval }}
+        {{ if .Values.controllerManager.brokerRelistIntervalActivated -}}
+        - --broker-relist-interval
+        - {{ .Values.controllerManager.brokerRelistInterval }}
+        {{- end }}
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: service-catalog-cert
+          mountPath: /etc/service-catalog-ssl
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            port: 8080
+            path: /healthz
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            port: 8080
+            path: /healthz
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+      volumes:
+      - name: service-catalog-cert
+        secret:
+          secretName: {{ template "fullname" . }}-apiserver-cert
+          items:
+          - key: tls.crt
+            path: apiserver.crt

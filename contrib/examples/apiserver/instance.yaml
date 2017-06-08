@@ -1,0 +1,8 @@
+apiVersion: servicecatalog.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: test-instance
+  namespace: test-ns
+spec:
+  serviceClassName: test-serviceclass
+  planName: example-plan-1
