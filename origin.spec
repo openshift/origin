@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ab9b0ff9a359d5f77d98812a1c65915d6acf123e
+%global commit 1537aa182bc9c1296377469e8e447fe9a1d95aaf
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.98 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ab9b0ff
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.99 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1537aa1
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.99
+Version:        3.6.100
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -644,6 +644,46 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.100-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console f83022a
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f70768f21d2470f62c8fdd5d0b6fdafe2cf73e7a (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  774891b62dc176a0c17f9e7674cda69d8c010ea2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a18e11e64b454a3eea8dbda6dcec6c56fb3310bd (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ad1da6b7a0346ee473d8e19c8c9bbb8d6addf145 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f868176cbd4e5db14b98410b46e1b66e13198c90 (dmcphers+openshiftbot@redhat.com)
+- bump(k8s.io/kubernetes): 010d313ca749b4005269f1cd1b9cd17168635490
+  (deads@redhat.com)
+- UPSTREAM: 43922: prevent corrupted spdy stream after hijacking connection
+  (maszulik@redhat.com)
+- Remove -p from oc exec in end-to-end, since it's deprecated
+  (maszulik@redhat.com)
+- Re-enable e2e tests that were failing due to #12558 (maszulik@redhat.com)
+- Turn off journald rate limiter when running test-end-to-end-docker.sh
+  (maszulik@redhat.com)
+- Push origin-cluster-capacity image to docker hub. (avagarwa@redhat.com)
+- Bug 1450291 - Improve logs in image pruning (maszulik@redhat.com)
+- Remove duplicate migrate code (mkhan@redhat.com)
+- UPSTREAM: <drop>: Backwards compatibility with etcd 3.2 and Go 1.7.5
+  (ccoleman@redhat.com)
+- UPSTREAM: coreos/etcd: <drop>: Backwards compatibility to Go 1.7.5
+  (ccoleman@redhat.com)
+- bump(github.com/coreos/etcd):v3.2.0-rc.1 (ccoleman@redhat.com)
+- do ugly things to wire a cloudconfig file (deads@redhat.com)
+- Move compress AWK script into hack/lib (skuznets@redhat.com)
+- Add OPENSHIFT_CONFIG_BASE environment, and doc the env (bbennett@redhat.com)
+- Source bash completions from the dind cluster rc script (bbennett@redhat.com)
+- Skip sudo if there is a writable docker socket (bbennett@redhat.com)
+- Add new commands to hack/dind-cluster.sh (bbennett@redhat.com)
+- Do some cleanups to the shell script in preparation for adding features
+  (bbennett@redhat.com)
+- Revert "disable image-references" (maszulik@redhat.com)
+
 * Wed Jun 07 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.99-1
 - 
 
