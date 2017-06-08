@@ -21,6 +21,158 @@ function scrub() {
   echo "${val//-/_}"
 }
 
+#
+#  Tests if an IPv4 address is valid
+#  Echos true (0) if valid, false (1) if invalid 
+#
+#  Examples:
+#     validate_ipv4 192.0.2.3
+#         # -> 0 
+#
+#     validate_ipv4 192.0.3.4.0 
+#         # -> 1 
+#
+#     validate_ipv4 192.0.2 
+#         # -> 1 
+#
+function validate_ipv4() {
+  local IPv4_GROUP="[0-2]?[0-9]{1,2}"
+  local IPv4_SHAPE="^(${IPv4_GROUP}\.){3,3}(${IPv4_GROUP})$"
+  local is_valid=0
+  local i
+
+  if [[ ${1} =~ ${IPv4_SHAPE} ]]; then
+    for i in $(echo ${1} | tr "." " "); do
+      if [ $i -gt 255 ]; then
+        is_valid=1
+      fi
+    done
+  else
+    is_valid=1
+  fi
+  return ${is_valid}
+}
+
+#
+#  Tests if an IPv6 address is valid
+#  Returns true (0) if valid, false (1) if invalid 
+#
+#  Examples:
+#     validate_ipv6 2001:DB8:1:E32:FFFF:3:19:39FB 
+#         # -> 0 
+#
+#     validate_ipv6 2001:DB8::39FB 
+#         # -> 0 
+#
+#     validate_ipv6 2001::DB8::39FB 
+#         # -> 1 
+#
+function validate_ipv6() {
+  local IPv6_GROUP="[[:xdigit:]]{1,4}"
+  local IPv6_SHAPE1="^(${IPv6_GROUP}:){7,7}(${IPv6_GROUP})$"
+  local IPv6_SHAPE2="^::(${IPv6_GROUP}:){0,6}(${IPv6_GROUP})$"
+  local IPv6_SHAPE3="^(${IPv6_GROUP}:){0,6}:(${IPv6_GROUP}:){0,6}(${IPv6_GROUP})$"
+  local VALID_SHAPE3="^(${IPv6_GROUP}:+){1,6}(${IPv6_GROUP})$"
+
+  local is_valid=1
+
+  if [[ ${1} =~ ${IPv6_SHAPE1} ]]; then
+    is_valid=0
+  fi
+
+  if [[ ${1} =~ ${IPv6_SHAPE2} ]]; then
+    is_valid=0
+  fi
+   
+  if [[ ${1} =~ ${IPv6_SHAPE3} ]]; then
+    if [[ ${1} =~ ${VALID_SHAPE3} ]]; then
+      is_valid=0
+    fi
+  fi
+  return ${is_valid}
+}
+
+#
+#  Expands list of IPv4 addresses. List elements can be an IP address
+#  range or an IP address.
+#
+#  Examples:
+#     expand_ipv4_range "3.3.3.3-4"
+#         # -> 3.3.3.3 3.3.3.4
+#
+#     expand_ipv4_range "10.1.1.100-100"
+#         # -> 10.1.1.100
+#
+#     expand_ipv4_range "10.1.1.100"
+#         # -> 10.1.1.100
+#
+function expand_ipv4_range() {
+  local expandedset=()
+  local ip1=$(echo "$1" | awk '{print $1}' FS='-')
+  local ip2=$(echo "$1" | awk '{print $2}' FS='-')
+  local n 
+
+  if [ -z "$ip2" ]; then
+    expandedset=(${expandedset[@]} "$ip1")
+  else
+    local base=$(echo "$ip1" | cut -f 1-3 -d '.')
+    local start=$(echo "$ip1" | awk '{print $NF}' FS='.')
+    local end=$(echo "$ip2" | awk '{print $NF}' FS='.')
+    for n in `seq $start $end`; do
+      expandedset=(${expandedset[@]} "${base}.$n")
+    done
+  fi
+  echo "${expandedset[@]}"
+}
+
+#
+#  Expands list of IPv6 addresses. List elements can be an IP address
+#  range or an IP address.
+#
+#  Examples:
+#     expand_ipv6_range "2001:DB8:1ABC::1F39-1F3B"
+#         # -> 2001:DB8:1ABC::1F39 2001:DB8:1ABC::1F3A 2001:DB8:1ABC::1F3B
+#
+function expand_ipv6_range() {
+  local expandedset=()
+  local ip1=$(echo "$1" | awk '{print $1}' FS='-')
+  local ip2=$(echo "$1" | awk '{print $2}' FS='-')
+  local n
+  if [ -z "$ip2" ]; then
+    expandedset=(${expandedset[@]} "$ip1")
+  else
+    local start=${ip1##*:}
+    local decstart=`echo "ibase=16; ${start}" | bc`
+    local base=${ip1%%${start}}
+    local decend=`echo "ibase=16; ${ip2}" | bc`
+    for n in `seq $decstart $decend`; do
+      end=`echo "obase=16; ${n}" | bc`
+      expandedset=(${expandedset[@]} "${base}${end}")
+    done
+  fi
+  echo "${expandedset[@]}"
+}
+
+#
+#  Returns the IP address family (IPv4 or IPv6)
+#  Returns "4" or "6" respectively 
+#  
+#  Examples: 
+#    get_address_family "192.168.3.1"
+#         # -> 4
+#
+#    get_address_family "2001:DB8:1ABC::1F3A"
+#         # -> 6
+#
+function get_address_family() {
+  if validate_ipv4 ${1}; then
+    return 4
+  elif validate_ipv6 ${1}; then
+    return 6
+  else
+    return 1
+  fi
+}
 
 #
 #  Expands list of virtual IP addresses. List elements can be an IP address
@@ -36,25 +188,25 @@ function scrub() {
 function expand_ip_ranges() {
   local vips=${1:-""}
   local expandedset=()
+  local iprange
+  local newip
 
-  for iprange in $(echo "$vips" | sed 's/[^0-9\.\,-]//g' | tr "," " "); do
+  for iprange in $(echo "$vips" | sed 's/[^0-9a-fA-F:\.,-]//g' | tr "," " "); do
     local ip1=$(echo "$iprange" | awk '{print $1}' FS='-')
-    local ip2=$(echo "$iprange" | awk '{print $2}' FS='-')
-    if [ -z "$ip2" ]; then
-      expandedset=(${expandedset[@]} "$ip1")
-    else
-      local base=$(echo "$ip1" | cut -f 1-3 -d '.')
-      local start=$(echo "$ip1" | awk '{print $NF}' FS='.')
-      local end=$(echo "$ip2" | awk '{print $NF}' FS='.')
-      for n in `seq $start $end`; do
-        expandedset=(${expandedset[@]} "${base}.$n")
+    get_address_family ${ip1}
+    local family=$?
+    if [ ${family} == "4" ]; then
+      for newip in $(expand_ipv4_range ${iprange}); do
+        expandedset=(${expandedset[@]} ${newip})
+      done
+    elif [ ${family} == "6" ]; then
+      for newip in $(expand_ipv6_range ${iprange}); do
+        expandedset=(${expandedset[@]} ${newip})
       done
     fi
   done
-
   echo "${expandedset[@]}"
 }
-
 
 #
 #  Generate base name for the VRRP instance.
