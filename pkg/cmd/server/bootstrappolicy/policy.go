@@ -394,6 +394,8 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
 
+				authorizationapi.NewRule(readWrite...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
+
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
@@ -449,6 +451,8 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "deployments", "deployments/scale").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
