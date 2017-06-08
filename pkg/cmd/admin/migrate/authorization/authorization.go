@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -130,8 +128,8 @@ func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *author
 	var errlist []error
 
 	// convert the origin role to a rbac role
-	convertedClusterRole := &rbac.ClusterRole{}
-	if err := authorizationapi.Convert_api_ClusterRole_To_rbac_ClusterRole(originClusterRole, convertedClusterRole, nil); err != nil {
+	convertedClusterRole, err := authorizationsync.ConvertToRBACClusterRole(originClusterRole)
+	if err != nil {
 		errlist = append(errlist, err)
 	}
 
@@ -143,23 +141,8 @@ func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *author
 
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
-		// there's one wrinkle.  If `openshift.io/reconcile-protect` is to true, then we must set rbac.authorization.kubernetes.io/autoupdate to false
-		if convertedClusterRole.Annotations["openshift.io/reconcile-protect"] == "true" {
-			convertedClusterRole.Annotations["rbac.authorization.kubernetes.io/autoupdate"] = "false"
-			delete(convertedClusterRole.Annotations, "openshift.io/reconcile-protect")
-		}
-
-		// stomp fields that are never going to match like uid and creation time
-		convertedClusterRole.SelfLink = rbacClusterRole.SelfLink
-		convertedClusterRole.UID = rbacClusterRole.UID
-		convertedClusterRole.ResourceVersion = rbacClusterRole.ResourceVersion
-		convertedClusterRole.CreationTimestamp = rbacClusterRole.CreationTimestamp
-
-		// normalize rules before comparing to match the controller's behavior
-		authorizationsync.NormalizePolicyRules(convertedClusterRole.Rules)
-
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if !apiequality.Semantic.DeepEqual(convertedClusterRole, rbacClusterRole) {
+		if authorizationsync.PrepareForUpdateClusterRole(convertedClusterRole, rbacClusterRole) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -171,8 +154,8 @@ func (o *MigrateAuthorizationOptions) checkRole(originRole *authorizationapi.Rol
 	var errlist []error
 
 	// convert the origin role to a rbac role
-	convertedRole := &rbac.Role{}
-	if err := authorizationapi.Convert_api_Role_To_rbac_Role(originRole, convertedRole, nil); err != nil {
+	convertedRole, err := authorizationsync.ConvertToRBACRole(originRole)
+	if err != nil {
 		errlist = append(errlist, err)
 	}
 
@@ -184,17 +167,8 @@ func (o *MigrateAuthorizationOptions) checkRole(originRole *authorizationapi.Rol
 
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
-		// stomp fields that are never going to match like uid and creation time
-		convertedRole.SelfLink = rbacRole.SelfLink
-		convertedRole.UID = rbacRole.UID
-		convertedRole.ResourceVersion = rbacRole.ResourceVersion
-		convertedRole.CreationTimestamp = rbacRole.CreationTimestamp
-
-		// normalize rules before comparing to match the controller's behavior
-		authorizationsync.NormalizePolicyRules(convertedRole.Rules)
-
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if !apiequality.Semantic.DeepEqual(convertedRole, rbacRole) {
+		if authorizationsync.PrepareForUpdateRole(convertedRole, rbacRole) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -206,8 +180,8 @@ func (o *MigrateAuthorizationOptions) checkClusterRoleBinding(originRoleBinding 
 	var errlist []error
 
 	// convert the origin role binding to a rbac role binding
-	convertedRoleBinding := &rbac.ClusterRoleBinding{}
-	if err := authorizationapi.Convert_api_ClusterRoleBinding_To_rbac_ClusterRoleBinding(originRoleBinding, convertedRoleBinding, nil); err != nil {
+	convertedRoleBinding, err := authorizationsync.ConvertToRBACClusterRoleBinding(originRoleBinding)
+	if err != nil {
 		errlist = append(errlist, err)
 	}
 
@@ -219,14 +193,8 @@ func (o *MigrateAuthorizationOptions) checkClusterRoleBinding(originRoleBinding 
 
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
-		// stomp fields that are never going to match like uid and creation time
-		convertedRoleBinding.SelfLink = rbacRoleBinding.SelfLink
-		convertedRoleBinding.UID = rbacRoleBinding.UID
-		convertedRoleBinding.ResourceVersion = rbacRoleBinding.ResourceVersion
-		convertedRoleBinding.CreationTimestamp = rbacRoleBinding.CreationTimestamp
-
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if !apiequality.Semantic.DeepEqual(convertedRoleBinding, rbacRoleBinding) {
+		if authorizationsync.PrepareForUpdateClusterRoleBinding(convertedRoleBinding, rbacRoleBinding) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -238,8 +206,8 @@ func (o *MigrateAuthorizationOptions) checkRoleBinding(originRoleBinding *author
 	var errlist []error
 
 	// convert the origin role binding to a rbac role binding
-	convertedRoleBinding := &rbac.RoleBinding{}
-	if err := authorizationapi.Convert_api_RoleBinding_To_rbac_RoleBinding(originRoleBinding, convertedRoleBinding, nil); err != nil {
+	convertedRoleBinding, err := authorizationsync.ConvertToRBACRoleBinding(originRoleBinding)
+	if err != nil {
 		errlist = append(errlist, err)
 	}
 
@@ -251,14 +219,8 @@ func (o *MigrateAuthorizationOptions) checkRoleBinding(originRoleBinding *author
 
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
-		// stomp fields that are never going to match like uid and creation time
-		convertedRoleBinding.SelfLink = rbacRoleBinding.SelfLink
-		convertedRoleBinding.UID = rbacRoleBinding.UID
-		convertedRoleBinding.ResourceVersion = rbacRoleBinding.ResourceVersion
-		convertedRoleBinding.CreationTimestamp = rbacRoleBinding.CreationTimestamp
-
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if !apiequality.Semantic.DeepEqual(convertedRoleBinding, rbacRoleBinding) {
+		if authorizationsync.PrepareForUpdateRoleBinding(convertedRoleBinding, rbacRoleBinding) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
