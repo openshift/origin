@@ -11,7 +11,6 @@ load(
 go_test(
     name = "go_default_test",
     srcs = [
-        "autoregister_controller_new_test.go",
         "autoregister_controller_test.go",
     ],
     library = ":go_default_library",
