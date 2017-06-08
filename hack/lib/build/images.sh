@@ -2,47 +2,128 @@
 
 # This library holds utility functions for building container images.
 
-# os::build::image builds an image from a directory, to a tag, with an optional dockerfile to
-# use as the third argument. The environment variable OS_BUILD_IMAGE_ARGS adds additional
-# options to the command. The default is to use the imagebuilder binary if it is available
-# on the path with fallback to docker build if it is not available.
+# os::build::image builds an image from a directory, to a tag or tags The default
+# behavior is to use the imagebuilder binary if it is available on the path with
+# fallback to docker build if it is not available.
+#
+# Globals:
+#  - OS_BUILD_IMAGE_ARGS
+#  - OS_BUILD_IMAGE_NUM_RETRIES
+# Arguments:
+#  - 1: the directory in which to build
+#  - 2: the tag to apply to the image
+# Returns:
+#  None
 function os::build::image() {
-  local directory=$1
-  local tag=$2
-  local dockerfile="${3-}"
-  local extra_tag="${4-}"
-  local options="${OS_BUILD_IMAGE_ARGS-}"
-  local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
+	local tag=$1
+	local directory=$2
+	local extra_tag
 
-  if [[ "${mode}" == "imagebuilder" ]]; then
-    if os::util::find::system_binary 'imagebuilder'; then
-      if [[ -n "${extra_tag}" ]]; then
-        extra_tag="-t '${extra_tag}'"
-      fi
-      if [[ -n "${dockerfile}" ]]; then
-        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
-        return $?
-      fi
-      eval "imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
-      return $?
-    fi
+	if [[ ! "${tag}" == *":"* ]]; then
+		# if no tag was specified in the image name,
+		# tag with :latest and the release commit, if
+		# available, falling back to the last commit
+		# if no release commit is recorded
+		local release_commit
+		release_commit="${OS_RELEASE_COMMIT:-"$( git log -1 --pretty=%h )"}"
+		extra_tag="${tag}:${release_commit}"
 
-    os::log::warning "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
-    # clear options since we were unable to select imagebuilder
-    options=""
-  fi
+		tag="${tag}:latest"
+	fi
 
-  if [[ -n "${dockerfile}" ]]; then
-    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
-    if [[ -n "${extra_tag}" ]]; then
-      docker tag "${tag}" "${extra_tag}"
-    fi
-    return $?
-  fi
-  eval "docker build -t '${tag}' ${options} '${directory}'"
-  if [[ -n "${extra_tag}" ]]; then
-    docker tag "${tag}" "${extra_tag}"
-  fi
-  return $?
+	local result='1'
+	local image_build_log
+	image_build_log="$( mktemp "${BASETMPDIR}/imagelogs.XXXXX" )"
+	for (( i = 0; i < "${OS_BUILD_IMAGE_NUM_RETRIES:-2}"; i++ )); do
+		if [[ "${i}" -gt 0 ]]; then
+			os::log::warning "Retrying image build for ${tag}, attempt ${i}..."
+		fi
+
+		if os::build::image::internal::generic "${tag}" "${directory}" "${extra_tag:-}" >>"${image_build_log}" 2>&1; then
+			result='0'
+			break
+		fi
+	done
+
+	os::log::internal::prefix_lines "[${tag%:*}]" "$( cat "${image_build_log}" )"
+	return "${result}"
 }
 readonly -f os::build::image
+
+# os::build::image::internal::generic builds a container image using either imagebuilder
+# or docker, defaulting to imagebuilder if present
+#
+# Globals:
+#  - OS_BUILD_IMAGE_ARGS
+# Arguments:
+#  - 1: the directory in which to build
+#  - 2: the tag to apply to the image
+#  - 3: optionally, extra tags to add
+# Returns:
+#  None
+function os::build::image::internal::generic() {
+	local directory=$2
+
+	if os::util::find::system_binary 'imagebuilder' >/dev/null; then
+		os::build::image::internal::imagebuilder "$@"
+	else
+		os::log::warning "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
+		os::build::image::internal::docker "$@"
+	fi
+
+	# ensure the temporary contents are cleaned up
+	git clean -fdx "${directory}"
+}
+readonly -f os::build::image::internal::generic
+
+# os::build::image::internal::imagebuilder builds a container image using imagebuilder
+#
+# Globals:
+#  - OS_BUILD_IMAGE_ARGS
+# Arguments:
+#  - 1: the directory in which to build
+#  - 2: the tag to apply to the image
+#  - 3: optionally, extra tags to add
+# Returns:
+#  None
+function os::build::image::internal::imagebuilder() {
+	local tag=$1
+	local directory=$2
+	local extra_tag="${3-}"
+	local options=()
+
+	if [[ -n "${OS_BUILD_IMAGE_ARGS:-}" ]]; then
+		options=( ${OS_BUILD_IMAGE_ARGS} )
+	fi
+
+	if [[ -n "${extra_tag}" ]]; then
+		options+=( -t "${extra_tag}" )
+	fi
+
+	imagebuilder "${options[@]:-}" -t "${tag}" "${directory}"
+}
+readonly -f os::build::image::internal::imagebuilder
+
+# os::build::image::internal::docker builds a container image using docker
+#
+# Globals:
+#  - OS_BUILD_IMAGE_ARGS
+# Arguments:
+#  - 1: the directory in which to build
+#  - 2: the tag to apply to the image
+#  - 3: optionally, extra tags to add
+# Returns:
+#  None
+function os::build::image::internal::docker() {
+	local tag=$1
+	local directory=$2
+	local extra_tag="${3-}"
+	local options=()
+
+	docker build ${OS_BUILD_IMAGE_ARGS:-} -t "${tag}" "${directory}"
+
+	if [[ -n "${extra_tag}" ]]; then
+		docker tag "${tag}" "${extra_tag}"
+	fi
+}
+readonly -f os::build::image::internal::docker
