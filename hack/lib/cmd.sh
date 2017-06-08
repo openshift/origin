@@ -400,7 +400,7 @@ readonly -f os::cmd::internal::mark_attempt
 function os::cmd::internal::compress_output() {
 	local logfile=$1
 
-	awk -f ${OS_ROOT}/hack/compress.awk $logfile
+	awk -f ${OS_ROOT}/hack/lib/compress.awk $logfile
 }
 readonly -f os::cmd::internal::compress_output
 
