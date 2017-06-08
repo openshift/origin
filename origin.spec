@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1537aa182bc9c1296377469e8e447fe9a1d95aaf
+%global commit 3338af55772fa91b57431f8adb65b261815ad22c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.99 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1537aa1
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.100 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3338af5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.100
+Version:        3.6.101
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -644,6 +644,29 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.101-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console aad455c
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  adb6f072ddaadbac34e1f131d5b973b0112a7de7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e18553f36eaaea92f0a62e60cbb6679f98bf5116 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9fd7f5bb6099e9515ff1f7712154b45772961623 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  23aa410b0eaa66bd53bc15d4a6ed5d686aad55b7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7a49dade19e2b4e4c7af381c085c434709606840 (dmcphers+openshiftbot@redhat.com)
+- Correctly place script output at _output/scripts (skuznets@redhat.com)
+- UPSTREAM: 46968: bkpPortal should be initialized beforehand
+  (mitsuhiro.tanino@hds.com)
+- UPSTREAM: 46036: retry clientCA post start hook on transient failures
+  (deads@redhat.com)
+- permit OS_GIT_VERSION to have a git hash longer than 7 characters - this
+  occurs when 7 characters are not enough to uniquely describe a given commit
+  (jminter@redhat.com)
+- Prevent POODLE vulnerability in HAProxy router (elyscape@gmail.com)
+
 * Thu Jun 08 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.100-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console f83022a
   (tdawson@redhat.com)
