@@ -51,6 +51,7 @@ images=(
   openshift/origin-egress-router
   openshift/origin-recycler
   openshift/origin-gitserver
+  openshift/origin-cluster-capacity
   openshift/hello-openshift
   openshift/openvswitch
   openshift/node
