@@ -6,6 +6,20 @@
 {{- define "/var/lib/haproxy/conf/haproxy.config" }}
 {{- $workingDir := .WorkingDir }}
 {{- $defaultDestinationCA := .DefaultDestinationCA }}
+
+{{/* A bunch of regular expressions.  Each should be wrapped in (?:) so that it is safe to include bare */}}
+{{/* quadPattern: Match a quad in an IP address; e.g. 123 */}}
+{{- $quadPattern := `(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])` -}}
+
+{{/* ipPattern: Match an IPv4 address; e.g. 192.168.21.23 */}}
+{{- $ipPattern := printf `(?:%s\.%s\.%s\.%s)` $quadPattern $quadPattern $quadPattern $quadPattern -}}
+
+{{/* cidrPattern: Match an IP and network size in CIDR form; e.g. 192.168.21.23/24 */}}
+{{- $cidrPattern := printf `(?:%s(?:/(?:[0-9]|[1-2][0-9]|3[0-2]))?)` $ipPattern -}}
+
+{{/* cidrListPattern: Match a space separated list of CIDRs; e.g. 192.168.21.23/24 192.10.2.12 */}}
+{{- $cidrListPattern := printf `(?:%s(?: +%s)*)` $cidrPattern $cidrPattern -}}
+
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
@@ -293,6 +307,12 @@ backend be_secure:{{$cfgIdx}}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
       {{- end }}
     {{- end }}
+    {{- with $ip_whiteList := index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist" }}
+      {{- if (matchPattern $cidrListPattern $ip_whiteList) }}
+  acl whitelist src {{ $ip_whiteList }}
+  tcp-request content reject if !whitelist
+      {{- end }}
+    {{- end }}
     {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
       {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
   timeout server  {{$value}}
@@ -388,6 +408,12 @@ backend be_tcp:{{$cfgIdx}}
   balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source"}}
       {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
+      {{- end }}
+    {{- end }}
+    {{- with $ip_whiteList := index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist" }}
+      {{- if (matchPattern $cidrListPattern $ip_whiteList) }}
+  acl whitelist src {{$ip_whiteList}}
+  tcp-request content reject if !whitelist
       {{- end }}
     {{- end }}
     {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
