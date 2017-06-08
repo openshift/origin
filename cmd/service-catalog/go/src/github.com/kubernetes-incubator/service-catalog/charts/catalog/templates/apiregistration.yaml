@@ -1,0 +1,14 @@
+{{- if .Values.useAggregator }}
+apiVersion: apiregistration.k8s.io/v1alpha1
+kind: APIService
+metadata:
+  name: v1alpha1.servicecatalog.k8s.io
+spec:
+  group: servicecatalog.k8s.io
+  version: v1alpha1
+  service:
+    namespace: {{ .Release.Namespace }}
+    name: {{ template "fullname" . }}-apiserver
+  caBundle: {{ .Values.apiserver.tls.ca }}
+  priority: 100
+{{ end }}

@@ -1,0 +1,24 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "A default API configuration.",
+    "title": "Default HTTP API.",
+    "version": "1.0.0"
+  },
+  "host": "backend",
+  "basePath": "/",
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "https"
+  ],
+  "x-google-allow": "all",
+  "paths": {
+  },
+  "definitions": {
+  }
+}

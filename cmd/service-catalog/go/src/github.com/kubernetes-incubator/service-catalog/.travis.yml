@@ -1,0 +1,15 @@
+language: generic
+sudo: required
+services:
+- docker
+cache:
+  directories:
+  - .glide
+script:
+- make verify build test images
+deploy:
+  provider: script
+  script: scripts/deploy.sh
+  on:
+    repo: kubernetes-incubator/service-catalog
+    all_branches: true
