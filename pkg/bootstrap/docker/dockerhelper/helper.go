@@ -265,3 +265,18 @@ func (h *Helper) ListContainerNames() ([]string, error) {
 	}
 	return names, nil
 }
+
+// UserNamespaceEnabled checks whether docker daemon is running in user
+// namespace mode.
+func (h *Helper) UserNamespaceEnabled() (bool, error) {
+	info, err := h.dockerInfo()
+	if err != nil {
+		return false, err
+	}
+	for _, val := range info.SecurityOptions {
+		if val == "name=userns" {
+			return true, nil
+		}
+	}
+	return false, nil
+}

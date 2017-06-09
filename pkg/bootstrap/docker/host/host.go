@@ -45,9 +45,9 @@ type HostHelper struct {
 }
 
 // NewHostHelper creates a new HostHelper
-func NewHostHelper(client *docker.Client, image, volumesDir, configDir, dataDir, pvDir string) *HostHelper {
+func NewHostHelper(client *docker.Client, dockerHelper *dockerhelper.Helper, image, volumesDir, configDir, dataDir, pvDir string) *HostHelper {
 	return &HostHelper{
-		runHelper:            run.NewRunHelper(client),
+		runHelper:            run.NewRunHelper(client, dockerHelper),
 		client:               client,
 		image:                image,
 		volumesDir:           volumesDir,

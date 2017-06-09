@@ -123,7 +123,7 @@ func NewHelper(client *docker.Client, dockerHelper *dockerhelper.Helper, hostHel
 		dockerHelper:  dockerHelper,
 		execHelper:    dockerexec.NewExecHelper(client, containerName),
 		hostHelper:    hostHelper,
-		runHelper:     run.NewRunHelper(client),
+		runHelper:     run.NewRunHelper(client, dockerHelper),
 		image:         image,
 		containerName: containerName,
 		publicHost:    publicHostname,
