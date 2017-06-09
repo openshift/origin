@@ -32,6 +32,7 @@
 // examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
+// examples/service-catalog/aggregator-registration.yaml
 // examples/service-catalog/register-broker.json
 // examples/service-catalog/register.sh
 // examples/service-catalog/service-catalog.yaml
@@ -12690,6 +12691,35 @@ func examplesPrometheusPrometheusYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesServiceCatalogAggregatorRegistrationYaml = []byte(`apiVersion: apiregistration.k8s.io/v1alpha1
+kind: APIService
+metadata:
+  name: v1alpha1.servicecatalog.k8s.io
+spec:
+  insecureSkipTLSVerify: true
+  group: servicecatalog.k8s.io
+  priority: 200
+  service:
+    name: apiserver
+    namespace: service-catalog
+version: v1alpha1
+`)
+
+func examplesServiceCatalogAggregatorRegistrationYamlBytes() ([]byte, error) {
+	return _examplesServiceCatalogAggregatorRegistrationYaml, nil
+}
+
+func examplesServiceCatalogAggregatorRegistrationYaml() (*asset, error) {
+	bytes, err := examplesServiceCatalogAggregatorRegistrationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/aggregator-registration.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _examplesServiceCatalogRegisterBrokerJson = []byte(`{
   "apiVersion": "servicecatalog.k8s.io/v1alpha1",
   "kind": "Broker",
@@ -12752,8 +12782,6 @@ objects:
   - system:authenticated
   - system:anonymous
 
-
-
 - kind: ClusterRole
   apiVersion: v1
   metadata:
@@ -12766,13 +12794,82 @@ objects:
     - list
     - watch
     - get
-
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
-    name: service-catalog-namespace-binding
+    name: service-catalog-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: secret-admin
+  rules:
+  - apiGroups:
+    resources:
+    - secrets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-secret-admin-binding
+  roleRef:
+    name: secret-admin
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: podpreset-admin
+  rules:
+  - apiGroups:
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-podpreset-admin-binding
+  roleRef:
+    name: podpreset-admin
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-status-updater
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - brokers/status
+    - instances/status
+    - bindings/status
+    verbs:
+    - update
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-status-updater-binding
+  roleRef:
+    name: servicecatalog-status-updater
   userNames:
     - system:serviceaccount:service-catalog:default
 
@@ -12784,7 +12881,6 @@ objects:
   policyRef:
     name: default
     namespace: service-catalog
-
 
 - kind: Role
   apiVersion: v1
@@ -12800,8 +12896,6 @@ objects:
     - get
     - create
     - update
-
-
 - kind: RoleBinding
   apiVersion: v1
   metadata:
@@ -12812,14 +12906,116 @@ objects:
   userNames:
     - system:serviceaccount:service-catalog:default
 
+- kind: PolicyBinding
+  apiVersion: v1
+  metadata:
+    name: kube-system:default
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  policyRef:
+    name: default
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+- apiVersion: v1
+  kind: Role
+  metadata:
+    name: extension-apiserver-authentication-reader
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - extension-apiserver-authentication
+    resources:
+    - configmaps
+    verbs:
+    - get
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: extension-apiserver-authentication-reader-binding
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  roleRef:
+    name: extension-apiserver-authentication-reader
+    namespace: kube-system
+  userNames:
+    - system:serviceaccount:service-catalog:default
+
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
-    name: admin-binding
+    name: system:auth-delegator-binding
   roleRef:
-    name: admin
+    name: system:auth-delegator
   userNames:
     - system:serviceaccount:service-catalog:default
+
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-viewer
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - serviceclasses
+    - instances
+    - bindings
+    verbs:
+    - list
+    - watch
+    - get
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-viewer-binding
+  roleRef:
+    name: servicecatalog-viewer
+  groupNames:
+  - system:authenticated
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-provisioner
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - instances
+    - bindings
+    verbs:
+    - create
+    - update
+    - delete
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-provisioner-binding
+  roleRef:
+    name: servicecatalog-provisioner
+  groupNames:
+  - system:authenticated
+
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-admin
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - brokers
+    - instances
+    - bindings
+    - serviceclasses
+    verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - delete
 
 
 
@@ -12862,7 +13058,6 @@ objects:
           - "10"
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
-          - --disable-auth
           image: quay.io/kubernetes-service-catalog/apiserver:${SERVICE_CATALOG_TAG}
           imagePullPolicy: IfNotPresent
           name: apiserver
@@ -12904,6 +13099,7 @@ objects:
               path: apiserver.key
         - emptyDir: {}
           name: data-dir
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -12919,7 +13115,7 @@ objects:
       protocol: TCP
       targetPort: 8081
     - name: secure
-      port: 6443
+      port: 443
       protocol: TCP
       targetPort: 6443
     selector:
@@ -13030,6 +13226,11 @@ parameters:
   name: SERVICE_CATALOG_ROUTE_HOSTNAME
   required: true
   value: apiserver-service-catalog.172.30.1.2.nip.io
+- description: Do not change this value.
+  displayName: Name of the kube-system namespace
+  name: KUBE_SYSTEM_NAMESPACE
+  required: true
+  value: kube-system
 `)
 
 func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
@@ -13225,6 +13426,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
+	"examples/service-catalog/aggregator-registration.yaml": examplesServiceCatalogAggregatorRegistrationYaml,
 	"examples/service-catalog/register-broker.json": examplesServiceCatalogRegisterBrokerJson,
 	"examples/service-catalog/register.sh": examplesServiceCatalogRegisterSh,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
@@ -13322,6 +13524,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
 		}},
 		"service-catalog": &bintree{nil, map[string]*bintree{
+			"aggregator-registration.yaml": &bintree{examplesServiceCatalogAggregatorRegistrationYaml, map[string]*bintree{}},
 			"register-broker.json": &bintree{examplesServiceCatalogRegisterBrokerJson, map[string]*bintree{}},
 			"register.sh": &bintree{examplesServiceCatalogRegisterSh, map[string]*bintree{}},
 			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
