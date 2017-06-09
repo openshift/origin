@@ -1,0 +1,3 @@
+name: ups-broker
+description: user-provided service-broker deployment Helm chart.
+version: 0.0.1

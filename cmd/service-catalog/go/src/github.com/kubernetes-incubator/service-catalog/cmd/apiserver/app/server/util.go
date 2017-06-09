@@ -1,0 +1,172 @@
+/*
+Copyright 2017 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package server
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/golang/glog"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	kubeinformers "k8s.io/client-go/informers"
+	kubeclientset "k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
+
+	scadmission "github.com/kubernetes-incubator/service-catalog/pkg/apiserver/admission"
+	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
+	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
+	"github.com/kubernetes-incubator/service-catalog/pkg/version"
+)
+
+// serviceCatalogConfig is a placeholder for configuration
+type serviceCatalogConfig struct {
+	// the shared informers that know how to speak back to this apiserver
+	sharedInformers informers.SharedInformerFactory
+	// the shared informers that know how to speak back to kube apiserver
+	kubeSharedInformers kubeinformers.SharedInformerFactory
+	// the configured loopback client for this apiserver
+	client internalclientset.Interface
+	// the configured client for kube apiserver
+	kubeClient kubeclientset.Interface
+}
+
+// buildGenericConfig takes the server options and produces the genericapiserver.Config associated with it
+func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Config, *serviceCatalogConfig, error) {
+	// check if we are running in standalone mode (for test scenarios)
+	inCluster := !s.StandaloneMode
+	if !inCluster {
+		glog.Infof("service catalog is in standalone mode")
+	}
+	if _, err := s.SecureServingOptions.ServingOptions.DefaultExternalAddress(); err != nil {
+		return nil, nil, err
+	}
+	// server configuration options
+	if err := s.SecureServingOptions.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String()); err != nil {
+		return nil, nil, err
+	}
+	// NOTE: in k8s 1.7, this will take the explicit codec as input
+	genericConfig := genericapiserver.NewConfig()
+	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
+		return nil, nil, err
+	}
+	if err := s.SecureServingOptions.ApplyTo(genericConfig); err != nil {
+		return nil, nil, err
+	}
+	// this MUST be done after secure so we have a valid loopbackClientConfig
+	if err := s.InsecureServingOptions.ApplyTo(genericConfig); err != nil {
+		return nil, nil, err
+	}
+	if !s.DisableAuth && inCluster {
+		if err := s.AuthenticationOptions.ApplyTo(genericConfig); err != nil {
+			return nil, nil, err
+		}
+		if err := s.AuthorizationOptions.ApplyTo(genericConfig); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		// always warn when auth is disabled, since this should only be used for testing
+		glog.Infof("Authentication and authorization disabled for testing purposes")
+	}
+
+	// TODO: add support for audit log options
+	// see https://github.com/kubernetes-incubator/service-catalog/issues/678
+	// TODO: add support for OpenAPI config
+	// see https://github.com/kubernetes-incubator/service-catalog/issues/721
+	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()
+	// TODO: investigate if we need metrics unique to service catalog, but take defaults for now
+	// see https://github.com/kubernetes-incubator/service-catalog/issues/677
+	genericConfig.EnableMetrics = true
+	// TODO: add support to default these values in build
+	// see https://github.com/kubernetes-incubator/service-catalog/issues/722
+	serviceCatalogVersion := version.Get()
+	genericConfig.Version = &serviceCatalogVersion
+
+	// FUTURE: use protobuf for communication back to itself?
+	client, err := internalclientset.NewForConfig(genericConfig.LoopbackClientConfig)
+	if err != nil {
+		glog.Errorf("Failed to create clientset for service catalog self-communication: %v", err)
+		return nil, nil, err
+	}
+	sharedInformers := informers.NewSharedInformerFactory(client, 10*time.Minute)
+
+	scConfig := &serviceCatalogConfig{
+		client:          client,
+		sharedInformers: sharedInformers,
+	}
+	if inCluster {
+		inClusterConfig, err := restclient.InClusterConfig()
+		if err != nil {
+			glog.Errorf("Failed to get kube client config: %v", err)
+			return nil, nil, err
+		}
+		inClusterConfig.GroupVersion = &schema.GroupVersion{}
+
+		kubeClient, err := kubeclientset.NewForConfig(inClusterConfig)
+		if err != nil {
+			glog.Errorf("Failed to create clientset interface: %v", err)
+			return nil, nil, err
+		}
+
+		kubeSharedInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+
+		// TODO: we need upstream to package AlwaysAdmit, or stop defaulting to it!
+		// NOTE: right now, we only run admission controllers when on kube cluster.
+		genericConfig.AdmissionControl, err = buildAdmission(s, client, sharedInformers, kubeClient, kubeSharedInformers)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to initialize admission: %v", err)
+		}
+
+		scConfig.kubeClient = kubeClient
+		scConfig.kubeSharedInformers = kubeSharedInformers
+	}
+
+	return genericConfig, scConfig, nil
+}
+
+// buildAdmission constructs the admission chain
+func buildAdmission(s *ServiceCatalogServerOptions,
+	client internalclientset.Interface, sharedInformers informers.SharedInformerFactory,
+	kubeClient kubeclientset.Interface, kubeSharedInformers kubeinformers.SharedInformerFactory) (admission.Interface, error) {
+
+	admissionControlPluginNames := strings.Split(s.GenericServerRunOptions.AdmissionControl, ",")
+	glog.Infof("Admission control plugin names: %v", admissionControlPluginNames)
+	var err error
+
+	pluginInitializer := scadmission.NewPluginInitializer(client, sharedInformers, kubeClient, kubeSharedInformers)
+	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.GenericServerRunOptions.AdmissionControlConfigFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read plugin config: %v", err)
+	}
+	return admission.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer)
+}
+
+// addPostStartHooks adds the common post start hooks we invoke when using either server storage option.
+func addPostStartHooks(server *genericapiserver.GenericAPIServer, scConfig *serviceCatalogConfig, stopCh <-chan struct{}) {
+	server.AddPostStartHook("start-service-catalog-apiserver-informers", func(context genericapiserver.PostStartHookContext) error {
+		glog.Infof("Starting shared informers")
+		scConfig.sharedInformers.Start(stopCh)
+		if scConfig.kubeSharedInformers != nil {
+			scConfig.kubeSharedInformers.Start(stopCh)
+		}
+		glog.Infof("Started shared informers")
+		return nil
+	})
+}

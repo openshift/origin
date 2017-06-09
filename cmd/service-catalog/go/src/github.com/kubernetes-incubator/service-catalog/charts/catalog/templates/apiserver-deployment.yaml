@@ -1,0 +1,151 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-apiserver
+  labels:
+    app: {{ template "fullname" . }}-apiserver
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "fullname" . }}-apiserver
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}-apiserver
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      containers:
+      - name: apiserver
+        image: {{ .Values.apiserver.image }}
+        imagePullPolicy: {{ .Values.apiserver.imagePullPolicy }}
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+        args:
+        - --admission-control
+        - "KubernetesNamespaceLifecycle"
+        - --secure-port
+        - "8443"
+        {{- if .Values.apiserver.insecure }}
+        - --insecure-bind-address
+        - 0.0.0.0
+        - --insecure-port
+        - "8080"
+        {{- end }}
+        - --storage-type
+        - {{ .Values.apiserver.storage.type }}
+        {{- if eq .Values.apiserver.storage.type "etcd" }}
+        - --etcd-servers
+        - {{ .Values.apiserver.storage.etcd.servers }}
+        {{- else if eq .Values.apiserver.storage.type "tpr" }}
+        - --global-namespace
+        - {{ .Values.apiserver.storage.tpr.globalNamespace }}
+        {{- end }}
+        - -v
+        - "{{ .Values.apiserver.verbosity }}"
+        {{- if .Values.apiserver.tls.requestHeaderCA }}
+        - --requestheader-client-ca-file=/var/run/kubernetes-service-catalog/requestheader-ca.crt
+        {{- end }}
+        {{- if not .Values.apiserver.auth.enabled }}
+        - --disable-auth
+        {{- end }}
+        ports:
+        {{- if .Values.apiserver.insecure }}
+        - containerPort: 8080
+        {{- end }}
+        - containerPort: 8443
+        volumeMounts:
+        - name: apiserver-cert
+          mountPath: /var/run/kubernetes-service-catalog
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            port: 8443
+            path: /healthz
+            scheme: HTTPS
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            port: 8443
+            path: /healthz
+            scheme: HTTPS
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+      {{- if and (eq .Values.apiserver.storage.type "etcd") .Values.apiserver.storage.etcd.useEmbedded }}
+      - name: etcd
+        image: quay.io/coreos/etcd:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 100m
+            memory: 30Mi
+        env:
+        - name: ETCD_DATA_DIR
+          value: /etcd-data-dir
+        command:
+        - /usr/local/bin/etcd
+        - --listen-client-urls
+        - http://0.0.0.0:2379
+        - --advertise-client-urls
+        - http://localhost:2379
+        ports:
+        - containerPort: 2379
+        volumeMounts:
+        - name: etcd-data-dir
+          mountPath: /etcd-data-dir
+        readinessProbe:
+          httpGet:
+            port: 2379
+            path: /health
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          httpGet:
+            port: 2379
+            path: /health
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+      {{- end }}
+      volumes:
+      - name: apiserver-cert
+        secret:
+          secretName: {{ template "fullname" . }}-apiserver-cert
+          items:
+          - key: tls.crt
+            path: apiserver.crt
+          - key: tls.key
+            path: apiserver.key
+          {{- if .Values.apiserver.tls.requestHeaderCA }}
+          - key: requestheader-ca.crt
+            path: requestheader-ca.crt
+          {{- end }}
+      {{- if eq .Values.apiserver.storage.type "etcd" }}
+      - name: etcd-data-dir
+        emptyDir: {}
+      {{- end }}
