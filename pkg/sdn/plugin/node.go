@@ -47,8 +47,8 @@ type osdnPolicy interface {
 	GetNamespaces(vnid uint32) []string
 	GetMulticastEnabled(vnid uint32) bool
 
-	RefVNID(vnid uint32)
-	UnrefVNID(vnid uint32)
+	EnsureVNIDRules(vnid uint32)
+	SyncVNIDRules()
 }
 
 type OsdnNode struct {
@@ -272,10 +272,12 @@ func (node *OsdnNode) Start() error {
 				continue
 			}
 			if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
-				node.policy.RefVNID(vnid)
+				node.policy.EnsureVNIDRules(vnid)
 			}
 		}
 	}
+
+	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
 
 	log.V(5).Infof("openshift-sdn network plugin ready")
 
@@ -369,18 +371,11 @@ func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventTyp
 	}
 
 	node.AddServiceRules(serv, netid)
-	if !exists {
-		node.policy.RefVNID(netid)
-	}
+	node.policy.EnsureVNIDRules(netid)
 }
 
 func (node *OsdnNode) handleDeleteService(obj interface{}) {
 	serv := obj.(*kapi.Service)
 	log.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
 	node.DeleteServiceRules(serv)
-
-	netid, err := node.policy.GetVNID(serv.Namespace)
-	if err == nil {
-		node.policy.UnrefVNID(netid)
-	}
 }

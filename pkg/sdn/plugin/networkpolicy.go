@@ -46,7 +46,6 @@ type networkPolicyPlugin struct {
 type npNamespace struct {
 	name  string
 	vnid  uint32
-	refs  int
 	inUse bool
 
 	policies map[ktypes.UID]*npPolicy
@@ -120,7 +119,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 			np.namespaces[vnid] = &npNamespace{
 				name:     ns.Name,
 				vnid:     vnid,
-				refs:     0,
+				inUse:    false,
 				policies: make(map[ktypes.UID]*npPolicy),
 			}
 		}
@@ -157,7 +156,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *osapi.NetNamespace) {
 	np.namespaces[netns.NetID] = &npNamespace{
 		name:     netns.NetName,
 		vnid:     netns.NetID,
-		refs:     0,
+		inUse:    false,
 		policies: make(map[ktypes.UID]*npPolicy),
 	}
 }
@@ -190,15 +189,10 @@ func (np *networkPolicyPlugin) GetMulticastEnabled(vnid uint32) bool {
 }
 
 func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
-	inUse := npns.refs > 0
-	if !inUse && !npns.inUse {
-		return
-	}
-
 	glog.V(5).Infof("syncNamespace %d", npns.vnid)
 	otx := np.node.oc.NewTransaction()
 	otx.DeleteFlows("table=80, reg1=%d", npns.vnid)
-	if inUse {
+	if npns.inUse {
 		allPodsSelected := false
 
 		// Add "allow" rules for all traffic allowed by a NetworkPolicy
@@ -237,37 +231,35 @@ func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 	if err := otx.EndTransaction(); err != nil {
 		glog.Errorf("Error syncing OVS flows for VNID: %v", err)
 	}
-	npns.inUse = inUse
 }
 
-func (np *networkPolicyPlugin) RefVNID(vnid uint32) {
+func (np *networkPolicyPlugin) EnsureVNIDRules(vnid uint32) {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
 	npns, exists := np.namespaces[vnid]
-	if !exists {
+	if !exists || npns.inUse {
 		return
 	}
 
-	npns.refs += 1
+	npns.inUse = true
 	np.syncNamespace(npns)
 }
 
-func (np *networkPolicyPlugin) UnrefVNID(vnid uint32) {
+func (np *networkPolicyPlugin) SyncVNIDRules() {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	npns, exists := np.namespaces[vnid]
-	if !exists {
-		return
-	}
-	if npns.refs == 0 {
-		glog.Warningf("refcounting error on vnid %d", vnid)
-		return
-	}
+	unused := np.node.oc.FindUnusedVNIDs()
+	glog.Infof("SyncVNIDRules: %d unused VNIDs", len(unused))
 
-	npns.refs -= 1
-	np.syncNamespace(npns)
+	for _, vnid := range unused {
+		npns, exists := np.namespaces[uint32(vnid)]
+		if exists {
+			npns.inUse = false
+			np.syncNamespace(npns)
+		}
+	}
 }
 
 func (np *networkPolicyPlugin) selectNamespaces(lsel *metav1.LabelSelector) []uint32 {
@@ -428,11 +420,15 @@ func (np *networkPolicyPlugin) watchNetworkPolicies() {
 		switch delta.Type {
 		case cache.Sync, cache.Added, cache.Updated:
 			if changed := np.updateNetworkPolicy(npns, policy); changed {
-				np.syncNamespace(npns)
+				if npns.inUse {
+					np.syncNamespace(npns)
+				}
 			}
 		case cache.Deleted:
 			delete(npns.policies, policy.UID)
-			np.syncNamespace(npns)
+			if npns.inUse {
+				np.syncNamespace(npns)
+			}
 		}
 
 		return nil
@@ -527,7 +523,7 @@ func (np *networkPolicyPlugin) refreshNetworkPolicies(watchResourceName Resource
 				}
 			}
 		}
-		if changed {
+		if changed && npns.inUse {
 			np.syncNamespace(npns)
 		}
 	}
