@@ -28,6 +28,10 @@ const (
 	// performed in Contexts.
 	authPerformedKey contextKey = "authPerformed"
 
+	// authSkippedKey is the key to indicate that authentication was
+	// skipped
+	authSkippedKey contextKey = "authSkipped"
+
 	// deferredErrorsKey is the key for deferred errors in Contexts.
 	deferredErrorsKey contextKey = "deferredErrors"
 
@@ -94,6 +98,19 @@ func withAuthPerformed(parent context.Context) context.Context {
 func authPerformed(ctx context.Context) bool {
 	authPerformed, ok := ctx.Value(authPerformedKey).(bool)
 	return ok && authPerformed
+}
+
+// withAuthSkipped returns a new Context with indication that authentication
+// is skipped
+func WithAuthSkipped(parent context.Context) context.Context {
+	return context.WithValue(parent, authSkippedKey, true)
+}
+
+// authskipped reports whether ctx has indication that authentication was
+// skipped
+func authSkipped(ctx context.Context) bool {
+	authSkipped, ok := ctx.Value(authSkippedKey).(bool)
+	return ok && authSkipped
 }
 
 // withDeferredErrors returns a new Context that carries deferred errors.

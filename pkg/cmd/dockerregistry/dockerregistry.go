@@ -78,6 +78,8 @@ func Execute(configFile io.Reader) {
 			Logger:           context.GetLogger(ctx),
 			SafeClientConfig: registryClient.SafeClientConfig(),
 		}
+	} else {
+		ctx = server.WithAuthSkipped(ctx)
 	}
 
 	app := handlers.NewApp(ctx, dockerConfig)

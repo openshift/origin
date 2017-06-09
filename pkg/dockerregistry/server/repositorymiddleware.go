@@ -514,7 +514,7 @@ func (r *repository) checkPendingErrors(ctx context.Context) error {
 }
 
 func checkPendingErrors(ctx context.Context, logger context.Logger, namespace, name string) error {
-	if !authPerformed(ctx) {
+	if !authSkipped(ctx) && !authPerformed(ctx) {
 		return fmt.Errorf("openshift.auth.completed missing from context")
 	}
 
