@@ -136,7 +136,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 			Group:     templateapi.GroupName,
 			Resource:  "templateinstances",
 		}); err != nil {
-			return field.ErrorList{field.Forbidden(field.NewPath("spec.requester.username"), fmt.Sprintf("impersonation forbidden: %v", err))}
+			return field.ErrorList{field.Forbidden(field.NewPath("spec.requester.username"), "you do not have permission to set username")}
 		}
 	}
 
