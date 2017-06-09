@@ -23,7 +23,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	"k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
@@ -398,7 +397,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, vnid)
+	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, req.ContainerId, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -411,45 +410,14 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	return ipamResult, &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: ofport}, nil
 }
 
-func (m *podManager) getContainerNetnsPath(id string) (string, error) {
-	runtime, ok := m.host.GetRuntime().(*dockertools.DockerManager)
-	if !ok {
-		return "", fmt.Errorf("openshift-sdn execution called on non-docker runtime")
-	}
-	return runtime.GetNetNS(kcontainer.DockerID(id).ContainerID())
-}
-
 // Update OVS flows when something (like the pod's namespace VNID) changes
 func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
-	// Updates may come at startup and thus we may not have the pod's
-	// netns from kubelet (since kubelet doesn't have UPDATE actions).
-	// Read the missing netns from the pod's file.
-	if req.Netns == "" {
-		netns, err := m.getContainerNetnsPath(req.ContainerId)
-		if err != nil {
-			return 0, err
-		}
-		req.Netns = netns
-	}
-
-	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
-	if err != nil {
-		return 0, err
-	}
-
-	hostVethName, contVethMac, podIP, err := getVethInfo(req.Netns, podInterfaceName)
-	if err != nil {
-		return 0, err
-	}
 	vnid, err := m.policy.GetVNID(req.PodNamespace)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := m.ovs.UpdatePod(hostVethName, podIP, contVethMac, vnid); err != nil {
-		return 0, err
-	}
-	if err := setupPodBandwidth(m.ovs, pod, hostVethName); err != nil {
+	if err := m.ovs.UpdatePod(req.ContainerId, vnid); err != nil {
 		return 0, err
 	}
 

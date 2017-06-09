@@ -1,8 +1,11 @@
 package plugin
 
 import (
+	"encoding/hex"
 	"fmt"
+	"net"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -37,7 +40,7 @@ func (oc *ovsController) getVersionNote() string {
 	if VERSION > 254 {
 		panic("Version too large!")
 	}
-	return fmt.Sprintf("note:%02X.%02X", oc.pluginId, VERSION)
+	return fmt.Sprintf("%02X.%02X", oc.pluginId, VERSION)
 }
 
 func (oc *ovsController) AlreadySetUp() bool {
@@ -47,7 +50,8 @@ func (oc *ovsController) AlreadySetUp() bool {
 	}
 	expectedVersionNote := oc.getVersionNote()
 	for _, flow := range flows {
-		if strings.HasSuffix(flow, expectedVersionNote) && strings.Contains(flow, fmt.Sprintf("table=%d", VERSION_TABLE)) {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err == nil && parsed.Table == VERSION_TABLE && parsed.NoteHasPrefix(expectedVersionNote) {
 			return true
 		}
 	}
@@ -164,7 +168,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
 	// Table 253: rule version note
-	otx.AddFlow("table=%d, actions=%s", VERSION_TABLE, oc.getVersionNote())
+	otx.AddFlow("table=%d, actions=note:%s", VERSION_TABLE, oc.getVersionNote())
 
 	err = otx.EndTransaction()
 	if err != nil {
@@ -182,11 +186,11 @@ func (oc *ovsController) ensureOvsPort(hostVeth string) (int, error) {
 	return oc.ovs.AddPort(hostVeth, -1)
 }
 
-func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC string, vnid uint32) error {
+func (oc *ovsController) setupPodFlows(ofport int, podIP, podMAC, note string, vnid uint32) error {
 	otx := oc.ovs.NewTransaction()
 
 	// ARP/IP traffic from container
-	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, podMAC, vnid)
+	otx.AddFlow("table=20, priority=100, in_port=%d, arp, nw_src=%s, arp_sha=%s, actions=load:%d->NXM_NX_REG0[], note:%s, goto_table:21", ofport, podIP, podMAC, vnid, note)
 	otx.AddFlow("table=20, priority=100, in_port=%d, ip, nw_src=%s, actions=load:%d->NXM_NX_REG0[], goto_table:21", ofport, podIP, vnid)
 
 	// ARP request/response to container (not isolated)
@@ -207,12 +211,34 @@ func (oc *ovsController) cleanupPodFlows(podIP string) error {
 	return otx.EndTransaction()
 }
 
-func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC string, vnid uint32) (int, error) {
+func getPodNote(containerID string) (string, error) {
+	bytes, err := hex.DecodeString(containerID)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode container ID %q: %v", containerID, err)
+	}
+	if len(bytes) != 32 {
+		return "", fmt.Errorf("invalid container ID %q length; expected 32 bytes", containerID)
+	}
+	var note string
+	for _, b := range bytes {
+		if len(note) > 0 {
+			note += "."
+		}
+		note += fmt.Sprintf("%02x", b)
+	}
+	return note, nil
+}
+
+func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, containerID string, vnid uint32) (int, error) {
+	note, err := getPodNote(containerID)
+	if err != nil {
+		return -1, err
+	}
 	ofport, err := oc.ensureOvsPort(hostVeth)
 	if err != nil {
 		return -1, err
 	}
-	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, vnid)
+	return ofport, oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
 }
 
 func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS int64) error {
@@ -254,8 +280,54 @@ func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS 
 	return nil
 }
 
-func (oc *ovsController) UpdatePod(hostVeth, podIP, podMAC string, vnid uint32) error {
-	ofport, err := oc.ensureOvsPort(hostVeth)
+func getPodDetailsByContainerID(flows []string, containerID string) (int, string, string, string, error) {
+	note, err := getPodNote(containerID)
+	if err != nil {
+		return 0, "", "", "", err
+	}
+
+	// Find the table=20 flow with the given note and extract the podIP, ofport, and MAC from them
+	for _, flow := range flows {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err != nil {
+			return 0, "", "", "", err
+		}
+		if parsed.Table != 20 || !parsed.NoteHasPrefix(note) {
+			continue
+		}
+
+		macField, macOk := parsed.FindField("arp_sha")
+		portField, pOk := parsed.FindField("in_port")
+		ipField, ipOk := parsed.FindField("arp_spa")
+		if !macOk || !pOk || !ipOk {
+			continue
+		}
+
+		ofport, err := strconv.Atoi(portField.Value)
+		if err != nil {
+			return 0, "", "", "", fmt.Errorf("failed to parse ofport %q: %v", portField.Value, err)
+		}
+		if _, err := net.ParseMAC(macField.Value); err != nil {
+			return 0, "", "", "", fmt.Errorf("failed to parse arp_sha %q: %v", macField.Value, err)
+		}
+		podMAC := macField.Value
+		if net.ParseIP(ipField.Value) == nil {
+			return 0, "", "", "", fmt.Errorf("failed to parse arp_spa %q", ipField.Value)
+		}
+		podIP := ipField.Value
+
+		return ofport, podIP, podMAC, note, nil
+	}
+
+	return 0, "", "", "", fmt.Errorf("failed to find pod details from OVS flows")
+}
+
+func (oc *ovsController) UpdatePod(containerID string, vnid uint32) error {
+	flows, err := oc.ovs.DumpFlows()
+	if err != nil {
+		return err
+	}
+	ofport, podIP, podMAC, note, err := getPodDetailsByContainerID(flows, containerID)
 	if err != nil {
 		return err
 	}
@@ -263,7 +335,7 @@ func (oc *ovsController) UpdatePod(hostVeth, podIP, podMAC string, vnid uint32) 
 	if err != nil {
 		return err
 	}
-	return oc.setupPodFlows(ofport, podIP, podMAC, vnid)
+	return oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
 }
 
 func (oc *ovsController) TearDownPod(hostVeth, podIP string) error {
