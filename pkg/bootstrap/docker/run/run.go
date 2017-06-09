@@ -9,24 +9,28 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 )
 
 type RunHelper struct {
-	client *docker.Client
+	client       *docker.Client
+	dockerHelper *dockerhelper.Helper
 }
 
-func NewRunHelper(client *docker.Client) *RunHelper {
+func NewRunHelper(client *docker.Client, dockerHelper *dockerhelper.Helper) *RunHelper {
 	return &RunHelper{
-		client: client,
+		client:       client,
+		dockerHelper: dockerHelper,
 	}
 }
 
 func (h *RunHelper) New() *Runner {
 	return &Runner{
-		client:     h.client,
-		config:     &docker.Config{},
-		hostConfig: &docker.HostConfig{},
+		client:       h.client,
+		dockerHelper: h.dockerHelper,
+		config:       &docker.Config{},
+		hostConfig:   &docker.HostConfig{},
 	}
 }
 
@@ -34,6 +38,7 @@ func (h *RunHelper) New() *Runner {
 type Runner struct {
 	name            string
 	client          *docker.Client
+	dockerHelper    *dockerhelper.Helper
 	config          *docker.Config
 	hostConfig      *docker.HostConfig
 	removeContainer bool
@@ -152,6 +157,15 @@ func (h *Runner) Run() (int, error) {
 }
 
 func (h *Runner) Create() (string, error) {
+	if h.hostConfig.Privileged {
+		userNsMode, err := h.dockerHelper.UserNamespaceEnabled()
+		if err != nil {
+			return "", err
+		}
+		if userNsMode {
+			h.hostConfig.UsernsMode = "host"
+		}
+	}
 	glog.V(4).Infof("Creating container named %q\nconfig:\n%s\nhost config:\n%s\n", h.name, printConfig(h.config), printHostConfig(h.hostConfig))
 	container, err := h.client.CreateContainer(docker.CreateContainerOptions{
 		Name:       h.name,
@@ -299,6 +313,7 @@ func printConfig(c *docker.Config) string {
 func printHostConfig(c *docker.HostConfig) string {
 	out := &bytes.Buffer{}
 	fmt.Fprintf(out, "  pid mode: %s\n", c.PidMode)
+	fmt.Fprintf(out, "  user mode: %s\n", c.UsernsMode)
 	fmt.Fprintf(out, "  network mode: %s\n", c.NetworkMode)
 	if len(c.DNS) > 0 {
 		fmt.Fprintf(out, "  DNS:\n")

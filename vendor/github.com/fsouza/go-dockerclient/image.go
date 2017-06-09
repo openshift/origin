@@ -585,10 +585,10 @@ type APIImageSearch struct {
 // See https://goo.gl/AYjyrF for more details.
 func (c *Client) SearchImages(term string) ([]APIImageSearch, error) {
 	resp, err := c.do("GET", "/images/search?term="+term, doOptions{})
-	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var searchResult []APIImageSearch
 	if err := json.NewDecoder(resp.Body).Decode(&searchResult); err != nil {
 		return nil, err
