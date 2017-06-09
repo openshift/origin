@@ -65,7 +65,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 			Default:     param.Value,
 			Type:        []jsschema.PrimitiveType{jsschema.StringType},
 		}
-		if param.Required {
+		if param.Required && param.Generate == "" {
 			required = append(required, param.Name)
 		}
 	}
