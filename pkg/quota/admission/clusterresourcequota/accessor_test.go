@@ -14,11 +14,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
-	ocache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/client/testclient"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 func TestUpdateQuota(t *testing.T) {
@@ -102,7 +102,7 @@ func TestUpdateQuota(t *testing.T) {
 			quotaIndexer.Add(availableQuotas[i])
 			objs = append(objs, availableQuotas[i])
 		}
-		quotaLister := &ocache.IndexerToClusterResourceQuotaLister{Indexer: quotaIndexer}
+		quotaLister := quotalister.NewClusterResourceQuotaLister(quotaIndexer)
 
 		client := testclient.NewSimpleFake(objs...)
 
@@ -287,7 +287,7 @@ func TestGetQuota(t *testing.T) {
 		for i := range availableQuotas {
 			quotaIndexer.Add(availableQuotas[i])
 		}
-		quotaLister := &ocache.IndexerToClusterResourceQuotaLister{Indexer: quotaIndexer}
+		quotaLister := quotalister.NewClusterResourceQuotaLister(quotaIndexer)
 
 		namespaceIndexer := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{})
 		for i := range tc.availableNamespaces {

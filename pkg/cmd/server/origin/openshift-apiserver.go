@@ -28,12 +28,12 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	deprecatedinformers "github.com/openshift/origin/pkg/controller/shared"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	"github.com/openshift/origin/pkg/version"
 
@@ -60,9 +60,9 @@ type OpenshiftAPIConfig struct {
 	KubeInternalInformers kinternalinformers.SharedInformerFactory
 
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	QuotaInformers         quotainformer.SharedInformerFactory
 
 	// DeprecatedInformers is a shared factory for getting old style openshift informers
-	DeprecatedInformers       deprecatedinformers.InformerFactory
 	DeprecatedOpenshiftClient *osclient.Client
 
 	// these are all required to build our storage
@@ -104,11 +104,14 @@ func (c *OpenshiftAPIConfig) Validate() error {
 	if c.KubeletClientConfig == nil {
 		ret = append(ret, fmt.Errorf("KubeletClientConfig is required"))
 	}
-	if c.DeprecatedInformers == nil {
-		ret = append(ret, fmt.Errorf("DeprecatedInformers is required"))
-	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
+	}
+	if c.AuthorizationInformers == nil {
+		ret = append(ret, fmt.Errorf("AuthorizationInformers is required"))
+	}
+	if c.QuotaInformers == nil {
+		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
 	}
 	if c.RuleResolver == nil {
 		ret = append(ret, fmt.Errorf("RuleResolver is required"))

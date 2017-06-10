@@ -383,7 +383,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
-		ClusterQuotaInformer: c.Informers.ClusterResourceQuotas(),
+		ClusterQuotaInformer: c.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:   c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
 		ClusterQuotaClient:   osClient,
 

@@ -421,7 +421,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"clusterResourceQuotas/status": clusterResourceQuotaStatusStorage,
 		"appliedClusterResourceQuotas": appliedclusterresourcequotaregistry.NewREST(
 			c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
-			c.DeprecatedInformers.ClusterResourceQuotas().Lister(),
+			c.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas().Lister(),
 			c.KubeInternalInformers.Core().InternalVersion().Namespaces().Lister(),
 		),
 	}

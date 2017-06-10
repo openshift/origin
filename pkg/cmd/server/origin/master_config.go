@@ -96,6 +96,8 @@ import (
 	"github.com/openshift/origin/pkg/quota"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
@@ -191,6 +193,7 @@ type MasterConfig struct {
 	AppInformers           appinformer.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	ImageInformers         imageinformer.SharedInformerFactory
+	QuotaInformers         quotainformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
 }
 
@@ -235,6 +238,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -251,6 +258,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	externalkubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
 	appInformers := appinformer.NewSharedInformerFactory(appClient, defaultInformerResyncPeriod)
 	authorizationInformers := authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod)
+	quotaInformers := quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod)
 	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
@@ -283,7 +291,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	}
 	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(informerFactory.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(), privilegedLoopbackKubeClientsetInternal.Core().Namespaces(), options.ProjectConfig.DefaultNodeSelector)
-	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas())
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
@@ -297,16 +305,17 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	authorizer, subjectLocator := newAuthorizer(ruleResolver, informerFactory, authorizationInformers.Authorization().InternalVersion(), options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
-		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
-		ProjectCache:          projectCache,
-		OriginQuotaRegistry:   quotaRegistry,
-		Authorizer:            authorizer,
-		JenkinsPipelineConfig: options.JenkinsPipelineConfig,
-		RESTClientConfig:      *privilegedLoopbackClientConfig,
-		Informers:             informerFactory,
-		ClusterQuotaMapper:    clusterQuotaMappingController.GetClusterQuotaMapper(),
-		DefaultRegistryFn:     imageapi.DefaultRegistryFunc(defaultRegistryFunc),
-		GroupCache:            groupCache,
+		OpenshiftClient:              privilegedLoopbackOpenShiftClient,
+		ProjectCache:                 projectCache,
+		OriginQuotaRegistry:          quotaRegistry,
+		Authorizer:                   authorizer,
+		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
+		RESTClientConfig:             *privilegedLoopbackClientConfig,
+		Informers:                    informerFactory,
+		ClusterResourceQuotaInformer: quotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
+		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+		GroupCache:                   groupCache,
 	}
 
 	// punch through layers to build this in order to get a string for a cloud provider file
@@ -384,6 +393,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AppInformers:           appInformers,
 		AuthorizationInformers: authorizationInformers,
 		ImageInformers:         imageInformers,
+		QuotaInformers:         quotaInformers,
 		TemplateInformers:      templateInformers,
 	}
 

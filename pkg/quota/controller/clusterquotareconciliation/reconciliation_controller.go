@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -21,14 +21,14 @@ import (
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client"
-	ocache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller/shared"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 type ClusterQuotaReconcilationControllerOptions struct {
-	ClusterQuotaInformer shared.ClusterResourceQuotaInformer
+	ClusterQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper   clusterquotamapping.ClusterQuotaMapper
 	ClusterQuotaClient   client.ClusterResourceQuotasInterface
 
@@ -46,7 +46,7 @@ type ClusterQuotaReconcilationControllerOptions struct {
 }
 
 type ClusterQuotaReconcilationController struct {
-	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
+	clusterQuotaLister quotalister.ClusterResourceQuotaLister
 	clusterQuotaSynced func() bool
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
 	clusterQuotaClient client.ClusterResourceQuotasInterface
@@ -173,7 +173,7 @@ func (c *ClusterQuotaReconcilationController) forceCalculation(quotaName string,
 }
 
 func (c *ClusterQuotaReconcilationController) calculateAll() {
-	quotas, err := c.clusterQuotaLister.List(metav1.ListOptions{})
+	quotas, err := c.clusterQuotaLister.List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return

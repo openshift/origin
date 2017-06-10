@@ -13,20 +13,22 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type PluginInitializer struct {
-	OpenshiftClient       client.Interface
-	ProjectCache          *cache.ProjectCache
-	OriginQuotaRegistry   quota.Registry
-	Authorizer            kauthorizer.Authorizer
-	JenkinsPipelineConfig configapi.JenkinsPipelineConfig
-	RESTClientConfig      restclient.Config
-	Informers             shared.InformerFactory
-	ClusterQuotaMapper    clusterquotamapping.ClusterQuotaMapper
-	DefaultRegistryFn     imageapi.DefaultRegistryFunc
-	GroupCache            *usercache.GroupCache
+	OpenshiftClient              client.Interface
+	ProjectCache                 *cache.ProjectCache
+	OriginQuotaRegistry          quota.Registry
+	Authorizer                   kauthorizer.Authorizer
+	JenkinsPipelineConfig        configapi.JenkinsPipelineConfig
+	RESTClientConfig             restclient.Config
+	Informers                    shared.InformerFactory
+	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
+	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
+	DefaultRegistryFn            imageapi.DefaultRegistryFunc
+	GroupCache                   *usercache.GroupCache
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -59,8 +61,8 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsInformerFactory, ok := plugin.(kubeapiserveradmission.WantsInternalKubeInformerFactory); ok {
 		wantsInformerFactory.SetInternalKubeInformerFactory(i.Informers.InternalKubernetesInformers())
 	}
-	if wantsClusterQuotaMapper, ok := plugin.(WantsClusterQuotaMapper); ok {
-		wantsClusterQuotaMapper.SetClusterQuotaMapper(i.ClusterQuotaMapper)
+	if wantsClusterQuota, ok := plugin.(WantsClusterQuota); ok {
+		wantsClusterQuota.SetClusterQuota(i.ClusterQuotaMapper, i.ClusterResourceQuotaInformer)
 	}
 	if wantsDefaultRegistryFunc, ok := plugin.(WantsDefaultRegistryFunc); ok {
 		wantsDefaultRegistryFunc.SetDefaultRegistryFunc(i.DefaultRegistryFn)

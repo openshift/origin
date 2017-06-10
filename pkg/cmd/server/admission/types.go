@@ -12,6 +12,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -61,10 +62,10 @@ type WantsInformers interface {
 	admission.Validator
 }
 
-// WantsClusterQuotaMapper should be implemented by admission plugins that need to know how to map between
-// cluster quota and namespaces
-type WantsClusterQuotaMapper interface {
-	SetClusterQuotaMapper(clusterquotamapping.ClusterQuotaMapper)
+// WantsClusterQuota should be implemented by admission plugins that need to know how to map between
+// cluster quota and namespaces and get access to the informer.
+type WantsClusterQuota interface {
+	SetClusterQuota(clusterquotamapping.ClusterQuotaMapper, quotainformer.ClusterResourceQuotaInformer)
 	admission.Validator
 }
 
