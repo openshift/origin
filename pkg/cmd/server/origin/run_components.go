@@ -163,8 +163,8 @@ func (c *MasterConfig) RunImageTriggerController() {
 	sources := []imagetriggercontroller.TriggerSource{
 		{
 			Resource:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"},
-			Informer:  c.Informers.DeploymentConfigs().Informer(),
-			Store:     c.Informers.DeploymentConfigs().Indexer(),
+			Informer:  c.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
+			Store:     c.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerdeploymentconfigs.NewDeploymentConfigTriggerIndexer,
 			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: oclient},
 		},

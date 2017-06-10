@@ -29,7 +29,6 @@ type InformerFactory interface {
 	Policies() PolicyInformer
 	PolicyBindings() PolicyBindingInformer
 
-	DeploymentConfigs() DeploymentConfigInformer
 	BuildConfigs() BuildConfigInformer
 	Builds() BuildInformer
 	SecurityContextConstraints() SecurityContextConstraintsInformer
@@ -145,10 +144,6 @@ func (f *sharedInformerFactory) Policies() PolicyInformer {
 
 func (f *sharedInformerFactory) PolicyBindings() PolicyBindingInformer {
 	return &policyBindingInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) DeploymentConfigs() DeploymentConfigInformer {
-	return &deploymentConfigInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) BuildConfigs() BuildConfigInformer {

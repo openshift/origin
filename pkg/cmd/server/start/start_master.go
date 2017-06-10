@@ -461,6 +461,7 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
+			openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
@@ -469,6 +470,7 @@ func (m *Master) Start() error {
 		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
+		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
@@ -661,6 +663,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
+		AppInformers:                 oc.AppInformers,
 		ImageInformers:               oc.ImageInformers,
 		TemplateInformers:            oc.TemplateInformers,
 		DeprecatedOpenshiftInformers: oc.Informers,
@@ -705,6 +708,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 			generic: []GenericResourceInformer{
 				// use our existing internal informers to satisfy the generic informer requests (which don't require strong
 				// types).
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return oc.AppInformers.ForResource(resource)
+				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return oc.AuthorizationInformers.ForResource(resource)
 				}),
