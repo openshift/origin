@@ -15,10 +15,6 @@ if [[ ! "${EGRESS_SOURCE:-}" =~ ^${IP_REGEX}$ ]]; then
     echo "EGRESS_SOURCE unspecified or invalid"
     exit 1
 fi
-if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
-    echo "EGRESS_DESTINATION unspecified"
-    exit 1
-fi
 if [[ ! "${EGRESS_GATEWAY:-}" =~ ^${IP_REGEX}$ ]]; then
     echo "EGRESS_GATEWAY unspecified or invalid"
     exit 1
@@ -48,6 +44,11 @@ function setup_network() {
 }
 
 function gen_iptables_rules() {
+    if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
+        echo "EGRESS_DESTINATION unspecified"
+        exit 1
+    fi
+
     did_fallback=
     while read dest; do
 	if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
@@ -120,6 +121,10 @@ case "${EGRESS_ROUTER_MODE:=legacy}" in
 	setup_network
 	setup_iptables
 	wait_until_killed
+	;;
+
+    http-proxy)
+	setup_network
 	;;
 
     unit-test)

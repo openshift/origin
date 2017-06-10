@@ -187,6 +187,12 @@ Summary:        %{produce_name} Federation Services
 Requires:       %{name} = %{version}-%{release}
 
 %description federation-services
+
+%package service-catalog
+Summary:        %{product_name} Service Catalog
+Requires:       %{name} = %{version}-%{release}
+
+%description service-catalog
 %{summary}
 
 %package cluster-capacity
@@ -225,6 +231,7 @@ of docker.  Exclude those versions of docker.
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} hack/build-cross.sh
+%{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 %else
 # Create Binaries only for building arch
 %ifarch x86_64
@@ -243,6 +250,7 @@ of docker.  Exclude those versions of docker.
   BUILD_PLATFORM="linux/s390x"
 %endif
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 %endif
 
 # Build cluster capacity
@@ -300,6 +308,11 @@ install -p -m 755 _output/local/bin/${PLATFORM}/hyperkube %{buildroot}%{_bindir}
 # Install cluster capacity
 install -p -m 755 cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/_output/local/bin/${PLATFORM}/hypercc %{buildroot}%{_bindir}/
 ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
+
+# Install service-catalog
+install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/apiserver %{buildroot}%{_bindir}/
+install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/controller-manager %{buildroot}%{_bindir}/
+install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/user-broker %{buildroot}%{_bindir}/
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -548,6 +561,11 @@ fi
 if [ -d %{kube_plugin_path} ]; then
   rmdir %{kube_plugin_path}
 fi
+
+%files service-catalog
+%{_bindir}/apiserver
+%{_bindir}/controller-manager
+%{_bindir}/user-broker
 
 %files -n tuned-profiles-%{name}-node
 %license LICENSE

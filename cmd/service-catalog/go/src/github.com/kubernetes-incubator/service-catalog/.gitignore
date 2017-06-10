@@ -1,0 +1,24 @@
+*.iml
+*.pyc
+*.swp
+*~
+kubeconfig
+.kubeconfig
+log/**
+pid/**
+bin/**
+coverage.html
+.idea/
+.DS_Store
+.glide
+.scBuildImage
+.init
+.generate*
+.envrc
+build/*/tmp/*
+contrib/build/*/tmp/*
+.pkg
+.kube
+.var
+# this is for buildling service catalog with origin tooling
+_output

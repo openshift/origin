@@ -90,12 +90,15 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 # images that depend on "${tag_prefix}-source"
 image "${tag_prefix}-pod"                   images/pod
 image "${tag_prefix}-cluster-capacity"      images/cluster-capacity
+image "${tag_prefix}-service-catalog"       images/service-catalog
+
 # images that depend on "${tag_prefix}-base"
 image "${tag_prefix}"                       images/origin
 image "${tag_prefix}-haproxy-router"        images/router/haproxy
 image "${tag_prefix}-keepalived-ipfailover" images/ipfailover/keepalived
 image "${tag_prefix}-docker-registry"       images/dockerregistry
 image "${tag_prefix}-egress-router"         images/egress/router
+image "${tag_prefix}-egress-http-proxy"     images/egress/http-proxy
 image "${tag_prefix}-federation"            images/federation
 # images that depend on "${tag_prefix}
 image "${tag_prefix}-gitserver"             examples/gitserver
