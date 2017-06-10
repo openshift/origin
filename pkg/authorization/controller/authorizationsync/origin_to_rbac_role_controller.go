@@ -91,6 +91,9 @@ func (c *OriginRoleToRBACRoleController) syncRole(key string) error {
 		return err
 	}
 
+	// normalize rules before persisting so RBAC's case sensitive authorizer will work
+	NormalizePolicyRules(equivalentRole.Rules)
+
 	// if we're missing the rbacRole, create it
 	if apierrors.IsNotFound(rbacErr) {
 		equivalentRole.ResourceVersion = ""
