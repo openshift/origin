@@ -76,6 +76,7 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 // kubeAdmissionPlugins tracks kube plugins we use.  You may add to this list, but ONLY if they're from upstream kube
 var kubeAdmissionPlugins = sets.NewString(
 	lifecycle.PluginName,
+	"PodPreset",
 	"LimitRanger",
 	"ServiceAccount",
 	"DefaultStorageClass",

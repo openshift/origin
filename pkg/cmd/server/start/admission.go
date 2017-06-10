@@ -35,6 +35,7 @@ import (
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
+	_ "k8s.io/kubernetes/plugin/pkg/admission/podpreset"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
@@ -87,6 +88,7 @@ var (
 		"openshift.io/RestrictSubjectBindings",
 		"LimitPodHardAntiAffinityTopology",
 		"DefaultTolerationSeconds",
+		"PodPreset", // default to off while PodPreset is alpha
 	)
 )
 
