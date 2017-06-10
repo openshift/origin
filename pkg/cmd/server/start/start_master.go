@@ -462,6 +462,7 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
 			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
@@ -469,6 +470,7 @@ func (m *Master) Start() error {
 		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 		openshiftConfig.Informers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 	}
 
@@ -659,6 +661,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
+		ImageInformers:               oc.ImageInformers,
 		TemplateInformers:            oc.TemplateInformers,
 		DeprecatedOpenshiftInformers: oc.Informers,
 		Stop: utilwait.NeverStop,
@@ -703,10 +706,13 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				// use our existing internal informers to satisfy the generic informer requests (which don't require strong
 				// types).
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return oc.TemplateInformers.ForResource(resource)
+					return oc.AuthorizationInformers.ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return oc.AuthorizationInformers.ForResource(resource)
+					return oc.ImageInformers.ForResource(resource)
+				}),
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return oc.TemplateInformers.ForResource(resource)
 				}),
 				oc.Informers,
 			},
@@ -794,7 +800,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 
 	glog.Infof("Started Kubernetes Controllers")
 	openshiftControllerContext.Stop = controllerContext.Stop
-
 	openshiftControllerInitializers, err := oc.NewOpenshiftControllerInitializers()
 	if err != nil {
 		return err

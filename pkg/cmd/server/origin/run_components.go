@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	osclient "github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -130,15 +129,6 @@ func (c *MasterConfig) RunProjectCache() {
 	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
-// TODO: remove when generated informers exist
-type temporaryLister struct {
-	*oscache.StoreToImageStreamLister
-}
-
-func (l temporaryLister) ImageStreams(namespace string) imagetriggercontroller.ImageStreamNamespaceLister {
-	return l.StoreToImageStreamLister.ImageStreams(namespace)
-}
-
 type podSpecUpdater struct {
 	kclient kclientsetexternal.Interface
 }
@@ -163,8 +153,7 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 }
 
 func (c *MasterConfig) RunImageTriggerController() {
-	streamInformer := c.Informers.ImageStreams().Informer()
-	lister := temporaryLister{c.Informers.ImageStreams().Lister()}
+	informer := c.ImageInformers.Image().InternalVersion().ImageStreams()
 
 	oclient, _, kclient := c.ImageTriggerControllerClients()
 	updater := podSpecUpdater{kclient}
@@ -228,8 +217,7 @@ func (c *MasterConfig) RunImageTriggerController() {
 
 	trigger := imagetriggercontroller.NewTriggerController(
 		broadcaster,
-		streamInformer,
-		lister,
+		informer,
 		sources...,
 	)
 	go trigger.Run(5, utilwait.NeverStop)
@@ -271,8 +259,8 @@ func (c *MasterConfig) RunServiceServingCertController(client kclientsetinternal
 
 // RunImageImportController starts the image import trigger controller process.
 func (c *MasterConfig) RunImageImportController() {
-	controller := imagecontroller.NewImageStreamController(c.ImageImportControllerClient(), c.Informers.ImageStreams())
-	scheduledController := imagecontroller.NewScheduledImageStreamController(c.ImageImportControllerClient(), c.Informers.ImageStreams(), imagecontroller.ScheduledImageStreamControllerOptions{
+	controller := imagecontroller.NewImageStreamController(c.ImageImportControllerClient(), c.ImageInformers.Image().InternalVersion().ImageStreams())
+	scheduledController := imagecontroller.NewScheduledImageStreamController(c.ImageImportControllerClient(), c.ImageInformers.Image().InternalVersion().ImageStreams(), imagecontroller.ScheduledImageStreamControllerOptions{
 		Resync: time.Duration(c.Options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds) * time.Second,
 
 		Enabled:                  !c.Options.ImagePolicyConfig.DisableScheduledImport,
@@ -368,14 +356,14 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClientExternal)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:                kClientExternal,
 		ResourceQuotaInformer:     c.Informers.KubernetesInformers().Core().V1().ResourceQuotas(),
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,
 		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
@@ -391,7 +379,7 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, osClient, kClientExternal)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
@@ -401,7 +389,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, osClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}

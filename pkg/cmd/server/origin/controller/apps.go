@@ -84,7 +84,7 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 	go triggercontroller.NewDeploymentTriggerController(
 		ctx.DeprecatedOpenshiftInformers.DeploymentConfigs().Informer(),
 		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer(),
-		ctx.DeprecatedOpenshiftInformers.ImageStreams().Informer(),
+		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
 		deprecatedOcTriggerClient,
 		c.Codec,
 	).Run(5, ctx.Stop)

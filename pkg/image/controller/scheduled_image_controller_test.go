@@ -6,14 +6,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kexternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	kinternalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller/shared"
 	"github.com/openshift/origin/pkg/image/api"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -42,13 +39,8 @@ func TestScheduledImport(t *testing.T) {
 		},
 	}
 
-	internalKubeClient := kinternalfake.NewSimpleClientset()
-	externalKubeClient := kexternalfake.NewSimpleClientset()
-	externalKubeInformerFactory := kexternalinformers.NewSharedInformerFactory(externalKubeClient, 10*time.Minute)
-	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
-	informerFactory := shared.NewInformerFactory(internalKubeInformerFactory, externalKubeInformerFactory,
-		internalKubeClient, testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
-	isInformer := informerFactory.ImageStreams()
+	imageInformers := imageinformer.NewSharedInformerFactory(imageinternal.NewSimpleClientset(), 0)
+	isInformer := imageInformers.Image().InternalVersion().ImageStreams()
 	fake := testclient.NewSimpleFake()
 	sched := NewScheduledImageStreamController(fake, isInformer, ScheduledImageStreamControllerOptions{
 		Enabled:           true,

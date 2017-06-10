@@ -10,18 +10,19 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
 
 // replenishmentControllerFactory implements ReplenishmentControllerFactory
 type replenishmentControllerFactory struct {
-	isInformer shared.ImageStreamInformer
+	isInformer imageinternalversion.ImageStreamInformer
 }
 
 var _ kresourcequota.ReplenishmentControllerFactory = &replenishmentControllerFactory{}
 
 // NewReplenishmentControllerFactory returns a factory that knows how to build controllers
 // to replenish resources when updated or deleted
-func NewReplenishmentControllerFactory(isInformer shared.ImageStreamInformer) kresourcequota.ReplenishmentControllerFactory {
+func NewReplenishmentControllerFactory(isInformer imageinternalversion.ImageStreamInformer) kresourcequota.ReplenishmentControllerFactory {
 	return &replenishmentControllerFactory{
 		isInformer: isInformer,
 	}
@@ -53,9 +54,9 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 }
 
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
-func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, osClient osclient.Interface) kresourcequota.ReplenishmentControllerFactory {
+func NewAllResourceReplenishmentControllerFactory(informerFactory shared.InformerFactory, imageStreamInformer imageinternalversion.ImageStreamInformer, osClient osclient.Interface) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
 		kresourcequota.NewReplenishmentControllerFactory(informerFactory.KubernetesInformers()),
-		NewReplenishmentControllerFactory(informerFactory.ImageStreams()),
+		NewReplenishmentControllerFactory(imageStreamInformer),
 	}
 }

@@ -9,6 +9,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller/shared"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
@@ -19,6 +20,7 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
+	ImageInformers    imageinformer.SharedInformerFactory
 	TemplateInformers templateinformer.SharedInformerFactory
 
 	DeprecatedOpenshiftInformers shared.InformerFactory

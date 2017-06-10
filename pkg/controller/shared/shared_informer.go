@@ -32,7 +32,6 @@ type InformerFactory interface {
 	DeploymentConfigs() DeploymentConfigInformer
 	BuildConfigs() BuildConfigInformer
 	Builds() BuildInformer
-	ImageStreams() ImageStreamInformer
 	SecurityContextConstraints() SecurityContextConstraintsInformer
 	ClusterResourceQuotas() ClusterResourceQuotaInformer
 
@@ -158,10 +157,6 @@ func (f *sharedInformerFactory) BuildConfigs() BuildConfigInformer {
 
 func (f *sharedInformerFactory) Builds() BuildInformer {
 	return &buildInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) ImageStreams() ImageStreamInformer {
-	return &imageStreamInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) SecurityContextConstraints() SecurityContextConstraintsInformer {

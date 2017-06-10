@@ -83,6 +83,8 @@ import (
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -184,6 +186,7 @@ type MasterConfig struct {
 	Informers shared.InformerFactory
 
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	ImageInformers         imageinformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
 }
 
@@ -224,6 +227,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	customListerWatchers := shared.DefaultListerWatcherOverrides{}
 	if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
@@ -236,6 +243,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	externalkubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
 	authorizationInformers := authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod)
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
+	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
 	err = templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
@@ -270,7 +278,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(informerFactory, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
+	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(informerFactory, imageInformers.Image().InternalVersion().ImageStreams(), privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -362,8 +370,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackOpenShiftClient:             privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClientsetInternal: privilegedLoopbackKubeClientsetInternal,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+
 		Informers:              informerFactory,
 		AuthorizationInformers: authorizationInformers,
+		ImageInformers:         imageInformers,
 		TemplateInformers:      templateInformers,
 	}
 

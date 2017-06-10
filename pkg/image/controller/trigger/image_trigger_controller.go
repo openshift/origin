@@ -9,8 +9,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -23,6 +21,8 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
@@ -34,21 +34,6 @@ const (
 
 // ErrUnresolvedTag is used to indicate a resource is not ready to be triggered
 var ErrUnresolvedTag = fmt.Errorf("one or more triggers on this object cannot be resolved")
-
-// ImageStreamNamespaceLister helps get ImageStreams.
-// TODO: replace with generated informer interfaces
-type ImageStreamNamespaceLister interface {
-	// Get retrieves the Deployment from the indexer for a given namespace and name.
-	Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error)
-}
-
-// ImageStreamLister is the subset interface required off an ImageStream client to
-// implement this controller.
-// TODO: replace with generated informer interfaces
-type ImageStreamLister interface {
-	// ImageStreams returns an object that can get ImageStreams.
-	ImageStreams(namespace string) ImageStreamNamespaceLister
-}
 
 // TriggerSource defines the behavior for given resource type that can be triggered
 // by image stream tag changes.
@@ -70,14 +55,14 @@ type TriggerSource struct {
 
 // tagRetriever implements trigger.TagRetriever over an image stream lister.
 type tagRetriever struct {
-	lister ImageStreamLister
+	lister imageinternalversion.ImageStreamLister
 }
 
 var _ trigger.TagRetriever = tagRetriever{}
 
 // NewTagRetriever will return a tag retriever that can look up image stream tag
 // references from an image stream.
-func NewTagRetriever(lister ImageStreamLister) trigger.TagRetriever {
+func NewTagRetriever(lister imageinternalversion.ImageStreamLister) trigger.TagRetriever {
 	return tagRetriever{lister}
 }
 
@@ -88,7 +73,7 @@ func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int
 	if !ok {
 		return "", 0, false
 	}
-	is, err := r.lister.ImageStreams(namespace).Get(streamName, metav1.GetOptions{})
+	is, err := r.lister.ImageStreams(namespace).Get(streamName)
 	if err != nil {
 		return "", 0, false
 	}
@@ -98,33 +83,6 @@ func (r tagRetriever) ImageStreamTag(namespace, name string) (ref string, rv int
 	}
 	ref, ok = imageapi.ResolveLatestTaggedImage(is, tag)
 	return ref, rv, ok
-}
-
-// StoreToImageStreamLister adapts a cache.Store to ImageStreamLister
-// TODO: replace with generated informer interfaces
-type StoreToImageStreamLister struct {
-	cache.Store
-}
-
-func (s StoreToImageStreamLister) ImageStreams(namespace string) ImageStreamNamespaceLister {
-	return storeImageStreamsNamespacer{s.Store, namespace}
-}
-
-type storeImageStreamsNamespacer struct {
-	store     cache.Store
-	namespace string
-}
-
-// Get the image stream matching the name from the cache.
-func (s storeImageStreamsNamespacer) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
-	obj, exists, err := s.store.GetByKey(s.namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestream"), name)
-	}
-	return obj.(*imageapi.ImageStream), nil
 }
 
 // defaultResourceFailureDelay will retry failures forever, but implements an exponential
@@ -172,7 +130,7 @@ type TriggerController struct {
 	resourceFailureDelayFn func(requeue int) (time.Duration, bool)
 
 	// lister can list/get image streams from the shared informer's store
-	lister ImageStreamLister
+	lister imageinternalversion.ImageStreamLister
 	// tagRetriever helps get the latest value of a tag
 	tagRetriever trigger.TagRetriever
 
@@ -194,7 +152,8 @@ func NewTriggerEventBroadcaster(client kv1core.CoreV1Interface) record.EventBroa
 }
 
 // NewTriggerController instantiates a trigger controller from the provided sources.
-func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer cache.SharedInformer, lister ImageStreamLister, sources ...TriggerSource) *TriggerController {
+func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer imageinformer.ImageStreamInformer, sources ...TriggerSource) *TriggerController {
+	lister := isInformer.Lister()
 	c := &TriggerController{
 		eventRecorder:    eventBroadcaster.NewRecorder(kapi.Scheme, v1.EventSource{Component: "image-trigger-controller"}),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "image-trigger"),
@@ -210,11 +169,11 @@ func NewTriggerController(eventBroadcaster record.EventBroadcaster, isInformer c
 	c.syncResourceFn = c.syncResource
 	c.enqueueImageStreamFn = c.enqueueImageStream
 
-	isInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	isInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addImageStreamNotification,
 		UpdateFunc: c.updateImageStreamNotification,
 	})
-	c.syncs = []cache.InformerSynced{isInformer.HasSynced}
+	c.syncs = []cache.InformerSynced{isInformer.Informer().HasSynced}
 
 	triggers, syncs, err := setupTriggerSources(c.triggerCache, c.tagRetriever, sources, c.imageChangeQueue)
 	if err != nil {
