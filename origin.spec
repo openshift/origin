@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e3f99e11169a365f304ac2835e5c5b7a71300b3f
+%global commit 2c0bed5d29193c57cf02ee7f608cd1381869cfe6
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.101 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e3f99e1
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.102 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2c0bed5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.102
+Version:        3.6.103
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -662,6 +662,37 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Jun 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.103-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console ab8a3e0
+  (tdawson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cdf2198ce38f9c78ec67ffa8746d215c0761617e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9e2599c098405cb59f9e3d4b26793c1d9c03ce0e (dmcphers+openshiftbot@redhat.com)
+- script for building local images (bparees@redhat.com)
+- service-catalog: add dockerfile and add to build (jpeeler@redhat.com)
+- service-catalog: add sc files to origin RPM (jpeeler@redhat.com)
+- service-catalog: ignore needed directories (jpeeler@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' content from commit c91fecb (jpeeler@redhat.com)
+- Enable pod preset admission, but default to off (decarr@redhat.com)
+- make templateinstance immutability message less unfriendly
+  (jminter@redhat.com)
+- template service broker catalog: only list as required those template
+  parameters which are marked required and which cannot be generated
+  automatically (jminter@redhat.com)
+- sdn: don't require netns on Update action (dcbw@redhat.com)
+- sdn: use OVS flow parsing utils for AlreadySetUp() (dcbw@redhat.com)
+- ovs: split out flow parsing code, expose API, and parse actions
+  (dcbw@redhat.com)
+- Reinstate "e2e test: remove PodCheckDns flake" (lmeyer@redhat.com)
+- sdn: don't allow pod bandwidth/QoS changes after pod start (dcbw@redhat.com)
+- Add an HTTP proxy mode to egress router (danw@redhat.com)
+- Revert "Add proper check for default certificate" (ichavero@redhat.com)
+- Add proper check for default certificate (ichavero@redhat.com)
+- Support IPv6 terminated at the router with internal IPv4
+  (ichavero@redhat.com)
+
 * Fri Jun 09 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.102-1
 - bump(github.com/openshift/origin-web-console):
   513fa446b1d6ed3dc02b2e746ec28fedda035790 (dmcphers+openshiftbot@redhat.com)
