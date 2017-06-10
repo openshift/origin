@@ -526,9 +526,7 @@ function build-image() {
   local build_root=$1
   local image_name=$2
 
-  pushd "${build_root}" > /dev/null
-    ${DOCKER_CMD} build -t "${image_name}" .
-  popd > /dev/null
+  os::build::image "${build_root}" "${image_name}"
 }
 
 
