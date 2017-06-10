@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -57,6 +58,8 @@ type OpenshiftAPIConfig struct {
 	KubeClientInternal    kclientsetinternal.Interface
 	KubeletClientConfig   *kubeletclient.KubeletClientConfig
 	KubeInternalInformers kinternalinformers.SharedInformerFactory
+
+	AuthorizationInformers authorizationinformer.SharedInformerFactory
 
 	// DeprecatedInformers is a shared factory for getting old style openshift informers
 	DeprecatedInformers       deprecatedinformers.InformerFactory

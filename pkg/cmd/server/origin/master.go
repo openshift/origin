@@ -50,6 +50,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 		KubeletClientConfig:                c.KubeletClientConfig,
 		KubeInternalInformers:              c.Informers.InternalKubernetesInformers(),
+		AuthorizationInformers:             c.AuthorizationInformers,
 		DeprecatedInformers:                c.Informers,
 		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
 		RuleResolver:                       c.RuleResolver,

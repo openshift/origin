@@ -8,6 +8,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -18,7 +19,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/client"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )
 
 // Lister enforces ability to enumerate a resource based on policy
@@ -114,6 +115,24 @@ func (s *neverSkipSynchronizer) SkipSynchronize(prevState string, versionedObjec
 	return false, ""
 }
 
+type SyncedClusterPolicyLister interface {
+	authorizationlister.ClusterPolicyLister
+	LastSyncResourceVersioner
+}
+
+type SyncedClusterPolicyBindingLister interface {
+	authorizationlister.ClusterPolicyBindingLister
+	LastSyncResourceVersioner
+}
+type SyncedPolicyLister interface {
+	authorizationlister.PolicyLister
+	LastSyncResourceVersioner
+}
+type SyncedPolicyBindingLister interface {
+	authorizationlister.PolicyBindingLister
+	LastSyncResourceVersioner
+}
+
 // AuthorizationCache maintains a cache on the set of namespaces a user or group can access.
 type AuthorizationCache struct {
 	// allKnownNamespaces we track all the known namespaces, so we can detect deletes.
@@ -122,10 +141,10 @@ type AuthorizationCache struct {
 	namespaceStore            cache.Store
 	lastSyncResourceVersioner LastSyncResourceVersioner
 
-	clusterPolicyLister             client.SyncedClusterPoliciesListerInterface
-	clusterPolicyBindingLister      client.SyncedClusterPolicyBindingsListerInterface
-	policyNamespacer                client.SyncedPoliciesListerNamespacer
-	policyBindingNamespacer         client.SyncedPolicyBindingsListerNamespacer
+	clusterPolicyLister             SyncedClusterPolicyLister
+	clusterPolicyBindingLister      SyncedClusterPolicyBindingLister
+	policyNamespacer                SyncedPolicyLister
+	policyBindingNamespacer         SyncedPolicyBindingLister
 	policyLastSyncResourceVersioner LastSyncResourceVersioner
 
 	reviewRecordStore       cache.Store
@@ -148,8 +167,8 @@ type AuthorizationCache struct {
 
 // NewAuthorizationCache creates a new AuthorizationCache
 func NewAuthorizationCache(namespaces cache.SharedIndexInformer, reviewer Reviewer,
-	clusterPolicyLister client.SyncedClusterPoliciesListerInterface, clusterPolicyBindingLister client.SyncedClusterPolicyBindingsListerInterface,
-	policyNamespacer client.SyncedPoliciesListerNamespacer, policyBindingNamespacer client.SyncedPolicyBindingsListerNamespacer,
+	clusterPolicyLister SyncedClusterPolicyLister, clusterPolicyBindingLister SyncedClusterPolicyBindingLister,
+	policyNamespacer SyncedPolicyLister, policyBindingNamespacer SyncedPolicyBindingLister,
 ) *AuthorizationCache {
 	ac := &AuthorizationCache{
 		allKnownNamespaces: sets.String{},
@@ -209,7 +228,7 @@ func (ac *AuthorizationCache) RemoveWatcher(watcher CacheWatcher) {
 	}
 }
 
-func (ac *AuthorizationCache) GetClusterPolicyLister() client.SyncedClusterPoliciesListerInterface {
+func (ac *AuthorizationCache) GetClusterPolicyLister() SyncedClusterPolicyLister {
 	return ac.clusterPolicyLister
 }
 
@@ -233,12 +252,12 @@ func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache
 
 // synchronizePolicies synchronizes access over each policy
 func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyList, err := ac.policyNamespacer.Policies(metav1.NamespaceAll).List(metav1.ListOptions{})
+	policyList, err := ac.policyNamespacer.Policies(metav1.NamespaceAll).List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
-	for _, policy := range policyList.Items {
+	for _, policy := range policyList {
 		reviewRequest := &reviewRequest{
 			namespace:                  policy.Namespace,
 			policyUIDToResourceVersion: map[types.UID]string{policy.UID: policy.ResourceVersion},
@@ -251,12 +270,12 @@ func (ac *AuthorizationCache) synchronizePolicies(userSubjectRecordStore cache.S
 
 // synchronizePolicyBindings synchronizes access over each policy binding
 func (ac *AuthorizationCache) synchronizePolicyBindings(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) {
-	policyBindingList, err := ac.policyBindingNamespacer.PolicyBindings(metav1.NamespaceAll).List(metav1.ListOptions{})
+	policyBindingList, err := ac.policyBindingNamespacer.PolicyBindings(metav1.NamespaceAll).List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
-	for _, policyBinding := range policyBindingList.Items {
+	for _, policyBinding := range policyBindingList {
 		reviewRequest := &reviewRequest{
 			namespace:                         policyBinding.Namespace,
 			policyBindingUIDToResourceVersion: map[types.UID]string{policyBinding.UID: policyBinding.ResourceVersion},
@@ -288,14 +307,14 @@ func (ac *AuthorizationCache) purgeDeletedNamespaces(oldNamespaces, newNamespace
 func (ac *AuthorizationCache) invalidateCache() bool {
 	invalidateCache := false
 
-	clusterPolicyList, err := ac.clusterPolicyLister.ClusterPolicies().List(metav1.ListOptions{})
+	clusterPolicyList, err := ac.clusterPolicyLister.List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return invalidateCache
 	}
 
 	temporaryVersions := sets.NewString()
-	for _, clusterPolicy := range clusterPolicyList.Items {
+	for _, clusterPolicy := range clusterPolicyList {
 		temporaryVersions.Insert(clusterPolicy.ResourceVersion)
 	}
 	if (len(ac.clusterPolicyResourceVersions) != len(temporaryVersions)) || !ac.clusterPolicyResourceVersions.HasAll(temporaryVersions.List()...) {
@@ -303,14 +322,14 @@ func (ac *AuthorizationCache) invalidateCache() bool {
 		ac.clusterPolicyResourceVersions = temporaryVersions
 	}
 
-	clusterPolicyBindingList, err := ac.clusterPolicyBindingLister.ClusterPolicyBindings().List(metav1.ListOptions{})
+	clusterPolicyBindingList, err := ac.clusterPolicyBindingLister.List(labels.Everything())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return invalidateCache
 	}
 
 	temporaryVersions.Delete(temporaryVersions.List()...)
-	for _, clusterPolicyBinding := range clusterPolicyBindingList.Items {
+	for _, clusterPolicyBinding := range clusterPolicyBindingList {
 		temporaryVersions.Insert(clusterPolicyBinding.ResourceVersion)
 	}
 	if (len(ac.clusterBindingResourceVersions) != len(temporaryVersions)) || !ac.clusterBindingResourceVersions.HasAll(temporaryVersions.List()...) {
@@ -419,7 +438,7 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 		}
 	}
 
-	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], ac.clusterPolicyLister.ClusterPolicies())
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], ac.clusterPolicyLister)
 	if err != nil {
 		return nil, err
 	}

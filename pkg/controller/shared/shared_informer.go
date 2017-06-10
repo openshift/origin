@@ -24,11 +24,6 @@ type InformerFactory interface {
 
 	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
 
-	ClusterPolicies() ClusterPolicyInformer
-	ClusterPolicyBindings() ClusterPolicyBindingInformer
-	Policies() PolicyInformer
-	PolicyBindings() PolicyBindingInformer
-
 	BuildConfigs() BuildConfigInformer
 	Builds() BuildInformer
 	SecurityContextConstraints() SecurityContextConstraintsInformer
@@ -128,22 +123,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	}
 
 	return nil, fmt.Errorf("no OpenShift shared informer for %s", resource)
-}
-
-func (f *sharedInformerFactory) ClusterPolicies() ClusterPolicyInformer {
-	return &clusterPolicyInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) ClusterPolicyBindings() ClusterPolicyBindingInformer {
-	return &clusterPolicyBindingInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) Policies() PolicyInformer {
-	return &policyInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) PolicyBindings() PolicyBindingInformer {
-	return &policyBindingInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) BuildConfigs() BuildConfigInformer {

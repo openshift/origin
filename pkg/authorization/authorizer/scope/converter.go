@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -16,7 +15,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
-	"github.com/openshift/origin/pkg/client"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -25,7 +24,7 @@ import (
 
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
 // an error since errors aren't fatal to evaluation
-func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
+func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	rules := append([]authorizationapi.PolicyRule{}, authorizationapi.DiscoveryRule)
 
 	errors := []error{}
@@ -55,7 +54,7 @@ func ScopesToRules(scopes []string, namespace string, clusterPolicyGetter client
 
 // ScopesToVisibleNamespaces returns a list of namespaces that the provided scopes have "get" access to.
 // This exists only to support efficiently list/watch of projects (ACLed namespaces)
-func ScopesToVisibleNamespaces(scopes []string, clusterPolicyGetter client.ClusterPolicyLister) (sets.String, error) {
+func ScopesToVisibleNamespaces(scopes []string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) (sets.String, error) {
 	if len(scopes) == 0 {
 		return sets.NewString("*"), nil
 	}
@@ -102,8 +101,8 @@ type ScopeEvaluator interface {
 	// Describe returns a description, warning (typically used to warn about escalation dangers), or an error if the scope is malformed
 	Describe(scope string) (description string, warning string, err error)
 	// ResolveRules returns the policy rules that this scope allows
-	ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error)
-	ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error)
+	ResolveRules(scope, namespace string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error)
+	ResolveGettableNamespaces(scope string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]string, error)
 }
 
 // ScopeEvaluators map prefixes to a function that handles that prefix
@@ -169,7 +168,7 @@ func (userEvaluator) Describe(scope string) (string, string, error) {
 	}
 }
 
-func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
+func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	switch scope {
 	case UserInfo:
 		return []authorizationapi.PolicyRule{
@@ -199,7 +198,7 @@ func (userEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter c
 	}
 }
 
-func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error) {
+func (userEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]string, error) {
 	switch scope {
 	case UserFull, UserListAllProjects:
 		return []string{"*"}, nil
@@ -309,7 +308,7 @@ func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
 	return description, warning, nil
 }
 
-func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
+func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	_, scopeNamespace, _, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
@@ -324,13 +323,13 @@ func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterPolic
 }
 
 // resolveRules doesn't enforce namespace checks
-func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
+func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]authorizationapi.PolicyRule, error) {
 	roleName, _, escalating, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
 	}
 
-	policy, err := clusterPolicyGetter.Get("default", metav1.GetOptions{})
+	policy, err := clusterPolicyGetter.Get("default")
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +357,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterPolicyGetter cli
 	return rules, nil
 }
 
-func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter client.ClusterPolicyLister) ([]string, error) {
+func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterPolicyGetter authorizationlister.ClusterPolicyLister) ([]string, error) {
 	_, scopeNamespace, _, err := e.parseScope(scope)
 	if err != nil {
 		return nil, err
