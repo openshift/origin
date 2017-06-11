@@ -65,7 +65,6 @@ RUN ln -sf /data/openshift-sdn-ovs /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/openshift-f5-router && \
     ln -sf /data/openshift-sdn /opt/cni/bin/ && \
     ln -sf /data/host-local    /opt/cni/bin/ && \
-    ln -sf /data/loopback      /opt/cni/bin/ && \
-    ln -sf /data/80-openshift-sdn.conf /etc/cni/net.d/
+    ln -sf /data/loopback      /opt/cni/bin/
 
 ENV KUBECONFIG /data/openshift.local.config/master/admin.kubeconfig

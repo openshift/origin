@@ -460,7 +460,6 @@ function copy-runtime() {
   cp "$(os::util::find::built_binary sdn-cni-plugin)" "${target}/openshift-sdn"
   local osdn_plugin_path="${origin_root}/pkg/sdn/plugin"
   cp "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target}"
-  cp "${osdn_plugin_path}/sdn-cni-plugin/80-openshift-sdn.conf" "${target}"
 }
 
 function wait-for-cluster() {
@@ -527,9 +526,7 @@ function build-image() {
   local build_root=$1
   local image_name=$2
 
-  pushd "${build_root}" > /dev/null
-    ${DOCKER_CMD} build -t "${image_name}" .
-  popd > /dev/null
+  os::build::image "${build_root}" "${image_name}"
 }
 
 
@@ -782,7 +779,7 @@ The following environment variables are honored:
  - OPENSHIFT_CONFIG_BASE: Where the cluster configs are written, move somewhere persistent if you
       want to pause and resume across reboots.  Default: '${TMPDIR}/openshift-dind-cluster'
  - OPENSHIFT_CONFIG_ROOT: Where this specific cluster config is written.
-      Default: '${OPENSHIFT_CONFIG_BASE}/${OPENSHIFT_CLUSTER_ID}'
+      Default: '\${OPENSHIFT_CONFIG_BASE}/\${OPENSHIFT_CLUSTER_ID}'
 "
     exit 2
 esac

@@ -31,7 +31,6 @@ import (
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
-	kubeletnetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -267,13 +266,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, err
 	}
 	deps.Cloud = cloud
-
-	// Replace the kubelet-created CNI plugin with the SDN plugin
-	// Kubelet must be initialized with NetworkPluginName="cni" but
-	// the SDN plugin (if available) needs to be the only one used
-	if sdnPlugin != nil {
-		deps.NetworkPlugins = []kubeletnetwork.NetworkPlugin{sdnPlugin}
-	}
 
 	// provide any config overrides
 	//deps.NodeName = options.NodeName

@@ -21,8 +21,11 @@ var _ = g.Describe("[imageapis][registry] image signature workflow", func() {
 	)
 
 	g.It("can push a signed image to openshift registry and verify it", func() {
-		g.By("building an signer image that know how to sign images")
-		_, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
+		g.By("building a signer image that knows how to sign images")
+		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "%s\n\n", output)
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		err = exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "signer", "latest")
 		containerLog, _ := oc.Run("logs").Args("builds/signer-1").Output()

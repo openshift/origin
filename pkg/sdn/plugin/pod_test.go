@@ -13,11 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
 	utiltesting "k8s.io/client-go/util/testing"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	kcontainertest "k8s.io/kubernetes/pkg/kubelet/container/testing"
-	"k8s.io/kubernetes/pkg/kubelet/network"
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -144,44 +139,6 @@ func (pt *podTester) teardown(req *cniserver.PodRequest) error {
 		pod.deleted = true
 	}
 	return err
-}
-
-type fakeHost struct {
-	runtime kcontainer.Runtime
-}
-
-var _ network.Host = &fakeHost{}
-
-func newFakeHost() *fakeHost {
-	return &fakeHost{
-		runtime: &kcontainertest.FakeRuntime{
-			AllPodList: []*kcontainertest.FakePod{},
-		},
-	}
-}
-
-func (fnh *fakeHost) GetPodByName(name, namespace string) (*kapiv1.Pod, bool) {
-	return nil, false
-}
-
-func (fnh *fakeHost) GetKubeClient() clientset.Interface {
-	return nil
-}
-
-func (fnh *fakeHost) GetRuntime() kcontainer.Runtime {
-	return fnh.runtime
-}
-
-func (fnh *fakeHost) GetNetNS(containerID string) (string, error) {
-	return "", nil
-}
-
-func (fnh *fakeHost) GetPodPortMappings(containerID string) ([]*khostport.PortMapping, error) {
-	return nil, nil
-}
-
-func (fnh *fakeHost) SupportsLegacyFeatures() bool {
-	return false
 }
 
 type podcheck struct {
@@ -358,7 +315,7 @@ func TestPodManager(t *testing.T) {
 		podManager := newDefaultPodManager()
 		podManager.podHandler = podTester
 		_, net, _ := net.ParseCIDR("1.2.0.0/16")
-		podManager.Start(socketPath, newFakeHost(), "1.2.3.0/24", net)
+		podManager.Start(socketPath, "1.2.3.0/24", net)
 
 		// Add pods to our expected pod list before kicking off the
 		// actual pod setup to ensure we don't concurrently access
@@ -454,7 +411,7 @@ func TestDirectPodUpdate(t *testing.T) {
 	podManager := newDefaultPodManager()
 	podManager.podHandler = podTester
 	_, net, _ := net.ParseCIDR("1.2.0.0/16")
-	podManager.Start(socketPath, newFakeHost(), "1.2.3.0/24", net)
+	podManager.Start(socketPath, "1.2.3.0/24", net)
 
 	op := &operation{
 		command:   cniserver.CNI_UPDATE,

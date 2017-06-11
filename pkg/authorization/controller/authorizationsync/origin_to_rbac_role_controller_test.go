@@ -5,9 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -53,6 +55,43 @@ func TestSyncRole(t *testing.T) {
 				}
 				if e, a := "resource-01", action.GetObject().(*rbac.Role).Name; e != a {
 					return fmt.Errorf("expected %v, got %v", e, a)
+				}
+				return nil
+			},
+		},
+		{
+			name: "simple create with normalization",
+			key:  "foo/resource-01",
+			startingOrigin: []*authorizationapi.Role{
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "foo", Name: "resource-01"},
+					Rules: []authorizationapi.PolicyRule{
+						{
+							Verbs:     sets.NewString("GET"),
+							Resources: sets.NewString("PODS"),
+							APIGroups: []string{"V1"},
+						},
+					},
+				},
+			},
+			actionCheck: func(actions []clienttesting.Action) error {
+				action, err := ensureSingleCreateAction(actions)
+				if err != nil {
+					return err
+				}
+				rbacRole := action.GetObject().(*rbac.Role)
+				if e, a := "resource-01", rbacRole.Name; e != a {
+					return fmt.Errorf("expected %v, got %v", e, a)
+				}
+				expectedRBACRules := []rbac.PolicyRule{
+					{
+						Verbs:     []string{"get"},
+						Resources: []string{"pods"},
+						APIGroups: []string{"v1"},
+					},
+				}
+				if !apiequality.Semantic.DeepEqual(expectedRBACRules, rbacRole.Rules) {
+					return fmt.Errorf("expected %v, got %v", expectedRBACRules, rbacRole.Rules)
 				}
 				return nil
 			},
