@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2c0bed5d29193c57cf02ee7f608cd1381869cfe6
+%global commit eb84204440a726d125a5527a81c507b60fce629e
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.102 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2c0bed5
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.103 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=eb84204
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.103
+Version:        3.6.104
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,24 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Jun 11 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.104-1
+- bump(github.com/boltdb/bolt): v1.3.0 (ccoleman@redhat.com)
+- Segregate OpenShift's iptables rules (danw@redhat.com)
+- Minor iptables rule cleanups (danw@redhat.com)
+- Align DIND container image build with Orgin scripts (skuznets@redhat.com)
+- UPSTREAM: 46510: remove duplicate, flaky tests (deads@redhat.com)
+- UPSTREAM: 45864: Fix unit tests for autoregister_controller.go reliable
+  (deads@redhat.com)
+- Fixed a missing escape that caused the usage to fail when run
+  (bbennett@redhat.com)
+- Fix signature workflow extended test (miminar@redhat.com)
+- use cp; rm instead of mv to transfer the tito output to _output.
+  (jminter@redhat.com)
+- Add NormalizePolicyRules to authorizationsync (mkhan@redhat.com)
+- sdn: be a normal CNI plugin (dcbw@redhat.com)
+- Fix concurrency error in registry's pull-through (miminar@redhat.com)
+- sdn: remove IPAM garbage collection (dcbw@redhat.com)
+
 * Sat Jun 10 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.103-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console ab8a3e0
   (tdawson@redhat.com)
