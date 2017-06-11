@@ -61,13 +61,18 @@ type store struct {
 	client *clientv3.Client
 	// getOpts contains additional options that should be passed
 	// to all Get() calls.
-	getOps      []clientv3.OpOption
-	codec       runtime.Codec
-	versioner   storage.Versioner
-	transformer value.Transformer
-	pathPrefix  string
-	watcher     *watcher
+	codec        runtime.Codec
+	versioner    storage.Versioner
+	transformer  value.Transformer
+	pathPrefix   string
+	watcher      *watcher
+	linearizable bool
 }
+
+var (
+	linearizableOptions = []clientv3.OpOption{}
+	serializableOptions = []clientv3.OpOption{clientv3.WithSerializable()}
+)
 
 type elemForDecode struct {
 	data []byte
@@ -96,22 +101,25 @@ func NewWithNoQuorumRead(c *clientv3.Client, codec runtime.Codec, prefix string,
 func newStore(c *clientv3.Client, quorumRead bool, codec runtime.Codec, prefix string, transformer value.Transformer) *store {
 	versioner := etcd.APIObjectVersioner{}
 	result := &store{
-		client:      c,
-		codec:       codec,
-		versioner:   versioner,
-		transformer: transformer,
+		client:       c,
+		codec:        codec,
+		versioner:    versioner,
+		linearizable: quorumRead,
+		transformer:  transformer,
 		// for compatibility with etcd2 impl.
 		// no-op for default prefix of '/registry'.
 		// keeps compatibility with etcd2 impl for custom prefixes that don't start with '/'
 		pathPrefix: path.Join("/", prefix),
 		watcher:    newWatcher(c, codec, versioner, transformer),
 	}
-	if !quorumRead {
-		// In case of non-quorum reads, we can set WithSerializable()
-		// options for all Get operations.
-		result.getOps = append(result.getOps, clientv3.WithSerializable())
-	}
 	return result
+}
+
+func (s *store) getOpOptions(resourceVersion string) []clientv3.OpOption {
+	if resourceVersion == "Quorum" || s.linearizable {
+		return linearizableOptions
+	}
+	return serializableOptions
 }
 
 // Versioner implements storage.Interface.Versioner.
@@ -122,7 +130,7 @@ func (s *store) Versioner() storage.Versioner {
 // Get implements storage.Interface.Get.
 func (s *store) Get(ctx context.Context, key string, resourceVersion string, out runtime.Object, ignoreNotFound bool) error {
 	key = path.Join(s.pathPrefix, key)
-	getResp, err := s.client.KV.Get(ctx, key, s.getOps...)
+	getResp, err := s.client.KV.Get(ctx, key, s.getOpOptions(resourceVersion)...)
 	if err != nil {
 		return err
 	}
@@ -271,7 +279,7 @@ func (s *store) GuaranteedUpdate(
 			return err
 		}
 	} else {
-		getResp, err := s.client.KV.Get(ctx, key, s.getOps...)
+		getResp, err := s.client.KV.Get(ctx, key, linearizableOptions...)
 		if err != nil {
 			return err
 		}
@@ -347,7 +355,7 @@ func (s *store) GetToList(ctx context.Context, key string, resourceVersion strin
 	}
 	key = path.Join(s.pathPrefix, key)
 
-	getResp, err := s.client.KV.Get(ctx, key, s.getOps...)
+	getResp, err := s.client.KV.Get(ctx, key, s.getOpOptions(resourceVersion)...)
 	if err != nil {
 		return err
 	}
