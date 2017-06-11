@@ -7,9 +7,8 @@ import (
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
-	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
-	buildcontrollerfactory "github.com/openshift/origin/pkg/build/controller/factory"
+	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -54,12 +53,14 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 
 	buildInformer := ctx.DeprecatedOpenshiftInformers.Builds()
+	buildConfigInformer := ctx.DeprecatedOpenshiftInformers.BuildConfigs()
 	imageStreamInformer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 	podInformer := ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Pods()
 	secretInformer := ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
 		BuildInformer:       buildInformer,
+		BuildConfigInformer: buildConfigInformer,
 		ImageStreamInformer: imageStreamInformer,
 		PodInformer:         podInformer,
 		SecretInformer:      secretInformer,
@@ -91,17 +92,12 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 
 func RunBuildConfigChangeController(ctx ControllerContext) (bool, error) {
 	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
-	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName))
-	buildClient := buildclient.NewOSClientBuildClient(ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName))
-	factory := buildcontrollerfactory.BuildConfigControllerFactory{
-		Client:                  ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName),
-		KubeClient:              ctx.ClientBuilder.KubeInternalClientOrDie(clientName),
-		ExternalKubeClient:      ctx.ClientBuilder.ClientOrDie(clientName),
-		BuildConfigInstantiator: bcInstantiator,
-		BuildLister:             buildClient,
-		BuildConfigGetter:       buildclient.NewOSClientBuildConfigClient(ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName)),
-		BuildDeleter:            buildClient,
-	}
-	go factory.Create().Run()
+	openshiftClient := ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName)
+	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
+	buildConfigInformer := ctx.DeprecatedOpenshiftInformers.BuildConfigs()
+	buildInformer := ctx.DeprecatedOpenshiftInformers.Builds()
+
+	controller := buildconfigcontroller.NewBuildConfigController(openshiftClient, kubeExternalClient, buildConfigInformer, buildInformer)
+	go controller.Run(5, ctx.Stop)
 	return true, nil
 }

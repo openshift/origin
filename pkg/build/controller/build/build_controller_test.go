@@ -991,6 +991,7 @@ func newFakeBuildController(openshiftClient client.Interface, imageClient imagei
 
 	params := &BuildControllerParams{
 		BuildInformer:       informers.Builds(),
+		BuildConfigInformer: informers.BuildConfigs(),
 		PodInformer:         informers.InternalKubernetesInformers().Core().InternalVersion().Pods(),
 		ImageStreamInformer: imageInformers.Image().InternalVersion().ImageStreams(),
 		SecretInformer:      informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),

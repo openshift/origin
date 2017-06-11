@@ -27,6 +27,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildcacheclient "github.com/openshift/origin/pkg/build/client/cache"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
@@ -79,6 +80,7 @@ type BuildController struct {
 // create a new BuildController
 type BuildControllerParams struct {
 	BuildInformer       shared.BuildInformer
+	BuildConfigInformer shared.BuildConfigInformer
 	ImageStreamInformer imageinformers.ImageStreamInformer
 	PodInformer         kcoreinformers.PodInformer
 	SecretInformer      kcoreinformers.SecretInformer
@@ -98,10 +100,15 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(params.KubeClientExternal.Core().RESTClient()).Events("")})
 
 	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
-	buildConfigGetter := buildclient.NewOSClientBuildConfigClient(params.OpenshiftClient)
+	// TODO: Switch to using the cache build lister when we figure out
+	// what is wrong with retrieving by index
+	// buildLister := buildcacheclient.NewBuildLister(params.BuildInformer.Lister())
+	_ = buildcacheclient.NewBuildLister(params.BuildInformer.Lister())
+	buildLister := buildClient
+	buildConfigGetter := buildcacheclient.NewBuildConfigGetter(params.BuildConfigInformer.Lister())
 	c := &BuildController{
 		buildPatcher:      buildClient,
-		buildLister:       buildClient,
+		buildLister:       buildLister,
 		buildConfigGetter: buildConfigGetter,
 		buildDeleter:      buildClient,
 		secretStore:       params.SecretInformer.Lister(),
