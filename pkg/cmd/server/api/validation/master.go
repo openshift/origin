@@ -323,6 +323,39 @@ func ValidateEtcdStorageConfig(config api.EtcdStorageConfig, fldPath *field.Path
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("openShiftStoragePrefix"), config.OpenShiftStoragePrefix, "the '%' character may not be used in etcd path prefixes"))
 	}
 
+	allErrs = append(allErrs, ValidateStorageEncryption(config.Encrypt, fldPath.Child("encrypt"))...)
+
+	return allErrs
+}
+
+func ValidateStorageEncryption(config api.StorageEncryption, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for i, key := range config.Keys {
+		if key.AESGCM == nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("keys").Index(i).Child("aesgcm"), "the 'aesgcm' encryption key must be provided"))
+		} else {
+			keyPath := fldPath.Child("keys").Index(i).Child("aesgcm", "key")
+			results := ValidateStringSource(key.AESGCM.Key, keyPath)
+			allErrs = append(allErrs, results.Errors...)
+			if len(results.Errors) == 0 {
+				if secret, err := api.ResolveStringValue(key.AESGCM.Key); err != nil {
+					allErrs = append(allErrs, field.Invalid(keyPath, "", err.Error()))
+				} else {
+					switch len(secret) {
+					case 16, 24, 32:
+					case 0:
+						allErrs = append(allErrs, field.Required(keyPath, ""))
+					default:
+						allErrs = append(allErrs, field.Invalid(keyPath, len(secret), "key must be 16, 24, or 32 bytes long for AES-128, AES-192, or AES-256 mode"))
+					}
+				}
+			}
+
+		}
+		if len(key.ID) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("keys").Index(i).Child("id"), "a key id is required"))
+		}
+	}
 	return allErrs
 }
 

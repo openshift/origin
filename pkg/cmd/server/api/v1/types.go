@@ -572,6 +572,44 @@ type EtcdStorageConfig struct {
 	// be rooted under. This value, if changed, will mean existing objects in etcd will
 	// no longer be located. The default value is 'openshift.io'.
 	OpenShiftStoragePrefix string `json:"openShiftStoragePrefix"`
+
+	// Encrypt controls settings used to encrypt storage at rest.
+	Encrypt StorageEncryption `json:"encrypt"`
+}
+
+type StorageEncryption struct {
+	// Keys is a list of the keys that can decrypt the provided storage. The first key
+	// is used for encryption of updates, while the other keys are checked during decoding.
+	// IDs may overlap if you are rotating the keys for the storage.
+	// You *must* ensure all servers have access to the same keys before switching to a new
+	// primary encryption key, or secrets will be lost.
+	Keys []StorageEncryptionKey `json:"keys"`
+
+	// The list of group resources that will be encrypted.
+	GroupResources []GroupResource `json:"groupResources"`
+}
+
+// GroupResource is used to identify an API resource.
+type GroupResource struct {
+	// Group is the name of the group that resource lives under
+	Group string `json:"group,omitempty"`
+	// Resource is the object to act on.
+	Resource string `json:"resource,omitempty"`
+}
+
+type StorageEncryptionKey struct {
+	// ID is the identifier of the key in storage. If this is changed, no data may be read.
+	ID string `json:"id"`
+
+	// AESGCM sets this key to encode the contents using AES/GCM with a random nonce that will
+	// be generated per stored item.
+	AESGCM *AESGCMStorageEncryption `json:"aesgcm"`
+}
+
+type AESGCMStorageEncryption struct {
+	// Key is the AES key and must be 16, 24, or 32 bytes to select AES-128,
+	// AES-192, or AES-256 modes. A file, environment variable, or inline secret may be provided.
+	Key StringSource `json:"key"`
 }
 
 // ServingInfo holds information about serving web pages
