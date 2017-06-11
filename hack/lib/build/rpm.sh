@@ -20,7 +20,7 @@ function os::build::rpm::get_nvra_vars() {
 	OS_RPM_ARCHITECTURE="$(uname -i)"
 
 	# we can extract the pacakge version from the build version
-	os::build::get_version_vars
+	os::build::version::get_vars
 	if [[ "${OS_GIT_VERSION}" =~ ^v([0-9](\.[0-9]+)*)(.*) ]]; then
 		OS_RPM_VERSION="${BASH_REMATCH[1]}"
 		metadata="${BASH_REMATCH[3]}"

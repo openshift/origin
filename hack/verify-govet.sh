@@ -23,9 +23,8 @@ function govet_blacklist_contains() {
 	return 1
 }
 
-# cmd requires special handling since go tool vet descends recursively
-test_dirs="$(find_files | cut -d '/' -f 1-2 | sort -u | grep -v "^./cmd")"
-test_dirs+=" $(find_files | grep "^./cmd/"| cut -d '/' -f 1-3 | LC_ALL=C sort -u)"
+test_dirs="$(os::util::list_go_src_files | cut -d '/' -f 1-2 | sort -u | grep -v "^./cmd")"
+test_dirs+=" $(os::util::list_go_src_files | grep "^./cmd/"| cut -d '/' -f 1-3 | LC_ALL=C sort -u)"
 for test_dir in ${test_dirs}; do
 	if ! result="$(go tool vet -shadow=false "${test_dir}" 2>&1)"; then
 		while read -r line; do

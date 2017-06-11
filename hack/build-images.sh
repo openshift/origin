@@ -13,7 +13,7 @@ os::util::ensure::gopath_binary_exists imagebuilder
 # image builds require RPMs to have been built
 os::build::release::check_for_rpms
 # OS_RELEASE_COMMIT is required by image-build
-os::build::detect_local_release_tars $(os::build::host_platform_friendly)
+os::build::archive::detect_local_release_tars $(os::build::host_platform_friendly)
 
 # Without this, the dockerregistry lacks gcs+oss storage drivers in non-cross builds.
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
@@ -25,7 +25,7 @@ OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/
 function ln_or_cp {
 	local src_file=$1
 	local dst_dir=$2
-	if os::build::is_hardlink_supported "${dst_dir}" ; then
+	if os::build::archive::internal::is_hardlink_supported "${dst_dir}" ; then
 		ln -f "${src_file}" "${dst_dir}"
 	else
 		cp -pf "${src_file}" "${dst_dir}"

@@ -181,7 +181,7 @@ function os::util::curl_etcd() {
 			               -out "${etcd_client_cert_p12}" \
 			               -password "pass:${etcd_client_cert_p12_password}"
 		fi
-
+b
 		curl --fail --silent --cacert "${ca_bundle}" \
 		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
 	else
@@ -204,3 +204,32 @@ function os::util::host_platform() {
 	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
 readonly -f os::util::host_platform
+
+# os::util::list_go_src_files lists files we consider part of our project
+# source code, useful for tools that iterate over source to provide vet-
+# ting or linting, etc.
+#
+# Globals:
+#  None
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::list_go_src_files() {
+	find . -not \( \
+		\( \
+		-wholename './_output' \
+		-o -wholename './.*' \
+		-o -wholename './pkg/assets/bindata.go' \
+		-o -wholename './pkg/assets/*/bindata.go' \
+		-o -wholename './pkg/bootstrap/bindata.go' \
+		-o -wholename './openshift.local.*' \
+		-o -wholename './test/extended/testdata/bindata.go' \
+		-o -wholename '*/vendor/*' \
+		-o -wholename './cmd/service-catalog/*' \
+		-o -wholename './cmd/cluster-capacity/*' \
+		-o -wholename './assets/bower_components/*' \
+		\) -prune \
+	\) -name '*.go' | sort -u
+}
+readonly -f os::util::list_go_src_files

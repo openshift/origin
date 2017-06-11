@@ -24,7 +24,7 @@ os::test::junit::declare_suite_start "cmd/basicresources"
 os::test::junit::declare_suite_start "cmd/basicresources/versionreporting"
 # Test to make sure that we're reporting the correct version information from endpoints and the correct
 # User-Agent information from our clients regardless of which resources they're trying to access
-os::build::get_version_vars
+os::build::version::get_vars
 os_git_regex="$( escape_regex "${OS_GIT_VERSION%%-*}" )"
 kube_git_regex="$( escape_regex "${KUBE_GIT_VERSION%%-*}" )"
 etcd_version="$(echo "${ETCD_GIT_VERSION}" | sed -E "s/\-.*//g" | sed -E "s/v//")"

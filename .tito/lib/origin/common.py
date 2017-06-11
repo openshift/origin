@@ -34,7 +34,7 @@ def get_os_git_vars():
     for var in ["COMMIT", "VERSION", "MAJOR", "MINOR"]:
         var_name = "OS_GIT_{}".format(var)
         git_vars[var_name] = run_command(
-            "bash -c 'source ./hack/lib/init.sh; os::build::os_version_vars; echo ${}'".format(var_name)
+            "bash -c 'source ./hack/lib/init.sh; os::build::version::openshift_vars; echo ${}'".format(var_name)
         )
 
     # we hard-code this to a clean state as tito will have dirtied up the tree
