@@ -115,30 +115,7 @@ func (sctx *serveCtx) serve(s *etcdserver.EtcdServer, tlscfg *tls.Config, handle
 		}
 		handler = grpcHandlerFunc(gs, handler)
 
-		dtls := &tls.Config{
-			Rand:                        tlscfg.Rand,
-			Time:                        tlscfg.Time,
-			Certificates:                tlscfg.Certificates,
-			NameToCertificate:           tlscfg.NameToCertificate,
-			GetCertificate:              tlscfg.GetCertificate,
-			RootCAs:                     tlscfg.RootCAs,
-			NextProtos:                  tlscfg.NextProtos,
-			ServerName:                  tlscfg.ServerName,
-			ClientAuth:                  tlscfg.ClientAuth,
-			ClientCAs:                   tlscfg.ClientCAs,
-			InsecureSkipVerify:          tlscfg.InsecureSkipVerify,
-			CipherSuites:                tlscfg.CipherSuites,
-			PreferServerCipherSuites:    tlscfg.PreferServerCipherSuites,
-			SessionTicketsDisabled:      tlscfg.SessionTicketsDisabled,
-			SessionTicketKey:            tlscfg.SessionTicketKey,
-			ClientSessionCache:          tlscfg.ClientSessionCache,
-			MinVersion:                  tlscfg.MinVersion,
-			MaxVersion:                  tlscfg.MaxVersion,
-			CurvePreferences:            tlscfg.CurvePreferences,
-			DynamicRecordSizingDisabled: tlscfg.DynamicRecordSizingDisabled,
-			Renegotiation:               tlscfg.Renegotiation,
-		}
-
+		dtls := tlscfg.Clone()
 		// trust local server
 		dtls.InsecureSkipVerify = true
 		creds := credentials.NewTLS(dtls)

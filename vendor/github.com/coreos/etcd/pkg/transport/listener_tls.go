@@ -148,7 +148,7 @@ func checkCert(ctx context.Context, cert *x509.Certificate, remoteAddr string) e
 	}
 	if len(cert.DNSNames) > 0 {
 		for _, dns := range cert.DNSNames {
-			addrs, lerr := net.LookupHost(dns)
+			addrs, lerr := net.DefaultResolver.LookupHost(ctx, dns)
 			if lerr != nil {
 				continue
 			}

@@ -177,6 +177,9 @@ func (info TLSInfo) baseConfig() (*tls.Config, error) {
 	cfg.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		return tlsutil.NewCert(info.CertFile, info.KeyFile, info.parseFunc)
 	}
+	cfg.GetClientCertificate = func(unused *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		return tlsutil.NewCert(info.CertFile, info.KeyFile, info.parseFunc)
+	}
 	return cfg, nil
 }
 
