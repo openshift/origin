@@ -76,11 +76,11 @@ os::build::build_static_binaries "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]-}" "${OS_S
 
 # Build the primary client/server for all platforms
 OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
-os::build::build_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
+os::build::build_static_binaries "${OS_CROSS_COMPILE_TARGETS[@]}"
 
 # Build the test binaries for the host platform
 OS_BUILD_PLATFORMS=("${test_platforms[@]+"${test_platforms[@]}"}")
-os::build::build_binaries "${OS_TEST_TARGETS[@]}"
+os::build::build_static_binaries "${OS_TEST_TARGETS[@]}"
 
 # Make the primary client/server release.
 OS_BUILD_PLATFORMS=("${platforms[@]+"${platforms[@]}"}")
