@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-from shutil import copyfile, rmtree
+from shutil import copy, copytree, rmtree
 from subprocess import call
 from tempfile import mkdtemp
 
 from atexit import register
 from os import getenv, mkdir, remove
-from os.path import abspath, dirname, exists, join
+from os.path import abspath, dirname, exists, isdir, join
 
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
 image_namespace, image_prefix = os_image_prefix.split("/", 2)
@@ -54,6 +54,15 @@ image_config = {
             "openshift": "/usr/bin/openshift"
         },
         "files": {}
+    },
+    "haproxy-router": {
+        "directory": "router/haproxy",
+        "binaries": {
+            "openshift": "/usr/bin/openshift"
+        },
+        "files": {
+            ".": "/var/lib/haproxy"
+        }
     },
     "node": {
         "directory": "node",
@@ -113,7 +122,10 @@ def add_to_context(context_dir, source, destination, container_destination):
    	)
     absolute_destination = abspath(join(context_dir, destination))
     if not exists(absolute_destination):
-        copyfile(source, absolute_destination)
+        if isdir(source):
+            copytree(source, absolute_destination)
+        else:
+            copy(source, absolute_destination)
     with open(join(context_dir, "Dockerfile"), "a") as dockerfile:
         dockerfile.write("ADD {} {}\n".format(destination, container_destination))
 
