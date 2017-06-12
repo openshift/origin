@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit eb84204440a726d125a5527a81c507b60fce629e
+%global commit f0e9983caf26291057d64bf4e31b49befbe75117
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.103 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=eb84204
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.104 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f0e9983
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.104
+Version:        3.6.105
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,22 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Jun 12 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.105-1
+- Reuse the authorization and template shared informers for GC
+  (ccoleman@redhat.com)
+- Migrate functions from and remove hack/common.sh (skuznets@redhat.com)
+- Migrate final function from and remove hack/util.sh (skuznets@redhat.com)
+- UPSTREAM: 45661: orphan when kubectl delete --cascade=false
+  (deads@redhat.com)
+- soften pipeline log missing annotation msg (gmontero@redhat.com)
+- make template service broker forbidden error message friendlier
+  (jminter@redhat.com)
+- UPSTREAM: 46916: Add AES-CBC and Secretbox encryption (ccoleman@redhat.com)
+- bump(golang.org/x/crypto): add nacl, poly1305, and salsa20
+  (ccoleman@redhat.com)
+- Update the bootstrap/policy convertClusterRoles function to annotate
+  systemOnly roles (admin@benjaminapetersen.me)
+
 * Sun Jun 11 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.104-1
 - bump(github.com/boltdb/bolt): v1.3.0 (ccoleman@redhat.com)
 - Segregate OpenShift's iptables rules (danw@redhat.com)
