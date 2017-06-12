@@ -244,6 +244,10 @@ func TestProvision(t *testing.T) {
 			body: &api.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
+				},
 			},
 			expectCode:  http.StatusUnprocessableEntity,
 			expectError: `This service plan requires client support for asynchronous service operations.`,
@@ -251,12 +255,15 @@ func TestProvision(t *testing.T) {
 		{
 			name: "good",
 			req: http.Request{
-				URL: parseUrl(t, "/v2/service_instances/"+validUUID),
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
 			},
 			body: &api.ProvisionRequest{
-				ServiceID:         validUUID,
-				PlanID:            validUUID,
-				AcceptsIncomplete: true,
+				ServiceID: validUUID,
+				PlanID:    validUUID,
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
+				},
 			},
 			expectCode: http.StatusOK,
 		},

@@ -109,8 +109,8 @@ func provision(b api.Broker, req *restful.Request) *api.Response {
 		return api.BadRequest(errors.ToAggregate())
 	}
 
-	if !preq.AcceptsIncomplete {
-		return api.NewResponse(http.StatusUnprocessableEntity, api.AsyncRequired, nil)
+	if req.QueryParameter("accepts_incomplete") != "true" {
+		return api.NewResponse(http.StatusUnprocessableEntity, &api.AsyncRequired, nil)
 	}
 
 	return b.Provision(instanceID, &preq)

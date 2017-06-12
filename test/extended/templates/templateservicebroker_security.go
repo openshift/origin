@@ -103,8 +103,11 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		_, err := brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
+			Context: api.KubernetesContext{
+				Platform:  api.ContextPlatformKubernetes,
+				Namespace: cli.Namespace(),
+			},
 			Parameters: map[string]string{
-				templateapi.NamespaceParameterKey:         cli.Namespace(),
 				templateapi.RequesterUsernameParameterKey: username,
 			},
 		})

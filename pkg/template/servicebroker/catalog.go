@@ -46,18 +46,13 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 	}
 
 	properties := map[string]*jsschema.Schema{
-		templateapi.NamespaceParameterKey: {
-			Title:       namespaceTitle,
-			Description: namespaceDescription,
-			Type:        []jsschema.PrimitiveType{jsschema.StringType},
-		},
 		templateapi.RequesterUsernameParameterKey: {
 			Title:       requesterUsernameTitle,
 			Description: requesterUsernameDescription,
 			Type:        []jsschema.PrimitiveType{jsschema.StringType},
 		},
 	}
-	required := []string{templateapi.NamespaceParameterKey, templateapi.RequesterUsernameParameterKey}
+	required := []string{templateapi.RequesterUsernameParameterKey}
 	for _, param := range template.Parameters {
 		properties[param.Name] = &jsschema.Schema{
 			Title:       param.DisplayName,

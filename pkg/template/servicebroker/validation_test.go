@@ -1,7 +1,6 @@
 package servicebroker
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
@@ -21,31 +20,24 @@ func TestValidateProvisionRequest(t *testing.T) {
 			preq: api.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
-				Parameters: map[string]string{
-					templateapi.NamespaceParameterKey: "test",
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
 				},
 			},
 			expectError: `parameters.` + templateapi.RequesterUsernameParameterKey + `: Required value`,
-		},
-		{
-			name: "missing NamespaceParameterKey key",
-			preq: api.ProvisionRequest{
-				ServiceID: validUUID,
-				PlanID:    validUUID,
-				Parameters: map[string]string{
-					templateapi.RequesterUsernameParameterKey: "test",
-				},
-			},
-			expectError: `parameters.` + templateapi.NamespaceParameterKey + `: Required value`,
 		},
 		{
 			name: "bad key",
 			preq: api.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
+				},
 				Parameters: map[string]string{
 					"b@d": "",
-					templateapi.NamespaceParameterKey:         "test",
 					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
@@ -56,9 +48,12 @@ func TestValidateProvisionRequest(t *testing.T) {
 			preq: api.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
+				},
 				Parameters: map[string]string{
-					"azAZ09_":                                 "",
-					templateapi.NamespaceParameterKey:         "test",
+					"azAZ09_": "",
 					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
@@ -102,7 +97,7 @@ func TestValidateBindRequest(t *testing.T) {
 			expectError: `parameters.` + templateapi.RequesterUsernameParameterKey + `: Required value`,
 		},
 		{
-			name: "bad key 1",
+			name: "bad key",
 			breq: api.BindRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
@@ -112,18 +107,6 @@ func TestValidateBindRequest(t *testing.T) {
 				},
 			},
 			expectError: `parameters.b@d: Invalid value: "b@d": does not match ^[a-zA-Z0-9_]+$`,
-		},
-		{
-			name: "bad key 2",
-			breq: api.BindRequest{
-				ServiceID: validUUID,
-				PlanID:    validUUID,
-				Parameters: map[string]string{
-					templateapi.NamespaceParameterKey:         "test",
-					templateapi.RequesterUsernameParameterKey: "test",
-				},
-			},
-			expectError: fmt.Sprintf(`parameters.%[1]s: Invalid value: "%[1]s": does not match ^[a-zA-Z0-9_]+$`, templateapi.NamespaceParameterKey),
 		},
 		{
 			name: "good",
