@@ -254,13 +254,15 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
-	err = templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
-		templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
-			return []string{string(obj.(*templateapi.Template).UID)}, nil
-		},
-	})
-	if err != nil {
-		return nil, err
+	if options.TemplateServiceBrokerConfig != nil {
+		err = templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
+			templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
+				return []string{string(obj.(*templateapi.Template).UID)}, nil
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
