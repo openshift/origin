@@ -111,7 +111,7 @@ def add_to_context(context_dir, source, destination, container_destination):
 		container_destination)
    	)
     absolute_destination = abspath(join(context_dir, destination))
-    if not exists(absolute_destination)
+    if not exists(absolute_destination):
         copyfile(source, absolute_destination)
     with open(join(context_dir, "Dockerfile"), "a") as dockerfile:
         dockerfile.write("ADD {} {}\n".format(destination, container_destination))
