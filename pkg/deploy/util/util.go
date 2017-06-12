@@ -18,14 +18,16 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	osapiv1 "github.com/openshift/origin/pkg/api/v1"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
 var (
-	// ControllerKind contains the schema.GroupVersionKind for this controller type.
-	ControllerKind = osapiv1.SchemeGroupVersion.WithKind("DeploymentConfig")
+	// DeploymentConfigControllerRefKind contains the schema.GroupVersionKind for the
+	// deployment config. This is used in the ownerRef and GC client picks the appropriate
+	// client to get the deployment config.
+	DeploymentConfigControllerRefKind = deployapiv1.SchemeGroupVersion.WithKind("DeploymentConfig")
 )
 
 // NewDeploymentCondition creates a new deployment condition.
@@ -238,8 +240,8 @@ func NewControllerRef(config *deployapi.DeploymentConfig) *metav1.OwnerReference
 	blockOwnerDeletion := true
 	isController := true
 	return &metav1.OwnerReference{
-		APIVersion:         ControllerKind.Version,
-		Kind:               ControllerKind.Kind,
+		APIVersion:         DeploymentConfigControllerRefKind.GroupVersion().String(),
+		Kind:               DeploymentConfigControllerRefKind.Kind,
 		Name:               config.Name,
 		UID:                config.UID,
 		BlockOwnerDeletion: &blockOwnerDeletion,
