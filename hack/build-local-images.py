@@ -5,6 +5,7 @@ from shutil import copyfile, rmtree
 from subprocess import call
 from tempfile import mkdtemp
 
+from atexit import register
 from os import getenv, mkdir, remove
 from os.path import abspath, dirname, exists, join
 
@@ -105,7 +106,7 @@ def add_to_context(context_dir, source, destination, container_destination):
     to place it in the container file-
     sytem at the correct destination.
     """
-    debug("Adding file:\n\tfrom {}\n\tto {},\n\tincluding in container at {}".format(
+    debug("Adding file:\n\tfrom {}\n\tto {}\n\tincluding in container at {}".format(
     	source,
     	join(context_dir, destination),
 		container_destination)
@@ -127,6 +128,8 @@ os_bin_path = join(os_root, "_output", "local", "bin", "linux", "amd64")
 os_image_path = join(os_root, "images")
 
 context_dir = mkdtemp()
+register(rmtree, context_dir)
+
 debug("Created temporary context dir at {}".format(context_dir))
 mkdir(join(context_dir, "bin"))
 mkdir(join(context_dir, "src"))
@@ -137,7 +140,7 @@ for image in image_config:
 
     print "[INFO] Building {}...".format(image)
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
-        dockerfile.write("FROM {}\n".format(image))
+        dockerfile.write("FROM {}\n".format(full_name(image)))
 
     config = image_config[image]
     for binary in config.get("binaries", []):
@@ -148,6 +151,7 @@ for image in image_config:
             container_destination=config["binaries"][binary]
         )
 
+    mkdir(join(context_dir, "src", image))
     for file in config.get("files", []):
         add_to_context(
             context_dir,
@@ -161,5 +165,3 @@ for image in image_config:
 
     remove(join(context_dir, "Dockerfile"))
     rmtree(join(context_dir, "src", image))
-
-rmtree(context_dir)
