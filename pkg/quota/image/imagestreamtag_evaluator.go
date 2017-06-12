@@ -5,7 +5,6 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,8 +14,8 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 var imageStreamTagResources = []kapi.ResourceName{
@@ -24,13 +23,13 @@ var imageStreamTagResources = []kapi.ResourceName{
 }
 
 type imageStreamTagEvaluator struct {
-	store         *oscache.StoreToImageStreamLister
+	store         imageinternalversion.ImageStreamLister
 	istNamespacer osclient.ImageStreamTagsNamespacer
 }
 
 // NewImageStreamTagEvaluator computes resource usage of ImageStreamsTags. Its sole purpose is to handle
 // UPDATE admission operations on imageStreamTags resource.
-func NewImageStreamTagEvaluator(store *oscache.StoreToImageStreamLister, istNamespacer osclient.ImageStreamTagsNamespacer) kquota.Evaluator {
+func NewImageStreamTagEvaluator(store imageinternalversion.ImageStreamLister, istNamespacer osclient.ImageStreamTagsNamespacer) kquota.Evaluator {
 	return &imageStreamTagEvaluator{
 		store:         store,
 		istNamespacer: istNamespacer,
@@ -77,7 +76,7 @@ func (i *imageStreamTagEvaluator) Usage(item runtime.Object) (kapi.ResourceList,
 		return kapi.ResourceList{}, err
 	}
 
-	is, err := i.store.ImageStreams(ist.Namespace).Get(isName, metav1.GetOptions{})
+	is, err := i.store.ImageStreams(ist.Namespace).Get(isName)
 	if err != nil && !kerrors.IsNotFound(err) {
 		utilruntime.HandleError(fmt.Errorf("failed to get image stream %s/%s: %v", ist.Namespace, isName, err))
 	}

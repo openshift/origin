@@ -17,34 +17,18 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	"github.com/openshift/origin/pkg/image/api"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 var ErrNotImportable = errors.New("requested image cannot be imported")
-
-// imageStreamNamespaceLister helps get ImageStreams.
-// TODO: replace with generated informer interfaces
-type imageStreamNamespaceLister interface {
-	// Get retrieves the Deployment from the indexer for a given namespace and name.
-	Get(name string, options metav1.GetOptions) (*api.ImageStream, error)
-}
 
 // imageStreamLister is the subset interface required off an ImageStream client to
 // implement this controller.
 // TODO: replace with generated informer interfaces
 type imageStreamLister interface {
 	// ImageStreams returns an object that can get ImageStreams.
-	ImageStreams(namespace string) imageStreamNamespaceLister
-}
-
-// TODO: replace with generated informer interfaces
-type temporaryLister struct {
-	*oscache.StoreToImageStreamLister
-}
-
-func (l temporaryLister) ImageStreams(namespace string) imageStreamNamespaceLister {
-	return l.StoreToImageStreamLister.ImageStreams(namespace)
+	ImageStreams(namespace string) imageinternalversion.ImageStreamNamespaceLister
 }
 
 // Notifier provides information about when the controller makes a decision
@@ -160,7 +144,7 @@ func (c *ImageStreamController) getByKey(key string) (*api.ImageStream, error) {
 	if err != nil {
 		return nil, err
 	}
-	stream, err := c.lister.ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	stream, err := c.lister.ImageStreams(namespace).Get(name)
 	if apierrs.IsNotFound(err) {
 		return nil, nil
 	}

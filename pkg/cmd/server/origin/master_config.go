@@ -80,9 +80,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/controller"
 	"github.com/openshift/origin/pkg/controller/shared"
+	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
@@ -183,7 +187,9 @@ type MasterConfig struct {
 	// from here so that we only end up with a single cache of objects
 	Informers shared.InformerFactory
 
+	AppInformers           appinformer.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	ImageInformers         imageinformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
 }
 
@@ -216,7 +222,15 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	appClient, err := appclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	authorizationClient, err := authorizationclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +248,9 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	const defaultInformerResyncPeriod = 10 * time.Minute
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetInternal, defaultInformerResyncPeriod)
 	externalkubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
+	appInformers := appinformer.NewSharedInformerFactory(appClient, defaultInformerResyncPeriod)
 	authorizationInformers := authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod)
+	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalkubeInformerFactory, privilegedLoopbackKubeClientsetInternal, privilegedLoopbackOpenShiftClient, customListerWatchers, defaultInformerResyncPeriod)
 
@@ -270,7 +286,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	kubeletClientConfig := configapi.GetKubeletClientConfig(options)
 
-	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(informerFactory, privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
+	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(informerFactory, imageInformers.Image().InternalVersion().ImageStreams(), privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
 		informerFactory.Policies().Lister(),
 		informerFactory.PolicyBindings().Lister(),
@@ -362,8 +378,11 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		PrivilegedLoopbackOpenShiftClient:             privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClientsetInternal: privilegedLoopbackKubeClientsetInternal,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+
 		Informers:              informerFactory,
+		AppInformers:           appInformers,
 		AuthorizationInformers: authorizationInformers,
+		ImageInformers:         imageInformers,
 		TemplateInformers:      templateInformers,
 	}
 

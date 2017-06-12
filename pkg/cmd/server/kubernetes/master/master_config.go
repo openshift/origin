@@ -334,6 +334,7 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "groups"},
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "identities"},
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "users"},
+		componentconfig.GroupResource{Group: "image.openshift.io", Resource: "images"},
 
 		// virtual resource
 		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
