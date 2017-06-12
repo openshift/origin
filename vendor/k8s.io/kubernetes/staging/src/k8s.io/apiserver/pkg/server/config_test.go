@@ -28,17 +28,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/client-go/rest"
 )
 
 func TestNewWithDelegate(t *testing.T) {
-	delegateConfig := NewConfig().WithSerializer(codecs)
+	delegateConfig := NewConfig(codecs)
 	delegateConfig.PublicAddress = net.ParseIP("192.168.10.4")
 	delegateConfig.RequestContextMapper = genericapirequest.NewRequestContextMapper()
 	delegateConfig.LegacyAPIGroupPrefixes = sets.NewString("/api")
 	delegateConfig.LoopbackClientConfig = &rest.Config{}
-	delegateConfig.FallThroughHandler = mux.NewPathRecorderMux()
 	delegateConfig.SwaggerConfig = DefaultSwaggerConfig()
 
 	delegateHealthzCalled := false
@@ -47,14 +45,13 @@ func TestNewWithDelegate(t *testing.T) {
 		return fmt.Errorf("delegate failed healthcheck")
 	}))
 
-	delegateConfig.FallThroughHandler.HandleFunc("/foo", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-	})
-
-	delegateServer, err := delegateConfig.SkipComplete().New()
+	delegateServer, err := delegateConfig.SkipComplete().New("test", EmptyDelegate)
 	if err != nil {
 		t.Fatal(err)
 	}
+	delegateServer.Handler.NonGoRestfulMux.HandleFunc("/foo", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
 
 	delegateServer.AddPostStartHook("delegate-post-start-hook", func(context PostStartHookContext) error {
 		return nil
@@ -63,12 +60,11 @@ func TestNewWithDelegate(t *testing.T) {
 	// this wires up swagger
 	delegateServer.PrepareRun()
 
-	wrappingConfig := NewConfig().WithSerializer(codecs)
+	wrappingConfig := NewConfig(codecs)
 	wrappingConfig.PublicAddress = net.ParseIP("192.168.10.4")
 	wrappingConfig.RequestContextMapper = genericapirequest.NewRequestContextMapper()
 	wrappingConfig.LegacyAPIGroupPrefixes = sets.NewString("/api")
 	wrappingConfig.LoopbackClientConfig = &rest.Config{}
-	wrappingConfig.FallThroughHandler = mux.NewPathRecorderMux()
 	wrappingConfig.SwaggerConfig = DefaultSwaggerConfig()
 
 	wrappingHealthzCalled := false
@@ -77,14 +73,13 @@ func TestNewWithDelegate(t *testing.T) {
 		return fmt.Errorf("wrapping failed healthcheck")
 	}))
 
-	wrappingConfig.FallThroughHandler.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	})
-
-	wrappingServer, err := wrappingConfig.Complete().NewWithDelegate(delegateServer)
+	wrappingServer, err := wrappingConfig.Complete().New("test", delegateServer)
 	if err != nil {
 		t.Fatal(err)
 	}
+	wrappingServer.Handler.NonGoRestfulMux.HandleFunc("/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
 
 	wrappingServer.AddPostStartHook("wrapping-post-start-hook", func(context PostStartHookContext) error {
 		return nil
@@ -109,7 +104,7 @@ func TestNewWithDelegate(t *testing.T) {
     "/healthz/poststarthook/delegate-post-start-hook",
     "/healthz/poststarthook/wrapping-post-start-hook",
     "/healthz/wrapping-health",
-    "/swaggerapi/"
+    "/swaggerapi"
   ]
 }`, t)
 	checkPath(server.URL+"/healthz", http.StatusInternalServerError, `[+]ping ok

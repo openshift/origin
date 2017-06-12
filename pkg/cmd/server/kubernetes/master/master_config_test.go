@@ -82,16 +82,14 @@ func TestAPIServerDefaults(t *testing.T) {
 			DefaultWatchCacheSize:   100,
 		},
 		SecureServing: &apiserveroptions.SecureServingOptions{
-			ServingOptions: apiserveroptions.ServingOptions{
-				BindAddress: net.ParseIP("0.0.0.0"),
-				BindPort:    6443,
-			},
+			BindAddress: net.ParseIP("0.0.0.0"),
+			BindPort:    6443,
 			ServerCert: apiserveroptions.GeneratableKeyCert{
 				CertDirectory: "/var/run/kubernetes",
 				PairName:      "apiserver",
 			},
 		},
-		InsecureServing: &apiserveroptions.ServingOptions{
+		InsecureServing: &kubeoptions.InsecureServingOptions{
 			BindAddress: net.ParseIP("127.0.0.1"),
 			BindPort:    8080,
 		},
