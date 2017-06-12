@@ -4785,6 +4785,8 @@ _oadm_router()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--ciphers=")
+    local_nonpersistent_flags+=("--ciphers=")
     flags+=("--create")
     local_nonpersistent_flags+=("--create")
     flags+=("--default-cert=")
