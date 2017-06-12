@@ -9,6 +9,46 @@ from atexit import register
 from os import getenv, mkdir, remove
 from os.path import abspath, dirname, exists, join
 
+if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--h', '-help', '--help']:
+    print """Quickly re-build images depending on OpenShift Origin build artifacts.
+
+This script re-builds OpenShift Origin images quickly. It is intended
+to be used by developers for quick, iterative development of images
+that depend on binaries, RPMs, or other artifacts that the Origin build
+process generates. The script works by creating a temporary context
+directory for a Docker build, adding a simple Dockerfile FROM the image
+you wish to rebuild, ADDing in static files to overwrite, and building.
+
+The script supports ADDing binaries from origin/_output/local/bin/linux/amd64/
+and ADDing static files from the original context directories under the
+origin/images/ directories.
+
+Usage:
+  [OS_DEBUG=true] [OS_IMAGE_PREFIX=prefix] build-local-images.py [IMAGE...]
+
+  Specific images can be specified to be built with either the full name
+  of the image (e.g. openshift3/ose-haproxy-router) or the name sans prefix
+  (e.g. haproxy-router).
+
+  The following environment veriables are honored by this script:
+   - $OS_IMAGE_PREFIX: one of [openshift/origin, openshift3/ose]
+   - $OS_DEBUG: if set, debugging information will be printed
+
+Examples:
+  # build all images
+  build-local-images.py
+
+  # build only the f5-router image
+  build-local-images.py f5-router
+
+  # build with a different image prefix
+  OS_IMAGE_PREFIX=openshift3/ose build-local-images.sh
+
+Options:
+  -h,--h, -help,--help: show this help-text
+"""
+    exit(2)
+
 os_image_prefix = getenv("OS_IMAGE_PREFIX", "openshift/origin")
 image_namespace, image_prefix = os_image_prefix.split("/", 2)
 
@@ -134,10 +174,12 @@ debug("Created temporary context dir at {}".format(context_dir))
 mkdir(join(context_dir, "bin"))
 mkdir(join(context_dir, "src"))
 
+build_occurred = False
 for image in image_config:
     if not image_rebuild_requested(image):
         continue
 
+    build_occurred = True
     print "[INFO] Building {}...".format(image)
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
         dockerfile.write("FROM {}\n".format(full_name(image)))
@@ -165,3 +207,12 @@ for image in image_config:
 
     remove(join(context_dir, "Dockerfile"))
     rmtree(join(context_dir, "src", image))
+
+if not build_occurred and len(sys.argv) > 1:
+    print "[ERROR] The provided image names ({}) did not match any buildable images.".format(
+        ", ".join(sys.argv[1:])
+    )
+    print "[ERROR] This script knows how to build:\n\t{}".format(
+        "\n\t".join(map(full_name, image_config.keys()))
+    )
+    exit(1)
