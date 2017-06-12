@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 
@@ -43,6 +44,7 @@ type DiagnosticResult interface {
 }
 
 type diagnosticResultImpl struct {
+	lock     sync.Mutex
 	failure  bool
 	origin   string // origin of the results, usually the diagnostic name; included in log Entries
 	logs     []log.Entry
@@ -75,10 +77,14 @@ func (r *diagnosticResultImpl) appendLogs(stackDepth int, entry ...log.Entry) {
 }
 
 func (r *diagnosticResultImpl) Failure() bool {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.failure
 }
 
 func (r *diagnosticResultImpl) Logs() []log.Entry {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	if r.logs == nil {
 		return make([]log.Entry, 0)
 	}
@@ -93,6 +99,8 @@ func (r *diagnosticResultImpl) appendWarnings(warn ...DiagnosticError) {
 }
 
 func (r *diagnosticResultImpl) Warnings() []DiagnosticError {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	if r.warnings == nil {
 		return make([]DiagnosticError, 0)
 	}
@@ -108,6 +116,8 @@ func (r *diagnosticResultImpl) appendErrors(err ...DiagnosticError) {
 }
 
 func (r *diagnosticResultImpl) Errors() []DiagnosticError {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	if r.errors == nil {
 		return make([]DiagnosticError, 0)
 	}
@@ -145,18 +155,26 @@ func (r *diagnosticResultImpl) logMessage(id string, level log.Level, msg string
 // Public ingress functions
 // Errors are recorded in the result as errors plus log entries
 func (r *diagnosticResultImpl) Error(id string, err error, text string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.logError(id, err, text)
 }
 
 // Warnings are recorded in the result as warnings plus log entries
 func (r *diagnosticResultImpl) Warn(id string, err error, text string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.logWarning(id, err, text)
 }
 
 // Info/Debug are just recorded as log entries.
 func (r *diagnosticResultImpl) Info(id string, text string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.logMessage(id, log.InfoLevel, text)
 }
 func (r *diagnosticResultImpl) Debug(id string, text string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.logMessage(id, log.DebugLevel, text)
 }
