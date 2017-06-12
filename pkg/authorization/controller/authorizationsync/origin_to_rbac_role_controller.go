@@ -9,8 +9,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbaclister "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
@@ -80,46 +78,32 @@ func (c *OriginRoleToRBACRoleController) syncRole(key string) error {
 		return c.rbacClient.Roles(namespace).Delete(name, nil)
 	}
 
-	// convert the origin role to an rbac role and compare the results
-	convertedRole := &rbac.Role{}
-	if err := authorizationapi.Convert_api_Role_To_rbac_Role(originRole, convertedRole, nil); err != nil {
+	// determine if we need to create, update or do nothing
+	equivalentRole, err := ConvertToRBACRole(originRole)
+	if err != nil {
 		return err
 	}
-	// do a deep copy here since conversion does not guarantee a new object.
-	equivalentRole := &rbac.Role{}
-	if err := rbac.DeepCopy_rbac_Role(convertedRole, equivalentRole, cloner); err != nil {
-		return err
-	}
-
-	// normalize rules before persisting so RBAC's case sensitive authorizer will work
-	NormalizePolicyRules(equivalentRole.Rules)
 
 	// if we're missing the rbacRole, create it
 	if apierrors.IsNotFound(rbacErr) {
-		equivalentRole.ResourceVersion = ""
 		_, err := c.rbacClient.Roles(namespace).Create(equivalentRole)
 		return err
 	}
 
-	// if we might need to update, we need to stomp fields that are never going to match like uid and creation time
-	equivalentRole.SelfLink = rbacRole.SelfLink
-	equivalentRole.UID = rbacRole.UID
-	equivalentRole.ResourceVersion = rbacRole.ResourceVersion
-	equivalentRole.CreationTimestamp = rbacRole.CreationTimestamp
-
-	// if they're equal, we have no work to do
-	if kapi.Semantic.DeepEqual(equivalentRole, rbacRole) {
-		return nil
+	// if they are not equal, we need to update
+	if PrepareForUpdateRole(equivalentRole, rbacRole) {
+		glog.V(1).Infof("writing RBAC role %v/%v", namespace, name)
+		_, err := c.rbacClient.Roles(namespace).Update(equivalentRole)
+		// if the update was invalid, we're probably changing an immutable field or something like that
+		// either way, the existing object is wrong.  Delete it and try again.
+		if apierrors.IsInvalid(err) {
+			c.rbacClient.Roles(namespace).Delete(name, nil) // ignore delete error
+		}
+		return err
 	}
 
-	glog.V(1).Infof("writing RBAC role %v/%v", namespace, name)
-	_, err = c.rbacClient.Roles(namespace).Update(equivalentRole)
-	// if the update was invalid, we're probably changing an immutable field or something like that
-	// either way, the existing object is wrong.  Delete it and try again.
-	if apierrors.IsInvalid(err) {
-		c.rbacClient.Roles(namespace).Delete(name, nil)
-	}
-	return err
+	// they are equal so we have no work to do
+	return nil
 }
 
 func (c *OriginRoleToRBACRoleController) policyEventHandler() cache.ResourceEventHandler {
