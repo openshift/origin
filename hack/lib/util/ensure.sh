@@ -15,7 +15,7 @@
 function os::util::ensure::system_binary_exists() {
 	local binary="$1"
 
-	if ! os::util::find::system_binary "${binary}" >/dev/null 2>&1; then
+if ! os::util::find::system_binary "${binary}" >/dev/null 2>&1; then
 		os::log::fatal "Required \`${binary}\` binary was not found in \$PATH."
 	fi
 }

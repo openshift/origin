@@ -4007,6 +4007,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4060,6 +4061,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4116,6 +4118,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4177,6 +4180,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4238,6 +4242,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4310,6 +4315,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4357,6 +4363,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4388,6 +4395,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4476,6 +4484,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4522,6 +4531,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4560,6 +4570,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4612,6 +4623,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4711,6 +4723,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4737,6 +4750,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4784,6 +4798,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4831,6 +4846,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4865,6 +4881,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4899,6 +4916,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4925,6 +4943,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4968,6 +4987,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5030,6 +5050,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5059,6 +5080,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5095,6 +5117,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5112,6 +5135,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5134,6 +5158,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5167,6 +5192,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5191,6 +5217,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5211,6 +5238,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5278,6 +5306,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5379,6 +5408,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:

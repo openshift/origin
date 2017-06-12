@@ -529,6 +529,14 @@ function build-image() {
   os::build::image "${build_root}" "${image_name}"
 }
 
+function os::build::get-bin-output-path() {
+  local os_root="${1:-}"
+
+  if [[ -n "${os_root}" ]]; then
+    os_root="${os_root}/"
+  fi
+  echo ${os_root}_output/local/bin/$(os::build::host_platform)
+}
 
 ## Start of the main program
 

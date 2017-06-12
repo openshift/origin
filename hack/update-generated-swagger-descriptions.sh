@@ -18,7 +18,7 @@ mkdir -p "${tmpdir}"
 
 os::util::ensure::built_binary_exists 'genswaggerdoc'
 
-source_files="$( find_files | grep -E '/v1/types.go' )"
+source_files="$( os::util::list_go_src_files | grep -E '/v1/types.go' )"
 
 if [[ -n "${dryrun}" ]]; then
 	echo "The following files would be read by $0:"

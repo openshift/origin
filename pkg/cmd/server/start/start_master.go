@@ -16,12 +16,15 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/capabilities"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -580,6 +583,39 @@ func checkForOverrideConfig(ac configapi.AdmissionConfig) (*overrideapi.ClusterR
 	return overrideConfig, nil
 }
 
+type GenericResourceInformer interface {
+	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
+}
+
+// genericInternalResourceInformerFunc will return an internal informer for any resource matching
+// its group resource, instead of the external version. Only valid for use where the type is accessed
+// via generic interfaces, such as the garbage collector with ObjectMeta.
+type genericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
+
+func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	resource.Version = runtime.APIVersionInternal
+	return fn(resource)
+}
+
+type genericInformers struct {
+	kinformers.SharedInformerFactory
+	generic []GenericResourceInformer
+}
+
+func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
+	if firstErr == nil {
+		return informer, nil
+	}
+	for _, generic := range i.generic {
+		if informer, err := generic.ForResource(resource); err == nil {
+			return informer, nil
+		}
+	}
+	glog.V(4).Infof("Couldn't find informer for %v", resource)
+	return nil, firstErr
+}
+
 // startControllers launches the controllers
 func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	if oc.Options.Controllers == configapi.ControllersDisabled {
@@ -660,8 +696,21 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	}
 
 	controllerContext := kctrlmgr.ControllerContext{
-		ClientBuilder:      saClientBuilder,
-		InformerFactory:    oc.Informers.KubernetesInformers(),
+		ClientBuilder: saClientBuilder,
+		InformerFactory: genericInformers{
+			SharedInformerFactory: oc.Informers.KubernetesInformers(),
+			generic: []GenericResourceInformer{
+				// use our existing internal informers to satisfy the generic informer requests (which don't require strong
+				// types).
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return oc.TemplateInformers.ForResource(resource)
+				}),
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return oc.AuthorizationInformers.ForResource(resource)
+				}),
+				oc.Informers,
+			},
+		},
 		Options:            *controllerManagerOptions,
 		AvailableResources: availableResources,
 		Stop:               utilwait.NeverStop,

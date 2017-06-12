@@ -1321,8 +1321,24 @@ func convertClusterRoles(in []rbac.ClusterRole) ([]authorizationapi.ClusterRole,
 			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
 			continue
 		}
+		// adding annotation to any role not explicitly in the whitelist below
+		if !rolesToShow.Has(newRole.Name) {
+			newRole.Annotations[roleSystemOnly] = roleIsSystemOnly
+		}
 		out = append(out, *newRole)
 	}
 
 	return out, kutilerrors.NewAggregate(errs)
 }
+
+// The current list of roles considered useful for normal users (non-admin)
+var rolesToShow = sets.NewString(
+	"admin",
+	"basic-user",
+	"edit",
+	"system:deployer",
+	"system:image-builder",
+	"system:image-puller",
+	"system:image-pusher",
+	"view",
+)
