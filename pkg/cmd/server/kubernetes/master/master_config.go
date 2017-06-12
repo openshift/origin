@@ -47,6 +47,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -319,6 +320,29 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	cmserver.EnableGarbageCollector = true
 	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
+
+	cmserver.GCIgnoredResources = append(cmserver.GCIgnoredResources,
+		// explicitly disabled from GC for now - not enough value to track them
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "clusternetworks"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "egressnetworkpolicies"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "hostsubnets"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "netnamespaces"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclientauthorizations"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclients"},
+		componentconfig.GroupResource{Group: "quota.openshift.io", Resource: "clusterresourcequotas"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "groups"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "identities"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "users"},
+
+		// virtual resource
+		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
+		// these resources contain security information in their names, and we don't need to track them
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
+		// exposed already as cronjobs
+		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
+	)
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide
