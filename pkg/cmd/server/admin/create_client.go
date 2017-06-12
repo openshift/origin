@@ -20,6 +20,8 @@ import (
 const CreateClientCommandName = "create-api-client-config"
 
 type CreateClientOptions struct {
+	Phases []string
+
 	SignerCertOptions *SignerCertOptions
 
 	ClientDir string
@@ -45,6 +47,7 @@ var createClientLong = templates.LongDesc(`
 
 func NewCommandCreateClient(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateClientOptions{
+		Phases:            AllPhases,
 		SignerCertOptions: NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		Output:            out,
@@ -66,7 +69,7 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 	}
 
 	flags := cmd.Flags()
-
+	BindPhaseOptions(&options.Phases, flags, "")
 	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.ClientDir, "client-dir", "", "The client data directory.")
@@ -90,6 +93,9 @@ func NewCommandCreateClient(commandName string, fullName string, out io.Writer) 
 func (o CreateClientOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
+	}
+	if err := ValidatePhases(o.Phases); err != nil {
+		return fmt.Errorf("create client phase error: %v", err)
 	}
 	if len(o.ClientDir) == 0 {
 		return errors.New("client-dir must be provided")
@@ -135,6 +141,7 @@ func (o CreateClientOptions) CreateClientFolder() error {
 	kubeConfigFile := DefaultKubeConfigFilename(o.ClientDir, baseName)
 
 	createClientCertOptions := CreateClientCertOptions{
+		Phases:            o.Phases,
 		SignerCertOptions: o.SignerCertOptions,
 		CertFile:          clientCertFile,
 		KeyFile:           clientKeyFile,
@@ -145,35 +152,40 @@ func (o CreateClientOptions) CreateClientFolder() error {
 		Overwrite: true,
 		Output:    o.Output,
 	}
+	if err := createClientCertOptions.Complete(nil); err != nil {
+		return err
+	}
 	if err := createClientCertOptions.Validate(nil); err != nil {
 		return err
 	}
-	if _, err := createClientCertOptions.CreateClientCert(); err != nil {
+	if err := createClientCertOptions.CreateClientCert(); err != nil {
 		return err
 	}
 
-	// copy the CA file(s) over
-	if caBytes, readErr := readFiles(o.APIServerCAFiles, []byte("\n")); readErr != nil {
-		return readErr
-	} else if writeErr := ioutil.WriteFile(clientCopyOfCAFile, caBytes, 0644); writeErr != nil {
-		return writeErr
-	}
+	if hasPhase(PhasePackage, o.Phases) {
+		// copy the CA file(s) over
+		if caBytes, readErr := readFiles(o.APIServerCAFiles, []byte("\n")); readErr != nil {
+			return readErr
+		} else if writeErr := ioutil.WriteFile(clientCopyOfCAFile, caBytes, 0644); writeErr != nil {
+			return writeErr
+		}
 
-	createKubeConfigOptions := CreateKubeConfigOptions{
-		APIServerURL:       o.APIServerURL,
-		PublicAPIServerURL: o.PublicAPIServerURL,
-		APIServerCAFiles:   []string{clientCopyOfCAFile},
+		createKubeConfigOptions := CreateKubeConfigOptions{
+			APIServerURL:       o.APIServerURL,
+			PublicAPIServerURL: o.PublicAPIServerURL,
+			APIServerCAFiles:   []string{clientCopyOfCAFile},
 
-		CertFile: clientCertFile,
-		KeyFile:  clientKeyFile,
+			CertFile: clientCertFile,
+			KeyFile:  clientKeyFile,
 
-		ContextNamespace: metav1.NamespaceDefault,
+			ContextNamespace: metav1.NamespaceDefault,
 
-		KubeConfigFile: kubeConfigFile,
-		Output:         o.Output,
-	}
-	if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
-		return err
+			KubeConfigFile: kubeConfigFile,
+			Output:         o.Output,
+		}
+		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
+			return err
+		}
 	}
 
 	return nil

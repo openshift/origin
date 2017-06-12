@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -18,8 +17,11 @@ import (
 const CreateServerCertCommandName = "create-server-cert"
 
 type CreateServerCertOptions struct {
+	Phases []string
+
 	SignerCertOptions *SignerCertOptions
 
+	CSRFile  string
 	CertFile string
 	KeyFile  string
 
@@ -49,6 +51,7 @@ var createServerLong = templates.LongDesc(`
 
 func NewCommandCreateServerCert(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateServerCertOptions{
+		Phases:            NewDefaultPhaseOptions(),
 		SignerCertOptions: NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 		Output:            out,
@@ -59,19 +62,24 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 		Short: "Create a signed server certificate and key",
 		Long:  fmt.Sprintf(createServerLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
+			if err := options.Complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			}
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
-			if _, err := options.CreateServerCert(); err != nil {
+			if err := options.CreateServerCert(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
 		},
 	}
 
 	flags := cmd.Flags()
+	BindPhaseOptions(&options.Phases, flags, "")
 	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
+	flags.StringVar(&options.CSRFile, "csr", "", "The csr file. Choose a name that indicates what the service is. Defaults to the value of --cert with .csr appended.")
 	flags.StringVar(&options.CertFile, "cert", "", "The certificate file. Choose a name that indicates what the service is.")
 	flags.StringVar(&options.KeyFile, "key", "", "The key file. Choose a name that indicates what the service is.")
 
@@ -81,21 +89,37 @@ func NewCommandCreateServerCert(commandName string, fullName string, out io.Writ
 	flags.IntVar(&options.ExpireDays, "expire-days", options.ExpireDays, "Validity of the certificate in days (defaults to 2 years). WARNING: extending this above default value is highly discouraged.")
 
 	// autocompletion hints
+	cmd.MarkFlagFilename("csr")
 	cmd.MarkFlagFilename("cert")
 	cmd.MarkFlagFilename("key")
 
 	return cmd
 }
 
+func (o *CreateServerCertOptions) Complete(args []string) error {
+	if len(o.CSRFile) == 0 && len(o.CertFile) > 0 {
+		o.CSRFile = o.CertFile + ".csr"
+	}
+	return nil
+}
+
 func (o CreateServerCertOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
 	}
-	if len(o.Hostnames) == 0 {
-		return errors.New("at least one hostname must be provided")
+	if err := ValidatePhases(o.Phases); err != nil {
+		return fmt.Errorf("server cert phase error: %v", err)
+	}
+	if hasPhase(PhaseCSR, o.Phases) || hasPhase(PhaseVerify, o.Phases) || hasPhase(PhasePackage, o.Phases) {
+		if len(o.Hostnames) == 0 {
+			return errors.New("at least one hostname must be provided")
+		}
 	}
 	if len(o.CertFile) == 0 {
 		return errors.New("cert must be provided")
+	}
+	if len(o.CSRFile) == 0 {
+		return errors.New("server csr must be provided")
 	}
 	if len(o.KeyFile) == 0 {
 		return errors.New("key must be provided")
@@ -105,35 +129,97 @@ func (o CreateServerCertOptions) Validate(args []string) error {
 		return errors.New("expire-days must be valid number of days")
 	}
 
-	if o.SignerCertOptions == nil {
-		return errors.New("signer options are required")
-	}
-	if err := o.SignerCertOptions.Validate(); err != nil {
-		return err
+	if hasPhase(PhaseSign, o.Phases) {
+		if o.SignerCertOptions == nil {
+			return errors.New("signer options are required")
+		}
+		if err := o.SignerCertOptions.Validate(); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (o CreateServerCertOptions) CreateServerCert() (*crypto.TLSCertificateConfig, error) {
+func (o CreateServerCertOptions) CreateServerCert() error {
 	glog.V(4).Infof("Creating a server cert with: %#v", o)
 
-	signerCert, err := o.SignerCertOptions.CA()
-	if err != nil {
-		return nil, err
+	if hasPhase(PhaseKey, o.Phases) {
+		createKey := &CreateKeyPairOptions{
+			PrivateKeyFile: o.KeyFile,
+			Overwrite:      o.Overwrite,
+			Output:         o.Output,
+		}
+		if err := createKey.CreateKeyPair(); err != nil {
+			return err
+		}
 	}
 
-	var ca *crypto.TLSCertificateConfig
-	written := true
-	if o.Overwrite {
-		ca, err = signerCert.MakeAndWriteServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
-	} else {
-		ca, written, err = signerCert.EnsureServerCert(o.CertFile, o.KeyFile, sets.NewString([]string(o.Hostnames)...), o.ExpireDays)
+	if hasPhase(PhaseCSR, o.Phases) {
+		createServerCSR := &CreateServerCSROptions{
+			PrivateKeyFile: o.KeyFile,
+			CSRFile:        o.CSRFile,
+			Hostnames:      o.Hostnames,
+		}
+		if err := createServerCSR.CreateServerCSR(); err != nil {
+			return fmt.Errorf("error creating %s: %v", o.CSRFile, err)
+		}
 	}
-	if written {
-		glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
-	} else {
-		glog.V(3).Infof("Keeping existing server certificate at %s, key at %s\n", o.CertFile, o.KeyFile)
+
+	if hasPhase(PhaseSign, o.Phases) {
+		// sign if invalid or overwrite is true
+		var needsSigning bool
+		switch {
+		case o.Overwrite:
+			needsSigning = true
+		default:
+			verifyServerCert := &VerifyServerCertOptions{
+				CertFile:       o.CertFile,
+				PrivateKeyFile: o.KeyFile,
+				CSRFile:        o.CSRFile,
+				Hostnames:      o.Hostnames,
+				CAFile:         o.SignerCertOptions.CertFile,
+			}
+			if err := verifyServerCert.VerifyServerCert(); err != nil {
+				needsSigning = true
+			}
+		}
+
+		if needsSigning {
+			signCSR := &SignCSROptions{
+				SignerCertOptions: o.SignerCertOptions,
+				CSRFile:           o.CSRFile,
+				CertFile:          o.CertFile,
+				ExpireDays:        o.ExpireDays,
+			}
+			if err := signCSR.SignCSR(); err != nil {
+				return fmt.Errorf("error signing %s: %v", o.CSRFile, err)
+			}
+			glog.V(3).Infof("Generated new server certificate as %s, key as %s\n", o.CertFile, o.KeyFile)
+		}
 	}
-	return ca, err
+
+	if hasPhase(PhaseVerify, o.Phases) {
+		verifyServerCert := &VerifyServerCertOptions{
+			CertFile:       o.CertFile,
+			PrivateKeyFile: o.KeyFile,
+			CSRFile:        o.CSRFile,
+			Hostnames:      o.Hostnames,
+		}
+
+		// If we signed it, verify the signature
+		if hasPhase(PhaseSign, o.Phases) {
+			verifyServerCert.CAFile = o.SignerCertOptions.CertFile
+		}
+
+		if err := verifyServerCert.VerifyServerCert(); err != nil {
+			return fmt.Errorf("error verifying %s: %v", o.CertFile, err)
+		}
+	}
+
+	if hasPhase(PhasePackage, o.Phases) {
+		// no-op for server certs
+	}
+
+	return nil
 }

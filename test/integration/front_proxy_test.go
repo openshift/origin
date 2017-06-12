@@ -274,6 +274,7 @@ func createCert(commonName, certDir, caPrefix string) (*tls.Certificate, error) 
 		SerialFile: admin.DefaultSerialFilename(certDir, caPrefix),
 	}
 	clientCertOptions := &admin.CreateClientCertOptions{
+		Phases:            admin.AllPhases,
 		SignerCertOptions: signerCertOptions,
 		CertFile:          admin.DefaultCertFilename(certDir, commonName),
 		KeyFile:           admin.DefaultKeyFilename(certDir, commonName),
@@ -281,18 +282,17 @@ func createCert(commonName, certDir, caPrefix string) (*tls.Certificate, error) 
 		User:              commonName,
 		Overwrite:         true,
 	}
+	if err := clientCertOptions.Complete(nil); err != nil {
+		return nil, err
+	}
 	if err := clientCertOptions.Validate(nil); err != nil {
 		return nil, err
 	}
-	certConfig, err := clientCertOptions.CreateClientCert()
+	err := clientCertOptions.CreateClientCert()
 	if err != nil {
 		return nil, err
 	}
-	certBytes, keyBytes, err := certConfig.GetPEMBytes()
-	if err != nil {
-		return nil, err
-	}
-	cert, err := tls.X509KeyPair(certBytes, keyBytes)
+	cert, err := tls.LoadX509KeyPair(clientCertOptions.CertFile, clientCertOptions.KeyFile)
 	if err != nil {
 		return nil, err
 	}

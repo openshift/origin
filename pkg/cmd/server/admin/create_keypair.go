@@ -74,9 +74,6 @@ func (o CreateKeyPairOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
 	}
-	if len(o.PublicKeyFile) == 0 {
-		return errors.New("--public-key must be provided")
-	}
 	if len(o.PrivateKeyFile) == 0 {
 		return errors.New("--private-key must be provided")
 	}
@@ -95,9 +92,11 @@ func (o CreateKeyPairOptions) CreateKeyPair() error {
 			glog.V(3).Infof("Keeping existing private key file %s\n", o.PrivateKeyFile)
 			return nil
 		}
-		if _, err := os.Stat(o.PublicKeyFile); err == nil {
-			glog.V(3).Infof("Keeping existing public key file %s\n", o.PublicKeyFile)
-			return nil
+		if len(o.PublicKeyFile) > 0 {
+			if _, err := os.Stat(o.PublicKeyFile); err == nil {
+				glog.V(3).Infof("Keeping existing public key file %s\n", o.PublicKeyFile)
+				return nil
+			}
 		}
 	}
 
@@ -110,11 +109,19 @@ func (o CreateKeyPairOptions) CreateKeyPair() error {
 		return err
 	}
 
-	if err := writePublicKeyFile(o.PublicKeyFile, &privateKey.PublicKey); err != nil {
-		return err
+	if len(o.PublicKeyFile) > 0 {
+		if err := writePublicKeyFile(o.PublicKeyFile, &privateKey.PublicKey); err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintf(o.Output, "Generated new key pair as %s and %s\n", o.PublicKeyFile, o.PrivateKeyFile)
+	if o.Output != nil {
+		if len(o.PublicKeyFile) > 0 {
+			fmt.Fprintf(o.Output, "Generated new key pair as %s and %s\n", o.PublicKeyFile, o.PrivateKeyFile)
+		} else {
+			fmt.Fprintf(o.Output, "Generated new key as %s\n", o.PrivateKeyFile)
+		}
+	}
 
 	return nil
 }

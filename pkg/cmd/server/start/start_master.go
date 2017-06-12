@@ -329,6 +329,8 @@ func (o MasterOptions) CreateCerts() error {
 		return err
 	}
 	mintAllCertsOptions := admin.CreateMasterCertsOptions{
+		Phases:             admin.AllPhases,
+		SignerCertOptions:  &admin.SignerCertOptions{},
 		CertDir:            o.MasterArgs.ConfigDir.Value(),
 		SignerName:         signerName,
 		ExpireDays:         o.ExpireDays,
@@ -339,6 +341,9 @@ func (o MasterOptions) CreateCerts() error {
 		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
 		Output:             cmdutil.NewGLogWriterV(3),
+	}
+	if err := mintAllCertsOptions.Complete(nil); err != nil {
+		return err
 	}
 	if err := mintAllCertsOptions.Validate(nil); err != nil {
 		return err

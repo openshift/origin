@@ -31,6 +31,8 @@ import (
 const NodeConfigCommandName = "create-node-config"
 
 type CreateNodeConfigOptions struct {
+	Phases []string
+
 	SignerCertOptions *SignerCertOptions
 
 	NodeConfigDir string
@@ -78,6 +80,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 
 	flags := cmd.Flags()
 
+	BindPhaseOptions(&options.Phases, flags, "")
 	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.NodeConfigDir, "node-dir", "", "The client data directory.")
@@ -118,6 +121,7 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 
 func NewDefaultCreateNodeConfigOptions() *CreateNodeConfigOptions {
 	options := &CreateNodeConfigOptions{
+		Phases:            AllPhases,
 		SignerCertOptions: NewDefaultSignerCertOptions(),
 		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
 	}
@@ -156,14 +160,14 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
 	}
+	if err := ValidatePhases(o.Phases); err != nil {
+		return fmt.Errorf("node config phase error: %v", err)
+	}
 	if len(o.NodeConfigDir) == 0 {
 		return errors.New("--node-dir must be provided")
 	}
 	if len(o.NodeName) == 0 {
 		return errors.New("--node must be provided")
-	}
-	if len(o.APIServerURL) == 0 {
-		return errors.New("--master must be provided")
 	}
 	if len(o.APIServerCAFiles) == 0 {
 		return fmt.Errorf("--certificate-authority must be a valid certificate file")
@@ -174,8 +178,14 @@ func (o CreateNodeConfigOptions) Validate(args []string) error {
 			}
 		}
 	}
-	if len(o.Hostnames) == 0 {
-		return errors.New("at least one hostname must be provided")
+
+	if hasPhase(PhaseCSR, o.Phases) || hasPhase(PhaseVerify, o.Phases) || hasPhase(PhasePackage, o.Phases) {
+		if len(o.APIServerURL) == 0 {
+			return errors.New("--master must be provided")
+		}
+		if len(o.Hostnames) == 0 {
+			return errors.New("at least one hostname must be provided")
+		}
 	}
 
 	if len(o.ClientCertFile) != 0 {
@@ -272,20 +282,23 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() (string, error) {
 			}
 		}
 	}
-	if err := o.MakeAPIServerCA(apiServerCAFile); err != nil {
-		return "", err
-	}
-	if err := o.MakeKubeConfig(clientCertFile, clientKeyFile, apiServerCAFile, kubeConfigFile); err != nil {
-		return "", err
-	}
-	if err := o.MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile); err != nil {
-		return "", err
-	}
-	if err := o.MakeNodeJSON(nodeJSONFile); err != nil {
-		return "", err
-	}
 
-	fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
+	if hasPhase(PhasePackage, o.Phases) {
+		if err := o.MakeAPIServerCA(apiServerCAFile); err != nil {
+			return "", err
+		}
+		if err := o.MakeKubeConfig(clientCertFile, clientKeyFile, apiServerCAFile, kubeConfigFile); err != nil {
+			return "", err
+		}
+		if err := o.MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile); err != nil {
+			return "", err
+		}
+		if err := o.MakeNodeJSON(nodeJSONFile); err != nil {
+			return "", err
+		}
+
+		fmt.Fprintf(o.Output, "Created node config for %s in %s\n", o.NodeName, o.NodeConfigDir)
+	}
 
 	return nodeConfigFile, nil
 }
@@ -293,6 +306,8 @@ func (o CreateNodeConfigOptions) CreateNodeFolder() (string, error) {
 func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile string) error {
 	if o.IsCreateClientCertificate() {
 		createNodeClientCert := CreateClientCertOptions{
+			Phases: o.Phases,
+
 			SignerCertOptions: o.SignerCertOptions,
 
 			CertFile: clientCertFile,
@@ -305,10 +320,13 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 			Output: o.Output,
 		}
 
+		if err := createNodeClientCert.Complete(nil); err != nil {
+			return err
+		}
 		if err := createNodeClientCert.Validate(nil); err != nil {
 			return err
 		}
-		if _, err := createNodeClientCert.CreateClientCert(); err != nil {
+		if err := createNodeClientCert.CreateClientCert(); err != nil {
 			return err
 		}
 
@@ -327,6 +345,8 @@ func (o CreateNodeConfigOptions) MakeClientCert(clientCertFile, clientKeyFile st
 func (o CreateNodeConfigOptions) MakeAndWriteServerCert(serverCertFile, serverKeyFile string) error {
 	if o.IsCreateServerCertificate() {
 		nodeServerCertOptions := CreateServerCertOptions{
+			Phases: o.Phases,
+
 			SignerCertOptions: o.SignerCertOptions,
 
 			CertFile: serverCertFile,
@@ -338,10 +358,13 @@ func (o CreateNodeConfigOptions) MakeAndWriteServerCert(serverCertFile, serverKe
 			Output:    o.Output,
 		}
 
+		if err := nodeServerCertOptions.Complete(nil); err != nil {
+			return err
+		}
 		if err := nodeServerCertOptions.Validate(nil); err != nil {
 			return err
 		}
-		if _, err := nodeServerCertOptions.CreateServerCert(); err != nil {
+		if err := nodeServerCertOptions.CreateServerCert(); err != nil {
 			return err
 		}
 

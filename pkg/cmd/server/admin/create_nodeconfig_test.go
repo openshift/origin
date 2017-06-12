@@ -34,7 +34,15 @@ func TestNodeConfigNonTLS(t *testing.T) {
 	}
 	filenames := sets.NewString(fileNameSlice...)
 
-	expectedNames := sets.NewString("master-client.crt", "master-client.key", "node.kubeconfig", "node-config.yaml", "node-registration.json", "ca.crt")
+	expectedNames := sets.NewString(
+		"master-client.crt",
+		"master-client.crt.csr",
+		"master-client.key",
+		"node.kubeconfig",
+		"node-config.yaml",
+		"node-registration.json",
+		"ca.crt",
+	)
 	if !filenames.HasAll(expectedNames.List()...) || !expectedNames.HasAll(filenames.List()...) {
 		t.Errorf("expected %v, got %v", expectedNames.List(), filenames.List())
 	}
@@ -60,7 +68,19 @@ func TestNodeConfigTLS(t *testing.T) {
 	}
 	filenames := sets.NewString(fileNameSlice...)
 
-	expectedNames := sets.NewString("master-client.crt", "master-client.key", "server.crt", "server.key", "node-client-ca.crt", "node.kubeconfig", "node-config.yaml", "node-registration.json", "ca.crt")
+	expectedNames := sets.NewString(
+		"master-client.crt",
+		"master-client.crt.csr",
+		"master-client.key",
+		"server.crt",
+		"server.crt.csr",
+		"server.key",
+		"node-client-ca.crt",
+		"node.kubeconfig",
+		"node-config.yaml",
+		"node-registration.json",
+		"ca.crt",
+	)
 	if !filenames.HasAll(expectedNames.List()...) || !expectedNames.HasAll(filenames.List()...) {
 		t.Errorf("expected %v, got %v", expectedNames.List(), filenames.List())
 	}

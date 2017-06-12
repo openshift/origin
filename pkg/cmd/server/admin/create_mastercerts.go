@@ -69,6 +69,10 @@ var masterCertLong = templates.LongDesc(`
 	for certain configuration changes.`)
 
 type CreateMasterCertsOptions struct {
+	Phases []string
+
+	SignerCertOptions *SignerCertOptions
+
 	CertDir    string
 	SignerName string
 
@@ -89,9 +93,11 @@ type CreateMasterCertsOptions struct {
 
 func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateMasterCertsOptions{
-		ExpireDays:       crypto.DefaultCertificateLifetimeInDays,
-		SignerExpireDays: crypto.DefaultCACertificateLifetimeInDays,
-		Output:           out,
+		Phases:            AllPhases,
+		SignerCertOptions: &SignerCertOptions{},
+		ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+		SignerExpireDays:  crypto.DefaultCACertificateLifetimeInDays,
+		Output:            out,
 	}
 
 	cmd := &cobra.Command{
@@ -99,6 +105,9 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 		Short: "Create certificates and keys for a master",
 		Long:  fmt.Sprintf(masterCertLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
+			if err := options.Complete(args); err != nil {
+				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
+			}
 			if err := options.Validate(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
@@ -110,6 +119,9 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	}
 
 	flags := cmd.Flags()
+
+	BindPhaseOptions(&options.Phases, flags, "")
+	BindSignerCertOptions(options.SignerCertOptions, flags, "")
 
 	flags.StringVar(&options.CertDir, "cert-dir", "openshift.local.config/master", "The certificate data directory.")
 	flags.StringVar(&options.SignerName, "signer-name", DefaultSignerName(), "The name to use for the generated signer.")
@@ -133,39 +145,59 @@ func NewCommandCreateMasterCerts(commandName string, fullName string, out io.Wri
 	return cmd
 }
 
+func (o CreateMasterCertsOptions) Complete(args []string) error {
+	if len(o.CertDir) > 0 && len(o.SignerCertOptions.CertFile) == 0 && len(o.SignerCertOptions.KeyFile) == 0 && len(o.SignerCertOptions.SerialFile) == 0 {
+		o.SignerCertOptions.CertFile = DefaultCertFilename(o.CertDir, CAFilePrefix)
+		o.SignerCertOptions.KeyFile = DefaultKeyFilename(o.CertDir, CAFilePrefix)
+		o.SignerCertOptions.SerialFile = DefaultSerialFilename(o.CertDir, CAFilePrefix)
+	}
+	return nil
+}
 func (o CreateMasterCertsOptions) Validate(args []string) error {
 	if len(args) != 0 {
 		return errors.New("no arguments are supported")
 	}
-	if len(o.Hostnames) == 0 {
-		return errors.New("at least one hostname must be provided")
+	if err := ValidatePhases(o.Phases); err != nil {
+		return fmt.Errorf("master cert phase error: %v", err)
 	}
+
 	if len(o.CertDir) == 0 {
 		return errors.New("cert-dir must be provided")
 	}
-	if len(o.SignerName) == 0 {
-		return errors.New("signer-name must be provided")
-	}
-	if o.ExpireDays <= 0 {
-		return errors.New("expire-days must be valid number of days")
-	}
-	if o.SignerExpireDays <= 0 {
-		return errors.New("signer-expire-days must be valid number of days")
-	}
-	if len(o.APIServerURL) == 0 {
-		return errors.New("master must be provided")
-	} else if u, err := url.Parse(o.APIServerURL); err != nil {
-		return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
-	} else if len(u.Scheme) == 0 {
-		return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
+
+	// Needed for signing
+	if hasPhase(PhaseSign, o.Phases) {
+		if len(o.SignerName) == 0 {
+			return errors.New("signer-name must be provided")
+		}
+		if o.ExpireDays <= 0 {
+			return errors.New("expire-days must be valid number of days")
+		}
+		if o.SignerExpireDays <= 0 {
+			return errors.New("signer-expire-days must be valid number of days")
+		}
 	}
 
-	if len(o.PublicAPIServerURL) == 0 {
-		// not required
-	} else if u, err := url.Parse(o.PublicAPIServerURL); err != nil {
-		return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
-	} else if len(u.Scheme) == 0 {
-		return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
+	// Needed for making CSRs, verifying CSRs, and building kubeconfigs
+	if hasPhase(PhaseCSR, o.Phases) || hasPhase(PhaseVerify, o.Phases) || hasPhase(PhasePackage, o.Phases) {
+		if len(o.Hostnames) == 0 {
+			return errors.New("at least one hostname must be provided")
+		}
+		if len(o.APIServerURL) == 0 {
+			return errors.New("master must be provided")
+		} else if u, err := url.Parse(o.APIServerURL); err != nil {
+			return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
+		} else if len(u.Scheme) == 0 {
+			return errors.New("master must be a valid URL (e.g. https://10.0.0.1:8443)")
+		}
+
+		if len(o.PublicAPIServerURL) == 0 {
+			// not required
+		} else if u, err := url.Parse(o.PublicAPIServerURL); err != nil {
+			return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
+		} else if len(u.Scheme) == 0 {
+			return errors.New("public master must be a valid URL (e.g. https://example.com:8443)")
+		}
 	}
 
 	for _, caFile := range o.APIServerCAFiles {
@@ -180,65 +212,73 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	glog.V(4).Infof("Creating all certs with: %#v", o)
 
-	signerCertOptions := CreateSignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
-		ExpireDays: o.SignerExpireDays,
-		Name:       o.SignerName,
-		Overwrite:  o.Overwrite,
-		Output:     o.Output,
-	}
-	if err := signerCertOptions.Validate(nil); err != nil {
-		return err
-	}
-	if _, err := signerCertOptions.CreateSignerCert(); err != nil {
-		return err
-	}
-	// once we've minted the signer, don't overwrite it
-	getSignerCertOptions := SignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
+	if hasPhase(PhaseSign, o.Phases) {
+		signerCertOptions := CreateSignerCertOptions{
+			CertFile:   o.SignerCertOptions.CertFile,
+			KeyFile:    o.SignerCertOptions.KeyFile,
+			SerialFile: o.SignerCertOptions.SerialFile,
+			ExpireDays: o.SignerExpireDays,
+			Name:       o.SignerName,
+			Overwrite:  o.Overwrite,
+			Output:     o.Output,
+		}
+		if err := signerCertOptions.Validate(nil); err != nil {
+			return err
+		}
+		if _, err := signerCertOptions.CreateSignerCert(); err != nil {
+			return err
+		}
 	}
 
 	errs := parallel.Run(
-		func() error { return o.createCABundle(&getSignerCertOptions) },
-		func() error { return o.createServerCerts(&getSignerCertOptions) },
-		func() error { return o.createAPIClients(&getSignerCertOptions) },
-		func() error { return o.createEtcdClientCerts(&getSignerCertOptions) },
-		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
-		func() error { return o.createProxyClientCerts(&getSignerCertOptions) },
+		func() error { return o.createCABundle(o.SignerCertOptions) },
+		func() error { return o.createServerCerts(o.SignerCertOptions) },
+		func() error { return o.createAPIClients(o.SignerCertOptions) },
+		func() error { return o.createEtcdClientCerts(o.SignerCertOptions) },
+		func() error { return o.createKubeletClientCerts(o.SignerCertOptions) },
+		func() error { return o.createProxyClientCerts(o.SignerCertOptions) },
 		func() error { return o.createServiceAccountKeys() },
-		func() error { return o.createServiceSigningCA(&getSignerCertOptions) },
+		func() error { return o.createServiceSigningCA() },
 	)
 	return utilerrors.NewAggregate(errs)
 }
 
 func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerCertOptions) error {
+	caFiles := []string{}
+	// Include the signer cert if specified and exists
+	if len(getSignerCertOptions.CertFile) > 0 {
+		if _, err := os.Stat(getSignerCertOptions.CertFile); err == nil || !os.IsNotExist(err) {
+			caFiles = append(caFiles, getSignerCertOptions.CertFile)
+		}
+	}
+	caFiles = append(caFiles, o.APIServerCAFiles...)
+
 	for _, clientCertInfo := range DefaultAPIClientCerts(o.CertDir) {
 		if err := o.createClientCert(clientCertInfo, getSignerCertOptions); err != nil {
 			return err
 		}
 
-		createKubeConfigOptions := CreateKubeConfigOptions{
-			APIServerURL:       o.APIServerURL,
-			PublicAPIServerURL: o.PublicAPIServerURL,
-			APIServerCAFiles:   append([]string{getSignerCertOptions.CertFile}, o.APIServerCAFiles...),
+		if hasPhase(PhasePackage, o.Phases) {
 
-			CertFile: clientCertInfo.CertLocation.CertFile,
-			KeyFile:  clientCertInfo.CertLocation.KeyFile,
+			createKubeConfigOptions := CreateKubeConfigOptions{
+				APIServerURL:       o.APIServerURL,
+				PublicAPIServerURL: o.PublicAPIServerURL,
+				APIServerCAFiles:   caFiles,
 
-			ContextNamespace: metav1.NamespaceDefault,
+				CertFile: clientCertInfo.CertLocation.CertFile,
+				KeyFile:  clientCertInfo.CertLocation.KeyFile,
 
-			KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
-			Output:         o.Output,
-		}
-		if err := createKubeConfigOptions.Validate(nil); err != nil {
-			return err
-		}
-		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
-			return err
+				ContextNamespace: metav1.NamespaceDefault,
+
+				KubeConfigFile: DefaultKubeConfigFilename(filepath.Dir(clientCertInfo.CertLocation.CertFile), clientCertInfo.UnqualifiedUser),
+				Output:         o.Output,
+			}
+			if err := createKubeConfigOptions.Validate(nil); err != nil {
+				return err
+			}
+			if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -273,6 +313,8 @@ func (o CreateMasterCertsOptions) createKubeletClientCerts(getSignerCertOptions 
 
 func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo, getSignerCertOptions *SignerCertOptions) error {
 	clientCertOptions := CreateClientCertOptions{
+		Phases: o.Phases,
+
 		SignerCertOptions: getSignerCertOptions,
 
 		CertFile: clientCertInfo.CertLocation.CertFile,
@@ -285,17 +327,30 @@ func (o CreateMasterCertsOptions) createClientCert(clientCertInfo ClientCertInfo
 		Overwrite: o.Overwrite,
 		Output:    o.Output,
 	}
+	if err := clientCertOptions.Complete(nil); err != nil {
+		return err
+	}
 	if err := clientCertOptions.Validate(nil); err != nil {
 		return err
 	}
-	if _, err := clientCertOptions.CreateClientCert(); err != nil {
+	if err := clientCertOptions.CreateClientCert(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *SignerCertOptions) error {
-	caFiles := []string{getSignerCertOptions.CertFile}
+	if !hasPhase(PhasePackage, o.Phases) {
+		return nil
+	}
+
+	caFiles := []string{}
+	// Include the signer cert if specified and exists
+	if len(getSignerCertOptions.CertFile) > 0 {
+		if _, err := os.Stat(getSignerCertOptions.CertFile); err == nil || !os.IsNotExist(err) {
+			caFiles = append(caFiles, getSignerCertOptions.CertFile)
+		}
+	}
 	caFiles = append(caFiles, o.APIServerCAFiles...)
 	caData, err := readFiles(caFiles, []byte("\n"))
 	if err != nil {
@@ -312,6 +367,8 @@ func (o CreateMasterCertsOptions) createCABundle(getSignerCertOptions *SignerCer
 func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *SignerCertOptions) error {
 	for _, serverCertInfo := range DefaultServerCerts(o.CertDir) {
 		serverCertOptions := CreateServerCertOptions{
+			Phases: o.Phases,
+
 			SignerCertOptions: getSignerCertOptions,
 
 			CertFile: serverCertInfo.CertFile,
@@ -323,10 +380,13 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *Signer
 			Overwrite: o.Overwrite,
 			Output:    o.Output,
 		}
+		if err := serverCertOptions.Complete(nil); err != nil {
+			return err
+		}
 		if err := serverCertOptions.Validate(nil); err != nil {
 			return err
 		}
-		if _, err := serverCertOptions.CreateServerCert(); err != nil {
+		if err := serverCertOptions.CreateServerCert(); err != nil {
 			return err
 		}
 	}
@@ -334,6 +394,9 @@ func (o CreateMasterCertsOptions) createServerCerts(getSignerCertOptions *Signer
 }
 
 func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
+	if !hasPhase(PhaseKey, o.Phases) {
+		return nil
+	}
 	keypairOptions := CreateKeyPairOptions{
 		PublicKeyFile:  DefaultServiceAccountPublicKeyFile(o.CertDir),
 		PrivateKeyFile: DefaultServiceAccountPrivateKeyFile(o.CertDir),
@@ -350,7 +413,10 @@ func (o CreateMasterCertsOptions) createServiceAccountKeys() error {
 	return nil
 }
 
-func (o CreateMasterCertsOptions) createServiceSigningCA(getSignerCertOptions *SignerCertOptions) error {
+func (o CreateMasterCertsOptions) createServiceSigningCA() error {
+	if !hasPhase(PhaseKey, o.Phases) {
+		return nil
+	}
 	caInfo := DefaultServiceSignerCAInfo(o.CertDir)
 
 	caOptions := CreateSignerCertOptions{
