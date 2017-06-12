@@ -137,7 +137,7 @@ for image in image_config:
 
     print "[INFO] Building {}...".format(image)
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
-        dockerfile.write("FROM {}\n".format(image))
+        dockerfile.write("FROM {}\n".format(full_name(image)))
 
     config = image_config[image]
     for binary in config.get("binaries", []):
