@@ -106,7 +106,7 @@ def add_to_context(context_dir, source, destination, container_destination):
     to place it in the container file-
     sytem at the correct destination.
     """
-    debug("Adding file:\n\tfrom {}\n\tto {},\n\tincluding in container at {}".format(
+    debug("Adding file:\n\tfrom {}\n\tto {}\n\tincluding in container at {}".format(
     	source,
     	join(context_dir, destination),
 		container_destination)
