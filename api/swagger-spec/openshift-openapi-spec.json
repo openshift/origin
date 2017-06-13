@@ -26,7 +26,7 @@
      "tags": [
       "core"
      ],
-     "operationId": "getCoreAPIVersions",
+     "operationId": "getCoreLegacyAPIVersions",
      "responses": {
       "200": {
        "description": "OK",
@@ -52847,20 +52847,27 @@
    },
    "/oapi/": {
     "get": {
-     "description": "list supported server API versions",
+     "description": "get available API versions",
      "consumes": [
-      "application/json"
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
      ],
      "produces": [
-      "application/json"
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
      ],
      "tags": [
       "oapi"
      ],
-     "operationId": "getOapiVersion",
+     "operationId": "getLegacyAPIVersions",
      "responses": {
-      "default": {
-       "description": "Default Response."
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/v1.APIVersions"
+       }
       }
      }
     }
@@ -72207,26 +72214,6 @@
       "in": "query"
      }
     ]
-   },
-   "/osapi/": {
-    "get": {
-     "description": "list supported server API versions",
-     "consumes": [
-      "application/json"
-     ],
-     "produces": [
-      "application/json"
-     ],
-     "tags": [
-      "osapi"
-     ],
-     "operationId": "getOsapiVersion",
-     "responses": {
-      "default": {
-       "description": "Default Response."
-      }
-     }
-    }
    },
    "/version/": {
     "get": {

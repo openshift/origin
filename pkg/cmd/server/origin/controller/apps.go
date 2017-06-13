@@ -62,7 +62,7 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 	}
 
 	go deployconfigcontroller.NewDeploymentConfigController(
-		ctx.DeprecatedOpenshiftInformers.DeploymentConfigs().Informer(),
+		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
 		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers(),
 		deprecatedOcDcClient,
 		internalDcKubeClient,
@@ -82,9 +82,9 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 	}
 
 	go triggercontroller.NewDeploymentTriggerController(
-		ctx.DeprecatedOpenshiftInformers.DeploymentConfigs().Informer(),
+		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
 		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer(),
-		ctx.DeprecatedOpenshiftInformers.ImageStreams().Informer(),
+		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
 		deprecatedOcTriggerClient,
 		c.Codec,
 	).Run(5, ctx.Stop)

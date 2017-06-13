@@ -49,7 +49,6 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 	genericConfig.EnableSwaggerUI = false
 	genericConfig.OpenAPIConfig = nil
 	genericConfig.SwaggerConfig = nil
-	genericConfig.FallThroughHandler = nil
 
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
 	install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)

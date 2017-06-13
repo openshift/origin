@@ -6,7 +6,6 @@ import (
 	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/flowcontrol"
@@ -154,7 +153,7 @@ func (s *ScheduledImageStreamController) syncTimed(key, value interface{}) {
 }
 
 func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string) error {
-	sharedStream, err := s.lister.ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	sharedStream, err := s.lister.ImageStreams(namespace).Get(name)
 	if err != nil {
 		if apierrs.IsNotFound(err) {
 			return ErrNotImportable

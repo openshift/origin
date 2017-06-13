@@ -6,14 +6,12 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 
-	genericmux "k8s.io/apiserver/pkg/server/mux"
-
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 )
 
 // initControllerRoutes adds a web service endpoint for managing the execution
 // state of the controllers.
-func initControllerRoutes(apiContainer *genericmux.APIContainer, path string, canStart bool, plug plug.Plug) {
+func initControllerRoutes(apiContainer *restful.Container, path string, canStart bool, plug plug.Plug) {
 	ws := new(restful.WebService).
 		Path(path).
 		Doc("Check whether the controllers are running on this master")

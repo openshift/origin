@@ -211,7 +211,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 
 func MetricsHost(routingSuffix, serverIP string) string {
 	if len(routingSuffix) > 0 {
-		return fmt.Sprintf("metrics-openshift-infra.%s", routingSuffix)
+		return fmt.Sprintf("hawkular-metrics-openshift-infra.%s", routingSuffix)
 	}
-	return fmt.Sprintf("metrics-openshift-infra.%s.nip.io", serverIP)
+	return fmt.Sprintf("hawkular-metrics-openshift-infra.%s.nip.io", serverIP)
 }

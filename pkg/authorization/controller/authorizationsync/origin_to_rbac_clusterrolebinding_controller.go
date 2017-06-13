@@ -9,8 +9,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbaclister "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
@@ -75,43 +73,32 @@ func (c *OriginClusterRoleBindingToRBACClusterRoleBindingController) syncCluster
 		return c.rbacClient.ClusterRoleBindings().Delete(name, nil)
 	}
 
-	// convert the origin roleBinding to an rbac roleBinding and compare the results
-	convertedClusterRoleBinding := &rbac.ClusterRoleBinding{}
-	if err := authorizationapi.Convert_api_ClusterRoleBinding_To_rbac_ClusterRoleBinding(originClusterRoleBinding, convertedClusterRoleBinding, nil); err != nil {
-		return err
-	}
-	// do a deep copy here since conversion does not guarantee a new object.
-	equivalentClusterRoleBinding := &rbac.ClusterRoleBinding{}
-	if err := rbac.DeepCopy_rbac_ClusterRoleBinding(convertedClusterRoleBinding, equivalentClusterRoleBinding, cloner); err != nil {
+	// determine if we need to create, update or do nothing
+	equivalentClusterRoleBinding, err := ConvertToRBACClusterRoleBinding(originClusterRoleBinding)
+	if err != nil {
 		return err
 	}
 
 	// if we're missing the rbacClusterRoleBinding, create it
 	if apierrors.IsNotFound(rbacErr) {
-		equivalentClusterRoleBinding.ResourceVersion = ""
 		_, err := c.rbacClient.ClusterRoleBindings().Create(equivalentClusterRoleBinding)
 		return err
 	}
 
-	// if we might need to update, we need to stomp fields that are never going to match like uid and creation time
-	equivalentClusterRoleBinding.SelfLink = rbacClusterRoleBinding.SelfLink
-	equivalentClusterRoleBinding.UID = rbacClusterRoleBinding.UID
-	equivalentClusterRoleBinding.ResourceVersion = rbacClusterRoleBinding.ResourceVersion
-	equivalentClusterRoleBinding.CreationTimestamp = rbacClusterRoleBinding.CreationTimestamp
-
-	// if they're equal, we have no work to do
-	if kapi.Semantic.DeepEqual(equivalentClusterRoleBinding, rbacClusterRoleBinding) {
-		return nil
+	// if they are not equal, we need to update
+	if PrepareForUpdateClusterRoleBinding(equivalentClusterRoleBinding, rbacClusterRoleBinding) {
+		glog.V(1).Infof("writing RBAC clusterrolebinding %v", name)
+		_, err := c.rbacClient.ClusterRoleBindings().Update(equivalentClusterRoleBinding)
+		// if the update was invalid, we're probably changing an immutable field or something like that
+		// either way, the existing object is wrong.  Delete it and try again.
+		if apierrors.IsInvalid(err) {
+			c.rbacClient.ClusterRoleBindings().Delete(name, nil) // ignore delete error
+		}
+		return err
 	}
 
-	glog.V(1).Infof("writing RBAC clusterrolebinding %v", name)
-	_, err := c.rbacClient.ClusterRoleBindings().Update(equivalentClusterRoleBinding)
-	// if the update was invalid, we're probably changing an immutable field or something like that
-	// either way, the existing object is wrong.  Delete it and try again.
-	if apierrors.IsInvalid(err) {
-		c.rbacClient.ClusterRoleBindings().Delete(name, nil)
-	}
-	return err
+	// they are equal so we have no work to do
+	return nil
 }
 
 func (c *OriginClusterRoleBindingToRBACClusterRoleBindingController) clusterPolicyBindingEventHandler() cache.ResourceEventHandler {

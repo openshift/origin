@@ -2,16 +2,15 @@ package image
 
 import (
 	"testing"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 const maxTestImportTagsPerRepository = 5
@@ -161,17 +160,12 @@ func TestImageStreamImportEvaluatorUsage(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
-		isInformer := cache.NewSharedIndexInformer(
-			&cache.ListWatch{},
-			&imageapi.ImageStream{},
-			2*time.Minute,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-		)
-		store := oscache.StoreToImageStreamLister{Indexer: isInformer.GetIndexer()}
+		imageInformers := imageinformer.NewSharedInformerFactory(imageinternal.NewSimpleClientset(), 0)
+		isInformer := imageInformers.Image().InternalVersion().ImageStreams()
 		for _, is := range tc.iss {
-			store.Indexer.Add(&is)
+			isInformer.Informer().GetIndexer().Add(&is)
 		}
-		evaluator := NewImageStreamImportEvaluator(&store)
+		evaluator := NewImageStreamImportEvaluator(isInformer.Lister())
 
 		isi := &imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{

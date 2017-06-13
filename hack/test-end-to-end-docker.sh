@@ -11,6 +11,7 @@ unset KUBECONFIG
 os::util::environment::use_sudo
 os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
+os::util::environment::setup_time_vars
 export HOME="${FAKE_HOME_DIR}"
 
 # Allow setting $JUNIT_REPORT to toggle output behavior
@@ -61,7 +62,9 @@ oc cluster up --image=openshift/origin --server-loglevel=4 --version="${TAG}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
 
-oc cluster status
+os::test::junit::declare_suite_start "setup/start-oc_cluster_up"
+os::cmd::try_until_success "oc cluster status" "$((5*TIME_MIN))" "10"
+os::test::junit::declare_suite_end
 
 IMAGE_WORKING_DIR=/var/lib/origin
 docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}

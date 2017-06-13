@@ -8,14 +8,14 @@ import (
 	"k8s.io/kubernetes/pkg/quota/generic"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
 
 // NewImageQuotaRegistry returns a registry for quota evaluation of OpenShift resources related to images in
 // internal registry. It evaluates only image streams and related virtual resources that can cause a creation
 // of new image stream objects.
-func NewImageQuotaRegistry(isInformer shared.ImageStreamInformer, osClient osclient.Interface) quota.Registry {
+func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer, osClient osclient.Interface) quota.Registry {
 	imageStream := NewImageStreamEvaluator(isInformer.Lister())
 	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), osClient)
 	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
@@ -33,7 +33,7 @@ func NewImageQuotaRegistry(isInformer shared.ImageStreamInformer, osClient oscli
 // of new image stream objects.
 // This is different that is used for reconciliation because admission has to check all forms of a resource (legacy and groupified), but
 // reconciliation only has to check one.
-func NewImageQuotaRegistryForAdmission(isInformer shared.ImageStreamInformer, osClient osclient.Interface) quota.Registry {
+func NewImageQuotaRegistryForAdmission(isInformer imageinternalversion.ImageStreamInformer, osClient osclient.Interface) quota.Registry {
 	imageStream := NewImageStreamEvaluator(isInformer.Lister())
 	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), osClient)
 	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())

@@ -78,7 +78,7 @@ const DefaultWatchCacheSize = 1000
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
-var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
+var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -124,7 +124,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Features.EnableProfiling = true
 	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
-	server.SecureServing.ServingOptions.BindPort = port
+	server.SecureServing.BindPort = port
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
@@ -222,7 +222,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 // ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
 func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
 		return nil, err
 	}
 	// In origin: certs should be available:
@@ -245,8 +245,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	}
 
 	// create config from options
-	genericConfig := apiserver.NewConfig().
-		WithSerializer(kapi.Codecs)
+	genericConfig := apiserver.NewConfig(kapi.Codecs)
 
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
@@ -257,7 +256,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
+	if _, err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
 	if err := s.Audit.ApplyTo(genericConfig); err != nil {
@@ -334,6 +333,7 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "groups"},
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "identities"},
 		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "users"},
+		componentconfig.GroupResource{Group: "image.openshift.io", Resource: "images"},
 
 		// virtual resource
 		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},

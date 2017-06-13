@@ -7,13 +7,13 @@ import (
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 // NewImageStreamEvaluator computes resource usage of ImageStreams. Instantiating this is necessary for
 // resource quota admission controller to properly work on image stream related objects.
-func NewImageStreamEvaluator(store *oscache.StoreToImageStreamLister) kquota.Evaluator {
+func NewImageStreamEvaluator(store imageinternalversion.ImageStreamLister) kquota.Evaluator {
 	return &generic.ObjectCountEvaluator{
 		AllowCreateOnUpdate: false,
 		InternalGroupKind:   imageapi.Kind("ImageStream"),
