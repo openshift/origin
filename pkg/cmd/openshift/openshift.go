@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
+	"github.com/openshift/origin/pkg/cmd/servicecatalogproxy"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -88,6 +89,8 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = kubernetes.NewCommand(basename, basename, out, errout)
 	case "origin":
 		cmd = NewCommandOpenShift(basename)
+	case "service-catalog-proxy":
+		cmd = servicecatalogproxy.NewCommand(basename, out, errout)
 	default:
 		cmd = NewCommandOpenShift("openshift")
 	}
