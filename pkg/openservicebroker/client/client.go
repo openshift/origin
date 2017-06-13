@@ -85,15 +85,13 @@ func (c *client) Provision(ctx context.Context, instanceID string, preq *api.Pro
 		return nil, errs.ToAggregate()
 	}
 
-	preq.AcceptsIncomplete = true
-
 	pr, pw := io.Pipe()
 	go func() {
 		e := json.NewEncoder(pw)
 		pw.CloseWithError(e.Encode(preq))
 	}()
 
-	req, err := http.NewRequest(http.MethodPut, c.root+"/v2/service_instances/"+instanceID, pr)
+	req, err := http.NewRequest(http.MethodPut, c.root+"/v2/service_instances/"+instanceID+"?accepts_incomplete=true", pr)
 	if err != nil {
 		return nil, err
 	}
