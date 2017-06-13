@@ -2,20 +2,30 @@ package integration
 
 import (
 	"testing"
+	"time"
 
+	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -128,16 +138,42 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 
+	imageClient, err := imageclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.ImageInformers = imageinformer.NewSharedInformerFactory(imageClient, 10*time.Minute)
+
+	appsClient, err := appclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.AppInformers = appinformer.NewSharedInformerFactory(appsClient, 10*time.Minute)
+	go func() {
+		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
+		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
+	}()
+
 	controllerContext := kctrlmgr.ControllerContext{
-		ClientBuilder:      saClientBuilder,
-		InformerFactory:    openshiftConfig.Informers.KubernetesInformers(),
+		ClientBuilder: saClientBuilder,
+		InformerFactory: genericInformers{
+			SharedInformerFactory: openshiftConfig.Informers.KubernetesInformers(),
+			generic: []GenericResourceInformer{
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return openshiftConfig.ImageInformers.ForResource(resource)
+				}),
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return openshiftConfig.AppInformers.ForResource(resource)
+				}),
+				openshiftConfig.Informers,
+			},
+		},
 		Options:            *controllerManagerOptions,
 		AvailableResources: availableResources,
 		Stop:               wait.NeverStop,
 	}
 
 	openshiftControllerContext := origincontrollers.ControllerContext{
-		ImageInformers:        openshiftConfig.ImageInformers,
 		KubeControllerContext: controllerContext,
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
@@ -148,7 +184,9 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 			},
 		},
 		DeprecatedOpenshiftInformers: openshiftConfig.Informers,
-		Stop: controllerContext.Stop,
+		ImageInformers:               openshiftConfig.ImageInformers,
+		AppInformers:                 openshiftConfig.AppInformers,
+		Stop:                         controllerContext.Stop,
 	}
 	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()
 
@@ -171,4 +209,37 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		}
 	}
 	return clusterAdminClient, clusterAdminKubeClientset
+}
+
+type GenericResourceInformer interface {
+	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
+}
+
+// genericInternalResourceInformerFunc will return an internal informer for any resource matching
+// its group resource, instead of the external version. Only valid for use where the type is accessed
+// via generic interfaces, such as the garbage collector with ObjectMeta.
+type genericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
+
+func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	resource.Version = runtime.APIVersionInternal
+	return fn(resource)
+}
+
+type genericInformers struct {
+	kinformers.SharedInformerFactory
+	generic []GenericResourceInformer
+}
+
+func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
+	if firstErr == nil {
+		return informer, nil
+	}
+	for _, generic := range i.generic {
+		if informer, err := generic.ForResource(resource); err == nil {
+			return informer, nil
+		}
+	}
+	glog.V(4).Infof("Couldn't find informer for %v", resource)
+	return nil, firstErr
 }
