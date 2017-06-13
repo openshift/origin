@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f0e9983caf26291057d64bf4e31b49befbe75117
+%global commit 6a8f3bca1283a4b823d25a721e6a296bd7b54c75
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.104 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f0e9983
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.105 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6a8f3bc
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.105
+Version:        3.6.106
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,75 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jun 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.106-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 99e9f72
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5cb91fbd7cb9c94b9ec6a1505cc4ad2eef8ae909 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1cf3870091ecd65fe3780424958b2c577044d3e8 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  44a4862dcbe7794f888e00a24030ba9fa6dca70d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a80d0d94219eeda41dace824fa9eb1a9cdefd961 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  07c5b8c09831ce6fa74493e6b251031d21c249e1 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  39472b9499cfa0ebc881ba4765376db431b3d629 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  513970c16696797a73c0eac1794e600a4a2b97c8 (dmcphers+openshiftbot@redhat.com)
+- Improve the UX of the local image build script (#14600) (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4938784b11dc8d66194ec934294948c82d5fe36e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1f2c340a7e7f9d5b73b581a48f0855e1d6ea0512 (dmcphers+openshiftbot@redhat.com)
+- Copy directory trees, and add support for haproxy images (#14602)
+  (knobunc@users.noreply.github.com)
+- Update image local build script (#14599) (skuznets@redhat.com)
+- Add a missing : to if line (bbennett@redhat.com)
+- Use Python for the local building script (skuznets@redhat.com)
+- reset admission plugins for the openshift APIs (deads@redhat.com)
+- UPSTREAM: <drop>: drop post 3.7 rebase.  allows disabled aggregator
+  (deads@redhat.com)
+- wire up openshift to be slight more 'normal' (deads@redhat.com)
+- react to fixed http handlers (deads@redhat.com)
+- UPSTREAM: 46440: fix api server handler routing (move CRD behind TPR)
+  (deads@redhat.com)
+- UPSTREAM: 44408: aggregator controller changes only (deads@redhat.com)
+- UPSTREAM: 45432: use apiservice.status to break apart controller and handling
+  concerns (deads@redhat.com)
+- react to refactor names for the apiserver handling chain (deads@redhat.com)
+- UPSTREAM: 45370: refactor names for the apiserver handling chain
+  (deads@redhat.com)
+- react to updating discovery wiring (deads@redhat.com)
+- UPSTREAM: 00000: disambiguate operation names for legacy discovery
+  (deads@redhat.com)
+- UPSTREAM: 43003: separate discovery from the apiserver (deads@redhat.com)
+- react to moving insecure options (deads@redhat.com)
+- UPSTREAM: 42835: remove legacy insecure port options from genericapiserver
+  (deads@redhat.com)
+- react to requiring a codec (deads@redhat.com)
+- UPSTREAM: 42896: require codecfactory (deads@redhat.com)
+- UPSTREAM: 44466: use our own serve mux that directs how we want
+  (deads@redhat.com)
+- UPSTREAM: 44399: add deregistration for paths (deads@redhat.com)
+- deploy: set ownerRef from RC to grouped API version (mfojtik@redhat.com)
+- UPSTREAM: coreos/etcd: <drop>: Backwards compatibility to Go 1.7.5
+  (ccoleman@redhat.com)
+- bump(github.com/coreos/etcd):v3.2.0 (ccoleman@redhat.com)
+- Collapse code between authorizationsync and migrate (mkhan@redhat.com)
+- Generate: oadm migrate authorization (mkhan@redhat.com)
+- Add parity check for Openshift authz and Kube RBAC (mkhan@redhat.com)
+- Remove deployment legacy informers in favor of generated
+  (ccoleman@redhat.com)
+- Replace legacy IS informer with generated informers everywhere
+  (ccoleman@redhat.com)
+- Update NetworkPolicy code for v1 semantics (danw@redhat.com)
+- Allow specifying haproxy SSL Cipher list (pcameron@redhat.com)
+- check status of router, registry, metrics, logging, imagestreams in oc
+  cluster status (jminter@redhat.com)
+- Update router cipher suites (pcameron@redhat.com)
+
 * Mon Jun 12 2017 Jenkins CD Merge Bot <tdawson@redhat.com> 3.6.105-1
 - Reuse the authorization and template shared informers for GC
   (ccoleman@redhat.com)
