@@ -980,7 +980,7 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	metricsInfo := ""
 	if c.ShouldInstallMetrics && c.ShouldInitializeData() {
 		metricsInfo = fmt.Sprintf("The metrics service is available at:\n"+
-			"    https://%s\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
+			"    https://%s/hawkular/metrics\n\n", openshift.MetricsHost(c.RoutingSuffix, c.ServerIP))
 	}
 	loggingInfo := ""
 	if c.ShouldInstallLogging && c.ShouldInitializeData() {
