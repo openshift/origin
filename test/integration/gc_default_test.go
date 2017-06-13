@@ -71,6 +71,11 @@ func TestGCDefaults(t *testing.T) {
 	if _, err := kubeClient.Core().ConfigMaps(ns).Create(childConfigMap); err != nil {
 		t.Fatal(err)
 	}
+	// we need to make sure that the GC graph has observed the creation of the configmap *before* it observes the delete of
+	// the buildconfig or the orphaning step won't find anything to orphan, then the delete will complete, the configmap
+	// creation will be observed, there will be no parent, and the configmap will be deleted.
+	// There is no API to determine if the configmap was observed.
+	time.Sleep(1 * time.Second)
 
 	// this looks weird, but we want no new dependencies on the old client
 	if err := newBuildClient.Build().RESTClient().Delete().AbsPath("/oapi/v1/namespaces/" + ns + "/buildconfigs/" + buildConfig.Name).Do().Error(); err != nil {
