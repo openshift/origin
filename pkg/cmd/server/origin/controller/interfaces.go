@@ -9,10 +9,12 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
+	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
@@ -23,12 +25,14 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
-	ExternalKubeInformers kexternalinformers.SharedInformerFactory
-	InternalKubeInformers kinternalinformers.SharedInformerFactory
-	AppInformers          appinformer.SharedInformerFactory
-	BuildInformers        buildinformer.SharedInformerFactory
-	ImageInformers        imageinformer.SharedInformerFactory
-	TemplateInformers     templateinformer.SharedInformerFactory
+	ExternalKubeInformers  kexternalinformers.SharedInformerFactory
+	InternalKubeInformers  kinternalinformers.SharedInformerFactory
+	AppInformers           appinformer.SharedInformerFactory
+	BuildInformers         buildinformer.SharedInformerFactory
+	ImageInformers         imageinformer.SharedInformerFactory
+	TemplateInformers      templateinformer.SharedInformerFactory
+	QuotaInformers         quotainformer.SharedInformerFactory
+	AuthorizationInformers authorizationinformer.SharedInformerFactory
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
