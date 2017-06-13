@@ -540,17 +540,16 @@ function os::build::get-bin-output-path() {
 
 ## Start of the main program
 
-DEFAULT_DOCKER_CMD="sudo docker"
-if [[ -w "/var/run/docker.sock" ]]; then
-  DEFAULT_DOCKER_CMD="docker"
-
+if [[ ! -w "/var/run/docker.sock" ]]; then
+  os::util::environment::use_sudo
+  # Make sure that they don't do half the work if sudo fails later by getting it primed now
+  sudo echo -n
+else
   # Since docker is a shell script we do not want to pass our restrictions to it
   # This would be stripped by sudo, but we have to do it manually otherwise
   export -n SHELLOPTS
-else
-  # Make sure that they don't do half the work if sudo fails later by getting it primed now
-  sudo echo -n
 fi
+DEFAULT_DOCKER_CMD="${USE_SUDO:+sudo} docker"
 DOCKER_CMD="${DOCKER_CMD:-$DEFAULT_DOCKER_CMD}"
 
 CLUSTER_ID="${OPENSHIFT_CLUSTER_ID:-openshift}"
