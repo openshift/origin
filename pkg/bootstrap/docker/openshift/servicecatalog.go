@@ -116,6 +116,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 	}
 
 	// Register the template broker with the service catalog
+	glog.V(2).Infof("registering the template broker with the service catalog")
 	pool := dynamic.NewDynamicClientPool(clientConfig)
 	dclient, err := pool.ClientForGroupVersionResource(schema.GroupVersionResource{
 		Group:    "servicecatalog.k8s.io",
@@ -126,19 +127,12 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError(fmt.Sprintf("failed to create a broker resource client: %v", err))
 	}
 
-	/*
-		dclient, err := dynamic.NewClient(clientConfig)
-		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed to create a dynamic resource client: %v", err))
-		}
-	*/
 	brokerResource := &metav1.APIResource{
 		Name:       "brokers",
 		Namespaced: false,
 		Kind:       "Broker",
 		Verbs:      []string{"create"},
 	}
-
 	brokerClient := dclient.Resource(brokerResource, "")
 
 	broker := &unstructured.Unstructured{
@@ -166,97 +160,6 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to register broker with service catalog: %v", err))
 	}
-
-	/*
-		brokerResourceDefinition := &apiextensionsv1beta1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{Name: "broker.servicecatalog.k8s.io"},
-			Spec: apiextensionsv1beta1.CustomResourceDefinitionSpec{
-				Group:   "servicecatalog.k8s.io",
-				Version: "v1alpha1",
-				Names: apiextensionsv1beta1.CustomResourceDefinitionNames{
-					Plural:   "brokers",
-					Singular: "broker",
-					Kind:     "Broker",
-				},
-				Scope: scope,
-			},
-		}
-
-		apiExtensionsClient, err := clientset.NewForConfig(clientConfig)
-		dynamicClient := client.Resource(&metav1.APIResource{
-			Name:       definition.Spec.Names.Plural,
-			Namespaced: definition.Spec.Scope == apiextensionsv1beta1.NamespaceScoped,
-		}, ns)
-	*/
-
-	/*
-		scclient, err := scclient.NewForConfig(clientConfig)
-		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed to create a service catalog client: %v", err))
-		}
-
-		broker := &scclient.Broker{
-			Spec: scapi.BrokerSpec{
-				URL:      "https://kubernetes.default.svc:443/brokers/template.openshift.io",
-				AuthInfo: nil,
-			},
-		}
-		broker.Name = "template-broker"
-
-		err = wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-			_, err = scclient.Brokers().Create(broker)
-			if err != nil {
-				glog.V(2).Infof("retrying registration after error %v", err)
-				return false, nil
-			}
-			return true, nil
-		})
-		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed to register broker with service catalog: %v", err))
-		}
-	*/
-
-	//aggregatorclient.RESTClient().Post().AbsPath("/apis/servicecatalog.k8s.io/v1alpha1/brokers").
-	/*
-		insecureCli := http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		}
-		registerBroker := `{
-		     "apiVersion": "servicecatalog.k8s.io/v1alpha1",
-		     "kind": "Broker",
-		     "metadata": {
-		       "name": "template-broker"
-		     },
-		     "spec": {
-		       "url": "https://kubernetes.default.svc:443/brokers/template.openshift.io"
-		     }
-		   }`
-
-		glog.V(2).Infof("registering template broker with service catalog")
-		err = wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-			resp, err := insecureCli.Post(
-				"https://"+catalogHost+"/apis/servicecatalog.k8s.io/v1alpha1/brokers",
-				"application/json",
-				bytes.NewBufferString(registerBroker),
-			)
-			if err != nil {
-				glog.V(2).Infof("retrying registration after error %v", err)
-				return false, nil
-			}
-			if resp == nil || (resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated) {
-				glog.V(2).Infof("retrying registration after bad response %v", resp)
-				return false, nil
-			}
-			return true, nil
-		})
-		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed to register the template broker with the service catalog: %v", err))
-		}
-	*/
 
 	return nil
 }

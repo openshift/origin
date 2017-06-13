@@ -738,18 +738,6 @@ window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
   pod_presets: true
 };
 `
-		/*
-			   `
-			   window.OPENSHIFT_CONFIG.additionalServers = [{
-			     hostPort: "%s",
-			     prefix: "/apis"
-			   }];
-			   `
-
-
-			extension = fmt.Sprintf(extension, CatalogHost(opt.RoutingSuffix, opt.ServerIP))
-		*/
-
 		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
 		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
 		if err != nil {
