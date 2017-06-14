@@ -635,11 +635,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Users:           sets.NewString("edgar"),
 				Groups:          sets.NewString(),
 				Namespace:       "mallet-project",
-				EvaluationError: `role.authorization.openshift.io "admin" not found`,
+				EvaluationError: `[role.authorization.openshift.io "admin" not found, role.authorization.openshift.io "admin" not found]`,
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
 		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
+		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-controller")
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}

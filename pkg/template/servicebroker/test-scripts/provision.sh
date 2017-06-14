@@ -14,8 +14,7 @@ req="{
   \"parameters\": {
     \"MYSQL_USER\": \"username\",
     \"template.openshift.io/requester-username\": \"$requesterUsername\"
-  },
-  \"accepts_incomplete\": true
+  }
 }"
 
 curl \
@@ -25,4 +24,4 @@ curl \
   -d "$req" \
   -v \
   $curlargs \
-  $endpoint/v2/service_instances/$instanceUUID
+  $endpoint/v2/service_instances/$instanceUUID'?accepts_incomplete=true'

@@ -133,7 +133,7 @@ func init() {
 
 	// template-instance-controller
 	controllerRoleBindings = append(controllerRoleBindings,
-		rbac.NewClusterBinding(EditRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie())
+		rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie())
 
 	// origin-namespace-controller
 	addControllerRole(rbac.ClusterRole{

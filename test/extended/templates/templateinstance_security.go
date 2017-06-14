@@ -9,9 +9,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/storage"
+	storagev1 "k8s.io/kubernetes/pkg/apis/storage/v1"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -53,6 +56,13 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			RoleRef: kapi.ObjectReference{
 				Name: bootstrappolicy.AdminRoleName,
 			},
+		}
+
+		storageclass = &storage.StorageClass{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "storageclass",
+			},
+			Provisioner: "no-provisioning",
 		}
 	)
 
@@ -98,7 +108,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				},
 			},
 			{
-				by:              "checking edituser can't create a privileged object",
+				by:              "checking edituser can't create an object that requires admin",
 				user:            edituser,
 				namespace:       cli.Namespace(),
 				objects:         []runtime.Object{dummyrolebinding},
@@ -109,20 +119,31 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				},
 			},
 			{
-				// at the moment, an admin cannot create a privileged object
-				// via the template instance controller as the latter only has
-				// global edit permissions.
-				by:              "checking adminuser can't create a privileged object",
+				by:              "checking adminuser can't create an object that requires admin",
 				user:            adminuser,
 				namespace:       cli.Namespace(),
 				objects:         []runtime.Object{dummyrolebinding},
-				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
+				expectCondition: templateapi.TemplateInstanceReady,
 				checkOK: func(namespace string) bool {
 					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+					return err == nil
+				},
+			},
+			{
+				by:              "checking adminuser can't create an object that requires more than admin",
+				user:            adminuser,
+				namespace:       cli.Namespace(),
+				objects:         []runtime.Object{storageclass},
+				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
+				checkOK: func(namespace string) bool {
+					_, err := cli.AdminKubeClient().StorageV1().StorageClasses().Get(storageclass.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
 		}
+
+		targetVersions := []schema.GroupVersion{storagev1.SchemeGroupVersion}
+		targetVersions = append(targetVersions, latest.Versions...)
 
 		for _, test := range tests {
 			g.By(test.by)
@@ -161,7 +182,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 				},
 			}
 
-			err = templateapi.AddObjectsToTemplate(&templateinstance.Spec.Template, test.objects, latest.Versions...)
+			err = templateapi.AddObjectsToTemplate(&templateinstance.Spec.Template, test.objects, targetVersions...)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstance)

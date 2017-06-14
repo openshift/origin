@@ -15,9 +15,6 @@ import (
 )
 
 const (
-	namespaceTitle       = "Template service broker: namespace"
-	namespaceDescription = "OpenShift namespace in which to provision service"
-
 	// the following should go away with catalog<->broker support for passing
 	// identity information.
 	requesterUsernameTitle       = "Template service broker: requester username"
