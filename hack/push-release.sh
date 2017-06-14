@@ -59,7 +59,7 @@ images=(
 )
 
 PUSH_OPTS=""
-if docker push --help | grep -q force; then
+if os::util::docker push --help | grep -q force; then
   PUSH_OPTS="--force"
 fi
 
@@ -68,9 +68,9 @@ if [[ "${tag}" == ":latest" ]]; then
   if [[ "${OS_PUSH_BASE_IMAGES-}" != "" ]]; then
     for image in "${base_images[@]}"; do
       if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" ]]; then
-        docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
+        os::util::docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY}${image}${tag}"
       fi
-      docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+      os::util::docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
     done
   fi
 fi
@@ -79,7 +79,7 @@ fi
 if [[ "${tag}" != ":latest" ]]; then
   if [[ -z "${OS_PUSH_LOCAL-}" ]]; then
     for image in "${images[@]}"; do
-      docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:${source_tag}"
+      os::util::docker pull "${OS_PUSH_BASE_REGISTRY-}${image}:${source_tag}"
     done
   else
     os::log::warning "Pushing local :${source_tag} images to ${OS_PUSH_BASE_REGISTRY-}*${tag}"
@@ -92,12 +92,12 @@ fi
 
 if [[ "${OS_PUSH_BASE_REGISTRY-}" != "" || "${tag}" != "" ]]; then
   for image in "${images[@]}"; do
-    docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+    os::util::docker tag "${image}:${source_tag}" "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
   done
 fi
 
 for image in "${images[@]}"; do
-  docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
+  os::util::docker push ${PUSH_OPTS} "${OS_PUSH_BASE_REGISTRY-}${image}${tag}"
 done
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

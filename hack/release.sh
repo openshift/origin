@@ -16,7 +16,7 @@ fi
 commit="$( git rev-parse ${tag} )"
 
 # Ensure that the build is using the latest release image
-docker pull "${OS_BUILD_ENV_IMAGE}"
+os::util::docker pull "${OS_BUILD_ENV_IMAGE}"
 
 hack/build-base-images.sh
 OS_GIT_COMMIT="${commit}" hack/build-release.sh

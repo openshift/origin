@@ -10,7 +10,7 @@ url="${DOCKER_REGISTRY_URL:-localhost:5000}"
 token="$(oc get $(oc get secrets -o name | grep builder-token | head -n 1) --template '{{ .data.token }}' | os::util::base64decode)"
 echo
 echo "Login with:"
-echo "  docker login -p \"${token}\" -u user ${url}"
+echo "  os::util::docker login -p \"${token}\" -u user ${url}"
 echo
 
 REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY="${REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY:-/tmp/registry}" \

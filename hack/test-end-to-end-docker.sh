@@ -67,7 +67,7 @@ os::cmd::try_until_success "oc cluster status" "$((5*TIME_MIN))" "10"
 os::test::junit::declare_suite_end
 
 IMAGE_WORKING_DIR=/var/lib/origin
-docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
+os::util::docker cp origin:${IMAGE_WORKING_DIR}/openshift.local.config ${BASETMPDIR}
 
 export ADMIN_KUBECONFIG="${MASTER_CONFIG_DIR}/admin.kubeconfig"
 export CLUSTER_ADMIN_CONTEXT=$(oc config view --config=${ADMIN_KUBECONFIG} --flatten -o template --template='{{index . "current-context"}}')

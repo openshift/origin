@@ -12,7 +12,7 @@ os::build::setup_env
 function cleanup() {
 	return_code=$?
 
-	docker rmi test/scratchimage
+	os::util::docker rmi test/scratchimage
 
 	os::cleanup::all "${return_code}"
 	exit "${return_code}"
@@ -61,7 +61,7 @@ cat <<-EOF >> Dockerfile
 	FROM scratch
 	EXPOSE 80
 EOF
-docker build -t test/scratchimage .
+os::util::docker build -t test/scratchimage .
 popd
 rm -rf "${tmp}"
 
@@ -101,10 +101,10 @@ VERBOSE=true os::cmd::expect_success "oc login '${MASTER_ADDR}' -u pull-secrets-
 VERBOSE=true os::cmd::expect_success "oc new-project image-ns"
 os::cmd::expect_success "oc delete all --all"
 token="$( oc sa get-token builder )"
-os::cmd::expect_success "docker login -u imagensbuilder -p ${token} -e fake@example.org ${docker_registry}"
+os::cmd::expect_success "os::util::docker login -u imagensbuilder -p ${token} -e fake@example.org ${docker_registry}"
 os::cmd::expect_success "oc import-image busybox:latest --confirm"
-os::cmd::expect_success "docker pull busybox"
-os::cmd::expect_success "docker tag docker.io/busybox:latest ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "os::util::docker pull busybox"
+os::cmd::expect_success "os::util::docker tag docker.io/busybox:latest ${docker_registry}/image-ns/busybox:latest"
 
 
 DOCKER_CONFIG_JSON="${HOME}/.docker/config.json"
@@ -121,22 +121,22 @@ os::cmd::expect_success "oc delete pods --all"
 os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/new-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete pods --all"
-os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "os::util::docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
 os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/old-pull-pod -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete pods --all"
-os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "os::util::docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
 os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-old-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/my-dc-old-1-hook-pre -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete all --all"
-os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "os::util::docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 
 os::cmd::expect_success "oc process -f test/extended/testdata/image-pull-secrets/dc-with-new-pull-secret.yaml --param=DOCKER_REGISTRY=${docker_registry} | oc create -f - "
 os::cmd::try_until_text "oc get pods/my-dc-1-hook-pre -o jsonpath='{.status.containerStatuses[0].imageID}'" "docker"
 os::cmd::expect_success "oc delete all --all"
-os::cmd::expect_success "docker rmi -f ${docker_registry}/image-ns/busybox:latest"
+os::cmd::expect_success "os::util::docker rmi -f ${docker_registry}/image-ns/busybox:latest"
 os::test::junit::declare_suite_end
 
 # Test to see that we're reporting the correct commit being used by the build

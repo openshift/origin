@@ -529,7 +529,7 @@ function os::start::internal::openshift_executable() {
 			done
 		fi
 
-		openshift_executable="${sudo} docker run ${docker_options} ${volumes} ${envvars} openshift/origin:${version}"
+		openshift_executable="${sudo} os::util::docker run ${docker_options} ${volumes} ${envvars} openshift/origin:${version}"
 	else
 		local envvars=""
 		if [[ -n "${ENV:-}" ]]; then

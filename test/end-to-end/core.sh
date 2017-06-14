@@ -41,9 +41,9 @@ function wait_for_app() {
 function remove_docker_images() {
     local name="$1"
     local tag="${2:-\S\+}"
-    local imageids=$(docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
+    local imageids=$(os::util::docker images | sed -n "s,^.*$name\s\+$tag\s\+\(\S\+\).*,\1,p" | sort -u | tr '\n' ' ')
     os::cmd::expect_success_and_text "echo '${imageids}' | wc -w" '^[1-9][0-9]*$'
-    os::cmd::expect_success "docker rmi -f ${imageids}"
+    os::cmd::expect_success "os::util::docker rmi -f ${imageids}"
 }
 
 os::test::junit::declare_suite_start "end-to-end/core"
@@ -75,7 +75,7 @@ echo "The console should be available at ${API_SCHEME}://${PUBLIC_MASTER_HOST}:$
 echo "Log in as 'e2e-user' to see the 'test' project."
 
 os::log::info "Pre-pulling and pushing ruby-22-centos7"
-os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
+os::cmd::expect_success 'os::util::docker pull centos/ruby-22-centos7:latest'
 os::log::info "Pulled ruby-22-centos7"
 
 os::cmd::expect_success "openshift admin policy add-scc-to-user privileged -z ipfailover"
@@ -153,12 +153,12 @@ os::cmd::expect_success 'oc project cache'
 e2e_user_token="$(oc whoami -t)"
 
 os::log::info "Docker login as e2e-user to ${DOCKER_REGISTRY}"
-os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "os::util::docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
 os::log::info "Docker login successful"
 
 os::log::info "Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-os::cmd::expect_success "docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
+os::cmd::expect_success "os::util::docker tag centos/ruby-22-centos7:latest ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
 os::log::info "Pushed ruby-22-centos7"
 
 # get image's digest
@@ -171,7 +171,7 @@ os::log::info "Ruby's testing blob digest: ${rubyimageblob}"
 # verify remote images can be pulled directly from the local registry
 os::log::info "Docker pullthrough"
 os::cmd::expect_success "oc import-image --confirm --from=mysql:latest mysql:pullthrough"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/mysql:pullthrough"
 mysqlblob="$(oc get istag -o go-template='{{range .image.dockerImageLayers}}{{if gt .size 4096.}}{{.name}},{{end}}{{end}}' "mysql:pullthrough" | cut -d , -f 1)"
 # directly hit the image to trigger mirroring in case the layer already exists on disk
 os::cmd::expect_success "curl -H 'Authorization: bearer $(oc whoami -t)' 'http://${DOCKER_REGISTRY}/v2/cache/mysql/blobs/${mysqlblob}' 1>/dev/null"
@@ -204,34 +204,34 @@ os::cmd::expect_success 'oc project cache'
 IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
 os::log::info "Docker registry start with GCS"
-os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No bucket parameter provided"
+os::cmd::expect_failure_and_text "os::util::docker run -e REGISTRY_STORAGE=\"gcs: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No bucket parameter provided"
 
 os::log::info "Docker registry start with OSS"
-os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"oss: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No accesskeyid parameter provided"
+os::cmd::expect_failure_and_text "os::util::docker run -e REGISTRY_STORAGE=\"oss: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No accesskeyid parameter provided"
 
 os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
-os::cmd::expect_success "docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/test/hello-world:pullthrough"
+os::cmd::expect_success "os::util::docker tag ${DOCKER_REGISTRY}/test/hello-world:pullthrough ${DOCKER_REGISTRY}/cache/hello-world:latest"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/cache/hello-world:latest"
 
 # verify we can pull from tagged image (using tag)
 remove_docker_images 'cache/hello-world'
 os::log::info "Tagging hello-world:latest to the same image stream and pulling it"
 os::cmd::expect_success "oc tag hello-world:latest hello-world:new-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-tag"
 os::log::info "The same image stream pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-tag
 os::log::info "Tagging hello-world:latest to cross repository and pulling it"
 os::cmd::expect_success "oc tag hello-world:latest cross:repo-pull"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull"
 os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross" "repo-pull"
 os::log::info "Tagging hello-world:latest to cross namespace and pulling it"
 os::cmd::expect_success "oc tag cache/hello-world:latest cross:namespace-pull -n custom"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
 os::log::info "Cross namespace pull successful"
 
 # verify we can pull from tagged image (using image digest)
@@ -239,25 +239,25 @@ remove_docker_images "${DOCKER_REGISTRY}/custom/cross"  namespace-pull
 imagedigest="$(oc get istag hello-world:latest --template='{{.image.metadata.name}}')"
 os::log::info "Tagging hello-world@${imagedigest} to the same image stream and pulling it"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} hello-world:new-id-tag"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/hello-world:new-id-tag"
 os::log::info "The same image stream pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/hello-world" new-id-tag
 os::log::info "Tagging hello-world@${imagedigest} to cross repository and pulling it"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/cross:repo-pull-id"
 os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross" repo-pull-id
 os::log::info "Tagging hello-world@${imagedigest} to cross repository and pulling it by id"
 os::cmd::expect_success "oc tag hello-world@${imagedigest} cross:repo-pull-id"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/cache/cross@${imagedigest}"
 os::log::info "Cross repository pull successful"
 
 remove_docker_images "${DOCKER_REGISTRY}/cache/cross"
 os::log::info "Tagging hello-world@${imagedigest} to cross namespace and pulling it"
 os::cmd::expect_success "oc tag cache/hello-world@${imagedigest} cross:namespace-pull-id -n custom"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 os::log::info "Cross namespace pull successful"
 
 os::cmd::expect_success 'oc login -u schema2-user -p pass'
@@ -299,37 +299,37 @@ os::cmd::expect_success 'oc login -u pusher -p pass'
 pusher_token="$(oc whoami -t)"
 
 os::log::info "Docker login as pusher to ${DOCKER_REGISTRY}"
-os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "os::util::docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
 os::log::info "Docker login successful"
 
 os::log::info "Anonymous registry access"
 # setup: log out of docker, log into openshift as e2e-user to run policy commands, tag image to use for push attempts
 os::cmd::expect_success 'oc login -u e2e-user'
-os::cmd::expect_success 'docker pull busybox'
-os::cmd::expect_success "docker tag busybox ${DOCKER_REGISTRY}/missing/image:tag"
-os::cmd::expect_success "docker logout ${DOCKER_REGISTRY}"
+os::cmd::expect_success 'os::util::docker pull busybox'
+os::cmd::expect_success "os::util::docker tag busybox ${DOCKER_REGISTRY}/missing/image:tag"
+os::cmd::expect_success "os::util::docker logout ${DOCKER_REGISTRY}"
 # unauthorized pulls return "not found" errors to anonymous users, regardless of backing data
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag" "not found|unauthorized"
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull" "not found|unauthorized"
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "not found|unauthorized"
+os::cmd::expect_failure_and_text "os::util::docker pull ${DOCKER_REGISTRY}/missing/image:tag" "not found|unauthorized"
+os::cmd::expect_failure_and_text "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull" "not found|unauthorized"
+os::cmd::expect_failure_and_text "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "not found|unauthorized"
 # test anonymous pulls
 os::cmd::expect_success 'oc policy add-role-to-user system:image-puller system:anonymous -n custom'
 os::cmd::try_until_text 'oc policy who-can get imagestreams/layers -n custom' 'system:anonymous'
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
-os::cmd::expect_success "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "os::util::docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 # unauthorized pushes return authorization errors, regardless of backing data
-os::cmd::expect_failure_and_text "docker push '${DOCKER_REGISTRY}/missing/image:tag'"              "authentication required"
-os::cmd::expect_failure_and_text "docker push '${DOCKER_REGISTRY}/custom/cross:namespace-pull'"    "authentication required"
-os::cmd::expect_failure_and_text "docker push '${DOCKER_REGISTRY}/custom/cross:namespace-pull-id'" "authentication required"
+os::cmd::expect_failure_and_text "os::util::docker push '${DOCKER_REGISTRY}/missing/image:tag'"              "authentication required"
+os::cmd::expect_failure_and_text "os::util::docker push '${DOCKER_REGISTRY}/custom/cross:namespace-pull'"    "authentication required"
+os::cmd::expect_failure_and_text "os::util::docker push '${DOCKER_REGISTRY}/custom/cross:namespace-pull-id'" "authentication required"
 # test anonymous pushes
 os::cmd::expect_success 'oc policy add-role-to-user system:image-pusher system:anonymous -n custom'
 os::cmd::try_until_text 'oc policy who-can update imagestreams/layers -n custom' 'system:anonymous'
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id"
 os::log::info "Anonymous registry access successful"
 
 # log back into docker as e2e-user again
-os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "os::util::docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
 
 os::cmd::expect_success "oc new-project crossmount"
 os::cmd::expect_success "oc create imagestream repo"
@@ -492,7 +492,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 
 #os::log::info "Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
-#os::log::info "Invoking generic web hook to trigger new docker build using curl"
+#os::log::info "Invoking generic web hook to trigger new os::util::docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"
@@ -556,23 +556,23 @@ os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+Ma
 # Image pruning
 os::log::info "Validating image pruning"
 # builder service account should have the power to create new image streams: prune in this case
-os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
-os::cmd::expect_success 'docker pull busybox'
+os::cmd::expect_success "os::util::docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success 'os::util::docker pull busybox'
 GCR_PAUSE_IMAGE="gcr.io/google_containers/pause:3.0"
-os::cmd::expect_success "docker pull ${GCR_PAUSE_IMAGE}"
-os::cmd::expect_success 'docker pull openshift/hello-openshift'
+os::cmd::expect_success "os::util::docker pull ${GCR_PAUSE_IMAGE}"
+os::cmd::expect_success 'os::util::docker pull openshift/hello-openshift'
 
 # tag and push 1st image - layers unique to this image will be pruned
-os::cmd::expect_success "docker tag busybox ${DOCKER_REGISTRY}/cache/prune"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker tag busybox ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # tag and push 2nd image - layers unique to this image will be pruned
-os::cmd::expect_success "docker tag openshift/hello-openshift ${DOCKER_REGISTRY}/cache/prune"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker tag openshift/hello-openshift ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # tag and push 3rd image - it won't be pruned
-os::cmd::expect_success "docker tag ${GCR_PAUSE_IMAGE} ${DOCKER_REGISTRY}/cache/prune"
-os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker tag ${GCR_PAUSE_IMAGE} ${DOCKER_REGISTRY}/cache/prune"
+os::cmd::expect_success "os::util::docker push ${DOCKER_REGISTRY}/cache/prune"
 
 # record the storage before pruning
 registry_pod="$(oc get pod -n default -l deploymentconfig=docker-registry --template '{{range .items}}{{if not .metadata.metadata.deletionTimestamp}}{{.metadata.name}}{{end}}{{end}}')"
@@ -617,9 +617,9 @@ os::log::info "Accept manifest V2 schema 2"
 os::cmd::expect_success "oc login -u schema2-user -p pass"
 os::cmd::expect_success "oc project schema2"
 # tagging remote docker.io/busybox image
-os::cmd::expect_success "docker tag busybox '${DOCKER_REGISTRY}/schema2/busybox'"
-os::cmd::expect_success "docker login -u e2e-user -p '${schema2_user_token}' -e e2e-user@openshift.com '${DOCKER_REGISTRY}'"
-os::cmd::expect_success "docker push '${DOCKER_REGISTRY}/schema2/busybox'"
+os::cmd::expect_success "os::util::docker tag busybox '${DOCKER_REGISTRY}/schema2/busybox'"
+os::cmd::expect_success "os::util::docker login -u e2e-user -p '${schema2_user_token}' -e e2e-user@openshift.com '${DOCKER_REGISTRY}'"
+os::cmd::expect_success "os::util::docker push '${DOCKER_REGISTRY}/schema2/busybox'"
 # image accepted as schema 2
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag busybox:latest" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
 os::log::info "Manifest V2 schema 2 successfully accepted"
