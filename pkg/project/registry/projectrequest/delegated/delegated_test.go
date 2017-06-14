@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
@@ -57,16 +57,16 @@ type testReadOnlyPolicyBinding struct {
 	lock    sync.Mutex
 }
 
-func (t *testReadOnlyPolicyBinding) PolicyBindings(namespace string) client.PolicyBindingLister {
+func (t *testReadOnlyPolicyBinding) PolicyBindings(namespace string) authorizationlister.PolicyBindingNamespaceLister {
 	return t
 }
 
 // ReadOnlyPolicyBindingInterface exposes methods on PolicyBindings resources
-func (t *testReadOnlyPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
+func (t *testReadOnlyPolicyBinding) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	ret := &authorizationapi.PolicyBindingList{}
+	var ret []*authorizationapi.PolicyBinding
 	if t.binding != nil {
 		returning := authorizationapi.PolicyBinding{}
 		returning.RoleBindings = map[string]*authorizationapi.RoleBinding{}
@@ -74,13 +74,13 @@ func (t *testReadOnlyPolicyBinding) List(options metav1.ListOptions) (*authoriza
 			returning.RoleBindings[k] = v
 		}
 
-		ret.Items = []authorizationapi.PolicyBinding{returning}
+		ret = []*authorizationapi.PolicyBinding{&returning}
 	}
 
 	return ret, nil
 }
 
-func (t *testReadOnlyPolicyBinding) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+func (t *testReadOnlyPolicyBinding) Get(name string) (*authorizationapi.PolicyBinding, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	return t.binding, nil

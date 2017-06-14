@@ -19,6 +19,8 @@ import (
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/validation"
+	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	authorizationclientfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -89,10 +91,13 @@ func fakeMasterConfig() *MasterConfig {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
 	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
+	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
+
 	return &MasterConfig{
 		KubeletClientConfig:                           &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:                             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
 		Informers:                                     informerFactory,
+		AuthorizationInformers:                        authorizationInformerFactory,
 		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas()),
 		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
 		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
@@ -103,6 +108,7 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
 	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
+	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
 
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.Config{
@@ -113,6 +119,7 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		KubeClientInternal:            &kclientsetinternal.Clientset{},
 		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
 		KubeInternalInformers:         internalkubeInformerFactory,
+		AuthorizationInformers:        authorizationInformerFactory,
 		DeprecatedInformers:           informerFactory,
 		EnableBuilds:                  true,
 		EnableTemplateServiceBroker:   false,

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -286,18 +287,16 @@ type fakePolicyGetter struct {
 	err          error
 }
 
-func (f *fakePolicyGetter) List(metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	policy, err := f.Get("", metav1.GetOptions{})
+func (f *fakePolicyGetter) List(label labels.Selector) ([]*authorizationapi.ClusterPolicy, error) {
+	policy, err := f.Get("")
 	if err != nil {
 		return nil, err
 	}
 
-	ret := &authorizationapi.ClusterPolicyList{}
-	ret.Items = append(ret.Items, *policy)
-	return ret, f.err
+	return []*authorizationapi.ClusterPolicy{policy}, f.err
 }
 
-func (f *fakePolicyGetter) Get(id string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
+func (f *fakePolicyGetter) Get(id string) (*authorizationapi.ClusterPolicy, error) {
 	ret := &authorizationapi.ClusterPolicy{}
 	ret.Roles = map[string]*authorizationapi.ClusterRole{}
 	for i := range f.clusterRoles {

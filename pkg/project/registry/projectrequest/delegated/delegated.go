@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/api"
@@ -41,10 +43,10 @@ type REST struct {
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
-	policyBindings client.PolicyBindingsListerNamespacer
+	policyBindings authorizationlister.PolicyBindingLister
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient kclientset.Interface, policyBindingCache client.PolicyBindingsListerNamespacer) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient kclientset.Interface, policyBindingCache authorizationlister.PolicyBindingLister) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -203,8 +205,8 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(metav1.ListOptions{})
-		for _, policyBinding := range policyBindingList.Items {
+		policyBindingList, _ := r.policyBindings.PolicyBindings(namespace).List(labels.Everything())
+		for _, policyBinding := range policyBindingList {
 			for roleBindingName := range policyBinding.RoleBindings {
 				if roleBindingName == name {
 					return true, nil

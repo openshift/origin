@@ -11,17 +11,17 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
-	"github.com/openshift/origin/pkg/client"
 )
 
 type REST struct {
 	ruleResolver        rulevalidation.AuthorizationRuleResolver
-	clusterPolicyGetter client.ClusterPolicyLister
+	clusterPolicyGetter authorizationlister.ClusterPolicyLister
 }
 
-func NewREST(ruleResolver rulevalidation.AuthorizationRuleResolver, clusterPolicyGetter client.ClusterPolicyLister) *REST {
+func NewREST(ruleResolver rulevalidation.AuthorizationRuleResolver, clusterPolicyGetter authorizationlister.ClusterPolicyLister) *REST {
 	return &REST{ruleResolver: ruleResolver, clusterPolicyGetter: clusterPolicyGetter}
 }
 
