@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6a8f3bca1283a4b823d25a721e6a296bd7b54c75
+%global commit cef5d51b9c082e3e2f5d7f6f5efb0c2996850bfa
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.105 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6a8f3bc
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.106 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=cef5d51
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.106
+Version:        3.6.107
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,47 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jun 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.107-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 38b587f
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a0ff0091977bc1f6c0a74e447916fc1910e87593 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  55cff30264f68c32ccb39331ebbd802ea96fb403 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a56bdfd5c946d7db271635e5f494859f2de9a473 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  eae97da11583fba53ec33f3c389bf9042d26d5b5 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  871e99ab720cab4536b49ec0d1419510180d3bbe (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  96fab4dda4b1deae9decc6fc08aded3b19981ab4 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a1c9e73d57951364f8d635cf0e09d96082fbb05f (dmcphers+openshiftbot@redhat.com)
+- Tag local images with full name, not nick-names (#14624)
+  (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  acdadd0b04277c352a4c67e4c995c0e91bf78ee7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  50bfbcca851359dbeebd2b2b1db2bd2c995c05cf (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  54262a23e1ca715abfaa85ca6d93d4f2555b0bc2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  cf4b1228bcb640844a1f37467df1cd59e2e6fd22 (dmcphers+openshiftbot@redhat.com)
+- deflake orphaning GC (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9c3ecd12ff769b28bd3412adb2e727c50b261fb2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c641cd8375f1a13d38f1d0d03ba86d5780f985c2 (dmcphers+openshiftbot@redhat.com)
+- remove template.openshift.io/namespace parameter from template service broker
+  and use context object instead (jminter@redhat.com)
+- UPSTREAM: docker/distribution: 2299: Fix signalling Wait in regulator.enter
+  (obulatov@redhat.com)
+- Disable local repo by default (mkargaki@redhat.com)
+- Add tests for the patternMatch template function (bbennett@redhat.com)
+- Cleaned up the matchPattern regex code (bbennett@redhat.com)
+- UPSTREAM: 47060: Fix etcd storage location for CRs (deads@redhat.com)
+
 * Tue Jun 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.106-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 99e9f72
   (smunilla@redhat.com)
