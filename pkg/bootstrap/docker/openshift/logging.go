@@ -5,14 +5,10 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	genappcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 )
 
 const (
@@ -21,34 +17,6 @@ const (
 	loggingDeployerAccountTemplate = "logging-deployer-account-template"
 	loggingDeployerTemplate        = "logging-deployer-template"
 )
-
-func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string) error {
-	template, err := client.Templates(templateNamespace).Get(templateName, metav1.GetOptions{})
-	if err != nil {
-		return errors.NewError("cannot retrieve template %q from namespace %q", templateName, templateNamespace).WithCause(err)
-	}
-
-	// process the template
-	result, err := genappcmd.TransformTemplate(template, client, targetNamespace, params)
-	if err != nil {
-		return errors.NewError("cannot process template %s/%s", templateNamespace, templateName).WithCause(err)
-	}
-
-	// Create objects
-	bulk := &configcmd.Bulk{
-		Mapper: mapper,
-		Op:     configcmd.Create,
-	}
-	itemsToCreate := &kapi.List{
-		Items: result.Objects,
-	}
-	if errs := bulk.Run(itemsToCreate, targetNamespace); len(errs) > 0 {
-		err = kerrors.NewAggregate(errs)
-		return errors.NewError("cannot create objects from template %s/%s", templateNamespace, templateName).WithCause(err)
-	}
-
-	return nil
-}
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
