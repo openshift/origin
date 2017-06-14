@@ -58,6 +58,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	authorizationinternalinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion/authorization/internalversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -288,12 +289,12 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 
 	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(informerFactory, imageInformers.Image().InternalVersion().ImageStreams(), privilegedLoopbackOpenShiftClient, privilegedLoopbackKubeClientsetExternal)
 	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		informerFactory.Policies().Lister(),
-		informerFactory.PolicyBindings().Lister(),
-		informerFactory.ClusterPolicies().Lister().ClusterPolicies(),
-		informerFactory.ClusterPolicyBindings().Lister().ClusterPolicyBindings(),
+		authorizationInformers.Authorization().InternalVersion().Policies().Lister(),
+		authorizationInformers.Authorization().InternalVersion().PolicyBindings().Lister(),
+		authorizationInformers.Authorization().InternalVersion().ClusterPolicies().Lister(),
+		authorizationInformers.Authorization().InternalVersion().ClusterPolicyBindings().Lister(),
 	)
-	authorizer, subjectLocator := newAuthorizer(ruleResolver, informerFactory, options.ProjectConfig.ProjectRequestMessage)
+	authorizer, subjectLocator := newAuthorizer(ruleResolver, informerFactory, authorizationInformers.Authorization().InternalVersion(), options.ProjectConfig.ProjectRequestMessage)
 
 	pluginInitializer := oadmission.PluginInitializer{
 		OpenshiftClient:       privilegedLoopbackOpenShiftClient,
@@ -352,7 +353,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
 		GroupCache:                    groupCache,
-		ProjectAuthorizationCache:     newProjectAuthorizationCache(subjectLocator, privilegedLoopbackKubeClientsetInternal, informerFactory),
+		ProjectAuthorizationCache:     newProjectAuthorizationCache(subjectLocator, privilegedLoopbackKubeClientsetInternal, informerFactory, authorizationInformers.Authorization().InternalVersion()),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -819,14 +820,14 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, informerFactory shared.InformerFactory, authorizationInformers authorizationinternalinformer.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		informerFactory.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
 		projectauth.NewAuthorizerReviewer(subjectLocator),
-		informerFactory.ClusterPolicies().Lister(),
-		informerFactory.ClusterPolicyBindings().Lister(),
-		informerFactory.Policies().Lister(),
-		informerFactory.PolicyBindings().Lister(),
+		clusterPolicyLister{authorizationInformers.ClusterPolicies().Lister(), authorizationInformers.ClusterPolicies().Informer()},
+		clusterPolicyBindingLister{authorizationInformers.ClusterPolicyBindings().Lister(), authorizationInformers.ClusterPolicyBindings().Informer()},
+		policyLister{authorizationInformers.Policies().Lister(), authorizationInformers.Policies().Informer()},
+		policyBindingLister{authorizationInformers.PolicyBindings().Lister(), authorizationInformers.PolicyBindings().Informer()},
 	)
 }
 
@@ -931,10 +932,10 @@ func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, err
 	}, nil
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
+func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, informerFactory shared.InformerFactory, authorizationInformer authorizationinternalinformer.Interface, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	roleBasedAuthorizer, subjectLocator := authorizer.NewAuthorizer(ruleResolver, messageMaker)
-	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, informerFactory.ClusterPolicies().Lister().ClusterPolicies(), messageMaker)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, authorizationInformer.ClusterPolicies().Lister(), messageMaker)
 
 	authorizer := authorizerunion.New(
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream

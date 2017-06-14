@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -14,78 +15,54 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/client"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )
-
-// MockPolicyClient implements the PolicyCache interface for testing
-type MockPolicyClient struct{}
-
-// Following methods enable the MockPolicyClient to implement the PolicyCache interface
-
-// Policies gives access to a read-only policy interface
-func (this *MockPolicyClient) Policies(namespace string) client.PolicyLister {
-	return MockPolicyGetter{}
-}
 
 type MockPolicyGetter struct{}
 
-func (this MockPolicyGetter) List(options metav1.ListOptions) (*authorizationapi.PolicyList, error) {
-	return &authorizationapi.PolicyList{}, nil
+func (m MockPolicyGetter) Policies(namespace string) authorizationlister.PolicyNamespaceLister {
+	return m
 }
-
-func (this MockPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
+func (m MockPolicyGetter) List(labels.Selector) ([]*authorizationapi.Policy, error) {
+	return nil, nil
+}
+func (m MockPolicyGetter) Get(name string) (*authorizationapi.Policy, error) {
 	return &authorizationapi.Policy{}, nil
 }
-
-// ClusterPolicies gives access to a read-only cluster policy interface
-func (this *MockPolicyClient) ClusterPolicies() client.ClusterPolicyLister {
-	return MockClusterPolicyGetter{}
-}
+func (m MockPolicyGetter) LastSyncResourceVersion() string { return "" }
 
 type MockClusterPolicyGetter struct{}
 
-func (this MockClusterPolicyGetter) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyList, error) {
-	return &authorizationapi.ClusterPolicyList{}, nil
+func (m MockClusterPolicyGetter) List(labels.Selector) ([]*authorizationapi.ClusterPolicy, error) {
+	return nil, nil
 }
-
-func (this MockClusterPolicyGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicy, error) {
+func (m MockClusterPolicyGetter) Get(name string) (*authorizationapi.ClusterPolicy, error) {
 	return &authorizationapi.ClusterPolicy{}, nil
 }
-
-// PolicyBindings gives access to a read-only policy binding interface
-func (this *MockPolicyClient) PolicyBindings(namespace string) client.PolicyBindingLister {
-	return MockPolicyBindingGetter{}
-}
+func (m MockClusterPolicyGetter) LastSyncResourceVersion() string { return "" }
 
 type MockPolicyBindingGetter struct{}
 
-func (this MockPolicyBindingGetter) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	return &authorizationapi.PolicyBindingList{}, nil
+func (m MockPolicyBindingGetter) PolicyBindings(namespace string) authorizationlister.PolicyBindingNamespaceLister {
+	return m
 }
-
-func (this MockPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
+func (m MockPolicyBindingGetter) List(labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
+	return nil, nil
+}
+func (m MockPolicyBindingGetter) Get(name string) (*authorizationapi.PolicyBinding, error) {
 	return &authorizationapi.PolicyBinding{}, nil
 }
-
-// ClusterPolicyBindings gives access to a read-only cluster policy binding interface
-func (this *MockPolicyClient) ClusterPolicyBindings() client.ClusterPolicyBindingLister {
-	return MockClusterPolicyBindingGetter{}
-}
+func (m MockPolicyBindingGetter) LastSyncResourceVersion() string { return "" }
 
 type MockClusterPolicyBindingGetter struct{}
 
-func (this MockClusterPolicyBindingGetter) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return &authorizationapi.ClusterPolicyBindingList{}, nil
+func (m MockClusterPolicyBindingGetter) List(labels.Selector) ([]*authorizationapi.ClusterPolicyBinding, error) {
+	return nil, nil
 }
-
-func (this MockClusterPolicyBindingGetter) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
+func (m MockClusterPolicyBindingGetter) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
 	return &authorizationapi.ClusterPolicyBinding{}, nil
 }
-
-// LastSyncResourceVersion returns the resource version for the last sync performed
-func (this *MockPolicyClient) LastSyncResourceVersion() string {
-	return ""
-}
+func (m MockClusterPolicyBindingGetter) LastSyncResourceVersion() string { return "" }
 
 // mockReview implements the Review interface for test cases
 type mockReview struct {
@@ -193,14 +170,13 @@ func TestSyncNamespace(t *testing.T) {
 		},
 	}
 
-	mockPolicyCache := &MockPolicyClient{}
-
 	informers := informers.NewSharedInformerFactory(mockKubeClient, controller.NoResyncPeriodFunc())
 
 	authorizationCache := NewAuthorizationCache(
 		informers.Core().InternalVersion().Namespaces().Informer(),
 		reviewer,
-		mockPolicyCache, mockPolicyCache, mockPolicyCache, mockPolicyCache,
+		MockClusterPolicyGetter{}, MockClusterPolicyBindingGetter{},
+		MockPolicyGetter{}, MockPolicyBindingGetter{},
 	)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {

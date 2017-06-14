@@ -6,12 +6,13 @@ import (
 
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
-	"github.com/openshift/origin/pkg/client"
 )
 
 type PolicyRegistry struct {
@@ -30,7 +31,11 @@ func NewPolicyRegistry(policies []authorizationapi.Policy, err error) *PolicyReg
 	return &PolicyRegistry{policyMap, err}
 }
 
-func (r *PolicyRegistry) Policies(namespace string) client.PolicyLister {
+func (r *PolicyRegistry) List(_ labels.Selector) ([]*authorizationapi.Policy, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
+func (r *PolicyRegistry) Policies(namespace string) authorizationlister.PolicyNamespaceLister {
 	return policyLister{registry: r, namespace: namespace}
 }
 
@@ -39,16 +44,20 @@ type policyLister struct {
 	namespace string
 }
 
-func (s policyLister) List(options metav1.ListOptions) (*authorizationapi.PolicyList, error) {
-	optint := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+func (s policyLister) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
+	list, err := s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
 		return nil, err
 	}
-	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
+	var items []*authorizationapi.Policy
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
 
-func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }
 
 // ListPolicies obtains a list of policies that match a selector.

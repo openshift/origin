@@ -3,6 +3,7 @@ package clusterpolicybinding
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -139,10 +140,18 @@ type ReadOnlyClusterPolicyBindingClientShim struct {
 	ReadOnlyClusterPolicyBinding
 }
 
-func (r *ReadOnlyClusterPolicyBindingClientShim) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	return r.ReadOnlyClusterPolicyBinding.List(options)
+func (r *ReadOnlyClusterPolicyBindingClientShim) List(label labels.Selector) ([]*authorizationapi.ClusterPolicyBinding, error) {
+	list, err := r.ReadOnlyClusterPolicyBinding.List(metav1.ListOptions{LabelSelector: label.String()})
+	if err != nil {
+		return nil, err
+	}
+	var items []*authorizationapi.ClusterPolicyBinding
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
 
-func (r *ReadOnlyClusterPolicyBindingClientShim) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
-	return r.ReadOnlyClusterPolicyBinding.Get(name, &options)
+func (r *ReadOnlyClusterPolicyBindingClientShim) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.ReadOnlyClusterPolicyBinding.Get(name, &metav1.GetOptions{})
 }
