@@ -238,7 +238,7 @@ func matchValues(s string, allowedValues ...string) bool {
 
 func matchPattern(pattern, s string) bool {
 	glog.V(5).Infof("matchPattern called with %s and %s", pattern, s)
-	status, err := regexp.MatchString("^("+pattern+")$", s)
+	status, err := regexp.MatchString(`\A(?:`+pattern+`)\z`, s)
 	if err == nil {
 		glog.V(5).Infof("matchPattern returning status: %v", status)
 		return status
@@ -260,10 +260,10 @@ func genSubdomainWildcardRegexp(hostname, path string, exactPath bool) string {
 
 	expr := regexp.QuoteMeta(fmt.Sprintf(".%s%s", subdomain, path))
 	if exactPath {
-		return fmt.Sprintf("^[^\\.]*%s$", expr)
+		return fmt.Sprintf(`^[^\.]*%s$`, expr)
 	}
 
-	return fmt.Sprintf("^[^\\.]*%s(|/.*)$", expr)
+	return fmt.Sprintf(`^[^\.]*%s(|/.*)$`, expr)
 }
 
 // Generate a regular expression to match route hosts (and paths if any).
@@ -275,7 +275,7 @@ func generateRouteRegexp(hostname, path string, wildcard bool) string {
 			glog.Warningf("Generating subdomain wildcard regexp - invalid host name %s", hostname)
 		} else {
 			subdomainRE := regexp.QuoteMeta(fmt.Sprintf(".%s", subdomain))
-			hostRE = fmt.Sprintf("[^\\.]*%s", subdomainRE)
+			hostRE = fmt.Sprintf(`[^\.]*%s`, subdomainRE)
 		}
 	}
 

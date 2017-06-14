@@ -215,7 +215,7 @@ for image in image_config:
         )
 
     debug("Initiating Docker build with Dockerfile:\n{}".format(open(join(context_dir, "Dockerfile")).read()))
-    call(["docker", "build", "-t", image, "."], cwd=context_dir)
+    call(["docker", "build", "-t", full_name(image), "."], cwd=context_dir)
 
     remove(join(context_dir, "Dockerfile"))
     rmtree(join(context_dir, "src", image))

@@ -23,18 +23,12 @@ const (
 	// TemplateInstance API.
 	TemplateInstanceLabel = "template.openshift.io/template-instance"
 
-	// NamespaceParameterKey is the name of the key in the Open Service Broker API
-	// ProvisionRequest Parameters object where we receive the name of the
-	// namespace into which a template should be provisioned.  The '/' and '.'
-	// characters in the name happen to make this an invalid template parameter
-	// name so there is no immediate overlap with passed template parameters in
-	// the same object.
-	NamespaceParameterKey = "template.openshift.io/namespace"
-
 	// RequesterUsernameParameterKey is the name of the key in the Open Service
 	// Broker API ProvisionRequest Parameters object where we receive the user
-	// name which will be impersonated during template provisioning.  See above
-	// note.
+	// name which will be impersonated during template provisioning.  The '/'
+	// and '.' characters in the name happen to make this an invalid template
+	// parameter name so there is no immediate overlap with passed template
+	// parameters in the same object.
 	RequesterUsernameParameterKey = "template.openshift.io/requester-username"
 
 	// ServiceBrokerRoot is the API root of the template service broker.

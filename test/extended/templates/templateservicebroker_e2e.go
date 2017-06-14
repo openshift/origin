@@ -103,8 +103,11 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		_, err := brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
 			ServiceID: string(privatetemplate.UID),
 			PlanID:    plan.ID,
+			Context: api.KubernetesContext{
+				Platform:  api.ContextPlatformKubernetes,
+				Namespace: cli.Namespace(),
+			},
 			Parameters: map[string]string{
-				templateapi.NamespaceParameterKey:         cli.Namespace(),
 				templateapi.RequesterUsernameParameterKey: cli.Username(),
 			},
 		})
@@ -114,8 +117,11 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		_, err = brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
+			Context: api.KubernetesContext{
+				Platform:  api.ContextPlatformKubernetes,
+				Namespace: cli.Namespace(),
+			},
 			Parameters: map[string]string{
-				templateapi.NamespaceParameterKey:         cli.Namespace(),
 				templateapi.RequesterUsernameParameterKey: cli.Username(),
 				"DATABASE_USER":                           "test",
 			},
