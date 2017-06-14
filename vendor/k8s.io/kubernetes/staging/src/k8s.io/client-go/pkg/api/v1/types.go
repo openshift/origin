@@ -4451,7 +4451,8 @@ type SecurityContextConstraints struct {
 	// +k8s:conversion-gen=false
 	AllowHostDirVolumePlugin bool `json:"allowHostDirVolumePlugin" protobuf:"varint,7,opt,name=allowHostDirVolumePlugin"`
 	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
-	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'.
+	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
+	// To allow no volumes, set to ["none"].
 	Volumes []FSType `json:"volumes" protobuf:"bytes,8,rep,name=volumes,casttype=FSType"`
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" protobuf:"varint,9,opt,name=allowHostNetwork"`
@@ -4513,6 +4514,7 @@ var (
 	FSTypeFC                    FSType = "fc"
 	FSTypeConfigMap             FSType = "configMap"
 	FSTypeAll                   FSType = "*"
+	FSTypeNone                  FSType = "none"
 )
 
 // SELinuxContextStrategyOptions defines the strategy type and any options used to create the strategy.
