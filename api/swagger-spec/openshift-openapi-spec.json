@@ -85323,8 +85323,7 @@
     "description": "HorizontalPodAutoscalerStatus describes the current status of a horizontal pod autoscaler.",
     "required": [
      "currentReplicas",
-     "desiredReplicas",
-     "currentMetrics"
+     "desiredReplicas"
     ],
     "properties": {
      "currentMetrics": {

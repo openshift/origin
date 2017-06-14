@@ -19,7 +19,6 @@ func Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in *SubjectAccess
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-	out.Scopes = []string(in.Scopes)
 	return nil
 }
 
@@ -29,25 +28,6 @@ func Convert_api_SubjectAccessReview_To_v1_SubjectAccessReview(in *newer.Subject
 	}
 
 	out.GroupsSlice = in.Groups.List()
-	out.Scopes = OptionalScopes(in.Scopes)
-	return nil
-}
-
-func Convert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in *SelfSubjectRulesReviewSpec, out *newer.SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	if err := autoConvert_v1_SelfSubjectRulesReviewSpec_To_api_SelfSubjectRulesReviewSpec(in, out, s); err != nil {
-		return err
-	}
-
-	out.Scopes = []string(in.Scopes)
-	return nil
-}
-
-func Convert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in *newer.SelfSubjectRulesReviewSpec, out *SelfSubjectRulesReviewSpec, s conversion.Scope) error {
-	if err := autoConvert_api_SelfSubjectRulesReviewSpec_To_v1_SelfSubjectRulesReviewSpec(in, out, s); err != nil {
-		return err
-	}
-
-	out.Scopes = OptionalScopes(in.Scopes)
 	return nil
 }
 
@@ -57,7 +37,6 @@ func Convert_v1_LocalSubjectAccessReview_To_api_LocalSubjectAccessReview(in *Loc
 	}
 
 	out.Groups = sets.NewString(in.GroupsSlice...)
-	out.Scopes = []string(in.Scopes)
 	return nil
 }
 
@@ -67,7 +46,6 @@ func Convert_api_LocalSubjectAccessReview_To_v1_LocalSubjectAccessReview(in *new
 	}
 
 	out.GroupsSlice = in.Groups.List()
-	out.Scopes = OptionalScopes(in.Scopes)
 	return nil
 }
 

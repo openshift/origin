@@ -164,7 +164,6 @@ type SelfSubjectRulesReview struct {
 type SelfSubjectRulesReviewSpec struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil means "use the scopes on this request".
-	// +k8s:conversion-gen=false
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,1,rep,name=scopes"`
 }
 
@@ -265,7 +264,6 @@ type SubjectAccessReview struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
-	// +k8s:conversion-gen=false
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 
@@ -291,7 +289,6 @@ type LocalSubjectAccessReview struct {
 	// Scopes to use for the evaluation.  Empty means "use the unscoped (full) permissions of the user/groups".
 	// Nil for a self-SAR, means "use the scopes on this request".
 	// Nil for a regular SAR, means the same as empty.
-	// +k8s:conversion-gen=false
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 

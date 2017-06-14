@@ -283,7 +283,7 @@ func autoConvert_api_BuildConfigList_To_v1_BuildConfigList(in *api.BuildConfigLi
 			}
 		}
 	} else {
-		out.Items = make([]BuildConfig, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -327,7 +327,7 @@ func autoConvert_api_BuildConfigSpec_To_v1_BuildConfigSpec(in *api.BuildConfigSp
 			}
 		}
 	} else {
-		out.Triggers = make([]BuildTriggerPolicy, 0)
+		out.Triggers = nil
 	}
 	out.RunPolicy = BuildRunPolicy(in.RunPolicy)
 	if err := Convert_api_CommonSpec_To_v1_CommonSpec(&in.CommonSpec, &out.CommonSpec, s); err != nil {
@@ -391,7 +391,7 @@ func autoConvert_api_BuildList_To_v1_BuildList(in *api.BuildList, out *BuildList
 			}
 		}
 	} else {
-		out.Items = make([]Build, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -644,7 +644,7 @@ func autoConvert_api_BuildRequest_To_v1_BuildRequest(in *api.BuildRequest, out *
 			}
 		}
 	} else {
-		out.TriggeredBy = make([]BuildTriggerCause, 0)
+		out.TriggeredBy = nil
 	}
 	if in.DockerStrategyOptions != nil {
 		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
@@ -780,7 +780,7 @@ func autoConvert_api_BuildSpec_To_v1_BuildSpec(in *api.BuildSpec, out *BuildSpec
 			}
 		}
 	} else {
-		out.TriggeredBy = make([]BuildTriggerCause, 0)
+		out.TriggeredBy = nil
 	}
 	return nil
 }
@@ -1819,11 +1819,7 @@ func autoConvert_api_ImageSource_To_v1_ImageSource(in *api.ImageSource, out *Ima
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.From, &out.From, s); err != nil {
 		return err
 	}
-	if in.Paths == nil {
-		out.Paths = make([]ImageSourcePath, 0)
-	} else {
-		out.Paths = *(*[]ImageSourcePath)(unsafe.Pointer(&in.Paths))
-	}
+	out.Paths = *(*[]ImageSourcePath)(unsafe.Pointer(&in.Paths))
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
 		*out = new(api_v1.LocalObjectReference)

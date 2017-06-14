@@ -137,11 +137,7 @@ func autoConvert_api_Image_To_v1_Image(in *api.Image, out *Image, s conversion.S
 	}
 	out.DockerImageMetadataVersion = in.DockerImageMetadataVersion
 	out.DockerImageManifest = in.DockerImageManifest
-	if in.DockerImageLayers == nil {
-		out.DockerImageLayers = make([]ImageLayer, 0)
-	} else {
-		out.DockerImageLayers = *(*[]ImageLayer)(unsafe.Pointer(&in.DockerImageLayers))
-	}
+	out.DockerImageLayers = *(*[]ImageLayer)(unsafe.Pointer(&in.DockerImageLayers))
 	out.Signatures = *(*[]ImageSignature)(unsafe.Pointer(&in.Signatures))
 	out.DockerImageSignatures = *(*[][]byte)(unsafe.Pointer(&in.DockerImageSignatures))
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
@@ -294,7 +290,7 @@ func autoConvert_api_ImageList_To_v1_ImageList(in *api.ImageList, out *ImageList
 			}
 		}
 	} else {
-		out.Items = make([]Image, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -341,11 +337,7 @@ func Convert_v1_ImageSignature_To_api_ImageSignature(in *ImageSignature, out *ap
 func autoConvert_api_ImageSignature_To_v1_ImageSignature(in *api.ImageSignature, out *ImageSignature, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Type = in.Type
-	if in.Content == nil {
-		out.Content = make([]byte, 0)
-	} else {
-		out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
-	}
+	out.Content = *(*[]byte)(unsafe.Pointer(&in.Content))
 	out.Conditions = *(*[]SignatureCondition)(unsafe.Pointer(&in.Conditions))
 	out.ImageIdentity = in.ImageIdentity
 	out.SignedClaims = *(*map[string]string)(unsafe.Pointer(&in.SignedClaims))
@@ -606,7 +598,7 @@ func autoConvert_api_ImageStreamList_To_v1_ImageStreamList(in *api.ImageStreamLi
 			}
 		}
 	} else {
-		out.Items = make([]ImageStream, 0)
+		out.Items = nil
 	}
 	return nil
 }
@@ -747,7 +739,7 @@ func autoConvert_api_ImageStreamTagList_To_v1_ImageStreamTagList(in *api.ImageSt
 			}
 		}
 	} else {
-		out.Items = make([]ImageStreamTag, 0)
+		out.Items = nil
 	}
 	return nil
 }

@@ -17,6 +17,19 @@ type modelBuilder struct {
 	Config *Config
 }
 
+type typedCustomMarshaler interface {
+	json.Marshaler
+	MarshalJSONSchema() reflect.Type
+}
+
+// Check if this structure is a custom marshaler that indicates the type it marshals to.
+func getCustomMarshaledType(model reflect.Type) (reflect.Type, bool) {
+	if typeable, ok := reflect.New(model).Elem().Interface().(typedCustomMarshaler); ok {
+		return typeable.MarshalJSONSchema(), true
+	}
+	return nil, false
+}
+
 type documentable interface {
 	SwaggerDoc() map[string]string
 }
@@ -156,20 +169,25 @@ func (b modelBuilder) buildProperty(field reflect.StructField, model *Model, mod
 	if prop.Type != nil {
 		return jsonName, modelDescription, prop
 	}
-	fieldType := field.Type
 
-	// check if type is doing its own marshalling
-	marshalerType := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
-	if fieldType.Implements(marshalerType) {
+	// check if type is doing its own marshaling
+	marshaler := reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+	if marshaledType, ok := getCustomMarshaledType(field.Type); ok {
+		// If the type tells us what it marshals to, continue normal generation with the marshaled type.
+		// This lets us take advantage of recursive processing of complex types.
+		field.Type = marshaledType
+	} else if field.Type.Implements(marshaler) {
 		var pType = "string"
 		if prop.Type == nil {
 			prop.Type = &pType
 		}
 		if prop.Format == "" {
-			prop.Format = b.jsonSchemaFormat(b.keyFrom(fieldType))
+			prop.Format = b.jsonSchemaFormat(b.keyFrom(field.Type))
 		}
 		return jsonName, modelDescription, prop
 	}
+
+	fieldType := field.Type
 
 	// check if annotation says it is a string
 	if jsonTag := field.Tag.Get("json"); jsonTag != "" {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/authorization/api"
 	_ "github.com/openshift/origin/pkg/authorization/api/install"
+	"github.com/openshift/origin/pkg/authorization/api/v1"
 	testutil "github.com/openshift/origin/test/util/api"
 )
 
@@ -39,4 +40,22 @@ func TestFieldSelectorConversions(t *testing.T) {
 		api.RoleBindingToSelectableFields(&api.RoleBinding{}),
 	)
 
+}
+
+func TestEmptySlice(t *testing.T) {
+	{
+		in := &v1.SubjectAccessReview{}
+		out := &api.SubjectAccessReview{}
+		if err := v1.Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in, out, nil); err != nil || out.Scopes != nil {
+			t.Errorf("expected no error, nil scopes, got %v, %#v", err, out.Scopes)
+		}
+	}
+
+	{
+		in := &v1.SubjectAccessReview{Scopes: v1.OptionalScopes{}}
+		out := &api.SubjectAccessReview{}
+		if err := v1.Convert_v1_SubjectAccessReview_To_api_SubjectAccessReview(in, out, nil); err != nil || out.Scopes == nil {
+			t.Errorf("expected no error, non-nil scopes, got %v, %#v", err, out.Scopes)
+		}
+	}
 }

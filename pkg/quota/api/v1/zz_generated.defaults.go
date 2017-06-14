@@ -28,6 +28,11 @@ func SetObjectDefaults_AppliedClusterResourceQuota(in *AppliedClusterResourceQuo
 	api_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
+	for i := range in.Status.Namespaces {
+		a := &in.Status.Namespaces[i]
+		api_v1.SetDefaults_ResourceList(&a.Status.Hard)
+		api_v1.SetDefaults_ResourceList(&a.Status.Used)
+	}
 }
 
 func SetObjectDefaults_AppliedClusterResourceQuotaList(in *AppliedClusterResourceQuotaList) {
@@ -41,6 +46,11 @@ func SetObjectDefaults_ClusterResourceQuota(in *ClusterResourceQuota) {
 	api_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
 	api_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
+	for i := range in.Status.Namespaces {
+		a := &in.Status.Namespaces[i]
+		api_v1.SetDefaults_ResourceList(&a.Status.Hard)
+		api_v1.SetDefaults_ResourceList(&a.Status.Used)
+	}
 }
 
 func SetObjectDefaults_ClusterResourceQuotaList(in *ClusterResourceQuotaList) {

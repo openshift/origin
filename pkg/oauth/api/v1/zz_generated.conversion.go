@@ -58,16 +58,8 @@ func Convert_v1_ClusterRoleScopeRestriction_To_api_ClusterRoleScopeRestriction(i
 }
 
 func autoConvert_api_ClusterRoleScopeRestriction_To_v1_ClusterRoleScopeRestriction(in *api.ClusterRoleScopeRestriction, out *ClusterRoleScopeRestriction, s conversion.Scope) error {
-	if in.RoleNames == nil {
-		out.RoleNames = make([]string, 0)
-	} else {
-		out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
-	}
-	if in.Namespaces == nil {
-		out.Namespaces = make([]string, 0)
-	} else {
-		out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
-	}
+	out.RoleNames = *(*[]string)(unsafe.Pointer(&in.RoleNames))
+	out.Namespaces = *(*[]string)(unsafe.Pointer(&in.Namespaces))
 	out.AllowEscalation = in.AllowEscalation
 	return nil
 }
@@ -122,11 +114,7 @@ func Convert_v1_OAuthAccessTokenList_To_api_OAuthAccessTokenList(in *OAuthAccess
 
 func autoConvert_api_OAuthAccessTokenList_To_v1_OAuthAccessTokenList(in *api.OAuthAccessTokenList, out *OAuthAccessTokenList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthAccessToken, 0)
-	} else {
-		out.Items = *(*[]OAuthAccessToken)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthAccessToken)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -182,11 +170,7 @@ func Convert_v1_OAuthAuthorizeTokenList_To_api_OAuthAuthorizeTokenList(in *OAuth
 
 func autoConvert_api_OAuthAuthorizeTokenList_To_v1_OAuthAuthorizeTokenList(in *api.OAuthAuthorizeTokenList, out *OAuthAuthorizeTokenList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthAuthorizeToken, 0)
-	} else {
-		out.Items = *(*[]OAuthAuthorizeToken)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthAuthorizeToken)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -262,11 +246,7 @@ func Convert_v1_OAuthClientAuthorizationList_To_api_OAuthClientAuthorizationList
 
 func autoConvert_api_OAuthClientAuthorizationList_To_v1_OAuthClientAuthorizationList(in *api.OAuthClientAuthorizationList, out *OAuthClientAuthorizationList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthClientAuthorization, 0)
-	} else {
-		out.Items = *(*[]OAuthClientAuthorization)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthClientAuthorization)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -286,11 +266,7 @@ func Convert_v1_OAuthClientList_To_api_OAuthClientList(in *OAuthClientList, out 
 
 func autoConvert_api_OAuthClientList_To_v1_OAuthClientList(in *api.OAuthClientList, out *OAuthClientList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items == nil {
-		out.Items = make([]OAuthClient, 0)
-	} else {
-		out.Items = *(*[]OAuthClient)(unsafe.Pointer(&in.Items))
-	}
+	out.Items = *(*[]OAuthClient)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
