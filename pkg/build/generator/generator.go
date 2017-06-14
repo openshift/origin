@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -501,8 +502,8 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 			Labels: bcCopy.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: "v1",          // BuildConfig.APIVersion is not populated
-					Kind:       "BuildConfig", // BuildConfig.Kind is not populated
+					APIVersion: buildapiv1.SchemeGroupVersion.String(), // BuildConfig.APIVersion is not populated
+					Kind:       "BuildConfig",                          // BuildConfig.Kind is not populated
 					Name:       bcCopy.Name,
 					UID:        bcCopy.UID,
 					Controller: &t,
