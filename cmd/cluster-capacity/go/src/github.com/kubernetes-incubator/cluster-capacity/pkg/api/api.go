@@ -34,11 +34,6 @@ const (
 	Services               ResourceType = "services"
 	PersistentVolumeClaims ResourceType = "persistentvolumeclaims"
 	ReplicaSets            ResourceType = "replicasets"
-	ResourceQuota          ResourceType = "resourcequotas"
-	Secrets                ResourceType = "secrets"
-	ServiceAccounts        ResourceType = "serviceaccounts"
-	LimitRanges            ResourceType = "limitranges"
-	Namespaces             ResourceType = "namespaces"
 )
 
 func (r ResourceType) String() string {
@@ -61,16 +56,6 @@ func (r ResourceType) ObjectType() runtime.Object {
 		return &v1.PersistentVolumeClaim{}
 	case "replicasets":
 		return &v1beta1.ReplicaSet{}
-	case "resourcequotas":
-		return &v1.ResourceQuota{}
-	case "secrets":
-		return &v1.Secret{}
-	case "serviceaccounts":
-		return &v1.ServiceAccount{}
-	case "limitranges":
-		return &v1.LimitRange{}
-	case "namespaces":
-		return &v1.Namespace{}
 	}
 	return nil
 }
@@ -91,16 +76,6 @@ func StringToResourceType(resource string) (ResourceType, error) {
 		return PersistentVolumeClaims, nil
 	case "replicasets":
 		return ReplicaSets, nil
-	case "resourcequotas":
-		return ResourceQuota, nil
-	case "secrets":
-		return Secrets, nil
-	case "serviceaccounts":
-		return ServiceAccounts, nil
-	case "limitranges":
-		return LimitRanges, nil
-	case "namespaces":
-		return Namespaces, nil
 	default:
 		return "", fmt.Errorf("Resource type %v not recognized", resource)
 	}

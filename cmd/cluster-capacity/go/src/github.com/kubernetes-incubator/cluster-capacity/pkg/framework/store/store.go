@@ -43,8 +43,6 @@ type ResourceStore interface {
 	Resources() []ccapi.ResourceType
 }
 
-// TODO(jchaloup,hodovska): currently, only scheduler caches are considered.
-// Later, include cache for each object.
 type resourceStore struct {
 	// Caches modifed by emulation strategy
 	PodCache                   cache.Store
@@ -54,11 +52,6 @@ type resourceStore struct {
 	ServiceCache               cache.Store
 	ReplicationControllerCache cache.Store
 	ReplicaSetCache            cache.Store
-	ResourceQuotaCache         cache.Store
-	SecretCache                cache.Store
-	ServiceAccountCache        cache.Store
-	LimitRangeCache            cache.Store
-	NamespaceCache             cache.Store
 
 	resourceToCache map[ccapi.ResourceType]cache.Store
 	eventHandler    map[ccapi.ResourceType]cache.ResourceEventHandler
@@ -193,11 +186,6 @@ func NewResourceStore() *resourceStore {
 		ServiceCache:               cache.NewStore(cache.MetaNamespaceKeyFunc),
 		ReplicaSetCache:            cache.NewStore(cache.MetaNamespaceKeyFunc),
 		ReplicationControllerCache: cache.NewStore(cache.MetaNamespaceKeyFunc),
-		ResourceQuotaCache:         cache.NewStore(cache.MetaNamespaceKeyFunc),
-		SecretCache:                cache.NewStore(cache.MetaNamespaceKeyFunc),
-		ServiceAccountCache:        cache.NewStore(cache.MetaNamespaceKeyFunc),
-		LimitRangeCache:            cache.NewStore(cache.MetaNamespaceKeyFunc),
-		NamespaceCache:             cache.NewStore(cache.MetaNamespaceKeyFunc),
 		eventHandler:               make(map[ccapi.ResourceType]cache.ResourceEventHandler),
 	}
 
@@ -209,11 +197,6 @@ func NewResourceStore() *resourceStore {
 		ccapi.Services:               resourceStore.ServiceCache,
 		ccapi.ReplicaSets:            resourceStore.ReplicaSetCache,
 		ccapi.ReplicationControllers: resourceStore.ReplicationControllerCache,
-		ccapi.ResourceQuota:          resourceStore.ResourceQuotaCache,
-		ccapi.Secrets:                resourceStore.SecretCache,
-		ccapi.ServiceAccounts:        resourceStore.ServiceAccountCache,
-		ccapi.LimitRanges:            resourceStore.LimitRangeCache,
-		ccapi.Namespaces:             resourceStore.NamespaceCache,
 	}
 
 	resourceStore.resourceToCache = resourceToCache

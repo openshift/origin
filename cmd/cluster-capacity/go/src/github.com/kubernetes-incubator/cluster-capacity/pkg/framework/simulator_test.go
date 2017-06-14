@@ -164,11 +164,6 @@ func TestPrediction(t *testing.T) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	namespace := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-node-3"}}
-	if err := resourceStore.Add("namespaces", metav1.Object(namespace)); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
 	simulatedPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "simulated-pod", Namespace: "test-node-3", ResourceVersion: "10"},
 		Spec:       apitesting.V1DeepEqualSafePodSpec(),
