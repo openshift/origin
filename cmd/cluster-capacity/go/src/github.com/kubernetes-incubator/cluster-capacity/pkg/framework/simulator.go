@@ -110,12 +110,7 @@ func (c *ClusterCapacity) Report() *ClusterCapacityReview {
 
 func (c *ClusterCapacity) SyncWithClient(client externalclientset.Interface) error {
 	for _, resource := range c.resourceStore.Resources() {
-		var listWatcher *cache.ListWatch
-		if resource == ccapi.ReplicaSets {
-			listWatcher = cache.NewListWatchFromClient(client.Extensions().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		} else {
-			listWatcher = cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		}
+		listWatcher := cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
 
 		options := metav1.ListOptions{ResourceVersion: "0"}
 		list, err := listWatcher.List(options)
@@ -294,7 +289,7 @@ func (c *ClusterCapacity) createSchedulerConfig(s *soptions.SchedulerServer) (*s
 		c.informerFactory.Core().V1().Nodes(),
 		c.informerFactory.Core().V1().PersistentVolumes(),
 		c.informerFactory.Core().V1().PersistentVolumeClaims(),
-		c.informerFactory.Core().V1().ReplicationControllers(),
+		fakeInformerFactory.Core().V1().ReplicationControllers(),
 		fakeInformerFactory.Extensions().V1beta1().ReplicaSets(),
 		fakeInformerFactory.Apps().V1beta1().StatefulSets(),
 		c.informerFactory.Core().V1().Services(),

@@ -37,7 +37,6 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"
@@ -143,25 +142,6 @@ func (c *RESTClient) Services(fieldsSelector fields.Selector) *v1.ServiceList {
 	}
 }
 
-func (c *RESTClient) ReplicationControllers(fieldsSelector fields.Selector) *v1.ReplicationControllerList {
-	items := c.resourceStore.List(ccapi.ReplicationControllers)
-	typedItems := make([]v1.ReplicationController, 0, len(items))
-	for _, item := range items {
-		if !fieldsSelector.Matches(NewObjectFieldsAccessor(item)) {
-			continue
-		}
-		typedItems = append(typedItems, *item.(*v1.ReplicationController))
-	}
-
-	return &v1.ReplicationControllerList{
-		ListMeta: metav1.ListMeta{
-			// choose arbitrary value as the cache does not store the ResourceVersion
-			ResourceVersion: "0",
-		},
-		Items: typedItems,
-	}
-}
-
 func (c *RESTClient) PersistentVolumes(fieldsSelector fields.Selector) *v1.PersistentVolumeList {
 	items := c.resourceStore.List(ccapi.PersistentVolumes)
 	typedItems := make([]v1.PersistentVolume, 0, len(items))
@@ -216,40 +196,18 @@ func (c *RESTClient) Nodes(fieldsSelector fields.Selector) *v1.NodeList {
 	}
 }
 
-func (c *RESTClient) ReplicaSets(fieldsSelector fields.Selector) *v1beta1.ReplicaSetList {
-	items := c.resourceStore.List(ccapi.ReplicaSets)
-	typedItems := make([]v1beta1.ReplicaSet, 0, len(items))
-	for _, item := range items {
-		if !fieldsSelector.Matches(NewObjectFieldsAccessor(item)) {
-			continue
-		}
-		typedItems = append(typedItems, *item.(*v1beta1.ReplicaSet))
-	}
-
-	return &v1beta1.ReplicaSetList{
-		ListMeta: metav1.ListMeta{
-			ResourceVersion: "0",
-		},
-		Items: typedItems,
-	}
-}
-
 func (c *RESTClient) List(resource ccapi.ResourceType, fieldsSelector fields.Selector) (runtime.Object, error) {
 	switch resource {
 	case ccapi.Pods:
 		return c.Pods(fieldsSelector), nil
 	case ccapi.Services:
 		return c.Services(fieldsSelector), nil
-	case ccapi.ReplicationControllers:
-		return c.ReplicationControllers(fieldsSelector), nil
 	case ccapi.PersistentVolumes:
 		return c.PersistentVolumes(fieldsSelector), nil
 	case ccapi.PersistentVolumeClaims:
 		return c.PersistentVolumeClaims(fieldsSelector), nil
 	case ccapi.Nodes:
 		return c.Nodes(fieldsSelector), nil
-	case ccapi.ReplicaSets:
-		return c.ReplicaSets(fieldsSelector), nil
 	default:
 		return nil, fmt.Errorf("Resource %s not recognized", resource)
 	}
@@ -327,17 +285,9 @@ func (c *RESTClient) request(verb string) *restclient.Request {
 	ns := c.NegotiatedSerializer
 	info, _ := runtime.SerializerInfoForMediaType(ns.SupportedMediaTypes(), runtime.ContentTypeJSON)
 
-	var targetVersion schema.GroupVersion
-	if c.name == "extensions" {
-		gvr := schema.GroupVersionResource{Group: "extensions", Version: "v1beta1", Resource: "replicasets"}
-		targetVersion = gvr.GroupVersion()
-	} else {
-		targetVersion = gv
-	}
-
 	serializers := restclient.Serializers{
 		Encoder: ns.EncoderForVersion(info.Serializer, gv),
-		Decoder: ns.DecoderToVersion(info.Serializer, targetVersion),
+		Decoder: ns.DecoderToVersion(info.Serializer, gv),
 	}
 
 	if info.StreamSerializer != nil {
@@ -364,9 +314,6 @@ func (c *RESTClient) createReadCloser(resource ccapi.ResourceType, obj runtime.O
 	}
 
 	gv := v1.SchemeGroupVersion
-	if resource == ccapi.ReplicaSets {
-		gv = schema.GroupVersion{Group: "extensions", Version: "v1beta1"}
-	}
 	encoder := api.Codecs.EncoderForVersion(info.Serializer, gv)
 	nopCloser := ioutil.NopCloser(bytes.NewReader([]byte(runtime.EncodeOrDie(encoder, obj))))
 	return &nopCloser, nil
@@ -407,9 +354,6 @@ func (c *RESTClient) createGetReadCloser(resource ccapi.ResourceType, resourceNa
 	case ccapi.Services:
 		obj = runtime.Object(item.(*v1.Service))
 		ns = item.(*v1.Service).Namespace
-	case ccapi.ReplicationControllers:
-		obj = runtime.Object(item.(*v1.ReplicationController))
-		ns = item.(*v1.ReplicationController).Namespace
 	case ccapi.PersistentVolumes:
 		obj = runtime.Object(item.(*v1.PersistentVolume))
 		ns = item.(*v1.PersistentVolume).Namespace
@@ -418,9 +362,6 @@ func (c *RESTClient) createGetReadCloser(resource ccapi.ResourceType, resourceNa
 		ns = item.(*v1.PersistentVolumeClaim).Namespace
 	case ccapi.Nodes:
 		obj = runtime.Object(item.(*v1.Node))
-	case ccapi.ReplicaSets:
-		obj = runtime.Object(item.(*v1beta1.ReplicaSet))
-		ns = item.(*v1beta1.ReplicaSet).Namespace
 	default:
 		return nil, fmt.Errorf("Resource %v not recognized", resource)
 	}
@@ -463,10 +404,6 @@ func (c *RESTClient) createWatchReadCloser(resource ccapi.ResourceType, fieldsSe
 		for _, item := range c.Services(fieldsSelector).Items {
 			rg.EmitWatchEvent(watch.Added, runtime.Object(&item))
 		}
-	case ccapi.ReplicationControllers:
-		for _, item := range c.ReplicationControllers(fieldsSelector).Items {
-			rg.EmitWatchEvent(watch.Added, runtime.Object(&item))
-		}
 	case ccapi.PersistentVolumes:
 		for _, item := range c.PersistentVolumes(fieldsSelector).Items {
 			rg.EmitWatchEvent(watch.Added, runtime.Object(&item))
@@ -477,10 +414,6 @@ func (c *RESTClient) createWatchReadCloser(resource ccapi.ResourceType, fieldsSe
 		}
 	case ccapi.Nodes:
 		for _, item := range c.Nodes(fieldsSelector).Items {
-			rg.EmitWatchEvent(watch.Added, runtime.Object(&item))
-		}
-	case ccapi.ReplicaSets:
-		for _, item := range c.ReplicaSets(fieldsSelector).Items {
 			rg.EmitWatchEvent(watch.Added, runtime.Object(&item))
 		}
 	default:

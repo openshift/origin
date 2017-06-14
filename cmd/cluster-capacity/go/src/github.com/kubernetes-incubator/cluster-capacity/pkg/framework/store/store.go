@@ -45,13 +45,11 @@ type ResourceStore interface {
 
 type resourceStore struct {
 	// Caches modifed by emulation strategy
-	PodCache                   cache.Store
-	NodeCache                  cache.Store
-	PVCCache                   cache.Store
-	PVCache                    cache.Store
-	ServiceCache               cache.Store
-	ReplicationControllerCache cache.Store
-	ReplicaSetCache            cache.Store
+	PodCache     cache.Store
+	NodeCache    cache.Store
+	PVCCache     cache.Store
+	PVCache      cache.Store
+	ServiceCache cache.Store
 
 	resourceToCache map[ccapi.ResourceType]cache.Store
 	eventHandler    map[ccapi.ResourceType]cache.ResourceEventHandler
@@ -179,14 +177,12 @@ func (s *resourceStore) Resources() []ccapi.ResourceType {
 func NewResourceStore() *resourceStore {
 
 	resourceStore := &resourceStore{
-		PodCache:                   cache.NewStore(cache.MetaNamespaceKeyFunc),
-		NodeCache:                  cache.NewStore(cache.MetaNamespaceKeyFunc),
-		PVCache:                    cache.NewStore(cache.MetaNamespaceKeyFunc),
-		PVCCache:                   cache.NewStore(cache.MetaNamespaceKeyFunc),
-		ServiceCache:               cache.NewStore(cache.MetaNamespaceKeyFunc),
-		ReplicaSetCache:            cache.NewStore(cache.MetaNamespaceKeyFunc),
-		ReplicationControllerCache: cache.NewStore(cache.MetaNamespaceKeyFunc),
-		eventHandler:               make(map[ccapi.ResourceType]cache.ResourceEventHandler),
+		PodCache:     cache.NewStore(cache.MetaNamespaceKeyFunc),
+		NodeCache:    cache.NewStore(cache.MetaNamespaceKeyFunc),
+		PVCache:      cache.NewStore(cache.MetaNamespaceKeyFunc),
+		PVCCache:     cache.NewStore(cache.MetaNamespaceKeyFunc),
+		ServiceCache: cache.NewStore(cache.MetaNamespaceKeyFunc),
+		eventHandler: make(map[ccapi.ResourceType]cache.ResourceEventHandler),
 	}
 
 	resourceToCache := map[ccapi.ResourceType]cache.Store{
@@ -195,8 +191,6 @@ func NewResourceStore() *resourceStore {
 		ccapi.Nodes:                  resourceStore.NodeCache,
 		ccapi.PersistentVolumes:      resourceStore.PVCache,
 		ccapi.Services:               resourceStore.ServiceCache,
-		ccapi.ReplicaSets:            resourceStore.ReplicaSetCache,
-		ccapi.ReplicationControllers: resourceStore.ReplicationControllerCache,
 	}
 
 	resourceStore.resourceToCache = resourceToCache
@@ -207,12 +201,7 @@ func NewResourceStore() *resourceStore {
 func NewResourceReflectors(client clientset.Interface, stopCh <-chan struct{}) *resourceStore {
 	rs := NewResourceStore()
 	for _, resource := range rs.Resources() {
-		var listWatcher *cache.ListWatch
-		if resource == ccapi.ReplicaSets {
-			listWatcher = cache.NewListWatchFromClient(client.Extensions().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		} else {
-			listWatcher = cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		}
+		listWatcher := cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
 		cache.NewReflector(listWatcher, resource.ObjectType(), rs.resourceToCache[resource], 0).RunUntil(stopCh)
 	}
 	return rs
