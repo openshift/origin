@@ -28,7 +28,7 @@ OS_RELEASE=n hack/build-go.sh
 ```
 cp _output/local/bin/linux/amd64/openshift images/origin/bin/
 
-docker build -t openshift/origin images/origin
+hack/build-local-images.py origin
 ```
 
 ### Build dependent images 
@@ -36,7 +36,7 @@ docker build -t openshift/origin images/origin
 #### Router Image
 
 ```
-docker build -t openshift/origin-haproxy-router images/router/haproxy/
+hack/build-local-images.py haproxy-router
 ```
 
 ## Deploying Images
