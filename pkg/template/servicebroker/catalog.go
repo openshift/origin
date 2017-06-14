@@ -14,16 +14,6 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
-const (
-	namespaceTitle       = "Template service broker: namespace"
-	namespaceDescription = "OpenShift namespace in which to provision service"
-
-	// the following should go away with catalog<->broker support for passing
-	// identity information.
-	requesterUsernameTitle       = "Template service broker: requester username"
-	requesterUsernameDescription = "OpenShift user requesting provision/bind"
-)
-
 // Map OpenShift template annotations to open service broker metadata field
 // community standards.
 var annotationMap = map[string]string{
@@ -45,14 +35,8 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		}
 	}
 
-	properties := map[string]*jsschema.Schema{
-		templateapi.RequesterUsernameParameterKey: {
-			Title:       requesterUsernameTitle,
-			Description: requesterUsernameDescription,
-			Type:        []jsschema.PrimitiveType{jsschema.StringType},
-		},
-	}
-	required := []string{templateapi.RequesterUsernameParameterKey}
+	properties := map[string]*jsschema.Schema{}
+	required := []string{}
 	for _, param := range template.Parameters {
 		properties[param.Name] = &jsschema.Schema{
 			Title:       param.DisplayName,
@@ -85,16 +69,10 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 			ServiceBinding: api.ServiceBindings{
 				Create: map[string]*jsschema.Schema{
 					"parameters": {
-						SchemaRef: jsschema.SchemaURL,
-						Type:      []jsschema.PrimitiveType{jsschema.ObjectType},
-						Properties: map[string]*jsschema.Schema{
-							templateapi.RequesterUsernameParameterKey: {
-								Title:       requesterUsernameTitle,
-								Description: requesterUsernameDescription,
-								Type:        []jsschema.PrimitiveType{jsschema.StringType},
-							},
-						},
-						Required: []string{templateapi.RequesterUsernameParameterKey},
+						SchemaRef:  jsschema.SchemaURL,
+						Type:       []jsschema.PrimitiveType{jsschema.ObjectType},
+						Properties: map[string]*jsschema.Schema{},
+						Required:   []string{},
 					},
 				},
 			},

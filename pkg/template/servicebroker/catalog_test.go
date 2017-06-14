@@ -76,15 +76,9 @@ func TestServiceFromTemplate(t *testing.T) {
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
 								SchemaRef: "http://json-schema.org/draft-04/schema",
 								Required: []string{
-									"template.openshift.io/requester-username",
 									"param1",
 								},
 								Properties: map[string]*schema.Schema{
-									"template.openshift.io/requester-username": {
-										Title:       "Template service broker: requester username",
-										Description: "OpenShift user requesting provision/bind",
-										Type:        schema.PrimitiveTypes{schema.StringType},
-									},
 									"param1": {
 										Default: "",
 										Type:    schema.PrimitiveTypes{schema.StringType},
@@ -108,16 +102,10 @@ func TestServiceFromTemplate(t *testing.T) {
 					ServiceBinding: api.ServiceBindings{
 						Create: map[string]*schema.Schema{
 							"parameters": {
-								Type:      schema.PrimitiveTypes{schema.ObjectType},
-								SchemaRef: "http://json-schema.org/draft-04/schema",
-								Required:  []string{"template.openshift.io/requester-username"},
-								Properties: map[string]*schema.Schema{
-									"template.openshift.io/requester-username": {
-										Title:       "Template service broker: requester username",
-										Description: "OpenShift user requesting provision/bind",
-										Type:        schema.PrimitiveTypes{schema.StringType},
-									},
-								},
+								Type:       schema.PrimitiveTypes{schema.ObjectType},
+								SchemaRef:  "http://json-schema.org/draft-04/schema",
+								Required:   []string{},
+								Properties: map[string]*schema.Schema{},
 							},
 						},
 					},
