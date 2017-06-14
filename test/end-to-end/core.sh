@@ -492,7 +492,7 @@ os::cmd::expect_success_and_text "oc rsh ${frontend_pod} ls /tmp/sample-app" 'ap
 
 #os::log::info "Applying Docker application config"
 #oc create -n docker -f "${DOCKER_CONFIG_FILE}"
-#os::log::info "Invoking generic web hook to trigger new os::util::docker build using curl"
+#os::log::info "Invoking generic web hook to trigger new docker build using curl"
 #curl -k -X POST $API_SCHEME://$API_HOST:$API_PORT/oapi/v1/namespaces/docker/buildconfigs/ruby-sample-build/webhooks/secret101/generic && sleep 3
 # BUILD_ID="$( oc get builds --namespace docker -o jsonpath='{.items[0].metadata.name}' )"
 # os::cmd::try_until_text "oc get builds --namespace docker -o jsonpath='{.items[0].status.phase}'" "Complete" "$(( 10*TIME_MIN ))"

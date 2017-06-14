@@ -5,7 +5,7 @@
 # os::build::image builds an image from a directory, to a tag, with an optional dockerfile to
 # use as the third argument. The environment variable OS_BUILD_IMAGE_ARGS adds additional
 # options to the command. The default is to use the imagebuilder binary if it is available
-# on the path with fallback to os::util::docker build if it is not available.
+# on the path with fallback to docker build if it is not available.
 function os::build::image() {
   local directory=$1
   local tag=$2
@@ -15,16 +15,15 @@ function os::build::image() {
   local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
 
   if [[ "${mode}" == "imagebuilder" ]]; then
-    local imagebuilder
-    if imagebuilder=$(os::util::find::system_binary 'imagebuilder'); then
+    if os::util::find::system_binary 'imagebuilder' >/dev/null; then
       if [[ -n "${extra_tag}" ]]; then
         extra_tag="-t '${extra_tag}'"
       fi
       if [[ -n "${dockerfile}" ]]; then
-        eval "${USE_SUDO:+sudo} ${imagebuilder} -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
+        eval "os::util::imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
         return $?
       fi
-      eval "${USE_SUDO:+sudo} ${imagebuilder} -t '${tag}' ${extra_tag} ${options} '${directory}'"
+      eval "os::util::imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
       return $?
     fi
 

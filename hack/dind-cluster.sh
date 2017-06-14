@@ -9,7 +9,7 @@
 #
 # This script manages the lifecycle of an openshift dev cluster
 # deployed to docker-in-docker containers.  Once 'start' has been used
-# to successfully create a dind cluster, 'os::util::docker exec' can be used to
+# to successfully create a dind cluster, 'docker exec' can be used to
 # access the created containers (named
 # openshift-{master,node-1,node-2}) as if they were VMs.
 #
@@ -755,7 +755,7 @@ Commands:
 - resume: Restarts paused containers
 - copy-image: Copies an image from the outer docker into all node dockers
 - wait-for-cluster: Waits for a cluster to come online
-- build-images: Builds the os::util::docker-in-docker images themselves
+- build-images: Builds the docker-in-docker images themselves
 
 
 start accepts the following options:

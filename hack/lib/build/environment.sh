@@ -23,7 +23,7 @@ function os::build::environment::create() {
       if os::util::docker volume inspect "${OS_BUILD_ENV_VOLUME}" >/dev/null 2>&1; then
         os::log::debug "Re-using volume ${OS_BUILD_ENV_VOLUME}"
       else
-        # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a os::util::docker volume to
+        # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
         # store the working output so successive iterations can reuse shared code.
         os::log::debug "Creating volume ${OS_BUILD_ENV_VOLUME}"
         os::util::docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
@@ -175,11 +175,11 @@ function os::build::environment::withsource() {
   if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_VOLUME-}" ]]; then
     os::log::debug "Syncing source using \`rsync\`"
     if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "os::util::docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
-      os::log::debug "Falling back to \`tar\` and \`os::util::docker cp\` as \`rsync\` is not in container"
+      os::log::debug "Falling back to \`tar\` and \`docker cp\` as \`rsync\` is not in container"
       tar -cf - "${excluded[@]}" . | os::util::docker cp - "${container}:${workingdir}"
     fi
   else
-    os::log::debug "Syncing source using \`tar\` and \`os::util::docker cp\`"
+    os::log::debug "Syncing source using \`tar\` and \`docker cp\`"
     tar -cf - "${excluded[@]}" . | os::util::docker cp - "${container}:${workingdir}"
   fi
 

@@ -233,3 +233,35 @@ function os::util::list_go_src_files() {
 	\) -name '*.go' | sort -u
 }
 readonly -f os::util::list_go_src_files
+
+# os::util::docker calls docker, elevating privileges if necessary.
+# Scripts that expect to need to elevate privilges should call
+# os::util::environment::use_sudo in their preamble.
+#
+# Globals:
+#  - USE_SUDO
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::docker() {
+	${USE_SUDO:+sudo} docker "$@"
+}
+
+# os::util::imagebuilder calls imagebuilder, elevating privileges
+# if necessary and handling the case where the root user does not
+# have imagebuilder in their path. Scripts that expect to need to
+# elevate privilges should call os::util::environment::use_sudo in
+# their preamble.
+#
+# Globals:
+#  - USE_SUDO
+# Arguments:
+#  None
+# Returns:
+#  None
+function os::util::imagebuilder() {
+	local imagebuilder
+	imagebuilder=$(os::util::find::system_binary 'imagebuilder')
+	${USE_SUDO:+sudo} ${imagebuilder} "$@"
+}

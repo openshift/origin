@@ -42,5 +42,5 @@ COPY config.ru ./
 CMD /usr/local/sti/run
 EOF
 
-os::util::docker build --rm -t "${TAG}" .
-os::util::docker push "${TAG}"
+docker build --rm -t "${TAG}" .
+docker push "${TAG}"
