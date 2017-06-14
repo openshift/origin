@@ -254,13 +254,6 @@ NextTest:
 }
 
 func TestServerRunWithSNI(t *testing.T) {
-	generate := os.Getenv("GENERATE_TEST_CERTS") == "true"
-	if generate {
-		t.Log("Generating test certs")
-	} else {
-		t.Log("Using pre-generated test certs, run with GENERATE_TEST_CERTS=true to regenerate")
-	}
-
 	tests := map[string]struct {
 		Cert              TestCertSpec
 		SNICerts          []NamedTestCertSpec
@@ -402,7 +395,8 @@ func TestServerRunWithSNI(t *testing.T) {
 	}
 
 	specToName := func(spec TestCertSpec) string {
-		return spec.host + "+" + strings.Join(spec.names, ",") + "+" + strings.Join(spec.ips, ",")
+		name := spec.host + "_" + strings.Join(spec.names, ",") + "_" + strings.Join(spec.ips, ",")
+		return strings.Replace(name, "*", "star", -1)
 	}
 
 NextTest:
@@ -411,12 +405,10 @@ NextTest:
 		certDir := "testdata/" + specToName(test.Cert)
 		serverCertBundleFile := filepath.Join(certDir, "cert")
 		serverKeyFile := filepath.Join(certDir, "key")
-		if generate {
-			err := createTestCertFiles(serverCertBundleFile, serverKeyFile, test.Cert)
-			if err != nil {
-				t.Errorf("%q - failed to create server cert: %v", title, err)
-				continue NextTest
-			}
+		err := getOrCreateTestCertFiles(serverCertBundleFile, serverKeyFile, test.Cert)
+		if err != nil {
+			t.Errorf("%q - failed to create server cert: %v", title, err)
+			continue NextTest
 		}
 		ca, err := caCertFromBundle(serverCertBundleFile)
 		if err != nil {
@@ -439,12 +431,10 @@ NextTest:
 			sniDir := filepath.Join(certDir, specToName(c.TestCertSpec))
 			certBundleFile := filepath.Join(sniDir, "cert")
 			keyFile := filepath.Join(sniDir, "key")
-			if generate {
-				err := createTestCertFiles(certBundleFile, keyFile, c.TestCertSpec)
-				if err != nil {
-					t.Errorf("%q - failed to create SNI cert %d: %v", title, j, err)
-					continue NextTest
-				}
+			err := getOrCreateTestCertFiles(certBundleFile, keyFile, c.TestCertSpec)
+			if err != nil {
+				t.Errorf("%q - failed to create SNI cert %d: %v", title, j, err)
+				continue NextTest
 			}
 
 			namedCertKeys = append(namedCertKeys, utilflag.NamedCertKey{
@@ -603,7 +593,13 @@ func createTestTLSCerts(spec TestCertSpec) (tlsCert tls.Certificate, err error) 
 	return tlsCert, err
 }
 
-func createTestCertFiles(certFileName, keyFileName string, spec TestCertSpec) (err error) {
+func getOrCreateTestCertFiles(certFileName, keyFileName string, spec TestCertSpec) (err error) {
+	if _, err := os.Stat(certFileName); err == nil {
+		if _, err := os.Stat(keyFileName); err == nil {
+			return nil
+		}
+	}
+
 	certPem, keyPem, err := generateSelfSignedCertKey(spec.host, parseIPList(spec.ips), spec.names)
 	if err != nil {
 		return err
