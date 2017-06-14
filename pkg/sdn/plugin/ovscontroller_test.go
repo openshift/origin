@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -977,6 +978,123 @@ func TestAlreadySetUp(t *testing.T) {
 		}
 		if success := oc.AlreadySetUp(); success != tc.success {
 			t.Fatalf("(%d) unexpected setup value %v (expected %v)", i, success, tc.success)
+		}
+	}
+}
+
+func TestSyncVNIDRules(t *testing.T) {
+	testcases := []struct {
+		flows  []string
+		unused []int
+	}{
+		{
+			/* Both VNIDs have 1 pod and 1 service, so they stay */
+			flows: []string{
+				"table=60,priority=200,reg0=0 actions=output:2",
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.156.103,nw_frag=later actions=load:0xcb81e9->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.76.192,nw_frag=later actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.156.103,tp_dst=5454 actions=load:0xcb81e9->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5454 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5455 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=100,ip,nw_dst=10.129.0.2 actions=load:0x55fac->NXM_NX_REG1[],load:0x3->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=100,ip,nw_dst=10.129.0.3 actions=load:0xcb81e9->NXM_NX_REG1[],load:0x4->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0x55fac,reg1=0x55fac actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			unused: []int{},
+		},
+		{
+			/* 0xcb81e9 has just a pod, 0x55fac has just a service, both stay */
+			flows: []string{
+				"table=60,priority=200,reg0=0 actions=output:2",
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.76.192,nw_frag=later actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5454 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5455 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=100,ip,nw_dst=10.129.0.3 actions=load:0xcb81e9->NXM_NX_REG1[],load:0x4->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0x55fac,reg1=0x55fac actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			unused: []int{},
+		},
+		{
+			/* 0xcb81e9 gets GCed, 0x55fac stays */
+			flows: []string{
+				"table=60,priority=200,reg0=0 actions=output:2",
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.76.192,nw_frag=later actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5454 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5455 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=100,ip,nw_dst=10.129.0.2 actions=load:0x55fac->NXM_NX_REG1[],load:0x3->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0x55fac,reg1=0x55fac actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			unused: []int{0xcb81e9},
+		},
+		{
+			/* Both get GCed */
+			flows: []string{
+				"table=60,priority=200,reg0=0 actions=output:2",
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0x55fac,reg1=0x55fac actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			unused: []int{0x55fac, 0xcb81e9},
+		},
+	}
+
+	for i, tc := range testcases {
+		_, oc, _ := setup(t)
+
+		otx := oc.NewTransaction()
+		for _, flow := range tc.flows {
+			otx.AddFlow(flow)
+		}
+		if err := otx.EndTransaction(); err != nil {
+			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
+		}
+
+		unused := oc.FindUnusedVNIDs()
+		sort.Ints(unused)
+		if !reflect.DeepEqual(unused, tc.unused) {
+			t.Fatalf("(%d) wrong result, expected %v, got %v", i, tc.unused, unused)
 		}
 	}
 }

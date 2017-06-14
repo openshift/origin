@@ -41,8 +41,8 @@ func (sp *singleTenantPlugin) GetMulticastEnabled(vnid uint32) bool {
 	return false
 }
 
-func (sp *singleTenantPlugin) RefVNID(vnid uint32) {
+func (sp *singleTenantPlugin) EnsureVNIDRules(vnid uint32) {
 }
 
-func (sp *singleTenantPlugin) UnrefVNID(vnid uint32) {
+func (sp *singleTenantPlugin) SyncVNIDRules() {
 }
