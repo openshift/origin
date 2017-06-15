@@ -244,9 +244,7 @@ func (rco RunContainerOptions) asDockerHostConfig() dockercontainer.HostConfig {
 	if rco.CGroupLimits != nil {
 		hostConfig.Resources.Memory = rco.CGroupLimits.MemoryLimitBytes
 		hostConfig.Resources.MemorySwap = rco.CGroupLimits.MemorySwap
-		hostConfig.Resources.CPUShares = rco.CGroupLimits.CPUShares
-		hostConfig.Resources.CPUQuota = rco.CGroupLimits.CPUQuota
-		hostConfig.Resources.CPUPeriod = rco.CGroupLimits.CPUPeriod
+		hostConfig.Resources.CgroupParent = rco.CGroupLimits.Parent
 	}
 	return hostConfig
 }
@@ -1127,9 +1125,7 @@ func (d *stiDocker) BuildImage(opts BuildImageOptions) error {
 	if opts.CGroupLimits != nil {
 		dockerOpts.Memory = opts.CGroupLimits.MemoryLimitBytes
 		dockerOpts.MemorySwap = opts.CGroupLimits.MemorySwap
-		dockerOpts.CPUShares = opts.CGroupLimits.CPUShares
-		dockerOpts.CPUPeriod = opts.CGroupLimits.CPUPeriod
-		dockerOpts.CPUQuota = opts.CGroupLimits.CPUQuota
+		dockerOpts.CgroupParent = opts.CGroupLimits.Parent
 	}
 	glog.V(2).Infof("Building container using config: %+v", dockerOpts)
 	resp, err := d.client.ImageBuild(context.Background(), opts.Stdin, dockerOpts)

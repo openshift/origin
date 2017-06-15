@@ -261,6 +261,7 @@ type CGroupLimits struct {
 	CPUPeriod        int64
 	CPUQuota         int64
 	MemorySwap       int64
+	Parent           string
 }
 
 // VolumeSpec represents a single volume mount point.
