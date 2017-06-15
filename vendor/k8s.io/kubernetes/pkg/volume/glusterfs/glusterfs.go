@@ -298,6 +298,7 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 	log := path.Join(p, b.pod.Name+"-glusterfs.log")
 	options = append(options, "log-level=ERROR")
 	options = append(options, "log-file="+log)
+	options = append(options, "auto_unmount")
 
 	var addrlist []string
 	if b.hosts == nil {
@@ -322,6 +323,25 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 				glog.Infof("glusterfs: successfully mounted %s", dir)
 				return nil
 			}
+
+			// Give a try without `auto_unmount mount option, because
+			// it could be that gluster fuse client is older version and
+			// mount.glusterfs is unaware of `auto_unmount`.
+			// Use a mount string without `auto_unmount``
+
+			autoMountOptions := make([]string, len(options))
+			for _, opt := range options {
+				if opt != "auto_unmount" {
+					autoMountOptions = append(autoMountOptions, opt)
+				}
+			}
+
+			autoerrs := b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", autoMountOptions)
+			if autoerrs == nil {
+				glog.Infof("glusterfs: successfully mounted %s", dir)
+				return nil
+			}
+
 		}
 	}
 
