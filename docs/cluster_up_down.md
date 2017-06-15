@@ -86,6 +86,14 @@ a URL to access the management console for your cluster.
    $ oc cluster up
    ```
 
+If you are running `oc cluster up` on a virtual machine in Amazon AWS EC2, you should pass the public hostname and IP address to ensure that the cluster is reachable from your local host. You can retrieve this information from the [internal meta-data endpoints](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-metadata.html#instancedata-data-retrieval):
+```
+$ metadata_endpoint="http://169.254.169.254/latest/meta-data"
+$ public_hostname="$( curl "${metadata_endpoint}/public-hostname" )"
+$ public_ip="$( curl "${metadata_endpoint}/public-ipv4" )"
+$ oc cluster up --public-hostname="${public_hostname}" --routing-suffix="${public_ip}.nip.io"
+```
+
 To stop your cluster, run:
 ```
 $ oc cluster down
@@ -108,7 +116,7 @@ $ oc cluster down
      $ brew install socat
      ```
 2. Install the oc binary using homebrew with: `brew install openshift-cli`
-   
+
    OR
 
    Download the Mac OS `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
@@ -129,7 +137,7 @@ $ oc cluster down
 
 1. Install [Docker Toolbox](https://www.docker.com/products/docker-toolbox) and ensure that it is functional.
 2. Install the oc binary using homebrew with: `brew install openshift-cli`
-   
+
    OR
 
    Download the OS X `oc` binary from [openshift-origin-client-tools-VERSION-mac.zip](https://github.com/openshift/origin/releases) and place it in your path.
