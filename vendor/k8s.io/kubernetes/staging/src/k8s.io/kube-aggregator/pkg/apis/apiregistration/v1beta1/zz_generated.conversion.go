@@ -136,7 +136,8 @@ func autoConvert_v1beta1_APIServiceSpec_To_apiregistration_APIServiceSpec(in *AP
 	out.Version = in.Version
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
-	out.Priority = in.Priority
+	out.GroupPriorityMinimum = in.GroupPriorityMinimum
+	out.VersionPriority = in.VersionPriority
 	return nil
 }
 
@@ -154,7 +155,8 @@ func autoConvert_apiregistration_APIServiceSpec_To_v1beta1_APIServiceSpec(in *ap
 	} else {
 		out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
 	}
-	out.Priority = in.Priority
+	out.GroupPriorityMinimum = in.GroupPriorityMinimum
+	out.VersionPriority = in.VersionPriority
 	return nil
 }
 
