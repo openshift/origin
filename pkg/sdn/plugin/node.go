@@ -20,8 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
 
-	docker "github.com/fsouza/go-dockerclient"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,6 +30,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 )
@@ -195,31 +194,41 @@ func (node *OsdnNode) dockerPreCNICleanup() error {
 		itx.EndTransaction()
 	}
 
-	// Wait until docker has restarted since kubelet will exit it docker isn't running
-	dockerClient, err := docker.NewClientFromEnv()
-	if err != nil {
-		return fmt.Errorf("failed to get docker client: %v", err)
+	// Wait until docker has restarted since kubelet will exit if docker isn't running
+	if _, err := ensureDockerClient(); err != nil {
+		return err
 	}
-	err = kwait.ExponentialBackoff(
+
+	log.Infof("Cleaned up left-over openshift-sdn docker bridge and interfaces")
+
+	return nil
+}
+
+func ensureDockerClient() (dockertools.DockerInterface, error) {
+	endpoint := os.Getenv("DOCKER_HOST")
+	if endpoint == "" {
+		endpoint = "unix:///var/run/docker.sock"
+	}
+	dockerClient := dockertools.ConnectToDockerOrDie(endpoint, time.Minute, time.Minute)
+
+	// Wait until docker has restarted since kubelet will exit it docker isn't running
+	err := kwait.ExponentialBackoff(
 		kwait.Backoff{
 			Duration: 100 * time.Millisecond,
 			Factor:   1.2,
 			Steps:    6,
 		},
 		func() (bool, error) {
-			if err := dockerClient.Ping(); err != nil {
+			if _, err := dockerClient.Version(); err != nil {
 				// wait longer
 				return false, nil
 			}
 			return true, nil
 		})
 	if err != nil {
-		return fmt.Errorf("failed to connect to docker after SDN cleanup restart: %v", err)
+		return nil, fmt.Errorf("failed to connect to docker: %v", err)
 	}
-
-	log.Infof("Cleaned up left-over openshift-sdn docker bridge and interfaces")
-
-	return nil
+	return dockerClient, nil
 }
 
 func (node *OsdnNode) Start() error {
@@ -271,19 +280,33 @@ func (node *OsdnNode) Start() error {
 	}
 
 	if networkChanged {
-		var pods []kapi.Pod
+		var pods, podsToKill []kapi.Pod
+
 		pods, err = node.GetLocalPods(metav1.NamespaceAll)
 		if err != nil {
 			return err
 		}
 		for _, p := range pods {
-			err = node.UpdatePod(p)
-			if err != nil {
-				log.Warningf("Could not update pod %q: %s", p.Name, err)
+			// Ignore HostNetwork pods since they don't go through OVS
+			if p.Spec.SecurityContext != nil && p.Spec.SecurityContext.HostNetwork {
 				continue
 			}
-			if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
+			if err := node.UpdatePod(p); err != nil {
+				log.Warningf("will restart pod '%s/%s' due to update failure on restart: %s", p.Namespace, p.Name, err)
+				podsToKill = append(podsToKill, p)
+			} else if vnid, err := node.policy.GetVNID(p.Namespace); err == nil {
 				node.policy.EnsureVNIDRules(vnid)
+			}
+		}
+
+		// Kill pods we couldn't recover; they will get restarted and then
+		// we'll be able to set them up correctly
+		if len(podsToKill) > 0 {
+			docker, err := ensureDockerClient()
+			if err != nil {
+				log.Warningf("failed to get docker client: %v", err)
+			} else if err := killUpdateFailedPods(docker, podsToKill); err != nil {
+				log.Warningf("failed to restart pods that failed to update at startup: %v", err)
 			}
 		}
 	}
