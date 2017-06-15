@@ -10,6 +10,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
@@ -17,7 +18,6 @@ import (
 
 	oclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/controller/shared"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
@@ -51,7 +51,7 @@ type clusterQuotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-var _ oadmission.WantsInformers = &clusterQuotaAdmission{}
+var _ oadmission.WantsInternalKubernetesInformers = &clusterQuotaAdmission{}
 var _ oadmission.WantsOpenshiftClient = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
 
@@ -127,9 +127,9 @@ func (q *clusterQuotaAdmission) SetOriginQuotaRegistry(registry quota.Registry) 
 	q.registry = registry
 }
 
-func (q *clusterQuotaAdmission) SetInformers(informers shared.InformerFactory) {
-	q.namespaceLister = informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Lister()
-	q.namespaceSynced = informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer().HasSynced
+func (q *clusterQuotaAdmission) SetInternalKubernetesInformers(informers kinternalinformers.SharedInformerFactory) {
+	q.namespaceLister = informers.Core().InternalVersion().Namespaces().Lister()
+	q.namespaceSynced = informers.Core().InternalVersion().Namespaces().Informer().HasSynced
 }
 
 func (q *clusterQuotaAdmission) SetOpenshiftClient(client oclient.Interface) {

@@ -69,6 +69,7 @@ import (
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -80,7 +81,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/controller/shared"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
@@ -195,6 +195,7 @@ type MasterConfig struct {
 	ImageInformers         imageinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
+	BuildInformers         buildinformer.SharedInformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the

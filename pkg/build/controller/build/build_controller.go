@@ -31,10 +31,10 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imagelisters "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -79,8 +79,8 @@ type BuildController struct {
 // BuildControllerParams is the set of parameters needed to
 // create a new BuildController
 type BuildControllerParams struct {
-	BuildInformer       shared.BuildInformer
-	BuildConfigInformer shared.BuildConfigInformer
+	BuildInformer       buildinformer.BuildInformer
+	BuildConfigInformer buildinformer.BuildConfigInformer
 	ImageStreamInformer imageinformers.ImageStreamInformer
 	PodInformer         kcoreinformers.PodInformer
 	SecretInformer      kcoreinformers.SecretInformer

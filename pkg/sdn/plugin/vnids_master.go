@@ -281,7 +281,7 @@ func (master *OsdnMaster) VnidStartMaster() error {
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	RegisterSharedInformerEventHandlers(master.informers.InternalKubernetesInformers(),
+	RegisterSharedInformerEventHandlers(master.informers,
 		master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, Namespaces)
 }
 

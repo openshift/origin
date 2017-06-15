@@ -4,11 +4,11 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	restclient "k8s.io/client-go/rest"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -56,9 +56,10 @@ type WantsRESTClientConfig interface {
 	admission.Validator
 }
 
-// WantsInformers should be implemented by admission plugins that will select its own informer
-type WantsInformers interface {
-	SetInformers(shared.InformerFactory)
+// WantsInternalKubernetesInformers should be implemented by admission plugins that need the internal kubernetes
+// informers.
+type WantsInternalKubernetesInformers interface {
+	SetInternalKubernetesInformers(kinternalinformers.SharedInformerFactory)
 	admission.Validator
 }
 

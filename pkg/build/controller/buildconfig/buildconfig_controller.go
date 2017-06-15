@@ -22,9 +22,9 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	cachebuildclient "github.com/openshift/origin/pkg/build/client/cache"
 	buildutil "github.com/openshift/origin/pkg/build/controller/common"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller/shared"
 )
 
 const (
@@ -64,7 +64,7 @@ type BuildConfigController struct {
 	recorder record.EventRecorder
 }
 
-func NewBuildConfigController(openshiftClient osclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer shared.BuildConfigInformer, buildInformer shared.BuildInformer) *BuildConfigController {
+func NewBuildConfigController(openshiftClient osclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternalClient.Core().RESTClient()).Events("")})
 

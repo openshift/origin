@@ -8,7 +8,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/controller/shared"
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	osapivalidation "github.com/openshift/origin/pkg/sdn/api/validation"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -18,6 +17,7 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
 type OsdnMaster struct {
@@ -26,13 +26,13 @@ type OsdnMaster struct {
 	networkInfo     *NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
-	informers       shared.InformerFactory
+	informers       kinternalinformers.SharedInformerFactory
 
 	// Holds Node IP used in creating host subnet for a node
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers shared.InformerFactory) error {
+func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}

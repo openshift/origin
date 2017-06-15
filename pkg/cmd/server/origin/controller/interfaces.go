@@ -8,7 +8,6 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller/shared"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
@@ -24,8 +23,6 @@ type ControllerContext struct {
 	AppInformers      appinformer.SharedInformerFactory
 	ImageInformers    imageinformer.SharedInformerFactory
 	TemplateInformers templateinformer.SharedInformerFactory
-
-	DeprecatedOpenshiftInformers shared.InformerFactory
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
