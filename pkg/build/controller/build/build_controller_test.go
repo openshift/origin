@@ -958,7 +958,6 @@ type fakeBuildController struct {
 
 func (c *fakeBuildController) start() {
 	c.imageInformers.Start(c.stopChan)
-	c.informers.StartCore(c.stopChan)
 	c.informers.Start(c.stopChan)
 	c.informers.KubernetesInformers().Start(c.stopChan)
 	c.informers.InternalKubernetesInformers().Start(c.stopChan)
