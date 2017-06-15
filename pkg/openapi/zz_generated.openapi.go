@@ -9127,7 +9127,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"templateInstance", "secret", "bindingIDs"},
+					Required: []string{"templateInstance", "secret"},
 				},
 			},
 			Dependencies: []string{

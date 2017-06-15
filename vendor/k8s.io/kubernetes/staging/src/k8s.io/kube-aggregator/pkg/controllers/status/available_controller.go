@@ -17,10 +17,13 @@ limitations under the License.
 package apiserver
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/golang/glog"
+	"golang.org/x/net/context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -184,14 +187,67 @@ func (c *AvailableConditionController) sync(key string) error {
 			return err
 		}
 	}
-
-	// TODO actually try to hit the discovery endpoint
+	// actually try to hit the discovery endpoint
+	if apiService.Spec.Service != nil {
+		destinationHost := getDestinationHost(apiService, c.serviceLister)
+		discoveryURL := "https://" + destinationHost + "/apis"
+		// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
+		// that's not so bad) and sets a very short timeout.
+		httpClient := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+		req, err := http.NewRequest("GET", discoveryURL, nil)
+		if err != nil {
+			return err
+		}
+		ctx, _ := context.WithTimeout(req.Context(), 5*time.Second)
+		req.WithContext(ctx)
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			availableCondition.Status = apiregistration.ConditionFalse
+			availableCondition.Reason = "FailedDiscoveryCheck"
+			availableCondition.Message = fmt.Sprintf("no response from %v: %v", discoveryURL, err)
+			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
+			_, updateErr := c.apiServiceClient.APIServices().UpdateStatus(apiService)
+			if updateErr != nil {
+				return updateErr
+			}
+			// force a requeue to make it very obvious that this will be retried at some point in the future
+			// along with other requeues done via service change, endpoint change, and resync
+			return err
+		}
+		resp.Body.Close()
+	}
 
 	availableCondition.Reason = "Passed"
 	availableCondition.Message = "all checks passed"
 	apiregistration.SetAPIServiceCondition(apiService, availableCondition)
 	_, err = c.apiServiceClient.APIServices().UpdateStatus(apiService)
 	return err
+}
+
+func getDestinationHost(apiService *apiregistration.APIService, serviceLister v1listers.ServiceLister) string {
+	if apiService.Spec.Service == nil {
+		return ""
+	}
+
+	destinationHost := apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc"
+	service, err := serviceLister.Services(apiService.Spec.Service.Namespace).Get(apiService.Spec.Service.Name)
+	if err != nil {
+		return destinationHost
+	}
+	switch {
+	// use IP from a clusterIP for these service types
+	case service.Spec.Type == v1.ServiceTypeClusterIP,
+		service.Spec.Type == v1.ServiceTypeNodePort,
+		service.Spec.Type == v1.ServiceTypeLoadBalancer:
+		return service.Spec.ClusterIP
+	}
+
+	// return the normal DNS name by default
+	return destinationHost
 }
 
 func (c *AvailableConditionController) Run(stopCh <-chan struct{}) {

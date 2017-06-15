@@ -26,6 +26,8 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclientfake "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -92,13 +94,15 @@ func fakeMasterConfig() *MasterConfig {
 	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
 	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
+	quotaInformerFactory := quotainformer.NewSharedInformerFactory(quotaclientfake.NewSimpleClientset(), 0)
 
 	return &MasterConfig{
 		KubeletClientConfig:                           &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:                             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
 		Informers:                                     informerFactory,
 		AuthorizationInformers:                        authorizationInformerFactory,
-		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas()),
+		QuotaInformers:                                quotaInformerFactory,
+		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
 		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
 	}
@@ -106,9 +110,8 @@ func fakeMasterConfig() *MasterConfig {
 
 func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
-	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
-	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
+	quotaInformerFactory := quotainformer.NewSharedInformerFactory(quotaclientfake.NewSimpleClientset(), 0)
 
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.Config{
@@ -120,10 +123,10 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		KubeletClientConfig:           &kubeletclient.KubeletClientConfig{},
 		KubeInternalInformers:         internalkubeInformerFactory,
 		AuthorizationInformers:        authorizationInformerFactory,
-		DeprecatedInformers:           informerFactory,
+		QuotaInformers:                quotaInformerFactory,
 		EnableBuilds:                  true,
 		EnableTemplateServiceBroker:   false,
-		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas()),
+		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 	}
 	return ret
 }

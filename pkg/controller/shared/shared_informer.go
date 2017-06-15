@@ -19,15 +19,12 @@ import (
 type InformerFactory interface {
 	// Start starts informers that can start AFTER the API server and controllers have started
 	Start(stopCh <-chan struct{})
-	// StartCore starts core informers that must initialize in order for the API server to start
-	StartCore(stopCh <-chan struct{})
 
 	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
 
 	BuildConfigs() BuildConfigInformer
 	Builds() BuildInformer
 	SecurityContextConstraints() SecurityContextConstraintsInformer
-	ClusterResourceQuotas() ClusterResourceQuotaInformer
 
 	KubernetesInformers() kinformers.SharedInformerFactory
 	InternalKubernetesInformers() kinternalinformers.SharedInformerFactory
@@ -63,10 +60,8 @@ func NewInformerFactory(
 		customListerWatchers:  customListerWatchers,
 		defaultResync:         defaultResync,
 
-		informers:            map[reflect.Type]cache.SharedIndexInformer{},
-		coreInformers:        map[reflect.Type]cache.SharedIndexInformer{},
-		startedInformers:     map[reflect.Type]bool{},
-		startedCoreInformers: map[reflect.Type]bool{},
+		informers:        map[reflect.Type]cache.SharedIndexInformer{},
+		startedInformers: map[reflect.Type]bool{},
 	}
 }
 
@@ -78,11 +73,9 @@ type sharedInformerFactory struct {
 	customListerWatchers  ListerWatcherOverrides
 	defaultResync         time.Duration
 
-	informers            map[reflect.Type]cache.SharedIndexInformer
-	coreInformers        map[reflect.Type]cache.SharedIndexInformer
-	startedInformers     map[reflect.Type]bool
-	startedCoreInformers map[reflect.Type]bool
-	lock                 sync.Mutex
+	informers        map[reflect.Type]cache.SharedIndexInformer
+	startedInformers map[reflect.Type]bool
+	lock             sync.Mutex
 }
 
 func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
@@ -93,18 +86,6 @@ func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
 		if !f.startedInformers[informerType] {
 			go informer.Run(stopCh)
 			f.startedInformers[informerType] = true
-		}
-	}
-}
-
-func (f *sharedInformerFactory) StartCore(stopCh <-chan struct{}) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
-	for informerType, informer := range f.coreInformers {
-		if !f.startedCoreInformers[informerType] {
-			go informer.Run(stopCh)
-			f.startedCoreInformers[informerType] = true
 		}
 	}
 }
@@ -135,10 +116,6 @@ func (f *sharedInformerFactory) Builds() BuildInformer {
 
 func (f *sharedInformerFactory) SecurityContextConstraints() SecurityContextConstraintsInformer {
 	return &securityContextConstraintsInformer{sharedInformerFactory: f}
-}
-
-func (f *sharedInformerFactory) ClusterResourceQuotas() ClusterResourceQuotaInformer {
-	return &clusterResourceQuotaInformer{sharedInformerFactory: f}
 }
 
 func (f *sharedInformerFactory) KubernetesInformers() kinformers.SharedInformerFactory {

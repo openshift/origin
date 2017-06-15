@@ -104,6 +104,15 @@ image_config = {
             ".": "/var/lib/haproxy"
         }
     },
+    "keepalived-ipfailover": {
+        "directory": "ipfailover/keepalived",
+        "binaries": {
+            "openshift": "/usr/bin/openshift"
+        },
+        "files": {
+            ".": "/var/lib/ipfailover/keepalived"
+        }
+    },
     "node": {
         "directory": "node",
         "binaries": {

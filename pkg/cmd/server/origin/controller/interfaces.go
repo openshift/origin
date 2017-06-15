@@ -93,3 +93,10 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 	}
 	return templateclient.NewForConfig(clientConfig)
 }
+
+// FromKubeInitFunc adapts a kube init func to an openshift one
+func FromKubeInitFunc(initFn kubecontroller.InitFunc) InitFunc {
+	return func(ctx ControllerContext) (bool, error) {
+		return initFn(ctx.KubeControllerContext)
+	}
+}

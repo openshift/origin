@@ -47,6 +47,7 @@ openshift-admin-groups.1
 openshift-admin-ipfailover.1
 openshift-admin-manage-node.1
 openshift-admin-migrate-authorization.1
+openshift-admin-migrate-etcd-ttl.1
 openshift-admin-migrate-image-references.1
 openshift-admin-migrate-storage.1
 openshift-admin-migrate.1
@@ -143,6 +144,7 @@ openshift-cli-adm-groups.1
 openshift-cli-adm-ipfailover.1
 openshift-cli-adm-manage-node.1
 openshift-cli-adm-migrate-authorization.1
+openshift-cli-adm-migrate-etcd-ttl.1
 openshift-cli-adm-migrate-image-references.1
 openshift-cli-adm-migrate-storage.1
 openshift-cli-adm-migrate.1

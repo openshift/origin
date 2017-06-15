@@ -142,10 +142,11 @@ func TestSync(t *testing.T) {
 			services:       []*v1.Service{newService("foo", "bar")},
 			endpoints:      []*v1.Endpoints{newEndpointsWithAddress("foo", "bar")},
 			expectedAvailability: apiregistration.APIServiceCondition{
+				// this is different in the 1.7 pull where the check is skipped.
 				Type:    apiregistration.Available,
-				Status:  apiregistration.ConditionTrue,
-				Reason:  "Passed",
-				Message: `all checks passed`,
+				Status:  apiregistration.ConditionFalse,
+				Reason:  "FailedDiscoveryCheck",
+				Message: `no response from https:///apis: Get https:///apis: http: no Host in request URL`,
 			},
 		},
 	}

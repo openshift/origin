@@ -6,8 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -18,9 +18,9 @@ import (
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
-	ocache "github.com/openshift/origin/pkg/client/cache"
-	"github.com/openshift/origin/pkg/controller/shared"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 // Look out, here there be dragons!
@@ -49,7 +49,7 @@ import (
 // test where I caught the problem.
 
 // NewClusterQuotaMappingController builds a mapping between namespaces and clusterresourcequotas
-func NewClusterQuotaMappingController(namespaceInformer kcoreinformers.NamespaceInformer, quotaInformer shared.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
+func NewClusterQuotaMappingController(namespaceInformer kcoreinformers.NamespaceInformer, quotaInformer quotainformer.ClusterResourceQuotaInformer) *ClusterQuotaMappingController {
 	c := &ClusterQuotaMappingController{
 		namespaceQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "controller_clusterquotamappingcontroller_namespaces"),
 
@@ -83,7 +83,7 @@ type ClusterQuotaMappingController struct {
 	namespacesSynced func() bool
 
 	quotaQueue   workqueue.RateLimitingInterface
-	quotaLister  *ocache.IndexerToClusterResourceQuotaLister
+	quotaLister  quotalister.ClusterResourceQuotaLister
 	quotasSynced func() bool
 
 	clusterQuotaMapper *clusterQuotaMapper
@@ -166,7 +166,7 @@ func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourc
 }
 
 func (c *ClusterQuotaMappingController) syncNamespace(namespace *kapi.Namespace) error {
-	allQuotas, err1 := c.quotaLister.List(metav1.ListOptions{})
+	allQuotas, err1 := c.quotaLister.List(labels.Everything())
 	if err1 != nil {
 		return err1
 	}
@@ -222,17 +222,17 @@ func (c *ClusterQuotaMappingController) quotaWork() bool {
 	}
 	defer c.quotaQueue.Done(key)
 
-	quota, exists, err := c.quotaLister.GetByKey(key.(string))
-	if !exists {
-		c.quotaQueue.Forget(key)
-		return false
-	}
+	quota, err := c.quotaLister.Get(key.(string))
 	if err != nil {
+		if errors.IsNotFound(err) {
+			c.quotaQueue.Forget(key)
+			return false
+		}
 		utilruntime.HandleError(err)
 		return false
 	}
 
-	err = c.syncQuota(quota.(*quotaapi.ClusterResourceQuota))
+	err = c.syncQuota(quota)
 	outOfRetries := c.quotaQueue.NumRequeues(key) > 5
 	switch {
 	case err != nil && outOfRetries:

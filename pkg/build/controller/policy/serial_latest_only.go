@@ -49,6 +49,11 @@ func (s *SerialLatestOnlyPolicy) OnComplete(build *buildapi.Build) error {
 	return handleComplete(s.BuildLister, s.BuildUpdater, build)
 }
 
+// Handles returns true for the build run serial latest only policy
+func (s *SerialLatestOnlyPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
+	return policy == buildapi.BuildRunPolicySerialLatestOnly
+}
+
 // cancelPreviousBuilds cancels all queued builds that have the build sequence number
 // lower than the given build. It retries the cancellation in case of conflict.
 func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []error {
