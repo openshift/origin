@@ -21,8 +21,6 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/pkg/api/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -39,57 +37,6 @@ func newTestBroker(name, url string) *v1alpha1.Broker {
 	}
 }
 
-func newTestBrokerPod(name string) *v1.Pod {
-	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				"app": name,
-			},
-		},
-		Spec: v1.PodSpec{
-			Containers: []v1.Container{
-				{
-					Name:  name,
-					Image: "quay.io/kubernetes-service-catalog/user-broker:v0.0.7",
-					Args: []string{
-						"--port",
-						"8080",
-					},
-					Ports: []v1.ContainerPort{
-						{
-							ContainerPort: 8080,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func newTestBrokerService(name string) *v1.Service {
-	return &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			Labels: map[string]string{
-				"app": name,
-			},
-		},
-		Spec: v1.ServiceSpec{
-			Selector: map[string]string{
-				"app": name,
-			},
-			Ports: []v1.ServicePort{
-				{
-					Protocol:   v1.ProtocolTCP,
-					Port:       80,
-					TargetPort: intstr.FromInt(8080),
-				},
-			},
-		},
-	}
-}
-
 var _ = framework.ServiceCatalogDescribe("Broker", func() {
 	f := framework.NewDefaultFramework("create-broker")
 
@@ -97,13 +44,13 @@ var _ = framework.ServiceCatalogDescribe("Broker", func() {
 
 	BeforeEach(func() {
 		By("Creating a user broker pod")
-		pod, err := f.KubeClientSet.CoreV1().Pods(f.Namespace.Name).Create(newTestBrokerPod(brokerName))
+		pod, err := f.KubeClientSet.CoreV1().Pods(f.Namespace.Name).Create(NewUPSBrokerPod(brokerName))
 		Expect(err).NotTo(HaveOccurred())
 		By("Waiting for pod to be running")
 		err = framework.WaitForPodRunningInNamespace(f.KubeClientSet, pod)
 		Expect(err).NotTo(HaveOccurred())
 		By("Creating a user broker service")
-		_, err = f.KubeClientSet.CoreV1().Services(f.Namespace.Name).Create(newTestBrokerService(brokerName))
+		_, err = f.KubeClientSet.CoreV1().Services(f.Namespace.Name).Create(NewUPSBrokerService(brokerName))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -130,7 +77,13 @@ var _ = framework.ServiceCatalogDescribe("Broker", func() {
 				Status: v1alpha1.ConditionTrue,
 			})
 		Expect(err).NotTo(HaveOccurred())
+
 		By("Deleting the Broker")
-		f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Brokers().Delete(brokerName, nil)
+		err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Brokers().Delete(brokerName, nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Waiting for Broker to not exist")
+		err = util.WaitForBrokerToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), brokerName)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })

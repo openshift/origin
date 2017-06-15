@@ -168,7 +168,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			c.Fuzz(obj)
 
 			// Find a codec for converting the object to raw bytes.  This is necessary for the
-			// api version and kind to be correctly set be serialization.
+			// api version and kind to be correctly set by serialization.
 			var codec runtime.Codec
 			switch obj.(type) {
 			case *api.Pod:
@@ -229,6 +229,9 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				return
 			}
 			sp.ExternalMetadata = metadata
+			sp.AlphaBindingCreateParameterSchema = metadata
+			sp.AlphaInstanceCreateParameterSchema = metadata
+			sp.AlphaInstanceUpdateParameterSchema = metadata
 		},
 	)
 	return f

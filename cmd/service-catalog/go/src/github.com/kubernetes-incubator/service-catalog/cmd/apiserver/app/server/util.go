@@ -86,8 +86,10 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 		glog.Infof("Authentication and authorization disabled for testing purposes")
 	}
 
-	// TODO: add support for audit log options
-	// see https://github.com/kubernetes-incubator/service-catalog/issues/678
+	if err := s.AuditOptions.ApplyTo(genericConfig); err != nil {
+		return nil, nil, err
+	}
+
 	// TODO: add support for OpenAPI config
 	// see https://github.com/kubernetes-incubator/service-catalog/issues/721
 	genericConfig.SwaggerConfig = genericapiserver.DefaultSwaggerConfig()

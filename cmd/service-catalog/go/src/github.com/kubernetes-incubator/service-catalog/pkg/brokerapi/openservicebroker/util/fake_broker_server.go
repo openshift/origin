@@ -143,11 +143,15 @@ func (f *FakeBrokerServer) provisionHandler(w http.ResponseWriter, r *http.Reque
 func (f *FakeBrokerServer) deprovisionHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake deprovision called")
 	f.Request = r
-	req := &brokerapi.DeleteServiceInstanceRequest{}
-	if err := util.BodyToObject(r, req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	req := &brokerapi.DeleteServiceInstanceRequest{
+		ServiceID: r.URL.Query().Get("service_id"),
+		PlanID:    r.URL.Query().Get("plan_id"),
 	}
+	incompleteStr := r.URL.Query().Get("accepts_incomplete")
+	if incompleteStr == "true" {
+		req.AcceptsIncomplete = true
+	}
+
 	f.RequestObject = req
 
 	if r.FormValue(asyncProvisionQueryParamKey) != "true" {
