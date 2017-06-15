@@ -300,6 +300,14 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	// github.com/openshift/origin/pkg/security/api/v1
+	gvr("security.openshift.io", "v1", "securitycontextconstraints"): {
+		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
+		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc2",
+		expectedGVK:      gvkP("", "v1", "SecurityContextConstraints"), // we need to backwards compatible with old SCC for at least one release.
+	},
+	// --
+
 	// github.com/openshift/origin/pkg/template/api/v1
 	gvr("", "v1", "templates"): {
 		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1"}}`,

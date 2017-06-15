@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -13,32 +14,32 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	sc "k8s.io/kubernetes/pkg/securitycontext"
-	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 
 	allocator "github.com/openshift/origin/pkg/security"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
 // SCCMatcher defines interface for SecurityContextConstraint matcher
 type SCCMatcher interface {
-	FindApplicableSCCs(user user.Info) ([]*kapi.SecurityContextConstraints, error)
+	FindApplicableSCCs(user user.Info) ([]*securityapi.SecurityContextConstraints, error)
 }
 
 // DefaultSCCMatcher implements default implementation for SCCMatcher interface
 type DefaultSCCMatcher struct {
-	cache kcorelisters.SecurityContextConstraintsLister
+	cache securitylisters.SecurityContextConstraintsLister
 }
 
 // NewDefaultSCCMatcher builds and initializes a DefaultSCCMatcher
-func NewDefaultSCCMatcher(c kcorelisters.SecurityContextConstraintsLister) SCCMatcher {
+func NewDefaultSCCMatcher(c securitylisters.SecurityContextConstraintsLister) SCCMatcher {
 	return DefaultSCCMatcher{cache: c}
 }
 
 // FindApplicableSCCs implements SCCMatcher interface for DefaultSCCMatcher
-func (d DefaultSCCMatcher) FindApplicableSCCs(userInfo user.Info) ([]*kapi.SecurityContextConstraints, error) {
-	var matchedConstraints []*kapi.SecurityContextConstraints
+func (d DefaultSCCMatcher) FindApplicableSCCs(userInfo user.Info) ([]*securityapi.SecurityContextConstraints, error) {
+	var matchedConstraints []*securityapi.SecurityContextConstraints
 	constraints, err := d.cache.List(labels.Everything())
 	if err != nil {
 		return nil, err
@@ -53,7 +54,7 @@ func (d DefaultSCCMatcher) FindApplicableSCCs(userInfo user.Info) ([]*kapi.Secur
 
 // ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
 // if it is usable by the userInfo.
-func ConstraintAppliesTo(constraint *kapi.SecurityContextConstraints, userInfo user.Info) bool {
+func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, userInfo user.Info) bool {
 	for _, user := range constraint.Users {
 		if userInfo.GetName() == user {
 			return true
@@ -163,8 +164,8 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 }
 
 // DeduplicateSecurityContextConstraints ensures we have a unique slice of constraints.
-func DeduplicateSecurityContextConstraints(sccs []*kapi.SecurityContextConstraints) []*kapi.SecurityContextConstraints {
-	deDuped := []*kapi.SecurityContextConstraints{}
+func DeduplicateSecurityContextConstraints(sccs []*securityapi.SecurityContextConstraints) []*securityapi.SecurityContextConstraints {
+	deDuped := []*securityapi.SecurityContextConstraints{}
 	added := sets.NewString()
 
 	for _, s := range sccs {
@@ -186,7 +187,7 @@ func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interf
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ns string, sccs []*kapi.SecurityContextConstraints, client clientset.Interface) ([]kscc.SecurityContextConstraintsProvider, []error) {
+func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client clientset.Interface) ([]kscc.SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
 		namespace *kapi.Namespace
@@ -213,7 +214,7 @@ func CreateProvidersFromConstraints(ns string, sccs []*kapi.SecurityContextConst
 }
 
 // CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *kapi.SecurityContextConstraints, client clientset.Interface) (kscc.SecurityContextConstraintsProvider, *kapi.Namespace, error) {
+func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *securityapi.SecurityContextConstraints, client clientset.Interface) (kscc.SecurityContextConstraintsProvider, *kapi.Namespace, error) {
 	var err error
 	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
 	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
@@ -230,7 +231,7 @@ func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constrai
 	}
 
 	// Make a copy of the constraint so we don't mutate the store's cache
-	var constraintCopy kapi.SecurityContextConstraints = *constraint
+	var constraintCopy securityapi.SecurityContextConstraints = *constraint
 	constraint = &constraintCopy
 
 	// Resolve the values from the namespace
@@ -334,7 +335,7 @@ func getSupplementalGroupsAnnotation(ns *kapi.Namespace) (string, error) {
 }
 
 // getPreallocatedFSGroup gets the annotated value from the namespace.
-func getPreallocatedFSGroup(ns *kapi.Namespace) ([]kapi.IDRange, error) {
+func getPreallocatedFSGroup(ns *kapi.Namespace) ([]securityapi.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
@@ -345,7 +346,7 @@ func getPreallocatedFSGroup(ns *kapi.Namespace) ([]kapi.IDRange, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []kapi.IDRange{
+	return []securityapi.IDRange{
 		{
 			Min: int64(blocks[0].Start),
 			Max: int64(blocks[0].Start),
@@ -354,7 +355,7 @@ func getPreallocatedFSGroup(ns *kapi.Namespace) ([]kapi.IDRange, error) {
 }
 
 // getPreallocatedSupplementalGroups gets the annotated value from the namespace.
-func getPreallocatedSupplementalGroups(ns *kapi.Namespace) ([]kapi.IDRange, error) {
+func getPreallocatedSupplementalGroups(ns *kapi.Namespace) ([]securityapi.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
@@ -366,9 +367,9 @@ func getPreallocatedSupplementalGroups(ns *kapi.Namespace) ([]kapi.IDRange, erro
 		return nil, err
 	}
 
-	idRanges := []kapi.IDRange{}
+	idRanges := []securityapi.IDRange{}
 	for _, block := range blocks {
-		rng := kapi.IDRange{
+		rng := securityapi.IDRange{
 			Min: int64(block.Start),
 			Max: int64(block.End),
 		}
@@ -396,16 +397,16 @@ func parseSupplementalGroupAnnotation(groups string) ([]uid.Block, error) {
 
 // requiresPreAllocatedUIDRange returns true if the strategy is must run in range and the min or max
 // is not set.
-func requiresPreAllocatedUIDRange(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.RunAsUser.Type != kapi.RunAsUserStrategyMustRunAsRange {
+func requiresPreAllocatedUIDRange(constraint *securityapi.SecurityContextConstraints) bool {
+	if constraint.RunAsUser.Type != securityapi.RunAsUserStrategyMustRunAsRange {
 		return false
 	}
 	return constraint.RunAsUser.UIDRangeMin == nil && constraint.RunAsUser.UIDRangeMax == nil
 }
 
 // requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and the level is not set.
-func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.SELinuxContext.Type != kapi.SELinuxStrategyMustRunAs {
+func requiresPreAllocatedSELinuxLevel(constraint *securityapi.SecurityContextConstraints) bool {
+	if constraint.SELinuxContext.Type != securityapi.SELinuxStrategyMustRunAs {
 		return false
 	}
 	if constraint.SELinuxContext.SELinuxOptions == nil {
@@ -416,8 +417,8 @@ func requiresPreAllocatedSELinuxLevel(constraint *kapi.SecurityContextConstraint
 
 // requiresPreAllocatedSELinuxLevel returns true if the strategy is must run as and there is no
 // range specified.
-func requiresPreallocatedSupplementalGroups(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.SupplementalGroups.Type != kapi.SupplementalGroupsStrategyMustRunAs {
+func requiresPreallocatedSupplementalGroups(constraint *securityapi.SecurityContextConstraints) bool {
+	if constraint.SupplementalGroups.Type != securityapi.SupplementalGroupsStrategyMustRunAs {
 		return false
 	}
 	return len(constraint.SupplementalGroups.Ranges) == 0
@@ -425,8 +426,8 @@ func requiresPreallocatedSupplementalGroups(constraint *kapi.SecurityContextCons
 
 // requiresPreallocatedFSGroup returns true if the strategy is must run as and there is no
 // range specified.
-func requiresPreallocatedFSGroup(constraint *kapi.SecurityContextConstraints) bool {
-	if constraint.FSGroup.Type != kapi.FSGroupStrategyMustRunAs {
+func requiresPreallocatedFSGroup(constraint *securityapi.SecurityContextConstraints) bool {
+	if constraint.FSGroup.Type != securityapi.FSGroupStrategyMustRunAs {
 		return false
 	}
 	return len(constraint.FSGroup.Ranges) == 0

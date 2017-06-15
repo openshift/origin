@@ -9,7 +9,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
@@ -146,14 +145,11 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []stri
 		return errors.New("you must specify at least one user or service account")
 	}
 
-	clientConfig, err := f.ClientConfig()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.SCCInterface, err = legacyclient.New(clientConfig)
-	if err != nil {
-		return err
-	}
+	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
@@ -175,14 +171,11 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 	o.SCCName = args[0]
 	o.Subjects = authorizationapi.BuildSubjects([]string{}, args[1:], uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
-	clientConfig, err := f.ClientConfig()
+	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.SCCInterface, err = legacyclient.New(clientConfig)
-	if err != nil {
-		return err
-	}
+	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {

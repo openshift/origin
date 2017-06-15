@@ -464,6 +464,7 @@ func (m *Master) Start() error {
 			openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 			openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
+			openshiftConfig.SecurityInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
@@ -474,6 +475,7 @@ func (m *Master) Start() error {
 		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
+		openshiftConfig.SecurityInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 	}
 
@@ -730,6 +732,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		AppInformers:           oc.AppInformers,
 		BuildInformers:         oc.BuildInformers,
 		ImageInformers:         oc.ImageInformers,
+		SecurityInformers:      oc.SecurityInformers,
 		TemplateInformers:      oc.TemplateInformers,
 		QuotaInformers:         oc.QuotaInformers,
 		Stop:                   utilwait.NeverStop,

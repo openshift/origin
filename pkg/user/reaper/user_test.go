@@ -9,13 +9,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/davecgh/go-spew/spew"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 	authenticationapi "github.com/openshift/origin/pkg/user/api"
 )
 
@@ -30,6 +31,7 @@ func TestUserReaper(t *testing.T) {
 		name     string
 		user     string
 		objects  []runtime.Object
+		sccs     []runtime.Object
 		expected []interface{}
 	}{
 		{
@@ -101,23 +103,23 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "sccs",
 			user: "bob",
-			objects: []runtime.Object{
-				&kapi.SecurityContextConstraints{
+			sccs: []runtime.Object{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
 					Users:      []string{},
 				},
-				&kapi.SecurityContextConstraints{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{"bob"},
 				},
-				&kapi.SecurityContextConstraints{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-mismatched-subjects"},
 					Users:      []string{"bob2"},
 					Groups:     []string{"bob"},
 				},
 			},
 			expected: []interface{}{
-				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &kapi.SecurityContextConstraints{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: securityContextContraintsResource}, Object: &securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Users:      []string{},
 				}},
@@ -213,7 +215,7 @@ func TestUserReaper(t *testing.T) {
 
 	for _, test := range tests {
 		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
-		ktc := fake.NewSimpleClientset(testclient.UpstreamObjects(test.objects)...)
+		ktc := legacyclient.NewSimpleFake(test.sccs...)
 
 		actual := []interface{}{}
 		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -227,10 +229,10 @@ func TestUserReaper(t *testing.T) {
 
 		tc.PrependReactor("update", "*", oreactor)
 		tc.PrependReactor("delete", "*", oreactor)
-		ktc.PrependReactor("update", "*", kreactor)
-		ktc.PrependReactor("delete", "*", kreactor)
+		ktc.Fake.PrependReactor("update", "*", kreactor)
+		ktc.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewUserReaper(tc, tc, tc, tc, tc, ktc.Core())
+		reaper := NewUserReaper(tc, tc, tc, tc, tc, ktc)
 		err := reaper.Stop("", test.user, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

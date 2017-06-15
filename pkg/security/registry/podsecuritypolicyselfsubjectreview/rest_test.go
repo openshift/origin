@@ -10,11 +10,13 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func validPodTemplateSpec() kapi.PodTemplateSpec {
@@ -47,11 +49,11 @@ func validPodTemplateSpec() kapi.PodTemplateSpec {
 
 func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 	testcases := map[string]struct {
-		sccs  []*kapi.SecurityContextConstraints
+		sccs  []*securityapi.SecurityContextConstraints
 		check func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string)
 	}{
 		"user foo": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
@@ -61,7 +63,7 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 			},
 		},
 		"user bar ": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 			},
 			check: func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string) {
@@ -95,7 +97,7 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 		}
 
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
 
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {

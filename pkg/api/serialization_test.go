@@ -454,6 +454,40 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			// TODO: uint64's are NOT handled right.
 			*u64 = c.RandUint64() >> 8
 		},
+
+		func(scc *securityapi.SecurityContextConstraints, c fuzz.Continue) {
+			c.FuzzNoCustom(scc) // fuzz self without calling this function again
+			userTypes := []securityapi.RunAsUserStrategyType{securityapi.RunAsUserStrategyMustRunAsNonRoot, securityapi.RunAsUserStrategyMustRunAs, securityapi.RunAsUserStrategyRunAsAny, securityapi.RunAsUserStrategyMustRunAsRange}
+			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
+			seLinuxTypes := []securityapi.SELinuxContextStrategyType{securityapi.SELinuxStrategyRunAsAny, securityapi.SELinuxStrategyMustRunAs}
+			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			supGroupTypes := []securityapi.SupplementalGroupsStrategyType{securityapi.SupplementalGroupsStrategyMustRunAs, securityapi.SupplementalGroupsStrategyRunAsAny}
+			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
+			fsGroupTypes := []securityapi.FSGroupStrategyType{securityapi.FSGroupStrategyMustRunAs, securityapi.FSGroupStrategyRunAsAny}
+			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+
+			// when fuzzing the volume types ensure it is set to avoid the defaulter's expansion.
+			// Do not use FSTypeAll or host dir setting to steer clear of defaulting mechanics
+			// which are covered in specific unit tests.
+			volumeTypes := []securityapi.FSType{securityapi.FSTypeAWSElasticBlockStore,
+				securityapi.FSTypeAzureFile,
+				securityapi.FSTypeCephFS,
+				securityapi.FSTypeCinder,
+				securityapi.FSTypeDownwardAPI,
+				securityapi.FSTypeEmptyDir,
+				securityapi.FSTypeFC,
+				securityapi.FSTypeFlexVolume,
+				securityapi.FSTypeFlocker,
+				securityapi.FSTypeGCEPersistentDisk,
+				securityapi.FSTypeGitRepo,
+				securityapi.FSTypeGlusterfs,
+				securityapi.FSTypeISCSI,
+				securityapi.FSTypeNFS,
+				securityapi.FSTypePersistentVolumeClaim,
+				securityapi.FSTypeRBD,
+				securityapi.FSTypeSecret}
+			scc.Volumes = []securityapi.FSType{volumeTypes[c.Rand.Intn(len(volumeTypes))]}
+		},
 	)
 	return f
 }

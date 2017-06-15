@@ -7,111 +7,112 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 func TestModifySCC(t *testing.T) {
 	tests := map[string]struct {
-		startingSCC *kapi.SecurityContextConstraints
+		startingSCC *securityapi.SecurityContextConstraints
 		subjects    []kapi.ObjectReference
-		expectedSCC *kapi.SecurityContextConstraints
+		expectedSCC *securityapi.SecurityContextConstraints
 		remove      bool
 	}{
 		"add-user-to-empty": {
-			startingSCC: &kapi.SecurityContextConstraints{},
+			startingSCC: &securityapi.SecurityContextConstraints{},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.UserKind}, {Name: "two", Kind: authorizationapi.UserKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-user-to-existing": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []kapi.ObjectReference{{Name: "two", Kind: authorizationapi.UserKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-user-to-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.UserKind}, {Name: "two", Kind: authorizationapi.UserKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
 			remove:      false,
 		},
 
 		"add-sa-to-empty": {
-			startingSCC: &kapi.SecurityContextConstraints{},
+			startingSCC: &securityapi.SecurityContextConstraints{},
 			subjects:    []kapi.ObjectReference{{Namespace: "a", Name: "one", Kind: authorizationapi.ServiceAccountKind}, {Namespace: "b", Name: "two", Kind: authorizationapi.ServiceAccountKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 		"add-sa-to-existing": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
 			subjects:    []kapi.ObjectReference{{Namespace: "b", Name: "two", Kind: authorizationapi.ServiceAccountKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 		"add-sa-to-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
 			subjects:    []kapi.ObjectReference{{Namespace: "a", Name: "one", Kind: authorizationapi.ServiceAccountKind}, {Namespace: "b", Name: "two", Kind: authorizationapi.ServiceAccountKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			remove:      false,
 		},
 
 		"add-group-to-empty": {
-			startingSCC: &kapi.SecurityContextConstraints{},
+			startingSCC: &securityapi.SecurityContextConstraints{},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.GroupKind}, {Name: "two", Kind: authorizationapi.GroupKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-group-to-existing": {
-			startingSCC: &kapi.SecurityContextConstraints{Groups: []string{"one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
 			subjects:    []kapi.ObjectReference{{Name: "two", Kind: authorizationapi.GroupKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 		"add-group-to-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Groups: []string{"one"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.GroupKind}, {Name: "two", Kind: authorizationapi.GroupKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			remove:      false,
 		},
 
 		"remove-user": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.UserKind}, {Name: "two", Kind: authorizationapi.UserKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{},
+			expectedSCC: &securityapi.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-user-from-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"one", "two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"one", "two"}},
 			subjects:    []kapi.ObjectReference{{Name: "two", Kind: authorizationapi.UserKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"one"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"one"}},
 			remove:      true,
 		},
 
 		"remove-sa": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			subjects:    []kapi.ObjectReference{{Namespace: "a", Name: "one", Kind: authorizationapi.ServiceAccountKind}, {Namespace: "b", Name: "two", Kind: authorizationapi.ServiceAccountKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{},
+			expectedSCC: &securityapi.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-sa-from-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one", "system:serviceaccount:b:two"}},
 			subjects:    []kapi.ObjectReference{{Namespace: "b", Name: "two", Kind: authorizationapi.ServiceAccountKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Users: []string{"system:serviceaccount:a:one"}},
 			remove:      true,
 		},
 
 		"remove-group": {
-			startingSCC: &kapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			subjects:    []kapi.ObjectReference{{Name: "one", Kind: authorizationapi.GroupKind}, {Name: "two", Kind: authorizationapi.GroupKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{},
+			expectedSCC: &securityapi.SecurityContextConstraints{},
 			remove:      true,
 		},
 		"remove-group-from-existing-with-overlap": {
-			startingSCC: &kapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
+			startingSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one", "two"}},
 			subjects:    []kapi.ObjectReference{{Name: "two", Kind: authorizationapi.GroupKind}},
-			expectedSCC: &kapi.SecurityContextConstraints{Groups: []string{"one"}},
+			expectedSCC: &securityapi.SecurityContextConstraints{Groups: []string{"one"}},
 			remove:      true,
 		},
 	}
@@ -121,9 +122,9 @@ func TestModifySCC(t *testing.T) {
 		fakeClient.Fake.PrependReactor("get", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, tc.startingSCC, nil
 		})
-		var actualSCC *kapi.SecurityContextConstraints
+		var actualSCC *securityapi.SecurityContextConstraints
 		fakeClient.Fake.PrependReactor("update", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			actualSCC = action.(clientgotesting.UpdateAction).GetObject().(*kapi.SecurityContextConstraints)
+			actualSCC = action.(clientgotesting.UpdateAction).GetObject().(*securityapi.SecurityContextConstraints)
 			return true, actualSCC, nil
 		})
 

@@ -1,7 +1,6 @@
 package origin
 
 import (
-	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 // ensureOpenShiftSharedResourcesNamespace is called as part of global policy initialization to ensure shared namespace exists
@@ -152,52 +152,12 @@ func (c *MasterConfig) ensureNamespaceServiceAccountRoleBindings(namespace *kapi
 	}
 }
 
-func (c *MasterConfig) securityContextConstraintsSupported() (bool, error) {
-	// TODO to make this a library upstream, ResourceExists(GroupVersionResource) or some such.
-	// look for supported groups
-	serverGroupList, err := c.KubeClientsetInternal().Discovery().ServerGroups()
-	if err != nil {
-		return false, err
-	}
-	// find the preferred version of the legacy group
-	var legacyGroup *metav1.APIGroup
-	for i := range serverGroupList.Groups {
-		if len(serverGroupList.Groups[i].Name) == 0 {
-			legacyGroup = &serverGroupList.Groups[i]
-		}
-	}
-	if legacyGroup == nil {
-		return false, fmt.Errorf("unable to discovery preferred version for legacy api group")
-	}
-	// check if securitycontextconstraints is a resource in the group
-	apiResourceList, err := c.KubeClientsetInternal().Discovery().ServerResourcesForGroupVersion(legacyGroup.PreferredVersion.GroupVersion)
-	if err != nil {
-		return false, err
-	}
-	for _, apiResource := range apiResourceList.APIResources {
-		if apiResource.Name == "securitycontextconstraints" && !apiResource.Namespaced {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 func (c *MasterConfig) ensureDefaultSecurityContextConstraints() {
-	sccSupported, err := c.securityContextConstraintsSupported()
-	if err != nil {
-		glog.Errorf("Unable to determine if security context constraints are supported. Got error: %v", err)
-		return
-	}
-	if !sccSupported {
-		glog.Infof("Ignoring default security context constraints when running on external Kubernetes.")
-		return
-	}
-
 	ns := c.Options.PolicyConfig.OpenShiftInfrastructureNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := c.KubeClientsetInternal().Core().SecurityContextConstraints().Create(&scc)
+		_, err := legacyclient.NewFromClient(c.KubeClientsetInternal().Core().RESTClient()).Create(&scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue
 		}

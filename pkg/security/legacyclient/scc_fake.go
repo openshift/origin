@@ -1,8 +1,6 @@
 package legacyclient
 
 import (
-	"sync"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -28,7 +26,7 @@ func NewSimpleFake(objects ...runtime.Object) *FakeSecurityContextContstraint {
 
 	fakeClient.AddWatchReactor("*", clientgotesting.DefaultWatchReactor(watch.NewFake(), nil))
 
-	return FakeSecurityContextContstraint{Fake: fakeClient}
+	return &FakeSecurityContextContstraint{Fake: fakeClient}
 }
 
 type FakeSecurityContextContstraint struct {
@@ -37,26 +35,44 @@ type FakeSecurityContextContstraint struct {
 
 var sccResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
 
-func (c *FakeSecurityContextContstraint) Get(name string, options metav1.GetOptions) (*securityapi.ClusterPolicy, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(sccResource, name), &securityapi.ClusterPolicy{})
+func (c *FakeSecurityContextContstraint) Get(name string, options metav1.GetOptions) (*securityapi.SecurityContextConstraints, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(sccResource, name), &securityapi.SecurityContextConstraints{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*securityapi.ClusterPolicy), err
+	return obj.(*securityapi.SecurityContextConstraints), err
 }
 
-func (c *FakeSecurityContextContstraint) List(opts metav1.ListOptions) (*securityapi.ClusterPolicyList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(sccResource, opts), &securityapi.ClusterPolicyList{})
+func (c *FakeSecurityContextContstraint) List(opts metav1.ListOptions) (*securityapi.SecurityContextConstraintsList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(sccResource, opts), &securityapi.SecurityContextConstraintsList{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*securityapi.ClusterPolicyList), err
+	return obj.(*securityapi.SecurityContextConstraintsList), err
+}
+
+func (c *FakeSecurityContextContstraint) Create(inObj *securityapi.SecurityContextConstraints) (*securityapi.SecurityContextConstraints, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootCreateAction(sccResource, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*securityapi.SecurityContextConstraints), err
+}
+
+func (c *FakeSecurityContextContstraint) Update(inObj *securityapi.SecurityContextConstraints) (*securityapi.SecurityContextConstraints, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootUpdateAction(sccResource, inObj), inObj)
+	if obj == nil {
+		return nil, err
+	}
+
+	return obj.(*securityapi.SecurityContextConstraints), err
 }
 
 func (c *FakeSecurityContextContstraint) Delete(name string) error {
-	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(sccResource, name), &securityapi.ClusterPolicy{})
+	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(sccResource, name), &securityapi.SecurityContextConstraints{})
 	return err
 }
 

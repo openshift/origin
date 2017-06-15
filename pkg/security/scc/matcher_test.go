@@ -3,16 +3,17 @@ package scc
 import (
 	"testing"
 
+	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 
 	allocator "github.com/openshift/origin/pkg/security"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func TestDeduplicateSecurityContextConstraints(t *testing.T) {
-	duped := []*kapi.SecurityContextConstraints{
+	duped := []*securityapi.SecurityContextConstraints{
 		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
 		{ObjectMeta: metav1.ObjectMeta{Name: "a"}},
 		{ObjectMeta: metav1.ObjectMeta{Name: "b"}},
@@ -51,27 +52,27 @@ func TestAssignSecurityContext(t *testing.T) {
 	// scc that will deny privileged container requests and has a default value for a field (uid)
 	var uid int64 = 9999
 	fsGroup := int64(1)
-	scc := &kapi.SecurityContextConstraints{
+	scc := &securityapi.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test scc",
 		},
-		SELinuxContext: kapi.SELinuxContextStrategyOptions{
-			Type: kapi.SELinuxStrategyRunAsAny,
+		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+			Type: securityapi.SELinuxStrategyRunAsAny,
 		},
-		RunAsUser: kapi.RunAsUserStrategyOptions{
-			Type: kapi.RunAsUserStrategyMustRunAs,
+		RunAsUser: securityapi.RunAsUserStrategyOptions{
+			Type: securityapi.RunAsUserStrategyMustRunAs,
 			UID:  &uid,
 		},
 
 		// require allocation for a field in the psc as well to test changes/no changes
-		FSGroup: kapi.FSGroupStrategyOptions{
-			Type: kapi.FSGroupStrategyMustRunAs,
-			Ranges: []kapi.IDRange{
+		FSGroup: securityapi.FSGroupStrategyOptions{
+			Type: securityapi.FSGroupStrategyMustRunAs,
+			Ranges: []securityapi.IDRange{
 				{Min: fsGroup, Max: fsGroup},
 			},
 		},
-		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-			Type: kapi.SupplementalGroupsStrategyRunAsAny,
+		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
 	provider, err := kscc.NewSimpleProvider(scc)
@@ -172,42 +173,42 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 	var uid int64 = 1
 
 	testCases := map[string]struct {
-		scc      *kapi.SecurityContextConstraints
+		scc      *securityapi.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &kapi.SecurityContextConstraints{
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAs,
+			scc: &securityapi.SecurityContextConstraints{
+				RunAsUser: securityapi.RunAsUserStrategyOptions{
+					Type: securityapi.RunAsUserStrategyMustRunAs,
 				},
 			},
 		},
 		"run as any": {
-			scc: &kapi.SecurityContextConstraints{
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyRunAsAny,
+			scc: &securityapi.SecurityContextConstraints{
+				RunAsUser: securityapi.RunAsUserStrategyOptions{
+					Type: securityapi.RunAsUserStrategyRunAsAny,
 				},
 			},
 		},
 		"run as non-root": {
-			scc: &kapi.SecurityContextConstraints{
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAsNonRoot,
+			scc: &securityapi.SecurityContextConstraints{
+				RunAsUser: securityapi.RunAsUserStrategyOptions{
+					Type: securityapi.RunAsUserStrategyMustRunAsNonRoot,
 				},
 			},
 		},
 		"run as range": {
-			scc: &kapi.SecurityContextConstraints{
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type: kapi.RunAsUserStrategyMustRunAsRange,
+			scc: &securityapi.SecurityContextConstraints{
+				RunAsUser: securityapi.RunAsUserStrategyOptions{
+					Type: securityapi.RunAsUserStrategyMustRunAsRange,
 				},
 			},
 			requires: true,
 		},
 		"run as range with specified params": {
-			scc: &kapi.SecurityContextConstraints{
-				RunAsUser: kapi.RunAsUserStrategyOptions{
-					Type:        kapi.RunAsUserStrategyMustRunAsRange,
+			scc: &securityapi.SecurityContextConstraints{
+				RunAsUser: securityapi.RunAsUserStrategyOptions{
+					Type:        securityapi.RunAsUserStrategyMustRunAsRange,
 					UIDRangeMin: &uid,
 					UIDRangeMax: &uid,
 				},
@@ -225,21 +226,21 @@ func TestRequiresPreAllocatedUIDRange(t *testing.T) {
 
 func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *kapi.SecurityContextConstraints
+		scc      *securityapi.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &kapi.SecurityContextConstraints{
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyMustRunAs,
+			scc: &securityapi.SecurityContextConstraints{
+				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+					Type: securityapi.SELinuxStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with level specified": {
-			scc: &kapi.SecurityContextConstraints{
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyMustRunAs,
+			scc: &securityapi.SecurityContextConstraints{
+				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+					Type: securityapi.SELinuxStrategyMustRunAs,
 					SELinuxOptions: &kapi.SELinuxOptions{
 						Level: "foo",
 					},
@@ -247,9 +248,9 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 			},
 		},
 		"run as any": {
-			scc: &kapi.SecurityContextConstraints{
-				SELinuxContext: kapi.SELinuxContextStrategyOptions{
-					Type: kapi.SELinuxStrategyRunAsAny,
+			scc: &securityapi.SecurityContextConstraints{
+				SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+					Type: securityapi.SELinuxStrategyRunAsAny,
 				},
 			},
 		},
@@ -265,31 +266,31 @@ func TestRequiresPreAllocatedSELinuxLevel(t *testing.T) {
 
 func TestRequiresPreallocatedSupplementalGroups(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *kapi.SecurityContextConstraints
+		scc      *securityapi.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &kapi.SecurityContextConstraints{
-				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-					Type: kapi.SupplementalGroupsStrategyMustRunAs,
+			scc: &securityapi.SecurityContextConstraints{
+				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+					Type: securityapi.SupplementalGroupsStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with range specified": {
-			scc: &kapi.SecurityContextConstraints{
-				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-					Type: kapi.SupplementalGroupsStrategyMustRunAs,
-					Ranges: []kapi.IDRange{
+			scc: &securityapi.SecurityContextConstraints{
+				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+					Type: securityapi.SupplementalGroupsStrategyMustRunAs,
+					Ranges: []securityapi.IDRange{
 						{Min: 1, Max: 1},
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &kapi.SecurityContextConstraints{
-				SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-					Type: kapi.SupplementalGroupsStrategyRunAsAny,
+			scc: &securityapi.SecurityContextConstraints{
+				SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+					Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 				},
 			},
 		},
@@ -304,31 +305,31 @@ func TestRequiresPreallocatedSupplementalGroups(t *testing.T) {
 
 func TestRequiresPreallocatedFSGroup(t *testing.T) {
 	testCases := map[string]struct {
-		scc      *kapi.SecurityContextConstraints
+		scc      *securityapi.SecurityContextConstraints
 		requires bool
 	}{
 		"must run as": {
-			scc: &kapi.SecurityContextConstraints{
-				FSGroup: kapi.FSGroupStrategyOptions{
-					Type: kapi.FSGroupStrategyMustRunAs,
+			scc: &securityapi.SecurityContextConstraints{
+				FSGroup: securityapi.FSGroupStrategyOptions{
+					Type: securityapi.FSGroupStrategyMustRunAs,
 				},
 			},
 			requires: true,
 		},
 		"must with range specified": {
-			scc: &kapi.SecurityContextConstraints{
-				FSGroup: kapi.FSGroupStrategyOptions{
-					Type: kapi.FSGroupStrategyMustRunAs,
-					Ranges: []kapi.IDRange{
+			scc: &securityapi.SecurityContextConstraints{
+				FSGroup: securityapi.FSGroupStrategyOptions{
+					Type: securityapi.FSGroupStrategyMustRunAs,
+					Ranges: []securityapi.IDRange{
 						{Min: 1, Max: 1},
 					},
 				},
 			},
 		},
 		"run as any": {
-			scc: &kapi.SecurityContextConstraints{
-				FSGroup: kapi.FSGroupStrategyOptions{
-					Type: kapi.FSGroupStrategyRunAsAny,
+			scc: &securityapi.SecurityContextConstraints{
+				FSGroup: securityapi.FSGroupStrategyOptions{
+					Type: securityapi.FSGroupStrategyRunAsAny,
 				},
 			},
 		},
@@ -437,12 +438,12 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 
 	tests := map[string]struct {
 		ns         *kapi.Namespace
-		expected   []kapi.IDRange
+		expected   []securityapi.IDRange
 		shouldFail bool
 	}{
 		"fall back to uid if sup group doesn't exist": {
 			ns: fallbackNS,
-			expected: []kapi.IDRange{
+			expected: []securityapi.IDRange{
 				{Min: 1, Max: 1},
 			},
 		},
@@ -460,7 +461,7 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 		},
 		"good sup group annotation": {
 			ns: goodNS,
-			expected: []kapi.IDRange{
+			expected: []securityapi.IDRange{
 				{Min: 1, Max: 1},
 			},
 		},
@@ -513,12 +514,12 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 
 	tests := map[string]struct {
 		ns         *kapi.Namespace
-		expected   []kapi.IDRange
+		expected   []securityapi.IDRange
 		shouldFail bool
 	}{
 		"fall back to uid if sup group doesn't exist": {
 			ns: fallbackNS,
-			expected: []kapi.IDRange{
+			expected: []securityapi.IDRange{
 				{Min: 1, Max: 5},
 			},
 		},
@@ -536,7 +537,7 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 		},
 		"good sup group annotation": {
 			ns: goodNS,
-			expected: []kapi.IDRange{
+			expected: []securityapi.IDRange{
 				{Min: 1, Max: 5},
 			},
 		},
@@ -566,7 +567,7 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 	}
 }
 
-func hasRange(rng kapi.IDRange, ranges []kapi.IDRange) bool {
+func hasRange(rng securityapi.IDRange, ranges []securityapi.IDRange) bool {
 	for _, r := range ranges {
 		if r.Min == rng.Min && r.Max == rng.Max {
 			return true

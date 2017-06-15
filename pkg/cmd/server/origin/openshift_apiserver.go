@@ -35,6 +35,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	"github.com/openshift/origin/pkg/version"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
@@ -61,6 +63,7 @@ type OpenshiftAPIConfig struct {
 
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
+	SecurityInformers      securityinformer.SharedInformerFactory
 
 	// DeprecatedInformers is a shared factory for getting old style openshift informers
 	DeprecatedOpenshiftClient *osclient.Client
@@ -89,6 +92,10 @@ type OpenshiftAPIConfig struct {
 	EnableTemplateServiceBroker bool
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
+
+	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
+	// so we have to have it special cased here to point to the right spot.
+	SCCStorage *sccstorage.REST
 }
 
 // Validate helps ensure that we build this config correctly, because there are lots of bits to remember for now
@@ -112,6 +119,9 @@ func (c *OpenshiftAPIConfig) Validate() error {
 	}
 	if c.QuotaInformers == nil {
 		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
+	}
+	if c.SecurityInformers == nil {
+		ret = append(ret, fmt.Errorf("SecurityInformers is required"))
 	}
 	if c.RuleResolver == nil {
 		ret = append(ret, fmt.Errorf("RuleResolver is required"))

@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/announced"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/security/api"
@@ -20,6 +21,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  api.GroupName,
 			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			RootScopedKinds:            sets.NewString("SecurityContextConstraints"),
 			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: api.AddToScheme,
 		},

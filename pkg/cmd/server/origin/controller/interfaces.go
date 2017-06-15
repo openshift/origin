@@ -15,6 +15,7 @@ import (
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
@@ -33,6 +34,7 @@ type ControllerContext struct {
 	TemplateInformers      templateinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
+	SecurityInformers      securityinformer.SharedInformerFactory
 
 	// Stop is the stop channel
 	Stop <-chan struct{}

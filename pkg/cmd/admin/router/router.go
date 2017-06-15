@@ -34,6 +34,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
@@ -890,7 +891,7 @@ func validateServiceAccount(client kclientset.Interface, ns string, serviceAccou
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
+	sccList, err := legacyclient.NewFromClient(client.Core().RESTClient()).List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

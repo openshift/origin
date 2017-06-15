@@ -87,6 +87,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
@@ -183,6 +185,7 @@ type MasterConfig struct {
 	BuildInformers         buildinformer.SharedInformerFactory
 	ImageInformers         imageinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
+	SecurityInformers      securityinformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
 }
 
@@ -231,6 +234,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	securityClient, err := securityclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -255,6 +262,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	quotaInformers := quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod)
 	buildInformers := buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod)
 	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
+	securityInformers := securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod)
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 
 	if options.TemplateServiceBrokerConfig != nil {
@@ -312,6 +320,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 		GroupCache:                   groupCache,
+		SecurityInformers:            securityInformers,
 	}
 
 	// punch through layers to build this in order to get a string for a cloud provider file
@@ -392,6 +401,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		BuildInformers:         buildInformers,
 		ImageInformers:         imageInformers,
 		QuotaInformers:         quotaInformers,
+		SecurityInformers:      securityInformers,
 		TemplateInformers:      templateInformers,
 	}
 

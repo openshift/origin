@@ -55,6 +55,8 @@ func IsResourceOrLegacy(resource string, gr schema.GroupResource) bool {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 		&PodSecurityPolicySubjectReview{},
 		&PodSecurityPolicySelfSubjectReview{},
 		&PodSecurityPolicyReview{},
@@ -64,6 +66,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 
 func addLegacyKnownTypes(scheme *runtime.Scheme) error {
 	types := []runtime.Object{
+		&SecurityContextConstraints{},
+		&SecurityContextConstraintsList{},
 		&PodSecurityPolicySubjectReview{},
 		&PodSecurityPolicySelfSubjectReview{},
 		&PodSecurityPolicyReview{},

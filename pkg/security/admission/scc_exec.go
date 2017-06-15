@@ -8,8 +8,10 @@ import (
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
 func init() {
@@ -20,7 +22,7 @@ func init() {
 }
 
 var _ admission.Interface = &sccExecRestrictions{}
-var _ = kadmission.WantsInternalKubeInformerFactory(&sccExecRestrictions{})
+var _ = oadmission.WantsSecurityInformer(&constraint{})
 var _ = kadmission.WantsInternalKubeClientSet(&sccExecRestrictions{})
 
 // sccExecRestrictions is an implementation of admission.Interface which says no to a pod/exec on
@@ -70,9 +72,8 @@ func (d *sccExecRestrictions) SetInternalKubeClientSet(c kclientset.Interface) {
 	d.constraintAdmission.SetInternalKubeClientSet(c)
 }
 
-// SetInternalKubeInformerFactory implements WantsInternalKubeInformerFactory interface for sccExecRestrictions.
-func (d *sccExecRestrictions) SetInternalKubeInformerFactory(informers kinternalinformers.SharedInformerFactory) {
-	d.constraintAdmission.SetInternalKubeInformerFactory(informers)
+func (d *sccExecRestrictions) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
+	d.constraintAdmission.SetSecurityInformers(informers)
 }
 
 // Validate defines actions to validate sccExecRestrictions

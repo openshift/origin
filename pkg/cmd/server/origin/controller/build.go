@@ -10,6 +10,7 @@ import (
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -24,14 +25,19 @@ type BuildControllerConfig struct {
 
 // RunController starts the build sync loop for builds and buildConfig processing.
 func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	pluginInitializer := kubeadmission.NewPluginInitializer(
+	kubePluginInitializer := kubeadmission.NewPluginInitializer(
 		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName),
 		ctx.InternalKubeInformers,
 		nil, // api authorizer, only used by PSP
 		nil, // cloud config
 		nil, // quota registry
 	)
-	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, pluginInitializer)
+	originPluginInitializer := &oadmission.PluginInitializer{
+		SecurityInformers: ctx.SecurityInformers,
+	}
+	allPluginInitializers := admission.PluginInitializers([]admission.PluginInitializer{kubePluginInitializer, originPluginInitializer})
+
+	admissionControl, err := admission.InitPlugin("SecurityContextConstraint", nil, allPluginInitializers)
 	if err != nil {
 		return true, err
 	}

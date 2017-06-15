@@ -8,30 +8,32 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/api"
+	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func saSCC() *kapi.SecurityContextConstraints {
-	return &kapi.SecurityContextConstraints{
+func saSCC() *securityapi.SecurityContextConstraints {
+	return &securityapi.SecurityContextConstraints{
 		ObjectMeta: metav1.ObjectMeta{
 			SelfLink: "/api/version/securitycontextconstraints/scc-sa",
 			Name:     "scc-sa",
 		},
-		RunAsUser: kapi.RunAsUserStrategyOptions{
-			Type: kapi.RunAsUserStrategyMustRunAsRange,
+		RunAsUser: securityapi.RunAsUserStrategyOptions{
+			Type: securityapi.RunAsUserStrategyMustRunAsRange,
 		},
-		SELinuxContext: kapi.SELinuxContextStrategyOptions{
-			Type: kapi.SELinuxStrategyMustRunAs,
+		SELinuxContext: securityapi.SELinuxContextStrategyOptions{
+			Type: securityapi.SELinuxStrategyMustRunAs,
 		},
-		FSGroup: kapi.FSGroupStrategyOptions{
-			Type: kapi.FSGroupStrategyMustRunAs,
+		FSGroup: securityapi.FSGroupStrategyOptions{
+			Type: securityapi.FSGroupStrategyMustRunAs,
 		},
-		SupplementalGroups: kapi.SupplementalGroupsStrategyOptions{
-			Type: kapi.SupplementalGroupsStrategyMustRunAs,
+		SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
+			Type: securityapi.SupplementalGroupsStrategyMustRunAs,
 		},
 		Groups: []string{"system:serviceaccounts"},
 	}
@@ -39,13 +41,13 @@ func saSCC() *kapi.SecurityContextConstraints {
 
 func TestAllowed(t *testing.T) {
 	testcases := map[string]struct {
-		sccs []*kapi.SecurityContextConstraints
+		sccs []*securityapi.SecurityContextConstraints
 		// patch function modify nominal PodSecurityPolicySubjectReview request
 		patch func(p *securityapi.PodSecurityPolicySubjectReview)
 		check func(p *securityapi.PodSecurityPolicySubjectReview) (bool, string)
 	}{
 		"nominal case": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
@@ -56,7 +58,7 @@ func TestAllowed(t *testing.T) {
 		},
 		// if PodTemplateSpec.Spec.ServiceAccountName is empty it will not be defaulted
 		"empty service account name": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
@@ -70,7 +72,7 @@ func TestAllowed(t *testing.T) {
 		},
 		// If you specify "User" but not "Group", then is it interpreted as "What if User were not a member of any groups.
 		"user - no group": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
@@ -80,7 +82,7 @@ func TestAllowed(t *testing.T) {
 		},
 		// If User and Groups are empty, then the check is performed using *only* the ServiceAccountName in the PodTemplateSpec.
 		"no user - no group": {
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 				saSCC(),
@@ -123,7 +125,7 @@ func TestAllowed(t *testing.T) {
 		}
 
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
 
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {
@@ -159,7 +161,7 @@ func TestAllowed(t *testing.T) {
 func TestRequests(t *testing.T) {
 	testcases := map[string]struct {
 		request        *securityapi.PodSecurityPolicySubjectReview
-		sccs           []*kapi.SecurityContextConstraints
+		sccs           []*securityapi.SecurityContextConstraints
 		serviceAccount *kapi.ServiceAccount
 		errorMessage   string
 	}{
@@ -241,7 +243,7 @@ func TestRequests(t *testing.T) {
 					User: "foo",
 				},
 			},
-			sccs: []*kapi.SecurityContextConstraints{
+			sccs: []*securityapi.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
@@ -252,7 +254,7 @@ func TestRequests(t *testing.T) {
 	serviceAccount := admissionttesting.CreateSAForTest()
 	for testName, testcase := range testcases {
 		sccIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		sccCache := internalversion.NewSecurityContextConstraintsLister(sccIndexer)
+		sccCache := securitylisters.NewSecurityContextConstraintsLister(sccIndexer)
 		for _, scc := range testcase.sccs {
 			if err := sccIndexer.Add(scc); err != nil {
 				t.Fatalf("error adding sccs to store: %v", err)

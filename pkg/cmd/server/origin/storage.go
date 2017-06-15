@@ -115,6 +115,7 @@ import (
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 
 	// register api groups
@@ -249,17 +250,22 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
+	sccStorage := c.SCCStorage
+	// TODO allow this when we're sure that its storing correctly and we want to allow starting up without embedding kube
+	if false && sccStorage == nil {
+		sccStorage = sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
+	}
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
 		c.KubeClientInternal,
 	)
 	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeClientInternal,
 	)
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeClientInternal,
 	)
 
@@ -469,6 +475,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	}
 
 	storage[securityapiv1.SchemeGroupVersion] = map[string]rest.Storage{
+		"securityContextConstraints":          sccStorage,
 		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
 		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
 		"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,

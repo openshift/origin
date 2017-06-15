@@ -330,6 +330,16 @@ items:
     - list
     - watch
   - apiGroups:
+    - security.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - template.openshift.io
     - ""
     attributeRestrictions: null

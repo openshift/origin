@@ -8,6 +8,7 @@ import (
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	routesapi "github.com/openshift/origin/pkg/route/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 )
 
 //diagnosticReporter provides diagnostic messages
@@ -23,7 +24,7 @@ type routesAdapter interface {
 }
 
 type sccAdapter interface {
-	getScc(name string) (*kapi.SecurityContextConstraints, error)
+	getScc(name string) (*securityapi.SecurityContextConstraints, error)
 }
 
 type clusterRoleBindingsAdapter interface {

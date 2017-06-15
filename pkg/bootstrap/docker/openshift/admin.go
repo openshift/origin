@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 const (
@@ -101,12 +102,12 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	}
 
 	// Add router SA to privileged SCC
-	privilegedSCC, err := kubeClient.Core().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+	privilegedSCC, err := legacyclient.NewFromClient(kubeClient.Core().RESTClient()).Get("privileged", metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
 	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "router"))
-	_, err = kubeClient.Core().SecurityContextConstraints().Update(privilegedSCC)
+	_, err = legacyclient.NewFromClient(kubeClient.Core().RESTClient()).Update(privilegedSCC)
 	if err != nil {
 		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -204,7 +205,7 @@ func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace stri
 func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace string) error {
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
-		SCCInterface: kubeClient.Core(),
+		SCCInterface: legacyclient.NewFromClient(kubeClient.Core().RESTClient()),
 		Subjects: []kapi.ObjectReference{
 			{
 				Namespace: namespace,

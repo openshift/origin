@@ -3,16 +3,16 @@ package scc
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	securityapi "github.com/openshift/origin/pkg/security/api"
 )
 
 func TestPointValue(t *testing.T) {
-	newSCC := func(priv bool, seLinuxStrategy kapi.SELinuxContextStrategyType, userStrategy kapi.RunAsUserStrategyType) *kapi.SecurityContextConstraints {
-		scc := &kapi.SecurityContextConstraints{
-			SELinuxContext: kapi.SELinuxContextStrategyOptions{
+	newSCC := func(priv bool, seLinuxStrategy securityapi.SELinuxContextStrategyType, userStrategy securityapi.RunAsUserStrategyType) *securityapi.SecurityContextConstraints {
+		scc := &securityapi.SecurityContextConstraints{
+			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
 				Type: seLinuxStrategy,
 			},
-			RunAsUser: kapi.RunAsUserStrategyOptions{
+			RunAsUser: securityapi.RunAsUserStrategyOptions{
 				Type: userStrategy,
 			},
 		}
@@ -23,15 +23,15 @@ func TestPointValue(t *testing.T) {
 		return scc
 	}
 
-	seLinuxStrategies := map[kapi.SELinuxContextStrategyType]int{
-		kapi.SELinuxStrategyRunAsAny:  4,
-		kapi.SELinuxStrategyMustRunAs: 1,
+	seLinuxStrategies := map[securityapi.SELinuxContextStrategyType]int{
+		securityapi.SELinuxStrategyRunAsAny:  4,
+		securityapi.SELinuxStrategyMustRunAs: 1,
 	}
-	userStrategies := map[kapi.RunAsUserStrategyType]int{
-		kapi.RunAsUserStrategyRunAsAny:         4,
-		kapi.RunAsUserStrategyMustRunAsNonRoot: 3,
-		kapi.RunAsUserStrategyMustRunAsRange:   2,
-		kapi.RunAsUserStrategyMustRunAs:        1,
+	userStrategies := map[securityapi.RunAsUserStrategyType]int{
+		securityapi.RunAsUserStrategyRunAsAny:         4,
+		securityapi.RunAsUserStrategyMustRunAsNonRoot: 3,
+		securityapi.RunAsUserStrategyMustRunAsRange:   2,
+		securityapi.RunAsUserStrategyMustRunAs:        1,
 	}
 
 	privilegedPoints := 20
@@ -58,8 +58,8 @@ func TestPointValue(t *testing.T) {
 	}
 
 	// sanity check to ensure volume score is added (specific volumes scores are tested below
-	scc := newSCC(false, kapi.SELinuxStrategyMustRunAs, kapi.RunAsUserStrategyMustRunAs)
-	scc.Volumes = []kapi.FSType{kapi.FSTypeHostPath}
+	scc := newSCC(false, securityapi.SELinuxStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAs)
+	scc.Volumes = []securityapi.FSType{securityapi.FSTypeHostPath}
 	actualPoints := pointValue(scc)
 	if actualPoints != 12 { //1 (SELinux) + 1 (User) + 10 (host path volume)
 		t.Errorf("volume score was not added to the scc point value correctly!")
@@ -67,29 +67,29 @@ func TestPointValue(t *testing.T) {
 }
 
 func TestVolumePointValue(t *testing.T) {
-	newSCC := func(host, nonTrivial, trivial bool) *kapi.SecurityContextConstraints {
-		volumes := []kapi.FSType{}
+	newSCC := func(host, nonTrivial, trivial bool) *securityapi.SecurityContextConstraints {
+		volumes := []securityapi.FSType{}
 		if host {
-			volumes = append(volumes, kapi.FSTypeHostPath)
+			volumes = append(volumes, securityapi.FSTypeHostPath)
 		}
 		if nonTrivial {
-			volumes = append(volumes, kapi.FSTypeAWSElasticBlockStore)
+			volumes = append(volumes, securityapi.FSTypeAWSElasticBlockStore)
 		}
 		if trivial {
-			volumes = append(volumes, kapi.FSTypeSecret)
+			volumes = append(volumes, securityapi.FSTypeSecret)
 		}
-		return &kapi.SecurityContextConstraints{
+		return &securityapi.SecurityContextConstraints{
 			Volumes: volumes,
 		}
 	}
 
-	allowAllSCC := &kapi.SecurityContextConstraints{
-		Volumes: []kapi.FSType{kapi.FSTypeAll},
+	allowAllSCC := &securityapi.SecurityContextConstraints{
+		Volumes: []securityapi.FSType{securityapi.FSTypeAll},
 	}
-	nilVolumeSCC := &kapi.SecurityContextConstraints{}
+	nilVolumeSCC := &securityapi.SecurityContextConstraints{}
 
 	tests := map[string]struct {
-		scc            *kapi.SecurityContextConstraints
+		scc            *securityapi.SecurityContextConstraints
 		expectedPoints int
 	}{
 		"all volumes": {
@@ -121,38 +121,38 @@ func TestVolumePointValue(t *testing.T) {
 			expectedPoints: 0,
 		},
 		"trivial - secret": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSTypeSecret},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSTypeSecret},
 			},
 			expectedPoints: 0,
 		},
 		"trivial - configMap": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSTypeConfigMap},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSTypeConfigMap},
 			},
 			expectedPoints: 0,
 		},
 		"trivial - emptyDir": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSTypeEmptyDir},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSTypeEmptyDir},
 			},
 			expectedPoints: 0,
 		},
 		"trivial - downwardAPI": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSTypeDownwardAPI},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSTypeDownwardAPI},
 			},
 			expectedPoints: 0,
 		},
 		"trivial - projected": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSProjected},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSProjected},
 			},
 			expectedPoints: 0,
 		},
 		"trivial - none": {
-			scc: &kapi.SecurityContextConstraints{
-				Volumes: []kapi.FSType{kapi.FSTypeNone},
+			scc: &securityapi.SecurityContextConstraints{
+				Volumes: []securityapi.FSType{securityapi.FSTypeNone},
 			},
 			expectedPoints: 0,
 		},

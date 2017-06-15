@@ -4,16 +4,18 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/davecgh/go-spew/spew"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/client/testclient"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -30,6 +32,7 @@ func TestGroupReaper(t *testing.T) {
 		name     string
 		group    string
 		objects  []runtime.Object
+		sccs     []runtime.Object
 		expected []interface{}
 	}{
 		{
@@ -101,23 +104,23 @@ func TestGroupReaper(t *testing.T) {
 		{
 			name:  "sccs",
 			group: "mygroup",
-			objects: []runtime.Object{
-				&kapi.SecurityContextConstraints{
+			sccs: []runtime.Object{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-no-subjects"},
 					Groups:     []string{},
 				},
-				&kapi.SecurityContextConstraints{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{"mygroup"},
 				},
-				&kapi.SecurityContextConstraints{
+				&securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-mismatched-subjects"},
 					Users:      []string{"mygroup"},
 					Groups:     []string{"mygroup2"},
 				},
 			},
 			expected: []interface{}{
-				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &kapi.SecurityContextConstraints{
+				clientgotesting.UpdateActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "update", Resource: schema.GroupVersionResource{Resource: "securitycontextconstraints"}}, Object: &securityapi.SecurityContextConstraints{
 					ObjectMeta: metav1.ObjectMeta{Name: "scc-one-subject"},
 					Groups:     []string{},
 				}},
@@ -128,7 +131,7 @@ func TestGroupReaper(t *testing.T) {
 
 	for _, test := range tests {
 		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
-		ktc := fake.NewSimpleClientset(testclient.UpstreamObjects(test.objects)...)
+		ktc := legacyclient.NewSimpleFake(test.sccs...)
 
 		actual := []interface{}{}
 		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -142,10 +145,10 @@ func TestGroupReaper(t *testing.T) {
 
 		tc.PrependReactor("update", "*", oreactor)
 		tc.PrependReactor("delete", "*", oreactor)
-		ktc.PrependReactor("update", "*", kreactor)
-		ktc.PrependReactor("delete", "*", kreactor)
+		ktc.Fake.PrependReactor("update", "*", kreactor)
+		ktc.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewGroupReaper(tc, tc, tc, ktc.Core())
+		reaper := NewGroupReaper(tc, tc, tc, ktc)
 		err := reaper.Stop("", test.group, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
