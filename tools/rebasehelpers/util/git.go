@@ -31,9 +31,10 @@ var SupportedHosts = map[string]int{
 }
 
 type Commit struct {
-	Sha     string
-	Summary string
-	Files   []File
+	Sha         string
+	Summary     string
+	Description []string
+	Files       []File
 }
 
 func (c Commit) DeclaresUpstreamChange() bool {
@@ -214,12 +215,17 @@ func CommitsBetween(a, b string) ([]Commit, error) {
 
 func NewCommitFromOnelineLog(log string) (Commit, error) {
 	var commit Commit
+	var err error
 	parts := strings.Split(log, " ")
 	if len(parts) < 2 {
 		return commit, fmt.Errorf("invalid log entry: %s", log)
 	}
 	commit.Sha = parts[0]
 	commit.Summary = strings.Join(parts[1:], " ")
+	commit.Description, err = descriptionInCommit(commit.Sha)
+	if err != nil {
+		return commit, err
+	}
 	files, err := filesInCommit(commit.Sha)
 	if err != nil {
 		return commit, err
@@ -333,6 +339,22 @@ func filesInCommit(sha string) ([]File, error) {
 		files = append(files, File(filename))
 	}
 	return files, nil
+}
+
+func descriptionInCommit(sha string) ([]string, error) {
+	descriptionLines := []string{}
+	stdout, stderr, err := run("git", "show", "--quiet", sha)
+	if err != nil {
+		return descriptionLines, fmt.Errorf("%s: %s", stderr, err)
+	}
+
+	for _, commitLine := range strings.Split(stdout, "\n") {
+		if len(commitLine) == 0 {
+			continue
+		}
+		descriptionLines = append(descriptionLines, strings.Trim(commitLine, " "))
+	}
+	return descriptionLines, nil
 }
 
 func run(args ...string) (string, string, error) {
