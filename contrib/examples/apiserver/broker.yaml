@@ -7,6 +7,7 @@ spec:
   # put the basic auth for the broker in a secret, and reference the secret here.
   # service-catalog will use the contents of the secret. The secret should have "username"
   # and "password" keys
-  authSecret:
-    namespace: some-namespace
-    name: secret-name
+  authInfo:
+    basicAuthSecret:
+      namespace: some-namespace
+      name: secret-name

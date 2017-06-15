@@ -39,6 +39,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/cmd/apiserver/app/server"
 	_ "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
 	servicecatalogclient "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
+	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/pkg/api/install"
 	_ "k8s.io/client-go/pkg/apis/extensions/install"
 )
@@ -51,7 +52,11 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func getFreshApiserverAndClient(t *testing.T, storageTypeStr string) (servicecatalogclient.Interface, func()) {
+func getFreshApiserverAndClient(
+	t *testing.T,
+	storageTypeStr string,
+	newEmptyObj func() runtime.Object,
+) (servicecatalogclient.Interface, func()) {
 	securePort := rand.Intn(31743) + 1024
 	insecurePort := rand.Intn(31743) + 1024
 	insecureAddr := fmt.Sprintf("http://localhost:%d", insecurePort)
@@ -68,7 +73,7 @@ func getFreshApiserverAndClient(t *testing.T, storageTypeStr string) (servicecat
 	go func() {
 
 		tprOptions := server.NewTPROptions()
-		tprOptions.RESTClient = fake.NewRESTClient()
+		tprOptions.RESTClient = fake.NewRESTClient(newEmptyObj)
 		tprOptions.InstallTPRsFunc = func() error {
 			return nil
 		}
@@ -84,6 +89,7 @@ func getFreshApiserverAndClient(t *testing.T, storageTypeStr string) (servicecat
 			TPROptions:            tprOptions,
 			AuthenticationOptions: genericserveroptions.NewDelegatingAuthenticationOptions(),
 			AuthorizationOptions:  genericserveroptions.NewDelegatingAuthorizationOptions(),
+			AuditOptions:          genericserveroptions.NewAuditLogOptions(),
 			DisableAuth:           true,
 			StopCh:                stopCh,
 			StandaloneMode:        true, // this must be true because we have no kube server for integration.

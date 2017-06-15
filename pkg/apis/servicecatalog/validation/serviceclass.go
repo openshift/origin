@@ -81,6 +81,10 @@ func ValidateServiceClass(serviceclass *sc.ServiceClass) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("externalID"), serviceclass.ExternalID, msg))
 	}
 
+	if len(serviceclass.Plans) < 1 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("plans"), serviceclass.Plans, "at least one plan is required"))
+	}
+
 	planNames := sets.NewString()
 	for i, plan := range serviceclass.Plans {
 		planPath := field.NewPath("plans").Index(i)

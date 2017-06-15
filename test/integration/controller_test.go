@@ -30,6 +30,7 @@ import (
 	// avoid error `no kind is registered for the type metav1.ListOptions`
 	_ "k8s.io/client-go/pkg/api/install"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
 	fakebrokerapi "github.com/kubernetes-incubator/service-catalog/pkg/brokerapi/fake"
@@ -39,6 +40,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/controller"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -238,7 +240,9 @@ func newTestController(t *testing.T) (
 	// create a fake kube client
 	fakeKubeClient := &fake.Clientset{}
 	// create an sc client and running server
-	catalogClient, shutdownServer := getFreshApiserverAndClient(t, server.StorageTypeEtcd.String())
+	catalogClient, shutdownServer := getFreshApiserverAndClient(t, server.StorageTypeEtcd.String(), func() runtime.Object {
+		return &servicecatalog.Broker{}
+	})
 
 	catalogCl := &fakebrokerapi.CatalogClient{}
 	instanceCl := fakebrokerapi.NewInstanceClient()

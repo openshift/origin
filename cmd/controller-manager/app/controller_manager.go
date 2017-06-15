@@ -21,7 +21,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
+	goruntime "runtime"
 	"strconv"
 	"time"
 
@@ -149,6 +151,15 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 		healthz.InstallHandler(mux)
 		configz.InstallHandler(mux)
 
+		if controllerManagerOptions.EnableProfiling {
+			mux.HandleFunc("/debug/pprof/", pprof.Index)
+			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+			if controllerManagerOptions.EnableContentionProfiling {
+				goruntime.SetBlockProfileRate(1)
+			}
+		}
 		server := &http.Server{
 			Addr:    net.JoinHostPort(controllerManagerOptions.Address, strconv.Itoa(int(controllerManagerOptions.Port))),
 			Handler: mux,
@@ -197,10 +208,12 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 		return err
 	}
 
+	glog.V(5).Infof("Using namespace %v for leader election lock", controllerManagerOptions.LeaderElectionNamespace)
+
 	// Lock required for leader election
 	rl := resourcelock.EndpointsLock{
 		EndpointsMeta: metav1.ObjectMeta{
-			Namespace: "kube-system",
+			Namespace: controllerManagerOptions.LeaderElectionNamespace,
 			Name:      "service-catalog-controller-manager",
 		},
 		Client: leaderElectionClient,

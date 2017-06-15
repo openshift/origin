@@ -36,7 +36,7 @@ import (
 
 const (
 	// How often to poll for conditions
-	defaultPoll = 2 * time.Second
+	Poll = 2 * time.Second
 
 	// Default time to wait for operations to complete
 	defaultTimeout = 30 * time.Second
@@ -104,7 +104,7 @@ func CreateKubeNamespace(baseName string, c kubernetes.Interface) (*v1.Namespace
 	Logf("namespace: %v", ns)
 	// Be robust about making the namespace creation call.
 	var got *v1.Namespace
-	err := wait.PollImmediate(defaultPoll, defaultTimeout, func() (bool, error) {
+	err := wait.PollImmediate(Poll, defaultTimeout, func() (bool, error) {
 		var err error
 		got, err = c.Core().Namespaces().Create(ns)
 		if err != nil {
@@ -140,7 +140,7 @@ func WaitForPodRunningInNamespace(c kubernetes.Interface, pod *v1.Pod) error {
 }
 
 func waitTimeoutForPodRunningInNamespace(c kubernetes.Interface, podName, namespace string, timeout time.Duration) error {
-	return wait.PollImmediate(defaultPoll, defaultTimeout, podRunning(c, podName, namespace))
+	return wait.PollImmediate(Poll, defaultTimeout, podRunning(c, podName, namespace))
 }
 
 func podRunning(c kubernetes.Interface, podName, namespace string) wait.ConditionFunc {

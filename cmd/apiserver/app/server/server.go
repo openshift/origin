@@ -70,6 +70,7 @@ func NewCommandServer(
 		AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
 		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
 		InsecureServingOptions:  genericserveroptions.NewInsecureServingOptions(),
+		AuditOptions:            genericserveroptions.NewAuditLogOptions(),
 		EtcdOptions:             NewEtcdOptions(),
 		TPROptions:              NewTPROptions(),
 		StopCh:                  stopCh,

@@ -1,7 +1,7 @@
 # Default values for Service Catalog
 apiserver:
   # apiserver image to use
-  image: quay.io/kubernetes-service-catalog/apiserver:v0.0.7
+  image: quay.io/kubernetes-service-catalog/apiserver:v0.0.9
   # imagePullPolicy for the apiserver; valid values are "IfNotPresent",
   # "Never", and "Always"
   imagePullPolicy: Always
@@ -49,9 +49,14 @@ apiserver:
     # and authorization can be useful for quickly getting the walkthrough up and running,
     # but is not suitable for production.
     enabled: false
+  audit:
+    # If true, enables the use of audit features via this chart.
+    activated: false
+    # If specified, audit log goes to specified path.
+    logPath: "/tmp/service-catalog-apiserver-audit.log"
 controllerManager:
   # controller-manager image to use
-  image: quay.io/kubernetes-service-catalog/controller-manager:v0.0.7
+  image: quay.io/kubernetes-service-catalog/controller-manager:v0.0.9
   # imagePullPolicy for the controller-manager; valid values are
   # "IfNotPresent", "Never", and "Always"
   imagePullPolicy: Always
@@ -64,4 +69,13 @@ controllerManager:
   # Whether or not the controller supports a --broker-relist-interval flag. If this is 
   # set to true, brokerRelistInterval will be used as the value for that flag
   brokerRelistIntervalActivated: true
+  # enables profiling via web interface host:port/debug/pprof/
+  profiling:
+    # Disable profiling via web interface host:port/debug/pprof/
+    disabled: false
+    # Enables lock contention profiling, if profiling is enabled.
+    contentionProfiling: false
+  leaderElectionNamespace:
+    # Whether the controller has option to set leader election namespace.
+    activated: false
 useAggregator: false

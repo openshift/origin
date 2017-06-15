@@ -31,9 +31,23 @@ spec:
           limits:
             cpu: 100m
             memory: 30Mi
+        env:
+        - name: K8S_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         args:
         - --port
         - "8080"
+        {{ if .Values.controllerManager.leaderElectionNamespace.activated -}}
+        - "--leader-election-namespace=$(K8S_NAMESPACE)"
+        {{- end }}
+        {{ if .Values.controllerManager.profiling.disabled -}}
+        - "--profiling=false"
+        {{- end}}
+        {{ if .Values.controllerManager.profiling.contentionProfiling -}}
+        - "--contention-profiling=true"
+        {{- end}}
         {{- if not .Values.useAggregator }}
         - --service-catalog-api-server-url
         {{- if .Values.apiserver.insecure }}

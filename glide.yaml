@@ -65,3 +65,5 @@ import:
   version: v1.1.0
 - package: github.com/onsi/ginkgo
   version: v1.3.1
+- package: github.com/pivotal-cf/brokerapi
+- package: code.cloudfoundry.org/lager

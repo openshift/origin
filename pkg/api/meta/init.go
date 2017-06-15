@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tpr
+package meta
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -30,10 +30,4 @@ var (
 // runtime.Object types
 func GetAccessor() meta.MetadataAccessor {
 	return accessor
-}
-
-// GetNamespace returns the namespace for the given object, if there is one. If not, returns
-// the empty string and a non-nil error
-func GetNamespace(obj runtime.Object) (string, error) {
-	return selfLinker.Namespace(obj)
 }

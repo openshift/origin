@@ -96,9 +96,7 @@ func (brokerRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj ru
 	broker.Status = sc.BrokerStatus{}
 	// Fill in the first entry set to "creating"?
 	broker.Status.Conditions = []sc.BrokerCondition{}
-
-	// TODO: Should we use a more specific string here?
-	broker.Finalizers = []string{"kubernetes"}
+	broker.Finalizers = []string{sc.FinalizerServiceCatalog}
 }
 
 func (brokerRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {

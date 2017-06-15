@@ -39,6 +39,8 @@ type ServiceCatalogServerOptions struct {
 	AuthorizationOptions *genericserveroptions.DelegatingAuthorizationOptions
 	// InsecureOptions are options for serving insecurely.
 	InsecureServingOptions *genericserveroptions.ServingOptions
+	// audit options for api server
+	AuditOptions *genericserveroptions.AuditLogOptions
 	// EtcdOptions are options for serving with etcd as the backing store
 	EtcdOptions *EtcdOptions
 	// TPROptions are options for serving with TPR as the backing store
@@ -72,6 +74,7 @@ func (s *ServiceCatalogServerOptions) addFlags(flags *pflag.FlagSet) {
 	s.InsecureServingOptions.AddFlags(flags)
 	s.EtcdOptions.addFlags(flags)
 	s.TPROptions.addFlags(flags)
+	s.AuditOptions.AddFlags(flags)
 }
 
 // StorageType returns the storage type configured on s, or a non-nil error if s holds an

@@ -249,6 +249,9 @@ test-integration: .init $(scBuildImageTarget) build
 	# golang integration tests
 	$(DOCKER_CMD) test/integration.sh
 
+clean-e2e:
+	rm -f $(BINDIR)/e2e.test
+
 test-e2e: .generate_files $(BINDIR)/e2e.test
 	$(BINDIR)/e2e.test
 
@@ -292,26 +295,24 @@ clean-coverage:
 images: user-broker-image \
     controller-manager-image apiserver-image
 
+define build-and-tag # (service, image, mutable_image, prefix)
+	$(eval build_path := "$(4)build/$(1)")
+	$(eval tmp_build_path := "$(build_path)/tmp")
+	mkdir -p $(tmp_build_path)
+	cp $(BINDIR)/$(1) $(tmp_build_path)
+	docker build -t $(2) $(build_path)
+	docker tag $(2) $(3)
+	rm -rf $(tmp_build_path)
+endef
+
 user-broker-image: contrib/build/user-broker/Dockerfile $(BINDIR)/user-broker
-	mkdir -p contrib/build/user-broker/tmp
-	cp $(BINDIR)/user-broker contrib/build/user-broker/tmp
-	docker build -t $(USER_BROKER_IMAGE) contrib/build/user-broker
-	docker tag $(USER_BROKER_IMAGE) $(USER_BROKER_MUTABLE_IMAGE)
-	rm -rf contrib/build/user-broker/tmp
+	$(call build-and-tag,"user-broker",$(USER_BROKER_IMAGE),$(USER_BROKER_MUTABLE_IMAGE),"contrib/")
 
 apiserver-image: build/apiserver/Dockerfile $(BINDIR)/apiserver
-	mkdir -p build/apiserver/tmp
-	cp $(BINDIR)/apiserver build/apiserver/tmp
-	docker build -t $(APISERVER_IMAGE) build/apiserver
-	docker tag $(APISERVER_IMAGE) $(APISERVER_MUTABLE_IMAGE)
-	rm -rf build/apiserver/tmp
+	$(call build-and-tag,"apiserver",$(APISERVER_IMAGE),$(APISERVER_MUTABLE_IMAGE))
 
 controller-manager-image: build/controller-manager/Dockerfile $(BINDIR)/controller-manager
-	mkdir -p build/controller-manager/tmp
-	cp $(BINDIR)/controller-manager build/controller-manager/tmp
-	docker build -t $(CONTROLLER_MANAGER_IMAGE) build/controller-manager
-	docker tag $(CONTROLLER_MANAGER_IMAGE) $(CONTROLLER_MANAGER_MUTABLE_IMAGE)
-	rm -rf build/controller-manager/tmp
+	$(call build-and-tag,"controller-manager",$(CONTROLLER_MANAGER_IMAGE),$(CONTROLLER_MANAGER_MUTABLE_IMAGE))
 
 # Push our Docker Images to a registry
 ######################################
