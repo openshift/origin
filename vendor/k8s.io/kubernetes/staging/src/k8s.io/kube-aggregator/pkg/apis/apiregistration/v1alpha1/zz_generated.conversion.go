@@ -37,6 +37,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedConversionFuncs(
 		Convert_v1alpha1_APIService_To_apiregistration_APIService,
 		Convert_apiregistration_APIService_To_v1alpha1_APIService,
+		Convert_v1alpha1_APIServiceCondition_To_apiregistration_APIServiceCondition,
+		Convert_apiregistration_APIServiceCondition_To_v1alpha1_APIServiceCondition,
 		Convert_v1alpha1_APIServiceList_To_apiregistration_APIServiceList,
 		Convert_apiregistration_APIServiceList_To_v1alpha1_APIServiceList,
 		Convert_v1alpha1_APIServiceSpec_To_apiregistration_APIServiceSpec,
@@ -78,6 +80,32 @@ func Convert_apiregistration_APIService_To_v1alpha1_APIService(in *apiregistrati
 	return autoConvert_apiregistration_APIService_To_v1alpha1_APIService(in, out, s)
 }
 
+func autoConvert_v1alpha1_APIServiceCondition_To_apiregistration_APIServiceCondition(in *APIServiceCondition, out *apiregistration.APIServiceCondition, s conversion.Scope) error {
+	out.Type = apiregistration.APIServiceConditionType(in.Type)
+	out.Status = apiregistration.ConditionStatus(in.Status)
+	out.LastTransitionTime = in.LastTransitionTime
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_v1alpha1_APIServiceCondition_To_apiregistration_APIServiceCondition(in *APIServiceCondition, out *apiregistration.APIServiceCondition, s conversion.Scope) error {
+	return autoConvert_v1alpha1_APIServiceCondition_To_apiregistration_APIServiceCondition(in, out, s)
+}
+
+func autoConvert_apiregistration_APIServiceCondition_To_v1alpha1_APIServiceCondition(in *apiregistration.APIServiceCondition, out *APIServiceCondition, s conversion.Scope) error {
+	out.Type = APIServiceConditionType(in.Type)
+	out.Status = ConditionStatus(in.Status)
+	out.LastTransitionTime = in.LastTransitionTime
+	out.Reason = in.Reason
+	out.Message = in.Message
+	return nil
+}
+
+func Convert_apiregistration_APIServiceCondition_To_v1alpha1_APIServiceCondition(in *apiregistration.APIServiceCondition, out *APIServiceCondition, s conversion.Scope) error {
+	return autoConvert_apiregistration_APIServiceCondition_To_v1alpha1_APIServiceCondition(in, out, s)
+}
+
 func autoConvert_v1alpha1_APIServiceList_To_apiregistration_APIServiceList(in *APIServiceList, out *apiregistration.APIServiceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]apiregistration.APIService)(unsafe.Pointer(&in.Items))
@@ -90,7 +118,11 @@ func Convert_v1alpha1_APIServiceList_To_apiregistration_APIServiceList(in *APISe
 
 func autoConvert_apiregistration_APIServiceList_To_v1alpha1_APIServiceList(in *apiregistration.APIServiceList, out *APIServiceList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]APIService)(unsafe.Pointer(&in.Items))
+	if in.Items == nil {
+		out.Items = make([]APIService, 0)
+	} else {
+		out.Items = *(*[]APIService)(unsafe.Pointer(&in.Items))
+	}
 	return nil
 }
 
@@ -117,7 +149,11 @@ func autoConvert_apiregistration_APIServiceSpec_To_v1alpha1_APIServiceSpec(in *a
 	out.Group = in.Group
 	out.Version = in.Version
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
-	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
+	if in.CABundle == nil {
+		out.CABundle = make([]byte, 0)
+	} else {
+		out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
+	}
 	out.Priority = in.Priority
 	return nil
 }
@@ -127,6 +163,7 @@ func Convert_apiregistration_APIServiceSpec_To_v1alpha1_APIServiceSpec(in *apire
 }
 
 func autoConvert_v1alpha1_APIServiceStatus_To_apiregistration_APIServiceStatus(in *APIServiceStatus, out *apiregistration.APIServiceStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]apiregistration.APIServiceCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -135,6 +172,7 @@ func Convert_v1alpha1_APIServiceStatus_To_apiregistration_APIServiceStatus(in *A
 }
 
 func autoConvert_apiregistration_APIServiceStatus_To_v1alpha1_APIServiceStatus(in *apiregistration.APIServiceStatus, out *APIServiceStatus, s conversion.Scope) error {
+	out.Conditions = *(*[]APIServiceCondition)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 

@@ -13,6 +13,7 @@ import (
 	osapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -539,4 +540,67 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 	}
 
 	return otx.EndTransaction()
+}
+
+// FindUnusedVNIDs returns a list of VNIDs for which there are table 80 "check" rules,
+// but no table 60/70 "load" rules (meaning that there are no longer any pods or services
+// on this node with that VNID). There is no locking with respect to other ovsController
+// actions, but as long the "add a pod" and "add a service" codepaths add the
+// pod/service-specific rules before they call policy.EnsureVNIDRules(), then there is no
+// race condition.
+func (oc *ovsController) FindUnusedVNIDs() []int {
+	flows, err := oc.ovs.DumpFlows()
+	if err != nil {
+		glog.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err)
+		return nil
+	}
+
+	// inUseVNIDs is the set of VNIDs in use by pods or services on this node.
+	// policyVNIDs is the set of VNIDs that we have rules for delivering to.
+	// VNID 0 is always assumed to be in both sets.
+	inUseVNIDs := sets.NewInt(0)
+	policyVNIDs := sets.NewInt(0)
+	for _, flow := range flows {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err != nil {
+			glog.Warningf("FindUnusedVNIDs: could not parse flow %q: %v", flow, err)
+			continue
+		}
+
+		// A VNID is in use if there is a table 60 (services) or 70 (pods) flow that
+		// loads that VNID into reg1 for later comparison.
+		if parsed.Table == 60 || parsed.Table == 70 {
+			// Can't use FindAction here since there may be multiple "load"s
+			for _, action := range parsed.Actions {
+				if action.Name != "load" || strings.Index(action.Value, "REG1") == -1 {
+					continue
+				}
+				vnidEnd := strings.Index(action.Value, "->")
+				if vnidEnd == -1 {
+					continue
+				}
+				vnid, err := strconv.ParseInt(action.Value[:vnidEnd], 0, 32)
+				if err != nil {
+					glog.Warningf("FindUnusedVNIDs: could not parse VNID in 'load:%s': %v", action.Value, err)
+					continue
+				}
+				inUseVNIDs.Insert(int(vnid))
+				break
+			}
+		}
+
+		// A VNID is checked by policy if there is a table 80 rule comparing reg1 to it.
+		if parsed.Table == 80 {
+			if field, exists := parsed.FindField("reg1"); exists {
+				vnid, err := strconv.ParseInt(field.Value, 0, 32)
+				if err != nil {
+					glog.Warningf("FindUnusedVNIDs: could not parse VNID in 'reg1=%s': %v", field.Value, err)
+					continue
+				}
+				policyVNIDs.Insert(int(vnid))
+			}
+		}
+	}
+
+	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
 }

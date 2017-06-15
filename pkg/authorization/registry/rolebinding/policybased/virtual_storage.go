@@ -146,9 +146,13 @@ func (m *VirtualStorage) createRoleBinding(ctx apirequest.Context, obj runtime.O
 		}
 	}
 
+	// get or auto create policy binding so we can deprecate policy and policy binding objects in 3.6
+	// thus normal users can always create a role binding referring to a role in the current namespace
+	allowAutoProvision := allowEscalation || roleBinding.RoleRef.Namespace == apirequest.NamespaceValue(ctx)
+
 	// Retry if we hit a conflict on the underlying PolicyBinding object
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowEscalation)
+		policyBinding, err := m.getPolicyBindingForPolicy(ctx, roleBinding.RoleRef.Namespace, allowAutoProvision)
 		if err != nil {
 			return err
 		}

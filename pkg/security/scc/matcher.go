@@ -77,7 +77,7 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 
 	psc, generatedAnnotations, err := provider.CreatePodSecurityContext(pod)
 	if err != nil {
-		errs = append(errs, field.Invalid(field.NewPath("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
+		errs = append(errs, field.Invalid(fldPath.Child("spec", "securityContext"), pod.Spec.SecurityContext, err.Error()))
 	}
 
 	// save the original PSC and validate the generated PSC.  Leave the generated PSC
@@ -88,11 +88,11 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 
 	pod.Spec.SecurityContext = psc
 	pod.Annotations = generatedAnnotations
-	errs = append(errs, provider.ValidatePodSecurityContext(pod, field.NewPath("spec", "securityContext"))...)
+	errs = append(errs, provider.ValidatePodSecurityContext(pod, fldPath.Child("spec", "securityContext"))...)
 
 	// Note: this is not changing the original container, we will set container SCs later so long
 	// as all containers validated under the same SCC.
-	containerPath := field.NewPath("spec", "initContainers")
+	containerPath := fldPath.Child("spec", "initContainers")
 	for i, containerCopy := range pod.Spec.InitContainers {
 		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
 		errs = append(errs, resolutionErrs...)
@@ -106,7 +106,7 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 
 	// Note: this is not changing the original container, we will set container SCs later so long
 	// as all containers validated under the same SCC.
-	containerPath = field.NewPath("spec", "containers")
+	containerPath = fldPath.Child("spec", "containers")
 	for i, containerCopy := range pod.Spec.Containers {
 		csc, resolutionErrs := resolveContainerSecurityContext(provider, pod, &containerCopy, containerPath.Index(i))
 		errs = append(errs, resolutionErrs...)

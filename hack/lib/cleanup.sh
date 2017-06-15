@@ -258,6 +258,7 @@ function os::cleanup::dump_events() {
 	if [[ -n "${ADMIN_KUBECONFIG:-}" ]]; then
 		kubeconfig="--config=${ADMIN_KUBECONFIG}"
 	fi
+	oc login -u system:admin ${kubeconfig:-}
 	oc get events --all-namespaces ${kubeconfig:-} > "${ARTIFACT_DIR}/events.txt" 2>&1
 }
 readonly -f os::cleanup::dump_events

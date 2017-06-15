@@ -314,7 +314,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	m.policy.RefVNID(vnid)
+	m.policy.EnsureVNIDRules(vnid)
 	success = true
 	return ipamResult, &runningPod{podPortMapping: podPortMapping, vnid: vnid, ofport: ofport}, nil
 }
@@ -353,9 +353,6 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 
 		if err := m.ovs.TearDownPod(hostVethName, podIP); err != nil {
 			errList = append(errList, err)
-		}
-		if vnid, err := m.policy.GetVNID(req.PodNamespace); err == nil {
-			m.policy.UnrefVNID(vnid)
 		}
 	}
 
