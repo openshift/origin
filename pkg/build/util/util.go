@@ -226,6 +226,9 @@ func MergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVa
 // SafeForLoggingURL removes the user:password section of
 // a url if present.  If not present the value is returned unchanged.
 func SafeForLoggingURL(u *url.URL) *url.URL {
+	if u == nil {
+		return nil
+	}
 	newUrl := *u
 	newUrl.User = url.User("redacted")
 	return &newUrl
