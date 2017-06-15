@@ -7,12 +7,12 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
@@ -88,49 +88,21 @@ func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
 		byteLimit = 92233720368547
 	}
 
-	// different docker versions seem to use different cgroup directories,
-	// check for all of them.
-
-	// seen on rhel systems
-	cpuDir := "/sys/fs/cgroup/cpuacct,cpu"
-
-	// seen on fedora systems with docker 1.9
-	// note that in this case there is also a /sys/fs/cgroup/cpu that symlinks
-	// to /sys/fs/cgroup/cpu,cpuacct, so technically the next check
-	// would be sufficient, but it seems better to rely on the real directory
-	// rather than a symlink.
-	if _, err := os.Stat("/sys/fs/cgroup/cpu,cpuacct"); err == nil {
-		cpuDir = "/sys/fs/cgroup/cpu,cpuacct"
-	}
-
-	// seen on debian systems with docker 1.10
-	if _, err := os.Stat("/sys/fs/cgroup/cpu"); err == nil {
-		cpuDir = "/sys/fs/cgroup/cpu"
-	}
-
-	cpuQuota, err := readInt64(filepath.Join(cpuDir, "cpu.cfs_quota_us"))
+	parent, err := getCgroupParent()
 	if err != nil {
-		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
-	}
-
-	cpuPeriod, err := readInt64(filepath.Join(cpuDir, "cpu.cfs_period_us"))
-	if err != nil {
-		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
-	}
-
-	cpuShares, err := readInt64(filepath.Join(cpuDir, "cpu.shares"))
-	if err != nil {
-		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
+		return nil, fmt.Errorf("read cgroup parent: %v", err)
 	}
 
 	return &s2iapi.CGroupLimits{
-		CPUShares:        cpuShares,
-		CPUPeriod:        cpuPeriod,
-		CPUQuota:         cpuQuota,
+		// Though we are capped on memory and cpu at the cgroup parent level,
+		// some build containers care what their memory limit is so they can
+		// adapt, thus we need to set the memory limit at the container level
+		// too, so that information is available to them.
 		MemoryLimitBytes: byteLimit,
 		// Set memoryswap==memorylimit, this ensures no swapping occurs.
 		// see: https://docs.docker.com/engine/reference/run/#runtime-constraints-on-cpu-and-memory
 		MemorySwap: byteLimit,
+		Parent:     parent,
 	}, nil
 }
 
@@ -200,4 +172,40 @@ func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthCo
 func addBuildLabels(labels map[string]string, build *buildapi.Build) {
 	labels[buildapi.DefaultDockerLabelNamespace+"build.name"] = build.Name
 	labels[buildapi.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
+}
+
+// getCgroupParent determines the parent cgroup for a container from
+// within that container.
+func getCgroupParent() (string, error) {
+	cgMap, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
+	if err != nil {
+		return "", err
+	}
+	glog.V(6).Infof("found cgroup values map: %v", cgMap)
+	return extractParentFromCgroupMap(cgMap)
+}
+
+// extractParentFromCgroupMap finds the cgroup parent in the cgroup map
+func extractParentFromCgroupMap(cgMap map[string]string) (string, error) {
+	memory, ok := cgMap["memory"]
+	if !ok {
+		return "", fmt.Errorf("could not find memory cgroup subsystem in map %v", cgMap)
+	}
+	glog.V(6).Infof("cgroup memory subsystem value: %s", memory)
+
+	parts := strings.Split(memory, "/")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("unprocessable cgroup memory value: %s", memory)
+	}
+
+	var cgroupParent string
+	if strings.HasSuffix(memory, ".scope") {
+		// systemd system, take the second to last segment.
+		cgroupParent = parts[len(parts)-2]
+	} else {
+		// non-systemd, take everything except the last segment.
+		cgroupParent = strings.Join(parts[:len(parts)-1], "/")
+	}
+	glog.V(5).Infof("found cgroup parent %v", cgroupParent)
+	return cgroupParent, nil
 }

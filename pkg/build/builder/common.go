@@ -130,6 +130,10 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 	if err != nil {
 		return fmt.Errorf("read cgroup limits: %v", err)
 	}
+	parent, err := getCgroupParent()
+	if err != nil {
+		return fmt.Errorf("read cgroup parent: %v", err)
+	}
 
 	return dockerRun(client, docker.CreateContainerOptions{
 		Name: containerName,
@@ -140,11 +144,13 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 		},
 		HostConfig: &docker.HostConfig{
 			// Limit container's resource allocation.
-			CPUShares:  limits.CPUShares,
-			CPUPeriod:  limits.CPUPeriod,
-			CPUQuota:   limits.CPUQuota,
-			Memory:     limits.MemoryLimitBytes,
-			MemorySwap: limits.MemorySwap,
+			// Though we are capped on memory and cpu at the cgroup parent level,
+			// some build containers care what their memory limit is so they can
+			// adapt, thus we need to set the memory limit at the container level
+			// too, so that information is available to them.
+			Memory:       limits.MemoryLimitBytes,
+			MemorySwap:   limits.MemorySwap,
+			CgroupParent: parent,
 		},
 	}, docker.AttachToContainerOptions{
 		// Stream logs to stdout and stderr.
