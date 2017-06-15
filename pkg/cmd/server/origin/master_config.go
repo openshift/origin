@@ -570,6 +570,8 @@ func BuildKubeControllerConfig(options configapi.MasterConfig) (*kubecontrollers
 	imageTemplate.Latest = options.ImageConfig.Latest
 	ret.RecyclerImage = imageTemplate.ExpandOrDie("recycler")
 
+	ret.HeapsterNamespace = options.PolicyConfig.OpenShiftInfrastructureNamespace
+
 	return ret, nil
 }
 

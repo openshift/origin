@@ -52,6 +52,10 @@ const (
 	// TemplateInstance backend for most of the heavy lifting.
 	InfraTemplateServiceBrokerServiceAccountName = "template-service-broker"
 	TemplateServiceBrokerControllerRoleName      = "system:openshift:template-service-broker"
+
+	// This is a special constant which maps to the service account name used by the underlying
+	// Kubernetes code, so that we can build out the extra policy required to scale OpenShift resources.
+	InfraHorizontalPodAutoscalerControllerServiceAccountName = "horizontal-pod-autoscaler"
 )
 
 type InfraServiceAccounts struct {

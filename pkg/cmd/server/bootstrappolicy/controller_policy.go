@@ -24,6 +24,13 @@ func addControllerRole(role rbac.ClusterRole) {
 	if !strings.HasPrefix(role.Name, saRolePrefix) {
 		glog.Fatalf(`role %q must start with %q`, role.Name, saRolePrefix)
 	}
+	addControllerRoleToSA(DefaultOpenShiftInfraNamespace, role.Name[len(saRolePrefix):], role)
+}
+
+func addControllerRoleToSA(saNamespace, saName string, role rbac.ClusterRole) {
+	if !strings.HasPrefix(role.Name, saRolePrefix) {
+		glog.Fatalf(`role %q must start with %q`, role.Name, saRolePrefix)
+	}
 
 	for _, existingRole := range controllerRoles {
 		if role.Name == existingRole.Name {
@@ -39,7 +46,7 @@ func addControllerRole(role rbac.ClusterRole) {
 	controllerRoles = append(controllerRoles, role)
 
 	controllerRoleBindings = append(controllerRoleBindings,
-		rbac.NewClusterBinding(role.Name).SAs(DefaultOpenShiftInfraNamespace, role.Name[len(saRolePrefix):]).BindingOrDie())
+		rbac.NewClusterBinding(role.Name).SAs(saNamespace, saName).BindingOrDie())
 }
 
 func eventsRule() rbac.PolicyRule {
@@ -279,6 +286,14 @@ func init() {
 			rbac.NewRule("list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			rbac.NewRule("list").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
 			eventsRule(),
+		},
+	})
+
+	// horizontal-pod-autoscaler-controller (the OpenShift resources only)
+	addControllerRoleToSA("kube-system", InfraHorizontalPodAutoscalerControllerServiceAccountName, rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraHorizontalPodAutoscalerControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/scale").RuleOrDie(),
 		},
 	})
 

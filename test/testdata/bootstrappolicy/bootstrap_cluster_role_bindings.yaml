@@ -905,6 +905,20 @@ items:
   userNames:
   - system:serviceaccount:openshift-infra:resourcequota-controller
 - apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:horizontal-pod-autoscaler
+  roleRef:
+    name: system:openshift:controller:horizontal-pod-autoscaler
+  subjects:
+  - kind: ServiceAccount
+    name: horizontal-pod-autoscaler
+    namespace: kube-system
+  userNames:
+  - system:serviceaccount:kube-system:horizontal-pod-autoscaler
+- apiVersion: v1
   groupNames:
   - system:masters
   kind: ClusterRoleBinding

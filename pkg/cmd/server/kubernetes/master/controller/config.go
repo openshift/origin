@@ -12,6 +12,8 @@ type KubeControllerConfig struct {
 
 	// TODO the scheduler should move out into its own logical component
 	SchedulerControllerConfig SchedulerControllerConfig
+
+	HeapsterNamespace string
 }
 
 // GetControllerInitializers return the controller initializer functions for kube controllers
@@ -50,6 +52,13 @@ func (c KubeControllerConfig) GetControllerInitializers(cloudProvider cloudprovi
 		CloudProvider: cloudProvider,
 	}
 	ret["service"] = serviceLoadBalancerController.RunController
+
+	// overrides the Kube HPA controller config, so that we can point it at an HTTPS Heapster
+	// in openshift-infra, and pass it a scale client that knows how to scale DCs
+	hpaControllerConfig := HorizontalPodAutoscalerControllerConfig{
+		HeapsterNamespace: c.HeapsterNamespace,
+	}
+	ret["horizontalpodautoscaling"] = hpaControllerConfig.RunController
 
 	return ret, nil
 }

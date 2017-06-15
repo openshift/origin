@@ -94,5 +94,6 @@ func isSystemOnlyRole(role authorizationapi.ClusterRole) bool {
 // to the hide list
 func isControllerRole(role *authorizationapi.ClusterRole) bool {
 	return strings.HasPrefix(role.Name, "system:controller:") ||
-		strings.HasSuffix(role.Name, "-controller")
+		strings.HasSuffix(role.Name, "-controller") ||
+		strings.HasPrefix(role.Name, "system:openshift:controller:")
 }

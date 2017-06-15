@@ -3977,6 +3977,23 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:horizontal-pod-autoscaler
+  rules:
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/scale
+    verbs:
+    - get
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
