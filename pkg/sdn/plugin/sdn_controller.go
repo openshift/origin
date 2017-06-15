@@ -2,9 +2,7 @@ package plugin
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -156,15 +154,6 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		return false, nil
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
-
-	if err := os.MkdirAll("/run/openshift-sdn", 0700); err != nil {
-		return false, err
-	}
-	config := fmt.Sprintf("export OPENSHIFT_CLUSTER_SUBNET=%s", clusterNetworkCIDR)
-	err = ioutil.WriteFile("/run/openshift-sdn/config.env", []byte(config), 0644)
-	if err != nil {
-		return false, err
-	}
 
 	err = plugin.oc.SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway)
 	if err != nil {
