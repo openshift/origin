@@ -25,7 +25,6 @@ import (
 	"time"
 
 	systemd "github.com/coreos/go-systemd/daemon"
-	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
 
@@ -36,15 +35,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	genericapi "k8s.io/apiserver/pkg/endpoints"
+	"k8s.io/apiserver/pkg/endpoints/discovery"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/server/healthz"
-	"k8s.io/apiserver/pkg/server/mux"
-	genericmux "k8s.io/apiserver/pkg/server/mux"
 	"k8s.io/apiserver/pkg/server/routes"
 	restclient "k8s.io/client-go/rest"
 )
@@ -84,7 +81,7 @@ type APIGroupInfo struct {
 // GenericAPIServer contains state for a Kubernetes cluster api server.
 type GenericAPIServer struct {
 	// discoveryAddresses is used to build cluster IPs for discovery.
-	discoveryAddresses DiscoveryAddresses
+	discoveryAddresses discovery.Addresses
 
 	// LoopbackClientConfig is a config for a privileged loopback connection to the API server
 	LoopbackClientConfig *restclient.Config
@@ -102,14 +99,10 @@ type GenericAPIServer struct {
 	// requestContextMapper provides a way to get the context for a request.  It may be nil.
 	requestContextMapper apirequest.RequestContextMapper
 
-	// The registered APIs
-	HandlerContainer *genericmux.APIContainer
-
-	SecureServingInfo   *SecureServingInfo
-	InsecureServingInfo *ServingInfo
+	SecureServingInfo *SecureServingInfo
 
 	// numerical ports, set after listening
-	effectiveSecurePort, effectiveInsecurePort int
+	effectiveSecurePort int
 
 	// ExternalAddress is the address (hostname or IP and port) that should be used in
 	// external (public internet) URLs for this GenericAPIServer.
@@ -123,21 +116,14 @@ type GenericAPIServer struct {
 	Serializer runtime.NegotiatedSerializer
 
 	// "Outputs"
-	Handler         http.Handler
-	InsecureHandler http.Handler
-	// FallThroughHandler is the final HTTP handler in the chain.
-	// It comes after all filters and the API handling
-	FallThroughHandler *mux.PathRecorderMux
+	// Handler holdes the handlers being used by this API server
+	Handler *APIServerHandler
 
 	// listedPathProvider is a lister which provides the set of paths to show at /
 	listedPathProvider routes.ListedPathProvider
 
-	// Map storing information about all groups to be exposed in discovery response.
-	// The map is from name to the group.
-	// The slice preserves group name insertion order.
-	apiGroupsForDiscoveryLock sync.RWMutex
-	apiGroupsForDiscovery     map[string]metav1.APIGroup
-	apiGroupNamesForDiscovery []string
+	// DiscoveryGroupManager serves /apis
+	DiscoveryGroupManager discovery.GroupManager
 
 	// Enable swagger and/or OpenAPI if these configs are non-nil.
 	swaggerConfig *swagger.Config
@@ -178,7 +164,8 @@ type DelegationTarget interface {
 }
 
 func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
-	return s.HandlerContainer.ServeMux
+	// when we delegate, we need the server we're delegating to choose whether or not to use gorestful
+	return s.Handler.Director
 }
 func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
 	return s.postStartHooks
@@ -199,7 +186,7 @@ type emptyDelegate struct {
 }
 
 func (s emptyDelegate) UnprotectedHandler() http.Handler {
-	return http.NotFoundHandler()
+	return nil
 }
 func (s emptyDelegate) PostStartHooks() map[string]postStartHookEntry {
 	return map[string]postStartHookEntry{}
@@ -240,12 +227,12 @@ type preparedGenericAPIServer struct {
 // PrepareRun does post API installation setup steps.
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.swaggerConfig != nil {
-		routes.Swagger{Config: s.swaggerConfig}.Install(s.HandlerContainer)
+		routes.Swagger{Config: s.swaggerConfig}.Install(s.Handler.GoRestfulContainer)
 	}
 	if s.openAPIConfig != nil {
 		routes.OpenAPI{
 			Config: s.openAPIConfig,
-		}.Install(s.HandlerContainer, s.FallThroughHandler)
+		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
 	}
 
 	s.installHealthz()
@@ -273,13 +260,6 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 
 	if s.SecureServingInfo != nil && s.Handler != nil {
 		if err := s.serveSecurely(internalStopCh); err != nil {
-			close(internalStopCh)
-			return err
-		}
-	}
-
-	if s.InsecureServingInfo != nil && s.InsecureHandler != nil {
-		if err := s.serveInsecurely(internalStopCh); err != nil {
 			close(internalStopCh)
 			return err
 		}
@@ -325,7 +305,7 @@ func (s *GenericAPIServer) installAPIResources(apiPrefix string, apiGroupInfo *A
 			apiGroupVersion.OptionsExternalVersion = apiGroupInfo.OptionsExternalVersion
 		}
 
-		if err := apiGroupVersion.InstallREST(s.HandlerContainer.Container); err != nil {
+		if err := apiGroupVersion.InstallREST(s.Handler.GoRestfulContainer); err != nil {
 			return fmt.Errorf("Unable to setup API %v: %v", apiGroupInfo, err)
 		}
 	}
@@ -348,15 +328,7 @@ func (s *GenericAPIServer) InstallLegacyAPIGroup(apiPrefix string, apiGroupInfo 
 	}
 	// Install the version handler.
 	// Add a handler at /<apiPrefix> to enumerate the supported api versions.
-	genericapi.AddApiWebService(s.Serializer, s.HandlerContainer.Container, apiPrefix, func(req *restful.Request) *metav1.APIVersions {
-		clientIP := utilnet.GetClientIP(req.Request)
-
-		apiVersionsForDiscovery := metav1.APIVersions{
-			ServerAddressByClientCIDRs: s.discoveryAddresses.ServerAddressByClientCIDRs(clientIP),
-			Versions:                   apiVersions,
-		}
-		return &apiVersionsForDiscovery
-	})
+	s.Handler.GoRestfulContainer.Add(discovery.NewLegacyRootAPIHandler(s.discoveryAddresses, s.Serializer, apiPrefix, apiVersions).WebService())
 	return nil
 }
 
@@ -399,39 +371,10 @@ func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 		PreferredVersion: preferedVersionForDiscovery,
 	}
 
-	s.AddAPIGroupForDiscovery(apiGroup)
-	s.HandlerContainer.Add(genericapi.NewGroupWebService(s.Serializer, APIGroupPrefix+"/"+apiGroup.Name, apiGroup))
+	s.DiscoveryGroupManager.AddGroup(apiGroup)
+	s.Handler.GoRestfulContainer.Add(discovery.NewAPIGroupHandler(s.Serializer, apiGroup).WebService())
 
 	return nil
-}
-
-func (s *GenericAPIServer) AddAPIGroupForDiscovery(apiGroup metav1.APIGroup) {
-	s.apiGroupsForDiscoveryLock.Lock()
-	defer s.apiGroupsForDiscoveryLock.Unlock()
-
-	// Insert the group into the ordered list if it is not already present
-	if _, exists := s.apiGroupsForDiscovery[apiGroup.Name]; !exists {
-		s.apiGroupNamesForDiscovery = append(s.apiGroupNamesForDiscovery, apiGroup.Name)
-	}
-
-	s.apiGroupsForDiscovery[apiGroup.Name] = apiGroup
-}
-
-func (s *GenericAPIServer) RemoveAPIGroupForDiscovery(groupName string) {
-	s.apiGroupsForDiscoveryLock.Lock()
-	defer s.apiGroupsForDiscoveryLock.Unlock()
-
-	// Remove the group from the ordered list
-	// https://github.com/golang/go/wiki/SliceTricks#filtering-without-allocating
-	newOrder := s.apiGroupNamesForDiscovery[:0]
-	for _, orderedGroupName := range s.apiGroupNamesForDiscovery {
-		if orderedGroupName != groupName {
-			newOrder = append(newOrder, orderedGroupName)
-		}
-	}
-	s.apiGroupNamesForDiscovery = newOrder
-
-	delete(s.apiGroupsForDiscovery, groupName)
 }
 
 func (s *GenericAPIServer) getAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupVersion schema.GroupVersion, apiPrefix string) *genericapi.APIGroupVersion {
@@ -466,31 +409,6 @@ func (s *GenericAPIServer) newAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupV
 		Context:           s.RequestContextMapper(),
 		MinRequestTimeout: s.minRequestTimeout,
 	}
-}
-
-// DynamicApisDiscovery returns a webservice serving api group discovery.
-// Note: during the server runtime apiGroupsForDiscovery might change.
-func (s *GenericAPIServer) DynamicApisDiscovery() *restful.WebService {
-	return genericapi.NewApisWebService(s.Serializer, APIGroupPrefix, func(req *restful.Request) []metav1.APIGroup {
-		s.apiGroupsForDiscoveryLock.RLock()
-		defer s.apiGroupsForDiscoveryLock.RUnlock()
-
-		sortedGroups := []metav1.APIGroup{}
-
-		// ranging over apiGroupNamesForDiscovery preserves the registration order
-		for _, groupName := range s.apiGroupNamesForDiscovery {
-			sortedGroups = append(sortedGroups, s.apiGroupsForDiscovery[groupName])
-		}
-
-		clientIP := utilnet.GetClientIP(req.Request)
-		serverCIDR := s.discoveryAddresses.ServerAddressByClientCIDRs(clientIP)
-		groups := make([]metav1.APIGroup, len(sortedGroups))
-		for i := range sortedGroups {
-			groups[i] = sortedGroups[i]
-			groups[i].ServerAddressByClientCIDRs = serverCIDR
-		}
-		return groups
-	})
 }
 
 // NewDefaultAPIGroupInfo returns an APIGroupInfo stubbed with "normal" values

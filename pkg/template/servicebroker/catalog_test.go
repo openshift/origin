@@ -76,16 +76,10 @@ func TestServiceFromTemplate(t *testing.T) {
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
 								SchemaRef: "http://json-schema.org/draft-04/schema",
 								Required: []string{
-									"template.openshift.io/namespace",
 									"template.openshift.io/requester-username",
 									"param1",
 								},
 								Properties: map[string]*schema.Schema{
-									"template.openshift.io/namespace": {
-										Title:       "Template service broker: namespace",
-										Description: "OpenShift namespace in which to provision service",
-										Type:        schema.PrimitiveTypes{schema.StringType},
-									},
 									"template.openshift.io/requester-username": {
 										Title:       "Template service broker: requester username",
 										Description: "OpenShift user requesting provision/bind",

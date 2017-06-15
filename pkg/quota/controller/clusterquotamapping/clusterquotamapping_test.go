@@ -22,6 +22,8 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/controller/shared"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 )
 
 var (
@@ -60,18 +62,22 @@ func runFuzzer(t *testing.T) {
 	internalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 	externalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
-	startingQuotas := CreateStartingQuotas()
-	originclient := testclient.NewSimpleFake(startingQuotas...)
-	quotaWatch := watch.NewFake()
-	originclient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
+	originclient := testclient.NewSimpleFake()
+	// originclient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 
 	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
 	externalKubeInformerFactory := kexternalinformers.NewSharedInformerFactory(externalKubeClient, 10*time.Minute)
 	informerFactory := shared.NewInformerFactory(internalKubeInformerFactory, externalKubeInformerFactory, internalKubeClient, originclient, shared.DefaultListerWatcherOverrides{}, 10*time.Minute)
-	controller := NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), informerFactory.ClusterResourceQuotas())
+
+	startingQuotas := CreateStartingQuotas()
+	quotaWatch := watch.NewFake()
+	quotaClient := quotaclient.NewSimpleClientset(startingQuotas...)
+	quotaClient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
+	quotaFactory := quotainformer.NewSharedInformerFactory(quotaClient, 0)
+	controller := NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaFactory.Quota().InternalVersion().ClusterResourceQuotas())
 	go controller.Run(5, stopCh)
 	informerFactory.Start(stopCh)
-	informerFactory.StartCore(stopCh)
+	quotaFactory.Start(stopCh)
 	internalKubeInformerFactory.Start(stopCh)
 	externalKubeInformerFactory.Start(stopCh)
 

@@ -2,6 +2,7 @@ package client
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -23,6 +24,7 @@ type BuildInterface interface {
 	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Clone(request *buildapi.BuildRequest) (*buildapi.Build, error)
 	UpdateDetails(build *buildapi.Build) (*buildapi.Build, error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*buildapi.Build, error)
 }
 
 // builds implements BuildsNamespacer interface
@@ -100,5 +102,12 @@ func (c *builds) Clone(request *buildapi.BuildRequest) (*buildapi.Build, error) 
 func (c *builds) UpdateDetails(build *buildapi.Build) (*buildapi.Build, error) {
 	result := &buildapi.Build{}
 	err := c.r.Put().Namespace(c.ns).Resource("builds").Name(build.Name).SubResource("details").Body(build).Do().Into(result)
+	return result, err
+}
+
+// Patch takes the partial representation of a build and updates it.
+func (c *builds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*buildapi.Build, error) {
+	result := &buildapi.Build{}
+	err := c.r.Patch(types.StrategicMergePatchType).Namespace(c.ns).Resource("builds").SubResource(subresources...).Name(name).Body(data).Do().Into(result)
 	return result, err
 }

@@ -1,7 +1,8 @@
 package api
 
-// from https://github.com/openservicebrokerapi/servicebroker/blob/1d301105c66187b5aa2e061a1264ecf3cbc3d2a0/_spec.md
-// and https://github.com/avade/servicebroker/blob/8c340c610c6085c1aa32144faef0d1600c21576c/_spec.md
+// from https://github.com/openservicebrokerapi/servicebroker/blob/b33070e07cea53b9540b1d5ab8d1f62ddc556eb5/spec.md
+// and https://github.com/openservicebrokerapi/servicebroker/blob/b33070e07cea53b9540b1d5ab8d1f62ddc556eb5/profile.md
+// and https://github.com/avade/servicebroker/blob/9165f14ce6c54c3f81fba760cca53bd781febd6f/spec.md
 
 import (
 	jsschema "github.com/lestrrat/go-jsschema"
@@ -73,13 +74,20 @@ const (
 )
 
 type ProvisionRequest struct {
-	ServiceID         string            `json:"service_id"`
-	PlanID            string            `json:"plan_id"`
-	Parameters        map[string]string `json:"parameters,omitempty"`
-	AcceptsIncomplete bool              `json:"accepts_incomplete,omitempty"`
-	OrganizationID    string            `json:"organization_guid"`
-	SpaceID           string            `json:"space_guid"`
+	ServiceID      string            `json:"service_id"`
+	PlanID         string            `json:"plan_id"`
+	Context        KubernetesContext `json:"context,omitempty"`
+	OrganizationID string            `json:"organization_guid"`
+	SpaceID        string            `json:"space_guid"`
+	Parameters     map[string]string `json:"parameters,omitempty"`
 }
+
+type KubernetesContext struct {
+	Platform  string `json:"platform"`
+	Namespace string `json:"namespace"`
+}
+
+const ContextPlatformKubernetes = "kubernetes"
 
 type ProvisionResponse struct {
 	DashboardURL string    `json:"dashboard_url,omitempty"`
@@ -89,11 +97,11 @@ type ProvisionResponse struct {
 type Operation string
 
 type UpdateRequest struct {
-	ServiceID         string            `json:"service_id"`
-	PlanID            string            `json:"plan_id,omitempty"`
-	Parameters        map[string]string `json:"parameters,omitempty"`
-	AcceptsIncomplete bool              `json:"accepts_incomplete,omitempty"`
-	PreviousValues    struct {
+	Context        KubernetesContext `json:"context,omitempty"`
+	ServiceID      string            `json:"service_id"`
+	PlanID         string            `json:"plan_id,omitempty"`
+	Parameters     map[string]string `json:"parameters,omitempty"`
+	PreviousValues struct {
 		ServiceID      string `json:"service_id,omitempty"`
 		PlanID         string `json:"plan_id,omitempty"`
 		OrganizationID string `json:"organization_id,omitempty"`

@@ -132,11 +132,11 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 		}
 
 		if *capacity == 0 || !g.cacheEnabled {
-			glog.V(5).Infof("using uncached watch storage for %s", resource.String())
+			glog.V(5).Infof("using uncached watch storage for %s (quorum=%t)", resource.String(), storageConfig.Quorum)
 			return generic.UndecoratedStorage(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 		}
 
-		glog.V(5).Infof("using watch cache storage (capacity=%v) for %s %#v", *capacity, resource.String(), storageConfig)
+		glog.V(5).Infof("using watch cache storage (capacity=%v, quorum=%t) for %s %#v", *capacity, storageConfig.Quorum, resource.String(), storageConfig)
 		return storageWithCacher(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 	}
 

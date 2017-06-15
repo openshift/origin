@@ -3,7 +3,6 @@ package servicebroker
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
@@ -19,13 +18,11 @@ func ValidateProvisionRequest(preq *api.ProvisionRequest) field.ErrorList {
 
 	for key := range preq.Parameters {
 		if !templatevalidation.ParameterNameRegexp.MatchString(key) &&
-			key != templateapi.NamespaceParameterKey &&
 			key != templateapi.RequesterUsernameParameterKey {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("parameters."+key), key, fmt.Sprintf("does not match %v", templatevalidation.ParameterNameRegexp)))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("parameters", key), key, fmt.Sprintf("does not match %v", templatevalidation.ParameterNameRegexp)))
 		}
 	}
 
-	allErrs = append(allErrs, validateParameter(templateapi.NamespaceParameterKey, preq.Parameters[templateapi.NamespaceParameterKey], validation.ValidateNamespaceName)...)
 	allErrs = append(allErrs, validateParameter(templateapi.RequesterUsernameParameterKey, preq.Parameters[templateapi.RequesterUsernameParameterKey], uservalidation.ValidateUserName)...)
 
 	return allErrs

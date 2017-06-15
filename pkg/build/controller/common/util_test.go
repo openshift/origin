@@ -128,7 +128,7 @@ func TestHandleBuildPruning(t *testing.T) {
 
 	buildLister := buildclient.NewOSClientBuildClient(osclient)
 	buildConfigGetter := buildclient.NewOSClientBuildConfigClient(osclient)
-	buildDeleter := buildclient.NewBuildDeleter(osclient)
+	buildDeleter := buildclient.NewOSClientBuildClient(osclient)
 
 	bcName := buildutil.ConfigNameForBuild(build)
 	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })

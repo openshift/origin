@@ -9,6 +9,8 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller/shared"
+	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
@@ -19,6 +21,8 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
+	AppInformers      appinformer.SharedInformerFactory
+	ImageInformers    imageinformer.SharedInformerFactory
 	TemplateInformers templateinformer.SharedInformerFactory
 
 	DeprecatedOpenshiftInformers shared.InformerFactory
@@ -88,4 +92,11 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 		return nil, err
 	}
 	return templateclient.NewForConfig(clientConfig)
+}
+
+// FromKubeInitFunc adapts a kube init func to an openshift one
+func FromKubeInitFunc(initFn kubecontroller.InitFunc) InitFunc {
+	return func(ctx ControllerContext) (bool, error) {
+		return initFn(ctx.KubeControllerContext)
+	}
 }

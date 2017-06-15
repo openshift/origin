@@ -9,8 +9,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbaclister "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
@@ -75,52 +73,32 @@ func (c *OriginClusterRoleToRBACClusterRoleController) syncClusterRole(name stri
 		return c.rbacClient.ClusterRoles().Delete(name, nil)
 	}
 
-	// convert the origin role to an rbac role and compare the results
-	convertedClusterRole := &rbac.ClusterRole{}
-	if err := authorizationapi.Convert_api_ClusterRole_To_rbac_ClusterRole(originClusterRole, convertedClusterRole, nil); err != nil {
+	// determine if we need to create, update or do nothing
+	equivalentClusterRole, err := ConvertToRBACClusterRole(originClusterRole)
+	if err != nil {
 		return err
-	}
-	// do a deep copy here since conversion does not guarantee a new object.
-	equivalentClusterRole := &rbac.ClusterRole{}
-	if err := rbac.DeepCopy_rbac_ClusterRole(convertedClusterRole, equivalentClusterRole, cloner); err != nil {
-		return err
-	}
-
-	// normalize rules before persisting so RBAC's case sensitive authorizer will work
-	NormalizePolicyRules(equivalentClusterRole.Rules)
-
-	// there's one wrinkle.  If `openshift.io/reconcile-protect` is to true, then we must set rbac.authorization.kubernetes.io/autoupdate to false to
-	if equivalentClusterRole.Annotations["openshift.io/reconcile-protect"] == "true" {
-		equivalentClusterRole.Annotations["rbac.authorization.kubernetes.io/autoupdate"] = "false"
-		delete(equivalentClusterRole.Annotations, "openshift.io/reconcile-protect")
 	}
 
 	// if we're missing the rbacClusterRole, create it
 	if apierrors.IsNotFound(rbacErr) {
-		equivalentClusterRole.ResourceVersion = ""
 		_, err := c.rbacClient.ClusterRoles().Create(equivalentClusterRole)
 		return err
 	}
 
-	// if we might need to update, we need to stomp fields that are never going to match like uid and creation time
-	equivalentClusterRole.SelfLink = rbacClusterRole.SelfLink
-	equivalentClusterRole.UID = rbacClusterRole.UID
-	equivalentClusterRole.ResourceVersion = rbacClusterRole.ResourceVersion
-	equivalentClusterRole.CreationTimestamp = rbacClusterRole.CreationTimestamp
-
-	// if they're equal, we have no work to do
-	if kapi.Semantic.DeepEqual(equivalentClusterRole, rbacClusterRole) {
-		return nil
+	// if they are not equal, we need to update
+	if PrepareForUpdateClusterRole(equivalentClusterRole, rbacClusterRole) {
+		glog.V(1).Infof("writing RBAC clusterrole %v", name)
+		_, err := c.rbacClient.ClusterRoles().Update(equivalentClusterRole)
+		// if the update was invalid, we're probably changing an immutable field or something like that
+		// either way, the existing object is wrong.  Delete it and try again.
+		if apierrors.IsInvalid(err) {
+			c.rbacClient.ClusterRoles().Delete(name, nil) // ignore delete error
+		}
+		return err
 	}
 
-	glog.V(1).Infof("writing RBAC clusterrole %v", name)
-	_, err := c.rbacClient.ClusterRoles().Update(equivalentClusterRole)
-	// if the update was invalid, we're probably changing an immutable field or something like that
-	// either way, the existing object is wrong.  Delete it and try again.
-	if apierrors.IsInvalid(err) {
-		c.rbacClient.ClusterRoles().Delete(name, nil)
-	}
-	return err
+	// they are equal so we have no work to do
+	return nil
 }
 
 func (c *OriginClusterRoleToRBACClusterRoleController) clusterPolicyEventHandler() cache.ResourceEventHandler {

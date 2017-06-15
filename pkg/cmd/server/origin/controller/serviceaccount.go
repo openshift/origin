@@ -41,7 +41,7 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 	return true, nil
 }
 
-type ServiceAccountTokensControllerOptions struct {
+type ServiceAccountTokenControllerOptions struct {
 	RootCA           []byte
 	ServiceServingCA []byte
 	PrivateKey       interface{}
@@ -49,7 +49,7 @@ type ServiceAccountTokensControllerOptions struct {
 	RootClientBuilder controller.SimpleControllerClientBuilder
 }
 
-func (c *ServiceAccountTokensControllerOptions) RunController(ctx ControllerContext) (bool, error) {
+func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerContext) (bool, error) {
 	go sacontroller.NewTokensController(
 		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().ServiceAccounts(),
 		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().Secrets(),

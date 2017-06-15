@@ -50,7 +50,18 @@ func GetInputReference(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
 
 // IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
-	return build.Status.Phase != buildapi.BuildPhaseRunning && build.Status.Phase != buildapi.BuildPhasePending && build.Status.Phase != buildapi.BuildPhaseNew
+	return IsTerminalPhase(build.Status.Phase)
+}
+
+// IsTerminalPhase returns true if the provided phase is terminal
+func IsTerminalPhase(phase buildapi.BuildPhase) bool {
+	switch phase {
+	case buildapi.BuildPhaseNew,
+		buildapi.BuildPhasePending,
+		buildapi.BuildPhaseRunning:
+		return false
+	}
+	return true
 }
 
 // IsPaused returns true if the provided BuildConfig is paused and cannot be used to create a new Build

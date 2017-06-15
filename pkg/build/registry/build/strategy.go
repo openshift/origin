@@ -51,7 +51,16 @@ func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	_ = obj.(*api.Build)
+	newBuild := obj.(*api.Build)
+	oldBuild := old.(*api.Build)
+	// If the build is already in a failed state, do not allow an update
+	// of the reason and message. This is to prevent the build controller from
+	// overwriting the reason and message that was set by the builder pod
+	// when it updated the build's details.
+	if oldBuild.Status.Phase == api.BuildPhaseFailed {
+		newBuild.Status.Reason = oldBuild.Status.Reason
+		newBuild.Status.Message = oldBuild.Status.Message
+	}
 }
 
 // Canonicalize normalizes the object after validation.

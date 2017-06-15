@@ -3,6 +3,7 @@ package testclient
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
@@ -51,6 +52,15 @@ func (c *FakeBuilds) Update(inObj *buildapi.Build) (*buildapi.Build, error) {
 		return nil, err
 	}
 
+	return obj.(*buildapi.Build), err
+}
+
+func (c *FakeBuilds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*buildapi.Build, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewPatchSubresourceAction(buildsResource, c.Namespace, name, data, subresources...), &buildapi.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
 	return obj.(*buildapi.Build), err
 }
 

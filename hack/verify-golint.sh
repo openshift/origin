@@ -20,7 +20,7 @@ if [ "$arg" == "-m" ]; then
 	fi
 	set -e
 else
-	bad_files=$(find_files | \
+	bad_files=$(os::util::list_go_src_files | \
 		sort -u | \
 		sed 's/^.{2}//' | \
 		xargs -n1 printf "${GOPATH}/src/${OS_GO_PACKAGE}/%s\n" | \

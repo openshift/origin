@@ -7,6 +7,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -29,15 +30,19 @@ func NewClusterPolicyBindingRegistry(bindings []authorizationapi.ClusterPolicyBi
 	return &ClusterPolicyBindingRegistry{bindingMap, err}
 }
 
-func (r *ClusterPolicyBindingRegistry) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	var internalOptions metainternal.ListOptions
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &internalOptions, nil); err != nil {
+func (r *ClusterPolicyBindingRegistry) List(label labels.Selector) ([]*authorizationapi.ClusterPolicyBinding, error) {
+	list, err := r.ListClusterPolicyBindings(apirequest.NewContext(), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
 		return nil, err
 	}
-	return r.ListClusterPolicyBindings(apirequest.NewContext(), &internalOptions)
+	var items []*authorizationapi.ClusterPolicyBinding
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
-func (r *ClusterPolicyBindingRegistry) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
-	return r.GetClusterPolicyBinding(apirequest.NewContext(), name, &options)
+func (r *ClusterPolicyBindingRegistry) Get(name string) (*authorizationapi.ClusterPolicyBinding, error) {
+	return r.GetClusterPolicyBinding(apirequest.NewContext(), name, &metav1.GetOptions{})
 }
 
 // ListClusterPolicyBindings obtains list of clusterPolicyBindings that match a selector.

@@ -31,6 +31,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	"github.com/openshift/origin/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
 	"github.com/openshift/origin/pkg/image/trigger/buildconfigs"
@@ -119,12 +120,24 @@ type mockImageStreamLister struct {
 func (l *mockImageStreamLister) List(selector labels.Selector) (ret []*imageapi.ImageStream, err error) {
 	return nil, l.err
 }
-func (l *mockImageStreamLister) ImageStreams(namespace string) ImageStreamNamespaceLister {
+func (l *mockImageStreamLister) ImageStreams(namespace string) imageinternalversion.ImageStreamNamespaceLister {
 	l.namespace = namespace
 	return l
 }
-func (l *mockImageStreamLister) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
+func (l *mockImageStreamLister) Get(name string) (*imageapi.ImageStream, error) {
 	return l.stream, l.err
+}
+
+type imageStreamInformer struct {
+	informer cache.SharedIndexInformer
+}
+
+func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
+	return f.informer
+}
+
+func (f *imageStreamInformer) Lister() imageinternalversion.ImageStreamLister {
+	return imageinternalversion.NewImageStreamLister(f.informer.GetIndexer())
 }
 
 type fakeInstantiator struct {
@@ -782,7 +795,7 @@ func scenario_1_buildConfig_imageSource_cacheEntry() *trigger.CacheEntry {
 	}
 }
 
-func newFakeInformer(item, initialList runtime.Object) (cache.SharedInformer, *watch.RaceFreeFakeWatcher) {
+func newFakeInformer(item, initialList runtime.Object) (cache.SharedIndexInformer, *watch.RaceFreeFakeWatcher) {
 	fw := watch.NewRaceFreeFake()
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
@@ -790,7 +803,7 @@ func newFakeInformer(item, initialList runtime.Object) (cache.SharedInformer, *w
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) { return fw, nil },
 	}
-	informer := cache.NewSharedInformer(lw, item, 0)
+	informer := cache.NewSharedIndexInformer(lw, item, 0, nil)
 	return informer, fw
 }
 
@@ -1102,8 +1115,7 @@ func TestTriggerController(t *testing.T) {
 	buildReactor := &fakeImageReactor{nested: buildReactorFn}
 	podReactor := &fakeImageReactor{nested: alterPodFromTriggers(podWatch)}
 	deploymentReactor := &fakeImageReactor{nested: alterDeploymentConfigFromTriggers(dcWatch)}
-	lister := StoreToImageStreamLister{isInformer.GetStore()}
-	c := NewTriggerController(record.NewBroadcasterForTests(0), isInformer, lister,
+	c := NewTriggerController(record.NewBroadcasterForTests(0), &imageStreamInformer{isInformer},
 		TriggerSource{
 			Resource: schema.GroupResource{Resource: "buildconfigs"},
 			Informer: bcInformer,

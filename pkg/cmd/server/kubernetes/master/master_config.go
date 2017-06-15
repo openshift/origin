@@ -47,6 +47,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -77,7 +78,7 @@ const DefaultWatchCacheSize = 1000
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
-var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix, api.LegacyPrefix)
+var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
@@ -123,7 +124,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Features.EnableProfiling = true
 	server.MasterCount = masterConfig.KubernetesMasterConfig.MasterCount
 
-	server.SecureServing.ServingOptions.BindPort = port
+	server.SecureServing.BindPort = port
 	server.SecureServing.ServerCert.CertKey.CertFile = masterConfig.ServingInfo.ServerCert.CertFile
 	server.SecureServing.ServerCert.CertKey.KeyFile = masterConfig.ServingInfo.ServerCert.KeyFile
 	server.InsecureServing.BindPort = 0
@@ -148,6 +149,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Etcd.EnableGarbageCollection = true
 	server.Etcd.StorageConfig.Type = "etcd2"                 // TODO(post-1.6.1-rebase): enable etcd3 as upstream
 	server.Etcd.DefaultStorageMediaType = "application/json" // TODO(post-1.6.1-rebase): enable protobuf with etcd3 as upstream
+	server.Etcd.StorageConfig.Quorum = true
 	server.Etcd.StorageConfig.Prefix = masterConfig.EtcdStorageConfig.KubernetesStoragePrefix
 	server.Etcd.StorageConfig.ServerList = masterConfig.EtcdClientInfo.URLs
 	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
@@ -221,7 +223,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 // ONLY COMMENT OUT CODE HERE, do not modify it. Do modifications outside of this function.
 func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserver.Config, error) {
 	// set defaults
-	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing, s.InsecureServing); err != nil {
+	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing); err != nil {
 		return nil, err
 	}
 	// In origin: certs should be available:
@@ -244,8 +246,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	}
 
 	// create config from options
-	genericConfig := apiserver.NewConfig().
-		WithSerializer(kapi.Codecs)
+	genericConfig := apiserver.NewConfig(kapi.Codecs)
 
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, err
@@ -256,7 +257,7 @@ func buildUpstreamGenericConfig(s *kapiserveroptions.ServerRunOptions) (*apiserv
 	if err := s.SecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
-	if err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
+	if _, err := s.InsecureServing.ApplyTo(genericConfig); err != nil {
 		return nil, err
 	}
 	if err := s.Audit.ApplyTo(genericConfig); err != nil {
@@ -319,6 +320,30 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	cmserver.EnableGarbageCollector = true
 	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
+
+	cmserver.GCIgnoredResources = append(cmserver.GCIgnoredResources,
+		// explicitly disabled from GC for now - not enough value to track them
+		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "clusternetworks"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "egressnetworkpolicies"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "hostsubnets"},
+		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "netnamespaces"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclientauthorizations"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclients"},
+		componentconfig.GroupResource{Group: "quota.openshift.io", Resource: "clusterresourcequotas"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "groups"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "identities"},
+		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "users"},
+		componentconfig.GroupResource{Group: "image.openshift.io", Resource: "images"},
+
+		// virtual resource
+		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
+		// these resources contain security information in their names, and we don't need to track them
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
+		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
+		// exposed already as cronjobs
+		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
+	)
 
 	// resolve extended arguments
 	// TODO: this should be done in config validation (along with the above) so we can provide

@@ -475,6 +475,14 @@ const (
 	// build pod but one was already present.
 	StatusReasonBuildPodExists StatusReason = "BuildPodExists"
 
+	// StatusReasonNoBuildContainerStatus indicates that the build failed because the
+	// the build pod has no container statuses.
+	StatusReasonNoBuildContainerStatus StatusReason = "NoBuildContainerStatus"
+
+	// StatusReasonFailedContainer indicates that the pod for the build has at least
+	// one container with a non-zero exit status.
+	StatusReasonFailedContainer StatusReason = "FailedContainer"
+
 	// StatusReasonGenericBuildFailed is the reason associated with a broad
 	// range of build failures.
 	StatusReasonGenericBuildFailed StatusReason = "GenericBuildFailed"
@@ -497,6 +505,8 @@ const (
 	StatusMessageCancelledBuild            = "The build was cancelled by the user."
 	StatusMessageDockerBuildFailed         = "Docker build strategy has failed."
 	StatusMessageBuildPodExists            = "The pod for this build already exists and is older than the build."
+	StatusMessageNoBuildContainerStatus    = "The pod for this build has no container statuses indicating success or failure."
+	StatusMessageFailedContainer           = "The pod for this build has at least one container with a non-zero exit status."
 	StatusMessageGenericBuildFailed        = "Generic Build failure - check logs for details."
 )
 

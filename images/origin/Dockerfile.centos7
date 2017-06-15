@@ -13,7 +13,7 @@ FROM openshift/origin-base
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/config.json.template system-container/manifest.json system-container/service.template system-container/tmpfiles.template /exports/
 RUN INSTALL_PKGS="origin" && \
-    yum install -y ${INSTALL_PKGS} && \
+    yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all && \
     setcap 'cap_net_bind_service=ep' /usr/bin/openshift

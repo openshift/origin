@@ -18,10 +18,9 @@ import (
 )
 
 const (
-	LegacyPrefix = "/osapi"
-	Prefix       = "/oapi"
-	GroupPrefix  = "/apis"
-	GroupName    = ""
+	Prefix      = "/oapi"
+	GroupPrefix = "/apis"
+	GroupName   = ""
 )
 
 // SchemeGroupVersion is group version used to register these objects

@@ -134,11 +134,7 @@ func autoConvert_api_BrokerTemplateInstanceSpec_To_v1_BrokerTemplateInstanceSpec
 	if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(&in.Secret, &out.Secret, s); err != nil {
 		return err
 	}
-	if in.BindingIDs == nil {
-		out.BindingIDs = make([]string, 0)
-	} else {
-		out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
-	}
+	out.BindingIDs = *(*[]string)(unsafe.Pointer(&in.BindingIDs))
 	return nil
 }
 

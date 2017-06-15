@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
@@ -35,7 +37,6 @@ import (
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -304,8 +305,12 @@ type policyListerNamespacer struct {
 	registry policyregistry.Registry
 }
 
-func (s policyListerNamespacer) Policies(namespace string) client.PolicyLister {
+func (s policyListerNamespacer) Policies(namespace string) authorizationlister.PolicyNamespaceLister {
 	return policyLister{registry: s.registry, namespace: namespace}
+}
+
+func (s policyListerNamespacer) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
+	return s.Policies("").List(label)
 }
 
 type policyLister struct {
@@ -313,24 +318,32 @@ type policyLister struct {
 	namespace string
 }
 
-func (s policyLister) List(options metav1.ListOptions) (*authorizationapi.PolicyList, error) {
-	optint := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+func (s policyLister) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
+	list, err := s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
 		return nil, err
 	}
-	return s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
+	var items []*authorizationapi.Policy
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
 
-func (s policyLister) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }
 
 type policyBindingListerNamespacer struct {
 	registry policybindingregistry.Registry
 }
 
-func (s policyBindingListerNamespacer) PolicyBindings(namespace string) client.PolicyBindingLister {
+func (s policyBindingListerNamespacer) PolicyBindings(namespace string) authorizationlister.PolicyBindingNamespaceLister {
 	return policyBindingLister{registry: s.registry, namespace: namespace}
+}
+
+func (s policyBindingListerNamespacer) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
+	return s.PolicyBindings("").List(label)
 }
 
 type policyBindingLister struct {
@@ -338,14 +351,18 @@ type policyBindingLister struct {
 	namespace string
 }
 
-func (s policyBindingLister) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	optint := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+func (s policyBindingLister) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
+	list, err := s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
 		return nil, err
 	}
-	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
+	var items []*authorizationapi.PolicyBinding
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
 
-func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }

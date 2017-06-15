@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
@@ -71,6 +72,10 @@ func (f *fakeBuildClient) Clone(request *buildapi.BuildRequest) (*buildapi.Build
 }
 
 func (f *fakeBuildClient) UpdateDetails(build *buildapi.Build) (*buildapi.Build, error) {
+	return nil, nil
+}
+
+func (f *fakeBuildClient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*buildapi.Build, error) {
 	return nil, nil
 }
 

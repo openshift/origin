@@ -108,7 +108,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		}
 		return fresh, nil
 	})
-	cm := oscontroller.NewRCControllerRefManager(c.rcControl, config, selector, deployutil.ControllerKind, canAdoptFunc)
+	cm := oscontroller.NewRCControllerRefManager(c.rcControl, config, selector, deployutil.DeploymentConfigControllerRefKind, canAdoptFunc)
 	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)

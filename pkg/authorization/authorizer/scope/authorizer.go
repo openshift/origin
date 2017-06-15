@@ -9,17 +9,17 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
-	"github.com/openshift/origin/pkg/client"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )
 
 type scopeAuthorizer struct {
 	delegate            kauthorizer.Authorizer
-	clusterPolicyGetter client.ClusterPolicyLister
+	clusterPolicyGetter authorizationlister.ClusterPolicyLister
 
 	forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker
 }
 
-func NewAuthorizer(delegate kauthorizer.Authorizer, clusterPolicyGetter client.ClusterPolicyLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
+func NewAuthorizer(delegate kauthorizer.Authorizer, clusterPolicyGetter authorizationlister.ClusterPolicyLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
 	return &scopeAuthorizer{delegate: delegate, clusterPolicyGetter: clusterPolicyGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 

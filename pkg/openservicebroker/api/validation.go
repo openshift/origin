@@ -3,12 +3,29 @@ package api
 import (
 	"regexp"
 
+	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	oapi "github.com/openshift/origin/pkg/api"
 )
 
 func ValidateProvisionRequest(preq *ProvisionRequest) field.ErrorList {
 	errors := ValidateUUID(field.NewPath("service_id"), preq.ServiceID)
 	errors = append(errors, ValidateUUID(field.NewPath("plan_id"), preq.PlanID)...)
+
+	if preq.Context.Platform == "" {
+		errors = append(errors, field.Required(field.NewPath("context.platform"), ""))
+	} else if preq.Context.Platform != ContextPlatformKubernetes {
+		errors = append(errors, field.Invalid(field.NewPath("context.platform"), preq.Context.Platform, "must equal "+ContextPlatformKubernetes))
+	}
+
+	if preq.Context.Namespace == "" {
+		errors = append(errors, field.Required(field.NewPath("context.namespace"), ""))
+	} else {
+		for _, msg := range oapi.GetNameValidationFunc(validation.ValidateNamespaceName)(preq.Context.Namespace, false) {
+			errors = append(errors, field.Invalid(field.NewPath("context.namespace"), preq.Context.Namespace, msg))
+		}
+	}
 
 	return errors
 }

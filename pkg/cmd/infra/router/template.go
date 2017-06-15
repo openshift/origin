@@ -71,6 +71,7 @@ type TemplateRouter struct {
 	RouterService            *ktypes.NamespacedName
 	BindPortsAfterSync       bool
 	MaxConnections           string
+	Ciphers                  string
 	MetricsType              string
 }
 
@@ -100,6 +101,7 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
+	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
 }
 
@@ -299,6 +301,7 @@ func (o *TemplateRouterOptions) Run() error {
 		IncludeUDP:               o.RouterSelection.IncludeUDP,
 		AllowWildcardRoutes:      o.RouterSelection.AllowWildcardRoutes,
 		MaxConnections:           o.MaxConnections,
+		Ciphers:                  o.Ciphers,
 	}
 
 	oc, kc, err := o.Config.Clients()

@@ -89,8 +89,7 @@ var expectedIndex = []string{
 	"/metrics",
 	"/oapi",
 	"/oapi/v1",
-	"/osapi",
-	"/swaggerapi/",
+	"/swaggerapi",
 	"/version",
 	"/version/openshift",
 }

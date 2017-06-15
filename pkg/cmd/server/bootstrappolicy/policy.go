@@ -337,6 +337,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
+				authorizationapi.NewRule("update").Groups(buildGroup, legacyBuildGroup).Resources("builds/details").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
@@ -397,6 +398,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/clone").RuleOrDie(),
+				authorizationapi.NewRule("update").Groups(buildGroup, legacyBuildGroup).Resources("builds/details").RuleOrDie(),
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
@@ -1321,8 +1323,24 @@ func convertClusterRoles(in []rbac.ClusterRole) ([]authorizationapi.ClusterRole,
 			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
 			continue
 		}
+		// adding annotation to any role not explicitly in the whitelist below
+		if !rolesToShow.Has(newRole.Name) {
+			newRole.Annotations[roleSystemOnly] = roleIsSystemOnly
+		}
 		out = append(out, *newRole)
 	}
 
 	return out, kutilerrors.NewAggregate(errs)
 }
+
+// The current list of roles considered useful for normal users (non-admin)
+var rolesToShow = sets.NewString(
+	"admin",
+	"basic-user",
+	"edit",
+	"system:deployer",
+	"system:image-builder",
+	"system:image-puller",
+	"system:image-pusher",
+	"view",
+)

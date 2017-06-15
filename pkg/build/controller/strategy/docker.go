@@ -77,6 +77,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		pod.Spec.Containers[0].StdinOnce = true
 	}
 
+	setOwnerReference(pod, build)
 	setupDockerSocket(pod)
 	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)

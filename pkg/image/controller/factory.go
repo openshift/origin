@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	ctrl "github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/controller/shared"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
 
 // ImageStreamControllerOptions represents a configuration for the scheduled image stream
@@ -62,12 +62,12 @@ func (opts ScheduledImageStreamControllerOptions) GetRateLimiter() flowcontrol.R
 }
 
 // NewImageStreamController returns a new image stream import controller.
-func NewImageStreamController(namespacer client.ImageStreamsNamespacer, informer shared.ImageStreamInformer) *ImageStreamController {
+func NewImageStreamController(namespacer client.ImageStreamsNamespacer, informer imageinternalversion.ImageStreamInformer) *ImageStreamController {
 	controller := &ImageStreamController{
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
 		isNamespacer: namespacer,
-		lister:       temporaryLister{informer.Lister()},
+		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 	}
 
@@ -81,14 +81,14 @@ func NewImageStreamController(namespacer client.ImageStreamsNamespacer, informer
 
 // NewScheduledImageStreamController returns a new scheduled image stream import
 // controller.
-func NewScheduledImageStreamController(namespacer client.ImageStreamsNamespacer, informer shared.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
+func NewScheduledImageStreamController(namespacer client.ImageStreamsNamespacer, informer imageinternalversion.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
 	bucketLimiter := flowcontrol.NewTokenBucketRateLimiter(opts.BucketsToQPS(), 1)
 
 	controller := &ScheduledImageStreamController{
 		enabled:      opts.Enabled,
 		rateLimiter:  opts.GetRateLimiter(),
 		isNamespacer: namespacer,
-		lister:       temporaryLister{informer.Lister()},
+		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 	}
 

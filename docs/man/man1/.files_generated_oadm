@@ -46,6 +46,8 @@ oadm-groups-sync.1
 oadm-groups.1
 oadm-ipfailover.1
 oadm-manage-node.1
+oadm-migrate-authorization.1
+oadm-migrate-etcd-ttl.1
 oadm-migrate-image-references.1
 oadm-migrate-storage.1
 oadm-migrate.1

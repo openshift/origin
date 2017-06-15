@@ -809,6 +809,14 @@ items:
     - create
   - apiGroups:
     - build.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/details
+    verbs:
+    - update
+  - apiGroups:
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - jenkins
@@ -1201,6 +1209,14 @@ items:
     - builds/clone
     verbs:
     - create
+  - apiGroups:
+    - build.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - builds/details
+    verbs:
+    - update
   - apiGroups:
     - build.openshift.io
     attributeRestrictions: null
@@ -2902,73 +2918,6 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:imagetrigger-controller
-  rules:
-  - apiGroups:
-    - image.openshift.io
-    - ""
-    attributeRestrictions: null
-    resources:
-    - imagestreams
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - daemonsets
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - extensions
-    - apps
-    attributeRestrictions: null
-    resources:
-    - deployments
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - apps
-    attributeRestrictions: null
-    resources:
-    - statefulsets
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - batch
-    attributeRestrictions: null
-    resources:
-    - cronjobs
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - apps.openshift.io
-    - ""
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - build.openshift.io
-    - ""
-    attributeRestrictions: null
-    resources:
-    - buildconfigs/instantiate
-    verbs:
-    - create
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
     name: system:node-bootstrapper
   rules:
   - apiGroups:
@@ -3399,34 +3348,6 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:service-serving-cert-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - list
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - secrets
-    verbs:
-    - create
-    - get
-    - list
-    - update
-    - watch
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
     name: system:openshift:template-service-broker
   rules:
   - apiGroups:
@@ -3559,6 +3480,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -3589,55 +3511,6 @@ items:
     - imagestreams
     verbs:
     - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:openshift:controller:build-pod-controller
-  rules:
-  - apiGroups:
-    - ""
-    - build.openshift.io
-    attributeRestrictions: null
-    resources:
-    - builds
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
     - list
   - apiGroups:
     - ""
@@ -3646,26 +3519,24 @@ items:
     - secrets
     verbs:
     - get
+    - list
   - apiGroups:
     - ""
-    - build.openshift.io
     attributeRestrictions: null
     resources:
-    - buildconfigs
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    - build.openshift.io
-    attributeRestrictions: null
-    resources:
-    - builds/custom
-    - builds/docker
-    - builds/jenkinspipeline
-    - builds/optimizeddocker
-    - builds/source
+    - pods
     verbs:
     - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -4007,6 +3878,171 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:image-trigger-controller
+  rules:
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - daemonsets
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - deployments
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - statefulsets
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - batch
+    attributeRestrictions: null
+    resources:
+    - cronjobs
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - buildconfigs/instantiate
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:service-serving-cert-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:image-import-controller
+  rules:
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreams
+    verbs:
+    - create
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - images
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    - image.openshift.io
+    attributeRestrictions: null
+    resources:
+    - imagestreamimports
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4060,6 +4096,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4116,6 +4153,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4177,6 +4215,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4238,6 +4277,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4310,6 +4350,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4357,6 +4398,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4388,6 +4430,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4476,6 +4519,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4522,6 +4566,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4560,6 +4605,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4612,6 +4658,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4711,6 +4758,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4737,6 +4785,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4784,6 +4833,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4831,6 +4881,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4865,6 +4916,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4899,6 +4951,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4925,6 +4978,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -4968,6 +5022,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5030,6 +5085,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5059,6 +5115,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5095,6 +5152,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5112,6 +5170,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5134,6 +5193,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5167,6 +5227,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5191,6 +5252,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5211,6 +5273,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5278,6 +5341,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:
@@ -5379,6 +5443,7 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      authorization.openshift.io/system-only: "true"
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     labels:

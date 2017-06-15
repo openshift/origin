@@ -11,19 +11,19 @@ import (
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	ocache "github.com/openshift/origin/pkg/client/cache"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 )
 
 type AppliedClusterResourceQuotaREST struct {
 	quotaMapper     clusterquotamapping.ClusterQuotaMapper
-	quotaLister     *ocache.IndexerToClusterResourceQuotaLister
+	quotaLister     quotalister.ClusterResourceQuotaLister
 	namespaceLister kcorelisters.NamespaceLister
 }
 
-func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister *ocache.IndexerToClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
+func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quotalister.ClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
 	return &AppliedClusterResourceQuotaREST{
 		quotaMapper:     quotaMapper,
 		quotaLister:     quotaLister,

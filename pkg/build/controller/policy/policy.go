@@ -23,6 +23,9 @@ type RunPolicy interface {
 	// OnComplete allows policy to execute action when the given build just
 	// completed.
 	OnComplete(*buildapi.Build) error
+
+	// Handles returns true if the run policy handles a specific policy
+	Handles(buildapi.BuildRunPolicy) bool
 }
 
 // GetAllRunPolicies returns a set of all run policies.
@@ -36,23 +39,11 @@ func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.Build
 
 // ForBuild picks the appropriate run policy for the given build.
 func ForBuild(build *buildapi.Build, policies []RunPolicy) RunPolicy {
+	buildPolicy := buildutil.BuildRunPolicy(build)
 	for _, s := range policies {
-		switch buildutil.BuildRunPolicy(build) {
-		case buildapi.BuildRunPolicyParallel:
-			if _, ok := s.(*ParallelPolicy); ok {
-				glog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
-				return s
-			}
-		case buildapi.BuildRunPolicySerial:
-			if _, ok := s.(*SerialPolicy); ok {
-				glog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
-				return s
-			}
-		case buildapi.BuildRunPolicySerialLatestOnly:
-			if _, ok := s.(*SerialLatestOnlyPolicy); ok {
-				glog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
-				return s
-			}
+		if s.Handles(buildPolicy) {
+			glog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
+			return s
 		}
 	}
 	return nil

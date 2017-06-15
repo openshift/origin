@@ -235,7 +235,7 @@ func (o OpenShiftLogsOptions) RunLog() error {
 	case isBld:
 		urlString, _ := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
 		if len(urlString) == 0 {
-			return errors.New(fmt.Sprintf("The build %s did not have the correct log URL", build.ObjectMeta.Name))
+			return errors.New(fmt.Sprintf("The pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.ObjectMeta.Name))
 		}
 		o.KubeLogOptions.Out.Write([]byte(fmt.Sprintf("info: Logs available at %s\n", urlString)))
 	default:

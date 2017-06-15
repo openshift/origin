@@ -12,7 +12,6 @@ import (
 	"github.com/golang/glog"
 
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -50,7 +49,6 @@ type podManager struct {
 	// and thus can be set from Start()
 	ipamConfig     []byte
 	hostportSyncer kubehostport.HostportSyncer
-	host           knetwork.Host
 }
 
 // Creates a new live podManager; used by node code0
@@ -126,8 +124,7 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(socketPath string, host knetwork.Host, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
-	m.host = host
+func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
 	m.hostportSyncer = kubehostport.NewHostportSyncer()
 
 	var err error

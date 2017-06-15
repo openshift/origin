@@ -157,7 +157,7 @@ func (o PruneBuildsOptions) Run() error {
 	buildDeleter := &describingBuildDeleter{w: w}
 
 	if o.Confirm {
-		buildDeleter.delegate = buildclient.NewBuildDeleter(o.OSClient)
+		buildDeleter.delegate = buildclient.NewOSClientBuildClient(o.OSClient)
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove builds")
 	}

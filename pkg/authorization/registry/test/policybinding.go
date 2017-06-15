@@ -7,12 +7,13 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
-	"github.com/openshift/origin/pkg/client"
 )
 
 type PolicyBindingRegistry struct {
@@ -31,7 +32,11 @@ func NewPolicyBindingRegistry(bindings []authorizationapi.PolicyBinding, err err
 	return &PolicyBindingRegistry{bindingMap, err}
 }
 
-func (r *PolicyBindingRegistry) PolicyBindings(namespace string) client.PolicyBindingLister {
+func (r *PolicyBindingRegistry) List(_ labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
+func (r *PolicyBindingRegistry) PolicyBindings(namespace string) authorizationlister.PolicyBindingNamespaceLister {
 	return policyBindingLister{registry: r, namespace: namespace}
 }
 
@@ -40,16 +45,20 @@ type policyBindingLister struct {
 	namespace string
 }
 
-func (s policyBindingLister) List(options metav1.ListOptions) (*authorizationapi.PolicyBindingList, error) {
-	optint := metainternal.ListOptions{}
-	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
+func (s policyBindingLister) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
+	list, err := s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
 		return nil, err
 	}
-	return s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &optint)
+	var items []*authorizationapi.PolicyBinding
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
 }
 
-func (s policyBindingLister) Get(name string, options metav1.GetOptions) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &options)
+func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
+	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }
 
 // ListPolicyBindings obtains a list of policyBinding that match a selector.

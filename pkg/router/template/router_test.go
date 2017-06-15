@@ -811,3 +811,88 @@ func TestGenerateRouteRegexp(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchPattern(t *testing.T) {
+	testMatches := []struct {
+		name    string
+		pattern string
+		input   string
+	}{
+		// Test that basic regex stuff works
+		{
+			name:    "exact match",
+			pattern: `asd`,
+			input:   "asd",
+		},
+		{
+			name:    "basic regex",
+			pattern: `.*asd.*`,
+			input:   "123asd123",
+		},
+		{
+			name:    "match newline",
+			pattern: `(?s).*asd.*`,
+			input:   "123\nasd123",
+		},
+		{
+			name:    "match multiline",
+			pattern: `(?m)(^asd\d$\n?)+`,
+			input:   "asd1\nasd2\nasd3\n",
+		},
+	}
+
+	testNoMatches := []struct {
+		name    string
+		pattern string
+		input   string
+	}{
+		// Make sure we are anchoring the regex at the start and end
+		{
+			name:    "no-substring",
+			pattern: `asd`,
+			input:   "123asd123",
+		},
+		// Make sure that we group their pattern separately from the anchors
+		{
+			name:    "prefix alternation",
+			pattern: `|asd`,
+			input:   "anything",
+		},
+		{
+			name:    "postfix alternation",
+			pattern: `asd|`,
+			input:   "anything",
+		},
+		// Make sure that a change in anchor behaviors doesn't break us
+		{
+			name:    "substring behavior",
+			pattern: `(?m)asd`,
+			input:   "asd\n123",
+		},
+		// Check some other regex things that should fail
+		{
+			name:    "don't match newline",
+			pattern: `.*asd.*`,
+			input:   "123\nasd123",
+		},
+		{
+			name:    "don't match multiline",
+			pattern: `(^asd\d$\n?)+`,
+			input:   "asd1\nasd2\nasd3\n",
+		},
+	}
+
+	for _, tt := range testMatches {
+		match := matchPattern(tt.pattern, tt.input)
+		if !match {
+			t.Errorf("%s: expected %s to match %s, but didn't", tt.name, tt.input, tt.pattern)
+		}
+	}
+
+	for _, tt := range testNoMatches {
+		match := matchPattern(tt.pattern, tt.input)
+		if match {
+			t.Errorf("%s: expected %s not to match %s, but did", tt.name, tt.input, tt.pattern)
+		}
+	}
+}

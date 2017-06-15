@@ -12503,8 +12503,7 @@ objects:
 
         - name: prometheus
           args:
-          - -storage.local.retention=6h
-          - -storage.local.memory-chunks=500000
+          - -storage.tsdb.retention=6h
           - -config.file=/etc/prometheus/prometheus.yml
           - -web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}

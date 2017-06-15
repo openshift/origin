@@ -9,6 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -27,13 +28,9 @@ var (
 	// for any other changes to happen when testing whether only a single build got processed
 	BuildControllerTestWait = 10 * time.Second
 
-	// BuildPodControllerTestWait is the time that RunBuildPodControllerTest waits
-	// after a state transition to make sure other state transitions don't occur unexpectedly
-	BuildPodControllerTestWait = 10 * time.Second
-
-	// BuildPodControllerTestTransitionTimeout is the time RunBuildPodControllerTest waits
+	// BuildControllerTestTransitionTimeout is the time RunBuildControllerPodSyncTest waits
 	// for a build trasition to occur after the pod's status has been updated
-	BuildPodControllerTestTransitionTimeout = 60 * time.Second
+	BuildControllerTestTransitionTimeout = 60 * time.Second
 
 	// BuildControllersWatchTimeout is used by all tests to wait for watch events. In case where only
 	// a single watch event is expected, the test will fail after the timeout.
@@ -168,7 +165,7 @@ type buildControllerPodTest struct {
 	States []buildControllerPodState
 }
 
-func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kclientset.Interface) {
+func RunBuildControllerPodSyncTest(t testingT, osClient *client.Client, kClient kclientset.Interface) {
 	ns := testutil.Namespace()
 
 	tests := []buildControllerPodTest{
@@ -305,7 +302,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 							errChan <- fmt.Errorf("unexpected event received: %s, object: %#v", e.Type, e.Object)
 							return
 						}
-						if done {
+						if done && b.Status.Phase != state.BuildPhase {
 							errChan <- fmt.Errorf("build %s/%s transitioned to new state (%s) after reaching desired state", b.Namespace, b.Name, b.Status.Phase)
 							return
 						}
@@ -320,7 +317,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 				case err := <-errChan:
 					t.Errorf("%s: Error %v", test.Name, err)
 					return false
-				case <-time.After(BuildPodControllerTestTransitionTimeout):
+				case <-time.After(BuildControllerTestTransitionTimeout):
 					t.Errorf("%s: Timed out waiting for build %s/%s to reach state %s. Current state: %s", test.Name, b.Namespace, b.Name, state.BuildPhase, b.Status.Phase)
 					return false
 				case <-stateReached:
@@ -333,7 +330,7 @@ func RunBuildPodControllerTest(t testingT, osClient *client.Client, kClient kcli
 					t.Errorf("%s: Error %v", test.Name, err)
 					return false
 
-				case <-time.After(BuildPodControllerTestWait):
+				case <-time.After(BuildControllerTestWait):
 					// After waiting for a set time, if no other state is reached, continue to wait for next state transition
 					return true
 				}
@@ -640,10 +637,6 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	// give the poddeletecontroller's build cache time to be updated with the build object
-	// so it doesn't get a miss when looking up the build while processing the pod delete event.
-	time.Sleep(10 * time.Second)
-
 	clusterAdminKubeClientset.Core().Pods(testutil.Namespace()).Delete(buildapi.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
@@ -653,21 +646,33 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient *client.Client,
 	if newBuild.Status.Phase != buildapi.BuildPhaseError {
 		t.Fatalf("expected build status to be marked error, but was marked %s", newBuild.Status.Phase)
 	}
-	events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(kapi.Scheme, newBuild)
-	if err != nil {
-		t.Fatalf("error getting build events: %v", err)
-	}
+
 	foundFailed := false
-	for _, event := range events.Items {
-		if event.Reason == buildapi.BuildFailedEventReason {
-			foundFailed = true
-			expect := fmt.Sprintf(buildapi.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
-			if event.Message != expect {
-				t.Fatalf("expected failed event message to be %s, got %s", expect, event.Message)
-			}
-			break
+
+	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
+		events, err := clusterAdminKubeClientset.Core().Events(testutil.Namespace()).Search(kapi.Scheme, newBuild)
+		if err != nil {
+			t.Fatalf("error getting build events: %v", err)
+			return false, fmt.Errorf("error getting build events: %v", err)
 		}
+		for _, event := range events.Items {
+			if event.Reason == buildapi.BuildFailedEventReason {
+				foundFailed = true
+				expect := fmt.Sprintf(buildapi.BuildFailedEventMessage, newBuild.Namespace, newBuild.Name)
+				if event.Message != expect {
+					return false, fmt.Errorf("expected failed event message to be %s, got %s", expect, event.Message)
+				}
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected: %v", err)
+		return
 	}
+
 	if !foundFailed {
 		t.Fatalf("expected to find a failed event on the build %s/%s", newBuild.Namespace, newBuild.Name)
 	}

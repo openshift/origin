@@ -211,7 +211,7 @@ func (o *DiagnosticsOptions) Complete(args []string) error {
 
 	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)
 	if len(o.RequestedDiagnostics) == 0 {
-		o.RequestedDiagnostics = availableDiagnostics().List()
+		o.RequestedDiagnostics = availableDiagnostics().Difference(defaultSkipDiagnostics()).List()
 	}
 
 	return nil
@@ -248,7 +248,14 @@ func availableDiagnostics() sets.String {
 	available := sets.NewString()
 	available.Insert(availableClientDiagnostics.List()...)
 	available.Insert(availableClusterDiagnostics.List()...)
+	available.Insert(availableEtcdDiagnostics.List()...)
 	available.Insert(availableHostDiagnostics.List()...)
+	return available
+}
+
+func defaultSkipDiagnostics() sets.String {
+	available := sets.NewString()
+	available.Insert(defaultSkipEtcdDiagnostics.List()...)
 	return available
 }
 
@@ -297,6 +304,12 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 			if err != nil {
 				errors = append(errors, err)
 			}
+		}
+
+		etcdDiags, ok, err := o.buildEtcdDiagnostics()
+		failed = failed || !ok
+		if ok {
+			diagnostics = append(diagnostics, etcdDiags...)
 		}
 
 		hostDiags, ok, err := o.buildHostDiagnostics()

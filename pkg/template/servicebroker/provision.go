@@ -28,7 +28,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, 
 	}
 
 	for k, v := range preq.Parameters {
-		if k != templateapi.NamespaceParameterKey && k != templateapi.RequesterUsernameParameterKey {
+		if k != templateapi.RequesterUsernameParameterKey {
 			secret.Data[k] = []byte(v)
 		}
 	}
@@ -201,7 +201,7 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		return api.BadRequest(errs.ToAggregate())
 	}
 
-	namespace := preq.Parameters[templateapi.NamespaceParameterKey]
+	namespace := preq.Context.Namespace
 	impersonate := preq.Parameters[templateapi.RequesterUsernameParameterKey]
 	u := &user.DefaultInfo{Name: impersonate}
 

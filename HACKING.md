@@ -18,6 +18,9 @@ To build the base and release images, run:
 
     $ hack/build-base-images.sh
 
+Today, all of our container image builds require 
+[imagebuilder](https://github.com/openshift/imagebuilder).
+
 Once a release has been created, it can be pushed:
 
     $ hack/push-release.sh
