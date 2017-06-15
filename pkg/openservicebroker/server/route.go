@@ -9,8 +9,11 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/rest"
 
+	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 )
 
@@ -19,7 +22,7 @@ const minAPIVersionMajor, minAPIVersionMinor = 2, 7
 
 // Route adds the necessary routes to a restful.Container for a given Broker
 // implementing the OSB spec.
-func Route(container *restful.Container, path string, b api.Broker) {
+func Route(handler http.Handler, restConfig *rest.Config, path string, b api.Broker) http.Handler {
 	shim := func(f func(api.Broker, *restful.Request) *api.Response) func(*restful.Request, *restful.Response) {
 		return func(req *restful.Request, resp *restful.Response) {
 			response := f(b, req)
@@ -35,6 +38,8 @@ func Route(container *restful.Container, path string, b api.Broker) {
 
 	ws := restful.WebService{}
 	ws.Path(path + "/v2")
+	ws.Filter(authenticate(restConfig))
+	// TODO: audit logging
 	ws.Filter(apiVersion)
 	ws.Filter(contentType)
 	ws.Filter(waitForReady(b))
@@ -45,7 +50,10 @@ func Route(container *restful.Container, path string, b api.Broker) {
 	ws.Route(ws.GET("/service_instances/{instance_id}/last_operation").To(shim(lastOperation)))
 	ws.Route(ws.PUT("/service_instances/{instance_id}/service_bindings/{binding_id}").To(shim(bind)))
 	ws.Route(ws.DELETE("/service_instances/{instance_id}/service_bindings/{binding_id}").To(shim(unbind)))
+
+	container := restful.NewContainer()
 	container.Add(&ws)
+	return container
 }
 
 func atoi(s string) int {
@@ -54,6 +62,40 @@ func atoi(s string) int {
 		rv = 0
 	}
 	return rv
+}
+
+func authenticate(restConfig *rest.Config) func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+	// check for an oauth token shoehorned into the password in a basic auth
+	// header.  Service account tokens do not expire, hence for now the SC can
+	// be set up to send one as a basic auth password.
+	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
+		_, password, ok := req.Request.BasicAuth()
+		if !ok {
+			resp.WriteHeaderAndJson(http.StatusUnauthorized, &api.ErrorResponse{Description: http.StatusText(http.StatusUnauthorized)}, restful.MIME_JSON)
+			return
+		}
+
+		rc := *restConfig
+		rc.BearerToken = password
+		cli, err := client.New(&rc)
+		if err != nil {
+			resp.WriteHeaderAndJson(http.StatusInternalServerError, &api.ErrorResponse{Description: err.Error()}, restful.MIME_JSON)
+			return
+		}
+
+		user, err := cli.Users().Get("~", metav1.GetOptions{})
+		if err != nil {
+			resp.WriteHeaderAndJson(http.StatusInternalServerError, &api.ErrorResponse{Description: err.Error()}, restful.MIME_JSON)
+			return
+		}
+
+		if user.Name != "system:serviceaccount:default:templateservicebroker" {
+			resp.WriteHeaderAndJson(http.StatusUnauthorized, &api.ErrorResponse{Description: http.StatusText(http.StatusUnauthorized)}, restful.MIME_JSON)
+			return
+		}
+
+		chain.ProcessFilter(req, resp)
+	}
 }
 
 func apiVersion(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
