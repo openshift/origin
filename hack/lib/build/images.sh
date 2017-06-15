@@ -15,15 +15,15 @@ function os::build::image() {
   local mode="${OS_BUILD_IMAGE_TYPE:-imagebuilder}"
 
   if [[ "${mode}" == "imagebuilder" ]]; then
-    if os::util::find::system_binary 'imagebuilder'; then
+    if os::util::find::system_binary 'imagebuilder' >/dev/null; then
       if [[ -n "${extra_tag}" ]]; then
         extra_tag="-t '${extra_tag}'"
       fi
       if [[ -n "${dockerfile}" ]]; then
-        eval "imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
+        eval "os::util::imagebuilder -f '${dockerfile}' -t '${tag}' ${extra_tag} ${options} '${directory}'"
         return $?
       fi
-      eval "imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
+      eval "os::util::imagebuilder -t '${tag}' ${extra_tag} ${options} '${directory}'"
       return $?
     fi
 
@@ -33,15 +33,15 @@ function os::build::image() {
   fi
 
   if [[ -n "${dockerfile}" ]]; then
-    eval "docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
+    eval "os::util::docker build -f '${dockerfile}' -t '${tag}' ${options} '${directory}'"
     if [[ -n "${extra_tag}" ]]; then
-      docker tag "${tag}" "${extra_tag}"
+      os::util::docker tag "${tag}" "${extra_tag}"
     fi
     return $?
   fi
-  eval "docker build -t '${tag}' ${options} '${directory}'"
+  eval "os::util::docker build -t '${tag}' ${options} '${directory}'"
   if [[ -n "${extra_tag}" ]]; then
-    docker tag "${tag}" "${extra_tag}"
+    os::util::docker tag "${tag}" "${extra_tag}"
   fi
   return $?
 }

@@ -83,7 +83,7 @@ function copy-container-files() {
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    sudo docker cp "${container_name}:${source_path}" "${dest_dir}"
+    os::util::docker cp "${container_name}:${source_path}" "${dest_dir}"
   done
 }
 
@@ -100,9 +100,9 @@ function save-container-logs() {
     if [[ ! -d "${dest_dir}" ]]; then
       mkdir -p "${dest_dir}"
     fi
-    sudo docker exec -t "${container_name}" bash -c "journalctl | \
+    os::util::docker exec -t "${container_name}" bash -c "journalctl | \
 gzip > ${container_log_file}"
-    sudo docker cp "${container_name}:${container_log_file}" "${dest_dir}"
+    os::util::docker cp "${container_name}:${container_log_file}" "${dest_dir}"
     # Output container logs to stdout to ensure that jenkins has
     # detail to classify the failure cause.
     if [[ -n "${output_to_stdout}" ]]; then
@@ -346,7 +346,7 @@ else
 
   os::log::system::start
 
-  os::log::info "Building docker-in-docker images"
+  os::log::info "Building os::util::docker-in-docker images"
   ${CLUSTER_CMD} build-images
 
   # Ensure cleanup on error

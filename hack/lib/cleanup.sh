@@ -123,7 +123,7 @@ function os::cleanup::containers() {
 	os::log::info "[CLEANUP] Stopping docker containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Stopping ${id}"
-		docker stop "${id}" >/dev/null
+		os::util::docker stop "${id}" >/dev/null
 	done
 
 	if [[ -n "${SKIP_IMAGE_CLEANUP:-}" ]]; then
@@ -133,7 +133,7 @@ function os::cleanup::containers() {
 	os::log::info "[CLEANUP] Removing docker containers"
 	for id in $( os::cleanup::internal::list_our_containers ); do
 		os::log::debug "Removing ${id}"
-		docker rm --volumes "${id}" >/dev/null
+		os::util::docker rm --volumes "${id}" >/dev/null
 	done
 }
 readonly -f os::cleanup::containers
@@ -158,9 +158,9 @@ function os::cleanup::dump_container_logs() {
 
 	os::log::info "[CLEANUP] Dumping container logs to $( os::util::repository_relative_path "${container_log_dir}" )"
 	for id in $( os::cleanup::internal::list_our_containers ); do
-		local name; name="$( docker inspect --format '{{ .Name }}' "${id}" )"
+		local name; name="$( os::util::docker inspect --format '{{ .Name }}' "${id}" )"
 		os::log::debug "Dumping logs for ${id} to ${name}.log"
-		docker logs "${id}" >"${container_log_dir}/${name}.log" 2>&1
+		os::util::docker logs "${id}" >"${container_log_dir}/${name}.log" 2>&1
 	done
 }
 readonly -f os::cleanup::dump_container_logs
@@ -206,9 +206,9 @@ readonly -f os::cleanup::internal::list_k8s_containers
 function os::cleanup::internal::list_containers() {
 	local regex="$1"
 	local ids;
-	for short_id in $( docker ps -aq ); do
-		local id; id="$( docker inspect --format '{{ .Id }}' "${short_id}" )"
-		local name; name="$( docker inspect --format '{{ .Name }}' "${id}" )"
+	for short_id in $( os::util::docker ps -aq ); do
+		local id; id="$( os::util::docker inspect --format '{{ .Id }}' "${short_id}" )"
+		local name; name="$( os::util::docker inspect --format '{{ .Name }}' "${id}" )"
 		if [[ "${name}" =~ ${regex} ]]; then
 			ids+=( "${id}" )
 		fi

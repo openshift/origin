@@ -509,7 +509,6 @@ readonly -f os::start::internal::start_node
 # Returns:
 #  - openshift executable
 function os::start::internal::openshift_executable() {
-	local sudo="${USE_SUDO:+sudo}"
 	local version="${1:-}"
 	local openshift_executable
 	if [[ -n "${version}" ]]; then
@@ -529,7 +528,7 @@ function os::start::internal::openshift_executable() {
 			done
 		fi
 
-		openshift_executable="${sudo} docker run ${docker_options} ${volumes} ${envvars} openshift/origin:${version}"
+		openshift_executable="os::util::docker run ${docker_options} ${volumes} ${envvars} openshift/origin:${version}"
 	else
 		local envvars=""
 		if [[ -n "${ENV:-}" ]]; then

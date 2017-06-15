@@ -84,15 +84,15 @@ for os_image in "${os_images[@]}"; do
             os::cmd::expect_success 'cp ../../scripts/test-wrapper.sh .'
             os::cmd::expect_success 'cp ../../scripts/gssapi-tests.sh .'
             os::cmd::expect_success 'cp ../../config/kubeconfig .'
-            os::cmd::expect_success "docker build --build-arg REALM='${realm}' --build-arg HOST='${host}' -t '${project_name}/${os_image}-gssapi-base:latest' ."
+            os::cmd::expect_success "os::util::docker build --build-arg REALM='${realm}' --build-arg HOST='${host}' -t '${project_name}/${os_image}-gssapi-base:latest' ."
         popd > /dev/null
 
         pushd kerberos > /dev/null
-            os::cmd::expect_success "docker build -t '${project_name}/${os_image}-gssapi-kerberos:latest' ."
+            os::cmd::expect_success "os::util::docker build -t '${project_name}/${os_image}-gssapi-kerberos:latest' ."
         popd > /dev/null
 
         pushd kerberos_configured > /dev/null
-            os::cmd::expect_success "docker build -t '${project_name}/${os_image}-gssapi-kerberos-configured:latest' ."
+            os::cmd::expect_success "os::util::docker build -t '${project_name}/${os_image}-gssapi-kerberos-configured:latest' ."
         popd > /dev/null
 
     popd > /dev/null
