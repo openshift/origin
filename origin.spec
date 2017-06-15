@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ac68b90ea4218dddd97013865b929994ef1ccaea
+%global commit 4ab7e2e6ffe5165800a0aee412bd1f77d09e0d71
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.110 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ac68b90
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.111 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4ab7e2e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.111
+Version:        3.6.112
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,18 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.112-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 782afed
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  039d7654c398ab0e741b1bd8a8116af8dde0ab3f (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1a990338d4e4cee7b0aadeda3346b9144fc6d2fb (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 43982: Fix deletion of Gluster, Ceph and Quobyte volumes
+  (jsafrane@redhat.com)
+- handle nil URLs in safeforlogging (bparees@redhat.com)
+- Route security management by end user (pcameron@redhat.com)
+
 * Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.111-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console e10e9a8
   (smunilla@redhat.com)
