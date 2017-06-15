@@ -7,15 +7,9 @@ import (
 	"github.com/golang/glog"
 
 	genericmux "k8s.io/apiserver/pkg/server/mux"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/oauth/discovery"
-	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
-	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
@@ -29,12 +23,6 @@ type OpenshiftNonAPIConfig struct {
 
 	MasterPublicURL string
 	EnableOAuth     bool
-
-	// these are only needed for the template service broker, which should move out
-	KubeClientInternal          kclientsetinternal.Interface
-	EnableTemplateServiceBroker bool
-	TemplateInformers           templateinformer.SharedInformerFactory
-	TemplateNamespaces          []string
 }
 
 // OpenshiftNonAPIServer serves non-API endpoints for openshift.
@@ -70,21 +58,6 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
 	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.EnableControllers, c.ControllerPlug)
-
-	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	if c.EnableTemplateServiceBroker {
-		openservicebrokerserver.Route(
-			s.GenericAPIServer.Handler.GoRestfulContainer,
-			templateapi.ServiceBrokerRoot,
-			templateservicebroker.NewBroker(
-				*c.GenericConfig.LoopbackClientConfig,
-				c.KubeClientInternal,
-				bootstrappolicy.DefaultOpenShiftInfraNamespace,
-				c.TemplateInformers.Template().InternalVersion().Templates(),
-				c.TemplateNamespaces,
-			),
-		)
-	}
 
 	// TODO move this up to the spot where we wire the oauth endpoint
 	// Set up OAuth metadata only if we are configured to use OAuth

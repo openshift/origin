@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -25,11 +26,15 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
@@ -77,19 +82,13 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 
 func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) *OpenshiftNonAPIConfig {
 	ret := &OpenshiftNonAPIConfig{
-		GenericConfig:               &kubeAPIServerConfig,
-		EnableControllers:           c.Options.Controllers != configapi.ControllersDisabled,
-		ControllerPlug:              c.ControllerPlug,
-		EnableOAuth:                 c.Options.OAuthConfig != nil,
-		KubeClientInternal:          c.PrivilegedLoopbackKubernetesClientsetInternal,
-		EnableTemplateServiceBroker: c.Options.TemplateServiceBrokerConfig != nil,
-		TemplateInformers:           c.TemplateInformers,
+		GenericConfig:     &kubeAPIServerConfig,
+		EnableControllers: c.Options.Controllers != configapi.ControllersDisabled,
+		ControllerPlug:    c.ControllerPlug,
+		EnableOAuth:       c.Options.OAuthConfig != nil,
 	}
 	if c.Options.OAuthConfig != nil {
 		ret.MasterPublicURL = c.Options.OAuthConfig.MasterPublicURL
-	}
-	if c.Options.TemplateServiceBrokerConfig != nil {
-		ret.TemplateNamespaces = c.Options.TemplateServiceBrokerConfig.TemplateNamespaces
 	}
 
 	return ret
@@ -203,6 +202,25 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 		handler = namespacingFilter(handler, contextMapper)
+
+		if c.Options.TemplateServiceBrokerConfig != nil {
+			handler = WithPrefixHandler(
+				handler,
+				openservicebrokerserver.Route(
+					handler,
+					kc.LoopbackClientConfig,
+					templateapi.ServiceBrokerRoot,
+					templateservicebroker.NewBroker(
+						*kc.LoopbackClientConfig,
+						c.PrivilegedLoopbackKubernetesClientsetInternal,
+						bootstrappolicy.DefaultOpenShiftInfraNamespace,
+						c.TemplateInformers.Template().InternalVersion().Templates(),
+						c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
+					),
+				),
+				templateapi.ServiceBrokerRoot)
+		}
+
 		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 		if c.Options.OAuthConfig != nil {
@@ -371,6 +389,16 @@ func WithPatternsHandler(handler http.Handler, patternHandler http.Handler, patt
 				patternHandler.ServeHTTP(w, req)
 				return
 			}
+		}
+		handler.ServeHTTP(w, req)
+	})
+}
+
+func WithPrefixHandler(handler http.Handler, prefixHandler http.Handler, prefix string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if strings.HasPrefix(req.URL.Path, prefix) {
+			prefixHandler.ServeHTTP(w, req)
+			return
 		}
 		handler.ServeHTTP(w, req)
 	})
