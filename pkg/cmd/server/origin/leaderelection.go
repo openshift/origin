@@ -133,7 +133,10 @@ func legacyLeaderElectionStart(id, name string, leased *plug.Leased, lock rl.Int
 				leased.Stop(nil)
 				return true, nil
 			}
-			utilruntime.HandleError(fmt.Errorf("unable to confirm %s lease exists: %v", name, err))
+			// NotFound indicates the endpoint is missing and the etcd lease should continue to be held
+			if !kapierrors.IsNotFound(err) {
+				utilruntime.HandleError(fmt.Errorf("unable to confirm %s lease exists: %v", name, err))
+			}
 			return false, nil
 		})
 	}
