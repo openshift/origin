@@ -152,6 +152,42 @@ func init() {
 			eventsRule(),
 		},
 	})
+
+	// imagetrigger-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraImageTriggerControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("list", "watch").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(extensionsGroup, appsGroup).Resources("deployments").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(appsGroup).Resources("statefulsets").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(batchGroup).Resources("cronjobs").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
+			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// service-serving-cert-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceServingCertServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("list", "watch", "update").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// image-import-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraImageImportControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch", "create", "update").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(imageGroup, legacyImageGroup).Resources("images").RuleOrDie(),
+			rbac.NewRule("create").Groups(imageGroup, legacyImageGroup).Resources("imagestreamimports").RuleOrDie(),
+			eventsRule(),
+		},
+	})
 }
 
 // ControllerRoles returns the cluster roles used by controllers

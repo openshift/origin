@@ -13,9 +13,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	// we need the conversions registered for our init block
@@ -23,17 +20,20 @@ import (
 )
 
 const (
-	InfraBuildControllerServiceAccountName                     = "build-controller"
-	InfraImageTriggerControllerServiceAccountName              = "imagetrigger-controller"
-	ImageTriggerControllerRoleName                             = "system:imagetrigger-controller"
-	InfraDeploymentConfigControllerServiceAccountName          = "deploymentconfig-controller"
-	InfraDeploymentTriggerControllerServiceAccountName         = "deployment-trigger-controller"
-	InfraDeployerControllerServiceAccountName                  = "deployer-controller"
+	// The controllers below were converted to new controller initialization and use RBAC
+	// rules:
 	InfraOriginNamespaceServiceAccountName                     = "origin-namespace-controller"
 	InfraServiceAccountControllerServiceAccountName            = "serviceaccount-controller"
 	InfraServiceAccountPullSecretsControllerServiceAccountName = "serviceaccount-pull-secrets-controller"
 	InfraServiceAccountTokensControllerServiceAccountName      = "serviceaccount-tokens-controller"
+	InfraServiceServingCertServiceAccountName                  = "service-serving-cert-controller"
+	InfraBuildControllerServiceAccountName                     = "build-controller"
 	InfraBuildConfigChangeControllerServiceAccountName         = "build-config-change-controller"
+	InfraDeploymentConfigControllerServiceAccountName          = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName         = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName                  = "deployer-controller"
+	InfraImageTriggerControllerServiceAccountName              = "image-trigger-controller"
+	InfraImageImportControllerServiceAccountName               = "image-import-controller"
 
 	InfraPersistentVolumeBinderControllerServiceAccountName = "pv-binder-controller"
 	PersistentVolumeBinderControllerRoleName                = "system:pv-binder-controller"
@@ -52,9 +52,6 @@ const (
 
 	InfraUnidlingControllerServiceAccountName = "unidling-controller"
 	UnidlingControllerRoleName                = "system:unidling-controller"
-
-	ServiceServingCertServiceAccountName = "service-serving-cert-controller"
-	ServiceServingCertControllerRoleName = "system:service-serving-cert-controller"
 
 	InfraServiceIngressIPControllerServiceAccountName = "service-ingress-ip-controller"
 	ServiceIngressIPControllerRoleName                = "system:service-ingress-ip-controller"
@@ -144,57 +141,6 @@ func init() {
 
 	InfraSAs.serviceAccounts = sets.String{}
 	InfraSAs.saToRole = map[string]authorizationapi.ClusterRole{}
-
-	err = InfraSAs.addServiceAccount(
-		InfraImageTriggerControllerServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ImageTriggerControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				// List Watch
-				{
-					Verbs:     sets.NewString("list", "watch"),
-					APIGroups: []string{imageapi.GroupName, imageapi.LegacyGroupName},
-					Resources: sets.NewString("imagestreams"),
-				},
-				// Spec update on triggerable resources
-				{
-					Verbs:     sets.NewString("get", "update"),
-					APIGroups: []string{extensionsGroup},
-					Resources: sets.NewString("daemonsets"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					APIGroups: []string{extensionsGroup, appsGroup},
-					Resources: sets.NewString("deployments"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					APIGroups: []string{appsGroup},
-					Resources: sets.NewString("statefulsets"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					APIGroups: []string{batchGroup},
-					Resources: sets.NewString("cronjobs"),
-				},
-				{
-					Verbs:     sets.NewString("get", "update"),
-					APIGroups: []string{deployapi.GroupName, deployapi.LegacyGroupName},
-					Resources: sets.NewString("deploymentconfigs"),
-				},
-				{
-					Verbs:     sets.NewString("create"),
-					APIGroups: []string{buildapi.GroupName, buildapi.LegacyGroupName},
-					Resources: sets.NewString("buildconfigs/instantiate"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
 
 	err = InfraSAs.addServiceAccount(
 		InfraPersistentVolumeRecyclerControllerServiceAccountName,
@@ -520,30 +466,6 @@ func init() {
 					APIGroups: []string{},
 					Verbs:     sets.NewString("get", "update", "patch"),
 					Resources: sets.NewString("deploymentconfigs"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	err = InfraSAs.addServiceAccount(
-		ServiceServingCertServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ServiceServingCertControllerRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				{
-					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("list", "watch", "update"),
-					Resources: sets.NewString("services"),
-				},
-				{
-					APIGroups: []string{kapi.GroupName},
-					Verbs:     sets.NewString("get", "list", "watch", "create", "update"),
-					Resources: sets.NewString("secrets"),
 				},
 			},
 		},

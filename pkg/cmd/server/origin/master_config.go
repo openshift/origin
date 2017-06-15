@@ -1074,15 +1074,6 @@ func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetin
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
-// ImageTriggerControllerClients returns the trigger controller client objects
-func (c *MasterConfig) ImageTriggerControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	_, osClient, internalKubeClientset, externalKubeClientset, err := c.GetServiceAccountClients(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return osClient, internalKubeClientset, externalKubeClientset
-}
-
 // DeploymentLogClient returns the deployment log client object
 func (c *MasterConfig) DeploymentLogClient() kclientsetinternal.Interface {
 	return c.PrivilegedLoopbackKubernetesClientsetInternal

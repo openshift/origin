@@ -779,6 +779,48 @@ items:
   userNames:
   - system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller
 - apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:image-trigger-controller
+  roleRef:
+    name: system:openshift:controller:image-trigger-controller
+  subjects:
+  - kind: ServiceAccount
+    name: image-trigger-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:image-trigger-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:service-serving-cert-controller
+  roleRef:
+    name: system:openshift:controller:service-serving-cert-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-serving-cert-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:service-serving-cert-controller
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:openshift:controller:image-import-controller
+  roleRef:
+    name: system:openshift:controller:image-import-controller
+  subjects:
+  - kind: ServiceAccount
+    name: image-import-controller
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:image-import-controller
+- apiVersion: v1
   groupNames:
   - system:masters
   kind: ClusterRoleBinding
