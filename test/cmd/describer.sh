@@ -12,8 +12,24 @@ trap os::test::junit::reconcile_output EXIT
 
 os::test::junit::declare_suite_start "cmd/describe"
 # This test validates non-duplicate errors when describing an existing resource without a defined describer
-os::cmd::expect_success 'oc new-app node'
-os::cmd::try_until_success 'eventnum=$(oc get events | wc -l) && [[ $eventnum -gt 1 ]]'
+os::cmd::expect_success 'oc create -f - << __EOF__
+{
+  "apiVersion": "v1",
+  "involvedObject": {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "name": "test-pod",
+    "namespace": "cmd-describer"
+  },
+  "kind": "Event",
+  "message": "test message",
+  "metadata": {
+    "name": "test-event"
+  }
+}
+__EOF__
+'
+os::cmd::try_until_success 'eventnum=$(oc get events | wc -l) && [[ $eventnum -gt 0 ]]'
 # resources without describers get a default
 os::cmd::expect_success_and_text 'oc describe events' 'Namespace:	cmd-describer'
 
