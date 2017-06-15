@@ -3,14 +3,15 @@ package policy
 import (
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -22,7 +23,7 @@ import (
 // expect that every commit is built.
 type SerialLatestOnlyPolicy struct {
 	BuildUpdater buildclient.BuildUpdater
-	BuildLister  buildclient.BuildLister
+	BuildLister  buildlister.BuildLister
 }
 
 // IsRunnable implements the RunPolicy interface.
@@ -65,27 +66,28 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildapi.Build) []e
 	if err != nil {
 		return []error{NewNoBuildNumberAnnotationError(build)}
 	}
-	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b buildapi.Build) bool {
+	builds, err := buildutil.BuildConfigBuilds(s.BuildLister, build.Namespace, bcName, func(b *buildapi.Build) bool {
 		// Do not cancel the complete builds, builds that were already cancelled, or
 		// running builds.
-		if buildutil.IsBuildComplete(&b) || b.Status.Phase == buildapi.BuildPhaseRunning {
+		if buildutil.IsBuildComplete(b) || b.Status.Phase == buildapi.BuildPhaseRunning {
 			return false
 		}
 
 		// Prevent race-condition when there is a newer build than this and we don't
 		// want to cancel it. The HandleBuild() function that runs for that build
 		// will cancel this build.
-		buildNumber, _ := buildutil.BuildNumber(&b)
+		buildNumber, _ := buildutil.BuildNumber(b)
 		return buildNumber < currentBuildNumber
 	})
 	if err != nil {
 		return []error{err}
 	}
 	var result = []error{}
-	for _, b := range builds.Items {
+	for _, b := range builds {
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
+			b = copyOrDie(b)
 			b.Status.Cancelled = true
-			err := s.BuildUpdater.Update(b.Namespace, &b)
+			err := s.BuildUpdater.Update(b.Namespace, b)
 			if err != nil && errors.IsConflict(err) {
 				glog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
 				return false, nil

@@ -87,7 +87,7 @@ func (c *MasterConfig) RunDNSServer() {
 		return
 	}
 
-	services, err := dns.NewCachedServiceAccessor(c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services())
+	services, err := dns.NewCachedServiceAccessor(c.InternalKubeInformers.Core().InternalVersion().Services())
 	if err != nil {
 		glog.Fatalf("Could not start DNS: failed to add ClusterIP index: %v", err)
 	}
@@ -96,7 +96,7 @@ func (c *MasterConfig) RunDNSServer() {
 		s := dns.NewServer(
 			config,
 			services,
-			c.Informers.InternalKubernetesInformers().Core().InternalVersion().Endpoints().Lister(),
+			c.InternalKubeInformers.Core().InternalVersion().Endpoints().Lister(),
 			"apiserver",
 		)
 		err = s.ListenAndServe()
@@ -117,7 +117,7 @@ func (c *MasterConfig) RunProjectCache() {
 // RunSDNController runs openshift-sdn if the said network plugin is provided
 func (c *MasterConfig) RunSDNController() {
 	oClient, kClient := c.SDNControllerClients()
-	if err := sdnplugin.StartMaster(c.Options.NetworkConfig, oClient, kClient, c.Informers); err != nil {
+	if err := sdnplugin.StartMaster(c.Options.NetworkConfig, oClient, kClient, c.InternalKubeInformers); err != nil {
 		glog.Fatalf("SDN initialization failed: %v", err)
 	}
 }
@@ -169,7 +169,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	}
 
 	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Namespaces(),
+		c.InternalKubeInformers.Core().InternalVersion().Namespaces(),
 		kclient.Core().Namespaces(),
 		uidAllocator,
 		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
@@ -196,14 +196,14 @@ func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
 	}
 
 	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
 		KubeClient:                kClientExternal,
-		ResourceQuotaInformer:     c.Informers.KubernetesInformers().Core().V1().ResourceQuotas(),
+		ResourceQuotaInformer:     c.ExternalKubeInformers.Core().V1().ResourceQuotas(),
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,
 		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
 	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
@@ -219,7 +219,7 @@ func (c *MasterConfig) RunClusterQuotaMappingController() {
 
 func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
+	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
@@ -229,7 +229,7 @@ func (c *MasterConfig) RunClusterQuotaReconciliationController() {
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.Informers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
+		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}
@@ -253,7 +253,7 @@ func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetin
 		return
 	}
 	ingressIPController := ingressip.NewIngressIPController(
-		c.Informers.InternalKubernetesInformers().Core().InternalVersion().Services().Informer(),
+		c.InternalKubeInformers.Core().InternalVersion().Services().Informer(),
 		internalKubeClientset,
 		externalKubeClientset,
 		ipNet,
@@ -275,26 +275,26 @@ func (c *MasterConfig) RunUnidlingController() {
 
 func (c *MasterConfig) RunOriginToRBACSyncControllers() {
 	clusterRoles := authorizationsync.NewOriginToRBACClusterRoleController(
-		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoles(),
+		c.InternalKubeInformers.Rbac().InternalVersion().ClusterRoles(),
 		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go clusterRoles.Run(5, utilwait.NeverStop)
 	clusterRoleBindings := authorizationsync.NewOriginToRBACClusterRoleBindingController(
-		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().ClusterRoleBindings(),
+		c.InternalKubeInformers.Rbac().InternalVersion().ClusterRoleBindings(),
 		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicyBindings(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go clusterRoleBindings.Run(5, utilwait.NeverStop)
 
 	roles := authorizationsync.NewOriginToRBACRoleController(
-		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().Roles(),
+		c.InternalKubeInformers.Rbac().InternalVersion().Roles(),
 		c.AuthorizationInformers.Authorization().InternalVersion().Policies(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)
 	go roles.Run(5, utilwait.NeverStop)
 	roleBindings := authorizationsync.NewOriginToRBACRoleBindingController(
-		c.Informers.InternalKubernetesInformers().Rbac().InternalVersion().RoleBindings(),
+		c.InternalKubeInformers.Rbac().InternalVersion().RoleBindings(),
 		c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings(),
 		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
 	)

@@ -3,6 +3,7 @@ package policy
 import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -12,7 +13,7 @@ import (
 // order as they were created and using this policy might cause unpredictable
 // behavior.
 type ParallelPolicy struct {
-	BuildLister  buildclient.BuildLister
+	BuildLister  buildlister.BuildLister
 	BuildUpdater buildclient.BuildUpdater
 }
 

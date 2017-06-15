@@ -26,7 +26,7 @@ type BuildControllerConfig struct {
 func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	pluginInitializer := kubeadmission.NewPluginInitializer(
 		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers(),
+		ctx.InternalKubeInformers,
 		nil, // api authorizer, only used by PSP
 		nil, // cloud config
 		nil, // quota registry
@@ -52,11 +52,11 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 
-	buildInformer := ctx.DeprecatedOpenshiftInformers.Builds()
-	buildConfigInformer := ctx.DeprecatedOpenshiftInformers.BuildConfigs()
+	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
+	buildConfigInformer := ctx.BuildInformers.Build().InternalVersion().BuildConfigs()
 	imageStreamInformer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
-	podInformer := ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Pods()
-	secretInformer := ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets()
+	podInformer := ctx.InternalKubeInformers.Core().InternalVersion().Pods()
+	secretInformer := ctx.InternalKubeInformers.Core().InternalVersion().Secrets()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
 		BuildInformer:       buildInformer,
@@ -94,8 +94,8 @@ func RunBuildConfigChangeController(ctx ControllerContext) (bool, error) {
 	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
 	openshiftClient := ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName)
 	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
-	buildConfigInformer := ctx.DeprecatedOpenshiftInformers.BuildConfigs()
-	buildInformer := ctx.DeprecatedOpenshiftInformers.Builds()
+	buildConfigInformer := ctx.BuildInformers.Build().InternalVersion().BuildConfigs()
+	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
 
 	controller := buildconfigcontroller.NewBuildConfigController(openshiftClient, kubeExternalClient, buildConfigInformer, buildInformer)
 	go controller.Run(5, ctx.Stop)

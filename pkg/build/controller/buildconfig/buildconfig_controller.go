@@ -20,9 +20,9 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	cachebuildclient "github.com/openshift/origin/pkg/build/client/cache"
 	buildutil "github.com/openshift/origin/pkg/build/controller/common"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	osclient "github.com/openshift/origin/pkg/client"
 )
@@ -51,8 +51,8 @@ func IsFatal(err error) bool {
 
 type BuildConfigController struct {
 	buildConfigInstantiator buildclient.BuildConfigInstantiator
-	buildConfigGetter       buildclient.BuildConfigGetter
-	buildLister             buildclient.BuildLister
+	buildConfigGetter       buildlister.BuildConfigLister
+	buildLister             buildlister.BuildLister
 	buildDeleter            buildclient.BuildDeleter
 
 	buildConfigInformer cache.SharedIndexInformer
@@ -69,13 +69,9 @@ func NewBuildConfigController(openshiftClient osclient.Interface, kubeExternalCl
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternalClient.Core().RESTClient()).Events("")})
 
 	buildClient := buildclient.NewOSClientBuildClient(openshiftClient)
-	buildConfigGetter := cachebuildclient.NewBuildConfigGetter(buildConfigInformer.Lister())
+	buildConfigGetter := buildConfigInformer.Lister()
 	buildConfigInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(openshiftClient)
-	// TODO: Switch to using the cache build lister when we figure out
-	// what is wrong with retrieving by index
-	// buildLister := cachebuildclient.NewBuildLister(buildInformer.Lister())
-	_ = cachebuildclient.NewBuildLister(buildInformer.Lister())
-	buildLister := buildClient
+	buildLister := buildInformer.Lister()
 
 	c := &BuildConfigController{
 		buildConfigGetter:       buildConfigGetter,

@@ -11,6 +11,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/controller/policy"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 
 	"github.com/golang/glog"
@@ -37,7 +38,7 @@ func SetBuildCompletionTimeAndDuration(build *buildapi.Build, startTime *metav1.
 	return true
 }
 
-func HandleBuildCompletion(build *buildapi.Build, buildLister buildclient.BuildLister, buildConfigGetter buildclient.BuildConfigGetter, buildDeleter buildclient.BuildDeleter, runPolicies []policy.RunPolicy) {
+func HandleBuildCompletion(build *buildapi.Build, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclient.BuildDeleter, runPolicies []policy.RunPolicy) {
 	if !buildutil.IsBuildComplete(build) {
 		return
 	}
@@ -54,7 +55,7 @@ func HandleBuildCompletion(build *buildapi.Build, buildLister buildclient.BuildL
 	}
 }
 
-type ByCreationTimestamp []buildapi.Build
+type ByCreationTimestamp []*buildapi.Build
 
 func (b ByCreationTimestamp) Len() int {
 	return len(b)
@@ -70,48 +71,48 @@ func (b ByCreationTimestamp) Less(i, j int) bool {
 
 // HandleBuildPruning handles the deletion of old successful and failed builds
 // based on settings in the BuildConfig.
-func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildclient.BuildLister, buildConfigGetter buildclient.BuildConfigGetter, buildDeleter buildclient.BuildDeleter) error {
-	buildConfig, err := buildConfigGetter.Get(namespace, buildConfigName, metav1.GetOptions{})
+func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclient.BuildDeleter) error {
+	buildConfig, err := buildConfigGetter.BuildConfigs(namespace).Get(buildConfigName)
 	if err != nil {
 		return err
 	}
 
-	var buildsToDelete []buildapi.Build
+	var buildsToDelete []*buildapi.Build
 	var errList []error
 
 	if buildConfig.Spec.SuccessfulBuildsHistoryLimit != nil {
-		successfulBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+		successfulBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
 		if err != nil {
 			return err
 		}
-		sort.Sort(ByCreationTimestamp(successfulBuilds.Items))
+		sort.Sort(ByCreationTimestamp(successfulBuilds))
 
 		successfulBuildsHistoryLimit := int(*buildConfig.Spec.SuccessfulBuildsHistoryLimit)
-		if len(successfulBuilds.Items) > successfulBuildsHistoryLimit {
-			glog.V(4).Infof("Preparing to prune %v of %v old successful builds, successfulBuildsHistoryLimit set to %v", (len(successfulBuilds.Items) - successfulBuildsHistoryLimit), len(successfulBuilds.Items), successfulBuildsHistoryLimit)
-			buildsToDelete = append(buildsToDelete, successfulBuilds.Items[successfulBuildsHistoryLimit:]...)
+		if len(successfulBuilds) > successfulBuildsHistoryLimit {
+			glog.V(4).Infof("Preparing to prune %v of %v old successful builds, successfulBuildsHistoryLimit set to %v", (len(successfulBuilds) - successfulBuildsHistoryLimit), len(successfulBuilds), successfulBuildsHistoryLimit)
+			buildsToDelete = append(buildsToDelete, successfulBuilds[successfulBuildsHistoryLimit:]...)
 		}
 	}
 
 	if buildConfig.Spec.FailedBuildsHistoryLimit != nil {
-		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build buildapi.Build) bool {
+		failedBuilds, err := buildutil.BuildConfigBuilds(buildLister, namespace, buildConfigName, func(build *buildapi.Build) bool {
 			return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseCancelled || build.Status.Phase == buildapi.BuildPhaseError)
 		})
 		if err != nil {
 			return err
 		}
-		sort.Sort(ByCreationTimestamp(failedBuilds.Items))
+		sort.Sort(ByCreationTimestamp(failedBuilds))
 
 		failedBuildsHistoryLimit := int(*buildConfig.Spec.FailedBuildsHistoryLimit)
-		if len(failedBuilds.Items) > failedBuildsHistoryLimit {
-			glog.V(4).Infof("Preparing to prune %v of %v old failed builds, failedBuildsHistoryLimit set to %v", (len(failedBuilds.Items) - failedBuildsHistoryLimit), len(failedBuilds.Items), failedBuildsHistoryLimit)
-			buildsToDelete = append(buildsToDelete, failedBuilds.Items[failedBuildsHistoryLimit:]...)
+		if len(failedBuilds) > failedBuildsHistoryLimit {
+			glog.V(4).Infof("Preparing to prune %v of %v old failed builds, failedBuildsHistoryLimit set to %v", (len(failedBuilds) - failedBuildsHistoryLimit), len(failedBuilds), failedBuildsHistoryLimit)
+			buildsToDelete = append(buildsToDelete, failedBuilds[failedBuildsHistoryLimit:]...)
 		}
 	}
 
 	for i, b := range buildsToDelete {
 		glog.V(4).Infof("Pruning old build: %s/%s", b.Namespace, b.Name)
-		if err := buildDeleter.DeleteBuild(&buildsToDelete[i]); err != nil {
+		if err := buildDeleter.DeleteBuild(buildsToDelete[i]); err != nil {
 			errList = append(errList, err)
 		}
 	}

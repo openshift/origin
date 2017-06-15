@@ -362,7 +362,7 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 		openshiftConfig.RequestContextMapper,
 		openshiftConfig.KubeClientsetExternal(),
 		openshiftConfig.KubeClientsetInternal(),
-		openshiftConfig.Informers,
+		openshiftConfig.ExternalKubeInformers,
 		openshiftConfig.KubeAdmissionControl,
 		openshiftConfig.Authenticator,
 		openshiftConfig.Authorizer,
@@ -457,21 +457,21 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
-			openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
-			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
-			openshiftConfig.Informers.Start(utilwait.NeverStop)
+			openshiftConfig.InternalKubeInformers.Start(utilwait.NeverStop)
+			openshiftConfig.ExternalKubeInformers.Start(utilwait.NeverStop)
 			openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+			openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 			openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
-		openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
-		openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
-		openshiftConfig.Informers.Start(utilwait.NeverStop)
+		openshiftConfig.InternalKubeInformers.Start(utilwait.NeverStop)
+		openshiftConfig.ExternalKubeInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
+		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
@@ -538,8 +538,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// start up the informers that we're trying to use in the API server
-	oc.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
-	oc.Informers.Start(utilwait.NeverStop)
+	oc.InternalKubeInformers.Start(utilwait.NeverStop)
+	oc.ExternalKubeInformers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
@@ -666,7 +666,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				Namespace:            "kube-system",
 			},
 			InformerFactory: genericInformers{
-				SharedInformerFactory: oc.Informers.KubernetesInformers(),
+				SharedInformerFactory: oc.ExternalKubeInformers,
 				generic: []GenericResourceInformer{
 					// use our existing internal informers to satisfy the generic informer requests (which don't require strong
 					// types).
@@ -677,6 +677,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 						return oc.AuthorizationInformers.ForResource(resource)
 					}),
 					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+						return oc.BuildInformers.ForResource(resource)
+					}),
+					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 						return oc.ImageInformers.ForResource(resource)
 					}),
 					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
@@ -685,7 +688,10 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 						return oc.QuotaInformers.ForResource(resource)
 					}),
-					oc.Informers,
+					oc.ExternalKubeInformers,
+					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+						return oc.InternalKubeInformers.ForResource(resource)
+					}),
 				},
 			},
 			Options:            *controllerManagerOptions,
@@ -700,11 +706,13 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		AppInformers:                 oc.AppInformers,
-		ImageInformers:               oc.ImageInformers,
-		TemplateInformers:            oc.TemplateInformers,
-		DeprecatedOpenshiftInformers: oc.Informers,
-		Stop: utilwait.NeverStop,
+		InternalKubeInformers: oc.InternalKubeInformers,
+		ExternalKubeInformers: oc.ExternalKubeInformers,
+		AppInformers:          oc.AppInformers,
+		BuildInformers:        oc.BuildInformers,
+		ImageInformers:        oc.ImageInformers,
+		TemplateInformers:     oc.TemplateInformers,
+		Stop:                  utilwait.NeverStop,
 	}
 	// We need to start the serviceaccount-tokens controller first as it provides token
 	// generation for other controllers.
@@ -722,7 +730,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	// The service account controllers require informers in order to create service account tokens
 	// for other controllers, which means we need to start their informers (which use the privileged
 	// loopback client) before the other controllers will run.
-	oc.Informers.KubernetesInformers().Start(utilwait.NeverStop)
+	oc.ExternalKubeInformers.Start(utilwait.NeverStop)
 
 	oc.RunSecurityAllocationController()
 

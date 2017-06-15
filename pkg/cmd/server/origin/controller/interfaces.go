@@ -5,8 +5,11 @@ import (
 
 	kubecontroller "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
@@ -20,9 +23,12 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
-	AppInformers      appinformer.SharedInformerFactory
-	ImageInformers    imageinformer.SharedInformerFactory
-	TemplateInformers templateinformer.SharedInformerFactory
+	ExternalKubeInformers kexternalinformers.SharedInformerFactory
+	InternalKubeInformers kinternalinformers.SharedInformerFactory
+	AppInformers          appinformer.SharedInformerFactory
+	BuildInformers        buildinformer.SharedInformerFactory
+	ImageInformers        imageinformer.SharedInformerFactory
+	TemplateInformers     templateinformer.SharedInformerFactory
 
 	// Stop is the stop channel
 	Stop <-chan struct{}

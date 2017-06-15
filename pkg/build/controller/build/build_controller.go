@@ -27,17 +27,16 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 	buildclient "github.com/openshift/origin/pkg/build/client"
-	buildcacheclient "github.com/openshift/origin/pkg/build/client/cache"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
+	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
-	imagelisters "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
+	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 const (
@@ -48,17 +47,17 @@ const (
 // corresponding build pods
 type BuildController struct {
 	buildPatcher      buildclient.BuildPatcher
-	buildLister       buildclient.BuildLister
-	buildConfigGetter buildclient.BuildConfigGetter
+	buildLister       buildlister.BuildLister
+	buildConfigGetter buildlister.BuildConfigLister
 	buildDeleter      buildclient.BuildDeleter
 	podClient         kcoreclient.PodsGetter
 
 	queue workqueue.RateLimitingInterface
 
-	buildStore       *oscache.StoreToBuildLister
+	buildStore       buildlister.BuildLister
 	secretStore      internalversion.SecretLister
 	podStore         internalversion.PodLister
-	imageStreamStore imagelisters.ImageStreamLister
+	imageStreamStore imagelister.ImageStreamLister
 
 	podInformer   cache.SharedIndexInformer
 	buildInformer cache.SharedIndexInformer
@@ -100,12 +99,8 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(params.KubeClientExternal.Core().RESTClient()).Events("")})
 
 	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
-	// TODO: Switch to using the cache build lister when we figure out
-	// what is wrong with retrieving by index
-	// buildLister := buildcacheclient.NewBuildLister(params.BuildInformer.Lister())
-	_ = buildcacheclient.NewBuildLister(params.BuildInformer.Lister())
-	buildLister := buildClient
-	buildConfigGetter := buildcacheclient.NewBuildConfigGetter(params.BuildConfigInformer.Lister())
+	buildLister := params.BuildInformer.Lister()
+	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
 		buildPatcher:      buildClient,
 		buildLister:       buildLister,
@@ -128,7 +123,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 
 		queue:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-controller"}),
-		runPolicies: policy.GetAllRunPolicies(buildClient, buildClient),
+		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{

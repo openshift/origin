@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 )
 
 func TestHandleBuildConfig(t *testing.T) {
@@ -111,8 +112,16 @@ func buildConfigWithNonZeroLastVersion() *buildapi.BuildConfig {
 
 type okBuildLister struct{}
 
-func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
-	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
+func (okc *okBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
+	return nil, nil
+}
+
+func (okc *okBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
+	return okc
+}
+
+func (okc *okBuildLister) Get(name string) (*buildapi.Build, error) {
+	return nil, nil
 }
 
 type okBuildDeleter struct{}
@@ -125,10 +134,17 @@ type okBuildConfigGetter struct {
 	BuildConfig *buildapi.BuildConfig
 }
 
-func (okc *okBuildConfigGetter) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+func (okc *okBuildConfigGetter) Get(name string) (*buildapi.BuildConfig, error) {
 	if okc.BuildConfig != nil {
 		return okc.BuildConfig, nil
-	} else {
-		return &buildapi.BuildConfig{}, nil
 	}
+	return &buildapi.BuildConfig{}, nil
+}
+
+func (okc *okBuildConfigGetter) BuildConfigs(ns string) buildlister.BuildConfigNamespaceLister {
+	return okc
+}
+
+func (okc *okBuildConfigGetter) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+	return nil, fmt.Errorf("not implemented")
 }
