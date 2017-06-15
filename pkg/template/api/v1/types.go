@@ -205,7 +205,7 @@ type BrokerTemplateInstanceSpec struct {
 
 	// bindingids is a list of 'binding_id's provided during successive bind
 	// calls to the template service broker.
-	BindingIDs []string `json:"bindingIDs" protobuf:"bytes,3,rep,name=bindingIDs"`
+	BindingIDs []string `json:"bindingIDs,omitempty" protobuf:"bytes,3,rep,name=bindingIDs"`
 }
 
 // BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.

@@ -148,7 +148,6 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 				Name:      secret.Name,
 				UID:       secret.UID,
 			},
-			BindingIDs: []string{},
 		}))
 
 		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{
