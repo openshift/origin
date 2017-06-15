@@ -104,7 +104,9 @@ func init() {
 			if dockerStorageDriver == nil {
 				panic(fmt.Sprintf("Configuration error: OpenShift storage driver middleware not activated"))
 			}
-
+			if standalone(ctx) {
+				return repo, nil
+			}
 			registryOSClient, kCoreClient, errClients := RegistryClientFrom(ctx).Clients()
 			if errClients != nil {
 				return nil, errClients
@@ -166,7 +168,7 @@ func newRepositoryWithClient(
 	options map[string]interface{},
 ) (distribution.Repository, error) {
 	registryAddr := os.Getenv(DockerRegistryURLEnvVar)
-	if len(registryAddr) == 0 {
+	if !standalone(ctx) && len(registryAddr) == 0 {
 		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
 	}
 
@@ -514,7 +516,7 @@ func (r *repository) checkPendingErrors(ctx context.Context) error {
 }
 
 func checkPendingErrors(ctx context.Context, logger context.Logger, namespace, name string) error {
-	if !authSkipped(ctx) && !authPerformed(ctx) {
+	if !standalone(ctx) && !authPerformed(ctx) {
 		return fmt.Errorf("openshift.auth.completed missing from context")
 	}
 

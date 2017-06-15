@@ -28,9 +28,8 @@ const (
 	// performed in Contexts.
 	authPerformedKey contextKey = "authPerformed"
 
-	// authSkippedKey is the key to indicate that authentication was
-	// skipped
-	authSkippedKey contextKey = "authSkipped"
+	// standaloneKey is the key to indicate that registry is running standalone
+	standaloneKey contextKey = "standalone"
 
 	// deferredErrorsKey is the key for deferred errors in Contexts.
 	deferredErrorsKey contextKey = "deferredErrors"
@@ -100,17 +99,15 @@ func authPerformed(ctx context.Context) bool {
 	return ok && authPerformed
 }
 
-// withAuthSkipped returns a new Context with indication that authentication
-// is skipped
-func WithAuthSkipped(parent context.Context) context.Context {
-	return context.WithValue(parent, authSkippedKey, true)
+// standalone returns a new Context with indication that registry is running standalone
+func WithStandalone(parent context.Context) context.Context {
+	return context.WithValue(parent, standaloneKey, true)
 }
 
-// authskipped reports whether ctx has indication that authentication was
-// skipped
-func authSkipped(ctx context.Context) bool {
-	authSkipped, ok := ctx.Value(authSkippedKey).(bool)
-	return ok && authSkipped
+// standalone reports whether ctx has indication that registry is running standalone
+func standalone(ctx context.Context) bool {
+	standalone, ok := ctx.Value(standaloneKey).(bool)
+	return ok && standalone
 }
 
 // withDeferredErrors returns a new Context that carries deferred errors.

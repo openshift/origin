@@ -79,7 +79,7 @@ func Execute(configFile io.Reader) {
 			SafeClientConfig: registryClient.SafeClientConfig(),
 		}
 	} else {
-		ctx = server.WithAuthSkipped(ctx)
+		ctx = server.WithStandalone(ctx)
 	}
 
 	app := handlers.NewApp(ctx, dockerConfig)

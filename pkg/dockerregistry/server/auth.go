@@ -136,6 +136,7 @@ var (
 	ErrNamespaceRequired   = errors.New("repository namespace required")
 	ErrUnsupportedAction   = errors.New("unsupported action")
 	ErrUnsupportedResource = errors.New("unsupported resource")
+	ErrStandalone          = errors.New("standalone registry")
 )
 
 // TokenRealm returns the template URL to use as the token realm redirect.
@@ -295,6 +296,9 @@ func (ac *AccessController) wrapErr(ctx context.Context, err error) error {
 //   origin/pkg/cmd/dockerregistry/dockerregistry.go#Execute
 //   docker/distribution/registry/handlers/app.go#appendAccessRecords
 func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...registryauth.Access) (context.Context, error) {
+	if standalone(ctx) {
+		return nil, ErrStandalone
+	}
 	req, err := context.GetRequest(ctx)
 	if err != nil {
 		return nil, ac.wrapErr(ctx, err)

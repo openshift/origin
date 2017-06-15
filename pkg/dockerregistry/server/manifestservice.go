@@ -56,7 +56,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		Name:      m.repo.name,
 		Registry:  m.repo.registryAddr,
 	}
-	if isImageManaged(image) {
+	if !standalone(ctx) && isImageManaged(image) {
 		// Reference without a registry part refers to repository containing locally managed images.
 		// Such an entry is retrieved, checked and set by blobDescriptorService operating only on local blobs.
 		ref.Registry = ""
