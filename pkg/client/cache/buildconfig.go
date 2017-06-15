@@ -11,6 +11,7 @@ import (
 
 // StoreToBuildConfigLister gives a store List and Exists methods. The store must contain only buildconfigs.
 type StoreToBuildConfigLister interface {
+	BuildConfigs(namespace string) storeBuildConfigsNamespacer
 	List() ([]*buildapi.BuildConfig, error)
 	GetConfigsForImageStreamTrigger(namespace, name string) ([]*buildapi.BuildConfig, error)
 }

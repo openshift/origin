@@ -10,30 +10,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-type okBuildLister struct{}
-
-func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
-	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
-}
-
-type okBuildDeleter struct{}
-
-func (okc *okBuildDeleter) DeleteBuild(*buildapi.Build) error {
-	return nil
-}
-
-type okBuildConfigGetter struct {
-	BuildConfig *buildapi.BuildConfig
-}
-
-func (okc *okBuildConfigGetter) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
-	if okc.BuildConfig != nil {
-		return okc.BuildConfig, nil
-	} else {
-		return &buildapi.BuildConfig{}, nil
-	}
-}
-
 func TestHandleBuildConfig(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -70,13 +46,13 @@ func TestHandleBuildConfig(t *testing.T) {
 			err: tc.instantiatorError,
 		}
 		controller := &BuildConfigController{
-			BuildConfigInstantiator: instantiator,
-			BuildLister:             &okBuildLister{},
-			BuildDeleter:            &okBuildDeleter{},
-			BuildConfigGetter:       &okBuildConfigGetter{BuildConfig: tc.bc},
-			Recorder:                &record.FakeRecorder{},
+			buildConfigInstantiator: instantiator,
+			buildLister:             &okBuildLister{},
+			buildDeleter:            &okBuildDeleter{},
+			buildConfigGetter:       &okBuildConfigGetter{BuildConfig: tc.bc},
+			recorder:                &record.FakeRecorder{},
 		}
-		err := controller.HandleBuildConfig(tc.bc)
+		err := controller.handleBuildConfig(tc.bc)
 		if err != nil {
 			if !tc.expectErr {
 				t.Errorf("%s: unexpected error: %v", tc.name, err)
@@ -131,4 +107,28 @@ func buildConfigWithNonZeroLastVersion() *buildapi.BuildConfig {
 	bc := buildConfigWithConfigChangeTrigger()
 	bc.Status.LastVersion = 1
 	return bc
+}
+
+type okBuildLister struct{}
+
+func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
+	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
+}
+
+type okBuildDeleter struct{}
+
+func (okc *okBuildDeleter) DeleteBuild(*buildapi.Build) error {
+	return nil
+}
+
+type okBuildConfigGetter struct {
+	BuildConfig *buildapi.BuildConfig
+}
+
+func (okc *okBuildConfigGetter) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	if okc.BuildConfig != nil {
+		return okc.BuildConfig, nil
+	} else {
+		return &buildapi.BuildConfig{}, nil
+	}
 }
