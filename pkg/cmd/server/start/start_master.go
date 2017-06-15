@@ -460,10 +460,10 @@ func (m *Master) Start() error {
 			openshiftConfig.Informers.InternalKubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.KubernetesInformers().Start(utilwait.NeverStop)
 			openshiftConfig.Informers.Start(utilwait.NeverStop)
-			openshiftConfig.Informers.StartCore(utilwait.NeverStop)
 			openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
+			openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
@@ -473,6 +473,7 @@ func (m *Master) Start() error {
 		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
+		openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
 	}
 
@@ -504,8 +505,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 	}
 
-	// Must start policy caching immediately
-	oc.Informers.StartCore(utilwait.NeverStop)
+	// Must start policy and quota caching immediately
+	oc.QuotaInformers.Start(utilwait.NeverStop)
 	oc.AuthorizationInformers.Start(utilwait.NeverStop)
 	oc.RunClusterQuotaMappingController()
 	oc.RunGroupCache()
@@ -717,6 +718,9 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return oc.ImageInformers.ForResource(resource)
+				}),
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return oc.QuotaInformers.ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return oc.TemplateInformers.ForResource(resource)

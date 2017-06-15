@@ -13,13 +13,13 @@ import (
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	oclient "github.com/openshift/origin/pkg/client"
-	ocache "github.com/openshift/origin/pkg/client/cache"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 type clusterQuotaAccessor struct {
-	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister
+	clusterQuotaLister quotalister.ClusterResourceQuotaLister
 	namespaceLister    kcorelisters.NamespaceLister
 	clusterQuotaClient oclient.ClusterResourceQuotasInterface
 
@@ -33,7 +33,7 @@ type clusterQuotaAccessor struct {
 
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
 func newQuotaAccessor(
-	clusterQuotaLister *ocache.IndexerToClusterResourceQuotaLister,
+	clusterQuotaLister quotalister.ClusterResourceQuotaLister,
 	namespaceLister kcorelisters.NamespaceLister,
 	clusterQuotaClient oclient.ClusterResourceQuotasInterface,
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper,
