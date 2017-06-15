@@ -526,7 +526,7 @@ function build-image() {
   local build_root=$1
   local image_name=$2
 
-  os::build::image "${build_root}" "${image_name}"
+  os::build::image "${image_name}" "${build_root}"
 }
 
 function os::build::get-bin-output-path() {

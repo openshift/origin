@@ -11,7 +11,7 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 os::util::ensure::gopath_binary_exists imagebuilder
 
 # Build the base image without the default image args
-OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_BASE_ARGS-}" os::build::image "${OS_ROOT}/images/source" "${tag_prefix}-source"
-OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_BASE_ARGS-}" os::build::image "${OS_ROOT}/images/base" "${tag_prefix}-base"
+os::build::image "${tag_prefix}-source" "${OS_ROOT}/images/source"
+os::build::image "${tag_prefix}-base"   "${OS_ROOT}/images/base"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
