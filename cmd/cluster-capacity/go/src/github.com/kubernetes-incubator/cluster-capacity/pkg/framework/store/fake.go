@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 )
@@ -31,11 +30,9 @@ import (
 type FakeResourceStore struct {
 	PodsData                   func() []*v1.Pod
 	ServicesData               func() []*v1.Service
-	ReplicationControllersData func() []*v1.ReplicationController
 	NodesData                  func() []*v1.Node
 	PersistentVolumesData      func() []*v1.PersistentVolume
 	PersistentVolumeClaimsData func() []*v1.PersistentVolumeClaim
-	ReplicaSetsData            func() []*v1beta1.ReplicaSet
 	// TODO(jchaloup): fill missing resource functions
 }
 
@@ -79,9 +76,6 @@ func findResource(obj interface{}, objs interface{}) (item interface{}, exists b
 		case v1.Service:
 			value := item.(v1.Service)
 			obj_key, key_err = cache.MetaNamespaceKeyFunc(metav1.Object(&value))
-		case v1.ReplicationController:
-			value := item.(v1.ReplicationController)
-			obj_key, key_err = cache.MetaNamespaceKeyFunc(metav1.Object(&value))
 		case v1.Node:
 			value := item.(v1.Node)
 			obj_key, key_err = cache.MetaNamespaceKeyFunc(metav1.Object(&value))
@@ -114,11 +108,6 @@ func (s *FakeResourceStore) List(resource ccapi.ResourceType) []interface{} {
 			return make([]interface{}, 0, 0)
 		}
 		return resourcesToItems(s.ServicesData())
-	case ccapi.ReplicationControllers:
-		if s.ReplicationControllersData == nil {
-			return make([]interface{}, 0, 0)
-		}
-		return resourcesToItems(s.ReplicationControllersData())
 	case ccapi.Nodes:
 		if s.NodesData == nil {
 			return make([]interface{}, 0, 0)
@@ -134,11 +123,6 @@ func (s *FakeResourceStore) List(resource ccapi.ResourceType) []interface{} {
 			return make([]interface{}, 0, 0)
 		}
 		return resourcesToItems(s.PersistentVolumeClaimsData())
-	case ccapi.ReplicaSets:
-		if s.ReplicaSetsData == nil {
-			return make([]interface{}, 0, 0)
-		}
-		return resourcesToItems(s.ReplicaSetsData())
 	}
 	return make([]interface{}, 0, 0)
 }
@@ -149,16 +133,12 @@ func (s *FakeResourceStore) Get(resource ccapi.ResourceType, obj interface{}) (i
 		return findResource(obj, s.PodsData())
 	case ccapi.Services:
 		return findResource(obj, s.ServicesData())
-	case ccapi.ReplicationControllers:
-		return findResource(obj, s.ReplicationControllersData())
 	case ccapi.Nodes:
 		return findResource(obj, s.NodesData())
 	case ccapi.PersistentVolumes:
 		return findResource(obj, s.PersistentVolumesData())
 	case ccapi.PersistentVolumeClaims:
 		return findResource(obj, s.PersistentVolumeClaimsData())
-		//case "replicasets":
-		//	return testReplicaSetsData().Items
 	}
 	return nil, false, nil
 }
@@ -176,5 +156,5 @@ func (s *FakeResourceStore) Replace(resource ccapi.ResourceType, items []interfa
 }
 
 func (s *FakeResourceStore) Resources() []ccapi.ResourceType {
-	return []ccapi.ResourceType{ccapi.Pods, ccapi.Services, ccapi.ReplicationControllers, ccapi.Nodes, ccapi.PersistentVolumes, ccapi.PersistentVolumeClaims}
+	return []ccapi.ResourceType{ccapi.Pods, ccapi.Services, ccapi.Nodes, ccapi.PersistentVolumes, ccapi.PersistentVolumeClaims}
 }

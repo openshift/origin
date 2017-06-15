@@ -29,7 +29,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	ccapi "github.com/kubernetes-incubator/cluster-capacity/pkg/api"
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/store"
@@ -54,16 +53,6 @@ func testServicesData() []*v1.Service {
 		svcs = append(svcs, &item)
 	}
 	return svcs
-}
-
-func testReplicationControllersData() []*v1.ReplicationController {
-	rcs := make([]*v1.ReplicationController, 0, 10)
-	for i := 0; i < 10; i++ {
-		name := fmt.Sprintf("rc%v", i)
-		item := test.ReplicationControllerExample(name)
-		rcs = append(rcs, &item)
-	}
-	return rcs
 }
 
 func testPersistentVolumesData() []*v1.PersistentVolume {
@@ -96,21 +85,6 @@ func testNodesData() []*v1.Node {
 	return nodes
 }
 
-func testReplicaSetsData() []*v1beta1.ReplicaSet {
-	rss := make([]*v1beta1.ReplicaSet, 0, 10)
-	for i := 0; i < 10; i++ {
-		name := fmt.Sprintf("replicaset%v", i)
-		item := v1beta1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "test", ResourceVersion: "125"},
-			Spec: v1beta1.ReplicaSetSpec{
-				Replicas: &[]int32{3}[0],
-			},
-		}
-		rss = append(rss, &item)
-	}
-	return rss
-}
-
 func newTestListRestClient() *RESTClient {
 
 	resourceStore := &store.FakeResourceStore{
@@ -119,9 +93,6 @@ func newTestListRestClient() *RESTClient {
 		},
 		ServicesData: func() []*v1.Service {
 			return testServicesData()
-		},
-		ReplicationControllersData: func() []*v1.ReplicationController {
-			return testReplicationControllersData()
 		},
 		PersistentVolumesData: func() []*v1.PersistentVolume {
 			return testPersistentVolumesData()
@@ -220,27 +191,6 @@ func TestSyncServices(t *testing.T) {
 	}
 }
 
-func TestSyncReplicationControllers(t *testing.T) {
-
-	fakeClient := newTestListRestClient()
-	expected := fakeClient.ReplicationControllers(fields.Everything()).Items
-
-	list := getResourceList(fakeClient, ccapi.ReplicationControllers)
-	items, err := meta.ExtractList(list)
-	if err != nil {
-		t.Errorf("Unable to understand list result %#v (%v)", list, err)
-	}
-
-	found := make([]v1.ReplicationController, 0, len(items))
-	for _, item := range items {
-		found = append(found, *((interface{})(item).(*v1.ReplicationController)))
-	}
-
-	if !compareItems(expected, found) {
-		t.Errorf("unexpected object: expected: %#v\n actual: %#v", expected, found)
-	}
-}
-
 func TestSyncPersistentVolumes(t *testing.T) {
 	fakeClient := newTestListRestClient()
 	expected := fakeClient.PersistentVolumes(fields.Everything()).Items
@@ -297,29 +247,3 @@ func TestSyncNodes(t *testing.T) {
 		t.Errorf("unexpected object: expected: %#v\n actual: %#v", expected, found)
 	}
 }
-
-//func testSyncReplicaSets(t *testing.T) {
-//	fakeClient := newTestListRestClient()
-//	expected := fakeClient.ReplicaSets().Items
-//	emulator := NewClientEmulator()
-//
-//	err := emulator.sync(fakeClient)
-//
-//	if err != nil {
-//		t.Fatalf("Unexpected error: %v", err)
-//	}
-//
-//	storedItems := emulator.ReplicaSetCache.List()
-//	actual := make([]extensions.ReplicaSet, 0, len(storedItems))
-//	for _, value := range storedItems {
-//		item, ok := value.(*extensions.ReplicaSet)
-//		if !ok {
-//			t.Errorf("Expected api.Service type, found different")
-//		}
-//		actual = append(actual, *item)
-//	}
-//
-//	if !compareItems(expected, actual) {
-//		t.Errorf("unexpected object: expected: %#v\n actual: %#v", expected, actual)
-//	}
-//}

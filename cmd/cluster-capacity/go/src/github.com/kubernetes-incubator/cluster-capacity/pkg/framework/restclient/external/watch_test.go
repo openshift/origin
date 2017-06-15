@@ -60,8 +60,6 @@ func emitEvent(client *RESTClient, resource ccapi.ResourceType, test eventTest) 
 		client.EmitObjectWatchEvent(resource, test.event, test.item.(*v1.Pod))
 	case ccapi.Services:
 		client.EmitObjectWatchEvent(resource, test.event, test.item.(*v1.Service))
-	case ccapi.ReplicationControllers:
-		client.EmitObjectWatchEvent(resource, test.event, test.item.(*v1.ReplicationController))
 	case ccapi.PersistentVolumes:
 		client.EmitObjectWatchEvent(resource, test.event, test.item.(*v1.PersistentVolume))
 	case ccapi.Nodes:
@@ -174,32 +172,6 @@ func TestWatchServices(t *testing.T) {
 	}
 
 	testWatch(tests, ccapi.Services, t)
-}
-
-func TestWatchReplicationControllers(t *testing.T) {
-
-	rc := test.ReplicationControllerExample("rc1")
-
-	tests := []eventTest{
-		{
-			event: watch.Modified,
-			item:  &rc,
-		},
-		{
-			event: watch.Added,
-			item:  &rc,
-		},
-		{
-			event: watch.Modified,
-			item:  &rc,
-		},
-		{
-			event: watch.Deleted,
-			item:  &rc,
-		},
-	}
-
-	testWatch(tests, ccapi.ReplicationControllers, t)
 }
 
 func TestWatchPersistentVolumes(t *testing.T) {

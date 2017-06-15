@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -111,12 +110,7 @@ func (c *ClusterCapacity) Report() *ClusterCapacityReview {
 
 func (c *ClusterCapacity) SyncWithClient(client externalclientset.Interface) error {
 	for _, resource := range c.resourceStore.Resources() {
-		var listWatcher *cache.ListWatch
-		if resource == ccapi.ReplicaSets {
-			listWatcher = cache.NewListWatchFromClient(client.Extensions().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		} else {
-			listWatcher = cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
-		}
+		listWatcher := cache.NewListWatchFromClient(client.Core().RESTClient(), resource.String(), metav1.NamespaceAll, fields.ParseSelectorOrDie(""))
 
 		options := metav1.ListOptions{ResourceVersion: "0"}
 		list, err := listWatcher.List(options)
@@ -192,11 +186,6 @@ func (c *ClusterCapacity) Bind(binding *v1.Binding, schedulerName string) error 
 
 	// all good, create another pod
 	if err := c.nextPod(); err != nil {
-		if strings.HasPrefix(c.status.StopReason, "NamespaceNotFound") {
-			c.Close()
-			c.stop <- struct{}{}
-			return nil
-		}
 		return fmt.Errorf("Unable to create next pod to schedule: %v", err)
 	}
 	return nil
@@ -245,13 +234,6 @@ func (c *ClusterCapacity) nextPod() error {
 	pod.Spec.NodeName = ""
 	// use simulated pod name with an index to construct the name
 	pod.ObjectMeta.Name = fmt.Sprintf("%v-%v", c.simulatedPod.Name, c.simulated)
-
-	// Check the pod's namespace exists
-	_, err := c.externalkubeclient.Core().Namespaces().Get(pod.ObjectMeta.Namespace, metav1.GetOptions{})
-	if err != nil {
-		c.status.StopReason = fmt.Sprintf("NamespaceNotFound: %v", err)
-		return fmt.Errorf("Pod's namespace %v not found: %v", c.simulatedPod.ObjectMeta.Namespace, err)
-	}
 
 	c.simulated++
 	c.lastSimulatedPod = &pod
@@ -307,8 +289,8 @@ func (c *ClusterCapacity) createSchedulerConfig(s *soptions.SchedulerServer) (*s
 		c.informerFactory.Core().V1().Nodes(),
 		c.informerFactory.Core().V1().PersistentVolumes(),
 		c.informerFactory.Core().V1().PersistentVolumeClaims(),
-		c.informerFactory.Core().V1().ReplicationControllers(),
-		c.informerFactory.Extensions().V1beta1().ReplicaSets(),
+		fakeInformerFactory.Core().V1().ReplicationControllers(),
+		fakeInformerFactory.Extensions().V1beta1().ReplicaSets(),
 		fakeInformerFactory.Apps().V1beta1().StatefulSets(),
 		c.informerFactory.Core().V1().Services(),
 		s.HardPodAffinitySymmetricWeight)
