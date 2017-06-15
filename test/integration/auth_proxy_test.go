@@ -31,8 +31,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	idp.Provider = &configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}
 	idp.MappingMethod = "claim"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {

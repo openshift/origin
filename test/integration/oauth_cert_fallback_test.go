@@ -38,8 +38,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		anonymousError    = `User "system:anonymous" cannot get users at the cluster scope`
 	)
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	// Build master config
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {

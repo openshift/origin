@@ -21,6 +21,7 @@ import (
 const testUserName = "bob"
 
 func TestImageAddSignature(t *testing.T) {
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	adminClient, userClient, image := testSetupImageSignatureTest(t, testUserName)
 
 	if len(image.Signatures) != 0 {
@@ -96,6 +97,7 @@ func TestImageAddSignature(t *testing.T) {
 }
 
 func TestImageRemoveSignature(t *testing.T) {
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	adminClient, userClient, image := testSetupImageSignatureTest(t, testUserName)
 	makeUserAnImageSigner(adminClient, userClient, testUserName)
 
@@ -194,7 +196,6 @@ func TestImageRemoveSignature(t *testing.T) {
 }
 
 func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *client.Client, userClient *client.Client, image *imageapi.Image) {
-	testutil.RequireEtcd(t)
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -18,8 +18,7 @@ import (
 func TestServiceServingCertSigner(t *testing.T) {
 	ns := "service-serving-cert-signer"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {

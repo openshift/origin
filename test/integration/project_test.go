@@ -29,8 +29,7 @@ import (
 
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -98,7 +97,7 @@ func TestProjectIsNamespace(t *testing.T) {
 // and that openshift content is cleaned up when a project is deleted.
 func TestProjectLifecycle(t *testing.T) {
 	etcdServer := testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer etcdServer.DumpEtcdOnFailure()
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -211,8 +210,7 @@ func TestProjectLifecycle(t *testing.T) {
 }
 
 func TestProjectWatch(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -358,8 +356,7 @@ func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
 }
 
 func TestScopedProjectAccess(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -487,8 +484,7 @@ func TestScopedProjectAccess(t *testing.T) {
 }
 
 func TestInvalidRoleRefs(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

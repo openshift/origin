@@ -98,8 +98,8 @@ func TestStorageVersions(t *testing.T) {
 	autoscalingVersion := autoscaling_v1.SchemeGroupVersion
 	batchVersion := batch_v1.SchemeGroupVersion
 
-	defer testutil.DumpEtcdOnFailure(t)
 	etcdServer := testutil.RequireEtcd(t)
+	defer etcdServer.DumpEtcdOnFailure()
 	masterConfig, kubeClient := setupStorageTests(t, ns)
 
 	jobTestcases := map[string]struct {
@@ -190,8 +190,8 @@ func TestStorageMigration(t *testing.T) {
 	hpaName := "extensionsv1beta1hpa"
 	autoscalingVersion := autoscaling_v1.SchemeGroupVersion
 
-	defer testutil.DumpEtcdOnFailure(t)
 	etcdServer := testutil.RequireEtcd(t)
+	defer etcdServer.DumpEtcdOnFailure()
 	masterConfig, kubeClient := setupStorageTests(t, ns)
 
 	// Save an extensions/v1beta1.HorizontalPodAutoscaler directly in etcd

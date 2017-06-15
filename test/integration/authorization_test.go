@@ -90,8 +90,7 @@ func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewRespon
 }
 
 func TestClusterReaderCoverage(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -197,8 +196,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 }
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -270,8 +268,7 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 }
 
 func TestAuthorizationResolution(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -506,8 +503,7 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -844,8 +840,7 @@ func toKubeClusterSAR(sar *authorizationapi.SubjectAccessReview) *kubeauthorizat
 }
 
 func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
@@ -988,8 +983,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 }
 
 func TestAuthorizationSubjectAccessReview(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -1432,8 +1426,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 // TestOldLocalSubjectAccessReviewEndpoint checks to make sure that the old subject access review endpoint still functions properly
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
@@ -1561,8 +1554,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 // TestOldLocalResourceAccessReviewEndpoint checks to make sure that the old resource access review endpoint still functions properly
 // this is needed to support old who-can client
 func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {

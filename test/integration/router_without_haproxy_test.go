@@ -34,7 +34,7 @@ const waitInterval = 50 * time.Millisecond
 // will match a router's selector will expose routes in that namespace
 // after the subsequent namespace sync.
 func TestRouterNamespaceSync(t *testing.T) {
-	testutil.RequireEtcd(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 
 	oc, kc, err := launchApi()
 	if err != nil {
@@ -93,7 +93,7 @@ func TestRouterNamespaceSync(t *testing.T) {
 // processed.  Reload should similarly suppressed on subsequent
 // resyncs.
 func TestRouterReloadSuppressionOnSync(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	stressRouter(
 		t,
 		// Allow the test to be configured to enable experimentation
@@ -106,8 +106,6 @@ func TestRouterReloadSuppressionOnSync(t *testing.T) {
 }
 
 func stressRouter(t *testing.T, namespaceCount, routesPerNamespace, routerCount, maxRouterDelay int32) {
-	testutil.RequireEtcd(t)
-
 	oc, kc, err := launchApi()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

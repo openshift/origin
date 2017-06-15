@@ -27,8 +27,7 @@ const (
 )
 
 func TestSNI(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	// Create tempfiles with certs and keys we're going to use
 	certNames := map[string]string{}
 	for certName, certContents := range sniCerts {

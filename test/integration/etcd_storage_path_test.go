@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	etcdtest "k8s.io/apiserver/pkg/storage/etcd/testing"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/flowcontrol"
@@ -807,8 +806,8 @@ const testNamespace = "etcdstoragepathtestnamespace"
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
 func TestEtcd2StoragePath(t *testing.T) {
-	etcdServer := testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	etcdServer := testutil.RequireEtcd2(t)
+	defer etcdServer.DumpEtcdOnFailure()
 
 	getter := &etcd2Getter{
 		keys: etcd.NewKeysAPI(etcdServer.Client),
@@ -825,8 +824,8 @@ func TestEtcd2StoragePath(t *testing.T) {
 // OpenShift don't seem to work with that right now.
 /*
 func TestEtcd3StoragePath(t *testing.T) {
-	etcdServer, _ := testutil.RequireEtcd3(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	etcdServer := testutil.RequireEtcd3(t)
+	defer etcdServer.DumpEtcdOnFailure()
 
 	getter := &etcd3Getter{
 		kv: etcdServer.V3Client,
@@ -835,7 +834,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 }
 */
 
-func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, getter etcdGetter) {
+func testEtcdStoragePath(t *testing.T, etcdServer testutil.EtcdTestServer, getter etcdGetter) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error getting master config: %#v", err)

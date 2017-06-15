@@ -77,8 +77,7 @@ func signedManifest(name string, blobs []digest.Digest) ([]byte, digest.Digest, 
 }
 
 func TestV2RegistryGetTags(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)

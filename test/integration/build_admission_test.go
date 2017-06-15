@@ -27,7 +27,7 @@ func buildStrategyTypesRestricted() []string {
 }
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
@@ -103,7 +103,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, true)
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
@@ -179,7 +179,6 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 }
 
 func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
-	testutil.RequireEtcd(t)
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
 	var err error

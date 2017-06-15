@@ -10,8 +10,7 @@ import (
 )
 
 func TestTLSDefaults(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	master, node, components, err := testserver.DefaultAllInOneOptions()
 	if err != nil {
 		t.Fatal(err)
@@ -83,8 +82,7 @@ func TestTLSDefaults(t *testing.T) {
 }
 
 func TestTLSOverrides(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd(t).DumpEtcdOnFailure()
 	master, node, components, err := testserver.DefaultAllInOneOptions()
 	if err != nil {
 		t.Fatal(err)
