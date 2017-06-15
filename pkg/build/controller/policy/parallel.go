@@ -30,3 +30,8 @@ func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 func (s *ParallelPolicy) OnComplete(build *buildapi.Build) error {
 	return handleComplete(s.BuildLister, s.BuildUpdater, build)
 }
+
+// Handles returns true for the build run parallel policy
+func (s *ParallelPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
+	return policy == buildapi.BuildRunPolicyParallel
+}

@@ -33,3 +33,8 @@ func (s *SerialPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 func (s *SerialPolicy) OnComplete(build *buildapi.Build) error {
 	return handleComplete(s.BuildLister, s.BuildUpdater, build)
 }
+
+// Handles returns true for the build run serial policy
+func (s *SerialPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
+	return policy == buildapi.BuildRunPolicySerial
+}

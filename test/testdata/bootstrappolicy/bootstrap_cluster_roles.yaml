@@ -3575,6 +3575,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -3605,55 +3606,6 @@ items:
     - imagestreams
     verbs:
     - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:openshift:controller:build-pod-controller
-  rules:
-  - apiGroups:
-    - ""
-    - build.openshift.io
-    attributeRestrictions: null
-    resources:
-    - builds
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-    - update
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
     - list
   - apiGroups:
     - ""
@@ -3662,26 +3614,24 @@ items:
     - secrets
     verbs:
     - get
+    - list
   - apiGroups:
     - ""
-    - build.openshift.io
     attributeRestrictions: null
     resources:
-    - buildconfigs
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    - build.openshift.io
-    attributeRestrictions: null
-    resources:
-    - builds/custom
-    - builds/docker
-    - builds/jenkinspipeline
-    - builds/optimizeddocker
-    - builds/source
+    - pods
     verbs:
     - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - get
   - apiGroups:
     - ""
     attributeRestrictions: null

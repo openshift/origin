@@ -4,10 +4,35 @@ import (
 	"fmt"
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
+
+type okBuildLister struct{}
+
+func (okc *okBuildLister) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
+	return &buildapi.BuildList{Items: []buildapi.Build{}}, nil
+}
+
+type okBuildDeleter struct{}
+
+func (okc *okBuildDeleter) DeleteBuild(*buildapi.Build) error {
+	return nil
+}
+
+type okBuildConfigGetter struct {
+	BuildConfig *buildapi.BuildConfig
+}
+
+func (okc *okBuildConfigGetter) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	if okc.BuildConfig != nil {
+		return okc.BuildConfig, nil
+	} else {
+		return &buildapi.BuildConfig{}, nil
+	}
+}
 
 func TestHandleBuildConfig(t *testing.T) {
 	tests := []struct {
