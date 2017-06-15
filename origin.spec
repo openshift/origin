@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b8d32eb6d8198c475ee1befdbd1052c856c814ee
+%global commit ac68b90ea4218dddd97013865b929994ef1ccaea
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.109 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b8d32eb
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.110 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ac68b90
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.110
+Version:        3.6.111
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,37 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.111-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console e10e9a8
+  (smunilla@redhat.com)
+- Add keepalived-ipfailover image support (#14620)
+  (knobunc@users.noreply.github.com)
+- bump(github.com/openshift/origin-web-console):
+  6e95ce2a77f3248acf13caff408e858a149b0fe3 (dmcphers+openshiftbot@redhat.com)
+- Fix broken test case (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes): 3a5b73339d2adbb002a9820e125a5529f3a749fd
+  (deads@redhat.com)
+- fix buildcontroller integration test to use generated informers
+  (mfojtik@redhat.com)
+- refactor initialization for image, service serving certs and trigger
+  controllers (mfojtik@redhat.com)
+- simplify controller wiring (deads@redhat.com)
+- Add `oadm migrate etcd-ttl` which encodes upstream TTL migration
+  (ccoleman@redhat.com)
+- Report the volume of etcd writes via a diagnostic (ccoleman@redhat.com)
+- Use generated informer with cluster resource quota (ccoleman@redhat.com)
+- Remove ImageStreamReferenceIndex from BuildInformer (cewong@redhat.com)
+- Refactor BuildConfig controller to use Informers (cewong@redhat.com)
+- don't start template informer unless templateservicebroker is configured
+  (jminter@redhat.com)
+- UPSTREAM: 47347: actually check for a live discovery endpoint before
+  aggregating (deads@redhat.com)
+- admin and editor should cover image builder (deads@redhat.com)
+- Refactor Build Controller to use Informers (cewong@redhat.com)
+- Eliminate nil/empty distinction for new v1 field (ironcladlou@gmail.com)
+- UPSTREAM: 46852: Lookup no --no-headers flag safely in PrinterForCommand
+  function (tnozicka@gmail.com)
+
 * Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.110-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 9ccc920
   (smunilla@redhat.com)
