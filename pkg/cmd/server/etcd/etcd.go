@@ -95,8 +95,8 @@ func GetAndTestEtcdClientV3(etcdClientInfo configapi.EtcdConnectionInfo) (*clien
 	return etcdClient, nil
 }
 
-// MakeEtcdClient creates an etcd client based on the provided config.
-func MakeEtcdClientV3(etcdClientInfo configapi.EtcdConnectionInfo) (*clientv3.Client, error) {
+// MakeEtcdClientV3Config creates client configuration based on the configapi.
+func MakeEtcdClientV3Config(etcdClientInfo configapi.EtcdConnectionInfo) (*clientv3.Config, error) {
 	tlsConfig, err := restclient.TLSConfigFor(&restclient.Config{
 		TLSClientConfig: restclient.TLSClientConfig{
 			CertFile: etcdClientInfo.ClientCert.CertFile,
@@ -108,16 +108,23 @@ func MakeEtcdClientV3(etcdClientInfo configapi.EtcdConnectionInfo) (*clientv3.Cl
 		return nil, err
 	}
 
-	cfg := clientv3.Config{
+	return &clientv3.Config{
 		Endpoints:   etcdClientInfo.URLs,
 		DialTimeout: 30 * time.Second,
 		TLS:         tlsConfig,
-	}
-
-	return clientv3.New(cfg)
+	}, nil
 }
 
-// TestEtcdClient verifies a client is functional.  It will attempt to
+// MakeEtcdClientV3 creates an etcd v3 client based on the provided config.
+func MakeEtcdClientV3(etcdClientInfo configapi.EtcdConnectionInfo) (*clientv3.Client, error) {
+	cfg, err := MakeEtcdClientV3Config(etcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
+	return clientv3.New(*cfg)
+}
+
+// TestEtcdClientV3 verifies a client is functional.  It will attempt to
 // connect to the etcd server and block until the server responds at least once, or return an
 // error if the server never responded.
 func TestEtcdClientV3(etcdClient *clientv3.Client) error {
