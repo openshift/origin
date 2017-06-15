@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f0eac0e364f5ed0da4d7312fcecf5717a0b23b4e
+%global commit b8d32eb6d8198c475ee1befdbd1052c856c814ee
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.108 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f0eac0e
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.109 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b8d32eb
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.109
+Version:        3.6.110
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,37 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.110-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 9ccc920
+  (smunilla@redhat.com)
+- Fix leader election logging (marun@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  f55bd6ba4c42e84b062ced14986624156ca72f87 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  3424e5cbd818a0bb4f4eaf3adc11c32eb7f6c1de (dmcphers+openshiftbot@redhat.com)
+- Use GC rather than refcounting for VNID policy rules (danw@redhat.com)
+- Add prometheus examples (ccoleman@redhat.com)
+- bump(k8s.io/kubernetes): 2d104177c1bb3d16a21244b899f649016d63d684
+  (deads@redhat.com)
+- update describer test to create event directly (jvallejo@redhat.com)
+- Document in a more correct manner imagebuilder dep (juanlu@redhat.com)
+- Remove stale SDN code: Writing cluster network CIDR to config.env
+  (rpenta@redhat.com)
+- Bring image building logic into the Bash library (skuznets@redhat.com)
+- Add instructions for `oc cluster up` on EC2 (skuznets@redhat.com)
+- Document dependencies for build-base-images.sh (juanlu@redhat.com)
+- Fix permissions on event harvest (mkargaki@redhat.com)
+- UPSTREAM: 44898: while calculating pod's cpu limits, need to count in init-
+  container (sjenning@redhat.com)
+- add more packages to deep copy (deads@redhat.com)
+- UPSTREAM: <drop>: regenerate code (deads@redhat.com)
+- Allow users to create bindings to roles (mkhan@redhat.com)
+- Make the default quorum reads (ccoleman@redhat.com)
+- UPSTREAM: 43878: Delete EmptyDir volume directly instead of renaming the
+  directory (hchen@redhat.com)
+- UPSTREAM: 46974: Avoid * in filenames (jliggitt@redhat.com)
+- Show SCC provider in error message. (vsemushi@redhat.com)
+
 * Wed Jun 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.109-1
 - 
 
