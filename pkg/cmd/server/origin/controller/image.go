@@ -65,8 +65,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasDeploymentsEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Apps().V1beta1().Deployments().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Apps().V1beta1().Deployments().Informer().GetIndexer(),
+			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().Deployments().Informer(),
+			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
 		})

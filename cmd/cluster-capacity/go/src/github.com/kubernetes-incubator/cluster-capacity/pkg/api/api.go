@@ -21,7 +21,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
 type ResourceType string
@@ -29,16 +28,9 @@ type ResourceType string
 const (
 	Pods                   ResourceType = "pods"
 	PersistentVolumes      ResourceType = "persistentvolumes"
-	ReplicationControllers ResourceType = "replicationcontrollers"
 	Nodes                  ResourceType = "nodes"
 	Services               ResourceType = "services"
 	PersistentVolumeClaims ResourceType = "persistentvolumeclaims"
-	ReplicaSets            ResourceType = "replicasets"
-	ResourceQuota          ResourceType = "resourcequotas"
-	Secrets                ResourceType = "secrets"
-	ServiceAccounts        ResourceType = "serviceaccounts"
-	LimitRanges            ResourceType = "limitranges"
-	Namespaces             ResourceType = "namespaces"
 )
 
 func (r ResourceType) String() string {
@@ -51,26 +43,12 @@ func (r ResourceType) ObjectType() runtime.Object {
 		return &v1.Pod{}
 	case "persistentvolumes":
 		return &v1.PersistentVolume{}
-	case "replicationcontrollers":
-		return &v1.ReplicationController{}
 	case "nodes":
 		return &v1.Node{}
 	case "services":
 		return &v1.Service{}
 	case "persistentvolumeclaims":
 		return &v1.PersistentVolumeClaim{}
-	case "replicasets":
-		return &v1beta1.ReplicaSet{}
-	case "resourcequotas":
-		return &v1.ResourceQuota{}
-	case "secrets":
-		return &v1.Secret{}
-	case "serviceaccounts":
-		return &v1.ServiceAccount{}
-	case "limitranges":
-		return &v1.LimitRange{}
-	case "namespaces":
-		return &v1.Namespace{}
 	}
 	return nil
 }
@@ -81,26 +59,12 @@ func StringToResourceType(resource string) (ResourceType, error) {
 		return Pods, nil
 	case "persistentvolumes":
 		return PersistentVolumes, nil
-	case "replicationcontrollers":
-		return ReplicationControllers, nil
 	case "nodes":
 		return Nodes, nil
 	case "services":
 		return Services, nil
 	case "persistentvolumeclaims":
 		return PersistentVolumeClaims, nil
-	case "replicasets":
-		return ReplicaSets, nil
-	case "resourcequotas":
-		return ResourceQuota, nil
-	case "secrets":
-		return Secrets, nil
-	case "serviceaccounts":
-		return ServiceAccounts, nil
-	case "limitranges":
-		return LimitRanges, nil
-	case "namespaces":
-		return Namespaces, nil
 	default:
 		return "", fmt.Errorf("Resource type %v not recognized", resource)
 	}

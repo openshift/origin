@@ -13365,6 +13365,51 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
+        "name": "httpd",
+        "annotations": {
+          "openshift.io/display-name": "Httpd"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": "Httpd (Latest)",
+              "description": "Build and serve static content via Httpd on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "iconClass": "icon-apache",
+              "tags": "builder,httpd",
+              "supports":"httpd",
+              "sampleRepo": "https://github.com/openshift/httpd-ex.git"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.4"
+            }
+          },
+          {
+            "name": "2.4",
+            "annotations": {
+              "openshift.io/display-name": "Httpd 2.4",
+              "description": "Build and serve static content via Httpd on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "tags": "builder,httpd",
+              "supports":"httpd",
+              "version": "2.4",
+              "sampleRepo": "https://github.com/openshift/httpd-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/httpd-24-centos7:latest"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
         "name": "ruby",
         "annotations": {
           "openshift.io/display-name": "Ruby"
@@ -14223,6 +14268,51 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
   "apiVersion": "v1",
   "metadata": {},
   "items": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "httpd",
+        "annotations": {
+          "openshift.io/display-name": "Httpd"
+        }
+      },
+      "spec": {
+        "tags": [
+          {
+            "name": "latest",
+            "annotations": {
+              "openshift.io/display-name": "Httpd (Latest)",
+              "description": "Build and serve static content via Httpd on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "iconClass": "icon-apache",
+              "tags": "builder,httpd",
+              "supports":"httpd",
+              "sampleRepo": "https://github.com/openshift/httpd-ex.git"
+            },
+            "from": {
+              "kind": "ImageStreamTag",
+              "name": "2.4"
+            }
+          },
+          {
+            "name": "2.4",
+            "annotations": {
+              "openshift.io/display-name": "Httpd 2.4",
+              "description": "Build and serve static content via Httpd on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-apache",
+              "tags": "builder,httpd",
+              "supports":"httpd",
+              "version": "2.4",
+              "sampleRepo": "https://github.com/openshift/httpd-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/httpd-24-rhel7"
+            }
+          }
+        ]
+      }
+    },
     {
       "kind": "ImageStream",
       "apiVersion": "v1",

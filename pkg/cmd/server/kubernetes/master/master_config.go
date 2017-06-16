@@ -343,6 +343,8 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
 		// exposed already as cronjobs
 		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
+		// exposed already as extensions v1beta1 by other controllers
+		componentconfig.GroupResource{Group: "apps", Resource: "deployments"},
 	)
 
 	// resolve extended arguments

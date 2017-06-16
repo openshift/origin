@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -101,10 +100,6 @@ func (c *WatchBuffer) EmitWatchEvent(eType watch.EventType, object runtime.Objec
 	}
 
 	gv := v1.SchemeGroupVersion
-	if c.Resource == ccapi.ReplicaSets {
-		gv = schema.GroupVersion{Group: "extensions", Version: "v1beta1"}
-	}
-
 	encoder := api.Codecs.EncoderForVersion(info.Serializer, gv)
 
 	obj_str := runtime.EncodeOrDie(encoder, object)

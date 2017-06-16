@@ -170,7 +170,7 @@ func newRepositoryWithClient(
 		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
 	}
 
-	acceptschema2, err := getBoolOption(AcceptSchema2EnvVar, "acceptschema2", false, options)
+	acceptschema2, err := getBoolOption(AcceptSchema2EnvVar, "acceptschema2", true, options)
 	if err != nil {
 		context.GetLogger(ctx).Error(err)
 	}
