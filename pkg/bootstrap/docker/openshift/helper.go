@@ -620,6 +620,7 @@ func (h *Helper) ServerVersion() (semver.Version, error) {
 	if h.version != nil {
 		return *h.version, nil
 	}
+
 	versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
 		DiscardContainer().
