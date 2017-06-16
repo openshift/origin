@@ -60,12 +60,14 @@ import (
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/version"
@@ -441,7 +443,7 @@ func buildKubeApiserverConfig(
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
-	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig()
+	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
@@ -606,7 +608,43 @@ func BuildKubernetesMasterConfig(
 	return kmaster, nil
 }
 
-func DefaultOpenAPIConfig() *openapicommon.Config {
+func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
+	securityDefinitions := spec.SecurityDefinitions{}
+	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
+		securityDefinitions["BearerToken"] = &spec.SecurityScheme{
+			SecuritySchemeProps: spec.SecuritySchemeProps{
+				Type:        "apiKey",
+				Name:        "authorization",
+				In:          "header",
+				Description: "Bearer Token authentication",
+			},
+		}
+	}
+	if config.OAuthConfig != nil {
+		baseUrl := config.OAuthConfig.MasterPublicURL
+		securityDefinitions["Oauth2Implicit"] = &spec.SecurityScheme{
+			SecuritySchemeProps: spec.SecuritySchemeProps{
+				Type:             "oauth2",
+				Flow:             "implicit",
+				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
+				Scopes:           scope.DefaultSupportedScopesMap(),
+			},
+		}
+		securityDefinitions["Oauth2AccessToken"] = &spec.SecurityScheme{
+			SecuritySchemeProps: spec.SecuritySchemeProps{
+				Type:             "oauth2",
+				Flow:             "accessCode",
+				AuthorizationURL: oauthutil.OpenShiftOAuthAuthorizeURL(baseUrl),
+				TokenURL:         oauthutil.OpenShiftOAuthTokenURL(baseUrl),
+				Scopes:           scope.DefaultSupportedScopesMap(),
+			},
+		}
+	}
+	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
+		// No support in Swagger's OpenAPI sepc v.2 ¯\_(ツ)_/¯
+		// TODO: Add x509 specification once available
+	}
+
 	return &openapicommon.Config{
 		GetDefinitions: openapigenerated.GetOpenAPIDefinitions,
 		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
@@ -708,6 +746,7 @@ func DefaultOpenAPIConfig() *openapicommon.Config {
 				Description: "Default Response.",
 			},
 		},
+		SecurityDefinitions: &securityDefinitions,
 	}
 }
 
