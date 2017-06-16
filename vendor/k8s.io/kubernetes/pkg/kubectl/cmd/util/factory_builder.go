@@ -124,8 +124,18 @@ func (f *ring2Factory) PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, o
 	return printer.PrintObj(obj, out)
 }
 
-func (f *ring2Factory) NewBuilder() *resource.Builder {
+// NewBuilder returns a new resource builder.
+// Receives a bool flag and avoids remote calls if set to false
+func (f *ring2Factory) NewBuilder(allowRemoteCalls bool) *resource.Builder {
+	var clientMapper resource.ClientMapper
 	mapper, typer := f.objectMappingFactory.Object()
+	clientMapperFunc := resource.ClientMapperFunc(f.objectMappingFactory.ClientForMapping)
 
-	return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.objectMappingFactory.ClientForMapping), f.clientAccessFactory.Decoder(true))
+	if allowRemoteCalls {
+		clientMapper = clientMapperFunc
+	} else {
+		clientMapper = resource.DisabledClientForMapping{ClientMapper: clientMapperFunc}
+	}
+
+	return resource.NewBuilder(mapper, typer, clientMapper, f.clientAccessFactory.Decoder(true))
 }
