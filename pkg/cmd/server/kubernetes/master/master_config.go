@@ -345,6 +345,8 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
 		// exposed already as extensions v1beta1 by other controllers
 		componentconfig.GroupResource{Group: "apps", Resource: "deployments"},
+		// exposed as autoscaling v1
+		componentconfig.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
 	)
 
 	// resolve extended arguments
