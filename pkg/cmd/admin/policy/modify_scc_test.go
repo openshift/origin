@@ -117,19 +117,19 @@ func TestModifySCC(t *testing.T) {
 	}
 
 	for tcName, tc := range tests {
-		fakeClient := fake.NewSimpleClientset()
-		fakeClient.PrependReactor("get", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		fakeClient := legacyclient.NewSimpleFake()
+		fakeClient.Fake.PrependReactor("get", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, tc.startingSCC, nil
 		})
 		var actualSCC *kapi.SecurityContextConstraints
-		fakeClient.PrependReactor("update", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		fakeClient.Fake.PrependReactor("update", "securitycontextconstraints", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			actualSCC = action.(clientgotesting.UpdateAction).GetObject().(*kapi.SecurityContextConstraints)
 			return true, actualSCC, nil
 		})
 
 		o := &SCCModificationOptions{
 			SCCName:                 "foo",
-			SCCInterface:            fakeClient.Core(),
+			SCCInterface:            fakeClient,
 			DefaultSubjectNamespace: "",
 			Subjects:                tc.subjects,
 		}
