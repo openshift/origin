@@ -218,7 +218,10 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3 {{ if gt (len .DefaultCertificate) 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3
+    {{- if matchPattern "true|TRUE" (env "ROUTER_STRICT_SNI" "") }} strict-sni {{ end }}
+    {{- if gt (len .DefaultCertificate) 0 }} crt {{.DefaultCertificate}}{{ else }} crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }}
+    {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
 
   # check re-encrypt backends first - from most specific to general path.

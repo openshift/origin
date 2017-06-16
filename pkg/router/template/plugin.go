@@ -55,6 +55,7 @@ type TemplatePluginConfig struct {
 	BindPortsAfterSync       bool
 	MaxConnections           string
 	Ciphers                  string
+	StrictSNI                bool
 }
 
 // routerInterface controls the interaction of the plugin with the underlying router implementation

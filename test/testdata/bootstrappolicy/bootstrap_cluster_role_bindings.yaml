@@ -727,9 +727,9 @@ items:
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
-    name: edit
+    name: admin
   roleRef:
-    name: edit
+    name: admin
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller

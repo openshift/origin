@@ -230,6 +230,9 @@ type RouterConfig struct {
 	// Ciphers is the set of ciphers to use with bind
 	// modern | intermediate | old | set of cihers
 	Ciphers string
+
+	// Strict SNI (do not use default cert)
+	StrictSNI bool
 }
 
 const (
@@ -310,6 +313,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().BoolVar(&cfg.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cfg.DisableNamespaceOwnershipCheck, "Disables the namespace ownership check and allows different namespaces to claim either different paths to a route host or overlapping host names in case of a wildcard route. The default behavior (false) to restrict claims to the oldest namespace that has claimed either the host or the subdomain. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 	cmd.Flags().StringVar(&cfg.MaxConnections, "max-connections", cfg.MaxConnections, "Specifies the maximum number of concurrent connections. Not supported for F5.")
 	cmd.Flags().StringVar(&cfg.Ciphers, "ciphers", cfg.Ciphers, "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list. Not supported for F5.")
+	cmd.Flags().BoolVar(&cfg.StrictSNI, "strict-sni", cfg.StrictSNI, "Use strict-sni bind processing (do not use default cert). Not supported for F5.")
 
 	cfg.Action.BindForOutput(cmd.Flags())
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
@@ -663,6 +667,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 	if cfg.DisableNamespaceOwnershipCheck {
 		env["ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK"] = "true"
+	}
+	if cfg.StrictSNI {
+		env["ROUTER_STRICT_SNI"] = "true"
 	}
 	if len(cfg.RouterCanonicalHostname) > 0 {
 		if errs := validation.IsDNS1123Subdomain(cfg.RouterCanonicalHostname); len(errs) != 0 {
