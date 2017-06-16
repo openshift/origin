@@ -54,8 +54,11 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null
-      },
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
+     },
       "spec": {
         "host": "www.example.com",
         "to": {
