@@ -89,6 +89,7 @@ verify: build
 	hack/verify-generated-completions.sh ||r=1;\
 	hack/verify-generated-docs.sh ||r=1;\
 	hack/verify-cli-conventions.sh ||r=1;\
+	hack/verify-generated-json-codecs.sh ||r=1; \
 	hack/verify-generated-swagger-descriptions.sh ||r=1;\
 	hack/verify-generated-swagger-spec.sh ||r=1;\
 	exit $$r ;\
