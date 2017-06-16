@@ -37,7 +37,7 @@ func Profile(mode string) Stop {
 func profileOnExit(s Stop) Stop {
 	go func() {
 		c := make(chan os.Signal, 1)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 		<-c
 		// Programs with more sophisticated signal handling
 		// should ensure the Stop() function returned from

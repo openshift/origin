@@ -18,7 +18,7 @@ To build the base and release images, run:
 
     $ hack/build-base-images.sh
 
-Today, all of our container image builds require 
+Today, all of our container image builds require
 [imagebuilder](https://github.com/openshift/imagebuilder).
 
 Once a release has been created, it can be pushed:
@@ -709,6 +709,9 @@ and `OPENSHIFT_PROFILE_PORT=` to change default ip `127.0.0.1` and default port 
 In order to start the server in CPU profiling mode, run:
 
     $ OPENSHIFT_PROFILE=cpu sudo ./_output/local/bin/linux/amd64/openshift start
+
+When you're done, you can use the SIGUSR1 signal to kill the openshift process
+and ensure the profile logs are flushed to disk.
 
 Or, if running OpenShift under systemd, append this to
 `/etc/sysconfig/atomic-openshift-{master,node}`
