@@ -16,6 +16,7 @@ packages=(
   github.com/openshift/origin/pkg/quota
   github.com/openshift/origin/pkg/route
   github.com/openshift/origin/pkg/sdn
+  github.com/openshift/origin/pkg/security
   github.com/openshift/origin/pkg/template
   github.com/openshift/origin/pkg/user
 )
