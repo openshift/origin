@@ -9,15 +9,11 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"time"
 
-	"github.com/blang/semver"
-	dockerclient "github.com/docker/engine-api/client"
-	dockertypes "github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/client"
+	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/registry"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 
 	"github.com/openshift/imagebuilder/imageprogress"
 	starterrors "github.com/openshift/origin/pkg/bootstrap/docker/errors"
@@ -27,16 +23,14 @@ const openShiftInsecureCIDR = "172.30.0.0/16"
 
 // Helper provides utility functions to help with Docker
 type Helper struct {
-	client          *docker.Client
-	engineAPIClient *dockerclient.Client
-	info            *dockertypes.Info
+	client Interface
+	info   *types.Info
 }
 
 // NewHelper creates a new Helper
-func NewHelper(client *docker.Client, engineAPIClient *dockerclient.Client) *Helper {
+func NewHelper(client Interface) *Helper {
 	return &Helper{
-		client:          client,
-		engineAPIClient: engineAPIClient,
+		client: client,
 	}
 }
 
@@ -57,23 +51,25 @@ func hasCIDR(cidr string, listOfCIDRs []*registry.NetIPNet) bool {
 	return false
 }
 
-func (h *Helper) dockerInfo() (*dockertypes.Info, error) {
+func (h *Helper) Client() Interface {
+	return h.client
+}
+
+func (h *Helper) dockerInfo() (*types.Info, error) {
 	if h.info != nil {
 		return h.info, nil
 	}
-	if h.engineAPIClient == nil {
+	if h.client == nil {
 		return nil, fmt.Errorf("the Docker engine API client is not initialized")
 	}
 	glog.V(5).Infof("Retrieving Docker daemon info")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	info, err := h.engineAPIClient.Info(ctx)
-	defer cancel()
+	info, err := h.client.Info()
 	if err != nil {
 		glog.V(2).Infof("Could not retrieve Docker info: %v", err)
 		return nil, err
 	}
 	glog.V(5).Infof("Docker daemon info: %#v", info)
-	h.info = &info
+	h.info = info
 	return h.info, nil
 }
 
@@ -113,31 +109,25 @@ func (h *Helper) DockerRoot() (string, error) {
 	return info.DockerRootDir, nil
 }
 
-// Version returns the Docker version and whether it is a Red Hat distro version
-func (h *Helper) Version() (*semver.Version, bool, error) {
+// Version returns the Docker API version and whether it is a Red Hat distro version
+func (h *Helper) APIVersion() (string, bool, error) {
 	glog.V(5).Infof("Retrieving Docker version")
-	env, err := h.client.Version()
+	version, err := h.client.ServerVersion()
 	if err != nil {
 		glog.V(2).Infof("Error retrieving version: %v", err)
-		return nil, false, err
+		return "", false, err
 	}
-	glog.V(5).Infof("Docker version results: %#v", env)
-	versionStr := env.Get("Version")
-	if len(versionStr) == 0 {
-		return nil, false, errors.New("did not get a version")
+	glog.V(5).Infof("Docker version results: %#v", version)
+	if len(version.APIVersion) == 0 {
+		return "", false, errors.New("did not get an API version")
 	}
-	glog.V(5).Infof("Version: %s", versionStr)
-	dockerVersion, err := semver.Parse(versionStr)
-	if err != nil {
-		glog.V(2).Infof("Error parsing Docker version %q", versionStr)
-		return nil, false, err
-	}
+	glog.V(5).Infof("APIVersion: %s", version.APIVersion)
 	isRedHat := false
-	packageVersion := env.Get("PkgVersion")
-	if len(packageVersion) > 0 {
-		isRedHat = fedoraPackage.MatchString(packageVersion) || rhelPackage.MatchString(packageVersion)
+	kernelVersion := version.KernelVersion
+	if len(kernelVersion) > 0 {
+		isRedHat = fedoraPackage.MatchString(kernelVersion) || rhelPackage.MatchString(kernelVersion)
 	}
-	return &dockerVersion, isRedHat, nil
+	return version.APIVersion, isRedHat, nil
 }
 
 func (h *Helper) GetDockerProxySettings() (httpProxy, httpsProxy, noProxy string, err error) {
@@ -151,12 +141,12 @@ func (h *Helper) GetDockerProxySettings() (httpProxy, httpsProxy, noProxy string
 // CheckAndPull checks whether a Docker image exists. If not, it pulls it.
 func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	glog.V(5).Infof("Inspecting Docker image %q", image)
-	imageMeta, err := h.client.InspectImage(image)
+	imageMeta, _, err := h.client.ImageInspectWithRaw(image, false)
 	if err == nil {
 		glog.V(5).Infof("Image %q found: %#v", image, imageMeta)
 		return nil
 	}
-	if err != docker.ErrNoSuchImage {
+	if !client.IsErrImageNotFound(err) {
 		return starterrors.NewError("unexpected error inspecting image %s", image).WithCause(err)
 	}
 	glog.V(5).Infof("Image %q not found. Pulling", image)
@@ -168,11 +158,7 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	if glog.V(5) {
 		outputStream = out
 	}
-	err = h.client.PullImage(docker.PullImageOptions{
-		Repository:    image,
-		RawJSONStream: bool(!glog.V(5)),
-		OutputStream:  outputStream,
-	}, docker.AuthConfiguration{})
+	err = h.client.ImagePull(image, types.ImagePullOptions{}, outputStream)
 	if err != nil {
 		return starterrors.NewError("error pulling Docker image %s", image).WithCause(err)
 	}
@@ -181,30 +167,28 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 }
 
 // GetContainerState returns whether a container exists and if it does whether it's running
-func (h *Helper) GetContainerState(id string) (container *docker.Container, running bool, err error) {
+func (h *Helper) GetContainerState(id string) (*types.ContainerJSON, bool, error) {
 	glog.V(5).Infof("Inspecting docker container %q", id)
-	container, err = h.client.InspectContainer(id)
+	container, err := h.client.ContainerInspect(id)
 	if err != nil {
-		if _, notFound := err.(*docker.NoSuchContainer); notFound {
+		if client.IsErrContainerNotFound(err) {
 			glog.V(5).Infof("Container %q was not found", id)
-			err = nil
-			return
+			return nil, false, nil
 		}
 		glog.V(5).Infof("An error occurred inspecting container %q: %v", id, err)
-		return
+		return nil, false, err
 	}
-	running = container.State.Running
 	glog.V(5).Infof("Container inspect result: %#v", container)
+
+	running := container.State != nil && container.State.Running
 	glog.V(5).Infof("Container running = %v", running)
-	return
+	return container, running, nil
 }
 
 // RemoveContainer removes the container with the given id
 func (h *Helper) RemoveContainer(id string) error {
 	glog.V(5).Infof("Removing container %q", id)
-	err := h.client.RemoveContainer(docker.RemoveContainerOptions{
-		ID: id,
-	})
+	err := h.client.ContainerRemove(id, types.ContainerRemoveOptions{})
 	if err != nil {
 		return starterrors.NewError("cannot delete container %s", id).WithCause(err)
 	}
@@ -229,23 +213,15 @@ func (h *Helper) HostIP() string {
 }
 
 func (h *Helper) ContainerLog(container string, numLines int) string {
-	output := &bytes.Buffer{}
-	err := h.client.Logs(docker.LogsOptions{
-		Container:    container,
-		Tail:         strconv.Itoa(numLines),
-		OutputStream: output,
-		ErrorStream:  output,
-		Stdout:       true,
-		Stderr:       true,
-	})
-	if err != nil {
+	outBuf := &bytes.Buffer{}
+	if err := h.client.ContainerLogs(container, types.ContainerLogsOptions{Tail: strconv.Itoa(numLines)}, outBuf, outBuf); err != nil {
 		glog.V(1).Infof("Error getting container %q log: %v", container, err)
 	}
-	return output.String()
+	return outBuf.String()
 }
 
 func (h *Helper) StopAndRemoveContainer(container string) error {
-	err := h.client.StopContainer(container, 10)
+	err := h.client.ContainerStop(container, 10)
 	if err != nil {
 		glog.V(2).Infof("Cannot stop container %s: %v", container, err)
 	}
@@ -253,15 +229,15 @@ func (h *Helper) StopAndRemoveContainer(container string) error {
 }
 
 func (h *Helper) ListContainerNames() ([]string, error) {
-	containers, err := h.client.ListContainers(docker.ListContainersOptions{All: true})
+	containers, err := h.client.ContainerList(types.ContainerListOptions{
+		All: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 	names := []string{}
 	for _, c := range containers {
-		if len(c.Names) > 0 {
-			names = append(names, c.Names[0])
-		}
+		names = append(names, c.Names...)
 	}
 	return names, nil
 }

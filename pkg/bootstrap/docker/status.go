@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/engine-api/types"
 	units "github.com/docker/go-units"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
@@ -69,11 +69,11 @@ type ClientStatusConfig struct {
 
 // Status prints the OpenShift cluster status
 func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
-	dockerClient, _, err := getDockerClient(out, c.DockerMachine, false)
+	dockerClient, err := getDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
 	}
-	helper := dockerhelper.NewHelper(dockerClient, nil)
+	helper := dockerhelper.NewHelper(dockerClient)
 
 	container, running, err := helper.GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
@@ -187,7 +187,7 @@ func isHealthy(f *clientcmd.Factory) (bool, error) {
 	return statusCode == 200, nil
 }
 
-func status(container *docker.Container, config *api.MasterConfig) string {
+func status(container *types.ContainerJSON, config *api.MasterConfig) string {
 	mountMap := make(map[string]string)
 	for _, mount := range container.Mounts {
 		mountMap[mount.Destination] = mount.Source
@@ -200,9 +200,12 @@ func status(container *docker.Container, config *api.MasterConfig) string {
 		}
 	}
 
-	duration := strings.ToLower(units.HumanDuration(time.Now().Sub(container.State.StartedAt)))
-
-	status := fmt.Sprintf("The OpenShift cluster was started %s ago\n\n", duration)
+	status := ""
+	startedAt, err := time.Parse(time.RFC3339, container.State.StartedAt)
+	if err != nil {
+		duration := strings.ToLower(units.HumanDuration(time.Since(startedAt)))
+		status += fmt.Sprintf("The OpenShift cluster was started %s ago\n\n", duration)
+	}
 
 	status = status + fmt.Sprintf("Web console URL: %s\n", config.AssetConfig.MasterPublicURL)
 	if config.AssetConfig.MetricsPublicURL != "" {

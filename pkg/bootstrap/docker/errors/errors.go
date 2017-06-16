@@ -1,10 +1,10 @@
 package errors
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -72,9 +72,9 @@ func LogError(err error) {
 	}
 }
 
-func PrintLog(out io.Writer, title string, content []byte) {
+func PrintLog(out io.Writer, title string, content string) {
 	fmt.Fprintf(out, "%s:\n", title)
 	w := prefixwriter.New("  ", out)
-	w.Write(bytes.TrimSpace(content))
+	fmt.Fprintf(w, "%s", strings.TrimSpace(content))
 	fmt.Fprintf(out, "\n")
 }

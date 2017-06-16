@@ -5,15 +5,16 @@ import (
 	"io"
 	"io/ioutil"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/docker/engine-api/types"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 )
 
 // ExecHelper allows execution of commands on a running Docker container
 type ExecHelper struct {
-	client    *docker.Client
+	client    dockerhelper.Interface
 	container string
 }
 
@@ -25,7 +26,7 @@ type ExecCommand struct {
 }
 
 // NewExecHelper creates a new ExecHelper
-func NewExecHelper(client *docker.Client, container string) *ExecHelper {
+func NewExecHelper(client dockerhelper.Interface, container string) *ExecHelper {
 	return &ExecHelper{
 		client:    client,
 		container: container,
@@ -67,31 +68,26 @@ func (c *ExecCommand) Run() error {
 
 func exec(h *ExecHelper, cmd []string, stdIn io.Reader, stdOut, errOut io.Writer) error {
 	glog.V(4).Infof("Remote exec on container: %s\nCommand: %v", h.container, cmd)
-	exec, err := h.client.CreateExec(docker.CreateExecOptions{
+	response, err := h.client.ContainerExecCreate(h.container, types.ExecConfig{
 		AttachStdin:  stdIn != nil,
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
-		Container:    h.container,
 	})
 	if err != nil {
 		return errors.NewError("Cannot create exec for command %v on container %s", cmd, h.container).WithCause(err)
 	}
-	glog.V(5).Infof("Created exec %q", exec.ID)
+	glog.V(5).Infof("Created exec %q", response.ID)
 	logOut, logErr := &bytes.Buffer{}, &bytes.Buffer{}
 	outStream := io.MultiWriter(stdOut, logOut)
 	errStream := io.MultiWriter(errOut, logErr)
-	glog.V(5).Infof("Starting exec %q and blocking", exec.ID)
-	err = h.client.StartExec(exec.ID, docker.StartExecOptions{
-		InputStream:  stdIn,
-		OutputStream: outStream,
-		ErrorStream:  errStream,
-	})
+	glog.V(5).Infof("Starting exec %q and blocking", response.ID)
+	err = h.client.ContainerExecAttach(response.ID, stdIn, outStream, errStream)
 	if err != nil {
 		return errors.NewError("Cannot start exec for command %v on container %s", cmd, h.container).WithCause(err)
 	}
 	if glog.V(5) {
-		glog.Infof("Exec %q completed", exec.ID)
+		glog.Infof("Exec %q completed", response.ID)
 		if logOut.Len() > 0 {
 			glog.Infof("Stdout:\n%s", logOut.String())
 		}
@@ -99,14 +95,14 @@ func exec(h *ExecHelper, cmd []string, stdIn io.Reader, stdOut, errOut io.Writer
 			glog.Infof("Stderr:\n%s", logErr.String())
 		}
 	}
-	glog.V(5).Infof("Inspecting exec %q", exec.ID)
-	info, err := h.client.InspectExec(exec.ID)
+	glog.V(5).Infof("Inspecting exec %q", response.ID)
+	info, err := h.client.ContainerExecInspect(response.ID)
 	if err != nil {
 		return errors.NewError("Cannot inspect result of exec for command %v on container %s", cmd, h.container).WithCause(err)
 	}
-	glog.V(5).Infof("Exec %q info: %#v", exec.ID, info)
+	glog.V(5).Infof("Exec %q info: %#v", response.ID, info)
 	if info.ExitCode != 0 {
-		return newExecError(err, info.ExitCode, logOut.Bytes(), logErr.Bytes(), h.container, cmd)
+		return newExecError(err, info.ExitCode, logOut.String(), logErr.String(), h.container, cmd)
 	}
 	return nil
 }

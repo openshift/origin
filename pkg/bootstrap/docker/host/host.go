@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/docker/engine-api/types"
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
@@ -35,8 +35,8 @@ done
 // HostHelper contains methods to help check settings on a Docker host machine
 // using a privileged container
 type HostHelper struct {
+	client               dockerhelper.Interface
 	runHelper            *run.RunHelper
-	client               *docker.Client
 	image                string
 	volumesDir           string
 	configDir            string
@@ -45,10 +45,10 @@ type HostHelper struct {
 }
 
 // NewHostHelper creates a new HostHelper
-func NewHostHelper(client *docker.Client, dockerHelper *dockerhelper.Helper, image, volumesDir, configDir, dataDir, pvDir string) *HostHelper {
+func NewHostHelper(dockerHelper *dockerhelper.Helper, image, volumesDir, configDir, dataDir, pvDir string) *HostHelper {
 	return &HostHelper{
-		runHelper:            run.NewRunHelper(client, dockerHelper),
-		client:               client,
+		runHelper:            run.NewRunHelper(dockerHelper),
+		client:               dockerHelper.Client(),
 		image:                image,
 		volumesDir:           volumesDir,
 		configDir:            configDir,
@@ -96,7 +96,7 @@ func (h *HostHelper) DownloadDirFromContainer(sourceDir, destDir string) error {
 		return err
 	}
 	defer func() {
-		errors.LogError(h.client.RemoveContainer(docker.RemoveContainerOptions{ID: container}))
+		errors.LogError(h.client.ContainerRemove(container, types.ContainerRemoveOptions{}))
 	}()
 	err = dockerhelper.DownloadDirFromContainer(h.client, container, sourceDir, destDir)
 	if err != nil {
@@ -118,7 +118,7 @@ func (h *HostHelper) UploadFileToContainer(src, dst string) error {
 		return err
 	}
 	defer func() {
-		errors.LogError(h.client.RemoveContainer(docker.RemoveContainerOptions{ID: container}))
+		errors.LogError(h.client.ContainerRemove(container, types.ContainerRemoveOptions{}))
 	}()
 	err = dockerhelper.UploadFileToContainer(h.client, container, src, dst)
 	if err != nil {

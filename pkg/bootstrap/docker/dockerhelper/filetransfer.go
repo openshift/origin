@@ -9,8 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	docker "github.com/fsouza/go-dockerclient"
-
+	"github.com/docker/engine-api/types"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 )
@@ -61,30 +60,12 @@ func (adapter removeLeadingDirectoryAdapter) Next() (*tar.Header, error) {
 	}
 }
 
-func newContainerDownloader(client *docker.Client, container, path string) io.ReadCloser {
-	r, w := io.Pipe()
-
-	go func() {
-		opts := docker.DownloadFromContainerOptions{
-			Path:         path,
-			OutputStream: w,
-		}
-		w.CloseWithError(client.DownloadFromContainer(container, opts))
-	}()
-
-	return r
-}
-
-func newContainerUploader(client *docker.Client, container, path string) (io.WriteCloser, <-chan error) {
+func newContainerUploader(client Interface, container, path string) (io.WriteCloser, <-chan error) {
 	r, w := io.Pipe()
 	errch := make(chan error, 1)
 
 	go func() {
-		opts := docker.UploadToContainerOptions{
-			Path:        path,
-			InputStream: r,
-		}
-		errch <- client.UploadToContainer(container, opts)
+		errch <- client.CopyToContainer(container, path, r, types.CopyToContainerOptions{})
 	}()
 
 	return w, errch
@@ -97,33 +78,40 @@ type readCloser struct {
 
 // StreamFileFromContainer returns an io.ReadCloser from which the contents of a
 // file in a remote container can be read.
-func StreamFileFromContainer(client *docker.Client, container, src string) (io.ReadCloser, error) {
-	downloader := newContainerDownloader(client, container, src)
-	tarReader := tar.NewReader(downloader)
-
-	header, err := tarReader.Next()
+func StreamFileFromContainer(client Interface, container, src string) (io.ReadCloser, error) {
+	response, err := client.CopyFromContainer(container, src)
 	if err != nil {
 		return nil, err
 	}
+	tarReader := tar.NewReader(response)
+	header, err := tarReader.Next()
+	if err != nil {
+		response.Close()
+		return nil, err
+	}
 	if header.Name != filepath.Base(src) || (header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA) {
+		response.Close()
 		return nil, fmt.Errorf("unexpected tar file content %s, type %c", header.Name, header.Typeflag)
 	}
-	return readCloser{Reader: tarReader, Closer: downloader}, nil
+	return readCloser{Reader: tarReader, Closer: response}, nil
 }
 
 // DownloadDirFromContainer downloads an entire directory of files from a remote
 // container.
-func DownloadDirFromContainer(client *docker.Client, container, src, dst string) error {
-	downloader := newContainerDownloader(client, container, src)
-	defer downloader.Close()
-	tarReader := &removeLeadingDirectoryAdapter{Reader: tar.NewReader(downloader)}
+func DownloadDirFromContainer(client Interface, container, src, dst string) error {
+	response, err := client.CopyFromContainer(container, src)
+	if err != nil {
+		return err
+	}
+	defer response.Close()
+	tarReader := &removeLeadingDirectoryAdapter{Reader: tar.NewReader(response)}
 
 	t := s2itar.New(s2iutil.NewFileSystem())
 	return t.ExtractTarStreamFromTarReader(dst, tarReader, nil)
 }
 
 // UploadFileToContainer uploads a file to a remote container.
-func UploadFileToContainer(client *docker.Client, container, src, dest string) error {
+func UploadFileToContainer(client Interface, container, src, dest string) error {
 	uploader, errch := newContainerUploader(client, container, path.Dir(dest))
 
 	t := s2itar.New(s2iutil.NewFileSystem())
