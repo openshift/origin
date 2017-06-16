@@ -59,9 +59,9 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "foo",
-						Version:  "v1",
-						Priority: 10,
+						Group:                "foo",
+						Version:              "v1",
+						GroupPriorityMinimum: 11,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -76,9 +76,9 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "bar",
-						Version:  "v1",
-						Priority: 11,
+						Group:                "bar",
+						Version:              "v1",
+						GroupPriorityMinimum: 10,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -130,9 +130,10 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "foo",
-						Version:  "v1",
-						Priority: 20,
+						Group:                "foo",
+						Version:              "v1",
+						GroupPriorityMinimum: 20,
+						VersionPriority:      10,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -147,9 +148,9 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "bar",
-						Version:  "v2",
-						Priority: 11,
+						Group:                "bar",
+						Version:              "v2",
+						GroupPriorityMinimum: 11,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -164,9 +165,10 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "foo",
-						Version:  "v2",
-						Priority: 1,
+						Group:                "foo",
+						Version:              "v2",
+						GroupPriorityMinimum: 1,
+						VersionPriority:      15,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -181,9 +183,9 @@ func TestAPIs(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "bar",
-						Version:  "v1",
-						Priority: 11,
+						Group:                "bar",
+						Version:              "v1",
+						GroupPriorityMinimum: 11,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -331,9 +333,10 @@ func TestAPIGroup(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "foo",
-						Version:  "v1",
-						Priority: 20,
+						Group:                "foo",
+						Version:              "v1",
+						GroupPriorityMinimum: 20,
+						VersionPriority:      10,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -348,9 +351,9 @@ func TestAPIGroup(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "bar",
-						Version:  "v2",
-						Priority: 11,
+						Group:                "bar",
+						Version:              "v2",
+						GroupPriorityMinimum: 11,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -365,9 +368,10 @@ func TestAPIGroup(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "foo",
-						Version:  "v2",
-						Priority: 1,
+						Group:                "foo",
+						Version:              "v2",
+						GroupPriorityMinimum: 1,
+						VersionPriority:      15,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
@@ -382,9 +386,9 @@ func TestAPIGroup(t *testing.T) {
 							Namespace: "ns",
 							Name:      "api",
 						},
-						Group:    "bar",
-						Version:  "v1",
-						Priority: 11,
+						Group:                "bar",
+						Version:              "v1",
+						GroupPriorityMinimum: 11,
 					},
 					Status: apiregistration.APIServiceStatus{
 						Conditions: []apiregistration.APIServiceCondition{
