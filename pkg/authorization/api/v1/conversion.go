@@ -99,11 +99,9 @@ func Convert_v1_PolicyRule_To_api_PolicyRule(in *PolicyRule, out *newer.PolicyRu
 
 	out.APIGroups = in.APIGroups
 
-	out.Resources = sets.String{}
-	out.Resources.Insert(in.Resources...)
+	out.Resources = sets.NewString(in.Resources...)
 
-	out.Verbs = sets.String{}
-	out.Verbs.Insert(in.Verbs...)
+	out.Verbs = sets.NewString(in.Verbs...)
 
 	out.ResourceNames = sets.NewString(in.ResourceNames...)
 
@@ -119,14 +117,11 @@ func Convert_api_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRu
 
 	out.APIGroups = in.APIGroups
 
-	out.Resources = []string{}
-	out.Resources = append(out.Resources, in.Resources.List()...)
+	out.Resources = in.Resources.List()
 
-	out.Verbs = []string{}
-	out.Verbs = append(out.Verbs, in.Verbs.List()...)
+	out.Verbs = in.Verbs.List()
 
 	out.ResourceNames = in.ResourceNames.List()
-
 	out.NonResourceURLsSlice = in.NonResourceURLs.List()
 
 	return nil
