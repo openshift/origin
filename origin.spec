@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4ab7e2e6ffe5165800a0aee412bd1f77d09e0d71
+%global commit 3c2b73d90e9c54ecc0fb742670b2332f7f9f90b0
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.111 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4ab7e2e
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.112 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3c2b73d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.112
+Version:        3.6.113
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -658,6 +658,29 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Jun 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.113-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console df92c71
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ed51404a3febc8c3b6bce616933cd6003fb0ea8d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4bd3b4af68c492988ce1575df8e3a2478ef020dd (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c0d9ac2675038cb8bd877a52791f46859108c5c9 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  fa0779958c86359d42dea484be5f2b7d96eac3ac (dmcphers+openshiftbot@redhat.com)
+- Prevent duplicate deployment informers (ccoleman@redhat.com)
+- add httpd imagestreams and quickstart (bparees@redhat.com)
+- UPSTREAM: <drop>: fix unit test (jliggitt@redhat.com)
+- Run all k8s unit tests (jliggitt@redhat.com)
+- UPSTREAM: kubernetes-incubator/cluster-capacity: 78: Remove resources that
+  are not needed to run cluster  capacity analysis. (avagarwa@redhat.com)
+- UPSTREAM: kubernetes-incubator/cluster-capacity: 77: cluster-capacity should
+  only list resources needed by  scheduler and use a fake informer for replica
+  sets. (avagarwa@redhat.com)
+- acceptschema2: true (aweiteka@redhat.com)
+- enable registry middleware acceptschema2 (aweiteka@redhat.com)
+
 * Thu Jun 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.112-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 782afed
   (smunilla@redhat.com)
