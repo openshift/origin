@@ -1047,7 +1047,7 @@ func TestDefaultSCCVolumes(t *testing.T) {
 				Volumes:                  []versioned.FSType{},
 				AllowHostDirVolumePlugin: false,
 			},
-			expectedVolumes: []versioned.FSType{},
+			expectedVolumes: []versioned.FSType{versioned.FSTypeNone},
 			expectedHostDir: false,
 		},
 	}
