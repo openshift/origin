@@ -36,12 +36,14 @@ func init() {
 // to allow building arbitrary schemes.
 func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_AlphaPodPresetTemplate, InType: reflect.TypeOf(&AlphaPodPresetTemplate{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_Binding, InType: reflect.TypeOf(&Binding{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingCondition, InType: reflect.TypeOf(&BindingCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingList, InType: reflect.TypeOf(&BindingList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingSpec, InType: reflect.TypeOf(&BindingSpec{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingStatus, InType: reflect.TypeOf(&BindingStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_Broker, InType: reflect.TypeOf(&Broker{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerAuthInfo, InType: reflect.TypeOf(&BrokerAuthInfo{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerCondition, InType: reflect.TypeOf(&BrokerCondition{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerList, InType: reflect.TypeOf(&BrokerList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerSpec, InType: reflect.TypeOf(&BrokerSpec{})},
@@ -55,6 +57,20 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceClassList, InType: reflect.TypeOf(&ServiceClassList{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServicePlan, InType: reflect.TypeOf(&ServicePlan{})},
 	)
+}
+
+func DeepCopy_servicecatalog_AlphaPodPresetTemplate(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*AlphaPodPresetTemplate)
+		out := out.(*AlphaPodPresetTemplate)
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.Selector); err != nil {
+			return err
+		} else {
+			out.Selector = *newVal.(*v1.LabelSelector)
+		}
+		return nil
+	}
 }
 
 func DeepCopy_servicecatalog_Binding(in interface{}, out interface{}, c *conversion.Cloner) error {
@@ -118,6 +134,13 @@ func DeepCopy_servicecatalog_BindingSpec(in interface{}, out interface{}, c *con
 				*out = newVal.(*runtime.RawExtension)
 			}
 		}
+		if in.AlphaPodPresetTemplate != nil {
+			in, out := &in.AlphaPodPresetTemplate, &out.AlphaPodPresetTemplate
+			*out = new(AlphaPodPresetTemplate)
+			if err := DeepCopy_servicecatalog_AlphaPodPresetTemplate(*in, *out, c); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 }
@@ -165,6 +188,20 @@ func DeepCopy_servicecatalog_Broker(in interface{}, out interface{}, c *conversi
 	}
 }
 
+func DeepCopy_servicecatalog_BrokerAuthInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*BrokerAuthInfo)
+		out := out.(*BrokerAuthInfo)
+		*out = *in
+		if in.BasicAuthSecret != nil {
+			in, out := &in.BasicAuthSecret, &out.BasicAuthSecret
+			*out = new(api_v1.ObjectReference)
+			**out = **in
+		}
+		return nil
+	}
+}
+
 func DeepCopy_servicecatalog_BrokerCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
 		in := in.(*BrokerCondition)
@@ -198,10 +235,12 @@ func DeepCopy_servicecatalog_BrokerSpec(in interface{}, out interface{}, c *conv
 		in := in.(*BrokerSpec)
 		out := out.(*BrokerSpec)
 		*out = *in
-		if in.AuthSecret != nil {
-			in, out := &in.AuthSecret, &out.AuthSecret
-			*out = new(api_v1.ObjectReference)
-			**out = **in
+		if in.AuthInfo != nil {
+			in, out := &in.AuthInfo, &out.AuthInfo
+			*out = new(BrokerAuthInfo)
+			if err := DeepCopy_servicecatalog_BrokerAuthInfo(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -394,6 +433,30 @@ func DeepCopy_servicecatalog_ServicePlan(in interface{}, out interface{}, c *con
 		}
 		if in.ExternalMetadata != nil {
 			in, out := &in.ExternalMetadata, &out.ExternalMetadata
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*runtime.RawExtension)
+			}
+		}
+		if in.AlphaInstanceCreateParameterSchema != nil {
+			in, out := &in.AlphaInstanceCreateParameterSchema, &out.AlphaInstanceCreateParameterSchema
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*runtime.RawExtension)
+			}
+		}
+		if in.AlphaInstanceUpdateParameterSchema != nil {
+			in, out := &in.AlphaInstanceUpdateParameterSchema, &out.AlphaInstanceUpdateParameterSchema
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*runtime.RawExtension)
+			}
+		}
+		if in.AlphaBindingCreateParameterSchema != nil {
+			in, out := &in.AlphaBindingCreateParameterSchema, &out.AlphaBindingCreateParameterSchema
 			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
 			} else {

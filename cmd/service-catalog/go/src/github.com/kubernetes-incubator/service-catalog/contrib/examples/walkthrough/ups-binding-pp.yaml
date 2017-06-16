@@ -1,0 +1,14 @@
+apiVersion: servicecatalog.k8s.io/v1alpha1
+kind: Binding
+metadata:
+  name: ups-binding
+  namespace: test-ns
+spec:
+  instanceRef:
+    name: ups-instance
+  secretName: my-secret
+  alphaPodPresetTemplate:
+    name: my-pod-preset
+    selector:
+      matchLabels:
+        app: my-app

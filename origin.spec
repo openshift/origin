@@ -312,7 +312,6 @@ ln -s hypercc %{buildroot}%{_bindir}/cluster-capacity
 # Install service-catalog
 install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/apiserver %{buildroot}%{_bindir}/
 install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/controller-manager %{buildroot}%{_bindir}/
-install -p -m 755 cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/_output/local/bin/${PLATFORM}/user-broker %{buildroot}%{_bindir}/
 
 # Install pod
 install -p -m 755 _output/local/bin/${PLATFORM}/pod %{buildroot}%{_bindir}/
@@ -561,7 +560,6 @@ fi
 %files service-catalog
 %{_bindir}/apiserver
 %{_bindir}/controller-manager
-%{_bindir}/user-broker
 
 %files -n tuned-profiles-%{name}-node
 %license LICENSE

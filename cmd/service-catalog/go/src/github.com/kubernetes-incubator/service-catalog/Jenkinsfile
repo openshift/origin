@@ -24,6 +24,8 @@ limitations under the License.
 // TEST_ZONE:      GCP Zone in which to create test GKE cluster
 // TEST_ACCOUNT:   GCP service account credentials (JSON file) to use for testing.
 
+def repo_url = params.REPO_URL
+
 def updatePullRequest(flow, success = false) {
   def state, message
   switch (flow) {
@@ -39,10 +41,14 @@ def updatePullRequest(flow, success = false) {
     default:
       error('flow can only be run or verify')
   }
-  setGitHubPullRequestStatus(
-      context: env.JOB_NAME,
-      message: message,
-      state: state)
+
+  step([
+      $class: "GitHubCommitStatusSetter",
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "${repo_url}"],
+      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: "${JOB_NAME}"],
+      errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
+      statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
+  ]);
 }
 
 // Verify required parameters

@@ -49,13 +49,26 @@ func validateBrokerSpec(spec *sc.BrokerSpec, fldPath *field.Path) field.ErrorLis
 				"brokers must have a remote url to contact"))
 	}
 
-	if spec.AuthSecret != nil {
-		for _, msg := range apivalidation.ValidateNamespaceName(spec.AuthSecret.Namespace, false /* prefix */) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("authSecret", "namespace"), spec.AuthSecret.Namespace, msg))
-		}
+	// if there is auth information, check it to make sure that it's properly formatted
+	if spec.AuthInfo != nil {
+		// TODO: when we start supporting additional auth schemes, this code will have to accommodate
+		// the new schemes
+		basicAuthSecret := spec.AuthInfo.BasicAuthSecret
+		if basicAuthSecret != nil {
+			for _, msg := range apivalidation.ValidateNamespaceName(basicAuthSecret.Namespace, false /* prefix */) {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "namespace"), basicAuthSecret.Namespace, msg))
+			}
 
-		for _, msg := range apivalidation.NameIsDNSSubdomain(spec.AuthSecret.Name, false /* prefix */) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("authSecret", "name"), spec.AuthSecret.Name, msg))
+			for _, msg := range apivalidation.NameIsDNSSubdomain(basicAuthSecret.Name, false /* prefix */) {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "name"), basicAuthSecret.Name, msg))
+			}
+		} else {
+			// if there's no BasicAuthSecret, then we need to error because there are no other auth
+			// options right now
+			allErrs = append(
+				allErrs,
+				field.Required(fldPath.Child("authInfo", "basicAuthSecret"), "a basic auth secret is required"),
+			)
 		}
 	}
 

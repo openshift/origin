@@ -96,9 +96,7 @@ func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj r
 	binding.Status = sc.BindingStatus{}
 	// Fill in the first entry set to "creating"?
 	binding.Status.Conditions = []sc.BindingCondition{}
-
-	// TODO: Should we use a more specific string here?
-	binding.Finalizers = []string{"kubernetes"}
+	binding.Finalizers = []string{sc.FinalizerServiceCatalog}
 }
 
 func (bindingRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {

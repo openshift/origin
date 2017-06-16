@@ -18,12 +18,9 @@ package controller
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"runtime/debug"
-	"strings"
 	"testing"
 	"time"
 
@@ -36,15 +33,24 @@ import (
 	servicecatalogclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 
+	fakebrokerserver "github.com/kubernetes-incubator/service-catalog/pkg/brokerapi/fake/server"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/pkg/api"
 	"k8s.io/client-go/pkg/api/v1"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 )
+
+// NOTE:
+//
+// This file contains:
+//
+// - tests for the methods on controller.go
+// - test fixtures used in other controller_*_test.go files
+//
+// Other controller_*_test.go files contain tests related to the reconcilation
+// loops for the different catalog API resources.
 
 const (
 	serviceClassGUID            = "SCGUID"
@@ -188,6 +194,131 @@ const testCatalogWithMultipleServices = `{
       }]
     }
 ]}`
+
+const alphaParameterSchemaCatalogBytes = `{
+  "services": [{
+    "name": "fake-service",
+    "id": "acb56d7c-XXXX-XXXX-XXXX-feb140a59a66",
+    "description": "fake service",
+    "tags": ["tag1", "tag2"],
+    "requires": ["route_forwarding"],
+    "bindable": true,
+    "metadata": {
+    	"a": "b",
+    	"c": "d"
+    },
+    "dashboard_client": {
+      "id": "398e2f8e-XXXX-XXXX-XXXX-19a71ecbcf64",
+      "secret": "277cabb0-XXXX-XXXX-XXXX-7822c0a90e5d",
+      "redirect_uri": "http://localhost:1234"
+    },
+    "plan_updateable": true,
+    "plans": [{
+      "name": "fake-plan-1",
+      "id": "d3031751-XXXX-XXXX-XXXX-a42377d3320e",
+      "description": "description1",
+      "metadata": {
+      	"b": "c",
+      	"d": "e"
+      },
+      "schemas": {
+      	"service_instance": {
+	  	  "create": {
+	  	  	"parameters": {
+	          "$schema": "http://json-schema.org/draft-04/schema",
+	          "type": "object",
+	          "title": "Parameters",
+	          "properties": {
+	            "name": {
+	              "title": "Queue Name",
+	              "type": "string",
+	              "maxLength": 63,
+	              "default": "My Queue"
+	            },
+	            "email": {
+	              "title": "Email",
+	              "type": "string",
+	              "pattern": "^\\S+@\\S+$",
+	              "description": "Email address for alerts."
+	            },
+	            "protocol": {
+	              "title": "Protocol",
+	              "type": "string",
+	              "default": "Java Message Service (JMS) 1.1",
+	              "enum": [
+	                "Java Message Service (JMS) 1.1",
+	                "Transmission Control Protocol (TCP)",
+	                "Advanced Message Queuing Protocol (AMQP) 1.0"
+	              ]
+	            },
+	            "secure": {
+	              "title": "Enable security",
+	              "type": "boolean",
+	              "default": true
+	            }
+	          },
+	          "required": [
+	            "name",
+	            "protocol"
+	          ]
+	  	  	}
+	  	  },
+	  	  "update": {
+	  	  	"parameters": {
+	  		  "baz": "zap"
+	  	    }
+	  	  }
+      	},
+      	"service_binding": {
+      	  "create": {
+	  	  	"parameters": {
+      	  	  "zoo": "blu"
+      	    }
+      	  }
+      	}
+      }
+    }]
+  }]
+}`
+
+const instanceParameterSchemaBytes = `{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "type": "object",
+  "title": "Parameters",
+  "properties": {
+    "name": {
+      "title": "Queue Name",
+      "type": "string",
+      "maxLength": 63,
+      "default": "My Queue"
+    },
+    "email": {
+      "title": "Email",
+      "type": "string",
+      "pattern": "^\\S+@\\S+$",
+      "description": "Email address for alerts."
+    },
+    "protocol": {
+      "title": "Protocol",
+      "type": "string",
+      "default": "Java Message Service (JMS) 1.1",
+      "enum": [
+        "Java Message Service (JMS) 1.1",
+        "Transmission Control Protocol (TCP)",
+        "Advanced Message Queuing Protocol (AMQP) 1.0"
+      ]
+    },
+    "secure": {
+      "title": "Enable security",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "protocol"
+  ]
+}`
 
 // broker used in most of the tests that need a broker
 func getTestBroker() *v1alpha1.Broker {
@@ -372,11 +503,11 @@ func getTestInstanceAsyncDeprovisioning(operation string) *v1alpha1.Instance {
 
 func getTestInstanceAsyncDeprovisioningWithFinalizer(operation string) *v1alpha1.Instance {
 	instance := getTestInstanceAsyncDeprovisioning(operation)
-	instance.ObjectMeta.Finalizers = []string{"kubernetes"}
+	instance.ObjectMeta.Finalizers = []string{v1alpha1.FinalizerServiceCatalog}
 	return instance
 }
 
-// binding referencing the result of getTestBinding()
+// binding referencing the result of getTestInstance()
 func getTestBinding() *v1alpha1.Binding {
 	return &v1alpha1.Binding{
 		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
@@ -385,7 +516,6 @@ func getTestBinding() *v1alpha1.Binding {
 			ExternalID:  bindingGUID,
 		},
 	}
-
 }
 
 type instanceParameters struct {
@@ -396,2124 +526,6 @@ type instanceParameters struct {
 type bindingParameters struct {
 	Name string   `json:"name"`
 	Args []string `json:"args"`
-}
-
-func TestShouldReconcileBroker(t *testing.T) {
-	cases := []struct {
-		name      string
-		broker    *v1alpha1.Broker
-		now       time.Time
-		interval  time.Duration
-		reconcile bool
-	}{
-		{
-			name:      "no status",
-			broker:    getTestBroker(),
-			now:       time.Now(),
-			interval:  3 * time.Minute,
-			reconcile: true,
-		},
-		{
-			name: "no ready condition",
-			broker: func() *v1alpha1.Broker {
-				b := getTestBroker()
-				b.Status = v1alpha1.BrokerStatus{
-					Conditions: []v1alpha1.BrokerCondition{
-						{
-							Type:   v1alpha1.BrokerConditionType("NotARealCondition"),
-							Status: v1alpha1.ConditionTrue,
-						},
-					},
-				}
-				return b
-			}(),
-			now:       time.Now(),
-			interval:  3 * time.Minute,
-			reconcile: true,
-		},
-		{
-			name:      "not ready",
-			broker:    getTestBrokerWithStatus(v1alpha1.ConditionFalse),
-			now:       time.Now(),
-			interval:  3 * time.Minute,
-			reconcile: true,
-		},
-		{
-			name: "ready, interval elapsed",
-			broker: func() *v1alpha1.Broker {
-				broker := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
-				return broker
-			}(),
-			now:       time.Now(),
-			interval:  3 * time.Minute,
-			reconcile: true,
-		},
-		{
-			name: "ready, interval not elapsed",
-			broker: func() *v1alpha1.Broker {
-				broker := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
-				return broker
-			}(),
-			now:       time.Now(),
-			interval:  3 * time.Hour,
-			reconcile: false,
-		},
-	}
-
-	for _, tc := range cases {
-		var ltt *time.Time
-		if len(tc.broker.Status.Conditions) != 0 {
-			ltt = &tc.broker.Status.Conditions[0].LastTransitionTime.Time
-		}
-
-		t.Logf("%v: now: %v, interval: %v, last transition time: %v", tc.name, tc.now, tc.interval, ltt)
-		actual := shouldReconcileBroker(tc.broker, tc.now, tc.interval)
-
-		if e, a := tc.reconcile, actual; e != a {
-			t.Errorf("%v: unexpected result: expected %v, got %v", tc.name, e, a)
-		}
-	}
-}
-
-func TestReconcileBroker(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	testController.reconcileBroker(getTestBroker())
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 2)
-
-	// first action should be a create action for a service class
-	assertCreate(t, actions[0], getTestServiceClass())
-
-	// second action should be an update action for broker status subresource
-	updatedBroker := assertUpdateStatus(t, actions[1], getTestBroker())
-	assertBrokerReadyTrue(t, updatedBroker)
-
-	// verify no kube resources created
-	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successFetchedCatalogReason + " " + successFetchedCatalogMessage
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBrokerExistingServiceClass(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	testServiceClass := getTestServiceClass()
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	testController.reconcileBroker(getTestBroker())
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 2)
-
-	// first action should be an update action for a service class
-	assertUpdate(t, actions[0], testServiceClass)
-
-	// second action should be an update action for broker status subresource
-	updatedBroker := assertUpdateStatus(t, actions[1], getTestBroker())
-	assertBrokerReadyTrue(t, updatedBroker)
-
-	// verify no kube resources created
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-}
-
-func TestReconcileBrokerExistingServiceClassDifferentExternalID(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	testServiceClass := getTestServiceClass()
-	testServiceClass.ExternalID = "notTheSame"
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	testController.reconcileBroker(getTestBroker())
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedBroker := assertUpdateStatus(t, actions[0], getTestBroker())
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	// verify no kube resources created
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" already exists with OSB guid "notTheSame", received different guid "SCGUID"`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
-	}
-}
-
-func TestReconcileBrokerExistingServiceClassDifferentBroker(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	testServiceClass := getTestServiceClass()
-	testServiceClass.BrokerName = "notTheSame"
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	testController.reconcileBroker(getTestBroker())
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedBroker := assertUpdateStatus(t, actions[0], getTestBroker())
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	// verify no kube resources created
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" for Broker "test-broker" already exists for Broker "notTheSame"`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
-	}
-}
-
-func TestReconcileBrokerDelete(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	testServiceClass := getTestServiceClass()
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
-
-	broker := getTestBroker()
-	broker.DeletionTimestamp = &metav1.Time{}
-	broker.Finalizers = []string{"kubernetes"}
-
-	testController.reconcileBroker(broker)
-
-	// Verify no core kube actions occurred
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	// The three actions should be:
-	// 0. Deleting the associated ServiceClass
-	// 1. Updating the ready condition
-	// 2. Removing the finalizer
-	assertNumberOfActions(t, actions, 3)
-
-	assertDelete(t, actions[0], testServiceClass)
-
-	updatedBroker := assertUpdateStatus(t, actions[1], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	updatedBroker = assertUpdateStatus(t, actions[2], broker)
-	assertEmptyFinalizers(t, updatedBroker)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBrokerErrorFetchingCatalog(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetErr = fakebrokerapi.ErrInstanceNotFound
-	broker := getTestBroker()
-
-	testController.reconcileBroker(broker)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedBroker := assertUpdateStatus(t, actions[0], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorFetchingCatalogReason + " " + "Error getting broker catalog for broker \"test-broker\": instance not found"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBrokerWithAuthError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-	broker := getTestBroker()
-	broker.Spec.AuthSecret = &v1.ObjectReference{
-		Namespace: "does_not_exist",
-		Name:      "auth-name",
-	}
-
-	fakeKubeClient.AddReactor("get", "secrets", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("no secret defined")
-	})
-
-	testController.reconcileBroker(broker)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedBroker := assertUpdateStatus(t, actions[0], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	// verify one kube action occurred
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	getAction := kubeActions[0].(clientgotesting.GetAction)
-	if e, a := "get", getAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on action; expected %v, got %v", e, a)
-	}
-	if e, a := "secrets", getAction.GetResource().Resource; e != a {
-		t.Fatalf("Unexpected resource on action; expected %v, got %v", e, a)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorAuthCredentialsReason + " " + "Error getting broker auth credentials for broker \"test-broker\": no secret defined"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBrokerWithReconcileError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-	broker := getTestBroker()
-	broker.Spec.AuthSecret = &v1.ObjectReference{
-		Namespace: "does_not_exist",
-		Name:      "auth-name",
-	}
-
-	fakeCatalogClient.AddReactor("create", "serviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("error creating serviceclass")
-	})
-
-	testController.reconcileBroker(broker)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedBroker := assertUpdateStatus(t, actions[0], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
-
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	getAction := kubeActions[0].(clientgotesting.GetAction)
-	if e, a := "get", getAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on action; expected %v, got %v", e, a)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorAuthCredentialsReason + " " + "Error getting broker auth credentials for broker \"test-broker\": auth secret didn't contain username"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestUpdateBrokerCondition(t *testing.T) {
-	cases := []struct {
-		name                  string
-		input                 *v1alpha1.Broker
-		status                v1alpha1.ConditionStatus
-		reason                string
-		message               string
-		transitionTimeChanged bool
-	}{
-
-		{
-			name:                  "initially unset",
-			input:                 getTestBroker(),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "not ready -> not ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> not ready with reason and message change",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			reason:                "foo",
-			message:               "bar",
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionTrue,
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "ready -> ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionTrue,
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "ready -> not ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: true,
-		},
-	}
-
-	for _, tc := range cases {
-		_, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-		clone, err := api.Scheme.DeepCopy(tc.input)
-		if err != nil {
-			t.Errorf("%v: deep copy failed", tc.name)
-			continue
-		}
-
-		inputClone := clone.(*v1alpha1.Broker)
-
-		err = testController.updateBrokerCondition(tc.input, v1alpha1.BrokerConditionReady, tc.status, tc.reason, tc.message)
-		if err != nil {
-			t.Errorf("%v: error updating broker condition: %v", tc.name, err)
-			continue
-		}
-
-		if !reflect.DeepEqual(tc.input, inputClone) {
-			t.Errorf("%v: updating broker condition mutated input: expected %v, got %v", tc.name, inputClone, tc.input)
-			continue
-		}
-
-		actions := fakeCatalogClient.Actions()
-		if ok := expectNumberOfActions(t, tc.name, actions, 1); !ok {
-			continue
-		}
-
-		updatedBroker, ok := expectUpdateStatus(t, tc.name, actions[0], tc.input)
-		if !ok {
-			continue
-		}
-
-		updateActionObject, ok := updatedBroker.(*v1alpha1.Broker)
-		if !ok {
-			t.Errorf("%v: couldn't convert to broker", tc.name)
-			continue
-		}
-
-		var initialTs metav1.Time
-		if len(inputClone.Status.Conditions) != 0 {
-			initialTs = inputClone.Status.Conditions[0].LastTransitionTime
-		}
-
-		if e, a := 1, len(updateActionObject.Status.Conditions); e != a {
-			t.Errorf("%v: expected %v condition(s), got %v", tc.name, e, a)
-		}
-
-		outputCondition := updateActionObject.Status.Conditions[0]
-		newTs := outputCondition.LastTransitionTime
-
-		if tc.transitionTimeChanged && initialTs == newTs {
-			t.Errorf("%v: transition time didn't change when it should have", tc.name)
-			continue
-		} else if !tc.transitionTimeChanged && initialTs != newTs {
-			t.Errorf("%v: transition time changed when it shouldn't have", tc.name)
-			continue
-		}
-		if e, a := tc.reason, outputCondition.Reason; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-			continue
-		}
-		if e, a := tc.message, outputCondition.Message; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-		}
-	}
-}
-
-func TestReconcileInstanceNonExistentServiceClass(t *testing.T) {
-	_, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-	instance := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
-			ServiceClassName: "nothere",
-			PlanName:         "nothere",
-			ExternalID:       instanceGUID,
-		},
-	}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says it failed because no such class exists.
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance, errorNonexistentServiceClassReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonexistentServiceClassReason + " " + "Instance \"/test-instance\" references a non-existent ServiceClass \"nothere\""
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceNonExistentBroker(t *testing.T) {
-	_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says it failed because no such broker exists.
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance, errorNonexistentBrokerReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonexistentBrokerReason + " " + "Instance \"test-ns/test-instance\" references a non-existent broker \"test-broker\""
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceWithAuthError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	broker := getTestBroker()
-	broker.Spec.AuthSecret = &v1.ObjectReference{
-		Namespace: "does_not_exist",
-		Name:      "auth-name",
-	}
-	sharedInformers.Brokers().Informer().GetStore().Add(broker)
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-
-	fakeKubeClient.AddReactor("get", "secrets", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("no secret defined")
-	})
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updateAction := actions[0].(clientgotesting.UpdateAction)
-	if e, a := "update", updateAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on action; expected %v, got %v", e, a)
-	}
-	updateActionObject := updateAction.GetObject().(*v1alpha1.Instance)
-	if e, a := testInstanceName, updateActionObject.Name; e != a {
-		t.Fatalf("Unexpected name of instance created: expected %v, got %v", e, a)
-	}
-	if e, a := 1, len(updateActionObject.Status.Conditions); e != a {
-		t.Fatalf("Unexpected number of conditions: expected %v, got %v", e, a)
-	}
-	if e, a := "ErrorGettingAuthCredentials", updateActionObject.Status.Conditions[0].Reason; e != a {
-		t.Fatalf("Unexpected condition reason: expected %v, got %v", e, a)
-	}
-
-	// verify one kube action occurred
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	getAction := kubeActions[0].(clientgotesting.GetAction)
-	if e, a := "get", getAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on action; expected %v, got %v", e, a)
-	}
-	if e, a := "secrets", getAction.GetResource().Resource; e != a {
-		t.Fatalf("Unexpected resource on action; expected %v, got %v", e, a)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorAuthCredentialsReason + " " + "Error getting broker auth credentials for broker \"test-broker\": no secret defined"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceNonExistentServicePlan(t *testing.T) {
-	_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         "nothere",
-			ExternalID:       instanceGUID,
-		},
-	}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says it failed because no such class exists.
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance, errorNonexistentServicePlanReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonexistentServicePlanReason + " " + "Instance \"/test-instance\" references a non-existent ServicePlan \"nothere\" on ServiceClass \"test-serviceclass\""
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceWithParameters(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-
-	parameters := instanceParameters{Name: "test-param", Args: make(map[string]string)}
-	parameters.Args["first"] = "first-arg"
-	parameters.Args["second"] = "second-arg"
-
-	b, err := json.Marshal(parameters)
-	if err != nil {
-		t.Fatalf("Failed to marshal parameters %v : %v", parameters, err)
-	}
-	instance.Spec.Parameters = &runtime.RawExtension{Raw: b}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// verify no kube resources created
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyTrue(t, updatedInstance)
-
-	updateObject, ok := updatedInstance.(*v1alpha1.Instance)
-	if !ok {
-		t.Fatalf("couldn't convert to *v1alpha1.Instance")
-	}
-
-	// Verify parameters are what we'd expect them to be, basically name, map with two values in it.
-	if len(updateObject.Spec.Parameters.Raw) == 0 {
-		t.Fatalf("Parameters was unexpectedly empty")
-	}
-	if si, ok := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; !ok {
-		t.Fatalf("Did not find the created Instance in fakeInstanceClient after creation")
-	} else {
-		if len(si.Parameters) == 0 {
-			t.Fatalf("Expected parameters but got none")
-		}
-		if e, a := "test-param", si.Parameters["name"].(string); e != a {
-			t.Fatalf("Unexpected name for parameters: expected %v, got %v", e, a)
-		}
-		argsMap := si.Parameters["args"].(map[string]interface{})
-		if e, a := "first-arg", argsMap["first"].(string); e != a {
-			t.Fatalf("Unexpected value in parameter map: expected %v, got %v", e, a)
-		}
-		if e, a := "second-arg", argsMap["second"].(string); e != a {
-			t.Fatalf("Unexpected value in parameter map: expected %v, got %v", e, a)
-		}
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successProvisionReason + " " + "The instance was provisioned successfully"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceWithInvalidParameters(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-	parameters := instanceParameters{Name: "test-param", Args: make(map[string]string)}
-	parameters.Args["first"] = "first-arg"
-	parameters.Args["second"] = "second-arg"
-
-	b, err := json.Marshal(parameters)
-	if err != nil {
-		t.Fatalf("Failed to marshal parameters %v : %v", parameters, err)
-	}
-	// corrupt the byte slice to begin with a '!' instead of an opening JSON bracket '{'
-	b[0] = 0x21
-	instance.Spec.Parameters = &runtime.RawExtension{Raw: b}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// verify no kube resources created
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance)
-
-	if si, notOK := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; notOK {
-		t.Fatalf("Unexpectedly found created Instance: %+v in fakeInstanceClient after creation", si)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorWithParameters + " " + "Failed to unmarshal Instance parameters"
-	if e, a := expectedEvent, events[0]; !strings.Contains(a, e) { // event contains RawExtension, so just compare error message
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceWithProvisionFailure(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-	parameters := instanceParameters{Name: "test-param", Args: make(map[string]string)}
-	parameters.Args["first"] = "first-arg"
-	parameters.Args["second"] = "second-arg"
-
-	b, err := json.Marshal(parameters)
-	if err != nil {
-		t.Fatalf("Failed to marshal parameters %v : %v", parameters, err)
-	}
-	instance.Spec.Parameters = &runtime.RawExtension{Raw: b}
-
-	fakeBrokerClient.InstanceClient.CreateErr = errors.New("fake creation failure")
-
-	testController.reconcileInstance(instance)
-
-	// verify no kube resources created
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance)
-
-	if si, notOK := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; notOK {
-		t.Fatalf("Unexpectedly found created Instance: %+v in fakeInstanceClient after creation", si)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorProvisionCalledReason + " " + "Error provisioning Instance \"test-ns/test-instance\" of ServiceClass \"test-serviceclass\" at Broker \"test-broker\": fake creation failure"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstance(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-	fakeBrokerClient.InstanceClient.DashboardURL = testDashboardURL
-
-	testNsUID := "test_uid_foo"
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: types.UID(testNsUID),
-			},
-		}, nil
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-
-	testController.reconcileInstance(instance)
-
-	// Since synchronous operation, must not make it into the polling queue.
-	if testController.pollingQueue.Len() != 0 {
-		t.Fatalf("Expected the polling queue to be empty")
-	}
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// verify no kube resources created.
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyTrue(t, updatedInstance)
-
-	if si, ok := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; !ok {
-		t.Fatalf("Did not find the created Instance in fakeInstanceClient after creation")
-	} else {
-		if len(si.Parameters) > 0 {
-			t.Fatalf("Unexpected parameters, expected none, got %+v", si.Parameters)
-		}
-
-		if testNsUID != si.OrganizationGUID {
-			t.Fatalf("Unexpected OrganizationGUID: expected %q, got %q", testNsUID, si.OrganizationGUID)
-		}
-		if testNsUID != si.SpaceGUID {
-			t.Fatalf("Unexpected SpaceGUID: expected %q, got %q", testNsUID, si.SpaceGUID)
-		}
-
-		assertInstanceDashboardURL(t, instance, testDashboardURL)
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successProvisionReason + " " + successProvisionMessage
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceAsynchronous(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-	fakeBrokerClient.InstanceClient.DashboardURL = testDashboardURL
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: types.UID("test_uid_foo"),
-			},
-		}, nil
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusAccepted
-	// And specify that we want broker to return an operation
-	fakeBrokerClient.InstanceClient.Operation = testOperation
-	instance := getTestInstance()
-
-	if testController.pollingQueue.Len() != 0 {
-		t.Fatalf("Expected the polling queue to be empty")
-	}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// verify no kube resources created.
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	if e, a := 1, len(kubeActions); e != a {
-		t.Fatalf("Unexpected number of actions: expected %v, got %v", e, a)
-	}
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance)
-
-	if si, ok := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; !ok {
-		t.Fatalf("Did not find the created Instance in fakeInstanceClient after creation")
-	} else {
-		if len(si.Parameters) > 0 {
-			t.Fatalf("Unexpected parameters, expected none, got %+v", si.Parameters)
-		}
-
-		ns, _ := fakeKubeClient.Core().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
-		if string(ns.UID) != si.OrganizationGUID {
-			t.Fatalf("Unexpected OrganizationGUID: expected %q, got %q", string(ns.UID), si.OrganizationGUID)
-		}
-		if string(ns.UID) != si.SpaceGUID {
-			t.Fatalf("Unexpected SpaceGUID: expected %q, got %q", string(ns.UID), si.SpaceGUID)
-		}
-	}
-
-	// The item should've been added to the pollingQueue for later processing
-	if testController.pollingQueue.Len() != 1 {
-		t.Fatalf("Expected the asynchronous instance to end up in the polling queue")
-	}
-	item, _ := testController.pollingQueue.Get()
-	if item == nil {
-		t.Fatalf("Did not get back a key from polling queue")
-	}
-	key := item.(string)
-	expectedKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
-	if key != expectedKey {
-		t.Fatalf("got key as %q expected %q", key, expectedKey)
-	}
-	assertAsyncOpInProgressTrue(t, updatedInstance)
-	assertInstanceLastOperation(t, updatedInstance, testOperation)
-	assertInstanceDashboardURL(t, updatedInstance, testDashboardURL)
-}
-
-func TestReconcileInstanceAsynchronousNoOperation(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: types.UID("test_uid_foo"),
-			},
-		}, nil
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusAccepted
-	instance := getTestInstance()
-
-	if testController.pollingQueue.Len() != 0 {
-		t.Fatalf("Expected the polling queue to be empty")
-	}
-
-	testController.reconcileInstance(instance)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// verify no kube resources created.
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	if e, a := 1, len(kubeActions); e != a {
-		t.Fatalf("Unexpected number of actions: expected %v, got %v", e, a)
-	}
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance)
-
-	if si, ok := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; !ok {
-		t.Fatalf("Did not find the created Instance in fakeInstanceClient after creation")
-	} else {
-		if len(si.Parameters) > 0 {
-			t.Fatalf("Unexpected parameters, expected none, got %+v", si.Parameters)
-		}
-
-		ns, _ := fakeKubeClient.Core().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
-		if string(ns.UID) != si.OrganizationGUID {
-			t.Fatalf("Unexpected OrganizationGUID: expected %q, got %q", string(ns.UID), si.OrganizationGUID)
-		}
-		if string(ns.UID) != si.SpaceGUID {
-			t.Fatalf("Unexpected SpaceGUID: expected %q, got %q", string(ns.UID), si.SpaceGUID)
-		}
-	}
-
-	// The item should've been added to the pollingQueue for later processing
-	if testController.pollingQueue.Len() != 1 {
-		t.Fatalf("Expected the asynchronous instance to end up in the polling queue")
-	}
-	item, _ := testController.pollingQueue.Get()
-	if item == nil {
-		t.Fatalf("Did not get back a key from polling queue")
-	}
-	key := item.(string)
-	expectedKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
-	if key != expectedKey {
-		t.Fatalf("got key as %q expected %q", key, expectedKey)
-	}
-	assertAsyncOpInProgressTrue(t, updatedInstance)
-	assertInstanceLastOperation(t, updatedInstance, "")
-}
-
-func TestReconcileInstanceNamespaceError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{}, errors.New("No namespace")
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-
-	testController.reconcileInstance(instance)
-
-	// verify no kube resources created.
-	// One single action comes from getting namespace uid
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 1)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	assertUpdateStatus(t, actions[0], instance)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorFindingNamespaceInstanceReason + " " + "Failed to get namespace \"test-ns\" during instance create: No namespace"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileInstanceDelete(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.InstanceClient.Instances = map[string]*brokerapi.ServiceInstance{
-		instanceGUID: {},
-	}
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	instance := getTestInstance()
-	instance.ObjectMeta.DeletionTimestamp = &metav1.Time{}
-	instance.ObjectMeta.Finalizers = []string{"kubernetes"}
-
-	fakeCatalogClient.AddReactor("get", "instances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, instance, nil
-	})
-
-	testController.reconcileInstance(instance)
-
-	// Verify no core kube actions occurred
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	// The three actions should be:
-	// 0. Updating the ready condition
-	// 1. Get against the instance
-	// 2. Removing the finalizer
-	assertNumberOfActions(t, actions, 3)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyFalse(t, updatedInstance)
-
-	assertGet(t, actions[1], instance)
-	updatedInstance = assertUpdateStatus(t, actions[2], instance)
-	assertEmptyFinalizers(t, updatedInstance)
-
-	if _, ok := fakeBrokerClient.InstanceClient.Instances[instanceGUID]; ok {
-		t.Fatalf("Found the deleted Instance in fakeInstanceClient after deletion")
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successDeprovisionReason + " " + "The instance was deprovisioned successfully"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestPollServiceInstanceInProgressProvisioningWithOperation(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "in progress"}
-
-	instance := getTestInstanceAsyncProvisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err == nil {
-		t.Fatalf("Expected pollInstanceInternal to fail while in progress")
-	}
-	// Make sure we get an error which means it will get requeued.
-	if !strings.Contains(err.Error(), "still in progress") {
-		t.Fatalf("pollInstanceInternal failed but not with expected error, expected %q got %q", "still in progress", err)
-	}
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 0)
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-}
-
-func TestPollServiceInstanceSuccessProvisioningWithOperation(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "succeeded"}
-
-	instance := getTestInstanceAsyncProvisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	// Instance should be ready and there no longer is an async operation
-	// in place.
-	assertInstanceReadyTrue(t, updatedInstance)
-	assertAsyncOpInProgressFalse(t, updatedInstance)
-}
-
-func TestPollServiceInstanceFailureProvisioningWithOperation(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "failed"}
-
-	instance := getTestInstanceAsyncProvisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	// Instance should be not ready and there no longer is an async operation
-	// in place.
-	assertInstanceReadyFalse(t, updatedInstance)
-	assertAsyncOpInProgressFalse(t, updatedInstance)
-}
-
-func TestPollServiceInstanceInProgressDeprovisioningWithOperationNoFinalizer(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "in progress"}
-
-	instance := getTestInstanceAsyncDeprovisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err == nil {
-		t.Fatalf("Expected pollInstanceInternal to fail while in progress")
-	}
-	// Make sure we get an error which means it will get requeued.
-	if !strings.Contains(err.Error(), "still in progress") {
-		t.Fatalf("pollInstanceInternal failed but not with expected error, expected %q got %q", "still in progress", err)
-	}
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 0)
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-}
-
-func TestPollServiceInstanceSuccessDeprovisioningWithOperationNoFinalizer(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "succeeded"}
-
-	instance := getTestInstanceAsyncDeprovisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	// Instance should have been deprovisioned
-	assertInstanceReadyCondition(t, updatedInstance, v1alpha1.ConditionFalse, successDeprovisionReason)
-	assertAsyncOpInProgressFalse(t, updatedInstance)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-}
-
-func TestPollServiceInstanceFailureDeprovisioningWithOperation(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "failed"}
-
-	instance := getTestInstanceAsyncDeprovisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	// Instance should be set to unknown since the operation on the broker
-	// failed.
-	assertInstanceReadyCondition(t, updatedInstance, v1alpha1.ConditionUnknown, errorDeprovisionCalledReason)
-	assertAsyncOpInProgressFalse(t, updatedInstance)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-}
-
-func TestPollServiceInstanceStatusGoneDeprovisioningWithOperationNoFinalizer(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusGone
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "succeeded"}
-
-	instance := getTestInstanceAsyncDeprovisioning(testOperation)
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	// Instance should have been deprovisioned
-	assertInstanceReadyCondition(t, updatedInstance, v1alpha1.ConditionFalse, successDeprovisionReason)
-	assertAsyncOpInProgressFalse(t, updatedInstance)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-}
-
-func TestPollServiceInstanceSuccessDeprovisioningWithOperationWithFinalizer(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-
-	// Specify we want asynchronous provisioning...
-	fakeBrokerClient.InstanceClient.ResponseCode = http.StatusOK
-	fakeBrokerClient.InstanceClient.LastOperationResponse = &brokerapi.LastOperationResponse{State: "succeeded"}
-
-	instance := getTestInstanceAsyncDeprovisioningWithFinalizer(testOperation)
-	// updateInstanceFinalizers fetches the latest object.
-	fakeCatalogClient.AddReactor("get", "instances", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, instance, nil
-	})
-
-	err := testController.pollInstanceInternal(instance)
-	if err != nil {
-		t.Fatalf("pollInstanceInternal failed: %s", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	// The three actions should be:
-	// 0. Updating the ready condition
-	// 1. Get against the instance (updateFinalizers calls)
-	// 2. Removing the finalizer
-	assertNumberOfActions(t, actions, 3)
-
-	updatedInstance := assertUpdateStatus(t, actions[0], instance)
-	assertInstanceReadyCondition(t, updatedInstance, v1alpha1.ConditionFalse, successDeprovisionReason)
-
-	// Instance should have been deprovisioned
-	assertGet(t, actions[1], instance)
-	updatedInstance = assertUpdateStatus(t, actions[2], instance)
-	assertEmptyFinalizers(t, updatedInstance)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-}
-
-func TestUpdateInstanceCondition(t *testing.T) {
-	getTestInstanceWithStatus := func(status v1alpha1.ConditionStatus) *v1alpha1.Instance {
-		instance := getTestInstance()
-		instance.Status = v1alpha1.InstanceStatus{
-			Conditions: []v1alpha1.InstanceCondition{{
-				Type:               v1alpha1.InstanceConditionReady,
-				Status:             status,
-				Message:            "message",
-				LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
-			}},
-		}
-
-		return instance
-	}
-
-	cases := []struct {
-		name                  string
-		input                 *v1alpha1.Instance
-		status                v1alpha1.ConditionStatus
-		reason                string
-		message               string
-		transitionTimeChanged bool
-	}{
-
-		{
-			name:                  "initially unset",
-			input:                 getTestInstance(),
-			status:                v1alpha1.ConditionFalse,
-			message:               "message",
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "not ready -> not ready",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> not ready, reason and message change",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			reason:                "foo",
-			message:               "bar",
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> ready",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionTrue,
-			message:               "message",
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "ready -> ready",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionTrue,
-			message:               "message",
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "ready -> not ready",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionFalse,
-			message:               "message",
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "message -> message2",
-			input:                 getTestInstanceWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionFalse,
-			message:               "message2",
-			transitionTimeChanged: true,
-		},
-	}
-
-	for _, tc := range cases {
-		_, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-		clone, err := api.Scheme.DeepCopy(tc.input)
-		if err != nil {
-			t.Errorf("%v: deep copy failed", tc.name)
-			continue
-		}
-		inputClone := clone.(*v1alpha1.Instance)
-
-		err = testController.updateInstanceCondition(tc.input, v1alpha1.InstanceConditionReady, tc.status, tc.reason, tc.message)
-		if err != nil {
-			t.Errorf("%v: error updating instance condition: %v", tc.name, err)
-			continue
-		}
-
-		if !reflect.DeepEqual(tc.input, inputClone) {
-			t.Errorf("%v: updating broker condition mutated input: expected %v, got %v", tc.name, inputClone, tc.input)
-			continue
-		}
-
-		actions := fakeCatalogClient.Actions()
-		if ok := expectNumberOfActions(t, tc.name, actions, 1); !ok {
-			continue
-		}
-
-		updatedInstance, ok := expectUpdateStatus(t, tc.name, actions[0], tc.input)
-		if !ok {
-			continue
-		}
-
-		updateActionObject, ok := updatedInstance.(*v1alpha1.Instance)
-		if !ok {
-			t.Errorf("%v: couldn't convert to instance", tc.name)
-			continue
-		}
-
-		var initialTs metav1.Time
-		if len(inputClone.Status.Conditions) != 0 {
-			initialTs = inputClone.Status.Conditions[0].LastTransitionTime
-		}
-
-		if e, a := 1, len(updateActionObject.Status.Conditions); e != a {
-			t.Errorf("%v: expected %v condition(s), got %v", tc.name, e, a)
-		}
-
-		outputCondition := updateActionObject.Status.Conditions[0]
-		newTs := outputCondition.LastTransitionTime
-
-		if tc.transitionTimeChanged && initialTs == newTs {
-			t.Errorf("%v: transition time didn't change when it should have", tc.name)
-			continue
-		} else if !tc.transitionTimeChanged && initialTs != newTs {
-			t.Errorf("%v: transition time changed when it shouldn't have", tc.name)
-			continue
-		}
-		if e, a := tc.reason, outputCondition.Reason; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-			continue
-		}
-		if e, a := tc.message, outputCondition.Message; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-		}
-	}
-}
-
-func TestReconcileBindingNonExistingInstance(t *testing.T) {
-	_, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: "nothere"},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says it failed because no such instance exists.
-	updateAction := actions[0].(clientgotesting.UpdateAction)
-	if e, a := "update", updateAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on actions[0]; expected %v, got %v", e, a)
-	}
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding, errorNonexistentInstanceReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonexistentInstanceReason + " " + "Binding \"/test-binding\" references a non-existent Instance \"/nothere\""
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingNonExistingServiceClass(t *testing.T) {
-	_, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	instance := &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: testInstanceName, Namespace: testNamespace},
-		Spec: v1alpha1.InstanceSpec{
-			ServiceClassName: "nothere",
-			PlanName:         testPlanName,
-			ExternalID:       instanceGUID,
-		},
-	}
-	sharedInformers.Instances().Informer().GetStore().Add(instance)
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says it failed because no such service class.
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding, errorNonexistentServiceClassMessage)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonexistentServiceClassMessage + " " + "Binding \"test-ns/test-binding\" references a non-existent ServiceClass \"nothere\""
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingWithParameters(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	testNsUID := "test_ns_uid"
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: types.UID(testNsUID),
-			},
-		}, nil
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstanceWithStatus(v1alpha1.ConditionTrue))
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	parameters := bindingParameters{Name: "test-param"}
-	parameters.Args = append(parameters.Args, "first-arg")
-	parameters.Args = append(parameters.Args, "second-arg")
-	b, err := json.Marshal(parameters)
-	if err != nil {
-		t.Fatalf("Failed to marshal parameters %v : %v", parameters, err)
-	}
-	binding.Spec.Parameters = &runtime.RawExtension{Raw: b}
-
-	testController.reconcileBinding(binding)
-
-	if testNsUID != fakeBrokerClient.Bindings[fakebrokerapi.BindingsMapKey(instanceGUID, bindingGUID)].AppID {
-		t.Fatalf("Unexpected broker AppID: expected %q, got %q", testNsUID, fakeBrokerClient.Bindings[instanceGUID+":"+bindingGUID].AppID)
-	}
-
-	bindResource := fakeBrokerClient.BindingRequests[fakebrokerapi.BindingsMapKey(instanceGUID, bindingGUID)].BindResource
-	if appGUID := bindResource["app_guid"]; testNsUID != fmt.Sprintf("%v", appGUID) {
-		t.Fatalf("Unexpected broker AppID: expected %q, got %q", testNsUID, appGUID)
-	}
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyTrue(t, updatedBinding)
-
-	updateObject, ok := updatedBinding.(*v1alpha1.Binding)
-	if !ok {
-		t.Fatalf("couldn't convert to *v1alpha1.Binding")
-	}
-
-	// Verify parameters are what we'd expect them to be, basically name, array with two values in it.
-	if len(updateObject.Spec.Parameters.Raw) == 0 {
-		t.Fatalf("Parameters was unexpectedly empty")
-	}
-	if b, ok := fakeBrokerClient.BindingClient.Bindings[fakebrokerapi.BindingsMapKey(instanceGUID, bindingGUID)]; !ok {
-		t.Fatalf("Did not find the created Binding in fakeInstanceBinding after creation")
-	} else {
-		if len(b.Parameters) == 0 {
-			t.Fatalf("Expected parameters, but got none")
-		}
-		if e, a := "test-param", b.Parameters["name"].(string); e != a {
-			t.Fatalf("Unexpected name for parameters: expected %v, got %v", e, a)
-		}
-		argsArray := b.Parameters["args"].([]interface{})
-		if len(argsArray) != 2 {
-			t.Fatalf("Expected 2 elements in args array, but got %d", len(argsArray))
-		}
-		foundFirst := false
-		foundSecond := false
-		for _, el := range argsArray {
-			if el.(string) == "first-arg" {
-				foundFirst = true
-			}
-			if el.(string) == "second-arg" {
-				foundSecond = true
-			}
-		}
-		if !foundFirst {
-			t.Fatalf("Failed to find 'first-arg' in array, was %v", argsArray)
-		}
-		if !foundSecond {
-			t.Fatalf("Failed to find 'second-arg' in array, was %v", argsArray)
-		}
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successInjectedBindResultReason + " " + successInjectedBindResultMessage
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingNonbindableServiceClass(t *testing.T) {
-	_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestNonbindableServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestNonbindableInstance())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding, errorNonbindableServiceClassReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonbindableServiceClassReason + ` Binding "test-ns/test-binding" references a non-bindable ServiceClass ("test-unbindable-serviceclass") and Plan ("test-unbindable-plan") combination`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingNonbindableServiceClassBindablePlan(t *testing.T) {
-	_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestNonbindableServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(func() *v1alpha1.Instance {
-		i := getTestInstanceNonbindableServiceBindablePlan()
-		i.Status = v1alpha1.InstanceStatus{
-			Conditions: []v1alpha1.InstanceCondition{
-				{
-					Type:   v1alpha1.InstanceConditionReady,
-					Status: v1alpha1.ConditionTrue,
-				},
-			},
-		}
-		return i
-	}())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyTrue(t, updatedBinding)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-}
-
-func TestReconcileBindingBindableServiceClassNonbindablePlan(t *testing.T) {
-	_, fakeCatalogClient, _, testController, sharedInformers := newTestController(t)
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstanceBindableServiceNonbindablePlan())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding, errorNonbindableServiceClassReason)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorNonbindableServiceClassReason + ` Binding "test-ns/test-binding" references a non-bindable ServiceClass ("test-serviceclass") and Plan ("test-unbindable-plan") combination`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingFailsWithInstanceAsyncOngoing(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstanceAsyncProvisioning(""))
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	err := testController.reconcileBinding(binding)
-	if err == nil {
-		t.Fatalf("reconcileBinding did not fail with async operation ongoing")
-	}
-
-	if !strings.Contains(err.Error(), "Ongoing Asynchronous") {
-		t.Fatalf("Did not get the expected error %q : got %q", "Ongoing Asynchronous", err)
-	}
-
-	// verify no kube resources created.
-	// No actions
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	if !strings.Contains(events[0], "has ongoing asynchronous operation") {
-		t.Fatalf("Did not find expected error %q : got %q", "has ongoing asynchronous operation", events[0])
-	}
-	if !strings.Contains(events[0], testNamespace+"/"+testInstanceName) {
-		t.Fatalf("Did not find expected instance name : got %q", events[0])
-	}
-	if !strings.Contains(events[0], testNamespace+"/"+testBindingName) {
-		t.Fatalf("Did not find expected binding name : got %q", events[0])
-	}
-}
-
-func TestReconcileBindingInstanceNotReady(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				UID: types.UID("test_ns_uid"),
-			},
-		}, nil
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstance())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	if _, ok := fakeBrokerClient.Bindings[fakebrokerapi.BindingsMapKey(instanceGUID, bindingGUID)]; ok {
-		t.Fatalf("Unexpected broker binding call")
-	}
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	// There should only be one action that says binding was created
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorInstanceNotReadyReason + " " + `Binding cannot begin because referenced instance "test-ns/test-instance" is not ready`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingNamespaceError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	fakeBrokerClient.CatalogClient.RetCatalog = getTestCatalog()
-
-	fakeKubeClient.AddReactor("get", "namespaces", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, &v1.Namespace{}, errors.New("No namespace")
-	})
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstance())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-		},
-	}
-
-	testController.reconcileBinding(binding)
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorFindingNamespaceInstanceReason + " " + "Failed to get namespace \"test-ns\" during binding: No namespace"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestReconcileBindingDelete(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t)
-
-	bindingsMapKey := fakebrokerapi.BindingsMapKey(instanceGUID, bindingGUID)
-
-	fakeBrokerClient.BindingClient.Bindings = map[string]*brokerapi.ServiceBinding{bindingsMapKey: {}}
-
-	sharedInformers.Brokers().Informer().GetStore().Add(getTestBroker())
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServiceClass())
-	sharedInformers.Instances().Informer().GetStore().Add(getTestInstance())
-
-	binding := &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              testBindingName,
-			Namespace:         testNamespace,
-			DeletionTimestamp: &metav1.Time{},
-			Finalizers:        []string{"kubernetes"},
-		},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
-			SecretName:  testBindingSecretName,
-		},
-	}
-
-	fakeCatalogClient.AddReactor("get", "bindings", func(action clientgotesting.Action) (bool, runtime.Object, error) {
-		return true, binding, nil
-	})
-
-	testController.reconcileBinding(binding)
-
-	kubeActions := fakeKubeClient.Actions()
-	// The two actions should be:
-	// 0. Getting the secret
-	// 1. Deleting the secret
-	assertNumberOfActions(t, kubeActions, 2)
-
-	getAction := kubeActions[0].(clientgotesting.GetActionImpl)
-	if e, a := "get", getAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on kubeActions[0]; expected %v, got %v", e, a)
-	}
-
-	if e, a := binding.Spec.SecretName, getAction.Name; e != a {
-		t.Fatalf("Unexpected name of secret: expected %v, got %v", e, a)
-	}
-
-	deleteAction := kubeActions[1].(clientgotesting.DeleteActionImpl)
-	if e, a := "delete", deleteAction.GetVerb(); e != a {
-		t.Fatalf("Unexpected verb on kubeActions[1]; expected %v, got %v", e, a)
-	}
-
-	if e, a := binding.Spec.SecretName, deleteAction.Name; e != a {
-		t.Fatalf("Unexpected name of secret: expected %v, got %v", e, a)
-	}
-
-	actions := fakeCatalogClient.Actions()
-	// The three actions should be:
-	// 0. Updating the ready condition
-	// 1. Get against the binding in question
-	// 2. Removing the finalizer
-	assertNumberOfActions(t, actions, 3)
-
-	updatedBinding := assertUpdateStatus(t, actions[0], binding)
-	assertBindingReadyFalse(t, updatedBinding)
-
-	assertGet(t, actions[1], binding)
-
-	updatedBinding = assertUpdateStatus(t, actions[2], binding)
-	assertEmptyFinalizers(t, updatedBinding)
-
-	if _, ok := fakeBrokerClient.BindingClient.Bindings[bindingsMapKey]; ok {
-		t.Fatalf("Found the deleted Binding in fakeBindingClient after deletion")
-	}
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeNormal + " " + successUnboundReason + " " + "This binding was deleted successfully"
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event: %v", a)
-	}
-}
-
-func TestUpdateBindingCondition(t *testing.T) {
-	getTestBindingWithStatus := func(status v1alpha1.ConditionStatus) *v1alpha1.Binding {
-		instance := getTestBinding()
-		instance.Status = v1alpha1.BindingStatus{
-			Conditions: []v1alpha1.BindingCondition{{
-				Type:               v1alpha1.BindingConditionReady,
-				Status:             status,
-				Message:            "message",
-				LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
-			}},
-		}
-
-		return instance
-	}
-
-	cases := []struct {
-		name                  string
-		input                 *v1alpha1.Binding
-		status                v1alpha1.ConditionStatus
-		reason                string
-		message               string
-		transitionTimeChanged bool
-	}{
-
-		{
-			name:                  "initially unset",
-			input:                 getTestBinding(),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "not ready -> not ready",
-			input:                 getTestBindingWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> not ready, message and reason change",
-			input:                 getTestBindingWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionFalse,
-			reason:                "foo",
-			message:               "bar",
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "not ready -> ready",
-			input:                 getTestBindingWithStatus(v1alpha1.ConditionFalse),
-			status:                v1alpha1.ConditionTrue,
-			transitionTimeChanged: true,
-		},
-		{
-			name:                  "ready -> ready",
-			input:                 getTestBindingWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionTrue,
-			transitionTimeChanged: false,
-		},
-		{
-			name:                  "ready -> not ready",
-			input:                 getTestBindingWithStatus(v1alpha1.ConditionTrue),
-			status:                v1alpha1.ConditionFalse,
-			transitionTimeChanged: true,
-		},
-	}
-
-	for _, tc := range cases {
-		_, fakeCatalogClient, _, testController, _ := newTestController(t)
-
-		clone, err := api.Scheme.DeepCopy(tc.input)
-		if err != nil {
-			t.Errorf("%v: deep copy failed", tc.name)
-			continue
-		}
-		inputClone := clone.(*v1alpha1.Binding)
-
-		err = testController.updateBindingCondition(tc.input, v1alpha1.BindingConditionReady, tc.status, tc.reason, tc.message)
-		if err != nil {
-			t.Errorf("%v: error updating broker condition: %v", tc.name, err)
-			continue
-		}
-
-		if !reflect.DeepEqual(tc.input, inputClone) {
-			t.Errorf("%v: updating broker condition mutated input: expected %v, got %v", tc.name, inputClone, tc.input)
-			continue
-		}
-
-		actions := fakeCatalogClient.Actions()
-		if ok := expectNumberOfActions(t, tc.name, actions, 1); !ok {
-			continue
-		}
-
-		updatedBinding, ok := expectUpdateStatus(t, tc.name, actions[0], tc.input)
-		if !ok {
-			continue
-		}
-
-		updateActionObject, ok := updatedBinding.(*v1alpha1.Binding)
-		if !ok {
-			t.Errorf("%v: couldn't convert to binding", tc.name)
-			continue
-		}
-
-		var initialTs metav1.Time
-		if len(inputClone.Status.Conditions) != 0 {
-			initialTs = inputClone.Status.Conditions[0].LastTransitionTime
-		}
-
-		if e, a := 1, len(updateActionObject.Status.Conditions); e != a {
-			t.Errorf("%v: expected %v condition(s), got %v", tc.name, e, a)
-		}
-
-		outputCondition := updateActionObject.Status.Conditions[0]
-		newTs := outputCondition.LastTransitionTime
-
-		if tc.transitionTimeChanged && initialTs == newTs {
-			t.Errorf("%v: transition time didn't change when it should have", tc.name)
-			continue
-		} else if !tc.transitionTimeChanged && initialTs != newTs {
-			t.Errorf("%v: transition time changed when it shouldn't have", tc.name)
-			continue
-		}
-		if e, a := tc.reason, outputCondition.Reason; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-			continue
-		}
-		if e, a := tc.message, outputCondition.Message; e != "" && e != a {
-			t.Errorf("%v: condition reasons didn't match; expected %v, got %v", tc.name, e, a)
-		}
-	}
 }
 
 func TestEmptyCatalogConversion(t *testing.T) {
@@ -2546,6 +558,62 @@ func TestCatalogConversion(t *testing.T) {
 
 	checkPlan(serviceClass, 0, "fake-plan-1", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections", t)
 	checkPlan(serviceClass, 1, "fake-plan-2", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections. 100 async", t)
+}
+
+func TestCatalogConversionWithAlphaParameterSchemas(t *testing.T) {
+	catalog := &brokerapi.Catalog{}
+	err := json.Unmarshal([]byte(alphaParameterSchemaCatalogBytes), &catalog)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal test catalog: %v", err)
+	}
+	serviceClasses, err := convertCatalog(catalog)
+	if err != nil {
+		t.Fatalf("Failed to convertCatalog: %v", err)
+	}
+	if len(serviceClasses) != 1 {
+		t.Fatalf("Expected 1 serviceclasses for testCatalog, but got: %d", len(serviceClasses))
+	}
+	serviceClass := serviceClasses[0]
+	if len(serviceClass.Plans) != 1 {
+		t.Fatalf("Expected 1 plan for testCatalog, but got: %d", len(serviceClass.Plans))
+	}
+
+	plan := serviceClass.Plans[0]
+	if plan.AlphaInstanceCreateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaInstanceCreateParameterSchema to be set, but was nil")
+	}
+
+	cSchema := make(map[string]interface{})
+	if err := json.Unmarshal(plan.AlphaInstanceCreateParameterSchema.Raw, &cSchema); err == nil {
+		schema := make(map[string]interface{})
+		if err := json.Unmarshal([]byte(instanceParameterSchemaBytes), &schema); err != nil {
+			t.Fatalf("Error unmarshalling schema bytes: %v", err)
+		}
+
+		if e, a := schema, cSchema; !reflect.DeepEqual(e, a) {
+			t.Fatalf("Unexpected value of alphaInstanceCreateParameterSchema; expected %v, got %v", e, a)
+		}
+	}
+
+	if plan.AlphaInstanceUpdateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaInstanceUpdateParameterSchema to be set, but was nil")
+	}
+	m := make(map[string]string)
+	if err := json.Unmarshal(plan.AlphaInstanceUpdateParameterSchema.Raw, &m); err == nil {
+		if e, a := "zap", m["baz"]; e != a {
+			t.Fatalf("Unexpected value of alphaInstanceUpdateParameterSchema; expected %v, got %v", e, a)
+		}
+	}
+
+	if plan.AlphaBindingCreateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaBindingCreateParameterSchema to be set, but was nil")
+	}
+	m = make(map[string]string)
+	if err := json.Unmarshal(plan.AlphaBindingCreateParameterSchema.Raw, &m); err == nil {
+		if e, a := "blu", m["zoo"]; e != a {
+			t.Fatalf("Unexpected value of alphaBindingCreateParameterSchema; expected %v, got %v", e, a)
+		}
+	}
 }
 
 func checkPlan(serviceClass *v1alpha1.ServiceClass, index int, planName, planDescription string, t *testing.T) {
@@ -2909,6 +977,65 @@ func newTestController(t *testing.T) (
 	}
 
 	return fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController.(*controller), serviceCatalogSharedInformers
+}
+
+type testControllerWithBrokerServer struct {
+	FakeKubeClient      *clientgofake.Clientset
+	FakeCatalogClient   *servicecatalogclientset.Clientset
+	Controller          *controller
+	Informers           v1alpha1informers.Interface
+	BrokerServerHandler *fakebrokerserver.Handler
+	BrokerServer        *httptest.Server
+}
+
+func (t *testControllerWithBrokerServer) Close() {
+	t.BrokerServer.Close()
+}
+
+func newTestControllerWithBrokerServer(
+	brokerUsername,
+	brokerPassword string,
+) (*testControllerWithBrokerServer, error) {
+	// create a fake kube client
+	fakeKubeClient := &clientgofake.Clientset{}
+	// create a fake sc client
+	fakeCatalogClient := &servicecatalogclientset.Clientset{}
+
+	brokerHandler := fakebrokerserver.NewHandler()
+	brokerServer := fakebrokerserver.Run(brokerHandler, brokerUsername, brokerPassword)
+	brokerClFunc := fakebrokerserver.NewCreateFunc(brokerServer, brokerUsername, brokerPassword)
+
+	// create informers
+	informerFactory := servicecataloginformers.NewSharedInformerFactory(fakeCatalogClient, 0)
+	serviceCatalogSharedInformers := informerFactory.Servicecatalog().V1alpha1()
+
+	fakeRecorder := record.NewFakeRecorder(5)
+
+	// create a test controller
+	testController, err := NewController(
+		fakeKubeClient,
+		fakeCatalogClient.ServicecatalogV1alpha1(),
+		serviceCatalogSharedInformers.Brokers(),
+		serviceCatalogSharedInformers.ServiceClasses(),
+		serviceCatalogSharedInformers.Instances(),
+		serviceCatalogSharedInformers.Bindings(),
+		brokerClFunc,
+		24*time.Hour,
+		true, /* enable OSB context profile */
+		fakeRecorder,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &testControllerWithBrokerServer{
+		FakeKubeClient:      fakeKubeClient,
+		FakeCatalogClient:   fakeCatalogClient,
+		Controller:          testController.(*controller),
+		Informers:           serviceCatalogSharedInformers,
+		BrokerServerHandler: brokerHandler,
+		BrokerServer:        brokerServer,
+	}, nil
 }
 
 func getRecordedEvents(testController *controller) []string {

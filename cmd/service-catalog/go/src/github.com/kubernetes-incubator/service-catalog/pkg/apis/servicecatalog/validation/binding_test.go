@@ -25,6 +25,21 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
+func validBinding() *servicecatalog.Binding {
+	return &servicecatalog.Binding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-binding",
+			Namespace: "test-ns",
+		},
+		Spec: servicecatalog.BindingSpec{
+			InstanceRef: v1.LocalObjectReference{
+				Name: "test-instance",
+			},
+			SecretName: "test-secret",
+		},
+	}
+}
+
 func TestValidateBinding(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -32,94 +47,75 @@ func TestValidateBinding(t *testing.T) {
 		valid   bool
 	}{
 		{
-			name: "valid",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-binding",
-					Namespace: "test-ns",
-				},
-				Spec: servicecatalog.BindingSpec{
-					InstanceRef: v1.LocalObjectReference{
-						Name: "test-instance",
-					},
-					SecretName: "test-secret",
-				},
-			},
-			valid: true,
+			name:    "valid",
+			binding: validBinding(),
+			valid:   true,
 		},
 		{
 			name: "missing namespace",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-binding",
-				},
-				Spec: servicecatalog.BindingSpec{
-					InstanceRef: v1.LocalObjectReference{
-						Name: "test-instance",
-					},
-					SecretName: "test-secret",
-				},
-			},
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Namespace = ""
+				return b
+			}(),
 			valid: false,
 		},
 		{
 			name: "missing instance name",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-binding",
-					Namespace: "test-ns",
-				},
-				Spec: servicecatalog.BindingSpec{
-					SecretName: "test-secret",
-				},
-			},
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.InstanceRef.Name = ""
+				return b
+			}(),
 			valid: false,
 		},
 		{
 			name: "invalid instance name",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-binding",
-					Namespace: "test-ns",
-				},
-				Spec: servicecatalog.BindingSpec{
-					InstanceRef: v1.LocalObjectReference{
-						Name: "test-instance-)*!",
-					},
-					SecretName: "test-secret",
-				},
-			},
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.InstanceRef.Name = "test-instance-)*!"
+				return b
+			}(),
 			valid: false,
 		},
 		{
 			name: "missing secretName",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-binding",
-					Namespace: "test-ns",
-				},
-				Spec: servicecatalog.BindingSpec{
-					InstanceRef: v1.LocalObjectReference{
-						Name: "test-instance",
-					},
-				},
-			},
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.SecretName = ""
+				return b
+			}(),
 			valid: false,
 		},
 		{
 			name: "invalid secretName",
-			binding: &servicecatalog.Binding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-binding",
-					Namespace: "test-ns",
-				},
-				Spec: servicecatalog.BindingSpec{
-					InstanceRef: v1.LocalObjectReference{
-						Name: "test-instance",
-					},
-					SecretName: "T_T",
-				},
-			},
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.SecretName = "T_T"
+				return b
+			}(),
+			valid: false,
+		},
+		{
+			name: "invalid alphaPodPresetTemplate.name",
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.AlphaPodPresetTemplate = &servicecatalog.AlphaPodPresetTemplate{
+					Name: "T_T",
+				}
+				return b
+			}(),
+			valid: false,
+		},
+		{
+			name: "invalid alphaPodPresetTemplate.selector",
+			binding: func() *servicecatalog.Binding {
+				b := validBinding()
+				b.Spec.AlphaPodPresetTemplate = &servicecatalog.AlphaPodPresetTemplate{
+					Selector: metav1.LabelSelector{},
+				}
+				return b
+			}(),
 			valid: false,
 		},
 	}

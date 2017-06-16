@@ -16,16 +16,28 @@ limitations under the License.
 
 package brokerapi
 
-// Schemas represents a broker's schemas for both service instances and service
-// bindings
+// Schemas represents a plan's schemas for service instance and binding create
+// and update.
 type Schemas struct {
-	Instance Schema `json:"instance"`
-	Binding  Schema `json:"binding"`
+	ServiceInstances *ServiceInstanceSchema `json:"service_instance,omitempty"`
+	ServiceBindings  *ServiceBindingSchema  `json:"service_binding,omitempty"`
 }
 
-// Schema consists of the schema for inputs and the schema for outputs.
-// Schemas are in the form of JSON Schema v4 (http://json-schema.org/).
-type Schema struct {
-	Inputs  string `json:"inputs"`
-	Outputs string `json:"outputs"`
+// ServiceInstanceSchema represents a plan's schemas for a create and update
+// of a service instance.
+type ServiceInstanceSchema struct {
+	Create *InputParameters `json:"create,omitempty"`
+	Update *InputParameters `json:"update,omitempty"`
+}
+
+// ServiceBindingSchema represents a plan's schemas for the parameters
+// accepted for binding creation.
+type ServiceBindingSchema struct {
+	Create *InputParameters `json:"create,omitempty"`
+}
+
+// InputParameters represents a schema for input parameters for creation or
+// update of an API resource.
+type InputParameters struct {
+	Parameters interface{} `json:"parameters,omitempty"`
 }
