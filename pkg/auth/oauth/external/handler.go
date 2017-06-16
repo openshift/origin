@@ -161,14 +161,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Validate state before making any server-to-server calls
 	ok, err := h.state.Check(authData.State, req)
-	if !ok {
-		glog.V(4).Infof("State is invalid")
-		err := errors.New("State is invalid")
+	if err != nil {
+		glog.V(4).Infof("Error verifying state: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
-	if err != nil {
-		glog.V(4).Infof("Error verifying state: %v", err)
+	if !ok {
+		glog.V(4).Infof("State is invalid")
+		err := errors.New("State is invalid")
 		h.handleError(err, w, req)
 		return
 	}
