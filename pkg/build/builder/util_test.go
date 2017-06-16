@@ -97,3 +97,107 @@ func TestMergeEnv(t *testing.T) {
 		}
 	}
 }
+
+type testcase struct {
+	name   string
+	input  map[string]string
+	expect string
+	fail   bool
+}
+
+func TestCGroupParentExtraction(t *testing.T) {
+	tcs := []testcase{
+		{
+			name: "systemd",
+			input: map[string]string{
+				"cpu":          "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"cpuacct":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"name=systemd": "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"net_prio":     "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"freezer":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"blkio":        "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"net_cls":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"memory":       "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"hugetlb":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"perf_event":   "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"cpuset":       "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"devices":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+				"pids":         "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344.scope",
+			},
+			expect: "kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice",
+		},
+		{
+			name: "systemd-besteffortpod",
+			input: map[string]string{
+				"memory": "/kubepods.slice/kubepods-besteffort.slice/kubepods-besteffort-pod8d369e32_521b_11e7_8df4_507b9d27b5d9.slice/docker-fbf6fe5e4effd80b6a9b3318dd0e5f538b9c4ba8918c174768720c83b338a41f.scope",
+			},
+			expect: "kubepods-besteffort-pod8d369e32_521b_11e7_8df4_507b9d27b5d9.slice",
+		},
+		{
+			name: "nonsystemd-burstablepod",
+			input: map[string]string{
+				"memory": "/kubepods/burstable/podc4ab0636-521a-11e7-8eea-0e5e65642be0/9ea9361dc31b0e18f699497a5a78a010eb7bae3f9a2d2b5d3027b37bdaa4b334",
+			},
+			expect: "/kubepods/burstable/podc4ab0636-521a-11e7-8eea-0e5e65642be0",
+		},
+		{
+			name: "non-systemd",
+			input: map[string]string{
+				"cpu":          "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"cpuacct":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"name=systemd": "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"net_prio":     "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"freezer":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"blkio":        "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"net_cls":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"memory":       "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"hugetlb":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"perf_event":   "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"cpuset":       "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"devices":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"pids":         "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+			},
+			expect: "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice",
+		},
+		{
+			name: "no-memory-entry",
+			input: map[string]string{
+				"cpu":          "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"cpuacct":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"name=systemd": "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"net_prio":     "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"freezer":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"blkio":        "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"net_cls":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"hugetlb":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"perf_event":   "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"cpuset":       "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"devices":      "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+				"pids":         "/kubepods.slice/kubepods-podd0d034ed_5204_11e7_9710_507b9d27b5d9.slice/docker-a91b1981b6a4ae463fccd273e3f8665fd911e9abcaa1af27de773afb17ec4344",
+			},
+			expect: "",
+			fail:   true,
+		},
+		{
+			name: "unparseable",
+			input: map[string]string{
+				"memory": "kubepods.slice",
+			},
+			expect: "",
+			fail:   true,
+		},
+	}
+
+	for _, tc := range tcs {
+		parent, err := extractParentFromCgroupMap(tc.input)
+		if err != nil && !tc.fail {
+			t.Errorf("[%s] unexpected exception: %v", tc.name, err)
+		}
+		if tc.fail && err == nil {
+			t.Errorf("[%s] expected failure, did not get one and got cgroup parent=%s", tc.name, parent)
+		}
+		if parent != tc.expect {
+			t.Errorf("[%s] expected cgroup parent= %s, got %s", tc.name, tc.expect, parent)
+		}
+	}
+}

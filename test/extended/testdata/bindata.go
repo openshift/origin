@@ -8681,7 +8681,6 @@ var _testExtendedTestdataTestDockerBuildQuotaJson = []byte(`{
   "spec": {
     "resources": {
       "limits": {
-        "cpu": "60m",
         "memory": "200Mi"
       }
     },

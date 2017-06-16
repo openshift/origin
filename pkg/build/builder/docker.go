@@ -426,13 +426,16 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 		NetworkMode:    string(getDockerNetworkMode()),
 	}
 
+	// Though we are capped on memory and cpu at the cgroup parent level,
+	// some build containers care what their memory limit is so they can
+	// adapt, thus we need to set the memory limit at the container level
+	// too, so that information is available to them.
 	if d.cgLimits != nil {
 		opts.Memory = d.cgLimits.MemoryLimitBytes
 		opts.Memswap = d.cgLimits.MemorySwap
-		opts.CPUShares = d.cgLimits.CPUShares
-		opts.CPUPeriod = d.cgLimits.CPUPeriod
-		opts.CPUQuota = d.cgLimits.CPUQuota
+		opts.CgroupParent = d.cgLimits.Parent
 	}
+
 	if auth != nil {
 		opts.AuthConfigs = *auth
 	}
