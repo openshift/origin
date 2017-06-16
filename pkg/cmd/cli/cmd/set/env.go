@@ -13,8 +13,10 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -202,11 +204,6 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
 func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -220,8 +217,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.From) != 0 {
-		mapper, typer := f.Object()
-		b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+		b := f.NewBuilder(!o.Local).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -283,8 +279,8 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		}
 	}
 
-	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	mapper, _ := f.Object()
+	b := f.NewBuilder(!o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -306,23 +302,33 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	if !one && len(o.ResourceVersion) > 0 {
 		return kcmdutil.UsageError(o.Cmd, "--resource-version may only be used with a single resource")
 	}
-	// Keep a copy of the original objects prior to updating their environment.
-	// Used in constructing the patch(es) that will be applied in the server.
-	gv := *clientConfig.GroupVersion
-	oldObjects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))
-	if err != nil {
-		return err
-	}
-	if len(oldObjects) != len(infos) {
-		return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
-	}
-	oldData := make([][]byte, len(infos))
-	for i := range oldObjects {
-		old, err := json.Marshal(oldObjects[i])
+
+	var gv schema.GroupVersion
+	var oldData [][]byte
+	var clientConfig *restclient.Config
+	if !o.Local {
+		clientConfig, err = f.ClientConfig()
 		if err != nil {
 			return err
 		}
-		oldData[i] = old
+		// Keep a copy of the original objects prior to updating their environment.
+		// Used in constructing the patch(es) that will be applied in the server.
+		gv = *clientConfig.GroupVersion
+		oldObjects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))
+		if err != nil {
+			return err
+		}
+		if len(oldObjects) != len(infos) {
+			return fmt.Errorf("could not convert all objects to API version %q", clientConfig.GroupVersion)
+		}
+		oldData = make([][]byte, len(infos))
+		for i := range oldObjects {
+			old, err := json.Marshal(oldObjects[i])
+			if err != nil {
+				return err
+			}
+			oldData[i] = old
+		}
 	}
 
 	skipped := 0

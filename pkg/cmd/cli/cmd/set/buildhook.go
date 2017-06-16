@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -138,13 +137,11 @@ func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 
 	o.Cmd = cmd
 
-	mapper, typer := f.Object()
-	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	mapper, _ := f.Object()
+	o.Builder = f.NewBuilder(!o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		SelectorParam(o.Selector).
-		ResourceNames("buildconfigs", resources...).
 		Flatten()
 
 	if !o.Local {
@@ -152,7 +149,7 @@ func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, ar
 			SelectorParam(o.Selector).
 			ResourceNames("buildconfigs", resources...)
 		if o.All {
-			o.Builder.ResourceTypes("buildconfigs").SelectAllParam(o.All)
+			o.Builder = o.Builder.ResourceTypes("buildconfigs").SelectAllParam(o.All)
 		}
 	}
 
