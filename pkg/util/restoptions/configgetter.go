@@ -136,7 +136,7 @@ func (g *configRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) 
 			return generic.UndecoratedStorage(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 		}
 
-		glog.V(5).Infof("using watch cache storage (capacity=%v, quorum=%t) for %s %#v", *capacity, storageConfig.Quorum, resource.String(), storageConfig)
+		glog.V(5).Infof("using cached watch storage (capacity=%v, quorum=%t) for %s %#v", *capacity, storageConfig.Quorum, resource.String(), storageConfig)
 		return storageWithCacher(copier, storageConfig, capacity, objectType, resourcePrefix, keyFunc, newListFn, getAttrsFunc, triggerFn)
 	}
 

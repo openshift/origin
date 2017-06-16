@@ -19,12 +19,9 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
-	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
-	clientgoclientset "k8s.io/client-go/kubernetes"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -250,23 +247,11 @@ func (c *MasterConfig) RunHealth() error {
 	genericroutes.Profiling{}.Install(postGoRestfulMux)
 	genericroutes.MetricsWithReset{}.Install(postGoRestfulMux)
 
-	// TODO: replace me with a service account for controller manager
-	tokenReview := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
-	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, c.APIClientCAs, 5*time.Minute)
-	if err != nil {
-		return err
-	}
-	sarClient := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
-	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
-	if err != nil {
-		return err
-	}
-
 	// we use direct bypass to allow readiness and health to work regardless of the master health
-	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
+	authz := serverhandlers.NewBypassAuthorizer(c.Authorizer, "/healthz", "/healthz/ready")
 	contextMapper := c.getRequestContextMapper()
 	handler := serverhandlers.AuthorizationFilter(postGoRestfulMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
-	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
+	handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
 	handler = apirequest.WithRequestContext(handler, contextMapper)

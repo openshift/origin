@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/anonymous"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -411,6 +413,150 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		}
 		return list, nil
 	}))
+
+	return config, nil
+}
+
+// BuildControllersConfig builds and returns the OpenShift master configuration for
+// the controllers only.
+func BuildControllersConfig(options configapi.MasterConfig) (*MasterConfig, error) {
+	// TODO: remove, exists only to support the security allocation controller which manages
+	// its uid map via etcd directly instead of using an API.
+	restOptsGetter, err := originrest.StorageOptions(options)
+	if err != nil {
+		return nil, err
+	}
+
+	privilegedLoopbackKubeClientsetInternal, _, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	privilegedLoopbackKubeClientsetExternal, cfg, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	privilegedLoopbackKubeClient, err := kclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	appClient, err := appclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authorizationClient, err := authorizationclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	buildClient, err := buildclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO find a single place to create and start informers.  During the 1.7 rebase this will come more naturally in a config object,
+	// before then we should try to eliminate our direct to storage access.  It's making us do weird things.
+	const defaultInformerResyncPeriod = 10 * time.Minute
+	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetInternal, defaultInformerResyncPeriod)
+	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(privilegedLoopbackKubeClientsetExternal, defaultInformerResyncPeriod)
+	appInformers := appinformer.NewSharedInformerFactory(appClient, defaultInformerResyncPeriod)
+	authorizationInformers := authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod)
+	quotaInformers := quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod)
+	buildInformers := buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod)
+	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
+	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
+
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = options.ImageConfig.Format
+	imageTemplate.Latest = options.ImageConfig.Latest
+
+	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
+	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientsetInternal.Core().Services(metav1.NamespaceDefault).Get)
+	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("OPENSHIFT_DEFAULT_REGISTRY variable is invalid %q: %v", defaultRegistry, err)
+	}
+
+	authnOptions := authenticatorfactory.DelegatingAuthenticatorConfig{
+		TokenAccessReviewClient: privilegedLoopbackKubeClient.AuthenticationV1beta1().TokenReviews(),
+		ClientCAFile:            options.ServingInfo.ClientCA,
+	}
+	if options.AuthConfig.RequestHeader != nil {
+		authnOptions.RequestHeaderConfig = &authenticatorfactory.RequestHeaderConfig{
+			ClientCA:            options.AuthConfig.RequestHeader.ClientCA,
+			AllowedClientNames:  options.AuthConfig.RequestHeader.ClientCommonNames,
+			UsernameHeaders:     options.AuthConfig.RequestHeader.UsernameHeaders,
+			GroupHeaders:        options.AuthConfig.RequestHeader.GroupHeaders,
+			ExtraHeaderPrefixes: options.AuthConfig.RequestHeader.ExtraHeaderPrefixes,
+		}
+	}
+	authzOptions := authorizerfactory.DelegatingAuthorizerConfig{
+		SubjectAccessReviewClient: privilegedLoopbackKubeClient.AuthorizationV1beta1().SubjectAccessReviews(),
+	}
+
+	authenticator, _, err := authnOptions.New()
+	if err != nil {
+		return nil, err
+	}
+	authorizer, err := authzOptions.New()
+	if err != nil {
+		return nil, err
+	}
+
+	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+
+	requestContextMapper := apirequest.NewRequestContextMapper()
+
+	config := &MasterConfig{
+		Options: options,
+
+		RESTOptionsGetter: restOptsGetter,
+
+		Authenticator: authenticator,
+		Authorizer:    authorizer,
+
+		RequestContextMapper:          requestContextMapper,
+		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
+
+		ClusterQuotaMappingController: clusterQuotaMappingController,
+
+		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
+
+		ImageFor:       imageTemplate.ExpandOrDie,
+		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+
+		// TODO: migration of versions of resources stored in annotations must be sorted out
+		ExternalVersionCodec: kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}),
+
+		PrivilegedLoopbackClientConfig:                *privilegedLoopbackClientConfig,
+		PrivilegedLoopbackOpenShiftClient:             privilegedLoopbackOpenShiftClient,
+		PrivilegedLoopbackKubernetesClientsetInternal: privilegedLoopbackKubeClientsetInternal,
+		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
+
+		ExternalKubeInformers:  externalKubeInformerFactory,
+		InternalKubeInformers:  internalKubeInformerFactory,
+		AppInformers:           appInformers,
+		AuthorizationInformers: authorizationInformers,
+		BuildInformers:         buildInformers,
+		ImageInformers:         imageInformers,
+		QuotaInformers:         quotaInformers,
+		TemplateInformers:      templateInformers,
+	}
 
 	return config, nil
 }
@@ -838,107 +984,6 @@ func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kube
 		policyBindingLister{authorizationInformers.PolicyBindings().Lister(), authorizationInformers.PolicyBindings().Informer()},
 	)
 }
-
-// func addAuthorizationListerWatchers(customListerWatchers shared.DefaultListerWatcherOverrides, optsGetter restoptions.Getter) error {
-// 	lw, err := newClusterPolicyLW(optsGetter)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	customListerWatchers[authorizationapi.Resource("clusterpolicies")] = lw
-// 	lw, err = newClusterPolicyBindingLW(optsGetter)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	customListerWatchers[authorizationapi.Resource("clusterpolicybindings")] = lw
-// 	lw, err = newPolicyLW(optsGetter)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	customListerWatchers[authorizationapi.Resource("policies")] = lw
-// 	lw, err = newPolicyBindingLW(optsGetter)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	customListerWatchers[authorizationapi.Resource("policybindings")] = lw
-
-// 	return nil
-// }
-
-// func newClusterPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-// 	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-
-// 	storage, err := clusterpolicyetcd.NewREST(optsGetter)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	registry := clusterpolicyregistry.NewRegistry(storage)
-
-// 	return &controller.InternalListWatch{
-// 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-// 			return registry.ListClusterPolicies(ctx, &options)
-// 		},
-// 		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-// 			return registry.WatchClusterPolicies(ctx, &options)
-// 		},
-// 	}, nil
-// }
-
-// func newClusterPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-// 	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-
-// 	storage, err := clusterpolicybindingetcd.NewREST(optsGetter)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	registry := clusterpolicybindingregistry.NewRegistry(storage)
-
-// 	return &controller.InternalListWatch{
-// 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-// 			return registry.ListClusterPolicyBindings(ctx, &options)
-// 		},
-// 		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-// 			return registry.WatchClusterPolicyBindings(ctx, &options)
-// 		},
-// 	}, nil
-// }
-
-// func newPolicyLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-// 	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-
-// 	storage, err := policyetcd.NewREST(optsGetter)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	registry := policyregistry.NewRegistry(storage)
-
-// 	return &controller.InternalListWatch{
-// 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-// 			return registry.ListPolicies(ctx, &options)
-// 		},
-// 		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-// 			return registry.WatchPolicies(ctx, &options)
-// 		},
-// 	}, nil
-// }
-
-// func newPolicyBindingLW(optsGetter restoptions.Getter) (cache.ListerWatcher, error) {
-// 	ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-
-// 	storage, err := policybindingetcd.NewREST(optsGetter)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	registry := policybindingregistry.NewRegistry(storage)
-
-// 	return &controller.InternalListWatch{
-// 		ListFunc: func(options metainternal.ListOptions) (runtime.Object, error) {
-// 			return registry.ListPolicyBindings(ctx, &options)
-// 		},
-// 		WatchFunc: func(options metainternal.ListOptions) (watch.Interface, error) {
-// 			return registry.WatchPolicyBindings(ctx, &options)
-// 		},
-// 	}, nil
-// }
 
 func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, authorizationInformer authorizationinternalinformer.Interface, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)

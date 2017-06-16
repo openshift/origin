@@ -642,6 +642,42 @@ func BuildKubernetesMasterConfig(
 	return kmaster, nil
 }
 
+// BuildKubernetesControllersConfig builds a Kubernetes master config only for
+// controllers.
+func BuildKubernetesControllersConfig(
+	masterConfig configapi.MasterConfig,
+	kubeClient kclientset.Interface,
+	internalKubeClient kinternalclientset.Interface,
+	externalKubeInformers kexternalinformers.SharedInformerFactory,
+) (*MasterConfig, error) {
+	if masterConfig.KubernetesMasterConfig == nil {
+		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
+	}
+
+	controllerServer, cloud, err := buildControllerManagerServer(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	schedulerServer, err := buildSchedulerServer(masterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	kmaster := &MasterConfig{
+		Options:            *masterConfig.KubernetesMasterConfig,
+		InternalKubeClient: internalKubeClient,
+		KubeClient:         kubeClient,
+
+		ControllerManager: controllerServer,
+		CloudProvider:     cloud,
+		SchedulerServer:   schedulerServer,
+		ExternalInformers: externalKubeInformers,
+	}
+
+	return kmaster, nil
+}
+
 func DefaultOpenAPIConfig() *openapicommon.Config {
 	return &openapicommon.Config{
 		GetDefinitions: openapigenerated.GetOpenAPIDefinitions,
