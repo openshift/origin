@@ -28,6 +28,9 @@ const (
 	// performed in Contexts.
 	authPerformedKey contextKey = "authPerformed"
 
+	// standaloneKey is the key to indicate that registry is running standalone
+	standaloneKey contextKey = "standalone"
+
 	// deferredErrorsKey is the key for deferred errors in Contexts.
 	deferredErrorsKey contextKey = "deferredErrors"
 
@@ -94,6 +97,17 @@ func withAuthPerformed(parent context.Context) context.Context {
 func authPerformed(ctx context.Context) bool {
 	authPerformed, ok := ctx.Value(authPerformedKey).(bool)
 	return ok && authPerformed
+}
+
+// standalone returns a new Context with indication that registry is running standalone
+func WithStandalone(parent context.Context) context.Context {
+	return context.WithValue(parent, standaloneKey, true)
+}
+
+// standalone reports whether ctx has indication that registry is running standalone
+func standalone(ctx context.Context) bool {
+	standalone, ok := ctx.Value(standaloneKey).(bool)
+	return ok && standalone
 }
 
 // withDeferredErrors returns a new Context that carries deferred errors.

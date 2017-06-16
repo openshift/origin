@@ -54,6 +54,9 @@ type blobDescriptorService struct {
 // a proper repository object to be set on given context by upper openshift middleware wrappers.
 func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: starting with digest=%s", dgst.String())
+	if standalone(ctx) {
+		return dockerRegistry.BlobStatter().Stat(ctx, dgst)
+	}
 	repo, found := repositoryFrom(ctx)
 	if !found || repo == nil {
 		err := fmt.Errorf("failed to retrieve repository from context")
@@ -99,6 +102,9 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 }
 
 func (bs *blobDescriptorService) Clear(ctx context.Context, dgst digest.Digest) error {
+	if standalone(ctx) {
+		return bs.BlobDescriptorService.Clear(ctx, dgst)
+	}
 	repo, found := repositoryFrom(ctx)
 	if !found || repo == nil {
 		err := fmt.Errorf("failed to retrieve repository from context")
