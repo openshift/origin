@@ -29,10 +29,12 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
+	buildinformersinternal "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
+	buildinternalclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildinternalfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageinformersinternal "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageinternalclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -316,7 +318,7 @@ func TestHandleBuild(t *testing.T) {
 					return true, nil, nil
 				})
 
-			bc := newFakeBuildController(openshiftClient, nil, nil, kubeClient)
+			bc := newFakeBuildController(openshiftClient, nil, nil, nil, kubeClient)
 			defer bc.stop()
 
 			runPolicy := tc.runPolicy
@@ -378,10 +380,11 @@ func TestHandleBuild(t *testing.T) {
 func TestWorkWithNewBuild(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 	var patchedBuild *buildapi.Build
-	openshiftClient := fakeOpenshiftClient(build)
+	openshiftClient := fakeOpenshiftClient()
 	openshiftClient.(*testclient.Fake).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
+	buildClient := fakeBuildClient(build)
 
-	bc := newFakeBuildController(openshiftClient, nil, nil, nil)
+	bc := newFakeBuildController(openshiftClient, buildClient, nil, nil, nil)
 	defer bc.stop()
 	bc.enqueueBuild(build)
 
@@ -401,7 +404,7 @@ func TestWorkWithNewBuild(t *testing.T) {
 
 func TestCreateBuildPod(t *testing.T) {
 	kubeClient := fakeKubeInternalClientSet()
-	bc := newFakeBuildController(nil, nil, nil, kubeClient)
+	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 
@@ -434,7 +437,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	imageStream.Status.DockerImageRepository = "namespace/image-name"
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	imageClient := fakeImageClient(imageStream)
-	bc := newFakeBuildController(nil, imageClient, nil, nil)
+	bc := newFakeBuildController(nil, nil, imageClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
 	podName := buildapi.GetBuildPodName(build)
@@ -456,7 +459,7 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 
 func TestCreateBuildPodWithImageStreamError(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
 
@@ -478,7 +481,7 @@ func (*errorStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
 }
 
 func TestCreateBuildPodWithPodSpecCreationError(t *testing.T) {
-	bc := newFakeBuildController(nil, nil, nil, nil)
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
 	bc.createStrategy = &errorStrategy{}
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
@@ -509,7 +512,7 @@ func TestCreateBuildPodWithNewerExistingPod(t *testing.T) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
 	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, kubeClient)
+	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
 	bc.start()
 	defer bc.stop()
 
@@ -539,7 +542,7 @@ func TestCreateBuildPodWithOlderExistingPod(t *testing.T) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
 	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, kubeClient)
+	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
 	defer bc.stop()
 
 	update, err := bc.createBuildPod(build)
@@ -561,7 +564,7 @@ func TestCreateBuildPodWithPodCreationError(t *testing.T) {
 		return true, nil, fmt.Errorf("error")
 	}
 	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, kubeClient)
+	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 
@@ -921,6 +924,10 @@ func fakeImageClient(objects ...runtime.Object) imageinternalclientset.Interface
 	return imageinternalfakeclient.NewSimpleClientset(objects...)
 }
 
+func fakeBuildClient(objects ...runtime.Object) buildinternalclientset.Interface {
+	return buildinternalfakeclient.NewSimpleClientset(objects...)
+}
+
 func fakeKubeExternalClientSet(objects ...runtime.Object) kexternalclientset.Interface {
 	return kexternalclientfake.NewSimpleClientset(objects...)
 }
@@ -937,30 +944,20 @@ func fakeKubeExternalInformers(clientSet kexternalclientset.Interface) kexternal
 	return kexternalinformers.NewSharedInformerFactory(clientSet, 0)
 }
 
-func fakeInformerFactory(openshiftClient client.Interface, kubeExternalClient kexternalclientset.Interface, kubeInternalClient kinternalclientset.Interface) shared.InformerFactory {
-	internalKubeInformers := fakeKubeInternalInformers(kubeInternalClient)
-	externalKubeInformers := fakeKubeExternalInformers(kubeExternalClient)
-	return shared.NewInformerFactory(
-		internalKubeInformers,
-		externalKubeInformers,
-		kubeInternalClient,
-		openshiftClient,
-		nil,
-		0)
-}
-
 type fakeBuildController struct {
 	*BuildController
-	informers      shared.InformerFactory
-	imageInformers imageinformersinternal.SharedInformerFactory
-	stopChan       chan struct{}
+	kubeExternalInformers kexternalinformers.SharedInformerFactory
+	kubeInternalInformers kinternalinformers.SharedInformerFactory
+	buildInformers        buildinformersinternal.SharedInformerFactory
+	imageInformers        imageinformersinternal.SharedInformerFactory
+	stopChan              chan struct{}
 }
 
 func (c *fakeBuildController) start() {
+	c.kubeExternalInformers.Start(c.stopChan)
+	c.kubeInternalInformers.Start(c.stopChan)
 	c.imageInformers.Start(c.stopChan)
-	c.informers.Start(c.stopChan)
-	c.informers.KubernetesInformers().Start(c.stopChan)
-	c.informers.InternalKubernetesInformers().Start(c.stopChan)
+	c.buildInformers.Start(c.stopChan)
 	if !cache.WaitForCacheSync(wait.NeverStop, c.buildStoreSynced, c.podStoreSynced, c.secretStoreSynced, c.imageStreamStoreSynced) {
 		panic("cannot sync cache")
 	}
@@ -970,9 +967,12 @@ func (c *fakeBuildController) stop() {
 	close(c.stopChan)
 }
 
-func newFakeBuildController(openshiftClient client.Interface, imageClient imageinternalclientset.Interface, kubeExternalClient kexternalclientset.Interface, kubeInternalClient kinternalclientset.Interface) *fakeBuildController {
+func newFakeBuildController(openshiftClient client.Interface, buildClient buildinternalclientset.Interface, imageClient imageinternalclientset.Interface, kubeExternalClient kexternalclientset.Interface, kubeInternalClient kinternalclientset.Interface) *fakeBuildController {
 	if openshiftClient == nil {
 		openshiftClient = fakeOpenshiftClient()
+	}
+	if buildClient == nil {
+		buildClient = fakeBuildClient()
 	}
 	if imageClient == nil {
 		imageClient = fakeImageClient()
@@ -984,16 +984,18 @@ func newFakeBuildController(openshiftClient client.Interface, imageClient imagei
 		kubeInternalClient = fakeKubeInternalClientSet()
 	}
 
-	informers := fakeInformerFactory(openshiftClient, kubeExternalClient, kubeInternalClient)
+	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)
+	kubeInternalInformers := fakeKubeInternalInformers(kubeInternalClient)
+	buildInformers := buildinformersinternal.NewSharedInformerFactory(buildClient, 0)
 	imageInformers := imageinformersinternal.NewSharedInformerFactory(imageClient, 0)
 	stopChan := make(chan struct{})
 
 	params := &BuildControllerParams{
-		BuildInformer:       informers.Builds(),
-		BuildConfigInformer: informers.BuildConfigs(),
-		PodInformer:         informers.InternalKubernetesInformers().Core().InternalVersion().Pods(),
+		BuildInformer:       buildInformers.Build().InternalVersion().Builds(),
+		BuildConfigInformer: buildInformers.Build().InternalVersion().BuildConfigs(),
+		PodInformer:         kubeInternalInformers.Core().InternalVersion().Pods(),
 		ImageStreamInformer: imageInformers.Image().InternalVersion().ImageStreams(),
-		SecretInformer:      informers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		SecretInformer:      kubeInternalInformers.Core().InternalVersion().Secrets(),
 		KubeClientInternal:  kubeInternalClient,
 		KubeClientExternal:  kubeExternalClient,
 		OpenshiftClient:     openshiftClient,
@@ -1012,10 +1014,12 @@ func newFakeBuildController(openshiftClient client.Interface, imageClient imagei
 		BuildOverrides: buildoverrides.BuildOverrides{},
 	}
 	bc := &fakeBuildController{
-		BuildController: NewBuildController(params),
-		stopChan:        stopChan,
-		informers:       informers,
-		imageInformers:  imageInformers,
+		BuildController:       NewBuildController(params),
+		stopChan:              stopChan,
+		kubeInternalInformers: kubeInternalInformers,
+		kubeExternalInformers: kubeExternalInformers,
+		buildInformers:        buildInformers,
+		imageInformers:        imageInformers,
 	}
 	bc.BuildController.recorder = &record.FakeRecorder{}
 	bc.start()

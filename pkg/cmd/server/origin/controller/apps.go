@@ -32,8 +32,8 @@ func (c *DeployerControllerConfig) RunController(ctx ControllerContext) (bool, e
 	}
 
 	go deployercontroller.NewDeployerController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Pods(),
+		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Pods(),
 		internalDeployerKubeClient,
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraDeployerControllerServiceAccountName),
 		bootstrappolicy.DeployerServiceAccountName,
@@ -59,7 +59,7 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 
 	go deployconfigcontroller.NewDeploymentConfigController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers(),
+		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers(),
 		deprecatedOcDcClient,
 		internalDcKubeClient,
 		ctx.ClientBuilder.ClientOrDie(saName),
@@ -79,7 +79,7 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 
 	go triggercontroller.NewDeploymentTriggerController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ReplicationControllers().Informer(),
+		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers().Informer(),
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
 		deprecatedOcTriggerClient,
 		c.Codec,

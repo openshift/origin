@@ -126,45 +126,45 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	buildLister := buildclient.NewOSClientBuildClient(osclient)
-	buildConfigGetter := buildclient.NewOSClientBuildConfigClient(osclient)
+	buildLister := buildclient.NewOSClientBuildLister(osclient)
+	buildConfigGetter := buildclient.NewOSClientBuildConfigLister(osclient)
 	buildDeleter := buildclient.NewOSClientBuildClient(osclient)
 
 	bcName := buildutil.ConfigNameForBuild(build)
-	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
-	sort.Sort(ByCreationTimestamp(successfulStartingBuilds.Items))
+	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+	sort.Sort(ByCreationTimestamp(successfulStartingBuilds))
 
-	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool {
+	failedStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool {
 		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
 	})
-	sort.Sort(ByCreationTimestamp(failedStartingBuilds.Items))
+	sort.Sort(ByCreationTimestamp(failedStartingBuilds))
 
-	if len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items) != 16 {
-		t.Errorf("should start with 16 builds, but started with %v instead", len(successfulStartingBuilds.Items)+len(failedStartingBuilds.Items))
+	if len(successfulStartingBuilds)+len(failedStartingBuilds) != 16 {
+		t.Errorf("should start with 16 builds, but started with %v instead", len(successfulStartingBuilds)+len(failedStartingBuilds))
 	}
 
 	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigGetter, buildDeleter); err != nil {
 		t.Errorf("error pruning builds: %v", err)
 	}
 
-	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
-	sort.Sort(ByCreationTimestamp(successfulRemainingBuilds.Items))
+	successfulRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })
+	sort.Sort(ByCreationTimestamp(successfulRemainingBuilds))
 
-	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build buildapi.Build) bool {
+	failedRemainingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool {
 		return (build.Status.Phase == buildapi.BuildPhaseFailed || build.Status.Phase == buildapi.BuildPhaseError || build.Status.Phase == buildapi.BuildPhaseCancelled)
 	})
-	sort.Sort(ByCreationTimestamp(failedRemainingBuilds.Items))
+	sort.Sort(ByCreationTimestamp(failedRemainingBuilds))
 
-	if len(successfulRemainingBuilds.Items)+len(failedRemainingBuilds.Items) != 5 {
-		t.Errorf("there should only be 5 builds left, but instead there are %v", len(successfulRemainingBuilds.Items)+len(failedRemainingBuilds.Items))
+	if len(successfulRemainingBuilds)+len(failedRemainingBuilds) != 5 {
+		t.Errorf("there should only be 5 builds left, but instead there are %v", len(successfulRemainingBuilds)+len(failedRemainingBuilds))
 	}
 
-	if !reflect.DeepEqual(successfulStartingBuilds.Items[:2], successfulRemainingBuilds.Items) {
-		t.Errorf("expected the two most recent successful builds should be left, but instead there were %v: %v", len(successfulRemainingBuilds.Items), successfulRemainingBuilds.Items)
+	if !reflect.DeepEqual(successfulStartingBuilds[:2], successfulRemainingBuilds) {
+		t.Errorf("expected the two most recent successful builds should be left, but instead there were %v: %v", len(successfulRemainingBuilds), successfulRemainingBuilds)
 	}
 
-	if !reflect.DeepEqual(failedStartingBuilds.Items[:3], failedRemainingBuilds.Items) {
-		t.Errorf("expected the three most recent failed builds to be left, but instead there were %v: %v", len(failedRemainingBuilds.Items), failedRemainingBuilds.Items)
+	if !reflect.DeepEqual(failedStartingBuilds[:3], failedRemainingBuilds) {
+		t.Errorf("expected the three most recent failed builds to be left, but instead there were %v: %v", len(failedRemainingBuilds), failedRemainingBuilds)
 	}
 
 }

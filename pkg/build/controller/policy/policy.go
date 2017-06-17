@@ -9,8 +9,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	kapi "k8s.io/kubernetes/pkg/api"
+
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -29,7 +32,7 @@ type RunPolicy interface {
 }
 
 // GetAllRunPolicies returns a set of all run policies.
-func GetAllRunPolicies(lister buildclient.BuildLister, updater buildclient.BuildUpdater) []RunPolicy {
+func GetAllRunPolicies(lister buildlister.BuildLister, updater buildclient.BuildUpdater) []RunPolicy {
 	return []RunPolicy{
 		&ParallelPolicy{BuildLister: lister, BuildUpdater: updater},
 		&SerialPolicy{BuildLister: lister, BuildUpdater: updater},
@@ -52,12 +55,12 @@ func ForBuild(build *buildapi.Build, policies []RunPolicy) RunPolicy {
 // hasRunningSerialBuild indicates that there is a running or pending serial
 // build. This function is used to prevent running parallel builds because
 // serial builds should always run alone.
-func hasRunningSerialBuild(lister buildclient.BuildLister, namespace, buildConfigName string) bool {
+func hasRunningSerialBuild(lister buildlister.BuildLister, namespace, buildConfigName string) bool {
 	var hasRunningBuilds bool
-	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b buildapi.Build) bool {
+	buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildapi.Build) bool {
 		switch b.Status.Phase {
 		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
-			switch buildutil.BuildRunPolicy(&b) {
+			switch buildutil.BuildRunPolicy(b) {
 			case buildapi.BuildRunPolicySerial, buildapi.BuildRunPolicySerialLatestOnly:
 				hasRunningBuilds = true
 			}
@@ -71,13 +74,13 @@ func hasRunningSerialBuild(lister buildclient.BuildLister, namespace, buildConfi
 // build configuration. It also returns the indication whether there are
 // currently running builds, to make sure there is no race-condition between
 // re-listing the builds.
-func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigName string) ([]*buildapi.Build, bool, error) {
+func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigName string) ([]*buildapi.Build, bool, error) {
 	var (
 		nextBuild           *buildapi.Build
 		hasRunningBuilds    bool
 		previousBuildNumber int64
 	)
-	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b buildapi.Build) bool {
+	builds, err := buildutil.BuildConfigBuilds(lister, namespace, buildConfigName, func(b *buildapi.Build) bool {
 		switch b.Status.Phase {
 		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
 			hasRunningBuilds = true
@@ -91,16 +94,16 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 	}
 
 	nextParallelBuilds := []*buildapi.Build{}
-	for i, b := range builds.Items {
-		buildNumber, err := buildutil.BuildNumber(&b)
+	for i, b := range builds {
+		buildNumber, err := buildutil.BuildNumber(b)
 		if err != nil {
 			return nil, hasRunningBuilds, err
 		}
-		if buildutil.BuildRunPolicy(&b) == buildapi.BuildRunPolicyParallel {
-			nextParallelBuilds = append(nextParallelBuilds, &builds.Items[i])
+		if buildutil.BuildRunPolicy(b) == buildapi.BuildRunPolicyParallel {
+			nextParallelBuilds = append(nextParallelBuilds, b)
 		}
 		if previousBuildNumber == 0 || buildNumber < previousBuildNumber {
-			nextBuild = &builds.Items[i]
+			nextBuild = builds[i]
 			previousBuildNumber = buildNumber
 		}
 	}
@@ -119,7 +122,7 @@ func GetNextConfigBuild(lister buildclient.BuildLister, namespace, buildConfigNa
 // check which build should be run next and set the accepted annotation for
 // that build. That will trigger HandleBuild() to process that build immediately
 // and as a result the build is immediately executed.
-func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
+func handleComplete(lister buildlister.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
 	bcName := buildutil.ConfigNameForBuild(build)
 	if len(bcName) == 0 {
 		return nil
@@ -136,6 +139,7 @@ func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpd
 
 		// only set the annotation once.
 		if _, ok := build.Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
+			build = copyOrDie(build)
 			build.Annotations[buildapi.BuildAcceptedAnnotation] = uuid.NewRandom().String()
 			err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
 				err := updater.Update(build.Namespace, build)
@@ -151,4 +155,12 @@ func handleComplete(lister buildclient.BuildLister, updater buildclient.BuildUpd
 		}
 	}
 	return nil
+}
+
+func copyOrDie(build *buildapi.Build) *buildapi.Build {
+	obj, err := kapi.Scheme.Copy(build)
+	if err != nil {
+		panic(err)
+	}
+	return obj.(*buildapi.Build)
 }

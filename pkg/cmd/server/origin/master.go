@@ -49,7 +49,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		KubeClientExternal:                 c.PrivilegedLoopbackKubernetesClientsetExternal,
 		KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 		KubeletClientConfig:                c.KubeletClientConfig,
-		KubeInternalInformers:              c.Informers.InternalKubernetesInformers(),
+		KubeInternalInformers:              c.InternalKubeInformers,
 		AuthorizationInformers:             c.AuthorizationInformers,
 		QuotaInformers:                     c.QuotaInformers,
 		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
@@ -153,7 +153,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed to create aggregator config: %v", err)
 	}
-	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.Informers.InternalKubernetesInformers(), stopCh)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.InternalKubeInformers, stopCh)
 	if err != nil {
 		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
 		glog.Fatalf("Failed to create aggregator server: %v", err)

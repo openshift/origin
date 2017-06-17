@@ -66,9 +66,9 @@ func (c *MasterConfig) RunPersistentVolumeController(client kclientset.Interface
 			VolumePlugins:             probeRecyclableVolumePlugins(s.VolumeConfiguration, namespace, recyclerImageName, recyclerServiceAccountName),
 			Cloud:                     c.CloudProvider,
 			ClusterName:               s.ClusterName,
-			VolumeInformer:            c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
-			ClaimInformer:             c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
-			ClassInformer:             c.Informers.KubernetesInformers().Storage().V1beta1().StorageClasses(),
+			VolumeInformer:            c.ExternalInformers.Core().V1().PersistentVolumes(),
+			ClaimInformer:             c.ExternalInformers.Core().V1().PersistentVolumeClaims(),
+			ClassInformer:             c.ExternalInformers.Storage().V1beta1().StorageClasses(),
 			EventRecorder:             recorder,
 			EnableDynamicProvisioning: s.VolumeConfiguration.EnableDynamicProvisioning,
 		})
@@ -80,10 +80,10 @@ func (c *MasterConfig) RunPersistentVolumeAttachDetachController(client kclients
 	attachDetachController, err :=
 		attachdetachcontroller.NewAttachDetachController(
 			client,
-			c.Informers.KubernetesInformers().Core().V1().Pods(),
-			c.Informers.KubernetesInformers().Core().V1().Nodes(),
-			c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
-			c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
+			c.ExternalInformers.Core().V1().Pods(),
+			c.ExternalInformers.Core().V1().Nodes(),
+			c.ExternalInformers.Core().V1().PersistentVolumeClaims(),
+			c.ExternalInformers.Core().V1().PersistentVolumes(),
 			c.CloudProvider,
 			kctrlmgr.ProbeAttachableVolumePlugins(s.VolumeConfiguration),
 			s.DisableAttachDetachReconcilerSync,
@@ -176,9 +176,9 @@ func (c *MasterConfig) RunNodeController() {
 	_, serviceCIDR, _ := net.ParseCIDR(s.ServiceCIDR)
 
 	controller, err := nodecontroller.NewNodeController(
-		c.Informers.KubernetesInformers().Core().V1().Pods(),
-		c.Informers.KubernetesInformers().Core().V1().Nodes(),
-		c.Informers.KubernetesInformers().Extensions().V1beta1().DaemonSets(),
+		c.ExternalInformers.Core().V1().Pods(),
+		c.ExternalInformers.Core().V1().Nodes(),
+		c.ExternalInformers.Extensions().V1beta1().DaemonSets(),
 		c.CloudProvider,
 		c.KubeClient,
 		s.PodEvictionTimeout.Duration,
@@ -216,8 +216,8 @@ func (c *MasterConfig) RunServiceLoadBalancerController(client kclientset.Interf
 	serviceController, err := servicecontroller.New(
 		c.CloudProvider,
 		client,
-		c.Informers.KubernetesInformers().Core().V1().Services(),
-		c.Informers.KubernetesInformers().Core().V1().Nodes(),
+		c.ExternalInformers.Core().V1().Services(),
+		c.ExternalInformers.Core().V1().Nodes(),
 		c.ControllerManager.ClusterName,
 	)
 	if err != nil {
@@ -235,14 +235,14 @@ func (c *MasterConfig) createSchedulerConfig() (*scheduler.Config, error) {
 	configFactory := factory.NewConfigFactory(
 		c.SchedulerServer.SchedulerName,
 		c.KubeClient,
-		c.Informers.KubernetesInformers().Core().V1().Nodes(),
-		c.Informers.KubernetesInformers().Core().V1().Pods(),
-		c.Informers.KubernetesInformers().Core().V1().PersistentVolumes(),
-		c.Informers.KubernetesInformers().Core().V1().PersistentVolumeClaims(),
-		c.Informers.KubernetesInformers().Core().V1().ReplicationControllers(),
-		c.Informers.KubernetesInformers().Extensions().V1beta1().ReplicaSets(),
-		c.Informers.KubernetesInformers().Apps().V1beta1().StatefulSets(),
-		c.Informers.KubernetesInformers().Core().V1().Services(),
+		c.ExternalInformers.Core().V1().Nodes(),
+		c.ExternalInformers.Core().V1().Pods(),
+		c.ExternalInformers.Core().V1().PersistentVolumes(),
+		c.ExternalInformers.Core().V1().PersistentVolumeClaims(),
+		c.ExternalInformers.Core().V1().ReplicationControllers(),
+		c.ExternalInformers.Extensions().V1beta1().ReplicaSets(),
+		c.ExternalInformers.Apps().V1beta1().StatefulSets(),
+		c.ExternalInformers.Core().V1().Services(),
 		int(c.SchedulerServer.HardPodAffinitySymmetricWeight),
 	)
 	if _, err := os.Stat(c.Options.SchedulerConfigFile); err == nil {

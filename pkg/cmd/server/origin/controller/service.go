@@ -24,8 +24,8 @@ func (c *ServiceServingCertsControllerOptions) RunController(ctx ControllerConte
 	}
 
 	servingCertController := servingcertcontroller.NewServiceServingCertController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Services(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Services(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
@@ -33,8 +33,8 @@ func (c *ServiceServingCertsControllerOptions) RunController(ctx ControllerConte
 		2*time.Minute,
 	)
 	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Services(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Services(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
 		"cluster.local",

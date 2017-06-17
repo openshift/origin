@@ -2,9 +2,11 @@ package client
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 
@@ -88,6 +90,100 @@ func (c OSClientBuildClient) List(namespace string, opts metav1.ListOptions) (*b
 // DeleteBuild deletes a build from OpenShift.
 func (c OSClientBuildClient) DeleteBuild(build *buildapi.Build) error {
 	return c.Client.Builds(build.Namespace).Delete(build.Name)
+}
+
+// OSClientBuildLister implements the build lister interface over a client
+type OSClientBuildLister struct {
+	client osclient.BuildsNamespacer
+}
+
+// NewOSClientBuildClient creates a new build client that uses an openshift client to update builds
+func NewOSClientBuildLister(client osclient.BuildsNamespacer) buildlister.BuildLister {
+	return &OSClientBuildLister{client: client}
+}
+
+// List lists the builds using the OpenShift client.
+func (c *OSClientBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
+	list, err := c.client.Builds("").List(metav1.ListOptions{LabelSelector: label.String()})
+	return buildListToPointerArray(list), err
+}
+
+func (c *OSClientBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
+	return &OSClientBuildListerNamespacer{client: c.client, ns: ns}
+}
+
+// osClientBuildClientNamespacer implements internalversion lister
+type OSClientBuildListerNamespacer struct {
+	client osclient.BuildsNamespacer
+	ns     string
+}
+
+// List lists the builds using the OpenShift client.
+func (c OSClientBuildListerNamespacer) List(label labels.Selector) ([]*buildapi.Build, error) {
+	list, err := c.client.Builds(c.ns).List(metav1.ListOptions{LabelSelector: label.String()})
+	return buildListToPointerArray(list), err
+}
+
+func (c OSClientBuildListerNamespacer) Get(name string) (*buildapi.Build, error) {
+	return c.client.Builds(c.ns).Get(name, metav1.GetOptions{})
+}
+
+func buildListToPointerArray(list *buildapi.BuildList) []*buildapi.Build {
+	if list == nil {
+		return nil
+	}
+	result := make([]*buildapi.Build, len(list.Items))
+	for i := range list.Items {
+		result[i] = &list.Items[i]
+	}
+	return result
+}
+
+// OSClientBuildLister implements the build lister interface over a client
+type OSClientBuildConfigLister struct {
+	client osclient.BuildConfigsNamespacer
+}
+
+// NewOSClientBuildConfigLister creates a new build config client that uses an openshift client.
+func NewOSClientBuildConfigLister(client osclient.BuildConfigsNamespacer) buildlister.BuildConfigLister {
+	return &OSClientBuildConfigLister{client: client}
+}
+
+// List lists the builds using the OpenShift client.
+func (c *OSClientBuildConfigLister) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+	list, err := c.client.BuildConfigs("").List(metav1.ListOptions{LabelSelector: label.String()})
+	return buildConfigListToPointerArray(list), err
+}
+
+func (c *OSClientBuildConfigLister) BuildConfigs(ns string) buildlister.BuildConfigNamespaceLister {
+	return &OSClientBuildConfigListerNamespacer{client: c.client, ns: ns}
+}
+
+// osClientBuildConfigListerNamespacer implements internalversion lister
+type OSClientBuildConfigListerNamespacer struct {
+	client osclient.BuildConfigsNamespacer
+	ns     string
+}
+
+// List lists the builds using the OpenShift client.
+func (c OSClientBuildConfigListerNamespacer) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+	list, err := c.client.BuildConfigs(c.ns).List(metav1.ListOptions{LabelSelector: label.String()})
+	return buildConfigListToPointerArray(list), err
+}
+
+func (c OSClientBuildConfigListerNamespacer) Get(name string) (*buildapi.BuildConfig, error) {
+	return c.client.BuildConfigs(c.ns).Get(name, metav1.GetOptions{})
+}
+
+func buildConfigListToPointerArray(list *buildapi.BuildConfigList) []*buildapi.BuildConfig {
+	if list == nil {
+		return nil
+	}
+	result := make([]*buildapi.BuildConfig, len(list.Items))
+	for i := range list.Items {
+		result[i] = &list.Items[i]
+	}
+	return result
 }
 
 // BuildCloner provides methods for cloning builds

@@ -21,8 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclientfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/controller/shared"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -90,19 +88,19 @@ func TestValidationRegistration(t *testing.T) {
 
 // fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
 func fakeMasterConfig() *MasterConfig {
-	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
+	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
 	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
-	informerFactory := shared.NewInformerFactory(internalkubeInformerFactory, externalKubeInformerFactory, fakeinternal.NewSimpleClientset(), testclient.NewSimpleFake(), shared.DefaultListerWatcherOverrides{}, 1*time.Second)
 	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
 	quotaInformerFactory := quotainformer.NewSharedInformerFactory(quotaclientfake.NewSimpleClientset(), 0)
 
 	return &MasterConfig{
 		KubeletClientConfig:                           &kubeletclient.KubeletClientConfig{},
 		RESTOptionsGetter:                             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
-		Informers:                                     informerFactory,
+		ExternalKubeInformers:                         externalKubeInformerFactory,
+		InternalKubeInformers:                         internalKubeInformerFactory,
 		AuthorizationInformers:                        authorizationInformerFactory,
 		QuotaInformers:                                quotaInformerFactory,
-		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
+		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
 		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
 	}

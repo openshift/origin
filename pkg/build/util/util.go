@@ -12,12 +12,11 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 )
 
 const (
@@ -114,25 +113,23 @@ func BuildConfigSelectorDeprecated(name string) labels.Selector {
 	return labels.Set{buildapi.BuildConfigLabelDeprecated: name}.AsSelector()
 }
 
-type buildFilter func(buildapi.Build) bool
+type buildFilter func(*buildapi.Build) bool
 
 // BuildConfigBuilds return a list of builds for the given build config.
 // Optionally you can specify a filter function to select only builds that
 // matches your criteria.
-func BuildConfigBuilds(c buildclient.BuildLister, namespace, name string, filterFunc buildFilter) (*buildapi.BuildList, error) {
-	result, err := c.List(namespace, metav1.ListOptions{
-		LabelSelector: BuildConfigSelector(name).String(),
-	})
+func BuildConfigBuilds(c buildlister.BuildLister, namespace, name string, filterFunc buildFilter) ([]*buildapi.Build, error) {
+	result, err := c.Builds(namespace).List(BuildConfigSelector(name))
 	if err != nil {
 		return nil, err
 	}
 	if filterFunc == nil {
 		return result, nil
 	}
-	filteredList := &buildapi.BuildList{TypeMeta: result.TypeMeta, ListMeta: result.ListMeta}
-	for _, b := range result.Items {
+	var filteredList []*buildapi.Build
+	for _, b := range result {
 		if filterFunc(b) {
-			filteredList.Items = append(filteredList.Items, b)
+			filteredList = append(filteredList, b)
 		}
 	}
 	return filteredList, nil

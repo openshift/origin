@@ -4,12 +4,12 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	restclient "k8s.io/client-go/rest"
+	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/controller/shared"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
@@ -24,7 +24,7 @@ type PluginInitializer struct {
 	Authorizer                   kauthorizer.Authorizer
 	JenkinsPipelineConfig        configapi.JenkinsPipelineConfig
 	RESTClientConfig             restclient.Config
-	Informers                    shared.InformerFactory
+	Informers                    kinternalinformers.SharedInformerFactory
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
 	DefaultRegistryFn            imageapi.DefaultRegistryFunc
@@ -55,11 +55,11 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsRESTClientConfig, ok := plugin.(WantsRESTClientConfig); ok {
 		wantsRESTClientConfig.SetRESTClientConfig(i.RESTClientConfig)
 	}
-	if wantsInformers, ok := plugin.(WantsInformers); ok {
-		wantsInformers.SetInformers(i.Informers)
+	if wantsInformers, ok := plugin.(WantsInternalKubernetesInformers); ok {
+		wantsInformers.SetInternalKubernetesInformers(i.Informers)
 	}
 	if wantsInformerFactory, ok := plugin.(kubeapiserveradmission.WantsInternalKubeInformerFactory); ok {
-		wantsInformerFactory.SetInternalKubeInformerFactory(i.Informers.InternalKubernetesInformers())
+		wantsInformerFactory.SetInternalKubeInformerFactory(i.Informers)
 	}
 	if wantsClusterQuota, ok := plugin.(WantsClusterQuota); ok {
 		wantsClusterQuota.SetClusterQuota(i.ClusterQuotaMapper, i.ClusterResourceQuotaInformer)
