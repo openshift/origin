@@ -411,13 +411,25 @@ func SetDefaults_SCC(scc *SecurityContextConstraints) {
 		scc.SupplementalGroups.Type = SupplementalGroupsStrategyRunAsAny
 	}
 
-	// defaults the volume slice of the SCC.
-	// In order to support old clients the boolean fields will always take precedence.
-	defaultAllowedVolumes := fsTypeToStringSet(scc.Volumes)
-
-	// assume a nil volume slice is allowing everything for backwards compatibility
-	if defaultAllowedVolumes == nil {
+	var defaultAllowedVolumes sets.String
+	switch {
+	case scc.Volumes == nil:
+		// assume a nil volume slice is allowing everything for backwards compatibility
 		defaultAllowedVolumes = sets.NewString(string(FSTypeAll))
+
+	case len(scc.Volumes) == 0 && scc.AllowHostDirVolumePlugin:
+		// an empty volume slice means "allow no volumes", but the boolean fields will always take precedence.
+		defaultAllowedVolumes = sets.NewString(string(FSTypeHostPath))
+
+	case len(scc.Volumes) == 0 && !scc.AllowHostDirVolumePlugin:
+		// an empty volume slice means "allow no volumes", but cannot be persisted in protobuf.
+		// convert this to volumes:["none"]
+		defaultAllowedVolumes = sets.NewString(string(FSTypeNone))
+
+	default:
+		// defaults the volume slice of the SCC.
+		// In order to support old clients the boolean fields will always take precedence.
+		defaultAllowedVolumes = fsTypeToStringSet(scc.Volumes)
 	}
 
 	if scc.AllowHostDirVolumePlugin {

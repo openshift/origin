@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	scmeta "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/pkg/storage/tpr"
@@ -123,7 +124,7 @@ func NewStorage(opts server.Options) (brokers, brokersStatus rest.Storage) {
 		KeyFunc:     opts.KeyFunc(false),
 		// Retrieve the name field of the resource.
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
-			return tpr.GetAccessor().Name(obj)
+			return scmeta.GetAccessor().Name(obj)
 		},
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,

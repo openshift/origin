@@ -39,12 +39,14 @@ func NewScopeStrategy() rest.NamespaceScopedStrategy {
 
 // implements interfaces RESTCreateStrategy, RESTUpdateStrategy, RESTDeleteStrategy,
 // NamespaceScopedStrategy
+// The implementation disallows any modifications to the instance.Status fields.
 type instanceRESTStrategy struct {
 	runtime.ObjectTyper // inherit ObjectKinds method
 	names.NameGenerator // GenerateName method for CreateStrategy
 }
 
-// implements interface RESTUpdateStrategy
+// implements interface RESTUpdateStrategy. This implementation validates updates to
+// instance.Status updates only and disallows any modifications to the instance.Spec.
 type instanceStatusRESTStrategy struct {
 	instanceRESTStrategy
 }
@@ -95,9 +97,7 @@ func (instanceRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj 
 	instance.Status = sc.InstanceStatus{}
 	// Fill in the first entry set to "creating"?
 	instance.Status.Conditions = []sc.InstanceCondition{}
-
-	// TODO: Should we use a more specific string here?
-	instance.Finalizers = []string{"kubernetes"}
+	instance.Finalizers = []string{sc.FinalizerServiceCatalog}
 }
 
 func (instanceRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
@@ -122,7 +122,13 @@ func (instanceRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new,
 		glog.Fatal("received a non-instance object to update from")
 	}
 
+	// TODO: We currently don't handle any changes to the spec in the
+	// reconciler. Once we do that, this check needs to be removed and
+	// proper validation of allowed changes needs to be implemented in
+	// ValidateUpdate
 	newInstance.Spec = oldInstance.Spec
+
+	// Do not allow any updates to the Status field while updating the Spec
 	newInstance.Status = oldInstance.Status
 }
 
@@ -148,7 +154,7 @@ func (instanceStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context
 	if !ok {
 		glog.Fatal("received a non-instance object to update from")
 	}
-	// status changes are not allowed to update spec
+	// Status changes are not allowed to update spec
 	newInstance.Spec = oldInstance.Spec
 
 	foundReadyConditionTrue := false

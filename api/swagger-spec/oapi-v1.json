@@ -23726,7 +23726,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
+      "description": "env contains additional environment variables you want to pass into a builder container."
      },
      "forcePull": {
       "type": "boolean",
@@ -23896,7 +23896,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
+      "description": "env contains additional environment variables you want to pass into a builder container."
      },
      "scripts": {
       "type": "string",
@@ -23943,7 +23943,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
+      "description": "env contains additional environment variables you want to pass into a builder container."
      },
      "exposeDockerSocket": {
       "type": "boolean",
@@ -24001,7 +24001,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a build pipeline. ValueFrom is not supported."
+      "description": "env contains additional environment variables you want to pass into a build pipeline."
      }
     }
    },
@@ -24296,7 +24296,7 @@
       "items": {
        "$ref": "v1.EnvVar"
       },
-      "description": "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported."
+      "description": "env contains additional environment variables you want to pass into a builder container."
      },
      "triggeredBy": {
       "type": "array",

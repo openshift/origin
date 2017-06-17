@@ -33,6 +33,7 @@
 // examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
+// examples/service-catalog/service-catalog.yaml
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
@@ -1823,7 +1824,12 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -1835,7 +1841,10 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mariadb\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -2069,7 +2078,12 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -2081,7 +2095,10 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mariadb\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -2340,7 +2357,12 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
@@ -2353,7 +2375,10 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -2615,7 +2640,12 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
@@ -2628,7 +2658,10 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -2913,7 +2946,12 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -2926,7 +2964,10 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mysql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -3188,7 +3229,12 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
@@ -3200,7 +3246,10 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mysql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -3466,7 +3515,11 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
@@ -3478,7 +3531,10 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -3723,7 +3779,11 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-username": "{.data['database-user']}",
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
@@ -3735,7 +3795,10 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -4004,7 +4067,10 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-password" : "${REDIS_PASSWORD}"
@@ -4015,7 +4081,10 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -4232,7 +4301,10 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.openshift.io/expose-password": "{.data['database-password']}"
+        }
       },
       "stringData" : {
         "database-password" : "${REDIS_PASSWORD}"
@@ -4243,7 +4315,10 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
+        }
       },
       "spec": {
         "ports": [
@@ -4482,7 +4557,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "to": {
@@ -4788,7 +4866,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "creationTimestamp": null,
+        "annotations": {
+          "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
+        }
       },
       "spec": {
         "to": {
@@ -13105,6 +13186,378 @@ func examplesPrometheusPrometheusYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesServiceCatalogServiceCatalogYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: service-catalog
+objects:
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-serviceclass-viewer
+  rules:
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - serviceclasses
+    verbs:
+    - list
+    - watch
+    - get
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: servicecatalog-serviceclass-viewer-binding
+  roleRef:
+    name: servicecatalog-serviceclass-viewer
+  groupNames:
+  - system:authenticated
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: service-catalog-apiserver
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: namespace-viewer
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - list
+    - watch
+    - get
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-namespace-viewer-binding
+  roleRef:
+    name: namespace-viewer
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-apiserver
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller-namespace-viewer-binding
+  roleRef:
+    name: namespace-viewer
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-controller
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - secrets
+    - podpresets
+    verbs:
+    - create
+    - update
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - brokers/status
+    - instances/status
+    - bindings/status
+    verbs:
+    - update
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-controller-binding
+  roleRef:
+    name: service-catalog-controller
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-controller
+  
+- kind: Role
+  apiVersion: v1
+  metadata:
+    name: endpoint-accessor
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - endpoints
+    verbs:
+    - list
+    - watch
+    - get
+    - create
+    - update
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: endpointer-accessor-binding
+  roleRef:
+    name: endpoint-accessor
+    namespace: service-catalog
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-controller
+
+- kind: Role
+  apiVersion: v1
+  metadata:
+    name: extension-apiserver-authentication-reader
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - extension-apiserver-authentication
+    resources:
+    - configmaps
+    verbs:
+    - get
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: extension-apiserver-authentication-reader-binding
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  roleRef:
+    name: extension-apiserver-authentication-reader
+    namespace: kube-system
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-apiserver
+
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: system:auth-delegator-binding
+  roleRef:
+    name: system:auth-delegator
+  userNames:
+    - system:serviceaccount:service-catalog:service-catalog-apiserver
+
+
+- kind: Deployment
+  apiVersion: extensions/v1beta1
+  metadata:
+    labels:
+      app: apiserver
+    name: apiserver
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: apiserver
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: apiserver
+      spec:
+        serviceAccountName: service-catalog-apiserver
+        containers:
+        - args:
+          - --admission-control
+          - KubernetesNamespaceLifecycle
+          - --storage-type
+          - etcd
+          - --secure-port
+          - "6443"
+          - --insecure-bind-address
+          - 0.0.0.0
+          - --insecure-port
+          - "8081"
+          - --etcd-servers
+          - http://localhost:2379
+          - -v
+          - "10"
+          - --cors-allowed-origins
+          - ${CORS_ALLOWED_ORIGIN}
+          image: quay.io/kubernetes-service-catalog/apiserver:${SERVICE_CATALOG_TAG}
+          imagePullPolicy: IfNotPresent
+          name: apiserver
+          ports:
+          - containerPort: 6443
+            protocol: TCP
+          - containerPort: 8081
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /var/run/kubernetes-service-catalog
+            name: apiserver-ssl
+            readOnly: true
+        - env:
+          - name: ETCD_DATA_DIR
+            value: /data-dir
+          image: quay.io/coreos/etcd
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /data-dir
+            name: data-dir
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: apiserver-ssl
+          secret:
+            defaultMode: 420
+            secretName: apiserver-ssl
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            - key: tls.key
+              path: apiserver.key
+        - emptyDir: {}
+          name: data-dir
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: 'apiserver-ssl'
+  spec:
+    type: ClusterIP
+    clusterIP: ${SERVICE_CATALOG_SERVICE_IP}
+    ports:
+    - name: insecure
+      port: 80
+      protocol: TCP
+      targetPort: 8081
+    - name: secure
+      port: 443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: apiserver
+    sessionAffinity: None
+
+- kind: Deployment
+  apiVersion: extensions/v1beta1
+  metadata:
+    labels:
+      app: controller-manager
+    name: controller-manager
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: controller-manager
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 1
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: controller-manager
+      spec:
+        serviceAccountName: service-catalog-controller
+        containers:
+        - args:
+          - -v
+          - "5"
+          - --service-catalog-api-server-url
+          - http://$(APISERVER_SERVICE_HOST):$(APISERVER_SERVICE_PORT)
+          - --leader-election-namespace
+          - service-catalog
+          image: quay.io/kubernetes-service-catalog/controller-manager:${SERVICE_CATALOG_TAG}
+          imagePullPolicy: IfNotPresent
+          name: controller-manager
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          volumeMounts:
+          - mountPath: /etc/service-catalog-ssl
+            name: service-catalog-ssl
+            readOnly: true
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: service-catalog-ssl
+          secret:
+            defaultMode: 420
+            items:
+            - key: tls.crt
+              path: apiserver.crt
+            secretName: apiserver-ssl
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: controller-manager
+  spec:
+    ports:
+    - port: 6443
+      protocol: TCP
+      targetPort: 6443
+    selector:
+      app: controller-manager
+    sessionAffinity: None
+    type: ClusterIP
+
+parameters:
+- description: CORS allowed origin for the API server, if you need to specify multiple modify the Deployment after creation
+  displayName: CORS Allowed Origin
+  name: CORS_ALLOWED_ORIGIN
+  required: true
+  value: 10.192.213.116
+- description: Tag of the service catalog images to use for apiserver and controller-manager
+  displayName: Service catalog image tag
+  name: SERVICE_CATALOG_TAG
+  required: true
+  value: canary
+- description: Cluster ip address for the service catalog service
+  displayName: Service Catalog Service IP
+  name: SERVICE_CATALOG_SERVICE_IP
+  required: true
+  value: 172.30.1.2
+- description: Do not change this value.
+  displayName: Name of the kube-system namespace
+  name: KUBE_SYSTEM_NAMESPACE
+  required: true
+  value: kube-system
+  `)
+
+func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
+	return _examplesServiceCatalogServiceCatalogYaml, nil
+}
+
+func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
+	bytes, err := examplesServiceCatalogServiceCatalogYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/service-catalog/service-catalog.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
 apiVersion: v1
 # To require that all images running on the platform be imported first, you may uncomment the
@@ -13227,6 +13680,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
+	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
@@ -13319,6 +13773,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"nodejs-mongodb.json": &bintree{examplesQuickstartsNodejsMongodbJson, map[string]*bintree{}},
 			"rails-postgresql-persistent.json": &bintree{examplesQuickstartsRailsPostgresqlPersistentJson, map[string]*bintree{}},
 			"rails-postgresql.json": &bintree{examplesQuickstartsRailsPostgresqlJson, map[string]*bintree{}},
+		}},
+		"service-catalog": &bintree{nil, map[string]*bintree{
+			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
 		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{

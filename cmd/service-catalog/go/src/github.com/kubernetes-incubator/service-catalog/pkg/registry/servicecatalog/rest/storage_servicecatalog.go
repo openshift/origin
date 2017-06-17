@@ -133,6 +133,7 @@ func (p StorageProvider) v1alpha1Storage(
 				ResourceName:     tpr.ServiceClassKind.String(),
 				Separator:        "/",
 			},
+			HardDelete: true,
 		},
 		p.StorageType,
 	)

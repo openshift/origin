@@ -29,10 +29,15 @@ type Options struct {
 	DefaultNamespace string
 	RESTClient       restclient.Interface
 	SingularKind     Kind
-	NewSingularFunc  func(string, string) runtime.Object
-	ListKind         Kind
-	NewListFunc      func() runtime.Object
-	CheckObjectFunc  func(runtime.Object) error
-	DestroyFunc      func()
-	Keyer            Keyer
+	// NewSingularFunc is a function that returns a new object of the appropriate type,
+	// with the namespace (first param) and name (second param) pre-filled
+	NewSingularFunc func(string, string) runtime.Object
+	ListKind        Kind
+	// NewListFunc is a function that returns a new, empty list object of the appropriate
+	// type. The list object should hold elements that are returned by NewSingularFunc
+	NewListFunc     func() runtime.Object
+	CheckObjectFunc func(runtime.Object) error
+	DestroyFunc     func()
+	Keyer           Keyer
+	HardDelete      bool
 }

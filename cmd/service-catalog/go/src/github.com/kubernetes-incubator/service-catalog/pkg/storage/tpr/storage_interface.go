@@ -23,6 +23,8 @@ import (
 	"net/http"
 
 	"github.com/golang/glog"
+	scmeta "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,12 +47,17 @@ type store struct {
 	defaultNamespace string
 	cl               restclient.Interface
 	singularKind     Kind
-	singularShell    func(string, string) runtime.Object
-	listKind         Kind
-	listShell        func() runtime.Object
-	checkObject      func(runtime.Object) error
-	decodeKey        func(string) (string, string, error)
-	versioner        storage.Versioner
+	// singularShell is a function that returns a new object of the appropriate type,
+	// with the namespace (first param) and name (second param) pre-filled
+	singularShell func(string, string) runtime.Object
+	listKind      Kind
+	// listShell is a function that returns a new, empty list object of the appropriate
+	// type. The list object should hold elements that are returned by singularShell
+	listShell   func() runtime.Object
+	checkObject func(runtime.Object) error
+	decodeKey   func(string) (string, string, error)
+	versioner   storage.Versioner
+	hardDelete  bool
 }
 
 // NewStorage creates a new TPR-based storage.Interface implementation
@@ -67,6 +74,7 @@ func NewStorage(opts Options) (storage.Interface, factory.DestroyFunc) {
 		checkObject:      opts.CheckObjectFunc,
 		decodeKey:        opts.Keyer.NamespaceAndNameFromKey,
 		versioner:        etcd.APIObjectVersioner{},
+		hardDelete:       opts.HardDelete,
 	}, opts.DestroyFunc
 }
 
@@ -92,6 +100,10 @@ func (t *store) Create(
 		return err
 	}
 
+	if err := scmeta.AddFinalizer(obj, v1alpha1.FinalizerServiceCatalog); err != nil {
+		glog.Errorf("adding finalizer to %s (%s)", key, err)
+		return err
+	}
 	data, err := runtime.Encode(t.codec, obj)
 	if err != nil {
 		return err
@@ -107,7 +119,10 @@ func (t *store) Create(
 
 	res := req.Do()
 	if res.Error() != nil {
-		glog.Errorf("executing POST for %s/%s (%s)", ns, name, res.Error())
+		errStr := fmt.Sprintf("executing POST for %s/%s (%s)", ns, name, res.Error())
+		glog.Errorf(errStr)
+		// Don't return an error here so that, in case there was a 409 (conflict), we go and
+		// return the key exists error
 	}
 	var statusCode int
 	res.StatusCode(&statusCode)
@@ -115,12 +130,14 @@ func (t *store) Create(
 		return storage.NewKeyExistsError(key, 0)
 	}
 	if statusCode != http.StatusCreated {
-		return fmt.Errorf(
+		errStr := fmt.Sprintf(
 			"executing POST for %s/%s, received response code %d",
 			ns,
 			name,
 			statusCode,
 		)
+		glog.Errorf(errStr)
+		return errors.New(errStr)
 	}
 
 	var unknown runtime.Unknown
@@ -135,50 +152,60 @@ func (t *store) Create(
 	return nil
 }
 
-// Delete removes the specified key and returns the value that existed at that spot.
-// If key didn't exist, it will return NotFound storage error.
+// Delete fetches the resource at key, removes its finalizer, updates it, and returns the
+// resource before its finalizer was removed.
 //
-// In this implementation, Delete will not write the deleted object back to out
+// If key didn't exist, it will return NotFound storage error.
 func (t *store) Delete(
 	ctx context.Context,
 	key string,
 	out runtime.Object,
 	preconditions *storage.Preconditions,
 ) error {
+	// create adds the get the object remove its finalizer, and
 	ns, name, err := t.decodeKey(key)
 	if err != nil {
 		glog.Errorf("decoding key %s (%s)", key, err)
 		return err
 	}
-
-	req := t.cl.Delete().AbsPath(
-		"apis",
-		groupName,
-		tprVersion,
-		"namespaces",
+	if t.hardDelete {
+		// if we are hard-deleting this item, then propagate this delete to the core API server.
+		// after the core API server gets the DELETE call, it will set the deletion timestamp
+		// as we expect, so we should proceed to remove the deletion timestamp & update as usual
+		// (below), so that the object is removed completely
+		if err := delete(t.cl, t.singularKind, key, ns, name, http.StatusOK); err != nil {
+			glog.Errorf("hard-deleting %s (%s)", key, err)
+			return err
+		}
+	}
+	if err := get(
+		t.cl,
+		t.codec,
+		t.singularKind,
+		key,
 		ns,
-		t.singularKind.URLName(),
 		name,
-	)
-
-	res := req.Do()
-	if res.Error() != nil {
-		glog.Errorf("executing DELETE for %s/%s (%s)", ns, name, res.Error())
-	}
-	var statusCode int
-	res.StatusCode(&statusCode)
-	if statusCode == http.StatusNotFound {
-		return storage.NewKeyNotFoundError(key, 0)
-	}
-	if statusCode != http.StatusAccepted {
-		return fmt.Errorf(
-			"executing DELETE for %s/%s, received response code %d",
-			ns,
-			name,
-			statusCode,
-		)
+		out,
+		t.hasNamespace,
+		false,
+	); err != nil {
+		glog.Errorf("getting %s (%s)", key, err)
+		return err
 	}
 
+	if _, err := scmeta.RemoveFinalizer(out, v1alpha1.FinalizerServiceCatalog); err != nil {
+		glog.Errorf("removing finalizer from %#v (%s)", out, err)
+		return err
+	}
+	encoded, err := runtime.Encode(t.codec, out)
+	if err != nil {
+		glog.Errorf("encoding %#v (%s)", out, err)
+		return err
+	}
+	if err := put(t.cl, t.codec, t.singularKind, ns, name, encoded, out); err != nil {
+		glog.Errorf("putting %s (%s)", key, err)
+		return err
+	}
 	return nil
 }
 
@@ -501,78 +528,82 @@ func (t *store) GuaranteedUpdate(
 			glog.Errorf("checking preconditions (%s)", err)
 			return err
 		}
-		// Create a candidate for the new object by applying the userUpdate func
-		candidate, _, err := userUpdate(curState.obj, *curState.meta)
+		// update the object by applying the userUpdate func & encode it
+		updated, _, err := userUpdate(curState.obj, *curState.meta)
 		if err != nil {
 			glog.Errorf("applying user update: (%s)", err)
 			return err
 		}
-		// Get bytes from the candidate
-		candidateData, err := runtime.Encode(t.codec, candidate)
+		updatedData, err := runtime.Encode(t.codec, updated)
 		if err != nil {
 			glog.Errorf("encoding candidate obj (%s)", err)
 			return err
 		}
-		// If the candidate matches what we already have, then all we need to do is
-		// decode into the out object
-		if bytes.Equal(candidateData, curState.data) {
-			err := decode(t.codec, candidateData, out)
+
+		// figure out what the new "current state" of the object is for this loop iteration
+		var newCurState *objState
+		if bytes.Equal(updatedData, curState.data) {
+			// If the candidate matches what we already have, then all we need to do is
+			// decode into the out object
+			err := decode(t.codec, updatedData, out)
 			if err != nil {
 				glog.Errorf("decoding to output object (%s)", err)
 			}
-			return err
+			newCurState = curState
+		} else {
+			// If the candidate doesn't match what we already have, then get an up-to-date copy
+			// of the resource we're trying to update
+			// (because it may have changed if we're looping and in a race)
+			newCurObj := t.singularShell("", "")
+			if err := t.Get(ctx, key, "", newCurObj, ignoreNotFound); err != nil {
+				glog.Errorf("getting new current object (%s)", err)
+				return err
+			}
+			updatedObj, _, err := userUpdate(newCurObj, *curState.meta)
+			ncs, err := t.getStateFromObject(updatedObj)
+			if err != nil {
+				glog.Errorf("getting state from new current object (%s)", err)
+				return err
+			}
+			newCurState = ncs
 		}
-		// Otherwise, get an up-to-date copy of the resource we're trying to update
-		// (because it may have changed if we're looping and in a race)
-		newCurObj := t.singularShell("", "")
-		if err := t.Get(ctx, key, "", newCurObj, ignoreNotFound); err != nil {
-			glog.Errorf("getting new current object (%s)", err)
-			return err
-		}
-		newCurState, err := t.getStateFromObject(newCurObj)
+		newCurObjData, err := runtime.Encode(t.codec, newCurState.obj)
 		if err != nil {
-			glog.Errorf("getting state from new current object (%s)", err)
+			glog.Errorf("encoding new obj (%s)", err)
 			return err
 		}
-		// If the new current version of the object is the same as the old current
-		// then proceed with trying to PUT the candidate to the core apiserver
+		// If the new current revision of the object is the same as the last loop iteration,
+		// proceed with trying to update the object on the core API server
 		if newCurState.rev == curState.rev {
 			ns, name, err := t.decodeKey(key)
 			if err != nil {
 				glog.Errorf("decoding key %s (%s)", key, err)
 				return err
 			}
-			putReq := t.cl.Put().AbsPath(
-				"apis",
-				groupName,
-				tprVersion,
-				"namespaces",
-				ns,
-				t.singularKind.URLName(),
-				name,
-			).Body(candidateData)
-			putRes := putReq.Do()
-			if putRes.Error() != nil {
-				glog.Errorf("executing PUT to %s/%s (%s)", ns, name, putRes.Error())
+			newStateDTExists, err := getDeletionInfo(newCurState.obj)
+			if err != nil {
+				glog.Errorf("getting deletion info (%s)", err)
 				return err
 			}
-			var statusCode int
-			putRes.StatusCode(&statusCode)
-			if statusCode != http.StatusOK {
-				return fmt.Errorf(
-					"executing PUT for %s/%s, received response code %d",
-					ns,
-					name,
-					statusCode,
-				)
-			}
-			var putUnknown runtime.Unknown
-			if err := putRes.Into(&putUnknown); err != nil {
-				glog.Errorf("reading response (%s)", err)
+			finalizers, err := scmeta.GetFinalizers(newCurState.obj)
+			if err != nil {
+				glog.Errorf("getting finalizers (%s)", err)
 				return err
 			}
-			if err := decode(t.codec, putUnknown.Raw, out); err != nil {
-				glog.Errorf("decoding response (%s)", err)
+			if newStateDTExists && len(finalizers) > 0 {
+				// if the deletion timestamp is set but there are still finalizers, then send
+				// a DELETE to the upstream server.
+				// The upstream server will do a soft delete and set the deletion timestamp
+				if err := delete(t.cl, t.singularKind, key, ns, name, http.StatusOK); err != nil {
+					glog.Errorf("executing DELETE on %s (%s)", key, err)
+					return err
+				}
+				return nil
+			}
+			// otherwise, the deletion timestamp and deletion grace period are not set, so
+			// do the actual update
+			if err := put(t.cl, t.codec, t.singularKind, ns, name, newCurObjData, out); err != nil {
+				glog.Errorf("PUTting object %s (%s)", key, err)
 				return err
 			}
 		} else {
@@ -603,7 +634,7 @@ func decode(
 }
 
 func removeNamespace(obj runtime.Object) error {
-	if err := accessor.SetNamespace(obj, ""); err != nil {
+	if err := scmeta.GetAccessor().SetNamespace(obj, ""); err != nil {
 		glog.Errorf("removing namespace from %#v (%s)", obj, err)
 		return err
 	}
@@ -633,4 +664,15 @@ func checkPreconditions(
 		return storage.NewInvalidObjError(key, errMsg)
 	}
 	return nil
+}
+
+// getDeletionInfo returns whether the deletion timestsamp exists on obj
+// if there was an error determining whether it exists, returns a non-nil error
+func getDeletionInfo(obj runtime.Object) (bool, error) {
+	dtExists, err := scmeta.DeletionTimestampExists(obj)
+	if err != nil {
+		glog.Errorf("determining whether the deletion timestamp exists (%s)", err)
+		return false, err
+	}
+	return dtExists, nil
 }

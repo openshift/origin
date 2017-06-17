@@ -36,6 +36,8 @@ func init() {
 // Public to allow building arbitrary schemes.
 func RegisterConversions(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedConversionFuncs(
+		Convert_v1alpha1_AlphaPodPresetTemplate_To_servicecatalog_AlphaPodPresetTemplate,
+		Convert_servicecatalog_AlphaPodPresetTemplate_To_v1alpha1_AlphaPodPresetTemplate,
 		Convert_v1alpha1_Binding_To_servicecatalog_Binding,
 		Convert_servicecatalog_Binding_To_v1alpha1_Binding,
 		Convert_v1alpha1_BindingCondition_To_servicecatalog_BindingCondition,
@@ -48,6 +50,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_servicecatalog_BindingStatus_To_v1alpha1_BindingStatus,
 		Convert_v1alpha1_Broker_To_servicecatalog_Broker,
 		Convert_servicecatalog_Broker_To_v1alpha1_Broker,
+		Convert_v1alpha1_BrokerAuthInfo_To_servicecatalog_BrokerAuthInfo,
+		Convert_servicecatalog_BrokerAuthInfo_To_v1alpha1_BrokerAuthInfo,
 		Convert_v1alpha1_BrokerCondition_To_servicecatalog_BrokerCondition,
 		Convert_servicecatalog_BrokerCondition_To_v1alpha1_BrokerCondition,
 		Convert_v1alpha1_BrokerList_To_servicecatalog_BrokerList,
@@ -73,6 +77,26 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_v1alpha1_ServicePlan_To_servicecatalog_ServicePlan,
 		Convert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan,
 	)
+}
+
+func autoConvert_v1alpha1_AlphaPodPresetTemplate_To_servicecatalog_AlphaPodPresetTemplate(in *AlphaPodPresetTemplate, out *servicecatalog.AlphaPodPresetTemplate, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Selector = in.Selector
+	return nil
+}
+
+func Convert_v1alpha1_AlphaPodPresetTemplate_To_servicecatalog_AlphaPodPresetTemplate(in *AlphaPodPresetTemplate, out *servicecatalog.AlphaPodPresetTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha1_AlphaPodPresetTemplate_To_servicecatalog_AlphaPodPresetTemplate(in, out, s)
+}
+
+func autoConvert_servicecatalog_AlphaPodPresetTemplate_To_v1alpha1_AlphaPodPresetTemplate(in *servicecatalog.AlphaPodPresetTemplate, out *AlphaPodPresetTemplate, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Selector = in.Selector
+	return nil
+}
+
+func Convert_servicecatalog_AlphaPodPresetTemplate_To_v1alpha1_AlphaPodPresetTemplate(in *servicecatalog.AlphaPodPresetTemplate, out *AlphaPodPresetTemplate, s conversion.Scope) error {
+	return autoConvert_servicecatalog_AlphaPodPresetTemplate_To_v1alpha1_AlphaPodPresetTemplate(in, out, s)
 }
 
 func autoConvert_v1alpha1_Binding_To_servicecatalog_Binding(in *Binding, out *servicecatalog.Binding, s conversion.Scope) error {
@@ -156,6 +180,7 @@ func autoConvert_v1alpha1_BindingSpec_To_servicecatalog_BindingSpec(in *BindingS
 	out.Parameters = (*runtime.RawExtension)(unsafe.Pointer(in.Parameters))
 	out.SecretName = in.SecretName
 	out.ExternalID = in.ExternalID
+	out.AlphaPodPresetTemplate = (*servicecatalog.AlphaPodPresetTemplate)(unsafe.Pointer(in.AlphaPodPresetTemplate))
 	return nil
 }
 
@@ -168,6 +193,7 @@ func autoConvert_servicecatalog_BindingSpec_To_v1alpha1_BindingSpec(in *servicec
 	out.Parameters = (*runtime.RawExtension)(unsafe.Pointer(in.Parameters))
 	out.SecretName = in.SecretName
 	out.ExternalID = in.ExternalID
+	out.AlphaPodPresetTemplate = (*AlphaPodPresetTemplate)(unsafe.Pointer(in.AlphaPodPresetTemplate))
 	return nil
 }
 
@@ -225,6 +251,24 @@ func Convert_servicecatalog_Broker_To_v1alpha1_Broker(in *servicecatalog.Broker,
 	return autoConvert_servicecatalog_Broker_To_v1alpha1_Broker(in, out, s)
 }
 
+func autoConvert_v1alpha1_BrokerAuthInfo_To_servicecatalog_BrokerAuthInfo(in *BrokerAuthInfo, out *servicecatalog.BrokerAuthInfo, s conversion.Scope) error {
+	out.BasicAuthSecret = (*v1.ObjectReference)(unsafe.Pointer(in.BasicAuthSecret))
+	return nil
+}
+
+func Convert_v1alpha1_BrokerAuthInfo_To_servicecatalog_BrokerAuthInfo(in *BrokerAuthInfo, out *servicecatalog.BrokerAuthInfo, s conversion.Scope) error {
+	return autoConvert_v1alpha1_BrokerAuthInfo_To_servicecatalog_BrokerAuthInfo(in, out, s)
+}
+
+func autoConvert_servicecatalog_BrokerAuthInfo_To_v1alpha1_BrokerAuthInfo(in *servicecatalog.BrokerAuthInfo, out *BrokerAuthInfo, s conversion.Scope) error {
+	out.BasicAuthSecret = (*v1.ObjectReference)(unsafe.Pointer(in.BasicAuthSecret))
+	return nil
+}
+
+func Convert_servicecatalog_BrokerAuthInfo_To_v1alpha1_BrokerAuthInfo(in *servicecatalog.BrokerAuthInfo, out *BrokerAuthInfo, s conversion.Scope) error {
+	return autoConvert_servicecatalog_BrokerAuthInfo_To_v1alpha1_BrokerAuthInfo(in, out, s)
+}
+
 func autoConvert_v1alpha1_BrokerCondition_To_servicecatalog_BrokerCondition(in *BrokerCondition, out *servicecatalog.BrokerCondition, s conversion.Scope) error {
 	out.Type = servicecatalog.BrokerConditionType(in.Type)
 	out.Status = servicecatalog.ConditionStatus(in.Status)
@@ -273,7 +317,7 @@ func Convert_servicecatalog_BrokerList_To_v1alpha1_BrokerList(in *servicecatalog
 
 func autoConvert_v1alpha1_BrokerSpec_To_servicecatalog_BrokerSpec(in *BrokerSpec, out *servicecatalog.BrokerSpec, s conversion.Scope) error {
 	out.URL = in.URL
-	out.AuthSecret = (*v1.ObjectReference)(unsafe.Pointer(in.AuthSecret))
+	out.AuthInfo = (*servicecatalog.BrokerAuthInfo)(unsafe.Pointer(in.AuthInfo))
 	return nil
 }
 
@@ -283,7 +327,7 @@ func Convert_v1alpha1_BrokerSpec_To_servicecatalog_BrokerSpec(in *BrokerSpec, ou
 
 func autoConvert_servicecatalog_BrokerSpec_To_v1alpha1_BrokerSpec(in *servicecatalog.BrokerSpec, out *BrokerSpec, s conversion.Scope) error {
 	out.URL = in.URL
-	out.AuthSecret = (*v1.ObjectReference)(unsafe.Pointer(in.AuthSecret))
+	out.AuthInfo = (*BrokerAuthInfo)(unsafe.Pointer(in.AuthInfo))
 	return nil
 }
 
@@ -498,6 +542,9 @@ func autoConvert_v1alpha1_ServicePlan_To_servicecatalog_ServicePlan(in *ServiceP
 	out.Bindable = (*bool)(unsafe.Pointer(in.Bindable))
 	out.Free = in.Free
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
+	out.AlphaInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaInstanceCreateParameterSchema))
+	out.AlphaInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaInstanceUpdateParameterSchema))
+	out.AlphaBindingCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaBindingCreateParameterSchema))
 	return nil
 }
 
@@ -512,6 +559,9 @@ func autoConvert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan(in *servicec
 	out.Bindable = (*bool)(unsafe.Pointer(in.Bindable))
 	out.Free = in.Free
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
+	out.AlphaInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaInstanceCreateParameterSchema))
+	out.AlphaInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaInstanceUpdateParameterSchema))
+	out.AlphaBindingCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaBindingCreateParameterSchema))
 	return nil
 }
 

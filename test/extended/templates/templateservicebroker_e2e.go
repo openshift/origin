@@ -3,7 +3,6 @@ package templates
 import (
 	"crypto/tls"
 	"net/http"
-	"strconv"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -19,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	"github.com/openshift/origin/pkg/openservicebroker/client"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -43,9 +43,11 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	g.BeforeEach(func() {
 		var err error
 
+		// should have been created before the extended test runs
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// privatetemplate is an additional template in our namespace
 		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "private",
@@ -53,6 +55,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// enable unauthenticated access to the service broker
 		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
@@ -79,6 +82,9 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		// it shouldn't be around, but if it is, clean up the
+		// BrokerTemplateInstance object.  The object is not namespaced so the
+		// namespace cleanup doesn't catch this.
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
 	})
 
@@ -88,6 +94,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		for _, s := range catalog.Services {
+			// confirm our private template isn't returned
 			o.Expect(s.ID).NotTo(o.BeEquivalentTo(privatetemplate.UID))
 			if s.ID == string(template.UID) {
 				service = s
@@ -100,6 +107,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 	provision := func() {
 		g.By("provisioning a service")
+		// confirm our private template can't be provisioned
 		_, err := brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
 			ServiceID: string(privatetemplate.UID),
 			PlanID:    plan.ID,
@@ -185,6 +193,84 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 	bind := func() {
 		g.By("binding to a service")
+
+		// create some more objects to exercise bind a bit more
+		bindconfigmap, err := cli.KubeClient().CoreV1().ConfigMaps(cli.Namespace()).Create(&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "bindsecret",
+				Annotations: map[string]string{
+					templateapi.ExposeAnnotationPrefix + "configmap-username": "{.data['username']}",
+				},
+				Labels: map[string]string{
+					templateapi.TemplateInstanceLabel: instanceID,
+				},
+			},
+			Data: map[string]string{
+				"username": "configmap-username",
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		bindsecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "bindsecret",
+				Annotations: map[string]string{
+					templateapi.ExposeAnnotationPrefix + "secret-username":       "{.data['username']}",
+					templateapi.Base64ExposeAnnotationPrefix + "secret-password": "{.data['password']}",
+				},
+				Labels: map[string]string{
+					templateapi.TemplateInstanceLabel: instanceID,
+				},
+			},
+			Data: map[string][]byte{
+				"username": []byte("secret-username"),
+				"password": []byte("secret-password"),
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		bindservice, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Create(&v1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "bindservice",
+				Annotations: map[string]string{
+					templateapi.ExposeAnnotationPrefix + "service-uri": `http://{.spec.clusterIP}:{.spec.ports[?(.name=="port")].port}`,
+				},
+				Labels: map[string]string{
+					templateapi.TemplateInstanceLabel: instanceID,
+				},
+			},
+			Spec: v1.ServiceSpec{
+				Ports: []v1.ServicePort{
+					{
+						Name: "port",
+						Port: 1234,
+					},
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		bindroute, err := cli.Client().Routes(cli.Namespace()).Create(&routeapi.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "bindroute",
+				Annotations: map[string]string{
+					templateapi.ExposeAnnotationPrefix + "route-uri": "http://{.spec.host}{.spec.path}",
+				},
+				Labels: map[string]string{
+					templateapi.TemplateInstanceLabel: instanceID,
+				},
+			},
+			Spec: routeapi.RouteSpec{
+				Host: "host",
+				Path: "/path",
+				To: routeapi.RouteTargetReference{
+					Kind: "Service",
+					Name: "bindservice",
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		bind, err := brokercli.Bind(context.Background(), instanceID, bindingID, &api.BindRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
@@ -198,12 +284,26 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 
-		services := bind.Credentials["services"].(map[string]interface{})
+		o.Expect(bind.Credentials).To(o.HaveKey("uri"))
+		o.Expect(bind.Credentials["uri"]).To(o.HavePrefix("http://"))
 
-		service, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("mysql", metav1.GetOptions{})
+		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("configmap-username", "configmap-username"))
+		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-username", "secret-username"))
+		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("secret-password", "c2VjcmV0LXBhc3N3b3Jk"))
+		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("service-uri", "http://"+bindservice.Spec.ClusterIP+":1234"))
+		o.Expect(bind.Credentials).To(o.HaveKeyWithValue("route-uri", "http://host/path"))
+
+		err = cli.KubeClient().CoreV1().ConfigMaps(cli.Namespace()).Delete(bindconfigmap.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(services["MYSQL_SERVICE_HOST"]).To(o.Equal(service.Spec.ClusterIP))
-		o.Expect(services["MYSQL_SERVICE_PORT"]).To(o.Equal(strconv.Itoa(int(service.Spec.Ports[0].Port))))
+
+		err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Delete(bindsecret.Name, nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = cli.KubeClient().CoreV1().Services(cli.Namespace()).Delete(bindservice.Name, nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = cli.Client().Routes(cli.Namespace()).Delete(bindroute.Name)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 
 	unbind := func() {
@@ -233,10 +333,10 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
+		// TODO: check that the namespace is actually empty at this point
 		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("examplesecret", metav1.GetOptions{})
-		// TODO: uncomment  when GC is enabled
-		// o.Expect(err).To(o.HaveOccurred())
-		// o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
+		o.Expect(err).To(o.HaveOccurred())
+		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 	}
 
 	g.It("should pass an end-to-end test", func() {

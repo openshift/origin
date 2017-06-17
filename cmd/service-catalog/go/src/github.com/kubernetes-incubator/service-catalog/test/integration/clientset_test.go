@@ -83,7 +83,9 @@ type bpStruct struct {
 func TestGroupVersion(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.Broker{}
+			})
 			defer shutdownServer()
 			if err := testGroupVersion(client); err != nil {
 				t.Fatal(err)
@@ -110,7 +112,9 @@ func testGroupVersion(client servicecatalogclient.Interface) error {
 func TestNoName(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.Broker{}
+			})
 			defer shutdownServer()
 			if err := testNoName(client); err != nil {
 				t.Fatal(err)
@@ -150,7 +154,9 @@ func TestBrokerClient(t *testing.T) {
 	const name = "test-broker"
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.Broker{}
+			})
 			defer shutdownServer()
 			if err := testBrokerClient(sType, client, name); err != nil {
 				t.Fatal(err)
@@ -224,12 +230,12 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		Name:      "test-name",
 	}
 
-	brokerServer.Spec.AuthSecret = authSecret
+	brokerServer.Spec.AuthInfo = &v1alpha1.BrokerAuthInfo{BasicAuthSecret: authSecret}
 
 	brokerUpdated, err := brokerClient.Update(brokerServer)
 	if nil != err ||
-		"test-namespace" != brokerUpdated.Spec.AuthSecret.Namespace ||
-		"test-name" != brokerUpdated.Spec.AuthSecret.Name {
+		"test-namespace" != brokerUpdated.Spec.AuthInfo.BasicAuthSecret.Namespace ||
+		"test-name" != brokerUpdated.Spec.AuthInfo.BasicAuthSecret.Name {
 		return fmt.Errorf("broker wasn't updated, %v, %v", brokerServer, brokerUpdated)
 	}
 
@@ -272,8 +278,8 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 
 	brokerServer, err = brokerClient.Get(name, metav1.GetOptions{})
 	if nil != err ||
-		"test-namespace" != brokerServer.Spec.AuthSecret.Namespace ||
-		"test-name" != brokerServer.Spec.AuthSecret.Name {
+		"test-namespace" != brokerServer.Spec.AuthInfo.BasicAuthSecret.Namespace ||
+		"test-name" != brokerServer.Spec.AuthInfo.BasicAuthSecret.Name {
 		return fmt.Errorf("broker wasn't updated (%v)", brokerServer)
 	}
 	if e, a := readyConditionFalse, brokerServer.Status.Conditions[0]; !reflect.DeepEqual(e, a) {
@@ -308,7 +314,9 @@ func TestServiceClassClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-serviceclass"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.ServiceClass{}
+			})
 			defer shutdownServer()
 
 			if err := testServiceClassClient(sType, client, name); err != nil {
@@ -332,6 +340,13 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 		Bindable:    true,
 		ExternalID:  "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
 		Description: "test description",
+		Plans: []v1alpha1.ServicePlan{
+			{
+				Name:        "test-service-plan",
+				ExternalID:  "test-service-plan-external-id",
+				Description: "test-description",
+			},
+		},
 	}
 
 	// start from scratch
@@ -422,7 +437,9 @@ func TestInstanceClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-instance"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.Instance{}
+			})
 			defer shutdownServer()
 			if err := testInstanceClient(sType, client, name); err != nil {
 				t.Fatal(err)
@@ -582,7 +599,9 @@ func TestBindingClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-binding"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String())
+			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.Binding{}
+			})
 			defer shutdownServer()
 
 			if err := testBindingClient(sType, client, name); err != nil {
@@ -717,23 +736,25 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 	}
 
 	if err = bindingClient.Delete(name, &metav1.DeleteOptions{}); nil != err {
-		return fmt.Errorf("broker should be deleted (%v)", err)
+		return fmt.Errorf("binding delete failed (%s)", err)
 	}
 
 	bindingDeleted, err := bindingClient.Get(name, metav1.GetOptions{})
 	if nil != err {
-		return fmt.Errorf("binding should still exist (%v): %v", bindingDeleted, err)
+		return fmt.Errorf("binding should still exist on initial get (%s)", err)
 	}
 
+	fmt.Printf("-----\nclientset_test\n\nbinding deleted: %#v\n\n", *bindingDeleted)
 	bindingDeleted.ObjectMeta.Finalizers = nil
-	_, err = bindingClient.UpdateStatus(bindingDeleted)
-	if nil != err {
-		return fmt.Errorf("error updating status (%v): %v", bindingDeleted, err)
+	if _, err := bindingClient.UpdateStatus(bindingDeleted); err != nil {
+		return fmt.Errorf("error updating binding status (%s)", err)
 	}
 
-	bindingDeleted, err = bindingClient.Get(name, metav1.GetOptions{})
-	if nil == err {
-		return fmt.Errorf("binding should be deleted (%#v)", bindingDeleted)
+	if bindingDeleted, err := bindingClient.Get(name, metav1.GetOptions{}); err == nil {
+		return fmt.Errorf(
+			"binding should be deleted after finalizers cleared. got binding %#v",
+			*bindingDeleted,
+		)
 	}
 	return nil
 }

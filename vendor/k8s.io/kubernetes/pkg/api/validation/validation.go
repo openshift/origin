@@ -3976,6 +3976,20 @@ func ValidateSecurityContextConstraints(scc *api.SecurityContextConstraints) fie
 			"required capabilities must be empty when all capabilities are allowed by a wildcard"))
 	}
 
+	if len(scc.Volumes) > 1 {
+		hasNone := false
+		for _, fsType := range scc.Volumes {
+			if fsType == api.FSTypeNone {
+				hasNone = true
+				break
+			}
+		}
+		if hasNone {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("volumes"), scc.Volumes,
+				"if 'none' is specified, no other values are allowed"))
+		}
+	}
+
 	return allErrs
 }
 

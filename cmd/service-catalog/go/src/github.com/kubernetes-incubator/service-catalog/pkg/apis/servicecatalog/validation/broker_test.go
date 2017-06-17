@@ -32,6 +32,8 @@ func TestValidateBroker(t *testing.T) {
 		valid  bool
 	}{
 		{
+			// covers the case where there is no AuthInfo field specified. the validator should
+			// ignore the field and still succeed the validation
 			name: "valid broker - no auth secret",
 			broker: &servicecatalog.Broker{
 				ObjectMeta: metav1.ObjectMeta{
@@ -51,9 +53,11 @@ func TestValidateBroker(t *testing.T) {
 				},
 				Spec: servicecatalog.BrokerSpec{
 					URL: "http://example.com",
-					AuthSecret: &v1.ObjectReference{
-						Namespace: "test-ns",
-						Name:      "test-secret",
+					AuthInfo: &servicecatalog.BrokerAuthInfo{
+						BasicAuthSecret: &v1.ObjectReference{
+							Namespace: "test-ns",
+							Name:      "test-secret",
+						},
 					},
 				},
 			},
@@ -80,8 +84,10 @@ func TestValidateBroker(t *testing.T) {
 				},
 				Spec: servicecatalog.BrokerSpec{
 					URL: "http://example.com",
-					AuthSecret: &v1.ObjectReference{
-						Name: "test-secret",
+					AuthInfo: &servicecatalog.BrokerAuthInfo{
+						BasicAuthSecret: &v1.ObjectReference{
+							Name: "test-secret",
+						},
 					},
 				},
 			},
@@ -95,8 +101,10 @@ func TestValidateBroker(t *testing.T) {
 				},
 				Spec: servicecatalog.BrokerSpec{
 					URL: "http://example.com",
-					AuthSecret: &v1.ObjectReference{
-						Namespace: "test-ns",
+					AuthInfo: &servicecatalog.BrokerAuthInfo{
+						BasicAuthSecret: &v1.ObjectReference{
+							Namespace: "test-ns",
+						},
 					},
 				},
 			},

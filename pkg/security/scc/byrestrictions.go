@@ -67,7 +67,7 @@ func volumePointValue(scc *kapi.SecurityContextConstraints) int {
 		// default case to be non-trivial so we don't have to worry about adding
 		// volumes in the future unless they're trivial.
 		case kapi.FSTypeSecret, kapi.FSTypeConfigMap,
-			kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI:
+			kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI, kapi.FSTypeNone:
 			// do nothing
 		default:
 			hasNonTrivialVolume = true

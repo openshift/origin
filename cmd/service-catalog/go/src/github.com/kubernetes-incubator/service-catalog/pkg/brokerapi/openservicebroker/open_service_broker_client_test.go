@@ -358,50 +358,18 @@ func TestUnbindGone(t *testing.T) {
 	verifyBindingMethodAndPath(http.MethodDelete, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
 }
 
-func TestCreatePollParametersMissingServiceID(t *testing.T) {
+func TestPollServiceInstanceWithMissingServiceID(t *testing.T) {
+	fbs, fakeBroker := setup()
+	defer fbs.Stop()
+
+	c := NewClient(testBrokerName, fakeBroker.Spec.URL, "", "")
 	r := &brokerapi.LastOperationRequest{PlanID: testPlanID}
-	_, err := createPollParameters(r)
+	_, _, err := c.PollServiceInstance(testServiceInstanceID, r)
 	if err == nil {
-		t.Fatalf("createPollParameters did not fail with missing ServiceID")
+		t.Fatal("PollServiceInstance did not fail with invalid LastOperationRequest")
 	}
 	if !strings.Contains(err.Error(), "missing service_id") {
 		t.Fatalf("Did not find the expected error message 'missing service_id' in error: %s", err)
-	}
-
-}
-
-func TestCreatePollParametersMissingPlanID(t *testing.T) {
-	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID}
-	_, err := createPollParameters(r)
-	if err == nil {
-		t.Fatalf("createPollParameters did not fail with missing PlanID")
-	}
-	if !strings.Contains(err.Error(), "missing plan_id") {
-		t.Fatalf("Did not find the expected error message 'missing plan_id' in error: %s", err)
-	}
-}
-
-func TestCreatePollParametersNoOperation(t *testing.T) {
-	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID}
-	q, err := createPollParameters(r)
-	if err != nil {
-		t.Fatalf("createPollParameters failed when expected to succeed: %s", err)
-	}
-	exp := "service_id=" + testServiceID + "&plan_id=" + testPlanID
-	if q != exp {
-		t.Fatalf("expected query parameters %q got %q\n", exp, q)
-	}
-}
-
-func TestCreatePollParametersWithOperation(t *testing.T) {
-	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID, Operation: testOperation}
-	q, err := createPollParameters(r)
-	if err != nil {
-		t.Fatalf("createPollParameters failed when expected to succeed: %s", err)
-	}
-	exp := "service_id=" + testServiceID + "&plan_id=" + testPlanID + "&operation=" + testOperation
-	if q != exp {
-		t.Fatalf("expected query parameters %q got %q\n", exp, q)
 	}
 }
 

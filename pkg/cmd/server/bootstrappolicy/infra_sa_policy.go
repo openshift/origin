@@ -13,6 +13,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	templateapi "github.com/openshift/origin/pkg/template/api"
 
 	// we need the conversions registered for our init block
@@ -566,6 +567,16 @@ func init() {
 					APIGroups: []string{kapi.GroupName},
 					Verbs:     sets.NewString("list"),
 					Resources: sets.NewString("services"),
+				},
+				{
+					APIGroups: []string{kapi.GroupName},
+					Verbs:     sets.NewString("list"),
+					Resources: sets.NewString("configmaps"),
+				},
+				{
+					APIGroups: []string{routeapi.GroupName},
+					Verbs:     sets.NewString("list"),
+					Resources: sets.NewString("routes"),
 				},
 			},
 		},

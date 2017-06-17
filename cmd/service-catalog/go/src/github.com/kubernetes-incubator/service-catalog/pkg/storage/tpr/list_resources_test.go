@@ -24,6 +24,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	"github.com/kubernetes-incubator/service-catalog/pkg/rest/core/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func TestStripNamespacesFromList(t *testing.T) {
@@ -57,7 +58,9 @@ func TestGetAllNamespaces(t *testing.T) {
 	const (
 		ns1Name = "ns1"
 	)
-	cl := fake.NewRESTClient()
+	cl := fake.NewRESTClient(func() runtime.Object {
+		return &sc.Broker{}
+	})
 	nsList, err := getAllNamespaces(cl)
 	if err != nil {
 		t.Fatalf("getting all namespaces (%s)", err)
@@ -84,7 +87,9 @@ func TestListResource(t *testing.T) {
 		kind = ServiceBrokerKind
 	)
 
-	cl := fake.NewRESTClient()
+	cl := fake.NewRESTClient(func() runtime.Object {
+		return &sc.Broker{}
+	})
 	listObj := sc.BrokerList{TypeMeta: newTypeMeta(kind)}
 	codec, err := testapi.GetCodecForObject(&sc.BrokerList{TypeMeta: newTypeMeta(kind)})
 	if err != nil {

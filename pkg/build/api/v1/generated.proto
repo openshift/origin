@@ -319,7 +319,6 @@ message BuildRequest {
   optional int64 lastVersion = 6;
 
   // env contains additional environment variables you want to pass into a builder container.
-  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 7;
 
   // triggeredBy describes which triggers started the most recent update to the
@@ -586,7 +585,6 @@ message CustomBuildStrategy {
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
 
   // env contains additional environment variables you want to pass into a builder container.
-  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 
   // exposeDockerSocket will allow running Docker commands (and build Docker images) from
@@ -622,7 +620,6 @@ message DockerBuildStrategy {
   optional bool noCache = 3;
 
   // env contains additional environment variables you want to pass into a builder container.
-  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 4;
 
   // forcePull describes if the builder should pull the images from registry prior to building.
@@ -808,7 +805,6 @@ message JenkinsPipelineBuildStrategy {
   optional string jenkinsfile = 2;
 
   // env contains additional environment variables you want to pass into a build pipeline.
-  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 }
 
@@ -873,7 +869,6 @@ message SourceBuildStrategy {
   optional k8s.io.kubernetes.pkg.api.v1.LocalObjectReference pullSecret = 2;
 
   // env contains additional environment variables you want to pass into a builder container.
-  // ValueFrom is not supported.
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar env = 3;
 
   // scripts is the location of Source scripts

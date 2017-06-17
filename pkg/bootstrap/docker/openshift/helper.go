@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	dockerexec "github.com/openshift/origin/pkg/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
+	"github.com/openshift/origin/pkg/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
@@ -33,16 +34,28 @@ import (
 )
 
 const (
-	defaultNodeName        = "localhost"
-	initialStatusCheckWait = 4 * time.Second
-	serverUpTimeout        = 35
-	serverConfigPath       = "/var/lib/origin/openshift.local.config"
-	serverMasterConfig     = serverConfigPath + "/master/master-config.yaml"
-	serverNodeConfig       = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
-	DefaultDNSPort         = 53
-	AlternateDNSPort       = 8053
-	cmdDetermineNodeHost   = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
-	OpenShiftContainer     = "origin"
+	defaultNodeName             = "localhost"
+	initialStatusCheckWait      = 4 * time.Second
+	serverUpTimeout             = 35
+	serverConfigPath            = "/var/lib/origin/openshift.local.config"
+	serverMasterConfig          = serverConfigPath + "/master/master-config.yaml"
+	serverNodeConfig            = serverConfigPath + "/node-" + defaultNodeName + "/node-config.yaml"
+	serviceCatalogExtensionPath = serverConfigPath + "/master/servicecatalog-extension.js"
+	aggregatorKey               = "aggregator-front-proxy.key"
+	aggregatorCert              = "aggregator-front-proxy.crt"
+	aggregatorCACert            = "front-proxy-ca.crt"
+	aggregatorCAKey             = "front-proxy-ca.key"
+	aggregatorCASerial          = "frontend-proxy-ca.serial.txt"
+	aggregatorKeyPath           = serverConfigPath + "/master/" + aggregatorKey
+	aggregatorCertPath          = serverConfigPath + "/master/" + aggregatorCert
+	aggregatorCACertPath        = serverConfigPath + "/master/" + aggregatorCACert
+	aggregatorCAKeyPath         = serverConfigPath + "/master/" + aggregatorCAKey
+	aggregatorCASerialPath      = serverConfigPath + "/master/" + aggregatorCASerial
+	DefaultDNSPort              = 53
+	AlternateDNSPort            = 8053
+	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
+	OpenShiftContainer          = "origin"
+	OpenshiftNamespace          = "openshift"
 )
 
 var (
@@ -114,6 +127,7 @@ type StartOptions struct {
 	NoProxy                  []string
 	KubeconfigContents       string
 	DockerRoot               string
+	ServiceCatalog           bool
 }
 
 // NewHelper creates a new OpenShift helper
@@ -620,6 +634,7 @@ func (h *Helper) ServerVersion() (semver.Version, error) {
 	if h.version != nil {
 		return *h.version, nil
 	}
+
 	versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
 		DiscardContainer().
@@ -707,6 +722,96 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			})
 		}
 		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
+	}
+
+	if opt.ServiceCatalog {
+		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
+			TemplateNamespaces: []string{OpenshiftNamespace},
+		}
+		if cfg.AssetConfig == nil {
+			cfg.AssetConfig = &configapi.AssetConfig{}
+		}
+		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
+
+		extension := `
+window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
+  service_catalog_landing_page: true,
+  template_service_broker: true,
+  pod_presets: true
+};
+`
+		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
+		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
+		if err != nil {
+			return err
+		}
+		err = h.hostHelper.UploadFileToContainer(extensionPath, serviceCatalogExtensionPath)
+		if err != nil {
+			return err
+		}
+
+		// setup the api aggegrator needed by the service catalog
+		cfg.AggregatorConfig = configapi.AggregatorConfig{
+			ProxyClientInfo: configapi.CertInfo{
+				CertFile: aggregatorCert,
+				KeyFile:  aggregatorKey,
+			},
+		}
+		cfg.AuthConfig.RequestHeader = &configapi.RequestHeaderAuthenticationOptions{
+			ClientCA:            aggregatorCACert,
+			ClientCommonNames:   []string{"aggregator-front-proxy"},
+			UsernameHeaders:     []string{"X-Remote-User"},
+			GroupHeaders:        []string{"X-Remote-Group"},
+			ExtraHeaderPrefixes: []string{"X-Remote-Extra-"},
+		}
+
+		cacertPath := filepath.Join(configDir, aggregatorCACert)
+		cakeyPath := filepath.Join(configDir, aggregatorCAKey)
+		caserialPath := filepath.Join(configDir, aggregatorCASerial)
+		certPath := filepath.Join(configDir, aggregatorCert)
+		keyPath := filepath.Join(configDir, aggregatorKey)
+
+		// TODO: reconcile this oadm logic with https://github.com/openshift/origin/blob/master/pkg/bootstrap/docker/openshift/admin.go#L121-L149
+		out, err := localcmd.New("oc").Args(
+			"adm",
+			"ca",
+			"create-signer-cert",
+			"--cert", cacertPath,
+			"--key", cakeyPath,
+			"--serial", caserialPath,
+		).CombinedOutput()
+		if err != nil {
+			return errors.NewError(fmt.Sprintf("failed generating signer certificate, command output: %s\nerror: %v", out, err))
+		}
+
+		// TODO: reconcile this oadm logic with https://github.com/openshift/origin/blob/master/pkg/bootstrap/docker/openshift/admin.go#L121-L149
+		out, err = localcmd.New("oc").Args(
+			"adm",
+			"create-api-client-config",
+			"--certificate-authority", cacertPath,
+			"--signer-cert", cacertPath,
+			"--signer-key", cakeyPath,
+			"--signer-serial", caserialPath,
+			"--user", "aggregator-front-proxy",
+			"--client-dir", configDir,
+		).CombinedOutput()
+		if err != nil {
+			return errors.NewError(fmt.Sprintf("failed generating client certificate, command output: %s\nerror: %v", out, err))
+		}
+
+		err = h.hostHelper.UploadFileToContainer(cacertPath, aggregatorCACertPath)
+		if err != nil {
+			return err
+		}
+		err = h.hostHelper.UploadFileToContainer(certPath, aggregatorCertPath)
+		if err != nil {
+			return err
+		}
+		err = h.hostHelper.UploadFileToContainer(keyPath, aggregatorKeyPath)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	cfg.JenkinsPipelineConfig.TemplateName = "jenkins-persistent"

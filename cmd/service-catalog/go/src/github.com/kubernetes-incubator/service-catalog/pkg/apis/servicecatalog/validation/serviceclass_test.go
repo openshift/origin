@@ -144,6 +144,15 @@ func TestValidateServiceClass(t *testing.T) {
 			}(),
 			valid: false,
 		},
+		{
+			name: "invalid serviceClass - no plans",
+			serviceClass: func() *servicecatalog.ServiceClass {
+				s := validServiceClass()
+				s.Plans = nil
+				return s
+			}(),
+			valid: false,
+		},
 	}
 
 	for _, tc := range cases {

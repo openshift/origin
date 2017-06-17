@@ -52,9 +52,6 @@ var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(buildLog).To(o.ContainSubstring("MEMORY=209715200"))
 			o.Expect(buildLog).To(o.ContainSubstring("MEMORYSWAP=209715200"))
-			o.Expect(buildLog).To(o.ContainSubstring("SHARES=61"))
-			o.Expect(buildLog).To(o.ContainSubstring("PERIOD=100000"))
-			o.Expect(buildLog).To(o.ContainSubstring("QUOTA=6000"))
 
 			events, err := oc.KubeClient().Core().Events(oc.Namespace()).Search(kapi.Scheme, br.Build)
 			o.Expect(err).NotTo(o.HaveOccurred(), "Should be able to get events from the build")

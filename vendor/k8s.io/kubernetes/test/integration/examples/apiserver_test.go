@@ -38,7 +38,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/cert"
-	apiregistrationv1alpha1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1alpha1"
+	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	kubeaggregatorserver "k8s.io/kube-aggregator/pkg/cmd/server"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
@@ -303,17 +303,18 @@ func TestAggregatedAPIServer(t *testing.T) {
 		t.Fatal(err)
 	}
 	aggregatorClient := aggregatorclient.NewForConfigOrDie(aggregatorClientConfig)
-	_, err = aggregatorClient.ApiregistrationV1alpha1().APIServices().Create(&apiregistrationv1alpha1.APIService{
+	_, err = aggregatorClient.ApiregistrationV1beta1().APIServices().Create(&apiregistrationv1beta1.APIService{
 		ObjectMeta: metav1.ObjectMeta{Name: "v1alpha1.wardle.k8s.io"},
-		Spec: apiregistrationv1alpha1.APIServiceSpec{
-			Service: &apiregistrationv1alpha1.ServiceReference{
+		Spec: apiregistrationv1beta1.APIServiceSpec{
+			Service: &apiregistrationv1beta1.ServiceReference{
 				Namespace: "kube-wardle",
 				Name:      "api",
 			},
-			Group:    "wardle.k8s.io",
-			Version:  "v1alpha1",
-			CABundle: wardleCA,
-			Priority: 200,
+			Group:                "wardle.k8s.io",
+			Version:              "v1alpha1",
+			CABundle:             wardleCA,
+			GroupPriorityMinimum: 200,
+			VersionPriority:      200,
 		},
 	})
 	if err != nil {
@@ -327,14 +328,15 @@ func TestAggregatedAPIServer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = aggregatorClient.ApiregistrationV1alpha1().APIServices().Create(&apiregistrationv1alpha1.APIService{
+	_, err = aggregatorClient.ApiregistrationV1beta1().APIServices().Create(&apiregistrationv1beta1.APIService{
 		ObjectMeta: metav1.ObjectMeta{Name: "v1."},
-		Spec: apiregistrationv1alpha1.APIServiceSpec{
+		Spec: apiregistrationv1beta1.APIServiceSpec{
 			// register this as a loca service so it doesn't try to lookup the default kubernetes service
 			// which will have an unroutable IP address since its fake.
-			Group:    "",
-			Version:  "v1",
-			Priority: 100,
+			Group:                "",
+			Version:              "v1",
+			GroupPriorityMinimum: 100,
+			VersionPriority:      100,
 		},
 	})
 	if err != nil {
