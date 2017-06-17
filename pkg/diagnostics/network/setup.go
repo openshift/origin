@@ -35,7 +35,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 
 	for _, name := range nsList {
 		// Create a new namespace for network diagnostics
-		ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}}
+		ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name, Annotations: map[string]string{"openshift.io/node-selector": ""}}}
 		if _, err := d.KubeClient.Core().Namespaces().Create(ns); err != nil {
 			return fmt.Errorf("Creating namespace %q failed: %v", name, err)
 		}
