@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 025cf64af40a8502ef0fb9efe85b2a1caf46278d
+%global commit 399beca0370b2a253597910ba203eb4002725702
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.113 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=025cf64
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.114 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=399beca
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.114
+Version:        3.6.115
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -656,6 +656,64 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Jun 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.115-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console c747505
+  (smunilla@redhat.com)
+- (WIP) Support valueFrom syntax for build env vars (#14143)
+  (cdaley@redhat.com)
+- install service catalog w/ oc cluster up (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a5253ad733227bb825a62bf4f170cdc29c40099c (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  178424f9fcf67f3d524e75992db11159e9814b81 (dmcphers+openshiftbot@redhat.com)
+- set cgroup parent on build child containers (bparees@redhat.com)
+- Autoscaler should GC via autoscaling v1 (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  fe95b42008af2d72302d032dc7962803193e8bfd (dmcphers+openshiftbot@redhat.com)
+- Add hack/verify-generated-json-codecs.sh to find unexpected codecs
+  (stefan.schimanski@gmail.com)
+- UPSTREAM: <carry>: remove JSON codec (jliggitt@redhat.com)
+- UPSTREAM: k8s.io/metrics: <carry>: remove JSON codec (jliggitt@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  370db11a5c6ecb89513d8ddacaf77d2ef69da6e0 (dmcphers+openshiftbot@redhat.com)
+- Remove generated_certs.d from vendored docker in service-catalog, as it
+  breaks checkout on windows. (avagarwa@redhat.com)
+- Add template.openshift.io/expose annotation for use with tsb bind
+  (jminter@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6afcb56ae11d5d8e40a7d9118c117cf1bedfa3df (dmcphers+openshiftbot@redhat.com)
+- add prioritization for aggregation (deads@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  41976c1106ca25fa7b51632b440838e8bf6d25ed (bparees@redhat.com)
+- Update openapi, scc sorting (jliggitt@redhat.com)
+- UPSTREAM: <carry>: SCC FSType none (jliggitt@redhat.com)
+- Add description parsing to allow subtree merges (jpeeler@redhat.com)
+- Remove generated_certs.d from vendored docker in cluster-capacity
+  (avagarwa@redhat.com)
+- UPSTREAM: 47003: Fix sorting of aggregate errors for golang 1.7.
+  (avagarwa@redhat.com)
+- UPSTREAM: 46800: generated (deads@redhat.com)
+- UPSTREAM: 46800: separate group and version priority (deads@redhat.com)
+- UPSTREAM: 45085: kube-apiserver: check upgrade header to detect upgrade
+  connections (deads@redhat.com)
+- UPSTREAM: 45247: generated: Promote apiregistration from v1alpha1 to v1beta1
+  (deads@redhat.com)
+- UPSTREAM: 45247: Promote apiregistration from v1alpha1 to v1beta1
+  (deads@redhat.com)
+- update manage-node to support multiple output formats (jvallejo@redhat.com)
+- service-catalog: do not build user-broker (jpeeler@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from c91fecb..568a7b9 (jpeeler@redhat.com)
+- Add DefaultIOAccounting to all openshift services (ccoleman@redhat.com)
+- UPSTREAM: 47516: Fix getInstancesByNodeNames for AWS (hekumar@redhat.com)
+- UPSTREAM: gophercloud/gophercloud: 383: support HTTP Multiple Choices in
+  pagination (hchen@redhat.com)
+- UPSTREAM: 47003: Remove duplicate errors from an aggregate error input. Helps
+  Helps with some scheduler errors that fill the log enormously.
+  (avagarwa@redhat.com)
+- issue #495. Use openshift-ansible for logging and metrics in 'oc cluster up'
+  (jcantril@redhat.com)
+
 * Fri Jun 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.114-1
 - Donot serve certificate content for Non-SSL routes (pcameron@redhat.com)
 - give template instance controller admin permissions (jminter@redhat.com)
