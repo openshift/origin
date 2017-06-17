@@ -12,8 +12,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 )
 
 // DockercfgTokenDeletedControllerOptions contains options for the DockercfgTokenDeletedController
@@ -34,8 +35,8 @@ func NewDockercfgTokenDeletedController(secrets informers.SecretInformer, cl kcl
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *api.Secret:
-					return t.Type == api.SecretTypeServiceAccountToken
+				case *v1.Secret:
+					return t.Type == v1.SecretTypeServiceAccountToken
 				default:
 					utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
 					return false
@@ -74,7 +75,7 @@ func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
 
 // secretDeleted reacts to a token secret being deleted by looking for a corresponding dockercfg secret and deleting it if it exists
 func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
-	tokenSecret, ok := obj.(*api.Secret)
+	tokenSecret, ok := obj.(*v1.Secret)
 	if !ok {
 		return
 	}
@@ -97,10 +98,10 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 }
 
 // findDockercfgSecret checks all the secrets in the namespace to see if the token secret has any existing dockercfg secrets that reference it
-func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *api.Secret) ([]*api.Secret, error) {
-	dockercfgSecrets := []*api.Secret{}
+func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *v1.Secret) ([]*v1.Secret, error) {
+	dockercfgSecrets := []*v1.Secret{}
 
-	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(api.SecretTypeDockercfg)).String()}
+	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(v1.SecretTypeDockercfg)).String()}
 	potentialSecrets, err := e.client.Core().Secrets(tokenSecret.Namespace).List(options)
 	if err != nil {
 		return nil, err

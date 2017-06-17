@@ -24,18 +24,18 @@ func (c *ServiceServingCertsControllerOptions) RunController(ctx ControllerConte
 	}
 
 	servingCertController := servingcertcontroller.NewServiceServingCertController(
-		ctx.InternalKubeInformers.Core().InternalVersion().Services(),
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
-		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
-		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
+		ctx.ExternalKubeInformers.Core().V1().Services(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
+		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
 		"cluster.local",
 		2*time.Minute,
 	)
 	servingCertUpdateController := servingcertcontroller.NewServiceServingCertUpdateController(
-		ctx.InternalKubeInformers.Core().InternalVersion().Services(),
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
-		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
+		ctx.ExternalKubeInformers.Core().V1().Services(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceServingCertServiceAccountName).Core(),
 		ca,
 		"cluster.local",
 		20*time.Minute,

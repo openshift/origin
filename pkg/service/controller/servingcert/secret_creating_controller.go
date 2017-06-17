@@ -16,8 +16,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -88,12 +89,12 @@ func NewServiceServingCertController(services informers.ServiceInformer, secrets
 	services.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
-				service := obj.(*kapi.Service)
+				service := obj.(*v1.Service)
 				glog.V(4).Infof("Adding service %s", service.Name)
 				sc.enqueueService(obj)
 			},
 			UpdateFunc: func(old, cur interface{}) {
-				service := cur.(*kapi.Service)
+				service := cur.(*v1.Service)
 				glog.V(4).Infof("Updating service %s", service.Name)
 				// Resync on service object relist.
 				sc.enqueueService(cur)
@@ -137,7 +138,7 @@ func (sc *ServiceServingCertController) Run(workers int, stopCh <-chan struct{})
 // deleteSecret handles the case when the service certificate secret is manually removed.
 // In that case the secret will be automatically recreated.
 func (sc *ServiceServingCertController) deleteSecret(obj interface{}) {
-	secret, ok := obj.(*kapi.Secret)
+	secret, ok := obj.(*v1.Secret)
 	if !ok {
 		return
 	}
@@ -151,14 +152,14 @@ func (sc *ServiceServingCertController) deleteSecret(obj interface{}) {
 	if err != nil {
 		return
 	}
-	service := serviceObj.(*kapi.Service)
+	service := serviceObj.(*v1.Service)
 	glog.V(4).Infof("Recreating secret for service %q", service.Namespace+"/"+service.Name)
 
 	sc.enqueueService(serviceObj)
 }
 
 func (sc *ServiceServingCertController) enqueueService(obj interface{}) {
-	_, ok := obj.(*kapi.Service)
+	_, ok := obj.(*v1.Service)
 	if !ok {
 		return
 	}
@@ -216,7 +217,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 		return nil
 	}
 
-	if !sc.requiresCertGeneration(obj.(*kapi.Service)) {
+	if !sc.requiresCertGeneration(obj.(*v1.Service)) {
 		return nil
 	}
 
@@ -225,7 +226,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	if err != nil {
 		return err
 	}
-	service := t.(*kapi.Service)
+	service := t.(*v1.Service)
 	if service.Annotations == nil {
 		service.Annotations = map[string]string{}
 	}
@@ -236,7 +237,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	servingCert, err := sc.ca.MakeServerCert(
 		sets.NewString(dnsName, fqDNSName),
 		certificateLifetime,
-		extensions.ServiceServerCertificateExtension(service),
+		extensions.ServiceServerCertificateExtensionV1(service),
 	)
 	if err != nil {
 		return err
@@ -246,7 +247,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 		return err
 	}
 
-	secret := &kapi.Secret{
+	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: service.Namespace,
 			Name:      service.Annotations[ServingCertSecretAnnotation],
@@ -256,10 +257,10 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 				ServingCertExpiryAnnotation: servingCert.Certs[0].NotAfter.Format(time.RFC3339),
 			},
 		},
-		Type: kapi.SecretTypeTLS,
+		Type: v1.SecretTypeTLS,
 		Data: map[string][]byte{
-			kapi.TLSCertKey:       certBytes,
-			kapi.TLSPrivateKeyKey: keyBytes,
+			v1.TLSCertKey:       certBytes,
+			v1.TLSPrivateKeyKey: keyBytes,
 		},
 	}
 
@@ -314,7 +315,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 	return err
 }
 
-func getNumFailures(service *kapi.Service) int {
+func getNumFailures(service *v1.Service) int {
 	numFailuresString := service.Annotations[ServingCertErrorNumAnnotation]
 	if len(numFailuresString) == 0 {
 		return 0
@@ -327,7 +328,7 @@ func getNumFailures(service *kapi.Service) int {
 	return numFailures
 }
 
-func (sc *ServiceServingCertController) requiresCertGeneration(service *kapi.Service) bool {
+func (sc *ServiceServingCertController) requiresCertGeneration(service *v1.Service) bool {
 	secretName := service.Annotations[ServingCertSecretAnnotation]
 	if len(secretName) == 0 {
 		return false

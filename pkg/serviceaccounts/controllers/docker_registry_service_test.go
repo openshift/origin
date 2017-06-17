@@ -11,9 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
@@ -24,11 +24,11 @@ const (
 )
 
 var (
-	registryService = &kapi.Service{
+	registryService = &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: registryName, Namespace: registryNamespace},
-		Spec: kapi.ServiceSpec{
+		Spec: v1.ServiceSpec{
 			ClusterIP: "172.16.123.123",
-			Ports:     []kapi.ServicePort{{Port: 1235}},
+			Ports:     []v1.ServicePort{{Port: 1235}},
 		},
 	}
 )
@@ -47,7 +47,7 @@ func controllerSetup(startingObjects []runtime.Object, t *testing.T, stopCh <-ch
 	informerFactory := informers.NewSharedInformerFactory(kubeclient, controller.NoResyncPeriodFunc())
 
 	controller := NewDockerRegistryServiceController(
-		informerFactory.Core().InternalVersion().Secrets(),
+		informerFactory.Core().V1().Secrets(),
 		kubeclient,
 		DockerRegistryServiceControllerOptions{
 			Resync:                10 * time.Minute,
@@ -81,10 +81,10 @@ func TestNoChangeNoOp(t *testing.T) {
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{registryService}, t, stopChannel)
 	kubeclient.PrependReactor("update", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, fmt.Errorf("%v unexpected", action)
+		return true, &v1.Secret{}, fmt.Errorf("%v unexpected", action)
 	})
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, fmt.Errorf("%v unexpected", action)
+		return true, &v1.Secret{}, fmt.Errorf("%v unexpected", action)
 	})
 	controller.syncRegistryLocationHandler = wrapHandler(received, controller.syncRegistryLocationChange, t)
 	informerFactory.Start(stopChannel)
@@ -113,7 +113,7 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 	received := make(chan bool)
 	updatedSecret := make(chan bool)
 
-	newStyleDockercfgSecret := &kapi.Secret{
+	newStyleDockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
@@ -121,8 +121,8 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 				ServiceAccountTokenSecretNameKey:   "sa-token-secret",
 			},
 		},
-		Type: kapi.SecretTypeDockercfg,
-		Data: map[string][]byte{kapi.DockerConfigKey: []byte("{}")},
+		Type: v1.SecretTypeDockercfg,
+		Data: map[string][]byte{v1.DockerConfigKey: []byte("{}")},
 	}
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{newStyleDockercfgSecret}, t, stopChannel)
@@ -166,9 +166,9 @@ func TestUpdateNewStyleSecret(t *testing.T) {
 		switch {
 		case action.Matches("update", "secrets"):
 			updateService := action.(clientgotesting.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
+			secret := updateService.GetObject().(*v1.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+			if err := json.Unmarshal(secret.Data[v1.DockerConfigKey], actualDockercfg); err != nil {
 				t.Errorf("unexpected err %v", err)
 				continue
 			}
@@ -203,15 +203,15 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected err %v", err)
 	}
-	oldStyleDockercfgSecret := &kapi.Secret{
+	oldStyleDockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
 			},
 		},
-		Type: kapi.SecretTypeDockercfg,
-		Data: map[string][]byte{kapi.DockerConfigKey: dockercfgContent},
+		Type: v1.SecretTypeDockercfg,
+		Data: map[string][]byte{v1.DockerConfigKey: dockercfgContent},
 	}
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{oldStyleDockercfgSecret}, t, stopChannel)
@@ -256,9 +256,9 @@ func TestUpdateOldStyleSecretWithKey(t *testing.T) {
 		switch {
 		case action.Matches("update", "secrets"):
 			updateService := action.(clientgotesting.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
+			secret := updateService.GetObject().(*v1.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+			if err := json.Unmarshal(secret.Data[v1.DockerConfigKey], actualDockercfg); err != nil {
 				t.Errorf("unexpected err %v", err)
 				continue
 			}
@@ -281,25 +281,25 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 	received := make(chan bool)
 	updatedSecret := make(chan bool)
 
-	oldStyleDockercfgSecret := &kapi.Secret{
+	oldStyleDockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
 			},
 		},
-		Type: kapi.SecretTypeDockercfg,
-		Data: map[string][]byte{kapi.DockerConfigKey: []byte("{}")},
+		Type: v1.SecretTypeDockercfg,
+		Data: map[string][]byte{v1.DockerConfigKey: []byte("{}")},
 	}
-	tokenSecret := &kapi.Secret{
+	tokenSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "sa-token-secret", Namespace: registryNamespace,
 			Annotations: map[string]string{
 				ServiceAccountTokenSecretNameKey: "sa-token-secret",
 			},
 		},
-		Type: kapi.SecretTypeServiceAccountToken,
-		Data: map[string][]byte{kapi.ServiceAccountTokenKey: []byte("the-sa-bearer-token")},
+		Type: v1.SecretTypeServiceAccountToken,
+		Data: map[string][]byte{v1.ServiceAccountTokenKey: []byte("the-sa-bearer-token")},
 	}
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{tokenSecret, oldStyleDockercfgSecret}, t, stopChannel)
@@ -347,9 +347,9 @@ func TestUpdateOldStyleSecretWithoutKey(t *testing.T) {
 		switch {
 		case action.Matches("update", "secrets"):
 			updateService := action.(clientgotesting.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
+			secret := updateService.GetObject().(*v1.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+			if err := json.Unmarshal(secret.Data[v1.DockerConfigKey], actualDockercfg); err != nil {
 				t.Errorf("unexpected err %v", err)
 				continue
 			}
@@ -384,7 +384,7 @@ func TestClearSecretAndRecreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected err %v", err)
 	}
-	oldStyleDockercfgSecret := &kapi.Secret{
+	oldStyleDockercfgSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "secret-name", Namespace: registryNamespace,
 			Annotations: map[string]string{
@@ -392,8 +392,8 @@ func TestClearSecretAndRecreate(t *testing.T) {
 				ServiceAccountTokenSecretNameKey:   "sa-token-secret",
 			},
 		},
-		Type: kapi.SecretTypeDockercfg,
-		Data: map[string][]byte{kapi.DockerConfigKey: dockercfgContent},
+		Type: v1.SecretTypeDockercfg,
+		Data: map[string][]byte{v1.DockerConfigKey: dockercfgContent},
 	}
 
 	kubeclient, fakeWatch, controller, informerFactory := controllerSetup([]runtime.Object{registryService, oldStyleDockercfgSecret}, t, stopChannel)
@@ -429,9 +429,9 @@ func TestClearSecretAndRecreate(t *testing.T) {
 		switch {
 		case action.Matches("update", "secrets"):
 			updateService := action.(clientgotesting.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
+			secret := updateService.GetObject().(*v1.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+			if err := json.Unmarshal(secret.Data[v1.DockerConfigKey], actualDockercfg); err != nil {
 				t.Errorf("unexpected err %v", err)
 				continue
 			}
@@ -476,9 +476,9 @@ func TestClearSecretAndRecreate(t *testing.T) {
 		switch {
 		case action.Matches("update", "secrets"):
 			updateService := action.(clientgotesting.UpdateAction)
-			secret := updateService.GetObject().(*kapi.Secret)
+			secret := updateService.GetObject().(*v1.Secret)
 			actualDockercfg := &credentialprovider.DockerConfig{}
-			if err := json.Unmarshal(secret.Data[kapi.DockerConfigKey], actualDockercfg); err != nil {
+			if err := json.Unmarshal(secret.Data[v1.DockerConfigKey], actualDockercfg); err != nil {
 				t.Errorf("unexpected err %v", err)
 				continue
 			}
