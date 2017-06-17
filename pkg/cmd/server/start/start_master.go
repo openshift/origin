@@ -606,9 +606,17 @@ func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupV
 type genericInformers struct {
 	kinformers.SharedInformerFactory
 	generic []GenericResourceInformer
+	// bias is a map that tries loading an informer from another GVR before using the original
+	bias map[schema.GroupVersionResource]schema.GroupVersionResource
 }
 
 func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+	if try, ok := i.bias[resource]; ok {
+		if res, err := i.ForResource(try); err == nil {
+			return res, nil
+		}
+	}
+
 	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
 	if firstErr == nil {
 		return informer, nil
@@ -692,6 +700,13 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 						return oc.InternalKubeInformers.ForResource(resource)
 					}),
+				},
+				bias: map[schema.GroupVersionResource]schema.GroupVersionResource{
+					{Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: runtime.APIVersionInternal},
+					{Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: "v1beta1"}: {Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: runtime.APIVersionInternal},
+					{Group: "rbac.authorization.k8s.io", Resource: "roles", Version: "v1beta1"}:               {Group: "rbac.authorization.k8s.io", Resource: "roles", Version: runtime.APIVersionInternal},
+					{Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: runtime.APIVersionInternal},
+					{Group: "", Resource: "securitycontextconstraints", Version: "v1"}:                        {Group: "", Resource: "securitycontextconstraints", Version: runtime.APIVersionInternal},
 				},
 			},
 			Options:            *controllerManagerOptions,
