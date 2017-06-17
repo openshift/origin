@@ -28,9 +28,10 @@ pushd "${OS_ROOT}" > /dev/null
     ${EXAMPLES}/jenkins \
     ${EXAMPLES}/jenkins/pipeline \
     ${EXAMPLES}/quickstarts/... \
-	${EXAMPLES}/logging/... \
-	${EXAMPLES}/heapster/... \
-	${EXAMPLES}/prometheus/... \
+    ${EXAMPLES}/logging/... \
+    ${EXAMPLES}/heapster/... \
+    ${EXAMPLES}/prometheus/... \
+    ${EXAMPLES}/service-catalog/... \
     pkg/image/admission/imagepolicy/api/v1/...
 
 "$(os::util::find::gopath_binary go-bindata)" \

@@ -44,8 +44,6 @@ const (
 	// CmdUpRecommendedName is the recommended command name
 	CmdUpRecommendedName = "up"
 
-	openshiftNamespace = "openshift"
-
 	initialUser     = "developer"
 	initialPassword = "developer"
 
@@ -116,6 +114,7 @@ var (
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 		"logging":                     "examples/logging/logging-deployer.yaml",
+		"service catalog":             "examples/service-catalog/service-catalog.yaml",
 	}
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
@@ -177,15 +176,16 @@ func conditionalTask(name string, fn taskFunc, condition conditionFunc) task {
 }
 
 type CommonStartConfig struct {
-	ImageVersion              string
-	Image                     string
-	ImageStreams              string
-	DockerMachine             string
-	ShouldCreateDockerMachine bool
-	SkipRegistryCheck         bool
-	ShouldInstallMetrics      bool
-	ShouldInstallLogging      bool
-	PortForwarding            bool
+	ImageVersion                string
+	Image                       string
+	ImageStreams                string
+	DockerMachine               string
+	ShouldCreateDockerMachine   bool
+	SkipRegistryCheck           bool
+	ShouldInstallMetrics        bool
+	ShouldInstallLogging        bool
+	ShouldInstallServiceCatalog bool
+	PortForwarding              bool
 
 	Out   io.Writer
 	Tasks []task
@@ -253,6 +253,7 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringArrayVarP(&config.Environment, "env", "e", config.Environment, "Specify a key-value pair for an environment variable to set on OpenShift container")
 	flags.BoolVar(&config.ShouldInstallMetrics, "metrics", false, "Install metrics (experimental)")
 	flags.BoolVar(&config.ShouldInstallLogging, "logging", false, "Install logging (experimental)")
+	flags.BoolVar(&config.ShouldInstallServiceCatalog, "service-catalog", false, "Install service catalog (experimental).")
 	flags.StringVar(&config.HTTPProxy, "http-proxy", "", "HTTP proxy to use for master and builds")
 	flags.StringVar(&config.HTTPSProxy, "https-proxy", "", "HTTPS proxy to use for master and builds")
 	flags.StringArrayVar(&config.NoProxy, "no-proxy", config.NoProxy, "List of hosts or subnets for which a proxy should not be used")
@@ -396,6 +397,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 		return c.ShouldInstallLogging && c.ShouldInitializeData()
 	}))
 
+	// Install service catalog
+	c.addTask(conditionalTask("Installing service catalog", c.InstallServiceCatalog, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
+	}))
+
 	// Login with an initial default user
 	c.addTask(conditionalTask("Login to server", c.Login, c.ShouldCreateUser))
 
@@ -412,6 +418,10 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Display server information
 	c.addTask(simpleTask("Server Information", c.ServerInfo))
+
+	c.addTask(conditionalTask("Service Catalog Instructions", c.ServiceCatalogInstructions, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
+	}))
 
 	return nil
 }
@@ -465,6 +475,9 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 	}
 	if !bool(glog.V(1)) {
 		c.ServerInfo(out)
+		if c.ShouldInstallServiceCatalog {
+			c.ServiceCatalogInstructions(out)
+		}
 	}
 	return nil
 }
@@ -769,7 +782,7 @@ func (c *CommonStartConfig) DetermineServerIP(out io.Writer) error {
 // updateNoProxy will add some default values to the NO_PROXY setting
 // if they are not present
 func (c *ClientStartConfig) updateNoProxy() {
-	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, "172.30.0.0/8"}
+	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, openshift.ServiceCatalogServiceIP, "172.30.0.0/8"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
 	if err == nil {
 		values = append(values, ipFromServer)
@@ -815,6 +828,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		HTTPSProxy:               c.HTTPSProxy,
 		NoProxy:                  c.NoProxy,
 		DockerRoot:               dockerRoot,
+		ServiceCatalog:           c.ShouldInstallServiceCatalog,
 	}
 	if c.ShouldInstallMetrics {
 		opt.MetricsHost = openshift.MetricsHost(c.RoutingSuffix, c.ServerIP)
@@ -910,13 +924,13 @@ func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
 	imageStreamLocations := map[string]string{
 		c.ImageStreams: imageStreams[c.ImageStreams],
 	}
-	return c.importObjects(out, openshiftNamespace, imageStreamLocations)
+	return c.importObjects(out, openshift.OpenshiftNamespace, imageStreamLocations)
 }
 
 // ImportTemplates imports default templates into the server
 // TODO: Use templates compiled into oc
 func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
-	if err := c.importObjects(out, openshiftNamespace, templateLocations); err != nil {
+	if err := c.importObjects(out, openshift.OpenshiftNamespace, templateLocations); err != nil {
 		return err
 	}
 	version, err := c.OpenShiftHelper().ServerVersion()
@@ -981,6 +995,20 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
 }
 
+// InstallServiceCatalog will start the installation of service catalog components
+func (c *ClientStartConfig) InstallServiceCatalog(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	publicMaster := c.PublicHostname
+	if len(publicMaster) == 0 {
+		publicMaster = c.ServerIP
+	}
+
+	return c.OpenShiftHelper().InstallServiceCatalog(f, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP))
+}
+
 // Login logs into the new server and sets up a default user and project
 func (c *ClientStartConfig) Login(out io.Writer) error {
 	server := c.OpenShiftHelper().Master(c.ServerIP)
@@ -1031,6 +1059,28 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	msg += c.checkProxySettings()
 
 	fmt.Fprintf(out, msg)
+	return nil
+}
+
+// ServiceCatalogInstructions displays information for enabling access to
+// the template service broker after starting with the service catalog enabled.
+func (c *ClientStartConfig) ServiceCatalogInstructions(out io.Writer) error {
+	msg :=
+		"In order to enable access to the Template Service Broker for use with the " +
+			"Service Catalog, you must first grant unauthenticated access to the " +
+			"template service broker api.\n\n" +
+			"WARNING: Enabling this access allows anyone who can see your cluster api " +
+			"server to provision templates within your cluster, impersonating any user " +
+			"in the cluster (including administrators).  This can be used to gain full " +
+			"administrative access to your cluster.  Do not allow this access unless " +
+			"you fully understand the implications.  To enable unauthenticated access " +
+			"to the template service broker api, run the following command as cluster " +
+			"admin:\n\n" +
+			"oc adm policy add-cluster-role-to-group system:openshift:templateservicebroker-client system:unauthenticated system:authenticated\n\n" +
+			"WARNING: Running the above command allows unauthenticated users to access " +
+			"and potentially exploit your cluster.\n\n"
+	fmt.Fprintf(out, msg)
+
 	return nil
 }
 
