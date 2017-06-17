@@ -2797,7 +2797,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"env": {
 							SchemaProps: spec.SchemaProps{
-								Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+								Description: "env contains additional environment variables you want to pass into a builder container.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -3384,7 +3384,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"env": {
 							SchemaProps: spec.SchemaProps{
-								Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+								Description: "env contains additional environment variables you want to pass into a builder container.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -3462,7 +3462,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"env": {
 							SchemaProps: spec.SchemaProps{
-								Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+								Description: "env contains additional environment variables you want to pass into a builder container.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -3964,7 +3964,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"env": {
 							SchemaProps: spec.SchemaProps{
-								Description: "env contains additional environment variables you want to pass into a build pipeline. ValueFrom is not supported.",
+								Description: "env contains additional environment variables you want to pass into a build pipeline.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -4081,7 +4081,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"env": {
 							SchemaProps: spec.SchemaProps{
-								Description: "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+								Description: "env contains additional environment variables you want to pass into a builder container.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{

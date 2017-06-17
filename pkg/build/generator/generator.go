@@ -193,39 +193,6 @@ func describeBuildRequest(request *buildapi.BuildRequest) string {
 	return desc
 }
 
-// updateBuildEnv updates the strategy environment
-// This will replace the existing variable definitions with provided env
-func updateBuildEnv(strategy *buildapi.BuildStrategy, env []kapi.EnvVar) {
-	var buildEnv *[]kapi.EnvVar
-
-	switch {
-	case strategy.SourceStrategy != nil:
-		buildEnv = &strategy.SourceStrategy.Env
-	case strategy.DockerStrategy != nil:
-		buildEnv = &strategy.DockerStrategy.Env
-	case strategy.CustomStrategy != nil:
-		buildEnv = &strategy.CustomStrategy.Env
-	case strategy.JenkinsPipelineStrategy != nil:
-		buildEnv = &strategy.JenkinsPipelineStrategy.Env
-	}
-
-	newEnv := []kapi.EnvVar{}
-	for _, e := range *buildEnv {
-		exists := false
-		for _, n := range env {
-			if e.Name == n.Name {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			newEnv = append(newEnv, e)
-		}
-	}
-	newEnv = append(newEnv, env...)
-	*buildEnv = newEnv
-}
-
 // Adds new Build Args to existing Build Args. Overwrites existing ones
 func updateBuildArgs(oldArgs *[]kapi.EnvVar, newArgs []kapi.EnvVar) []kapi.EnvVar {
 	combined := make(map[string]string)
@@ -304,7 +271,7 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
+		buildutil.UpdateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker build args
@@ -431,7 +398,7 @@ func (g *BuildGenerator) clone(ctx apirequest.Context, request *buildapi.BuildRe
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
 
 	if len(request.Env) > 0 {
-		updateBuildEnv(&newBuild.Spec.Strategy, request.Env)
+		buildutil.UpdateBuildEnv(newBuild, request.Env)
 	}
 
 	// Update the Docker build args

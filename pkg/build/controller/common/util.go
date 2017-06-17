@@ -6,12 +6,18 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	kapi "k8s.io/kubernetes/pkg/api"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
+	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	envutil "github.com/openshift/origin/pkg/util/env"
 
 	"github.com/golang/glog"
 )
@@ -135,4 +141,58 @@ func HasBuildPodNameAnnotation(build *buildapi.Build) bool {
 	}
 	_, hasAnnotation := build.Annotations[buildapi.BuildPodNameAnnotation]
 	return hasAnnotation
+}
+
+// ErrEnvVarResolver is an error type for build environment resolution errors
+type ErrEnvVarResolver struct {
+	message kerrors.Aggregate
+}
+
+// Error returns a string representation of the error
+func (e ErrEnvVarResolver) Error() string {
+	return fmt.Sprintf("%v", e.message)
+}
+
+// ResolveValueFrom resolves valueFrom references in build environment variables
+// including references to existing environment variables, jsonpath references to
+// the build object, secrets, and configmaps.
+// The build.Strategy.BuildStrategy.Env is replaced with the resolved references.
+func ResolveValueFrom(pod *kapi.Pod, client kclientset.Interface) error {
+	var outputEnv []kapi.EnvVar
+	var allErrs []error
+
+	build, version, err := buildadmission.GetBuildFromPod(pod)
+	if err != nil {
+		return nil
+	}
+
+	mapEnvs := map[string]string{}
+	mapping := expansion.MappingFuncFor(mapEnvs)
+	inputEnv := buildutil.GetBuildEnv(build)
+	store := envutil.NewResourceStore()
+
+	for _, e := range inputEnv {
+		var value string
+		var err error
+
+		if e.Value != "" {
+			value = expansion.Expand(e.Value, mapping)
+		} else if e.ValueFrom != nil {
+			value, err = envutil.GetEnvVarRefValue(nil, client, build.Namespace, store, e.ValueFrom, build, nil)
+			if err != nil {
+				allErrs = append(allErrs, err)
+				continue
+			}
+		}
+
+		outputEnv = append(outputEnv, kapi.EnvVar{Name: e.Name, Value: value})
+		mapEnvs[e.Name] = value
+	}
+
+	if len(allErrs) > 0 {
+		return ErrEnvVarResolver{utilerrors.NewAggregate(allErrs)}
+	}
+
+	buildutil.SetBuildEnv(build, outputEnv)
+	return buildadmission.SetBuildInPod(pod, build, version)
 }

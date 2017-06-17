@@ -169,6 +169,13 @@
 // test/extended/testdata/test-s2i-no-outputname.json
 // test/extended/testdata/test-secret-build.json
 // test/extended/testdata/test-secret.json
+// test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml
+// test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml
+// test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml
+// test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml
+// test/extended/testdata/valuefrom/test-configmap.yaml
+// test/extended/testdata/valuefrom/test-is.json
+// test/extended/testdata/valuefrom/test-secret.yaml
 // test/extended/testdata/weighted-router.yaml
 // test/integration/testdata/project-request-template-with-quota.yaml
 // test/integration/testdata/test-buildcli-beta2.json
@@ -9808,6 +9815,356 @@ func testExtendedTestdataTestSecretJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/test-secret.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml = []byte(`
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: '7.0'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+                fieldPath: metadata.nofield
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: nokey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: nousername
+
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mys2itest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: 7.0/test/test-app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/php-70-centos7
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.nofield
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: nokey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: nousername
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataValuefromFailedStiBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromFailedStiBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml = []byte(`
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mydockertest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: '7.0'
+  strategy:
+    type: Docker
+    dockerStrategy:
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+                fieldPath: metadata.name
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: mykey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: username
+        - name: FIELDREF_CLONE_ENV
+          value: $(FIELDREF_ENV)
+        - name: FIELDREF_CLONE_CLONE_ENV
+          value: $(FIELDREF_CLONE_ENV)
+        - name: UNAVAILABLE_ENV
+          value: $(SOME_OTHER_ENV)
+        - name: ESCAPED_ENV
+          value: $$(MY_ESCAPED_VALUE)
+
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: mys2itest
+  labels:
+    name: test
+spec:
+  triggers: []
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/sclorg/s2i-php-container'
+    contextDir: 7.0/test/test-app
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/php-70-centos7
+      env:
+        - name: BUILD_LOGLEVEL
+          value: "5"
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CONFIGMAPKEYREF_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: myconfigmap
+              key: mykey
+        - name: SECRETKEYREF_ENV
+          valueFrom:
+            secretKeyRef:
+              name: mysecret
+              key: username
+        - name: FIELDREF_CLONE_ENV 
+          value: $(FIELDREF_ENV)
+        - name: FIELDREF_CLONE_CLONE_ENV
+          value: $(FIELDREF_CLONE_ENV)
+        - name: UNAVAILABLE_ENV
+          value: $(SOME_OTHER_ENV)
+        - name: ESCAPED_ENV
+          value: $$(MY_ESCAPED_VALUE)
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'test:latest'
+    imageLabels:
+      - name: user-specified-label
+        value: arbitrary-value
+  resources: {}
+  postCommit: {}
+  nodeSelector: null
+status:
+  lastVersion: 0
+`)
+
+func testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml, nil
+}
+
+func testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromTestConfigmapYaml = []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myconfigmap
+data:
+  mykey: myvalue
+`)
+
+func testExtendedTestdataValuefromTestConfigmapYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromTestConfigmapYaml, nil
+}
+
+func testExtendedTestdataValuefromTestConfigmapYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromTestConfigmapYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-configmap.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromTestIsJson = []byte(`{
+  "kind": "ImageStream",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "test"
+  }
+}
+`)
+
+func testExtendedTestdataValuefromTestIsJsonBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromTestIsJson, nil
+}
+
+func testExtendedTestdataValuefromTestIsJson() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromTestIsJsonBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-is.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataValuefromTestSecretYaml = []byte(`apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+data:
+  password: cGFzc3dvcmQ=
+  username: ZGV2ZWxvcGVy
+type: kubernetes.io/basic-auth
+`)
+
+func testExtendedTestdataValuefromTestSecretYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataValuefromTestSecretYaml, nil
+}
+
+func testExtendedTestdataValuefromTestSecretYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataValuefromTestSecretYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/valuefrom/test-secret.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19935,6 +20292,13 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-s2i-no-outputname.json": testExtendedTestdataTestS2iNoOutputnameJson,
 	"test/extended/testdata/test-secret-build.json": testExtendedTestdataTestSecretBuildJson,
 	"test/extended/testdata/test-secret.json": testExtendedTestdataTestSecretJson,
+	"test/extended/testdata/valuefrom/failed-docker-build-value-from-config.yaml": testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/valuefrom/failed-sti-build-value-from-config.yaml": testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml,
+	"test/extended/testdata/valuefrom/successful-docker-build-value-from-config.yaml": testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml,
+	"test/extended/testdata/valuefrom/successful-sti-build-value-from-config.yaml": testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml,
+	"test/extended/testdata/valuefrom/test-configmap.yaml": testExtendedTestdataValuefromTestConfigmapYaml,
+	"test/extended/testdata/valuefrom/test-is.json": testExtendedTestdataValuefromTestIsJson,
+	"test/extended/testdata/valuefrom/test-secret.yaml": testExtendedTestdataValuefromTestSecretYaml,
 	"test/extended/testdata/weighted-router.yaml": testExtendedTestdataWeightedRouterYaml,
 	"test/integration/testdata/project-request-template-with-quota.yaml": testIntegrationTestdataProjectRequestTemplateWithQuotaYaml,
 	"test/integration/testdata/test-buildcli-beta2.json": testIntegrationTestdataTestBuildcliBeta2Json,
@@ -20327,6 +20691,15 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-s2i-no-outputname.json": &bintree{testExtendedTestdataTestS2iNoOutputnameJson, map[string]*bintree{}},
 				"test-secret-build.json": &bintree{testExtendedTestdataTestSecretBuildJson, map[string]*bintree{}},
 				"test-secret.json": &bintree{testExtendedTestdataTestSecretJson, map[string]*bintree{}},
+				"valuefrom": &bintree{nil, map[string]*bintree{
+					"failed-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromFailedDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+					"failed-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromFailedStiBuildValueFromConfigYaml, map[string]*bintree{}},
+					"successful-docker-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromSuccessfulDockerBuildValueFromConfigYaml, map[string]*bintree{}},
+					"successful-sti-build-value-from-config.yaml": &bintree{testExtendedTestdataValuefromSuccessfulStiBuildValueFromConfigYaml, map[string]*bintree{}},
+					"test-configmap.yaml": &bintree{testExtendedTestdataValuefromTestConfigmapYaml, map[string]*bintree{}},
+					"test-is.json": &bintree{testExtendedTestdataValuefromTestIsJson, map[string]*bintree{}},
+					"test-secret.yaml": &bintree{testExtendedTestdataValuefromTestSecretYaml, map[string]*bintree{}},
+				}},
 				"weighted-router.yaml": &bintree{testExtendedTestdataWeightedRouterYaml, map[string]*bintree{}},
 			}},
 		}},

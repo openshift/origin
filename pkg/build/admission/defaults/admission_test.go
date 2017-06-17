@@ -11,6 +11,7 @@ import (
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -73,9 +74,9 @@ func TestEnvDefaults(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	env := getBuildEnv(build)
+	env := buildutil.GetBuildEnv(build)
 	var1found, var2found := false, false
-	for _, ev := range *env {
+	for _, ev := range env {
 		if ev.Name == "VAR1" {
 			if ev.Value != "VALUE1" {
 				t.Errorf("unexpected value %s", ev.Value)

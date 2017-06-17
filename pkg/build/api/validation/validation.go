@@ -662,8 +662,8 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 		} else if len(kvalidation.IsCIdentifier(ev.Name)) > 0 {
 			allErrs = append(allErrs, field.Invalid(idxPath.Child("name"), ev.Name, cIdentifierErrorMsg))
 		}
-		if ev.ValueFrom != nil {
-			allErrs = append(allErrs, field.Invalid(idxPath.Child("valueFrom"), ev.ValueFrom, "valueFrom is not supported in build strategy environment variables"))
+		if ev.ValueFrom != nil && ev.ValueFrom.ResourceFieldRef != nil {
+			allErrs = append(allErrs, field.Invalid(idxPath.Child("valueFrom").Child("ResourceFieldRef"), ev.Name, "ResourceFieldRef is not valid for valueFrom in build environment variables"))
 		}
 	}
 	return allErrs
