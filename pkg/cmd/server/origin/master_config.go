@@ -26,6 +26,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/authentication/request/headerrequest"
 	"k8s.io/apiserver/pkg/authentication/request/union"
+	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
@@ -767,7 +768,12 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		tokenAuthenticators = append(tokenAuthenticators, bearertoken.New(serviceAccountTokenAuthenticator), paramtoken.New("access_token", serviceAccountTokenAuthenticator, true))
+		tokenAuthenticators = append(
+			tokenAuthenticators,
+			bearertoken.New(serviceAccountTokenAuthenticator),
+			websocket.NewProtocolAuthenticator(serviceAccountTokenAuthenticator),
+			paramtoken.New("access_token", serviceAccountTokenAuthenticator, true),
+		)
 	}
 
 	// OAuth token
@@ -778,7 +784,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		}
 		oauthTokenRequestAuthenticators := []authenticator.Request{
 			bearertoken.New(oauthTokenAuthenticator),
-			// Allow token as access_token param for WebSockets
+			websocket.NewProtocolAuthenticator(oauthTokenAuthenticator),
 			paramtoken.New("access_token", oauthTokenAuthenticator, true),
 		}
 

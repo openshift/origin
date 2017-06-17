@@ -2,11 +2,11 @@ package paramtoken
 
 import (
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/util/wsstream"
 )
 
 // Authenticator provides a way to authenticate tokens provided as a parameter
@@ -28,7 +28,7 @@ func New(param string, auth authenticator.Token, removeParam bool) *Authenticato
 
 func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
 	// Only accept query param auth for websocket connections
-	if !isWebSocketRequest(req) {
+	if !wsstream.IsWebSocketRequest(req) {
 		return nil, false, nil
 	}
 
@@ -43,14 +43,4 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 		req.URL.RawQuery = q.Encode()
 	}
 	return user, ok, err
-}
-
-var (
-	// connectionUpgradeRegex matches any Connection header value that includes upgrade
-	connectionUpgradeRegex = regexp.MustCompile("(^|.*,\\s*)upgrade($|\\s*,)")
-)
-
-// isWebSocketRequest returns true if the incoming request contains connection upgrade headers for WebSockets.
-func isWebSocketRequest(req *http.Request) bool {
-	return connectionUpgradeRegex.MatchString(strings.ToLower(req.Header.Get("Connection"))) && strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
 }
