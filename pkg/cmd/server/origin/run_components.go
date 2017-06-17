@@ -253,8 +253,7 @@ func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetin
 		return
 	}
 	ingressIPController := ingressip.NewIngressIPController(
-		c.InternalKubeInformers.Core().InternalVersion().Services().Informer(),
-		internalKubeClientset,
+		c.ExternalKubeInformers.Core().V1().Services().Informer(),
 		externalKubeClientset,
 		ipNet,
 		defaultIngressIPSyncPeriod,

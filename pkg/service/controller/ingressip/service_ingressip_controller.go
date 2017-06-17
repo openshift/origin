@@ -18,9 +18,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
@@ -68,20 +68,20 @@ type IngressIPController struct {
 	// changeHandler does the work. It can be factored out for unit testing.
 	changeHandler func(change *serviceChange) error
 	// persistenceHandler persists service changes.  It can be factored out for unit testing
-	persistenceHandler func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error
+	persistenceHandler func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error
 }
 
 type serviceChange struct {
 	key                string
-	oldService         *kapi.Service
+	oldService         *v1.Service
 	requeuedAllocation bool
 }
 
 // NewIngressIPController creates a new IngressIPController.
 // TODO this should accept a shared informer
-func NewIngressIPController(services cache.SharedIndexInformer, kc kclientset.Interface, externalKubeClientset kclientsetexternal.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
+func NewIngressIPController(services cache.SharedIndexInformer, kc kclientset.Interface, ipNet *net.IPNet, resyncInterval time.Duration) *IngressIPController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kc.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "ingressip-controller"})
 
 	ic := &IngressIPController{
@@ -144,14 +144,14 @@ func (ic *IngressIPController) enqueueChange(new interface{}, old interface{}) {
 	}
 
 	if old != nil {
-		service, ok := old.(*kapi.Service)
+		service, ok := old.(*v1.Service)
 		if !ok {
 			tombstone, ok := old.(cache.DeletedFinalStateUnknown)
 			if !ok {
 				utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %#v", old))
 				return
 			}
-			service, ok = tombstone.Obj.(*kapi.Service)
+			service, ok = tombstone.Obj.(*v1.Service)
 			if !ok {
 				utilruntime.HandleError(fmt.Errorf("tombstone contained unexpected object %#v", old))
 				return
@@ -193,7 +193,7 @@ func (ic *IngressIPController) Run(stopCh <-chan struct{}) {
 	glog.V(1).Infof("Shutting down ingress ip controller")
 }
 
-type serviceAge []*kapi.Service
+type serviceAge []*v1.Service
 
 func (s serviceAge) Len() int      { return len(s) }
 func (s serviceAge) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -216,7 +216,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 
 	// Track services that need to be processed after existing
 	// allocations are recorded.
-	var pendingServices []*kapi.Service
+	var pendingServices []*v1.Service
 
 	// Track post-sync changes that need to be added back the queue
 	// after allocations are recorded.  These changes may end up in
@@ -251,7 +251,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 			continue
 		}
 
-		if service.Spec.Type == kapi.ServiceTypeLoadBalancer {
+		if service.Spec.Type == v1.ServiceTypeLoadBalancer {
 			// Save for subsequent addition back to the queue to
 			// ensure persistent state is updated during regular
 			// processing.
@@ -293,7 +293,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 }
 
 // getCachedService logs if unable to retrieve a service for the given key.
-func (ic *IngressIPController) getCachedService(key string) *kapi.Service {
+func (ic *IngressIPController) getCachedService(key string) *v1.Service {
 	if len(key) == 0 {
 		return nil
 	}
@@ -302,7 +302,7 @@ func (ic *IngressIPController) getCachedService(key string) *kapi.Service {
 	} else if !exists {
 		glog.V(6).Infof("Service %v has been deleted", key)
 	} else {
-		return obj.(*kapi.Service)
+		return obj.(*v1.Service)
 	}
 	return nil
 }
@@ -379,7 +379,7 @@ func (ic *IngressIPController) work() bool {
 			ic.requeuedAllocations.Insert(change.key)
 			service := ic.getCachedService(change.key)
 			if service != nil {
-				ic.recorder.Eventf(service, kapi.EventTypeWarning, "IngressIPRangeFull", "No available ingress ip to allocate to service %s", change.key)
+				ic.recorder.Eventf(service, v1.EventTypeWarning, "IngressIPRangeFull", "No available ingress ip to allocate to service %s", change.key)
 			}
 		}
 		// Failed but can be retried
@@ -402,7 +402,7 @@ func (ic *IngressIPController) processChange(change *serviceChange) error {
 		return nil
 	}
 
-	typeLoadBalancer := service.Spec.Type == kapi.ServiceTypeLoadBalancer
+	typeLoadBalancer := service.Spec.Type == v1.ServiceTypeLoadBalancer
 	hasAllocation := len(service.Status.LoadBalancer.Ingress) > 0
 	switch {
 	case typeLoadBalancer && hasAllocation:
@@ -419,9 +419,9 @@ func (ic *IngressIPController) processChange(change *serviceChange) error {
 // clearOldAllocation clears the old allocation for a service if it
 // differs from a new allocation.  Returns a boolean indication of
 // whether the old allocation was cleared.
-func (ic *IngressIPController) clearOldAllocation(new, old *kapi.Service) bool {
+func (ic *IngressIPController) clearOldAllocation(new, old *v1.Service) bool {
 	oldIP := ""
-	if old != nil && old.Spec.Type == kapi.ServiceTypeLoadBalancer && len(old.Status.LoadBalancer.Ingress) > 0 {
+	if old != nil && old.Spec.Type == v1.ServiceTypeLoadBalancer && len(old.Status.LoadBalancer.Ingress) > 0 {
 		oldIP = old.Status.LoadBalancer.Ingress[0].IP
 	}
 	noOldAllocation := len(oldIP) == 0
@@ -430,7 +430,7 @@ func (ic *IngressIPController) clearOldAllocation(new, old *kapi.Service) bool {
 	}
 
 	newIP := ""
-	if new != nil && new.Spec.Type == kapi.ServiceTypeLoadBalancer && len(new.Status.LoadBalancer.Ingress) > 0 {
+	if new != nil && new.Spec.Type == v1.ServiceTypeLoadBalancer && len(new.Status.LoadBalancer.Ingress) > 0 {
 		newIP = new.Status.LoadBalancer.Ingress[0].IP
 	}
 	allocationUnchanged := newIP == oldIP
@@ -455,7 +455,7 @@ func (ic *IngressIPController) clearOldAllocation(new, old *kapi.Service) bool {
 // in a service's status and ensures that the ingress ip appears in
 // the service's list of external ips.  If the service's ingress ip is
 // invalid for any reason, a new ip will be allocated.
-func (ic *IngressIPController) recordAllocation(service *kapi.Service, key string) error {
+func (ic *IngressIPController) recordAllocation(service *v1.Service, key string) error {
 	// If more than one ingress ip is present, it will be ignored
 	ipString := service.Status.LoadBalancer.Ingress[0].IP
 
@@ -473,7 +473,7 @@ func (ic *IngressIPController) recordAllocation(service *kapi.Service, key strin
 	if err != nil {
 		return err
 	}
-	service = t.(*kapi.Service)
+	service = t.(*v1.Service)
 
 	if reallocate {
 		// TODO update the external ips but not the status since
@@ -481,7 +481,7 @@ func (ic *IngressIPController) recordAllocation(service *kapi.Service, key strin
 		if err = ic.clearPersistedAllocation(service, key, reallocateMessage); err != nil {
 			return err
 		}
-		ic.recorder.Eventf(service, kapi.EventTypeWarning, "IngressIPReallocated", reallocateMessage)
+		ic.recorder.Eventf(service, v1.EventTypeWarning, "IngressIPReallocated", reallocateMessage)
 		return ic.allocate(service, key)
 	} else {
 		// Ensure that the ingress ip is present in the service's spec.
@@ -491,13 +491,13 @@ func (ic *IngressIPController) recordAllocation(service *kapi.Service, key strin
 
 // allocate assigns an unallocated ip to a service and updates the
 // service's persisted state.
-func (ic *IngressIPController) allocate(service *kapi.Service, key string) error {
+func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 	// Make a copy to avoid mutating cache state
 	t, err := kapi.Scheme.DeepCopy(service)
 	if err != nil {
 		return err
 	}
-	service = t.(*kapi.Service)
+	service = t.(*v1.Service)
 
 	ip, err := ic.allocateIP(service.Spec.LoadBalancerIP)
 	if err != nil {
@@ -506,9 +506,9 @@ func (ic *IngressIPController) allocate(service *kapi.Service, key string) error
 	ipString := ip.String()
 
 	glog.V(5).Infof("Allocating ip %v to service %v", ipString, key)
-	service.Status = kapi.ServiceStatus{
-		LoadBalancer: kapi.LoadBalancerStatus{
-			Ingress: []kapi.LoadBalancerIngress{
+	service.Status = v1.ServiceStatus{
+		LoadBalancer: v1.LoadBalancerStatus{
+			Ingress: []v1.LoadBalancerIngress{
 				{
 					IP: ipString,
 				},
@@ -529,7 +529,7 @@ func (ic *IngressIPController) allocate(service *kapi.Service, key string) error
 
 // deallocate ensures that the ip currently allocated to a service is
 // removed and that its loadbalancer status is cleared.
-func (ic *IngressIPController) deallocate(service *kapi.Service, key string) error {
+func (ic *IngressIPController) deallocate(service *v1.Service, key string) error {
 	glog.V(5).Infof("Clearing allocation state for %v", key)
 
 	// Make a copy to modify to avoid mutating cache state
@@ -537,7 +537,7 @@ func (ic *IngressIPController) deallocate(service *kapi.Service, key string) err
 	if err != nil {
 		return err
 	}
-	service = t.(*kapi.Service)
+	service = t.(*v1.Service)
 
 	// Get the ingress ip to remove from local allocation state before
 	// it is removed from the service.
@@ -586,7 +586,7 @@ func (ic *IngressIPController) clearLocalAllocation(key, ipString string) bool {
 
 // clearPersistedAllocation ensures there is no ingress ip in the
 // service's spec and that the service's status is cleared.
-func (ic *IngressIPController) clearPersistedAllocation(service *kapi.Service, key, errMessage string) error {
+func (ic *IngressIPController) clearPersistedAllocation(service *v1.Service, key, errMessage string) error {
 	// Assume it is safe to modify the service without worrying about changing the local cache
 
 	if len(errMessage) > 0 {
@@ -610,14 +610,14 @@ func (ic *IngressIPController) clearPersistedAllocation(service *kapi.Service, k
 		}
 	}
 
-	service.Status.LoadBalancer = kapi.LoadBalancerStatus{}
+	service.Status.LoadBalancer = v1.LoadBalancerStatus{}
 	glog.V(5).Infof("Clearing the load balancer status of service: %v", key)
 	return ic.persistServiceStatus(service)
 }
 
 // ensureExternalIP ensures that the provided service has the ingress
 // ip persisted as an external ip.
-func (ic *IngressIPController) ensureExternalIP(service *kapi.Service, key, ingressIP string) error {
+func (ic *IngressIPController) ensureExternalIP(service *v1.Service, key, ingressIP string) error {
 	// Assume it is safe to modify the service without worrying about changing the local cache
 
 	ipExists := false
@@ -656,15 +656,15 @@ func (ic *IngressIPController) allocateIP(requestedIP string) (net.IP, error) {
 	return ip, nil
 }
 
-func (ic *IngressIPController) persistServiceSpec(service *kapi.Service) error {
+func (ic *IngressIPController) persistServiceSpec(service *v1.Service) error {
 	return ic.persistenceHandler(ic.client, service, false)
 }
 
-func (ic *IngressIPController) persistServiceStatus(service *kapi.Service) error {
+func (ic *IngressIPController) persistServiceStatus(service *v1.Service) error {
 	return ic.persistenceHandler(ic.client, service, true)
 }
 
-func persistService(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+func persistService(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 	backoff := wait.Backoff{
 		Steps:    clientRetryCount,
 		Duration: clientRetryInterval,
