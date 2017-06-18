@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 399beca0370b2a253597910ba203eb4002725702
+%global commit 4caa1fa80dcf0bcb8679dfe0a388de3837eaffc8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.114 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=399beca
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.115 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4caa1fa
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.115
+Version:        3.6.116
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -656,6 +656,24 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Jun 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.116-1
+- Aggregator uses internal versions until 3.7 <DROP> (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Use internal service/endpoints informers in aggregator
+  (ccoleman@redhat.com)
+- make cgroup imports linux-only (jliggitt@redhat.com)
+- Ensure the build controller uses generated clients (ccoleman@redhat.com)
+- Remove the legacy shared informer factory (ccoleman@redhat.com)
+- Log error verifying state (jliggitt@redhat.com)
+- UPSTREAM: 47491: image name must not have leading trailing whitespace
+  (decarr@redhat.com)
+- UPSTREAM: 47450: Ignore 404s on evict (decarr@redhat.com)
+- NetworkCheck diagnostic: create projects with empty nodeselector
+  (lmeyer@redhat.com)
+- Use the original response message, avoid hiding the original cause.
+  (jpazdziora@redhat.com)
+- UPSTREAM: 47281: Update devicepath with filepath.Glob result
+  (mitsuhiro.tanino@hds.com)
+
 * Sat Jun 17 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.115-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console c747505
   (smunilla@redhat.com)
