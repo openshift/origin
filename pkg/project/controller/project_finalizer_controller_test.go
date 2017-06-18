@@ -6,10 +6,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
-	"github.com/openshift/origin/pkg/project/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	projectapiv1 "github.com/openshift/origin/pkg/project/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 )
 
 func TestSyncNamespaceThatIsTerminating(t *testing.T) {
@@ -18,17 +18,17 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 		client: mockKubeClient,
 	}
 	now := metav1.Now()
-	testNamespace := &kapi.Namespace{
+	testNamespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "test",
 			ResourceVersion:   "1",
 			DeletionTimestamp: &now,
 		},
-		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
+		Spec: v1.NamespaceSpec{
+			Finalizers: []v1.FinalizerName{v1.FinalizerKubernetes, projectapiv1.FinalizerOrigin},
 		},
-		Status: kapi.NamespaceStatus{
-			Phase: kapi.NamespaceTerminating,
+		Status: v1.NamespaceStatus{
+			Phase: v1.NamespaceTerminating,
 		},
 	}
 	err := nm.finalize(testNamespace)
@@ -55,16 +55,16 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 	nm := &ProjectFinalizerController{
 		client: mockKubeClient,
 	}
-	testNamespace := &kapi.Namespace{
+	testNamespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "test",
 			ResourceVersion: "1",
 		},
-		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
+		Spec: v1.NamespaceSpec{
+			Finalizers: []v1.FinalizerName{v1.FinalizerKubernetes, projectapiv1.FinalizerOrigin},
 		},
-		Status: kapi.NamespaceStatus{
-			Phase: kapi.NamespaceActive,
+		Status: v1.NamespaceStatus{
+			Phase: v1.NamespaceActive,
 		},
 	}
 	err := nm.finalize(testNamespace)
