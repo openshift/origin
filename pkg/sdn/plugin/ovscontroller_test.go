@@ -16,7 +16,7 @@ import (
 
 func setup(t *testing.T) (ovs.Interface, *ovsController, []string) {
 	ovsif := ovs.NewFake(BR)
-	oc := NewOVSController(ovsif, 0)
+	oc := NewOVSController(ovsif, 0, true)
 	err := oc.SetupOVS("10.128.0.0/14", "172.30.0.0/16", "10.128.0.0/23", "10.128.0.1")
 	if err != nil {
 		t.Fatalf("Unexpected error setting up OVS: %v", err)
@@ -243,6 +243,10 @@ func TestOVSPod(t *testing.T) {
 			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "ip", "10.128.0.2", "42->NXM_NX_REG0"},
 		},
 		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=25", "ip", "10.128.0.2", "42->NXM_NX_REG0"},
+		},
+		flowChange{
 			kind:    flowAdded,
 			match:   []string{"table=40", "arp", "10.128.0.2", fmt.Sprintf("output:%d", ofport)},
 			noMatch: []string{"reg0=42"},
@@ -275,6 +279,10 @@ func TestOVSPod(t *testing.T) {
 		flowChange{
 			kind:  flowAdded,
 			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "ip", "10.128.0.2", "43->NXM_NX_REG0"},
+		},
+		flowChange{
+			kind:  flowAdded,
+			match: []string{"table=25", "ip", "10.128.0.2", "43->NXM_NX_REG0"},
 		},
 		flowChange{
 			kind:    flowAdded,
@@ -946,20 +954,20 @@ func TestAlreadySetUp(t *testing.T) {
 	}{
 		{
 			// Good note
-			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.03.00.00.00.00",
-			note:    "00.03",
+			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.04.00.00.00.00",
+			note:    "00.04",
 			success: true,
 		},
 		{
 			// Wrong table
-			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.03.00.00.00.00",
-			note:    "00.03",
+			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.04.00.00.00.00",
+			note:    "00.04",
 			success: false,
 		},
 		{
 			// No note
 			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=goto_table:50",
-			note:    "00.03",
+			note:    "00.04",
 			success: false,
 		},
 	}
@@ -969,7 +977,7 @@ func TestAlreadySetUp(t *testing.T) {
 		if err := ovsif.AddBridge("fail-mode=secure", "protocols=OpenFlow13"); err != nil {
 			t.Fatalf("(%d) unexpected error from AddBridge: %v", i, err)
 		}
-		oc := NewOVSController(ovsif, 0)
+		oc := NewOVSController(ovsif, 0, true)
 
 		otx := ovsif.NewTransaction()
 		otx.AddFlow(tc.flow)
