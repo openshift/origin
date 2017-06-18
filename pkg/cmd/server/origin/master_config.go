@@ -1078,8 +1078,8 @@ func (c *MasterConfig) DeploymentLogClient() kclientsetinternal.Interface {
 }
 
 // SecurityAllocationControllerClient returns the security allocation controller client object
-func (c *MasterConfig) SecurityAllocationControllerClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
+func (c *MasterConfig) SecurityAllocationControllerClient() kclientsetexternal.Interface {
+	return c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
 // SDNControllerClients returns the SDN controller client objects

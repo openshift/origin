@@ -8,7 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 
 	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/uid"
@@ -33,8 +34,8 @@ func (r *fakeRange) CreateOrUpdate(update *kapi.RangeAllocation) error {
 func TestRepair(t *testing.T) {
 	client := &fake.Clientset{}
 	client.AddReactor("*", "*", func(a clientgotesting.Action) (bool, runtime.Object, error) {
-		list := &kapi.NamespaceList{
-			Items: []kapi.Namespace{
+		list := &v1.NamespaceList{
+			Items: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: "default"}},
 			},
 		}
@@ -66,8 +67,8 @@ func TestRepair(t *testing.T) {
 func TestRepairIgnoresMismatch(t *testing.T) {
 	client := &fake.Clientset{}
 	client.AddReactor("*", "*", func(a clientgotesting.Action) (bool, runtime.Object, error) {
-		list := &kapi.NamespaceList{
-			Items: []kapi.Namespace{
+		list := &v1.NamespaceList{
+			Items: []v1.Namespace{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "default",

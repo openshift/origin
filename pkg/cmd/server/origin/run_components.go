@@ -169,7 +169,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 	}
 
 	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
-		c.InternalKubeInformers.Core().InternalVersion().Namespaces(),
+		c.ExternalKubeInformers.Core().V1().Namespaces(),
 		kclient.Core().Namespaces(),
 		uidAllocator,
 		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
