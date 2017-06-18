@@ -12,6 +12,7 @@
 // test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
 // test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
 // test/extended/testdata/build-extended/jvm-runner.yaml
+// test/extended/testdata/build-pruning/errored-build-config.yaml
 // test/extended/testdata/build-pruning/failed-build-config.yaml
 // test/extended/testdata/build-pruning/imagestream.yaml
 // test/extended/testdata/build-pruning/successful-build-config.yaml
@@ -678,6 +679,46 @@ func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-extended/jvm-runner.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  failedBuildsHistoryLimit: 2
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+      ref: master
+  strategy:
+    type: Source
+    sourceStrategy:
+      env:
+        - name: FIELDREF_ENV
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.nofield
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+`)
+
+func testExtendedTestdataBuildPruningErroredBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningErroredBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningErroredBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningErroredBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/errored-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -20135,6 +20176,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
 	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
 	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
+	"test/extended/testdata/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildPruningErroredBuildConfigYaml,
 	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
 	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
 	"test/extended/testdata/build-pruning/successful-build-config.yaml": testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml,
@@ -20447,6 +20489,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
 				}},
 				"build-pruning": &bintree{nil, map[string]*bintree{
+					"errored-build-config.yaml": &bintree{testExtendedTestdataBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
 					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
 					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
 					"successful-build-config.yaml": &bintree{testExtendedTestdataBuildPruningSuccessfulBuildConfigYaml, map[string]*bintree{}},
