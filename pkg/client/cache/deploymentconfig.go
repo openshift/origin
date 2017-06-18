@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -27,7 +27,7 @@ func (s *StoreToDeploymentConfigLister) List() ([]*deployapi.DeploymentConfig, e
 }
 
 // GetConfigForController returns the managing deployment config for the provided replication controller.
-func (s *StoreToDeploymentConfigLister) GetConfigForController(rc *kapi.ReplicationController) (*deployapi.DeploymentConfig, error) {
+func (s *StoreToDeploymentConfigLister) GetConfigForController(rc *v1.ReplicationController) (*deployapi.DeploymentConfig, error) {
 	dcName := deployutil.DeploymentConfigNameFor(rc)
 	obj, exists, err := s.Indexer.GetByKey(rc.Namespace + "/" + dcName)
 	if err != nil {
@@ -40,7 +40,7 @@ func (s *StoreToDeploymentConfigLister) GetConfigForController(rc *kapi.Replicat
 }
 
 // GetConfigForPod returns the managing deployment config for the provided pod.
-func (s *StoreToDeploymentConfigLister) GetConfigForPod(pod *kapi.Pod) (*deployapi.DeploymentConfig, error) {
+func (s *StoreToDeploymentConfigLister) GetConfigForPod(pod *v1.Pod) (*deployapi.DeploymentConfig, error) {
 	dcName := deployutil.DeploymentConfigNameFor(pod)
 	obj, exists, err := s.Indexer.GetByKey(pod.Namespace + "/" + dcName)
 	if err != nil {

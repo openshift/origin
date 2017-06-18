@@ -26,16 +26,15 @@ type DeploymentTriggerControllerConfig struct {
 }
 
 func (c *DeployerControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	internalDeployerKubeClient, err := ctx.ClientBuilder.KubeInternalClient(bootstrappolicy.InfraDeployerControllerServiceAccountName)
+	kubeClient, err := ctx.ClientBuilder.Client(bootstrappolicy.InfraDeployerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
 
 	go deployercontroller.NewDeployerController(
-		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers(),
-		ctx.InternalKubeInformers.Core().InternalVersion().Pods(),
-		internalDeployerKubeClient,
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraDeployerControllerServiceAccountName),
+		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
+		ctx.ExternalKubeInformers.Core().V1().Pods(),
+		kubeClient,
 		bootstrappolicy.DeployerServiceAccountName,
 		c.ImageName,
 		c.ClientEnvVars,
@@ -48,7 +47,7 @@ func (c *DeployerControllerConfig) RunController(ctx ControllerContext) (bool, e
 func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraDeploymentConfigControllerServiceAccountName
 
-	internalDcKubeClient, err := ctx.ClientBuilder.KubeInternalClient(saName)
+	kubeClient, err := ctx.ClientBuilder.Client(saName)
 	if err != nil {
 		return true, err
 	}
@@ -59,10 +58,9 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 
 	go deployconfigcontroller.NewDeploymentConfigController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers(),
+		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
 		deprecatedOcDcClient,
-		internalDcKubeClient,
-		ctx.ClientBuilder.ClientOrDie(saName),
+		kubeClient,
 		c.Codec,
 	).Run(5, ctx.Stop)
 
@@ -79,7 +77,7 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 
 	go triggercontroller.NewDeploymentTriggerController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-		ctx.InternalKubeInformers.Core().InternalVersion().ReplicationControllers().Informer(),
+		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers().Informer(),
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
 		deprecatedOcTriggerClient,
 		c.Codec,

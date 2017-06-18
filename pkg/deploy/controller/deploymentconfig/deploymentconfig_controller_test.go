@@ -15,9 +15,9 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
@@ -44,13 +44,13 @@ func TestHandleScenarios(t *testing.T) {
 		cancelled bool
 	}
 
-	mkdeployment := func(d deployment) *kapi.ReplicationController {
+	mkdeployment := func(d deployment) *v1.ReplicationController {
 		config := deploytest.OkDeploymentConfig(d.version)
 		if d.test {
 			config = deploytest.TestDeploymentConfig(config)
 		}
 		config.Namespace = "test"
-		deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+		deployment, _ := deployutil.MakeDeploymentV1(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(d.status)
 		if d.cancelled {
 			deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
@@ -61,7 +61,7 @@ func TestHandleScenarios(t *testing.T) {
 		} else {
 			delete(deployment.Annotations, deployapi.DesiredReplicasAnnotation)
 		}
-		deployment.Spec.Replicas = d.replicas
+		deployment.Spec.Replicas = &d.replicas
 		return deployment
 	}
 
@@ -338,8 +338,8 @@ func TestHandleScenarios(t *testing.T) {
 		t.Logf("evaluating test: %s", test.name)
 
 		var updatedConfig *deployapi.DeploymentConfig
-		deployments := map[string]*kapi.ReplicationController{}
-		toStore := []*kapi.ReplicationController{}
+		deployments := map[string]*v1.ReplicationController{}
+		toStore := []*v1.ReplicationController{}
 		for _, template := range test.before {
 			deployment := mkdeployment(template)
 			deployments[deployment.Name] = deployment
@@ -354,12 +354,12 @@ func TestHandleScenarios(t *testing.T) {
 		})
 		kc := &fake.Clientset{}
 		kc.AddReactor("create", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.CreateAction).GetObject().(*kapi.ReplicationController)
+			rc := action.(clientgotesting.CreateAction).GetObject().(*v1.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
 		kc.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 			deployments[rc.Name] = rc
 			return true, rc, nil
 		})
@@ -380,8 +380,8 @@ func TestHandleScenarios(t *testing.T) {
 		)
 
 		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
-		rcInformer := kubeInformerFactory.Core().InternalVersion().ReplicationControllers()
-		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, kfakeexternal.NewSimpleClientset(), codec)
+		rcInformer := kubeInformerFactory.Core().V1().ReplicationControllers()
+		c := NewDeploymentConfigController(dcInformer, rcInformer, oc, kc, codec)
 		c.dcStoreSynced = alwaysReady
 		c.rcListerSynced = alwaysReady
 
@@ -401,16 +401,16 @@ func TestHandleScenarios(t *testing.T) {
 			continue
 		}
 
-		expectedDeployments := []*kapi.ReplicationController{}
+		expectedDeployments := []*v1.ReplicationController{}
 		for _, template := range test.after {
 			expectedDeployments = append(expectedDeployments, mkdeployment(template))
 		}
-		actualDeployments := []*kapi.ReplicationController{}
+		actualDeployments := []*v1.ReplicationController{}
 		for _, deployment := range deployments {
 			actualDeployments = append(actualDeployments, deployment)
 		}
-		sort.Sort(deployutil.ByLatestVersionDesc(expectedDeployments))
-		sort.Sort(deployutil.ByLatestVersionDesc(actualDeployments))
+		sort.Sort(deployutil.ByLatestVersionDescV1(expectedDeployments))
+		sort.Sort(deployutil.ByLatestVersionDescV1(actualDeployments))
 
 		if updatedConfig != nil {
 			config = updatedConfig
@@ -465,15 +465,15 @@ var (
 	}
 )
 
-func newRC(version, desired, current, ready, available int32) *kapi.ReplicationController {
-	return &kapi.ReplicationController{
+func newRC(version, desired, current, ready, available int32) *v1.ReplicationController {
+	return &v1.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{deployapi.DeploymentVersionAnnotation: strconv.Itoa(int(version))},
 		},
-		Spec: kapi.ReplicationControllerSpec{
-			Replicas: desired,
+		Spec: v1.ReplicationControllerSpec{
+			Replicas: &desired,
 		},
-		Status: kapi.ReplicationControllerStatus{
+		Status: v1.ReplicationControllerStatus{
 			Replicas:          current,
 			ReadyReplicas:     ready,
 			AvailableReplicas: available,
@@ -486,7 +486,7 @@ func TestCalculateStatus(t *testing.T) {
 		name string
 
 		dc  *deployapi.DeploymentConfig
-		rcs []*kapi.ReplicationController
+		rcs []*v1.ReplicationController
 
 		expected deployapi.DeploymentConfigStatus
 	}{
@@ -494,7 +494,7 @@ func TestCalculateStatus(t *testing.T) {
 			name: "available deployment",
 
 			dc: newDC(3, 3, 1, availableCond),
-			rcs: []*kapi.ReplicationController{
+			rcs: []*v1.ReplicationController{
 				newRC(3, 2, 2, 1, 1),
 				newRC(2, 0, 0, 0, 0),
 				newRC(1, 0, 1, 1, 1),
@@ -515,7 +515,7 @@ func TestCalculateStatus(t *testing.T) {
 			name: "unavailable deployment",
 
 			dc: newDC(2, 2, 0, unavailableCond),
-			rcs: []*kapi.ReplicationController{
+			rcs: []*v1.ReplicationController{
 				newRC(2, 2, 0, 0, 0),
 				newRC(1, 0, 1, 1, 1),
 			},

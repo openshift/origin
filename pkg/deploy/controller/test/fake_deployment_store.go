@@ -2,15 +2,15 @@ package test
 
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type FakeDeploymentStore struct {
-	Deployment *kapi.ReplicationController
+	Deployment *v1.ReplicationController
 	Err        error
 }
 
-func NewFakeDeploymentStore(deployment *kapi.ReplicationController) FakeDeploymentStore {
+func NewFakeDeploymentStore(deployment *v1.ReplicationController) FakeDeploymentStore {
 	return FakeDeploymentStore{Deployment: deployment}
 }
 

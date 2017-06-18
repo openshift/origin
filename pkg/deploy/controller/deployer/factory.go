@@ -15,9 +15,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -34,20 +34,19 @@ const (
 func NewDeployerController(
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	podInformer kcoreinformers.PodInformer,
-	internalKubeClientset kclientset.Interface,
-	externalKubeClientset kclientsetexternal.Interface,
+	kubeClientset kclientset.Interface,
 	sa,
 	image string,
 	env []kapi.EnvVar,
 	codec runtime.Codec,
 ) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kubeClientset.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deployer-controller"})
 
 	c := &DeploymentController{
-		rn: internalKubeClientset.Core(),
-		pn: internalKubeClientset.Core(),
+		rn: kubeClientset.Core(),
+		pn: kubeClientset.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
@@ -58,7 +57,7 @@ func NewDeployerController(
 
 		serviceAccount: sa,
 		deployerImage:  image,
-		environment:    env,
+		environment:    deployutil.CopyApiEnvVarToV1EnvVar(env),
 		recorder:       recorder,
 		codec:          codec,
 	}
@@ -100,7 +99,7 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *DeploymentController) addReplicationController(obj interface{}) {
-	rc := obj.(*kapi.ReplicationController)
+	rc := obj.(*v1.ReplicationController)
 	// Filter out all unrelated replication controllers.
 	if !deployutil.IsOwnedByConfig(rc) {
 		return
@@ -111,8 +110,8 @@ func (c *DeploymentController) addReplicationController(obj interface{}) {
 
 func (c *DeploymentController) updateReplicationController(old, cur interface{}) {
 	// A periodic relist will send update events for all known controllers.
-	curRC := cur.(*kapi.ReplicationController)
-	oldRC := old.(*kapi.ReplicationController)
+	curRC := cur.(*v1.ReplicationController)
+	oldRC := old.(*v1.ReplicationController)
 	if curRC.ResourceVersion == oldRC.ResourceVersion {
 		return
 	}
@@ -127,8 +126,8 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 
 func (c *DeploymentController) updatePod(old, cur interface{}) {
 	// A periodic relist will send update events for all known pods.
-	curPod := cur.(*kapi.Pod)
-	oldPod := old.(*kapi.Pod)
+	curPod := cur.(*v1.Pod)
+	oldPod := old.(*v1.Pod)
 	if curPod.ResourceVersion == oldPod.ResourceVersion {
 		return
 	}
@@ -139,14 +138,14 @@ func (c *DeploymentController) updatePod(old, cur interface{}) {
 }
 
 func (c *DeploymentController) deletePod(obj interface{}) {
-	pod, ok := obj.(*kapi.Pod)
+	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone: %+v", obj))
 			return
 		}
-		pod, ok = tombstone.Obj.(*kapi.Pod)
+		pod, ok = tombstone.Obj.(*v1.Pod)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a pod: %+v", obj))
 			return
@@ -158,7 +157,7 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 	}
 }
 
-func (c *DeploymentController) enqueueReplicationController(rc *kapi.ReplicationController) {
+func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationController) {
 	key, err := kcontroller.KeyFunc(rc)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", rc, err))
@@ -167,7 +166,7 @@ func (c *DeploymentController) enqueueReplicationController(rc *kapi.Replication
 	c.queue.Add(key)
 }
 
-func (c *DeploymentController) rcForDeployerPod(pod *kapi.Pod) (*kapi.ReplicationController, error) {
+func (c *DeploymentController) rcForDeployerPod(pod *v1.Pod) (*v1.ReplicationController, error) {
 	rcName := deployutil.DeploymentNameFor(pod)
 	if len(rcName) == 0 {
 		// Not a deployer pod, so don't bother with it.
@@ -211,7 +210,7 @@ func (c *DeploymentController) work() bool {
 	return false
 }
 
-func (c *DeploymentController) getByKey(key string) (*kapi.ReplicationController, error) {
+func (c *DeploymentController) getByKey(key string) (*v1.ReplicationController, error) {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return nil, err

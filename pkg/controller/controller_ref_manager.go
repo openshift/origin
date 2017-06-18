@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 )
 
@@ -86,15 +86,15 @@ func NewRCControllerRefManager(
 // If the error is nil, either the reconciliation succeeded, or no
 // reconciliation was necessary. The returned boolean indicates whether you now
 // own the object.
-func (m *RCControllerRefManager) ClaimReplicationController(rc *kapi.ReplicationController) (bool, error) {
+func (m *RCControllerRefManager) ClaimReplicationController(rc *v1.ReplicationController) (bool, error) {
 	match := func(obj kmetav1.Object) bool {
 		return m.Selector.Matches(klabels.Set(obj.GetLabels()))
 	}
 	adopt := func(obj kmetav1.Object) error {
-		return m.AdoptReplicationController(obj.(*kapi.ReplicationController))
+		return m.AdoptReplicationController(obj.(*v1.ReplicationController))
 	}
 	release := func(obj kmetav1.Object) error {
-		return m.ReleaseReplicationController(obj.(*kapi.ReplicationController))
+		return m.ReleaseReplicationController(obj.(*v1.ReplicationController))
 	}
 
 	return m.ClaimObject(rc, match, adopt, release)
@@ -113,8 +113,8 @@ func (m *RCControllerRefManager) ClaimReplicationController(rc *kapi.Replication
 // If the error is nil, either the reconciliation succeeded, or no
 // reconciliation was necessary. The list of ReplicationControllers that you now own is
 // returned.
-func (m *RCControllerRefManager) ClaimReplicationControllers(rcs []*kapi.ReplicationController) ([]*kapi.ReplicationController, error) {
-	var claimed []*kapi.ReplicationController
+func (m *RCControllerRefManager) ClaimReplicationControllers(rcs []*v1.ReplicationController) ([]*v1.ReplicationController, error) {
+	var claimed []*v1.ReplicationController
 	var errlist []error
 
 	for _, rc := range rcs {
@@ -132,7 +132,7 @@ func (m *RCControllerRefManager) ClaimReplicationControllers(rcs []*kapi.Replica
 
 // AdoptReplicationController sends a patch to take control of the ReplicationController. It returns the error if
 // the patching fails.
-func (m *RCControllerRefManager) AdoptReplicationController(rs *kapi.ReplicationController) error {
+func (m *RCControllerRefManager) AdoptReplicationController(rs *v1.ReplicationController) error {
 	if err := m.CanAdopt(); err != nil {
 		return fmt.Errorf("can't adopt ReplicationController %s/%s (%s): %v", rs.Namespace, rs.Name, rs.UID, err)
 	}
@@ -153,7 +153,7 @@ func (m *RCControllerRefManager) AdoptReplicationController(rs *kapi.Replication
 
 // ReleaseReplicationController sends a patch to free the ReplicationController from the control of the Deployment controller.
 // It returns the error if the patching fails. 404 and 422 errors are ignored.
-func (m *RCControllerRefManager) ReleaseReplicationController(rc *kapi.ReplicationController) error {
+func (m *RCControllerRefManager) ReleaseReplicationController(rc *v1.ReplicationController) error {
 	glog.V(4).Infof("patching ReplicationController %s/%s to remove its controllerRef to %s/%s:%s",
 		rc.Namespace, rc.Name, m.controllerKind.GroupVersion(), m.controllerKind.Kind, m.Controller.GetName())
 	deleteOwnerRefPatch := fmt.Sprintf(`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`, m.Controller.GetUID(), rc.UID)
