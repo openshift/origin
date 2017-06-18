@@ -17,6 +17,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -67,7 +68,7 @@ type CancelBuildOptions struct {
 	Mapper      meta.RESTMapper
 	Client      osclient.Interface
 	BuildClient osclient.BuildInterface
-	BuildLister buildclient.BuildLister
+	BuildLister buildlister.BuildLister
 }
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
@@ -129,7 +130,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Namespace = namespace
 	o.Client = client
-	o.BuildLister = buildclient.NewOSClientBuildClient(client)
+	o.BuildLister = buildclient.NewOSClientBuildLister(client)
 	o.BuildClient = client.Builds(namespace)
 	o.Mapper, _ = f.Object()
 
@@ -145,7 +146,7 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			if err != nil {
 				return err
 			}
-			for _, b := range list.Items {
+			for _, b := range list {
 				o.BuildNames = append(o.BuildNames, b.Name)
 			}
 		case buildapi.IsResourceOrLegacy("builds", resource):

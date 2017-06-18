@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
@@ -172,17 +171,6 @@ func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthCo
 func addBuildLabels(labels map[string]string, build *buildapi.Build) {
 	labels[buildapi.DefaultDockerLabelNamespace+"build.name"] = build.Name
 	labels[buildapi.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
-}
-
-// getCgroupParent determines the parent cgroup for a container from
-// within that container.
-func getCgroupParent() (string, error) {
-	cgMap, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
-	if err != nil {
-		return "", err
-	}
-	glog.V(6).Infof("found cgroup values map: %v", cgMap)
-	return extractParentFromCgroupMap(cgMap)
 }
 
 // extractParentFromCgroupMap finds the cgroup parent in the cgroup map

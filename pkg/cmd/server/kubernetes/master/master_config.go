@@ -51,6 +51,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -67,7 +68,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	"github.com/openshift/origin/pkg/controller/shared"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -91,7 +91,7 @@ type MasterConfig struct {
 	SchedulerServer   *scheduleroptions.SchedulerServer
 	CloudProvider     cloudprovider.Interface
 
-	Informers shared.InformerFactory
+	ExternalInformers kexternalinformers.SharedInformerFactory
 }
 
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
@@ -416,7 +416,6 @@ func buildKubeApiserverConfig(
 	requestContextMapper apirequest.RequestContextMapper,
 	kubeClient kclientset.Interface,
 	internalKubeClient kinternalclientset.Interface,
-	informers shared.InformerFactory,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
@@ -597,7 +596,7 @@ func BuildKubernetesMasterConfig(
 	requestContextMapper apirequest.RequestContextMapper,
 	kubeClient kclientset.Interface,
 	internalKubeClient kinternalclientset.Interface,
-	informers shared.InformerFactory,
+	externalKubeInformers kexternalinformers.SharedInformerFactory,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
@@ -621,7 +620,6 @@ func BuildKubernetesMasterConfig(
 		requestContextMapper,
 		kubeClient,
 		internalKubeClient,
-		informers,
 		admissionControl,
 		originAuthenticator,
 		kubeAuthorizer)
@@ -638,7 +636,7 @@ func BuildKubernetesMasterConfig(
 		ControllerManager: controllerServer,
 		CloudProvider:     cloud,
 		SchedulerServer:   schedulerServer,
-		Informers:         informers,
+		ExternalInformers: externalKubeInformers,
 	}
 
 	return kmaster, nil

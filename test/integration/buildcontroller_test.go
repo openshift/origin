@@ -150,6 +150,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	}
 	openshiftConfig.AppInformers = appinformer.NewSharedInformerFactory(appsClient, 10*time.Minute)
 	go func() {
+		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
 	}()
@@ -157,15 +158,18 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 	controllerContext := kctrlmgr.ControllerContext{
 		ClientBuilder: saClientBuilder,
 		InformerFactory: genericInformers{
-			SharedInformerFactory: openshiftConfig.Informers.KubernetesInformers(),
+			SharedInformerFactory: openshiftConfig.ExternalKubeInformers,
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return openshiftConfig.ImageInformers.ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
+					return openshiftConfig.BuildInformers.ForResource(resource)
+				}),
+				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
 					return openshiftConfig.AppInformers.ForResource(resource)
 				}),
-				openshiftConfig.Informers,
+				openshiftConfig.ExternalKubeInformers,
 			},
 		},
 		Options:            *controllerManagerOptions,
@@ -183,10 +187,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		DeprecatedOpenshiftInformers: openshiftConfig.Informers,
-		ImageInformers:               openshiftConfig.ImageInformers,
-		AppInformers:                 openshiftConfig.AppInformers,
-		Stop:                         controllerContext.Stop,
+		ExternalKubeInformers: openshiftConfig.ExternalKubeInformers,
+		InternalKubeInformers: openshiftConfig.InternalKubeInformers,
+		AppInformers:          openshiftConfig.AppInformers,
+		ImageInformers:        openshiftConfig.ImageInformers,
+		BuildInformers:        openshiftConfig.BuildInformers,
+		Stop:                  controllerContext.Stop,
 	}
 	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()
 

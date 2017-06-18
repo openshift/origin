@@ -130,7 +130,7 @@ func (o *ReconcileSCCOptions) Validate() error {
 		return errors.New("a SCC client is required")
 	}
 	if _, err := o.NSClient.Get(o.InfraNamespace, metav1.GetOptions{}); err != nil {
-		return fmt.Errorf("%s is not a valid namespace", o.InfraNamespace)
+		return fmt.Errorf("Failed to GET reconcile SCC namespace %s: %v", o.InfraNamespace, err)
 	}
 	return nil
 }

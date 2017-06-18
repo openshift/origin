@@ -56,8 +56,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasBuilderEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.BuildConfigs().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.BuildConfigs().Indexer(),
+			Informer:  ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer(),
+			Store:     ctx.BuildInformers.Build().InternalVersion().BuildConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
 			Reactor:   &triggerbuildconfigs.BuildConfigReactor{Instantiator: bcInstantiator},
 		})
@@ -65,8 +65,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasDeploymentsEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().Deployments().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().Deployments().Informer().GetIndexer(),
+			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer(),
+			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
 		})
@@ -74,8 +74,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasDaemonSetsEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "extensions", Resource: "daemonsets"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().DaemonSets().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
+			Informer:  ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer(),
+			Store:     ctx.ExternalKubeInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
 		})
@@ -83,8 +83,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasStatefulSetsEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "apps", Resource: "statefulsets"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Apps().V1beta1().StatefulSets().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
+			Informer:  ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer(),
+			Store:     ctx.ExternalKubeInformers.Apps().V1beta1().StatefulSets().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
 		})
@@ -92,8 +92,8 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	if !c.HasCronJobsEnabled {
 		sources = append(sources, imagetriggercontroller.TriggerSource{
 			Resource:  schema.GroupResource{Group: "batch", Resource: "cronjobs"},
-			Informer:  ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Batch().V2alpha1().CronJobs().Informer(),
-			Store:     ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
+			Informer:  ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer(),
+			Store:     ctx.ExternalKubeInformers.Batch().V2alpha1().CronJobs().Informer().GetIndexer(),
 			TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 			Reactor:   &triggerannotations.AnnotationReactor{Updater: updater, Copier: kapi.Scheme},
 		})

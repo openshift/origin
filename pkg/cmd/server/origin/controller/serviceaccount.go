@@ -33,8 +33,8 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 	}
 
 	go sacontroller.NewServiceAccountsController(
-		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().ServiceAccounts(),
-		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().Namespaces(),
+		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
+		ctx.ExternalKubeInformers.Core().V1().Namespaces(),
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountControllerServiceAccountName),
 		options).Run(3, ctx.Stop)
 
@@ -51,8 +51,8 @@ type ServiceAccountTokenControllerOptions struct {
 
 func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerContext) (bool, error) {
 	go sacontroller.NewTokensController(
-		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().ServiceAccounts(),
-		ctx.DeprecatedOpenshiftInformers.KubernetesInformers().Core().V1().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		c.RootClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountTokensControllerServiceAccountName),
 		sacontroller.TokensControllerOptions{
 			TokenGenerator:   serviceaccount.JWTTokenGenerator(c.PrivateKey),
@@ -67,21 +67,21 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 	kc := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
 
 	go serviceaccountcontrollers.NewDockercfgDeletedController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	dockerURLsInitialized := make(chan struct{})
 	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().ServiceAccounts(),
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().ServiceAccounts(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
 	)
@@ -94,7 +94,7 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 		DockerURLsInitialized: dockerURLsInitialized,
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
-		ctx.DeprecatedOpenshiftInformers.InternalKubernetesInformers().Core().InternalVersion().Secrets(),
+		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
 		kc,
 		dockerRegistryControllerOptions,
 	).Run(10, ctx.Stop)

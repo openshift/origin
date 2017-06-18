@@ -87,9 +87,9 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				// TODO: This might introduce flakes in case the first build complete
 				// sooner or fail.
 				if build.Status.Phase == buildapi.BuildPhasePending {
-					c := buildclient.NewOSClientBuildClient(oc.Client())
+					c := buildclient.NewOSClientBuildLister(oc.Client())
 					firstBuildRunning := false
-					_, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
+					_, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildapi.Build) bool {
 						if b.Name == startedBuilds[0] && b.Status.Phase == buildapi.BuildPhaseRunning {
 							firstBuildRunning = true
 						}
@@ -154,8 +154,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 					}
 					// Verify there are no other running or pending builds than this
 					// build as serial build always runs alone.
-					c := buildclient.NewOSClientBuildClient(oc.Client())
-					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
+					c := buildclient.NewOSClientBuildLister(oc.Client())
+					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildapi.Build) bool {
 						if b.Name == build.Name {
 							return false
 						}
@@ -165,7 +165,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 						return false
 					})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(builds.Items).Should(o.BeEmpty())
+					o.Expect(builds).Should(o.BeEmpty())
 
 					// The builds should start in the same order as they were created.
 					o.Expect(build.Name).Should(o.BeEquivalentTo(startedBuilds[counter]))
@@ -361,8 +361,8 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 					}
 					// Verify there are no other running or pending builds than this
 					// build as serial build always runs alone.
-					c := buildclient.NewOSClientBuildClient(oc.Client())
-					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b buildapi.Build) bool {
+					c := buildclient.NewOSClientBuildLister(oc.Client())
+					builds, err := buildutil.BuildConfigBuilds(c, oc.Namespace(), bcName, func(b *buildapi.Build) bool {
 						e2e.Logf("[%s] build %s is %s", build.Name, b.Name, b.Status.Phase)
 						if b.Name == build.Name {
 							return false
@@ -373,7 +373,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 						return false
 					})
 					o.Expect(err).NotTo(o.HaveOccurred())
-					o.Expect(builds.Items).Should(o.BeEmpty())
+					o.Expect(builds).Should(o.BeEmpty())
 
 					// The builds should start in the same order as they were created.
 					o.Expect(build.Name).Should(o.BeEquivalentTo(startedBuilds[expectedRunningBuild]))

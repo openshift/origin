@@ -14,7 +14,7 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 		addBuild("build-3", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client.Lister(), BuildUpdater: client}
 	runnableBuilds := []string{
 		"build-1",
 	}
@@ -58,7 +58,7 @@ func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
 		addBuild("build-4", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerialLatestOnly),
 	}
 	client := newTestClient(allNewBuilds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client.Lister(), BuildUpdater: client}
 	for _, build := range allNewBuilds {
 		runnable, err := policy.IsRunnable(&build)
 		if err != nil {
@@ -96,7 +96,7 @@ func TestSerialLatestOnlyIsRunnableBuildsWithErrors(t *testing.T) {
 	builds[1].ObjectMeta.Annotations = map[string]string{}
 
 	client := newTestClient(builds)
-	policy := SerialLatestOnlyPolicy{BuildLister: client, BuildUpdater: client}
+	policy := SerialLatestOnlyPolicy{BuildLister: client.Lister(), BuildUpdater: client}
 
 	ok, err := policy.IsRunnable(&builds[0])
 	if !ok || err != nil {
