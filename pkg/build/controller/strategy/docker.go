@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/util"
@@ -22,7 +22,7 @@ type DockerBuildStrategy struct {
 
 // CreateBuildPod creates the pod to be used for the Docker build
 // TODO: Make the Pod definition configurable
-func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
 	data, err := runtime.Encode(bs.Codec, build)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
@@ -31,7 +31,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	privileged := true
 	strategy := build.Spec.Strategy.DockerStrategy
 
-	containerEnv := []kapi.EnvVar{
+	containerEnv := []v1.EnvVar{
 		{Name: "BUILD", Value: string(data)},
 	}
 
@@ -39,35 +39,35 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	addOriginVersionVar(&containerEnv)
 
 	if len(strategy.Env) > 0 {
-		util.MergeTrustedEnvWithoutDuplicates(strategy.Env, &containerEnv, true)
+		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
 	}
 
-	pod := &kapi.Pod{
+	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapi.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},
-		Spec: kapi.PodSpec{
+		Spec: v1.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
-			Containers: []kapi.Container{
+			Containers: []v1.Container{
 				{
 					Name:  "docker-build",
 					Image: bs.Image,
 					Env:   containerEnv,
 					Args:  []string{},
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					SecurityContext: &kapi.SecurityContext{
+					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
 					},
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyNever,
+			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-	pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = build.Spec.Resources
+	pod.Spec.Containers[0].ImagePullPolicy = v1.PullIfNotPresent
+	pod.Spec.Containers[0].Resources = util.CopyApiResourcesToV1Resources(&build.Spec.Resources)
 
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds

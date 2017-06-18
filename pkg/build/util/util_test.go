@@ -8,12 +8,13 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
-	input := []kapi.EnvVar{
+	input := []v1.EnvVar{
 		// stripped by whitelist
 		{Name: "foo", Value: "bar"},
 		// stripped by whitelist
@@ -21,7 +22,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "source"},
 		{Name: "BUILD_LOGLEVEL", Value: "source"},
 	}
-	output := []kapi.EnvVar{
+	output := []v1.EnvVar{
 		{Name: "foo", Value: "test"},
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}
@@ -51,7 +52,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		t.Errorf("Expected output env 'BUILD_LOGLEVEL' to have value 'loglevel', got %+v", output[1])
 	}
 
-	input = []kapi.EnvVar{
+	input = []v1.EnvVar{
 		// stripped by whitelist
 		{Name: "foo", Value: "bar"},
 		// stripped by whitelist
@@ -59,7 +60,7 @@ func TestTrustedMergeEnvWithoutDuplicates(t *testing.T) {
 		{Name: "GIT_SSL_NO_VERIFY", Value: "source"},
 		{Name: "BUILD_LOGLEVEL", Value: "source"},
 	}
-	output = []kapi.EnvVar{
+	output = []v1.EnvVar{
 		{Name: "foo", Value: "test"},
 		{Name: "GIT_SSL_NO_VERIFY", Value: "target"},
 	}

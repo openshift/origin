@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 func TestSetupDockerSocketHostSocket(t *testing.T) {
-	pod := kapi.Pod{
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
+	pod := v1.Pod{
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
 				{},
 			},
 		},
@@ -57,7 +58,7 @@ func TestSetupDockerSocketHostSocket(t *testing.T) {
 	}
 }
 
-func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
+func isVolumeSourceEmpty(volumeSource v1.VolumeSource) bool {
 	if volumeSource.EmptyDir == nil &&
 		volumeSource.HostPath == nil &&
 		volumeSource.GCEPersistentDisk == nil &&
@@ -69,9 +70,9 @@ func isVolumeSourceEmpty(volumeSource kapi.VolumeSource) bool {
 }
 
 func TestSetupDockerSecrets(t *testing.T) {
-	pod := kapi.Pod{
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
+	pod := v1.Pod{
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
 				{},
 			},
 		},

@@ -3,7 +3,7 @@ package build
 import (
 	"fmt"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
@@ -11,7 +11,7 @@ import (
 // buildPodCreationStrategy is used by the build controller to
 // create a build pod based on a build strategy
 type buildPodCreationStrategy interface {
-	CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error)
+	CreateBuildPod(build *buildapi.Build) (*v1.Pod, error)
 }
 
 type typeBasedFactoryStrategy struct {
@@ -20,8 +20,8 @@ type typeBasedFactoryStrategy struct {
 	customBuildStrategy buildPodCreationStrategy
 }
 
-func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
-	var pod *kapi.Pod
+func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
+	var pod *v1.Pod
 	var err error
 	switch {
 	case build.Spec.Strategy.DockerStrategy != nil:

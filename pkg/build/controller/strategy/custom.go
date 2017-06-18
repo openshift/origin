@@ -9,8 +9,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 // CustomBuildStrategy creates a build using a custom builder image.
@@ -22,7 +24,7 @@ type CustomBuildStrategy struct {
 }
 
 // CreateBuildPod creates the pod to be used for the Custom build
-func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
 	strategy := build.Spec.Strategy.CustomStrategy
 	if strategy == nil {
 		return nil, errors.New("CustomBuildStrategy cannot be executed without CustomStrategy parameters")
@@ -42,7 +44,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	containerEnv := []kapi.EnvVar{{Name: "BUILD", Value: string(data)}}
+	containerEnv := []v1.EnvVar{{Name: "BUILD", Value: string(data)}}
 
 	if build.Spec.Source.Git != nil {
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
@@ -61,35 +63,35 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	if len(strategy.Env) > 0 {
-		containerEnv = append(containerEnv, strategy.Env...)
+		containerEnv = append(containerEnv, util.CopyApiEnvVarToV1EnvVar(strategy.Env)...)
 	}
 
 	if strategy.ExposeDockerSocket {
 		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
-		containerEnv = append(containerEnv, kapi.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
+		containerEnv = append(containerEnv, v1.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
 	privileged := true
-	pod := &kapi.Pod{
+	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      buildapi.GetBuildPodName(build),
 			Namespace: build.Namespace,
 			Labels:    getPodLabels(build),
 		},
-		Spec: kapi.PodSpec{
+		Spec: v1.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
-			Containers: []kapi.Container{
+			Containers: []v1.Container{
 				{
 					Name:  "custom-build",
 					Image: strategy.From.Name,
 					Env:   containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
-					SecurityContext: &kapi.SecurityContext{
+					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
 					},
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyNever,
+			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
@@ -98,12 +100,12 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod,
 	}
 
 	if !strategy.ForcePull {
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullIfNotPresent
+		pod.Spec.Containers[0].ImagePullPolicy = v1.PullIfNotPresent
 	} else {
 		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
-		pod.Spec.Containers[0].ImagePullPolicy = kapi.PullAlways
+		pod.Spec.Containers[0].ImagePullPolicy = v1.PullAlways
 	}
-	pod.Spec.Containers[0].Resources = build.Spec.Resources
+	pod.Spec.Containers[0].Resources = util.CopyApiResourcesToV1Resources(&build.Spec.Resources)
 	if build.Spec.Source.Binary != nil {
 		pod.Spec.Containers[0].Stdin = true
 		pod.Spec.Containers[0].StdinOnce = true

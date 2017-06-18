@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
@@ -38,7 +38,7 @@ func TestBuildOverrideForcePull(t *testing.T) {
 		for _, op := range ops {
 			overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{ForcePull: true}}
 			pod := u.Pod().WithBuild(t, test.build, "v1")
-			err := overrides.ApplyOverrides((*kapi.Pod)(pod))
+			err := overrides.ApplyOverrides((*v1.Pod)(pod))
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", test.name, err)
 			}
@@ -49,10 +49,10 @@ func TestBuildOverrideForcePull(t *testing.T) {
 				if strategy.CustomStrategy.ForcePull == false {
 					t.Errorf("%s (%s): force pull was false", test.name, op)
 				}
-				if pod.Spec.Containers[0].ImagePullPolicy != kapi.PullAlways {
+				if pod.Spec.Containers[0].ImagePullPolicy != v1.PullAlways {
 					t.Errorf("%s (%s): image pull policy is not PullAlways", test.name, op)
 				}
-				if pod.Spec.InitContainers[0].ImagePullPolicy != kapi.PullAlways {
+				if pod.Spec.InitContainers[0].ImagePullPolicy != v1.PullAlways {
 					t.Errorf("%s (%s): image pull policy is not PullAlways", test.name, op)
 				}
 			case strategy.DockerStrategy != nil:
@@ -186,7 +186,7 @@ func TestLabelOverrides(t *testing.T) {
 
 		admitter := BuildOverrides{overridesConfig}
 		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
-		err := admitter.ApplyOverrides((*kapi.Pod)(pod))
+		err := admitter.ApplyOverrides((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -226,7 +226,7 @@ func TestBuildOverrideNodeSelector(t *testing.T) {
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
 		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
-		err := overrides.ApplyOverrides((*kapi.Pod)(pod))
+		err := overrides.ApplyOverrides((*v1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -276,7 +276,7 @@ func TestBuildOverrideAnnotations(t *testing.T) {
 		overrides := BuildOverrides{config: &overridesapi.BuildOverridesConfig{Annotations: test.overrides}}
 		pod := u.Pod().WithBuild(t, test.build, "v1")
 		pod.Annotations = test.annotations
-		err := overrides.ApplyOverrides((*kapi.Pod)(pod))
+		err := overrides.ApplyOverrides((*v1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}

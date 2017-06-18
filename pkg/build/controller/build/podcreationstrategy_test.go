@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
 type testPodCreationStrategy struct {
-	pod *kapi.Pod
+	pod *v1.Pod
 	err error
 }
 
-func (s *testPodCreationStrategy) CreateBuildPod(b *buildapi.Build) (*kapi.Pod, error) {
+func (s *testPodCreationStrategy) CreateBuildPod(b *buildapi.Build) (*v1.Pod, error) {
 	return s.pod, s.err
 }
 
 func TestStrategyCreateBuildPod(t *testing.T) {
-	dockerBuildPod := &kapi.Pod{}
-	sourceBuildPod := &kapi.Pod{}
-	customBuildPod := &kapi.Pod{}
+	dockerBuildPod := &v1.Pod{}
+	sourceBuildPod := &v1.Pod{}
+	customBuildPod := &v1.Pod{}
 
 	dockerBuild := &buildapi.Build{}
 	dockerBuild.Spec.Strategy.DockerStrategy = &buildapi.DockerBuildStrategy{}
@@ -50,7 +50,7 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 	tests := []struct {
 		strategy    buildPodCreationStrategy
 		build       *buildapi.Build
-		expectedPod *kapi.Pod
+		expectedPod *v1.Pod
 		expectError bool
 	}{
 		{

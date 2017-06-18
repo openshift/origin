@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
@@ -25,11 +26,11 @@ func TestProxyDefaults(t *testing.T) {
 
 	admitter := BuildDefaults{defaultsConfig}
 	pod := u.Pod().WithBuild(t, u.Build().WithDockerStrategy().AsBuild(), "v1")
-	err := admitter.ApplyDefaults((*kapi.Pod)(pod))
+	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -65,11 +66,11 @@ func TestEnvDefaults(t *testing.T) {
 
 	admitter := BuildDefaults{defaultsConfig}
 	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild(), "v1")
-	err := admitter.ApplyDefaults((*kapi.Pod)(pod))
+	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,11 +124,11 @@ func TestIncrementalDefaults(t *testing.T) {
 	admitter := BuildDefaults{defaultsConfig}
 
 	pod := u.Pod().WithBuild(t, u.Build().WithSourceStrategy().AsBuild(), "v1")
-	err := admitter.ApplyDefaults((*kapi.Pod)(pod))
+	err := admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err := buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+	build, _, err := buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,11 +140,11 @@ func TestIncrementalDefaults(t *testing.T) {
 	bool_f := false
 	build.Spec.Strategy.SourceStrategy.Incremental = &bool_f
 	pod = u.Pod().WithBuild(t, build, "v1")
-	err = admitter.ApplyDefaults((*kapi.Pod)(pod))
+	err = admitter.ApplyDefaults((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	build, _, err = buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+	build, _, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -271,7 +272,7 @@ func TestLabelDefaults(t *testing.T) {
 
 		admitter := BuildDefaults{defaultsConfig}
 		pod := u.Pod().WithBuild(t, u.Build().WithImageLabels(test.buildLabels).AsBuild(), "v1")
-		err := admitter.ApplyDefaults((*kapi.Pod)(pod))
+		err := admitter.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -320,7 +321,7 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 		// normally the pod will have the nodeselectors from the build, due to the pod creation logic
 		// in the build controller flow. fake it out here.
 		pod.Spec.NodeSelector = test.build.Spec.NodeSelector
-		err := defaults.ApplyDefaults((*kapi.Pod)(pod))
+		err := defaults.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -370,7 +371,7 @@ func TestBuildDefaultsAnnotations(t *testing.T) {
 		defaults := BuildDefaults{config: &defaultsapi.BuildDefaultsConfig{Annotations: test.defaults}}
 		pod := u.Pod().WithBuild(t, test.build, "v1")
 		pod.Annotations = test.annotations
-		err := defaults.ApplyDefaults((*kapi.Pod)(pod))
+		err := defaults.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 		}
@@ -570,13 +571,13 @@ func TestResourceDefaults(t *testing.T) {
 		// when it was created, but this pod didn't get created by the normal
 		// pod creation flow, so fake this out.
 		for i := range pod.Spec.Containers {
-			pod.Spec.Containers[i].Resources = test.BuildResource
+			pod.Spec.Containers[i].Resources = buildutil.CopyApiResourcesToV1Resources(&test.BuildResource)
 		}
-		err := defaults.ApplyDefaults((*kapi.Pod)(pod))
+		err := defaults.ApplyDefaults((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
-		build, _, err = buildadmission.GetBuildFromPod((*kapi.Pod)(pod))
+		build, _, err = buildadmission.GetBuildFromPod((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
@@ -584,7 +585,7 @@ func TestResourceDefaults(t *testing.T) {
 			t.Fatalf("%v:Build resource expected expected=actual, %#v != %#v", name, test.ExpectedResource, build.Spec.Resources)
 		}
 		for i := range pod.Spec.Containers {
-			if !kapi.Semantic.DeepEqual(test.ExpectedResource, pod.Spec.Containers[i].Resources) {
+			if !kapi.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), pod.Spec.Containers[i].Resources) {
 				t.Fatalf("%v:Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, pod.Spec.Containers[i].Resources)
 			}
 		}
