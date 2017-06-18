@@ -69,10 +69,11 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 		return nil, err
 	}
 	return &aggregatorapiserver.Config{
-		GenericConfig:       &genericConfig,
-		CoreAPIServerClient: client,
-		ProxyClientCert:     certBytes,
-		ProxyClientKey:      keyBytes,
+		GenericConfig:         &genericConfig,
+		CoreAPIServerClient:   client,
+		ProxyClientCert:       certBytes,
+		ProxyClientKey:        keyBytes,
+		KubeInternalInformers: c.InternalKubeInformers,
 	}, nil
 }
 

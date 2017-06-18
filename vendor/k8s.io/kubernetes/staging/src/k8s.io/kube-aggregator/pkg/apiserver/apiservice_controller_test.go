@@ -20,9 +20,9 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/api"
+	internallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 )
@@ -30,18 +30,18 @@ import (
 func TestGetDestinationHost(t *testing.T) {
 	tests := []struct {
 		name       string
-		services   []*v1.Service
+		services   []*api.Service
 		apiService *apiregistration.APIService
 
 		expected string
 	}{
 		{
 			name: "cluster ip",
-			services: []*v1.Service{
+			services: []*api.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "one", Name: "alfa"},
-					Spec: v1.ServiceSpec{
-						Type:      v1.ServiceTypeClusterIP,
+					Spec: api.ServiceSpec{
+						Type:      api.ServiceTypeClusterIP,
 						ClusterIP: "hit",
 					},
 				},
@@ -60,11 +60,11 @@ func TestGetDestinationHost(t *testing.T) {
 		},
 		{
 			name: "loadbalancer",
-			services: []*v1.Service{
+			services: []*api.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "one", Name: "alfa"},
-					Spec: v1.ServiceSpec{
-						Type:      v1.ServiceTypeLoadBalancer,
+					Spec: api.ServiceSpec{
+						Type:      api.ServiceTypeLoadBalancer,
 						ClusterIP: "lb",
 					},
 				},
@@ -83,11 +83,11 @@ func TestGetDestinationHost(t *testing.T) {
 		},
 		{
 			name: "node port",
-			services: []*v1.Service{
+			services: []*api.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "one", Name: "alfa"},
-					Spec: v1.ServiceSpec{
-						Type:      v1.ServiceTypeNodePort,
+					Spec: api.ServiceSpec{
+						Type:      api.ServiceTypeNodePort,
 						ClusterIP: "np",
 					},
 				},
@@ -122,7 +122,7 @@ func TestGetDestinationHost(t *testing.T) {
 
 	for _, test := range tests {
 		serviceCache := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		serviceLister := v1listers.NewServiceLister(serviceCache)
+		serviceLister := internallisters.NewServiceLister(serviceCache)
 		c := &APIServiceRegistrationController{
 			serviceLister: serviceLister,
 		}

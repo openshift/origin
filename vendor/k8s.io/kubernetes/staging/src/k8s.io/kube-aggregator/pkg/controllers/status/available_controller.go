@@ -33,11 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	v1informers "k8s.io/client-go/informers/core/v1"
-	v1listers "k8s.io/client-go/listers/core/v1"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/kubernetes/pkg/api"
+	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	internallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
@@ -55,10 +55,10 @@ type AvailableConditionController struct {
 	apiServiceSynced cache.InformerSynced
 
 	// serviceLister is used to get the IP to create the transport for
-	serviceLister  v1listers.ServiceLister
+	serviceLister  internallisters.ServiceLister
 	servicesSynced cache.InformerSynced
 
-	endpointsLister v1listers.EndpointsLister
+	endpointsLister internallisters.EndpointsLister
 	endpointsSynced cache.InformerSynced
 
 	// To allow injection for testing.
@@ -69,8 +69,8 @@ type AvailableConditionController struct {
 
 func NewAvailableConditionController(
 	apiServiceInformer informers.APIServiceInformer,
-	serviceInformer v1informers.ServiceInformer,
-	endpointsInformer v1informers.EndpointsInformer,
+	serviceInformer internalinformers.ServiceInformer,
+	endpointsInformer internalinformers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
 ) *AvailableConditionController {
 	c := &AvailableConditionController{
@@ -154,7 +154,7 @@ func (c *AvailableConditionController) sync(key string) error {
 		return err
 	}
 
-	if service.Spec.Type == v1.ServiceTypeClusterIP {
+	if service.Spec.Type == api.ServiceTypeClusterIP {
 		endpoints, err := c.endpointsLister.Endpoints(apiService.Spec.Service.Namespace).Get(apiService.Spec.Service.Name)
 		if apierrors.IsNotFound(err) {
 			availableCondition.Status = apiregistration.ConditionFalse
@@ -228,7 +228,7 @@ func (c *AvailableConditionController) sync(key string) error {
 	return err
 }
 
-func getDestinationHost(apiService *apiregistration.APIService, serviceLister v1listers.ServiceLister) string {
+func getDestinationHost(apiService *apiregistration.APIService, serviceLister internallisters.ServiceLister) string {
 	if apiService.Spec.Service == nil {
 		return ""
 	}
@@ -240,9 +240,9 @@ func getDestinationHost(apiService *apiregistration.APIService, serviceLister v1
 	}
 	switch {
 	// use IP from a clusterIP for these service types
-	case service.Spec.Type == v1.ServiceTypeClusterIP,
-		service.Spec.Type == v1.ServiceTypeNodePort,
-		service.Spec.Type == v1.ServiceTypeLoadBalancer:
+	case service.Spec.Type == api.ServiceTypeClusterIP,
+		service.Spec.Type == api.ServiceTypeNodePort,
+		service.Spec.Type == api.ServiceTypeLoadBalancer:
 		return service.Spec.ClusterIP
 	}
 
@@ -358,26 +358,26 @@ func (c *AvailableConditionController) getAPIServicesFor(obj runtime.Object) []*
 // TODO, think of a way to avoid checking on every service manipulation
 
 func (c *AvailableConditionController) addService(obj interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) updateService(obj, _ interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) deleteService(obj interface{}) {
-	castObj, ok := obj.(*v1.Service)
+	castObj, ok := obj.(*api.Service)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			glog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
-		castObj, ok = tombstone.Obj.(*v1.Service)
+		castObj, ok = tombstone.Obj.(*api.Service)
 		if !ok {
 			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
@@ -389,26 +389,26 @@ func (c *AvailableConditionController) deleteService(obj interface{}) {
 }
 
 func (c *AvailableConditionController) addEndpoints(obj interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Endpoints)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*api.Endpoints)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) updateEndpoints(obj, _ interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Endpoints)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*api.Endpoints)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) deleteEndpoints(obj interface{}) {
-	castObj, ok := obj.(*v1.Endpoints)
+	castObj, ok := obj.(*api.Endpoints)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			glog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
-		castObj, ok = tombstone.Obj.(*v1.Endpoints)
+		castObj, ok = tombstone.Obj.(*api.Endpoints)
 		if !ok {
 			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
