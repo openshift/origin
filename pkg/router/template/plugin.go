@@ -99,6 +99,30 @@ func env(name, defaultValue string) string {
 	return defaultValue
 }
 
+// This variable holds the bind string for haproxy as documented
+// http://cbonte.github.io/haproxy-dconv/1.5/configuration.html#4-bind
+var bindLine string = ""
+
+// Due to the fact that haproxy expects a ip:port tuple  I need
+// to build this tuple per IP address
+func createBindline(ipAdress string, port string) string {
+	if bindLine == ""{
+		bindLine = fmt.Sprintf("%s:%s",ipAdress,port)
+	}else {
+		bindLine = fmt.Sprintf("%s,%s:%s",bindLine,ipAdress,port)
+	}
+	return bindLine
+}
+
+func getBindline() string {
+	return bindLine
+}
+
+func resetBindline() string{
+	bindLine = ""
+	return bindLine
+}
+
 // NewTemplatePlugin creates a new TemplatePlugin.
 func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*TemplatePlugin, error) {
 	templateBaseName := filepath.Base(cfg.TemplatePath)
@@ -113,6 +137,9 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 		"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
 		"genCertificateHostName":     genCertificateHostName,     //generates host name to use for serving/matching certificates
+                "createBindline": createBindline , // Creates the bindline
+		"getBindline": getBindline,        // get method for the bindline
+		"resetBindline": resetBindline,    // reste the line for the next round
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
