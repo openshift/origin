@@ -290,8 +290,8 @@ func (o *ResourceVisitor) Visit(fn MigrateVisitFunc) error {
 	err := result.Visit(func(info *resource.Info, err error) error {
 		if err == nil && o.FilterFn != nil {
 			var ok bool
-			t.found++
 			if ok, err = o.FilterFn(info); err == nil && !ok {
+				t.found++
 				t.ignored++
 				if glog.V(2) {
 					t.report("ignored:", info, nil)
