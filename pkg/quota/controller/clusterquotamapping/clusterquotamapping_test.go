@@ -68,7 +68,7 @@ func runFuzzer(t *testing.T) {
 	quotaClient := quotaclient.NewSimpleClientset(startingQuotas...)
 	quotaClient.PrependWatchReactor("clusterresourcequotas", clientgotesting.DefaultWatchReactor(quotaWatch, nil))
 	quotaFactory := quotainformer.NewSharedInformerFactory(quotaClient, 0)
-	controller := NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaFactory.Quota().InternalVersion().ClusterResourceQuotas())
+	controller := NewClusterQuotaMappingControllerInternal(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaFactory.Quota().InternalVersion().ClusterResourceQuotas())
 	go controller.Run(5, stopCh)
 	quotaFactory.Start(stopCh)
 	internalKubeInformerFactory.Start(stopCh)
