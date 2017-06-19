@@ -157,6 +157,12 @@ os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-admin s
 os::cmd::expect_success 'oc adm policy remove-cluster-role-from-group cluster-admin system:unauthenticated'
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-admin system:no-user'
 os::cmd::expect_success 'oc adm policy remove-cluster-role-from-user cluster-admin system:no-user'
+os::cmd::expect_success 'oc adm policy add-role-to-user view foo'
+os::cmd::expect_success 'oc adm policy add-role-to-user view bar --rolebinding-name=custom'
+os::cmd::expect_success 'oc adm policy add-role-to-user view baz --rolebinding-name=custom'
+os::cmd::expect_success_and_text 'oc get rolebinding/view -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^view,view,foo$'
+os::cmd::expect_success_and_text 'oc get rolebinding/custom -o jsonpath="{.metadata.name},{.roleRef.name},{.userNames[*]}"' '^custom,view,bar baz$'
+os::cmd::expect_failure_and_text 'oc adm policy add-role-to-user other fuz --rolebinding-name=custom' '^error: rolebinding custom found for role view, not other$'
 
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
 os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
