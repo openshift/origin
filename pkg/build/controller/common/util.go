@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	envutil "github.com/openshift/origin/pkg/util/env"
+	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
 
 	"github.com/golang/glog"
 )
@@ -170,7 +170,7 @@ func ResolveValueFrom(pod *kapi.Pod, client kclientset.Interface) error {
 	mapEnvs := map[string]string{}
 	mapping := expansion.MappingFuncFor(mapEnvs)
 	inputEnv := buildutil.GetBuildEnv(build)
-	store := envutil.NewResourceStore()
+	store := envresolve.NewResourceStore()
 
 	for _, e := range inputEnv {
 		var value string
@@ -179,7 +179,7 @@ func ResolveValueFrom(pod *kapi.Pod, client kclientset.Interface) error {
 		if e.Value != "" {
 			value = expansion.Expand(e.Value, mapping)
 		} else if e.ValueFrom != nil {
-			value, err = envutil.GetEnvVarRefValue(nil, client, build.Namespace, store, e.ValueFrom, build, nil)
+			value, err = envresolve.GetEnvVarRefValue(client, build.Namespace, store, e.ValueFrom, build, nil)
 			if err != nil {
 				allErrs = append(allErrs, err)
 				continue
