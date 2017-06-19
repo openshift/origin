@@ -1200,7 +1200,11 @@ func (c *allClient) destroy(obj runtime.Object, mapping *meta.RESTMapping) error
 	if err != nil {
 		return err
 	}
-	return req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Name(name).Do().Error()
+	err = req.NamespaceIfScoped(ns, namespaced).Resource(mapping.Resource).Name(name).Do().Error()
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	return err
 }
 
 func (c *allClient) cleanup(all *[]cleanupData) error {
