@@ -106,10 +106,10 @@ var bindLine string = ""
 // Due to the fact that haproxy expects a ip:port tuple  I need
 // to build this tuple per IP address
 func createBindline(ipAdress string, port string) string {
-	if bindLine == ""{
-		bindLine = fmt.Sprintf("%s:%s",ipAdress,port)
-	}else {
-		bindLine = fmt.Sprintf("%s,%s:%s",bindLine,ipAdress,port)
+	if bindLine == "" {
+		bindLine = fmt.Sprintf("%s:%s", ipAdress, port)
+	} else {
+		bindLine = fmt.Sprintf("%s,%s:%s", bindLine, ipAdress, port)
 	}
 	return bindLine
 }
@@ -118,7 +118,7 @@ func getBindline() string {
 	return bindLine
 }
 
-func resetBindline() string{
+func resetBindline() string {
 	bindLine = ""
 	return bindLine
 }
@@ -137,9 +137,9 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 		"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 		"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)
 		"genCertificateHostName":     genCertificateHostName,     //generates host name to use for serving/matching certificates
-                "createBindline": createBindline , // Creates the bindline
-		"getBindline": getBindline,        // get method for the bindline
-		"resetBindline": resetBindline,    // reste the line for the next round
+		"createBindline":             createBindline,             // Creates the bindline
+		"getBindline":                getBindline,                // get method for the bindline
+		"resetBindline":              resetBindline,              // reste the line for the next round
 	}
 	masterTemplate, err := template.New("config").Funcs(globalFuncs).ParseFiles(cfg.TemplatePath)
 	if err != nil {
