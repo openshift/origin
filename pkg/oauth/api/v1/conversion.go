@@ -4,30 +4,30 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthAccessToken",
-		oapi.GetFieldLabelConversionFunc(api.OAuthAccessTokenToSelectableFields(&api.OAuthAccessToken{}), nil),
+		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthAccessTokenToSelectableFields(&oauthapi.OAuthAccessToken{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthAuthorizeToken",
-		oapi.GetFieldLabelConversionFunc(api.OAuthAuthorizeTokenToSelectableFields(&api.OAuthAuthorizeToken{}), nil),
+		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthAuthorizeTokenToSelectableFields(&oauthapi.OAuthAuthorizeToken{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClient",
-		oapi.GetFieldLabelConversionFunc(api.OAuthClientToSelectableFields(&api.OAuthClient{}), nil),
+		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthClientToSelectableFields(&oauthapi.OAuthClient{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClientAuthorization",
-		oapi.GetFieldLabelConversionFunc(api.OAuthClientAuthorizationToSelectableFields(&api.OAuthClientAuthorization{}), nil),
+		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthClientAuthorizationToSelectableFields(&oauthapi.OAuthClientAuthorization{}), nil),
 	); err != nil {
 		return err
 	}

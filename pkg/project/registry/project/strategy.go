@@ -7,7 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/project/api/validation"
 )
 
@@ -28,34 +28,34 @@ func (projectStrategy) NamespaceScoped() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (projectStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	project := obj.(*api.Project)
+	project := obj.(*projectapi.Project)
 	hasProjectFinalizer := false
 	for i := range project.Spec.Finalizers {
-		if project.Spec.Finalizers[i] == api.FinalizerOrigin {
+		if project.Spec.Finalizers[i] == projectapi.FinalizerOrigin {
 			hasProjectFinalizer = true
 			break
 		}
 	}
 	if !hasProjectFinalizer {
 		if len(project.Spec.Finalizers) == 0 {
-			project.Spec.Finalizers = []kapi.FinalizerName{api.FinalizerOrigin}
+			project.Spec.Finalizers = []kapi.FinalizerName{projectapi.FinalizerOrigin}
 		} else {
-			project.Spec.Finalizers = append(project.Spec.Finalizers, api.FinalizerOrigin)
+			project.Spec.Finalizers = append(project.Spec.Finalizers, projectapi.FinalizerOrigin)
 		}
 	}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (projectStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newProject := obj.(*api.Project)
-	oldProject := old.(*api.Project)
+	newProject := obj.(*projectapi.Project)
+	oldProject := old.(*projectapi.Project)
 	newProject.Spec.Finalizers = oldProject.Spec.Finalizers
 	newProject.Status = oldProject.Status
 }
 
 // Validate validates a new project.
 func (projectStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateProject(obj.(*api.Project))
+	return validation.ValidateProject(obj.(*projectapi.Project))
 }
 
 // AllowCreateOnUpdate is false for project.
@@ -73,5 +73,5 @@ func (projectStrategy) Canonicalize(obj runtime.Object) {
 
 // ValidateUpdate is the default update validation for an end user.
 func (projectStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateProjectUpdate(obj.(*api.Project), old.(*api.Project))
+	return validation.ValidateProjectUpdate(obj.(*projectapi.Project), old.(*projectapi.Project))
 }

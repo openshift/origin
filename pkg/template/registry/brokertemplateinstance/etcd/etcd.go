@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	rest "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -20,10 +20,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.BrokerTemplateInstance{} },
-		NewListFunc:       func() runtime.Object { return &api.BrokerTemplateInstanceList{} },
+		NewFunc:           func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
+		NewListFunc:       func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },
 		PredicateFunc:     rest.Matcher,
-		QualifiedResource: api.Resource("brokertemplateinstances"),
+		QualifiedResource: templateapi.Resource("brokertemplateinstances"),
 
 		CreateStrategy: rest.Strategy,
 		UpdateStrategy: rest.Strategy,

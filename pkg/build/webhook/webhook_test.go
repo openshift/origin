@@ -3,91 +3,91 @@ package webhook
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-func newBuildSource(ref string) *api.BuildSource {
-	return &api.BuildSource{
-		Git: &api.GitBuildSource{
+func newBuildSource(ref string) *buildapi.BuildSource {
+	return &buildapi.BuildSource{
+		Git: &buildapi.GitBuildSource{
 			Ref: ref,
 		},
 	}
 }
 
-func newBuildConfig() *api.BuildConfig {
-	return &api.BuildConfig{
-		Spec: api.BuildConfigSpec{
-			Triggers: []api.BuildTriggerPolicy{
+func newBuildConfig() *buildapi.BuildConfig {
+	return &buildapi.BuildConfig{
+		Spec: buildapi.BuildConfigSpec{
+			Triggers: []buildapi.BuildTriggerPolicy{
 				{
-					Type: api.GenericWebHookBuildTriggerType,
-					GenericWebHook: &api.WebHookTrigger{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret101",
 					},
 				},
 				{
-					Type: api.GenericWebHookBuildTriggerType,
-					GenericWebHook: &api.WebHookTrigger{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
 						Secret:   "secret100",
 						AllowEnv: true,
 					},
 				},
 				{
-					Type: api.GenericWebHookBuildTriggerType,
-					GenericWebHook: &api.WebHookTrigger{
+					Type: buildapi.GenericWebHookBuildTriggerType,
+					GenericWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret102",
 					},
 				},
 				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret201",
 					},
 				},
 				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret200",
 					},
 				},
 				{
-					Type: api.GitHubWebHookBuildTriggerType,
-					GitHubWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitHubWebHookBuildTriggerType,
+					GitHubWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret202",
 					},
 				},
 				{
-					Type: api.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret301",
 					},
 				},
 				{
-					Type: api.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret300",
 					},
 				},
 				{
-					Type: api.GitLabWebHookBuildTriggerType,
-					GitLabWebHook: &api.WebHookTrigger{
+					Type: buildapi.GitLabWebHookBuildTriggerType,
+					GitLabWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret302",
 					},
 				},
 				{
-					Type: api.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &api.WebHookTrigger{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret401",
 					},
 				},
 				{
-					Type: api.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &api.WebHookTrigger{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret400",
 					},
 				},
 				{
-					Type: api.BitbucketWebHookBuildTriggerType,
-					BitbucketWebHook: &api.WebHookTrigger{
+					Type: buildapi.BitbucketWebHookBuildTriggerType,
+					BitbucketWebHook: &buildapi.WebHookTrigger{
 						Secret: "secret402",
 					},
 				},
@@ -122,7 +122,7 @@ func TestWebHookEventNoRef(t *testing.T) {
 
 func TestFindTriggerPolicyWebHookError(t *testing.T) {
 	buildConfig := newBuildConfig()
-	_, err := FindTriggerPolicy(api.ImageChangeBuildTriggerType, buildConfig)
+	_, err := FindTriggerPolicy(buildapi.ImageChangeBuildTriggerType, buildConfig)
 	if err != ErrHookNotEnabled {
 		t.Errorf("Expected error %s got %s", ErrHookNotEnabled, err)
 	}
@@ -130,7 +130,7 @@ func TestFindTriggerPolicyWebHookError(t *testing.T) {
 
 func TestFindTriggerPolicyMatchedGenericWebHook(t *testing.T) {
 	buildConfig := newBuildConfig()
-	triggers, err := FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildConfig)
+	triggers, err := FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildConfig)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
@@ -147,7 +147,7 @@ func TestFindTriggerPolicyMatchedGenericWebHook(t *testing.T) {
 
 func TestFindTriggerPolicyMatchedGithubWebHook(t *testing.T) {
 	buildConfig := newBuildConfig()
-	triggers, err := FindTriggerPolicy(api.GitHubWebHookBuildTriggerType, buildConfig)
+	triggers, err := FindTriggerPolicy(buildapi.GitHubWebHookBuildTriggerType, buildConfig)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
@@ -164,7 +164,7 @@ func TestFindTriggerPolicyMatchedGithubWebHook(t *testing.T) {
 
 func TestFindTriggerPolicyMatchedGitLabWebHook(t *testing.T) {
 	buildConfig := newBuildConfig()
-	triggers, err := FindTriggerPolicy(api.GitLabWebHookBuildTriggerType, buildConfig)
+	triggers, err := FindTriggerPolicy(buildapi.GitLabWebHookBuildTriggerType, buildConfig)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)
@@ -181,7 +181,7 @@ func TestFindTriggerPolicyMatchedGitLabWebHook(t *testing.T) {
 
 func TestFindTriggerPolicyMatchedBitbucketWebHook(t *testing.T) {
 	buildConfig := newBuildConfig()
-	triggers, err := FindTriggerPolicy(api.BitbucketWebHookBuildTriggerType, buildConfig)
+	triggers, err := FindTriggerPolicy(buildapi.BitbucketWebHookBuildTriggerType, buildConfig)
 
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %s", err)

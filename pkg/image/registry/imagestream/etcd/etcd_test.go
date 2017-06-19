@@ -15,7 +15,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
 	// install all APIs
@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "test", true })
-	noDefaultRegistry   = api.DefaultRegistryFunc(func() (string, bool) { return "", false })
+	testDefaultRegistry = imageapi.DefaultRegistryFunc(func() (string, bool) { return "test", true })
+	noDefaultRegistry   = imageapi.DefaultRegistryFunc(func() (string, bool) { return "", false })
 )
 
 type fakeSubjectAccessReviewRegistry struct {
@@ -55,21 +55,21 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.E
 	return imageStorage, statusStorage, internalStorage, server
 }
 
-func validImageStream() *api.ImageStream {
-	return &api.ImageStream{
+func validImageStream() *imageapi.ImageStream {
+	return &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 	}
 }
 
-func create(t *testing.T, storage *REST, obj *api.ImageStream) *api.ImageStream {
+func create(t *testing.T, storage *REST, obj *imageapi.ImageStream) *imageapi.ImageStream {
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
 	newObj, err := storage.Create(ctx, obj)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	return newObj.(*api.ImageStream)
+	return newObj.(*imageapi.ImageStream)
 }
 
 func TestCreate(t *testing.T) {
@@ -120,7 +120,7 @@ func TestGetImageStreamOK(t *testing.T) {
 	if obj == nil {
 		t.Fatalf("Unexpected nil stream")
 	}
-	got := obj.(*api.ImageStream)
+	got := obj.(*imageapi.ImageStream)
 	got.ResourceVersion = image.ResourceVersion
 	if !kapi.Semantic.DeepEqual(image, got) {
 		t.Errorf("Expected %#v, got %#v", image, got)

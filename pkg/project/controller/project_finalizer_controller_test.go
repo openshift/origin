@@ -8,7 +8,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 )
 
@@ -25,7 +25,7 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 			DeletionTimestamp: &now,
 		},
 		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, projectapi.FinalizerOrigin},
 		},
 		Status: kapi.NamespaceStatus{
 			Phase: kapi.NamespaceTerminating,
@@ -61,7 +61,7 @@ func TestSyncNamespaceThatIsActive(t *testing.T) {
 			ResourceVersion: "1",
 		},
 		Spec: kapi.NamespaceSpec{
-			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, api.FinalizerOrigin},
+			Finalizers: []kapi.FinalizerName{kapi.FinalizerKubernetes, projectapi.FinalizerOrigin},
 		},
 		Status: kapi.NamespaceStatus{
 			Phase: kapi.NamespaceActive,

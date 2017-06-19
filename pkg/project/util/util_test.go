@@ -9,13 +9,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/google/gofuzz"
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 // TestProjectFidelity makes sure that the project to namespace round trip does not lose any data
 func TestProjectFidelity(t *testing.T) {
 	f := fuzz.New().NilChance(0)
-	p := &api.Project{}
+	p := &projectapi.Project{}
 	for i := 0; i < 100; i++ {
 		f.Fuzz(p)
 		p.TypeMeta = metav1.TypeMeta{} // Ignore TypeMeta

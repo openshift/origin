@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/api/v1"
+	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
 )
 
 func installApiGroup() {
@@ -19,14 +19,14 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.LegacySchemeGroupVersion.Version},
+			GroupName:                  templateapi.GroupName,
+			VersionPreferenceOrder:     []string{templateapiv1.LegacySchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: templateapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("BrokerTemplateInstance"),
 		},
 		announced.VersionToSchemeFunc{
-			v1.LegacySchemeGroupVersion.Version: v1.AddToScheme,
+			templateapiv1.LegacySchemeGroupVersion.Version: templateapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

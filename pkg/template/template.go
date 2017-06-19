@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
 	"github.com/openshift/origin/pkg/util/stringreplace"
@@ -36,7 +36,7 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *api.Template) field.ErrorList {
+func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 	templateErrors := field.ErrorList{}
 
 	if fieldError := p.GenerateParameterValues(template); fieldError != nil {
@@ -44,7 +44,7 @@ func (p *Processor) Process(template *api.Template) field.ErrorList {
 	}
 
 	// Place parameters into a map for efficient lookup
-	paramMap := make(map[string]api.Parameter)
+	paramMap := make(map[string]templateapi.Parameter)
 	for _, param := range template.Parameters {
 		paramMap[param.Name] = param
 	}
@@ -111,7 +111,7 @@ func stripNamespace(obj runtime.Object) {
 
 // AddParameter adds new custom parameter to the Template. It overrides
 // the existing parameter, if already defined.
-func AddParameter(t *api.Template, param api.Parameter) {
+func AddParameter(t *templateapi.Template, param templateapi.Parameter) {
 	if existing := GetParameterByName(t, param.Name); existing != nil {
 		*existing = param
 	} else {
@@ -121,7 +121,7 @@ func AddParameter(t *api.Template, param api.Parameter) {
 
 // GetParameterByName searches for a Parameter in the Template
 // based on its name.
-func GetParameterByName(t *api.Template, name string) *api.Parameter {
+func GetParameterByName(t *templateapi.Template, name string) *templateapi.Parameter {
 	for i, param := range t.Parameters {
 		if param.Name == name {
 			return &(t.Parameters[i])
@@ -134,7 +134,7 @@ func GetParameterByName(t *api.Template, name string) *api.Parameter {
 // provided map.  Returns the substituted value (if any substitution applied) and a boolean
 // indicating if the resulting value should be treated as a string(true) or a non-string
 // value(false) for purposes of json encoding.
-func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Parameter, in string) (string, bool) {
+func (p *Processor) EvaluateParameterSubstitution(params map[string]templateapi.Parameter, in string) (string, bool) {
 	out := in
 	// First check if the value matches the "${{KEY}}" substitution syntax, which
 	// means replace and drop the quotes because the parameter value is to be used
@@ -169,7 +169,7 @@ func (p *Processor) EvaluateParameterSubstitution(params map[string]api.Paramete
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
 //
-func (p *Processor) SubstituteParameters(params map[string]api.Parameter, item runtime.Object) (runtime.Object, error) {
+func (p *Processor) SubstituteParameters(params map[string]templateapi.Parameter, item runtime.Object) (runtime.Object, error) {
 	stringreplace.VisitObjectStrings(item, func(in string) (string, bool) {
 		return p.EvaluateParameterSubstitution(params, in)
 	})
@@ -189,7 +189,7 @@ func (p *Processor) SubstituteParameters(params map[string]api.Parameter, item r
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 // If an error occurs, the parameter that caused the error is returned along with the error message.
-func (p *Processor) GenerateParameterValues(t *api.Template) *field.Error {
+func (p *Processor) GenerateParameterValues(t *templateapi.Template) *field.Error {
 	for i := range t.Parameters {
 		param := &t.Parameters[i]
 		if len(param.Value) > 0 {

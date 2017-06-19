@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 func ValidateUserName(name string, _ bool) []string {
@@ -73,7 +73,7 @@ func ValidateIdentityProviderUserName(name string) []string {
 	return ValidateUserName(name, false)
 }
 
-func ValidateGroup(group *api.Group) field.ErrorList {
+func ValidateGroup(group *userapi.Group) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMeta(&group.ObjectMeta, false, ValidateGroupName, field.NewPath("metadata"))
 
 	userPath := field.NewPath("user")
@@ -91,13 +91,13 @@ func ValidateGroup(group *api.Group) field.ErrorList {
 	return allErrs
 }
 
-func ValidateGroupUpdate(group *api.Group, old *api.Group) field.ErrorList {
+func ValidateGroupUpdate(group *userapi.Group, old *userapi.Group) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMetaUpdate(&group.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateGroup(group)...)
 	return allErrs
 }
 
-func ValidateUser(user *api.User) field.ErrorList {
+func ValidateUser(user *userapi.User) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMeta(&user.ObjectMeta, false, ValidateUserName, field.NewPath("metadata"))
 	identitiesPath := field.NewPath("identities")
 	for index, identity := range user.Identities {
@@ -122,13 +122,13 @@ func ValidateUser(user *api.User) field.ErrorList {
 	return allErrs
 }
 
-func ValidateUserUpdate(user *api.User, old *api.User) field.ErrorList {
+func ValidateUserUpdate(user *userapi.User, old *userapi.User) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMetaUpdate(&user.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateUser(user)...)
 	return allErrs
 }
 
-func ValidateIdentity(identity *api.Identity) field.ErrorList {
+func ValidateIdentity(identity *userapi.Identity) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMeta(&identity.ObjectMeta, false, ValidateIdentityName, field.NewPath("metadata"))
 
 	if len(identity.ProviderName) == 0 {
@@ -163,7 +163,7 @@ func ValidateIdentity(identity *api.Identity) field.ErrorList {
 	return allErrs
 }
 
-func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) field.ErrorList {
+func ValidateIdentityUpdate(identity *userapi.Identity, old *userapi.Identity) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMetaUpdate(&identity.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateIdentity(identity)...)
 
@@ -177,7 +177,7 @@ func ValidateIdentityUpdate(identity *api.Identity, old *api.Identity) field.Err
 	return allErrs
 }
 
-func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) field.ErrorList {
+func ValidateUserIdentityMapping(mapping *userapi.UserIdentityMapping) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMeta(&mapping.ObjectMeta, false, ValidateIdentityName, field.NewPath("metadata"))
 
 	identityPath := field.NewPath("identity")
@@ -193,7 +193,7 @@ func ValidateUserIdentityMapping(mapping *api.UserIdentityMapping) field.ErrorLi
 	return allErrs
 }
 
-func ValidateUserIdentityMappingUpdate(mapping *api.UserIdentityMapping, old *api.UserIdentityMapping) field.ErrorList {
+func ValidateUserIdentityMappingUpdate(mapping *userapi.UserIdentityMapping, old *userapi.UserIdentityMapping) field.ErrorList {
 	allErrs := kvalidation.ValidateObjectMetaUpdate(&mapping.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateUserIdentityMapping(mapping)...)
 	return allErrs

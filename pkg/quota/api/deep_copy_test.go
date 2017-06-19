@@ -7,15 +7,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	_ "github.com/openshift/origin/pkg/quota/api/install"
 )
 
 func TestDeepCopy(t *testing.T) {
-	make := func() *api.ClusterResourceQuota {
+	make := func() *quotaapi.ClusterResourceQuota {
 		q := resource.Quantity{}
 		q.Set(100)
-		crq := &api.ClusterResourceQuota{}
+		crq := &quotaapi.ClusterResourceQuota{}
 		crq.Status.Namespaces.Insert("ns1", kapi.ResourceQuotaStatus{Hard: kapi.ResourceList{"a": q.DeepCopy()}, Used: kapi.ResourceList{"a": q.DeepCopy()}})
 		crq.Status.Namespaces.Insert("ns2", kapi.ResourceQuotaStatus{Hard: kapi.ResourceList{"b": q.DeepCopy()}, Used: kapi.ResourceList{"b": q.DeepCopy()}})
 		return crq
@@ -35,7 +35,7 @@ func TestDeepCopy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	copied := copiedObj.(*api.ClusterResourceQuota)
+	copied := copiedObj.(*quotaapi.ClusterResourceQuota)
 	if !reflect.DeepEqual(copied, original) {
 		t.Error("before mutation of copy, copied and original should be identical but are not, likely failure in deepequal")
 	}

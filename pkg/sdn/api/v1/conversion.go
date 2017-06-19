@@ -4,30 +4,30 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("network.openshift.io/v1", "ClusterNetwork",
-		oapi.GetFieldLabelConversionFunc(api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.ClusterNetworkToSelectableFields(&sdnapi.ClusterNetwork{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("network.openshift.io/v1", "HostSubnet",
-		oapi.GetFieldLabelConversionFunc(api.HostSubnetToSelectableFields(&api.HostSubnet{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.HostSubnetToSelectableFields(&sdnapi.HostSubnet{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("network.openshift.io/v1", "NetNamespace",
-		oapi.GetFieldLabelConversionFunc(api.NetNamespaceToSelectableFields(&api.NetNamespace{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.NetNamespaceToSelectableFields(&sdnapi.NetNamespace{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("network.openshift.io/v1", "EgressNetworkPolicy",
-		oapi.GetFieldLabelConversionFunc(api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.EgressNetworkPolicyToSelectableFields(&sdnapi.EgressNetworkPolicy{}), nil),
 	); err != nil {
 		return err
 	}
@@ -37,25 +37,25 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 func addLegacyConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterNetwork",
-		oapi.GetFieldLabelConversionFunc(api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.ClusterNetworkToSelectableFields(&sdnapi.ClusterNetwork{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "HostSubnet",
-		oapi.GetFieldLabelConversionFunc(api.HostSubnetToSelectableFields(&api.HostSubnet{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.HostSubnetToSelectableFields(&sdnapi.HostSubnet{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "NetNamespace",
-		oapi.GetFieldLabelConversionFunc(api.NetNamespaceToSelectableFields(&api.NetNamespace{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.NetNamespaceToSelectableFields(&sdnapi.NetNamespace{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "EgressNetworkPolicy",
-		oapi.GetFieldLabelConversionFunc(api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}), nil),
+		oapi.GetFieldLabelConversionFunc(sdnapi.EgressNetworkPolicyToSelectableFields(&sdnapi.EgressNetworkPolicy{}), nil),
 	); err != nil {
 		return err
 	}

@@ -6,7 +6,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -38,7 +38,7 @@ func (userIdentityMappingStrategy) AllowUnconditionalUpdate() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s userIdentityMappingStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
+	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
 		mapping.Name = mapping.Identity.Name
@@ -57,7 +57,7 @@ func (s userIdentityMappingStrategy) PrepareForCreate(ctx apirequest.Context, ob
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update
 func (s userIdentityMappingStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	mapping := obj.(*api.UserIdentityMapping)
+	mapping := obj.(*userapi.UserIdentityMapping)
 
 	if len(mapping.Name) == 0 {
 		mapping.Name = mapping.Identity.Name
@@ -79,10 +79,10 @@ func (s userIdentityMappingStrategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new UserIdentityMapping.
 func (s userIdentityMappingStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateUserIdentityMapping(obj.(*api.UserIdentityMapping))
+	return validation.ValidateUserIdentityMapping(obj.(*userapi.UserIdentityMapping))
 }
 
 // Validate validates an updated UserIdentityMapping.
 func (s userIdentityMappingStrategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
-	return validation.ValidateUserIdentityMappingUpdate(obj.(*api.UserIdentityMapping), old.(*api.UserIdentityMapping))
+	return validation.ValidateUserIdentityMappingUpdate(obj.(*userapi.UserIdentityMapping), old.(*userapi.UserIdentityMapping))
 }

@@ -8,13 +8,13 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 // Associated returns true if the spec.finalizers contains the origin finalizer
 func Associated(namespace *kapi.Namespace) bool {
 	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerOrigin == namespace.Spec.Finalizers[i] {
+		if projectapi.FinalizerOrigin == namespace.Spec.Finalizers[i] {
 			return true
 		}
 	}
@@ -32,7 +32,7 @@ func Associate(kubeClient clientset.Interface, namespace *kapi.Namespace) (*kapi
 // Finalized returns true if the spec.finalizers does not contain the origin finalizer
 func Finalized(namespace *kapi.Namespace) bool {
 	for i := range namespace.Spec.Finalizers {
-		if api.FinalizerOrigin == namespace.Spec.Finalizers[i] {
+		if projectapi.FinalizerOrigin == namespace.Spec.Finalizers[i] {
 			return false
 		}
 	}
@@ -77,9 +77,9 @@ func finalizeInternal(kubeClient clientset.Interface, namespace *kapi.Namespace,
 	}
 
 	if withOrigin {
-		finalizerSet.Insert(string(api.FinalizerOrigin))
+		finalizerSet.Insert(string(projectapi.FinalizerOrigin))
 	} else {
-		finalizerSet.Delete(string(api.FinalizerOrigin))
+		finalizerSet.Delete(string(projectapi.FinalizerOrigin))
 	}
 
 	namespaceFinalize.Spec.Finalizers = make([]kapi.FinalizerName, 0, len(finalizerSet))
@@ -90,20 +90,20 @@ func finalizeInternal(kubeClient clientset.Interface, namespace *kapi.Namespace,
 }
 
 // ConvertNamespace transforms a Namespace into a Project
-func ConvertNamespace(namespace *kapi.Namespace) *api.Project {
-	return &api.Project{
+func ConvertNamespace(namespace *kapi.Namespace) *projectapi.Project {
+	return &projectapi.Project{
 		ObjectMeta: namespace.ObjectMeta,
-		Spec: api.ProjectSpec{
+		Spec: projectapi.ProjectSpec{
 			Finalizers: namespace.Spec.Finalizers,
 		},
-		Status: api.ProjectStatus{
+		Status: projectapi.ProjectStatus{
 			Phase: namespace.Status.Phase,
 		},
 	}
 }
 
 // convertProject transforms a Project into a Namespace
-func ConvertProject(project *api.Project) *kapi.Namespace {
+func ConvertProject(project *projectapi.Project) *kapi.Namespace {
 	namespace := &kapi.Namespace{
 		ObjectMeta: project.ObjectMeta,
 		Spec: kapi.NamespaceSpec{
@@ -121,8 +121,8 @@ func ConvertProject(project *api.Project) *kapi.Namespace {
 }
 
 // ConvertNamespaceList transforms a NamespaceList into a ProjectList
-func ConvertNamespaceList(namespaceList *kapi.NamespaceList) *api.ProjectList {
-	projects := &api.ProjectList{}
+func ConvertNamespaceList(namespaceList *kapi.NamespaceList) *projectapi.ProjectList {
+	projects := &projectapi.ProjectList{}
 	for _, n := range namespaceList.Items {
 		projects.Items = append(projects.Items, *ConvertNamespace(&n))
 	}

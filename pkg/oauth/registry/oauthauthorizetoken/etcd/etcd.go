@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -22,13 +22,13 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.OAuthAuthorizeToken{} },
-		NewListFunc:       func() runtime.Object { return &api.OAuthAuthorizeTokenList{} },
+		NewFunc:           func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
+		NewListFunc:       func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
 		PredicateFunc:     oauthauthorizetoken.Matcher,
-		QualifiedResource: api.Resource("oauthauthorizetokens"),
+		QualifiedResource: oauthapi.Resource("oauthauthorizetokens"),
 
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
-			token := obj.(*api.OAuthAuthorizeToken)
+			token := obj.(*oauthapi.OAuthAuthorizeToken)
 			expires := uint64(token.ExpiresIn)
 			return expires, nil
 		},

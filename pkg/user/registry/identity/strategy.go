@@ -11,7 +11,7 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -36,13 +36,13 @@ func (identityStrategy) GenerateName(base string) string {
 }
 
 func (identityStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	identity := obj.(*api.Identity)
+	identity := obj.(*userapi.Identity)
 	identity.Name = identityName(identity.ProviderName, identity.ProviderUserName)
 }
 
 // Validate validates a new user
 func (identityStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	identity := obj.(*api.Identity)
+	identity := obj.(*userapi.Identity)
 	return validation.ValidateIdentity(identity)
 }
 
@@ -61,12 +61,12 @@ func (identityStrategy) Canonicalize(obj runtime.Object) {
 
 // ValidateUpdate is the default update validation for an identity
 func (identityStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateIdentityUpdate(obj.(*api.Identity), old.(*api.Identity))
+	return validation.ValidateIdentityUpdate(obj.(*userapi.Identity), old.(*userapi.Identity))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.Identity)
+	obj, ok := o.(*userapi.Identity)
 	if !ok {
 		return nil, nil, fmt.Errorf("not an Identity")
 	}
@@ -83,6 +83,6 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.Identity) fields.Set {
-	return api.IdentityToSelectableFields(obj)
+func SelectableFields(obj *userapi.Identity) fields.Set {
+	return userapi.IdentityToSelectableFields(obj)
 }

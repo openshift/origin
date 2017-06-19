@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 	rac "github.com/openshift/origin/pkg/route/controller/allocation"
 )
 
@@ -63,17 +63,17 @@ func TestNewSimpleAllocationPlugin(t *testing.T) {
 func TestSimpleAllocationPlugin(t *testing.T) {
 	tests := []struct {
 		name  string
-		route *api.Route
+		route *routeapi.Route
 		empty bool
 	}{
 		{
 			name: "No Name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
-				Spec: api.RouteSpec{
-					To: api.RouteTargetReference{
+				Spec: routeapi.RouteSpec{
+					To: routeapi.RouteTargetReference{
 						Name: "service",
 					},
 				},
@@ -82,12 +82,12 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		},
 		{
 			name: "No namespace",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
-				Spec: api.RouteSpec{
-					To: api.RouteTargetReference{
+				Spec: routeapi.RouteSpec{
+					To: routeapi.RouteTargetReference{
 						Name: "nonamespace",
 					},
 				},
@@ -96,7 +96,7 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		},
 		{
 			name: "No service name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
@@ -105,14 +105,14 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		},
 		{
 			name: "Valid route",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "myservice",
 					},
 				},
@@ -120,14 +120,14 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 		},
 		{
 			name: "No host",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "myservice",
 					},
 				},
@@ -159,17 +159,17 @@ func TestSimpleAllocationPlugin(t *testing.T) {
 func TestSimpleAllocationPluginViaController(t *testing.T) {
 	tests := []struct {
 		name  string
-		route *api.Route
+		route *routeapi.Route
 		empty bool
 	}{
 		{
 			name: "No Name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
-				Spec: api.RouteSpec{
-					To: api.RouteTargetReference{
+				Spec: routeapi.RouteSpec{
+					To: routeapi.RouteTargetReference{
 						Name: "service",
 					},
 				},
@@ -178,11 +178,11 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		},
 		{
 			name: "Host but no name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "foo.com",
 				},
 			},
@@ -190,12 +190,12 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		},
 		{
 			name: "No namespace",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
-				Spec: api.RouteSpec{
-					To: api.RouteTargetReference{
+				Spec: routeapi.RouteSpec{
+					To: routeapi.RouteTargetReference{
 						Name: "nonamespace",
 					},
 				},
@@ -204,7 +204,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		},
 		{
 			name: "No service name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
@@ -213,14 +213,14 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 		},
 		{
 			name: "Valid route",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "s3",
 					},
 				},

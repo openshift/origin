@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/api/validation"
 )
 
@@ -38,14 +38,14 @@ func (strategy) GenerateName(base string) string {
 }
 
 func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	quota := obj.(*api.ClusterResourceQuota)
-	quota.Status = api.ClusterResourceQuotaStatus{}
+	quota := obj.(*quotaapi.ClusterResourceQuota)
+	quota.Status = quotaapi.ClusterResourceQuotaStatus{}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	curr := obj.(*api.ClusterResourceQuota)
-	prev := old.(*api.ClusterResourceQuota)
+	curr := obj.(*quotaapi.ClusterResourceQuota)
+	prev := old.(*quotaapi.ClusterResourceQuota)
 
 	curr.Status = prev.Status
 }
@@ -55,20 +55,20 @@ func (strategy) Canonicalize(obj runtime.Object) {
 }
 
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateClusterResourceQuota(obj.(*api.ClusterResourceQuota))
+	return validation.ValidateClusterResourceQuota(obj.(*quotaapi.ClusterResourceQuota))
 }
 
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateClusterResourceQuotaUpdate(obj.(*api.ClusterResourceQuota), old.(*api.ClusterResourceQuota))
+	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
-	quota, ok := obj.(*api.ClusterResourceQuota)
+	quota, ok := obj.(*quotaapi.ClusterResourceQuota)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a ClusterResourceQuota")
 	}
-	return labels.Set(quota.ObjectMeta.Labels), api.ClusterResourceQuotaToSelectableFields(quota), nil
+	return labels.Set(quota.ObjectMeta.Labels), quotaapi.ClusterResourceQuotaToSelectableFields(quota), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -106,8 +106,8 @@ func (statusStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Objec
 }
 
 func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	curr := obj.(*api.ClusterResourceQuota)
-	prev := old.(*api.ClusterResourceQuota)
+	curr := obj.(*quotaapi.ClusterResourceQuota)
+	prev := old.(*quotaapi.ClusterResourceQuota)
 
 	curr.Spec = prev.Spec
 }
@@ -116,9 +116,9 @@ func (statusStrategy) Canonicalize(obj runtime.Object) {
 }
 
 func (statusStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateClusterResourceQuota(obj.(*api.ClusterResourceQuota))
+	return validation.ValidateClusterResourceQuota(obj.(*quotaapi.ClusterResourceQuota))
 }
 
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateClusterResourceQuotaUpdate(obj.(*api.ClusterResourceQuota), old.(*api.ClusterResourceQuota))
+	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
 }

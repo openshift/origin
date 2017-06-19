@@ -3,7 +3,7 @@ package test
 import (
 	"sync"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,8 +13,8 @@ import (
 
 type DeploymentConfigRegistry struct {
 	Err               error
-	DeploymentConfig  *api.DeploymentConfig
-	DeploymentConfigs *api.DeploymentConfigList
+	DeploymentConfig  *deployapi.DeploymentConfig
+	DeploymentConfigs *deployapi.DeploymentConfigList
 	sync.Mutex
 }
 
@@ -22,21 +22,21 @@ func NewDeploymentConfigRegistry() *DeploymentConfigRegistry {
 	return &DeploymentConfigRegistry{}
 }
 
-func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx apirequest.Context, label labels.Selector, field fields.Selector) (*api.DeploymentConfigList, error) {
+func (r *DeploymentConfigRegistry) ListDeploymentConfigs(ctx apirequest.Context, label labels.Selector, field fields.Selector) (*deployapi.DeploymentConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfigs, r.Err
 }
 
-func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx apirequest.Context, id string) (*api.DeploymentConfig, error) {
+func (r *DeploymentConfigRegistry) GetDeploymentConfig(ctx apirequest.Context, id string) (*deployapi.DeploymentConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.DeploymentConfig, r.Err
 }
 
-func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context, image *deployapi.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -44,7 +44,7 @@ func (r *DeploymentConfigRegistry) CreateDeploymentConfig(ctx apirequest.Context
 	return r.Err
 }
 
-func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx apirequest.Context, image *api.DeploymentConfig) error {
+func (r *DeploymentConfigRegistry) UpdateDeploymentConfig(ctx apirequest.Context, image *deployapi.DeploymentConfig) error {
 	r.Lock()
 	defer r.Unlock()
 

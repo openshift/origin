@@ -9,23 +9,23 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 // Registry is an interface for things that know how to store Image objects.
 type Registry interface {
 	// ListImages obtains a list of images that match a selector.
-	ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error)
+	ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageList, error)
 	// GetImage retrieves a specific image.
-	GetImage(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.Image, error)
+	GetImage(ctx apirequest.Context, id string, options *metav1.GetOptions) (*imageapi.Image, error)
 	// CreateImage creates a new image.
-	CreateImage(ctx apirequest.Context, image *api.Image) error
+	CreateImage(ctx apirequest.Context, image *imageapi.Image) error
 	// DeleteImage deletes an image.
 	DeleteImage(ctx apirequest.Context, id string) error
 	// WatchImages watches for new or deleted images.
 	WatchImages(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error)
 	// UpdateImage updates given image.
-	UpdateImage(ctx apirequest.Context, image *api.Image) (*api.Image, error)
+	UpdateImage(ctx apirequest.Context, image *imageapi.Image) (*imageapi.Image, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -50,33 +50,33 @@ func NewRegistry(s Storage) Registry {
 	return &storage{Storage: s}
 }
 
-func (s *storage) ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageList, error) {
+func (s *storage) ListImages(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageList), nil
+	return obj.(*imageapi.ImageList), nil
 }
 
-func (s *storage) GetImage(ctx apirequest.Context, imageID string, options *metav1.GetOptions) (*api.Image, error) {
+func (s *storage) GetImage(ctx apirequest.Context, imageID string, options *metav1.GetOptions) (*imageapi.Image, error) {
 	obj, err := s.Get(ctx, imageID, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Image), nil
+	return obj.(*imageapi.Image), nil
 }
 
-func (s *storage) CreateImage(ctx apirequest.Context, image *api.Image) error {
+func (s *storage) CreateImage(ctx apirequest.Context, image *imageapi.Image) error {
 	_, err := s.Create(ctx, image)
 	return err
 }
 
-func (s *storage) UpdateImage(ctx apirequest.Context, image *api.Image) (*api.Image, error) {
+func (s *storage) UpdateImage(ctx apirequest.Context, image *imageapi.Image) (*imageapi.Image, error) {
 	obj, _, err := s.Update(ctx, image.Name, rest.DefaultUpdatedObjectInfo(image, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Image), nil
+	return obj.(*imageapi.Image), nil
 }
 
 func (s *storage) DeleteImage(ctx apirequest.Context, imageID string) error {

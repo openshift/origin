@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	newer "github.com/openshift/origin/pkg/image/api"
-	"github.com/openshift/origin/pkg/image/api/v1"
+	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
 	testutil "github.com/openshift/origin/test/util/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -23,14 +23,14 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		},
 	}
 	i := &newer.Image{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+		ObjectMeta: metaimageapiv1.ObjectMeta{Name: "foo"},
 
 		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", LayerSize: 10}},
 		DockerImageMetadata:  *d,
 		DockerImageReference: "foo/bar/baz",
 	}
 
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), i)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(imageapiv1.SchemeGroupVersion), i)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestImageImportSpecDefaulting(t *testing.T) {
 			},
 		},
 	}
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion), i)
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(imageapiv1.SchemeGroupVersion), i)
 	if err != nil {
 		t.Fatal(err)
 	}
