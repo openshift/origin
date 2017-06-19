@@ -13263,6 +13263,18 @@ objects:
     - ""
     resources:
     - secrets
+    - events
+    verbs:
+    - create
+    - update
+    - patch
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - settings.k8s.io
+    resources:
     - podpresets
     verbs:
     - create
