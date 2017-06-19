@@ -79,7 +79,15 @@ func IsRemoteRepository(s string) (bool, error) {
 	}
 	url.Fragment = ""
 	gitRepo := git.NewRepository()
-	if _, _, err := gitRepo.ListRemote(url.String()); err != nil {
+
+	// try up to 3 times to reach the remote git repo
+	for i := 0; i < 3; i++ {
+		_, _, err = gitRepo.ListRemote(url.String())
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
 		glog.V(5).Infof("could not list git remotes for %s: %v", s, err)
 		return false, err
 	}
