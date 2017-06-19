@@ -323,33 +323,57 @@ func waitForAdd(projectName string, w watch.Interface, t *testing.T) {
 	}
 }
 func waitForOnlyAdd(projectName string, w watch.Interface, t *testing.T) {
-	select {
-	case event := <-w.ResultChan():
-		project := event.Object.(*projectapi.Project)
-		t.Logf("got %#v %#v", event, project)
-		if event.Type == watch.Added && project.Name == projectName {
-			return
-		}
-		t.Errorf("got unexpected project %v", project.Name)
-
-	case <-time.After(30 * time.Second):
-		t.Fatalf("timeout: %v", projectName)
-	}
-}
-func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
 		case event := <-w.ResultChan():
 			project := event.Object.(*projectapi.Project)
 			t.Logf("got %#v %#v", event, project)
-			if event.Type == watch.Deleted && project.Name == projectName {
-				return
+			if project.Name == projectName {
+				// the first event we see for the expected project must be an ADD
+				if event.Type == watch.Added {
+					return
+				}
+				t.Fatalf("got unexpected project ADD waiting for %s: %v", project.Name, event)
 			}
-			// if its an event indicating Terminated status, don't fail, but keep waiting
-			if event.Type == watch.Modified && project.Name == projectName && project.Status.Phase == kapi.NamespaceTerminating {
+			if event.Type == watch.Modified {
+				// ignore modifications from other projects
 				continue
 			}
-			t.Errorf("got unexpected project %v", project.Name)
+			t.Fatalf("got unexpected project %v", project.Name)
+
+		case <-time.After(30 * time.Second):
+			t.Fatalf("timeout: %v", projectName)
+		}
+	}
+}
+func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
+	hasTerminated := sets.NewString()
+	for {
+		select {
+		case event := <-w.ResultChan():
+			project := event.Object.(*projectapi.Project)
+			t.Logf("got %#v %#v", event, project)
+			if project.Name == projectName {
+				if event.Type == watch.Deleted {
+					return
+				}
+				// if its an event indicating Terminated status, don't fail, but keep waiting
+				if event.Type == watch.Modified {
+					terminating := project.Status.Phase == kapi.NamespaceTerminating
+					if !terminating && hasTerminated.Has(project.Name) {
+						t.Fatalf("project %s was terminating, but then got an event where it was not terminating: %#v", project.Name, project)
+					}
+					if terminating {
+						hasTerminated.Insert(project.Name)
+					}
+					continue
+				}
+			}
+			if event.Type == watch.Modified {
+				// ignore modifications for other projects
+				continue
+			}
+			t.Fatalf("got unexpected project %v", project.Name)
 
 		case <-time.After(30 * time.Second):
 			t.Fatalf("timeout: %v", projectName)
@@ -418,12 +442,14 @@ func TestScopedProjectAccess(t *testing.T) {
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "one", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	t.Logf("test 1")
 	waitForOnlyAdd("one", allWatch, t)
 	waitForOnlyAdd("one", oneTwoWatch, t)
 
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "two", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	t.Logf("test 2")
 	waitForOnlyAdd("two", allWatch, t)
 	waitForOnlyAdd("two", oneTwoWatch, t)
 	waitForOnlyAdd("two", twoThreeWatch, t)
@@ -431,6 +457,7 @@ func TestScopedProjectAccess(t *testing.T) {
 	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "three", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	t.Logf("test 3")
 	waitForOnlyAdd("three", allWatch, t)
 	waitForOnlyAdd("three", twoThreeWatch, t)
 
