@@ -18,6 +18,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		isFixture             = filepath.Join(buildPruningBaseDir, "imagestream.yaml")
 		successfulBuildConfig = filepath.Join(buildPruningBaseDir, "successful-build-config.yaml")
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")
+		erroredBuildConfig    = filepath.Join(buildPruningBaseDir, "errored-build-config.yaml")
 		oc                    = exutil.NewCLI("build-pruning", exutil.KubeConfigPath())
 	)
 
@@ -119,4 +120,33 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.FailedBuildsHistoryLimit), "there should be %v canceled builds left after pruning, but instead there were %v", *buildConfig.Spec.FailedBuildsHistoryLimit, len(builds.Items))
 
 	})
+
+	g.It("should prune errored builds based on the failedBuildsHistoryLimit setting", func() {
+
+		g.By("creating test failed build config")
+		err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("starting three test builds")
+		br, _ := exutil.StartBuildAndWait(oc, "myphp")
+		br.AssertFailure()
+		br, _ = exutil.StartBuildAndWait(oc, "myphp")
+		br.AssertFailure()
+		br, _ = exutil.StartBuildAndWait(oc, "myphp")
+		br.AssertFailure()
+
+		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "%v", err)
+		}
+
+		builds, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "%v", err)
+		}
+
+		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.FailedBuildsHistoryLimit), "there should be %v failed builds left after pruning, but instead there were %v", *buildConfig.Spec.FailedBuildsHistoryLimit, len(builds.Items))
+
+	})
+
 })

@@ -495,6 +495,49 @@ func TestNewAppRunAll(t *testing.T) {
 			expectedErr:     nil,
 		},
 		{
+			name: "failed app generation using missing context dir",
+			config: &cmd.AppConfig{
+				ComponentInputs: cmd.ComponentInputs{
+					SourceRepositories: []string{"https://github.com/openshift/sti-ruby"},
+				},
+				GenerationInputs: cmd.GenerationInputs{
+					ContextDir: "2.0/test/missing-dir",
+				},
+
+				Resolvers: cmd.Resolvers{
+					DockerSearcher:                  dockerSearcher,
+					ImageStreamSearcher:             fakeImageStreamSearcher(),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					TemplateSearcher: app.TemplateSearcher{
+						Client: &client.Fake{},
+						TemplateConfigsNamespacer: &client.Fake{},
+						Namespaces:                []string{"openshift", "default"},
+					},
+					Detector: app.SourceRepositoryEnumerator{
+						Detectors:         source.DefaultDetectors,
+						DockerfileTester:  dockerfile.NewTester(),
+						JenkinsfileTester: jenkinsfile.NewTester(),
+					},
+				},
+
+				Typer:           kapi.Scheme,
+				OSClient:        &client.Fake{},
+				OriginNamespace: "default",
+			},
+			expected: map[string][]string{
+				"imageStream":      {"sti-ruby"},
+				"buildConfig":      {"sti-ruby"},
+				"deploymentConfig": {"sti-ruby"},
+				"service":          {"sti-ruby"},
+			},
+			expectedName:    "sti-ruby",
+			expectedVolumes: nil,
+			errFn: func(err error) bool {
+				return err.Error() == "supplied context directory '2.0/test/missing-dir' does not exist in 'https://github.com/openshift/sti-ruby'"
+			},
+		},
+
+		{
 			name: "insecure registry generation",
 			config: &cmd.AppConfig{
 				ComponentInputs: cmd.ComponentInputs{

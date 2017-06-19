@@ -29,6 +29,7 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
@@ -61,6 +62,7 @@ type OsdnNode struct {
 	localSubnetCIDR    string
 	localIP            string
 	hostName           string
+	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
 
@@ -78,10 +80,11 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, hostname string, selfIP string, iptablesSyncPeriod time.Duration, mtu uint32, kubeInformers kinternalinformers.SharedInformerFactory) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory, hostname string, selfIP string, mtu uint32, proxyConfig componentconfig.KubeProxyConfiguration) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
+	var useConnTrack bool
 	switch strings.ToLower(pluginName) {
 	case osapi.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
@@ -92,7 +95,8 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	case osapi.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
 		pluginId = 2
-		minOvsVersion = "2.5.0"
+		minOvsVersion = "2.6.0"
+		useConnTrack = true
 	default:
 		// Not an OpenShift plugin
 		return nil, nil
@@ -102,7 +106,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	// we're ready yet
 	os.Remove("/etc/cni/net.d/80-openshift-sdn.conf")
 
-	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, iptablesSyncPeriod.String())
+	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTablesSyncPeriod.Duration.String())
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -126,11 +130,15 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		}
 	}
 
+	if useConnTrack && proxyConfig.Mode != componentconfig.ProxyModeIPTables {
+		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", pluginName, proxyConfig.Mode)
+	}
+
 	ovsif, err := ovs.New(kexec.New(), BR, minOvsVersion)
 	if err != nil {
 		return nil, err
 	}
-	oc := NewOVSController(ovsif, pluginId)
+	oc := NewOVSController(ovsif, pluginId, useConnTrack)
 
 	plugin := &OsdnNode{
 		policy:             policy,
@@ -140,7 +148,8 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		podManager:         newPodManager(kClient, policy, mtu, oc),
 		localIP:            selfIP,
 		hostName:           hostname,
-		iptablesSyncPeriod: iptablesSyncPeriod,
+		useConnTrack:       useConnTrack,
+		iptablesSyncPeriod: proxyConfig.IPTablesSyncPeriod.Duration,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
@@ -234,7 +243,7 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod)
+	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod, !node.useConnTrack)
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
@@ -252,7 +261,9 @@ func (node *OsdnNode) Start() error {
 	if err = node.policy.Start(node); err != nil {
 		return err
 	}
-	node.watchServices()
+	if !node.useConnTrack {
+		node.watchServices()
+	}
 
 	log.V(5).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetwork); err != nil {

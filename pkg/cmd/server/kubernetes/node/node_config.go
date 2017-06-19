@@ -234,15 +234,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, err
 	}
 
-	// Initialize SDN before building kubelet config so it can modify options
-	iptablesSyncPeriod, err := time.ParseDuration(options.IPTablesSyncPeriod)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
-	}
-
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod)
 
-	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, options.NodeName, options.NodeIP, iptablesSyncPeriod, options.NetworkConfig.MTU, internalKubeInformers)
+	// Initialize SDN before building kubelet config so it can modify option
+	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, internalKubeInformers, options.NodeName, options.NodeIP, options.NetworkConfig.MTU, proxyconfig.KubeProxyConfiguration)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}

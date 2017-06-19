@@ -259,6 +259,9 @@ func (r *SourceRepository) LocalPath() (string, error) {
 			return "", err
 		}
 	}
+	if _, err := os.Stat(r.localDir); os.IsNotExist(err) {
+		return "", fmt.Errorf("supplied context directory '%s' does not exist in '%s'", r.contextDir, r.url.String())
+	}
 	return r.localDir, nil
 }
 
