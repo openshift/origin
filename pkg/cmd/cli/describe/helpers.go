@@ -26,7 +26,7 @@ const emptyString = "<none>"
 func tabbedString(f func(*tabwriter.Writer) error) (string, error) {
 	out := new(tabwriter.Writer)
 	buf := &bytes.Buffer{}
-	out.Init(buf, 0, 8, 1, '\t', 0)
+	out.Init(buf, 0, 8, 2, ' ', 0)
 
 	err := f(out)
 	if err != nil {

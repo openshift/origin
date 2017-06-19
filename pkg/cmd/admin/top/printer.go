@@ -53,7 +53,7 @@ func printBool(out io.Writer, value bool) {
 func tabbedString(f func(*tabwriter.Writer)) string {
 	out := new(tabwriter.Writer)
 	buf := &bytes.Buffer{}
-	out.Init(buf, 0, 8, 1, '\t', 0)
+	out.Init(buf, 0, 8, 2, ' ', 0)
 	f(out)
 	out.Flush()
 	str := string(buf.String())
