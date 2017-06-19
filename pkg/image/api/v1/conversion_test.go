@@ -23,7 +23,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		},
 	}
 	i := &newer.Image{
-		ObjectMeta: metaimageapiv1.ObjectMeta{Name: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 
 		DockerImageLayers:    []newer.ImageLayer{{Name: "foo", LayerSize: 10}},
 		DockerImageMetadata:  *d,

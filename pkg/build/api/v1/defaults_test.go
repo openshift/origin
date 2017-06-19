@@ -61,7 +61,7 @@ func TestDefaults(t *testing.T) {
 					CommonSpec: buildapiv1.CommonSpec{
 						Strategy: buildapiv1.BuildStrategy{
 							DockerStrategy: &buildapiv1.DockerBuildStrategy{
-								From: &kapibuildapiv1.ObjectReference{},
+								From: &kapiv1.ObjectReference{},
 							},
 						},
 					},
