@@ -12876,7 +12876,7 @@ func examplesHeapsterHeapsterStandaloneYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesPrometheusPrometheusYaml = []byte(`apiVersion: v1
+var _examplesPrometheusPrometheusYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: prometheus
@@ -12909,7 +12909,7 @@ objects:
     namespace: "${NAMESPACE}"
     annotations:
       serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"prometheus"}}'
-- apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
   metadata:
     name: prometheus-cluster-reader
@@ -12920,7 +12920,7 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
 # Create a fully end-to-end TLS connection to the proxy
-- apiVersion: v1
+- apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
     name: prometheus
