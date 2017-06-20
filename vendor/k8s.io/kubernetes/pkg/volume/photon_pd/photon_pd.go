@@ -342,6 +342,10 @@ func (plugin *photonPersistentDiskPlugin) newProvisionerInternal(options volume.
 }
 
 func (p *photonPersistentDiskProvisioner) Provision() (*v1.PersistentVolume, error) {
+	if !volume.AccessModesContainedInAll(p.plugin.GetAccessModes(), p.options.PVC.Spec.AccessModes) {
+		return nil, fmt.Errorf("invalid AccessModes %v: only AccessModes %v are supported", p.options.PVC.Spec.AccessModes, p.plugin.GetAccessModes())
+	}
+
 	pdID, sizeGB, err := p.manager.CreateVolume(p)
 	if err != nil {
 		return nil, err
