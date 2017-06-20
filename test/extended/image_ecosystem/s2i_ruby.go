@@ -60,10 +60,13 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 				o.Expect(result).To(o.BeTrue())
 			}
 
+			// with hot deploy disabled, making a change to
+			// welcome_controller.rb should not affect the app
 			g.By("testing application content")
 			assertPageContent("Welcome to your Rails application on OpenShift", dcLabelOne)
 			g.By("modifying the source code with disabled hot deploy")
-			RunInPodContainer(oc, dcLabelOne, modifyCommand)
+			err = RunInPodContainer(oc, dcLabelOne, modifyCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("testing application content source modification")
 			assertPageContent("Welcome to your Rails application on OpenShift", dcLabelOne)
 
@@ -81,10 +84,14 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 			err = oc.Run("scale").Args("dc", dcName, "--replicas=1").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			// now hot deploy is enabled, a change to welcome_controller.rb
+			// should affect the app
 			g.By("modifying the source code with enabled hot deploy")
 			assertPageContent("Welcome to your Rails application on OpenShift", dcLabelTwo)
-			RunInPodContainer(oc, dcLabelTwo, modifyCommand)
-			RunInPodContainer(oc, dcLabelTwo, removeCommand)
+			err = RunInPodContainer(oc, dcLabelTwo, modifyCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = RunInPodContainer(oc, dcLabelTwo, removeCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			assertPageContent("Hello, Rails!", dcLabelTwo)
 		})
 	})
