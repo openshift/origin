@@ -18,7 +18,8 @@
 #  - GOTEST_FLAGS:        any other flags to be sent to 'go test'
 #  - JUNIT_REPORT:        toggles the creation of jUnit XML from the test output and changes this script's output behavior
 #                         to use the 'junitreport' tool for summarizing the tests.
-#  - DLV_DEBUG            toggles running tests using delve debugger
+#  - DLV_DEBUG:           toggles running tests using delve debugger
+#  - EXCLUDE_PACKAGES:    comma separated list of packages to exclude from test
 function cleanup() {
     return_code=$?
 
@@ -49,6 +50,7 @@ coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
 gotest_flags="${GOTEST_FLAGS:-}"
 junit_report="${JUNIT_REPORT:-}"
 dlv_debug="${DLV_DEBUG:-}"
+exclude_packages="${EXCLUDE_PACKAGES:-}"
 
 if [[ -n "${junit_report}" && -n "${coverage_output_dir}" ]]; then
     echo "$0 cannot create jUnit XML reports and coverage reports at the same time."
@@ -160,11 +162,25 @@ else
     fi
 fi
 
+filtered_test_packages=
+excluded_test_packages=
+for package in ${test_packages}; do
+    if [[ ",${exclude_packages}," =~ ",${package}," ]]; then
+        excluded_test_packages+=" ${package}"
+    else
+        filtered_test_packages+=" ${package}"
+    fi
+done
+
 if [[ -n "${dry_run}" ]]; then
     echo "The following base flags for \`go test\` will be used by $0:"
     echo "go test ${gotest_flags}"
+    echo "The following packages will be excluded by $0:"
+    for package in ${excluded_test_packages}; do
+        echo "${package}"
+    done
     echo "The following packages will be tested by $0:"
-    for package in ${test_packages}; do
+    for package in ${filtered_test_packages}; do
         echo "${package}"
     done
     exit 0
@@ -182,12 +198,16 @@ if [[ -n "${junit_report}" ]]; then
     # we don't care if the `go test` fails in this pipe, as we want to generate the report and summarize the output anyway
     set +o pipefail
 
-    go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages} 2>"${test_error_file}" | tee "${test_output_file}"
+    go test -i ${gotest_flags} ${filtered_test_packages}
+    go test ${gotest_flags} ${filtered_test_packages} 2>"${test_error_file}" | tee "${test_output_file}"
 
     test_return_code="${PIPESTATUS[0]}"
 
     set -o pipefail
+
+    if [[ -n "${excluded_test_packages}" ]]; then
+        os::log::warning "The following packages were excluded: ${excluded_test_packages}"
+    fi
 
     if [[ -s "${test_error_file}" ]]; then
         os::log::warning "\`go test\` had the following output to stderr:"
@@ -209,8 +229,8 @@ if [[ -n "${junit_report}" ]]; then
 
 elif [[ -n "${coverage_output_dir}" ]]; then
     # we need to generate coverage reports
-    go test -i ${gotest_flags} ${test_packages}
-    for test_package in ${test_packages}; do
+    go test -i ${gotest_flags} ${filtered_test_packages}
+    for test_package in ${filtered_test_packages}; do
         mkdir -p "${coverage_output_dir}/${test_package}"
         local_gotest_flags="${gotest_flags} -coverprofile=${coverage_output_dir}/${test_package}/profile.out"
 
@@ -231,9 +251,9 @@ elif [[ -n "${coverage_output_dir}" ]]; then
 
 elif [[ -n "${dlv_debug}" ]]; then
     # run tests using delve debugger
-    dlv test ${test_packages}
+    dlv test ${filtered_test_packages}
 else
     # we need to generate neither jUnit XML nor coverage reports
-    go test -i ${gotest_flags} ${test_packages}
-    go test ${gotest_flags} ${test_packages}
+    go test -i ${gotest_flags} ${filtered_test_packages}
+    go test ${gotest_flags} ${filtered_test_packages}
 fi

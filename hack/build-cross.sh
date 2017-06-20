@@ -4,37 +4,24 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-host_platform="$(os::build::host_platform)"
+host_arch=$(os::util::host_arch)
+host_platform="$(os::util::host_platform)"
 
 # Set build tags for these binaries
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
-readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
+readonly OS_GOFLAGS_TAGS_$(os::util::platform_arch)="gssapi"
+
 
 # by default, build for these platforms
 platforms=(
-  linux/amd64
+  "linux/${host_arch}"
   darwin/amd64
   windows/amd64
 )
 image_platforms=( )
-test_platforms=( "${host_platform}" )
+test_platforms=( "linux/${host_arch}" )
 
 targets=( "${OS_CROSS_COMPILE_TARGETS[@]}" )
-
-# Special case ppc64le
-if [[ "${host_platform}" == "linux/ppc64le" ]]; then
-  platforms+=( "linux/ppc64le" )
-fi
-
-# Special case arm64
-if [[ "${host_platform}" == "linux/arm64" ]]; then
-  platforms+=( "linux/arm64" )
-fi
-
-# Special case s390x
-if [[ "${host_platform}" == "linux/s390x" ]]; then
-  platforms+=( "linux/s390x" )
-fi
 
 # On linux platforms, build images
 if [[ "${host_platform}" == linux/* ]]; then

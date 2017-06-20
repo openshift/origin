@@ -205,6 +205,97 @@ function os::util::host_platform() {
 }
 readonly -f os::util::host_platform
 
+# os::util::host_arch determines what the host architecture is, as Golang
+# sees it.
+function os::util::host_arch() {
+	echo "$(go env GOHOSTARCH)"
+}
+readonly -f os::util::host_arch
+
+# os::util::centos_image returns the image prefix for
+# the centos image based on host architecture
+function os::util::centos_image() {
+  local host_arch=${1:-}
+  if [[ -z "${host_arch}" ]]; then
+    host_arch=$(os::util::host_arch)
+  fi
+
+  if [[ $host_arch == "arm64" ]]; then
+    echo "centos/aarch64:latest"
+  elif [[ $host_arch == "ppc64le" ]]; then
+    echo "ppc64le/centos:7"
+  #elif [[ $host_arch == "s390x" ]]; then
+  #  echo "centos/s390x:latest"
+  else
+    echo centos:7
+  fi
+}
+readonly -f os::util::centos_image
+
+
+# os::util::official_docker_image_prefix returns the image prefix for
+# the "official" docker hub images based on host architecture
+function os::util::official_docker_image_prefix() {
+  local host_arch=${1:-}
+  if [[ -z "${host_arch}" ]]; then
+    host_arch=$(os::util::host_arch)
+  fi
+
+  if [[ $host_arch == "arm64" ]]; then
+    echo "arm64v8/"
+  elif [[ $host_arch == "ppc64le" ]]; then
+    echo "ppc64le/"
+  elif [[ $host_arch == "s390x" ]]; then
+    echo "s390x/"
+  fi
+}
+readonly -f os::util::official_docker_image_prefix
+
+# os::util::busybox_base_img determines which busybox base image to use
+# based on host architecture
+function os::util::busybox_base_img() {
+  echo "$(os::util::official_docker_image_prefix)busybox"
+}
+readonly -f os::util::busybox_base_img
+
+# Create a user friendly version of host_platform for end users
+function os::util::host_platform_friendly() {
+  local platform=${1:-}
+  if [[ -z "${platform}" ]]; then
+    platform=$(os::util::host_platform)
+  fi
+  if [[ $platform == "windows/amd64" ]]; then
+    echo "windows"
+  elif [[ $platform == "darwin/amd64" ]]; then
+    echo "mac"
+  elif [[ $platform == "linux/386" ]]; then
+    echo "linux-32bit"
+  elif [[ $platform == "linux/amd64" ]]; then
+    echo "linux-64bit"
+  elif [[ $platform == "linux/ppc64le" ]]; then
+    echo "linux-powerpc64"
+  elif [[ $platform == "linux/arm64" ]]; then
+    echo "linux-arm64"
+  elif [[ $platform == "linux/s390x" ]]; then
+    echo "linux-s390"
+  else
+    echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
+  fi
+}
+readonly -f os::util::host_platform_friendly
+
+# This converts from platform/arch to PLATFORM_ARCH, host platform will be
+# considered if no parameter passed
+function os::util::platform_arch() {
+  local platform=${1:-}
+  if [[ -z "${platform}" ]]; then
+    platform=$(os::util::host_platform)
+  fi
+
+  echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
+}
+readonly -f os::util::platform_arch
+
 # os::util::list_go_src_files lists files we consider part of our project
 # source code, useful for tools that iterate over source to provide vet-
 # ting or linting, etc.
