@@ -23,7 +23,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -49,12 +49,12 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	// can't give invalid image specs, should be invalid
-	isi, err := c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
+	isi, err := c.ImageStreams(testutil.Namespace()).Import(&imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
-		Spec: api.ImageStreamImportSpec{
-			Images: []api.ImageImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "///a/a/a/a/a/redis:latest"}, To: &kapi.LocalObjectReference{Name: "tag"}},
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis:latest"}},
 			},
@@ -69,12 +69,12 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	// import without committing
-	isi, err = c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
+	isi, err = c.ImageStreams(testutil.Namespace()).Import(&imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
-		Spec: api.ImageStreamImportSpec{
-			Images: []api.ImageImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis:latest"}, To: &kapi.LocalObjectReference{Name: "other"}},
 			},
 		},
@@ -88,13 +88,13 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	// import with commit
-	isi, err = c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
+	isi, err = c.ImageStreams(testutil.Namespace()).Import(&imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "doesnotexist",
 		},
-		Spec: api.ImageStreamImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
 			Import: true,
-			Images: []api.ImageImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis:latest"}, To: &kapi.LocalObjectReference{Name: "other"}},
 			},
 		},
@@ -108,7 +108,7 @@ func TestImageStreamImport(t *testing.T) {
 	}
 
 	stream := isi.Status.Import
-	if _, ok := stream.Annotations[api.DockerImageRepositoryCheckAnnotation]; !ok {
+	if _, ok := stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]; !ok {
 		t.Fatalf("unexpected stream: %#v", stream)
 	}
 	if stream.Generation != 1 || len(stream.Spec.Tags) != 1 || len(stream.Status.Tags) != 1 {
@@ -183,7 +183,7 @@ func mockRegistryHandler(t *testing.T, requireAuth bool, count *int) http.Handle
 	})
 }
 
-func testImageStreamImport(t *testing.T, c *client.Client, imageSize int64, imagestreamimport *api.ImageStreamImport) {
+func testImageStreamImport(t *testing.T, c *client.Client, imageSize int64, imagestreamimport *imageapi.ImageStreamImport) {
 	imageStreams := c.ImageStreams(testutil.Namespace())
 
 	isi, err := imageStreams.Import(imagestreamimport)
@@ -304,17 +304,17 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	testImageStreamImport(t, c, imageSize, &api.ImageStreamImport{
+	testImageStreamImport(t, c, imageSize, &imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Spec: api.ImageStreamImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
 			Import: true,
-			Images: []api.ImageImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{
 					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/" + reponame + ":testtag"},
 					To:           &kapi.LocalObjectReference{Name: "other"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
 				},
 			},
 		},
@@ -324,17 +324,17 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 		t.Fatalf("unexpected number of blob stats %d (expected %d)", countStat, len(descriptors))
 	}
 
-	testImageStreamImport(t, c, imageSize, &api.ImageStreamImport{
+	testImageStreamImport(t, c, imageSize, &imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test1",
 		},
-		Spec: api.ImageStreamImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
 			Import: true,
-			Images: []api.ImageImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{
 					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/" + reponame + ":testtag"},
 					To:           &kapi.LocalObjectReference{Name: "other1"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
 				},
 			},
 		},
@@ -397,26 +397,26 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	specFn := func(insecure bool, host1, host2 string) *api.ImageStreamImport {
-		return &api.ImageStreamImport{
+	specFn := func(insecure bool, host1, host2 string) *imageapi.ImageStreamImport {
+		return &imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
-			Spec: api.ImageStreamImportSpec{
+			Spec: imageapi.ImageStreamImportSpec{
 				Import: true,
-				Images: []api.ImageImportSpec{
+				Images: []imageapi.ImageImportSpec{
 					{
 						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host1 + "/test/image@" + phpDigest},
 						To:           &kapi.LocalObjectReference{Name: "latest"},
-						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+						ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 					},
 					{
 						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host1 + "/test/image2@" + etcdDigest},
 						To:           &kapi.LocalObjectReference{Name: "other"},
-						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+						ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 					},
 					{
 						From:         kapi.ObjectReference{Kind: "DockerImage", Name: host2 + "/test/image:other"},
 						To:           &kapi.LocalObjectReference{Name: "failed"},
-						ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+						ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 					},
 				},
 			},
@@ -487,7 +487,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		tagEvent := api.LatestTaggedImage(is, "latest")
+		tagEvent := imageapi.LatestTaggedImage(is, "latest")
 		if tagEvent == nil {
 			t.Fatalf("no image tagged for latest: %#v", is)
 		}
@@ -514,7 +514,7 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 		if len(is.Status.Tags["latest"].Conditions) > 0 {
 			t.Fatalf("incorrect conditions: %#v", is.Status.Tags["latest"].Conditions)
 		}
-		if !api.HasTagCondition(is, "other", api.TagEventCondition{Type: api.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
+		if !imageapi.HasTagCondition(is, "other", imageapi.TagEventCondition{Type: imageapi.ImportSuccess, Status: kapi.ConditionFalse, Reason: "Unauthorized"}) {
 			t.Fatalf("incorrect condition: %#v", is.Status.Tags["other"].Conditions)
 		}
 	}
@@ -551,13 +551,13 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	importSpec := &api.ImageStreamImport{
+	importSpec := &imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
-		Spec: api.ImageStreamImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
 			Import: true,
-			Repository: &api.RepositoryImportSpec{
+			Repository: &imageapi.RepositoryImportSpec{
 				From:            kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image3"},
-				ImportPolicy:    api.TagImportPolicy{Insecure: true},
+				ImportPolicy:    imageapi.TagImportPolicy{Insecure: true},
 				IncludeManifest: true,
 			},
 		},
@@ -610,7 +610,7 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tagEvent := api.LatestTaggedImage(is, "v1")
+	tagEvent := imageapi.LatestTaggedImage(is, "v1")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for v1: %#v", is)
 	}
@@ -678,17 +678,17 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	url, _ := url.Parse(server.URL)
 
 	// import with commit
-	isi, err := c.ImageStreams(testutil.Namespace()).Import(&api.ImageStreamImport{
+	isi, err := c.ImageStreams(testutil.Namespace()).Import(&imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Spec: api.ImageStreamImportSpec{
+		Spec: imageapi.ImageStreamImportSpec{
 			Import: true,
-			Images: []api.ImageImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{
 					From:         kapi.ObjectReference{Kind: "DockerImage", Name: url.Host + "/test/image:latest"},
 					To:           &kapi.LocalObjectReference{Name: "latest"},
-					ImportPolicy: api.TagImportPolicy{Insecure: true, Scheduled: true},
+					ImportPolicy: imageapi.TagImportPolicy{Insecure: true, Scheduled: true},
 				},
 			},
 		},
@@ -730,11 +730,11 @@ func TestImageStreamImportScheduled(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("never got watch event")
 	}
-	change, ok := event.Object.(*api.ImageStream)
+	change, ok := event.Object.(*imageapi.ImageStream)
 	if !ok {
 		t.Fatalf("unexpected object: %#v", event.Object)
 	}
-	tagEvent := api.LatestTaggedImage(change, "latest")
+	tagEvent := imageapi.LatestTaggedImage(change, "latest")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for latest: %#v", change)
 	}
@@ -773,11 +773,11 @@ func TestImageStreamImportScheduled(t *testing.T) {
 
 	// expect to have the error recorded on the server
 	event = <-ch
-	change, ok = event.Object.(*api.ImageStream)
+	change, ok = event.Object.(*imageapi.ImageStream)
 	if !ok {
 		t.Fatalf("unexpected object: %#v", event.Object)
 	}
-	tagEvent = api.LatestTaggedImage(change, "latest")
+	tagEvent = imageapi.LatestTaggedImage(change, "latest")
 	if tagEvent == nil {
 		t.Fatalf("no image tagged for latest: %#v", change)
 	}
@@ -789,7 +789,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 		t.Fatalf("expected generation 2 for stream and spec tag: %v %#v", tagGen, change)
 	}
 	conditions := change.Status.Tags["latest"].Conditions
-	if len(conditions) == 0 || conditions[0].Type != api.ImportSuccess || conditions[0].Generation != 3 {
+	if len(conditions) == 0 || conditions[0].Type != imageapi.ImportSuccess || conditions[0].Generation != 3 {
 		t.Fatalf("expected generation 3 for condition and import failed: %#v", conditions)
 	}
 
@@ -806,12 +806,12 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
-	imports := &api.ImageStreamImport{
-		Spec: api.ImageStreamImportSpec{
-			Repository: &api.RepositoryImportSpec{
+	imports := &imageapi.ImageStreamImport{
+		Spec: imageapi.ImageStreamImportSpec{
+			Repository: &imageapi.RepositoryImportSpec{
 				From: kapi.ObjectReference{Kind: "DockerImage", Name: "mongo"},
 			},
-			Images: []api.ImageImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis"}},
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "mysql"}},
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: "redis:latest"}},
@@ -868,9 +868,9 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
 	repositoryName := quayRegistryName + "/coreos/etcd"
-	imports := &api.ImageStreamImport{
-		Spec: api.ImageStreamImportSpec{
-			Images: []api.ImageImportSpec{
+	imports := &imageapi.ImageStreamImport{
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: repositoryName}},
 			},
 		},
@@ -922,9 +922,9 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 
 	repositoryName := pulpRegistryName + "/rhel7"
 	// test without the client on the context
-	imports := &api.ImageStreamImport{
-		Spec: api.ImageStreamImportSpec{
-			Images: []api.ImageImportSpec{
+	imports := &imageapi.ImageStreamImport{
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: repositoryName}},
 			},
 		},
@@ -947,9 +947,9 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	}
 
 	// test with the client on the context
-	imports = &api.ImageStreamImport{
-		Spec: api.ImageStreamImportSpec{
-			Images: []api.ImageImportSpec{
+	imports = &imageapi.ImageStreamImport{
+		Spec: imageapi.ImageStreamImportSpec{
+			Images: []imageapi.ImageImportSpec{
 				{From: kapi.ObjectReference{Kind: "DockerImage", Name: repositoryName}},
 			},
 		},

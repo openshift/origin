@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/api/validation"
 )
 
@@ -44,7 +44,7 @@ func (sdnStrategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new sdn
 func (sdnStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateClusterNetwork(obj.(*api.ClusterNetwork))
+	return validation.ValidateClusterNetwork(obj.(*sdnapi.ClusterNetwork))
 }
 
 // AllowCreateOnUpdate is false for sdn
@@ -58,12 +58,12 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 
 // ValidateUpdate is the default update validation for a ClusterNetwork
 func (sdnStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateClusterNetworkUpdate(obj.(*api.ClusterNetwork), old.(*api.ClusterNetwork))
+	return validation.ValidateClusterNetworkUpdate(obj.(*sdnapi.ClusterNetwork), old.(*sdnapi.ClusterNetwork))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.ClusterNetwork)
+	obj, ok := o.(*sdnapi.ClusterNetwork)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a ClusterNetwork")
 	}
@@ -80,6 +80,6 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.ClusterNetwork) fields.Set {
-	return api.ClusterNetworkToSelectableFields(obj)
+func SelectableFields(obj *sdnapi.ClusterNetwork) fields.Set {
+	return sdnapi.ClusterNetworkToSelectableFields(obj)
 }

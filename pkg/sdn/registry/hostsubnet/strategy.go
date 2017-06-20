@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/api/validation"
 )
 
@@ -44,7 +44,7 @@ func (sdnStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) 
 
 // Validate validates a new sdn
 func (sdnStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateHostSubnet(obj.(*api.HostSubnet))
+	return validation.ValidateHostSubnet(obj.(*sdnapi.HostSubnet))
 }
 
 // AllowCreateOnUpdate is false for sdns
@@ -58,12 +58,12 @@ func (sdnStrategy) AllowUnconditionalUpdate() bool {
 
 // ValidateUpdate is the default update validation for a HostSubnet
 func (sdnStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateHostSubnetUpdate(obj.(*api.HostSubnet), old.(*api.HostSubnet))
+	return validation.ValidateHostSubnetUpdate(obj.(*sdnapi.HostSubnet), old.(*sdnapi.HostSubnet))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.HostSubnet)
+	obj, ok := o.(*sdnapi.HostSubnet)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a HostSubnet")
 	}
@@ -80,6 +80,6 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.HostSubnet) fields.Set {
-	return api.HostSubnetToSelectableFields(obj)
+func SelectableFields(obj *sdnapi.HostSubnet) fields.Set {
+	return sdnapi.HostSubnetToSelectableFields(obj)
 }

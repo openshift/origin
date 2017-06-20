@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
-	"github.com/openshift/origin/pkg/user/api/v1"
+	userapi "github.com/openshift/origin/pkg/user/api"
+	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
 )
 
 func installApiGroup() {
@@ -19,14 +19,14 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			GroupName:                  userapi.GroupName,
+			VersionPreferenceOrder:     []string{userapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: userapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("User", "Identity", "UserIdentityMapping", "Group"),
 		},
 		announced.VersionToSchemeFunc{
-			v1.SchemeGroupVersion.Version: v1.AddToScheme,
+			userapiv1.SchemeGroupVersion.Version: userapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

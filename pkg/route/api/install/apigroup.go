@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/route/api"
-	"github.com/openshift/origin/pkg/route/api/v1"
+	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapiv1 "github.com/openshift/origin/pkg/route/api/v1"
 )
 
 func installApiGroup() {
@@ -18,13 +18,13 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			GroupName:                  routeapi.GroupName,
+			VersionPreferenceOrder:     []string{routeapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: routeapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
-			v1.SchemeGroupVersion.Version: v1.AddToScheme,
+			routeapiv1.SchemeGroupVersion.Version: routeapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

@@ -8,28 +8,28 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/test"
 )
 
 // Convenience methods
 
-func manualTrigger() []api.DeploymentTriggerPolicy {
-	return []api.DeploymentTriggerPolicy{
+func manualTrigger() []deployapi.DeploymentTriggerPolicy {
+	return []deployapi.DeploymentTriggerPolicy{
 		{
-			Type: api.DeploymentTriggerManual,
+			Type: deployapi.DeploymentTriggerManual,
 		},
 	}
 }
 
-func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
-	return api.DeploymentConfig{
+func rollingConfig(interval, updatePeriod, timeout int) deployapi.DeploymentConfig {
+	return deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Triggers: manualTrigger(),
-			Strategy: api.DeploymentStrategy{
-				Type: api.DeploymentStrategyTypeRolling,
-				RollingParams: &api.RollingDeploymentStrategyParams{
+			Strategy: deployapi.DeploymentStrategy{
+				Type: deployapi.DeploymentStrategyTypeRolling,
+				RollingParams: &deployapi.RollingDeploymentStrategyParams{
 					IntervalSeconds:     mkint64p(interval),
 					UpdatePeriodSeconds: mkint64p(updatePeriod),
 					TimeoutSeconds:      mkint64p(timeout),
@@ -43,14 +43,14 @@ func rollingConfig(interval, updatePeriod, timeout int) api.DeploymentConfig {
 	}
 }
 
-func rollingConfigMax(maxSurge, maxUnavailable intstr.IntOrString) api.DeploymentConfig {
-	return api.DeploymentConfig{
+func rollingConfigMax(maxSurge, maxUnavailable intstr.IntOrString) deployapi.DeploymentConfig {
+	return deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Triggers: manualTrigger(),
-			Strategy: api.DeploymentStrategy{
-				Type: api.DeploymentStrategyTypeRolling,
-				RollingParams: &api.RollingDeploymentStrategyParams{
+			Strategy: deployapi.DeploymentStrategy{
+				Type: deployapi.DeploymentStrategyTypeRolling,
+				RollingParams: &deployapi.RollingDeploymentStrategyParams{
 					IntervalSeconds:     mkint64p(1),
 					UpdatePeriodSeconds: mkint64p(1),
 					TimeoutSeconds:      mkint64p(1),
@@ -66,9 +66,9 @@ func rollingConfigMax(maxSurge, maxUnavailable intstr.IntOrString) api.Deploymen
 }
 
 func TestValidateDeploymentConfigOK(t *testing.T) {
-	errs := ValidateDeploymentConfig(&api.DeploymentConfig{
+	errs := ValidateDeploymentConfig(&deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
 			Triggers: manualTrigger(),
 			Selector: test.OkSelector(),
@@ -83,11 +83,11 @@ func TestValidateDeploymentConfigOK(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigICTMissingImage(t *testing.T) {
-	dc := &api.DeploymentConfig{
+	dc := &deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
-			Triggers: []api.DeploymentTriggerPolicy{test.OkImageChangeTrigger()},
+			Triggers: []deployapi.DeploymentTriggerPolicy{test.OkImageChangeTrigger()},
 			Selector: test.OkSelector(),
 			Strategy: test.OkStrategy(),
 			Template: test.OkPodTemplateMissingImage("container1"),
@@ -108,16 +108,16 @@ func TestValidateDeploymentConfigICTMissingImage(t *testing.T) {
 
 func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 	errorCases := map[string]struct {
-		DeploymentConfig api.DeploymentConfig
+		DeploymentConfig deployapi.DeploymentConfig
 		ErrorType        field.ErrorType
 		Field            string
 	}{
 		"empty container field": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Triggers: []api.DeploymentTriggerPolicy{test.OkConfigChangeTrigger()},
+					Triggers: []deployapi.DeploymentTriggerPolicy{test.OkConfigChangeTrigger()},
 					Selector: test.OkSelector(),
 					Strategy: test.OkStrategy(),
 					Template: test.OkPodTemplateMissingImage("container1"),
@@ -127,7 +127,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.template.spec.containers[0].image",
 		},
 		"missing name": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "", Namespace: "bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
@@ -135,7 +135,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"metadata.name",
 		},
 		"missing namespace": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: ""},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
@@ -143,7 +143,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"metadata.namespace",
 		},
 		"invalid name": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "-foo", Namespace: "bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
@@ -151,7 +151,7 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"metadata.name",
 		},
 		"invalid namespace": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "-bar"},
 				Spec:       test.OkDeploymentConfigSpec(),
 			},
@@ -160,13 +160,13 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 		},
 
 		"missing trigger.type": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Triggers: []api.DeploymentTriggerPolicy{
+					Triggers: []deployapi.DeploymentTriggerPolicy{
 						{
-							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+							ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 								ContainerNames: []string{"foo"},
 							},
 						},
@@ -180,14 +180,14 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.triggers[0].type",
 		},
 		"missing Trigger imageChangeParams.from": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Triggers: []api.DeploymentTriggerPolicy{
+					Triggers: []deployapi.DeploymentTriggerPolicy{
 						{
-							Type: api.DeploymentTriggerOnImageChange,
-							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+							Type: deployapi.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 								ContainerNames: []string{"foo"},
 							},
 						},
@@ -201,14 +201,14 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.triggers[0].imageChangeParams.from",
 		},
 		"invalid Trigger imageChangeParams.from.kind": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Triggers: []api.DeploymentTriggerPolicy{
+					Triggers: []deployapi.DeploymentTriggerPolicy{
 						{
-							Type: api.DeploymentTriggerOnImageChange,
-							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+							Type: deployapi.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 								From: kapi.ObjectReference{
 									Kind: "Invalid",
 									Name: "name:tag",
@@ -226,14 +226,14 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.triggers[0].imageChangeParams.from.kind",
 		},
 		"missing Trigger imageChangeParams.containerNames": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Triggers: []api.DeploymentTriggerPolicy{
+					Triggers: []deployapi.DeploymentTriggerPolicy{
 						{
-							Type: api.DeploymentTriggerOnImageChange,
-							ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+							Type: deployapi.DeploymentTriggerOnImageChange,
+							ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 								From: kapi.ObjectReference{
 									Kind: "ImageStreamTag",
 									Name: "foo:v1",
@@ -250,13 +250,13 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.triggers[0].imageChangeParams.containerNames",
 		},
 		"missing strategy.type": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
 					Triggers: manualTrigger(),
 					Selector: test.OkSelector(),
-					Strategy: api.DeploymentStrategy{
+					Strategy: deployapi.DeploymentStrategy{
 						CustomParams:          test.OkCustomParams(),
 						ActiveDeadlineSeconds: mkint64p(3600),
 					},
@@ -267,14 +267,14 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.type",
 		},
 		"missing strategy.customParams": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
 					Triggers: manualTrigger(),
 					Selector: test.OkSelector(),
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeCustom,
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeCustom,
 						ActiveDeadlineSeconds: mkint64p(3600),
 					},
 					Template: test.OkPodTemplate(),
@@ -284,15 +284,15 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.customParams",
 		},
 		"invalid spec.strategy.customParams.environment": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
 					Triggers: manualTrigger(),
 					Selector: test.OkSelector(),
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeCustom,
-						CustomParams: &api.CustomDeploymentStrategyParams{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeCustom,
+						CustomParams: &deployapi.CustomDeploymentStrategyParams{
 							Environment: []kapi.EnvVar{
 								{Name: "A=B"},
 							},
@@ -306,15 +306,15 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.customParams.environment[0].name",
 		},
 		"missing spec.strategy.recreateParams.pre.failurePolicy": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Pre: &api.LifecycleHook{
-								ExecNewPod: &api.ExecNewPodHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Pre: &deployapi.LifecycleHook{
+								ExecNewPod: &deployapi.ExecNewPodHook{
 									Command:       []string{"cmd"},
 									ContainerName: "container",
 								},
@@ -330,15 +330,15 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.pre.failurePolicy",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Pre: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Pre: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
 							},
 						},
 						ActiveDeadlineSeconds: mkint64p(3600),
@@ -351,16 +351,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.pre",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod.command": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Pre: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								ExecNewPod: &api.ExecNewPodHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Pre: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &deployapi.ExecNewPodHook{
 									ContainerName: "container",
 								},
 							},
@@ -375,16 +375,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.pre.execNewPod.command",
 		},
 		"missing spec.strategy.recreateParams.pre.execNewPod.containerName": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Pre: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								ExecNewPod: &api.ExecNewPodHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Pre: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &deployapi.ExecNewPodHook{
 									Command: []string{"cmd"},
 								},
 							},
@@ -399,16 +399,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.pre.execNewPod.containerName",
 		},
 		"invalid spec.strategy.recreateParams.pre.execNewPod.volumes": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Pre: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								ExecNewPod: &api.ExecNewPodHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Pre: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								ExecNewPod: &deployapi.ExecNewPodHook{
 									ContainerName: "container",
 									Command:       []string{"cmd"},
 									Volumes:       []string{"good", ""},
@@ -425,15 +425,15 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.pre.execNewPod.volumes[1]",
 		},
 		"missing spec.strategy.recreateParams.mid.execNewPod": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Mid: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Mid: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
 							},
 						},
 						ActiveDeadlineSeconds: mkint64p(3600),
@@ -446,15 +446,15 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.mid",
 		},
 		"missing spec.strategy.recreateParams.post.execNewPod": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Post: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Post: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
 							},
 						},
 						ActiveDeadlineSeconds: mkint64p(3600),
@@ -467,16 +467,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.post",
 		},
 		"missing spec.strategy.after.tagImages": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Post: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								TagImages: []api.TagImageHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Post: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								TagImages: []deployapi.TagImageHook{
 									{
 										ContainerName: "missing",
 										To:            kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:tag"},
@@ -494,16 +494,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.post.tagImages[0].containerName",
 		},
 		"missing spec.strategy.after.tagImages.to.kind": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Post: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								TagImages: []api.TagImageHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Post: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								TagImages: []deployapi.TagImageHook{
 									{
 										ContainerName: "container1",
 										To:            kapi.ObjectReference{Name: "stream:tag"},
@@ -521,16 +521,16 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.post.tagImages[0].to.kind",
 		},
 		"missing spec.strategy.after.tagImages.to.name": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Post: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								TagImages: []api.TagImageHook{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Post: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								TagImages: []deployapi.TagImageHook{
 									{
 										ContainerName: "container1",
 										To:            kapi.ObjectReference{Kind: "ImageStreamTag"},
@@ -548,17 +548,17 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.recreateParams.post.tagImages[0].to.name",
 		},
 		"can't have both tag and execNewPod": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRecreate,
-						RecreateParams: &api.RecreateDeploymentStrategyParams{
-							Post: &api.LifecycleHook{
-								FailurePolicy: api.LifecycleHookFailurePolicyRetry,
-								ExecNewPod:    &api.ExecNewPodHook{},
-								TagImages:     []api.TagImageHook{{}},
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRecreate,
+						RecreateParams: &deployapi.RecreateDeploymentStrategyParams{
+							Post: &deployapi.LifecycleHook{
+								FailurePolicy: deployapi.LifecycleHookFailurePolicyRetry,
+								ExecNewPod:    &deployapi.ExecNewPodHook{},
+								TagImages:     []deployapi.TagImageHook{{}},
 							},
 						},
 						ActiveDeadlineSeconds: mkint64p(3600),
@@ -586,19 +586,19 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 			"spec.strategy.rollingParams.timeoutSeconds",
 		},
 		"missing spec.strategy.rollingParams.pre.failurePolicy": {
-			api.DeploymentConfig{
+			deployapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-				Spec: api.DeploymentConfigSpec{
+				Spec: deployapi.DeploymentConfigSpec{
 					Replicas: 1,
-					Strategy: api.DeploymentStrategy{
-						Type: api.DeploymentStrategyTypeRolling,
-						RollingParams: &api.RollingDeploymentStrategyParams{
+					Strategy: deployapi.DeploymentStrategy{
+						Type: deployapi.DeploymentStrategyTypeRolling,
+						RollingParams: &deployapi.RollingDeploymentStrategyParams{
 							IntervalSeconds:     mkint64p(1),
 							UpdatePeriodSeconds: mkint64p(1),
 							TimeoutSeconds:      mkint64p(20),
 							MaxSurge:            intstr.FromInt(1),
-							Pre: &api.LifecycleHook{
-								ExecNewPod: &api.ExecNewPodHook{
+							Pre: &deployapi.LifecycleHook{
+								ExecNewPod: &deployapi.ExecNewPodHook{
 									Command:       []string{"cmd"},
 									ContainerName: "container",
 								},
@@ -681,29 +681,29 @@ func TestValidateDeploymentConfigMissingFields(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigUpdate(t *testing.T) {
-	oldConfig := &api.DeploymentConfig{
+	oldConfig := &deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
 			Triggers: manualTrigger(),
 			Selector: test.OkSelector(),
 			Strategy: test.OkStrategy(),
 			Template: test.OkPodTemplate(),
 		},
-		Status: api.DeploymentConfigStatus{
+		Status: deployapi.DeploymentConfigStatus{
 			LatestVersion: 5,
 		},
 	}
-	newConfig := &api.DeploymentConfig{
+	newConfig := &deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar", ResourceVersion: "1"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
 			Triggers: manualTrigger(),
 			Selector: test.OkSelector(),
 			Strategy: test.OkStrategy(),
 			Template: test.OkPodTemplate(),
 		},
-		Status: api.DeploymentConfigStatus{
+		Status: deployapi.DeploymentConfigStatus{
 			LatestVersion: 3,
 		},
 	}
@@ -744,9 +744,9 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
-	rollback := &api.DeploymentConfigRollback{
+	rollback := &deployapi.DeploymentConfigRollback{
 		Name: "config",
-		Spec: api.DeploymentConfigRollbackSpec{
+		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
 		},
 	}
@@ -758,8 +758,8 @@ func TestValidateDeploymentConfigRollbackOK(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigRollbackDeprecatedOK(t *testing.T) {
-	rollback := &api.DeploymentConfigRollback{
-		Spec: api.DeploymentConfigRollbackSpec{
+	rollback := &deployapi.DeploymentConfigRollback{
+		Spec: deployapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name: "deployment",
 			},
@@ -778,13 +778,13 @@ func TestValidateDeploymentConfigRollbackDeprecatedOK(t *testing.T) {
 
 func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 	errorCases := map[string]struct {
-		D api.DeploymentConfigRollback
+		D deployapi.DeploymentConfigRollback
 		T field.ErrorType
 		F string
 	}{
 		"missing name": {
-			api.DeploymentConfigRollback{
-				Spec: api.DeploymentConfigRollbackSpec{
+			deployapi.DeploymentConfigRollback{
+				Spec: deployapi.DeploymentConfigRollbackSpec{
 					Revision: 2,
 				},
 			},
@@ -792,9 +792,9 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 			"name",
 		},
 		"invalid name": {
-			api.DeploymentConfigRollback{
+			deployapi.DeploymentConfigRollback{
 				Name: "*_*myconfig",
-				Spec: api.DeploymentConfigRollbackSpec{
+				Spec: deployapi.DeploymentConfigRollbackSpec{
 					Revision: 2,
 				},
 			},
@@ -802,9 +802,9 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 			"name",
 		},
 		"invalid revision": {
-			api.DeploymentConfigRollback{
+			deployapi.DeploymentConfigRollback{
 				Name: "config",
-				Spec: api.DeploymentConfigRollbackSpec{
+				Spec: deployapi.DeploymentConfigRollbackSpec{
 					Revision: -1,
 				},
 			},
@@ -831,13 +831,13 @@ func TestValidateDeploymentConfigRollbackInvalidFields(t *testing.T) {
 
 func TestValidateDeploymentConfigRollbackDeprecatedInvalidFields(t *testing.T) {
 	errorCases := map[string]struct {
-		D api.DeploymentConfigRollback
+		D deployapi.DeploymentConfigRollback
 		T field.ErrorType
 		F string
 	}{
 		"missing spec.from.name": {
-			api.DeploymentConfigRollback{
-				Spec: api.DeploymentConfigRollbackSpec{
+			deployapi.DeploymentConfigRollback{
+				Spec: deployapi.DeploymentConfigRollbackSpec{
 					From: kapi.ObjectReference{},
 				},
 			},
@@ -845,8 +845,8 @@ func TestValidateDeploymentConfigRollbackDeprecatedInvalidFields(t *testing.T) {
 			"spec.from.name",
 		},
 		"wrong spec.from.kind": {
-			api.DeploymentConfigRollback{
-				Spec: api.DeploymentConfigRollbackSpec{
+			deployapi.DeploymentConfigRollback{
+				Spec: deployapi.DeploymentConfigRollbackSpec{
 					From: kapi.ObjectReference{
 						Kind: "unknown",
 						Name: "deployment",
@@ -875,14 +875,14 @@ func TestValidateDeploymentConfigRollbackDeprecatedInvalidFields(t *testing.T) {
 }
 
 func TestValidateDeploymentConfigDefaultImageStreamKind(t *testing.T) {
-	config := &api.DeploymentConfig{
+	config := &deployapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"},
-		Spec: api.DeploymentConfigSpec{
+		Spec: deployapi.DeploymentConfigSpec{
 			Replicas: 1,
-			Triggers: []api.DeploymentTriggerPolicy{
+			Triggers: []deployapi.DeploymentTriggerPolicy{
 				{
-					Type: api.DeploymentTriggerOnImageChange,
-					ImageChangeParams: &api.DeploymentTriggerImageChangeParams{
+					Type: deployapi.DeploymentTriggerOnImageChange,
+					ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
 						From: kapi.ObjectReference{
 							Kind: "ImageStreamTag",
 							Name: "name:v1",
@@ -913,20 +913,20 @@ func mkintp(i int) *int {
 
 func TestValidateSelectorMatchesPodTemplateLabels(t *testing.T) {
 	tests := map[string]struct {
-		spec        api.DeploymentConfigSpec
+		spec        deployapi.DeploymentConfigSpec
 		expectedErr bool
 		errorType   field.ErrorType
 		field       string
 	}{
 		"valid template labels": {
-			spec: api.DeploymentConfigSpec{
+			spec: deployapi.DeploymentConfigSpec{
 				Selector: test.OkSelector(),
 				Strategy: test.OkStrategy(),
 				Template: test.OkPodTemplate(),
 			},
 		},
 		"invalid template labels": {
-			spec: api.DeploymentConfigSpec{
+			spec: deployapi.DeploymentConfigSpec{
 				Selector: test.OkSelector(),
 				Strategy: test.OkStrategy(),
 				Template: test.OkPodTemplate(),

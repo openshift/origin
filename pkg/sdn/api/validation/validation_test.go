@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 )
 
 // TestValidateClusterNetwork ensures not specifying a required field results in error and a fully specified
@@ -13,12 +13,12 @@ import (
 func TestValidateClusterNetwork(t *testing.T) {
 	tests := []struct {
 		name           string
-		cn             *api.ClusterNetwork
+		cn             *sdnapi.ClusterNetwork
 		expectedErrors int
 	}{
 		{
 			name: "Good one",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
@@ -28,7 +28,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Bad network",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0.0/16",
 				HostSubnetLength: 8,
@@ -38,7 +38,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Bad network CIDR",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.1/16",
 				HostSubnetLength: 8,
@@ -48,7 +48,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Subnet length too large for network",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.30.0/24",
 				HostSubnetLength: 16,
@@ -58,7 +58,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Subnet length too small",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.30.0/24",
 				HostSubnetLength: 1,
@@ -68,7 +68,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Bad service network",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
@@ -78,7 +78,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Bad service network CIDR",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
@@ -88,7 +88,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Service network overlaps with cluster network",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
@@ -98,7 +98,7 @@ func TestValidateClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Cluster network overlaps with service network",
-			cn: &api.ClusterNetwork{
+			cn: &sdnapi.ClusterNetwork{
 				ObjectMeta:       metav1.ObjectMeta{Name: "any"},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
@@ -118,8 +118,8 @@ func TestValidateClusterNetwork(t *testing.T) {
 }
 
 func TestSetDefaultClusterNetwork(t *testing.T) {
-	defaultClusterNetwork := api.ClusterNetwork{
-		ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+	defaultClusterNetwork := sdnapi.ClusterNetwork{
+		ObjectMeta:       metav1.ObjectMeta{Name: sdnapi.ClusterNetworkDefault},
 		Network:          "10.20.0.0/16",
 		HostSubnetLength: 8,
 		ServiceNetwork:   "172.30.0.0/16",
@@ -129,7 +129,7 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		cn             *api.ClusterNetwork
+		cn             *sdnapi.ClusterNetwork
 		expectedErrors int
 	}{
 		{
@@ -139,8 +139,8 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Wrong Network",
-			cn: &api.ClusterNetwork{
-				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+			cn: &sdnapi.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: sdnapi.ClusterNetworkDefault},
 				Network:          "10.30.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -150,8 +150,8 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Wrong HostSubnetLength",
-			cn: &api.ClusterNetwork{
-				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+			cn: &sdnapi.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: sdnapi.ClusterNetworkDefault},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 9,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -161,8 +161,8 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Wrong ServiceNetwork",
-			cn: &api.ClusterNetwork{
-				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+			cn: &sdnapi.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: sdnapi.ClusterNetworkDefault},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.20.0.0/16",
@@ -172,8 +172,8 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 		},
 		{
 			name: "Wrong PluginName",
-			cn: &api.ClusterNetwork{
-				ObjectMeta:       metav1.ObjectMeta{Name: api.ClusterNetworkDefault},
+			cn: &sdnapi.ClusterNetwork{
+				ObjectMeta:       metav1.ObjectMeta{Name: sdnapi.ClusterNetworkDefault},
 				Network:          "10.20.0.0/16",
 				HostSubnetLength: 8,
 				ServiceNetwork:   "172.30.0.0/16",
@@ -195,12 +195,12 @@ func TestSetDefaultClusterNetwork(t *testing.T) {
 func TestValidateHostSubnet(t *testing.T) {
 	tests := []struct {
 		name           string
-		hs             *api.HostSubnet
+		hs             *sdnapi.HostSubnet
 		expectedErrors int
 	}{
 		{
 			name: "Good one",
-			hs: &api.HostSubnet{
+			hs: &sdnapi.HostSubnet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
@@ -212,7 +212,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		},
 		{
 			name: "Malformed HostIP",
-			hs: &api.HostSubnet{
+			hs: &sdnapi.HostSubnet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
@@ -224,7 +224,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		},
 		{
 			name: "Malformed subnet",
-			hs: &api.HostSubnet{
+			hs: &sdnapi.HostSubnet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
@@ -236,7 +236,7 @@ func TestValidateHostSubnet(t *testing.T) {
 		},
 		{
 			name: "Malformed subnet CIDR",
-			hs: &api.HostSubnet{
+			hs: &sdnapi.HostSubnet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc.def.com",
 				},
@@ -260,52 +260,52 @@ func TestValidateHostSubnet(t *testing.T) {
 func TestValidateEgressNetworkPolicy(t *testing.T) {
 	tests := []struct {
 		name           string
-		fw             *api.EgressNetworkPolicy
+		fw             *sdnapi.EgressNetworkPolicy
 		expectedErrors int
 	}{
 		{
 			name: "Empty",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{},
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{},
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "Good one",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.0/24",
 							},
 						},
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								DNSName: "www.example.com",
 							},
 						},
 						{
-							Type: api.EgressNetworkPolicyRuleDeny,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleDeny,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.4/32",
 							},
 						},
 						{
-							Type: api.EgressNetworkPolicyRuleDeny,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleDeny,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								DNSName: "www.foo.com",
 							},
 						},
@@ -316,22 +316,22 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Bad policy",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleType("Bob"),
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleType("Bob"),
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.0/24",
 							},
 						},
 						{
-							Type: api.EgressNetworkPolicyRuleDeny,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleDeny,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.4/32",
 							},
 						},
@@ -342,22 +342,22 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Bad destination",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.4",
 							},
 						},
 						{
-							Type: api.EgressNetworkPolicyRuleDeny,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleDeny,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "",
 							},
 						},
@@ -368,16 +368,16 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Policy rule with both CIDR and DNS",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								CIDRSelector: "1.2.3.4",
 								DNSName:      "www.example.com",
 							},
@@ -389,16 +389,16 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Policy rule without CIDR or DNS",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To:   api.EgressNetworkPolicyPeer{},
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To:   sdnapi.EgressNetworkPolicyPeer{},
 						},
 					},
 				},
@@ -407,16 +407,16 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Policy rule with invalid DNS",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								DNSName: "www.Example$.com",
 							},
 						},
@@ -427,16 +427,16 @@ func TestValidateEgressNetworkPolicy(t *testing.T) {
 		},
 		{
 			name: "Policy rule with wildcard DNS",
-			fw: &api.EgressNetworkPolicy{
+			fw: &sdnapi.EgressNetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "default",
 					Namespace: "testing",
 				},
-				Spec: api.EgressNetworkPolicySpec{
-					Egress: []api.EgressNetworkPolicyRule{
+				Spec: sdnapi.EgressNetworkPolicySpec{
+					Egress: []sdnapi.EgressNetworkPolicyRule{
 						{
-							Type: api.EgressNetworkPolicyRuleAllow,
-							To: api.EgressNetworkPolicyPeer{
+							Type: sdnapi.EgressNetworkPolicyRuleAllow,
+							To: sdnapi.EgressNetworkPolicyPeer{
 								DNSName: "*.example.com",
 							},
 						},

@@ -12,10 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/docker10"
 	"github.com/openshift/origin/pkg/image/api/dockerpre012"
-	"github.com/openshift/origin/pkg/image/api/v1"
+	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
 )
 
 const importPrefix = "github.com/openshift/origin/pkg/image/api"
@@ -24,7 +24,7 @@ var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
 var availableVersions = []schema.GroupVersion{
-	v1.LegacySchemeGroupVersion,
+	imageapiv1.LegacySchemeGroupVersion,
 }
 
 func init() {
@@ -36,7 +36,7 @@ func init() {
 		}
 	}
 	if len(externalVersions) == 0 {
-		glog.Infof("No version is registered for group %v", api.LegacyGroupName)
+		glog.Infof("No version is registered for group %v", imageapi.LegacyGroupName)
 		return
 	}
 
@@ -74,7 +74,7 @@ func enableVersions(externalVersions []schema.GroupVersion) error {
 
 func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	// add the internal version to Scheme
-	api.AddToSchemeInCoreGroup(kapi.Scheme)
+	imageapi.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		if !kapi.Registry.IsEnabledVersion(v) {
@@ -82,8 +82,8 @@ func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 			continue
 		}
 		switch v {
-		case v1.LegacySchemeGroupVersion:
-			v1.AddToSchemeInCoreGroup(kapi.Scheme)
+		case imageapiv1.LegacySchemeGroupVersion:
+			imageapiv1.AddToSchemeInCoreGroup(kapi.Scheme)
 			docker10.AddToSchemeInCoreGroup(kapi.Scheme)
 			dockerpre012.AddToSchemeInCoreGroup(kapi.Scheme)
 
@@ -102,14 +102,14 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case v1.LegacySchemeGroupVersion:
+	case imageapiv1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
 
 	default:
-		g, _ := kapi.Registry.Group(api.LegacyGroupName)
+		g, _ := kapi.Registry.Group(imageapi.LegacyGroupName)
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 	}
 }

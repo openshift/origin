@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 )
 
@@ -44,7 +44,7 @@ func (templateStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obj
 
 // Validate validates a new template.
 func (templateStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateTemplate(obj.(*api.Template))
+	return validation.ValidateTemplate(obj.(*templateapi.Template))
 }
 
 // AllowCreateOnUpdate is false for templates.
@@ -58,12 +58,12 @@ func (templateStrategy) AllowUnconditionalUpdate() bool {
 
 // ValidateUpdate is the default update validation for an end user.
 func (templateStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateTemplateUpdate(obj.(*api.Template), old.(*api.Template))
+	return validation.ValidateTemplateUpdate(obj.(*templateapi.Template), old.(*templateapi.Template))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.Template)
+	obj, ok := o.(*templateapi.Template)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a Template")
 	}
@@ -80,6 +80,6 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.Template) fields.Set {
-	return api.TemplateToSelectableFields(obj)
+func SelectableFields(obj *templateapi.Template) fields.Set {
+	return templateapi.TemplateToSelectableFields(obj)
 }

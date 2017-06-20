@@ -13,17 +13,17 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
-func fuzzImageSignature(t *testing.T, signature *api.ImageSignature, seed int64) *api.ImageSignature {
+func fuzzImageSignature(t *testing.T, signature *imageapi.ImageSignature, seed int64) *imageapi.ImageSignature {
 	f := apitesting.FuzzerFor(apitesting.GenericFuzzerFuncs(t, kapi.Codecs), rand.NewSource(seed))
 	f.Funcs(
-		func(j *api.ImageSignature, c fuzz.Continue) {
+		func(j *imageapi.ImageSignature, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			j.Annotations = make(map[string]string)
 			j.Labels = make(map[string]string)
-			j.Conditions = []api.SignatureCondition{}
+			j.Conditions = []imageapi.SignatureCondition{}
 			j.SignedClaims = make(map[string]string)
 
 			j.Content = []byte(c.RandString())
@@ -33,14 +33,14 @@ func fuzzImageSignature(t *testing.T, signature *api.ImageSignature, seed int64)
 				j.SignedClaims[c.RandString()] = c.RandString()
 			}
 			for i := 0; i < c.Rand.Intn(3)+2; i++ {
-				cond := api.SignatureCondition{}
+				cond := imageapi.SignatureCondition{}
 				c.Fuzz(&cond)
 				j.Conditions = append(j.Conditions, cond)
 			}
 		},
 	)
 
-	updated := api.ImageSignature{}
+	updated := imageapi.ImageSignature{}
 	f.Fuzz(&updated)
 	updated.Namespace = signature.Namespace
 	updated.Name = signature.Name
@@ -57,7 +57,7 @@ func fuzzImageSignature(t *testing.T, signature *api.ImageSignature, seed int64)
 
 func TestStrategyPrepareForCreate(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
-	signature := &api.ImageSignature{
+	signature := &imageapi.ImageSignature{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "image",
 		},

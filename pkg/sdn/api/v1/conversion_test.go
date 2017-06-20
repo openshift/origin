@@ -3,7 +3,7 @@ package v1_test
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	testutil "github.com/openshift/origin/test/util/api"
 
 	// install all APIs
@@ -13,43 +13,43 @@ import (
 func TestFieldSelectorConversions(t *testing.T) {
 	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "ClusterNetwork",
 		// Ensure all currently returned labels are supported
-		api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}),
+		sdnapi.ClusterNetworkToSelectableFields(&sdnapi.ClusterNetwork{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "HostSubnet",
 		// Ensure all currently returned labels are supported
-		api.HostSubnetToSelectableFields(&api.HostSubnet{}),
+		sdnapi.HostSubnetToSelectableFields(&sdnapi.HostSubnet{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "NetNamespace",
 		// Ensure all currently returned labels are supported
-		api.NetNamespaceToSelectableFields(&api.NetNamespace{}),
+		sdnapi.NetNamespaceToSelectableFields(&sdnapi.NetNamespace{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "network.openshift.io/v1", "EgressNetworkPolicy",
 		// Ensure all currently returned labels are supported
-		api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}),
+		sdnapi.EgressNetworkPolicyToSelectableFields(&sdnapi.EgressNetworkPolicy{}),
 	)
 }
 
 func TestLegacyFieldSelectorConversions(t *testing.T) {
 	testutil.CheckFieldLabelConversions(t, "v1", "ClusterNetwork",
 		// Ensure all currently returned labels are supported
-		api.ClusterNetworkToSelectableFields(&api.ClusterNetwork{}),
+		sdnapi.ClusterNetworkToSelectableFields(&sdnapi.ClusterNetwork{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "v1", "HostSubnet",
 		// Ensure all currently returned labels are supported
-		api.HostSubnetToSelectableFields(&api.HostSubnet{}),
+		sdnapi.HostSubnetToSelectableFields(&sdnapi.HostSubnet{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "v1", "NetNamespace",
 		// Ensure all currently returned labels are supported
-		api.NetNamespaceToSelectableFields(&api.NetNamespace{}),
+		sdnapi.NetNamespaceToSelectableFields(&sdnapi.NetNamespace{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "v1", "EgressNetworkPolicy",
 		// Ensure all currently returned labels are supported
-		api.EgressNetworkPolicyToSelectableFields(&api.EgressNetworkPolicy{}),
+		sdnapi.EgressNetworkPolicyToSelectableFields(&sdnapi.EgressNetworkPolicy{}),
 	)
 }

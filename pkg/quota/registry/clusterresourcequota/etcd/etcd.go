@@ -9,7 +9,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
 	"github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -22,10 +22,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.ClusterResourceQuota{} },
-		NewListFunc:       func() runtime.Object { return &api.ClusterResourceQuotaList{} },
+		NewFunc:           func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
+		NewListFunc:       func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
 		PredicateFunc:     clusterresourcequota.Matcher,
-		QualifiedResource: api.Resource("clusterresourcequotas"),
+		QualifiedResource: quotaapi.Resource("clusterresourcequotas"),
 
 		CreateStrategy: clusterresourcequota.Strategy,
 		UpdateStrategy: clusterresourcequota.Strategy,
@@ -54,7 +54,7 @@ type StatusREST struct {
 var _ = rest.Patcher(&StatusREST{})
 
 func (r *StatusREST) New() runtime.Object {
-	return &api.ClusterResourceQuota{}
+	return &quotaapi.ClusterResourceQuota{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.

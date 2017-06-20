@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 // mockLister returns the namespaces in the list
@@ -47,7 +47,7 @@ func TestListProjects(t *testing.T) {
 	if err != nil {
 		t.Errorf("%#v should be nil.", err)
 	}
-	projects := response.(*api.ProjectList)
+	projects := response.(*projectapi.ProjectList)
 	if len(projects.Items) != 1 {
 		t.Errorf("%#v projects.Items should have len 1.", projects.Items)
 	}
@@ -60,7 +60,7 @@ func TestListProjects(t *testing.T) {
 func TestCreateProjectBadObject(t *testing.T) {
 	storage := REST{}
 
-	obj, err := storage.Create(apirequest.NewContext(), &api.ProjectList{})
+	obj, err := storage.Create(apirequest.NewContext(), &projectapi.ProjectList{})
 	if obj != nil {
 		t.Errorf("Expected nil, got %v", obj)
 	}
@@ -72,7 +72,7 @@ func TestCreateProjectBadObject(t *testing.T) {
 func TestCreateInvalidProject(t *testing.T) {
 	mockClient := &fake.Clientset{}
 	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
-	_, err := storage.Create(apirequest.NewContext(), &api.Project{
+	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
 		},
@@ -85,7 +85,7 @@ func TestCreateInvalidProject(t *testing.T) {
 func TestCreateProjectOK(t *testing.T) {
 	mockClient := &fake.Clientset{}
 	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
-	_, err := storage.Create(apirequest.NewContext(), &api.Project{
+	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	})
 	if err != nil {
@@ -109,7 +109,7 @@ func TestGetProjectOK(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %v", err)
 	}
-	if project.(*api.Project).Name != "foo" {
+	if project.(*projectapi.Project).Name != "foo" {
 		t.Errorf("Unexpected project: %#v", project)
 	}
 }

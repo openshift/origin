@@ -10,14 +10,14 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
 var ParameterNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 // ValidateParameter tests if required fields in the Parameter are set.
-func ValidateParameter(param *api.Parameter, fldPath *field.Path) (allErrs field.ErrorList) {
+func ValidateParameter(param *templateapi.Parameter, fldPath *field.Path) (allErrs field.ErrorList) {
 	if len(param.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		return
@@ -29,24 +29,24 @@ func ValidateParameter(param *api.Parameter, fldPath *field.Path) (allErrs field
 }
 
 // ValidateProcessedTemplate tests if required fields in the Template are set for processing
-func ValidateProcessedTemplate(template *api.Template) field.ErrorList {
+func ValidateProcessedTemplate(template *templateapi.Template) field.ErrorList {
 	return validateTemplateBody(template)
 }
 
 // ValidateTemplate tests if required fields in the Template are set.
-func ValidateTemplate(template *api.Template) (allErrs field.ErrorList) {
+func ValidateTemplate(template *templateapi.Template) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMeta(&template.ObjectMeta, true, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateBody(template)...)
 	return
 }
 
 // ValidateTemplateUpdate tests if required fields in the template are set during an update
-func ValidateTemplateUpdate(template, oldTemplate *api.Template) field.ErrorList {
+func ValidateTemplateUpdate(template, oldTemplate *templateapi.Template) field.ErrorList {
 	return validation.ValidateObjectMetaUpdate(&template.ObjectMeta, &oldTemplate.ObjectMeta, field.NewPath("metadata"))
 }
 
 // validateTemplateBody checks the body of a template.
-func validateTemplateBody(template *api.Template) (allErrs field.ErrorList) {
+func validateTemplateBody(template *templateapi.Template) (allErrs field.ErrorList) {
 	for i := range template.Parameters {
 		allErrs = append(allErrs, ValidateParameter(&template.Parameters[i], field.NewPath("parameters").Index(i))...)
 	}
@@ -55,7 +55,7 @@ func validateTemplateBody(template *api.Template) (allErrs field.ErrorList) {
 }
 
 // ValidateTemplateInstance tests if required fields in the TemplateInstance are set.
-func ValidateTemplateInstance(templateInstance *api.TemplateInstance) (allErrs field.ErrorList) {
+func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMeta(&templateInstance.ObjectMeta, true, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
 	for _, err := range ValidateTemplate(&templateInstance.Spec.Template) {
 		err.Field = "spec.template." + err.Field
@@ -79,7 +79,7 @@ func ValidateTemplateInstance(templateInstance *api.TemplateInstance) (allErrs f
 }
 
 // ValidateTemplateInstanceUpdate tests if required fields in the TemplateInstance are set during an update
-func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *api.TemplateInstance) (allErrs field.ErrorList) {
+func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMetaUpdate(&templateInstance.ObjectMeta, &oldTemplateInstance.ObjectMeta, field.NewPath("metadata"))
 
 	if !kapi.Semantic.DeepEqual(templateInstance.Spec, oldTemplateInstance.Spec) {
@@ -89,7 +89,7 @@ func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *api.T
 }
 
 // ValidateBrokerTemplateInstance tests if required fields in the BrokerTemplateInstance are set.
-func ValidateBrokerTemplateInstance(brokerTemplateInstance *api.BrokerTemplateInstance) (allErrs field.ErrorList) {
+func ValidateBrokerTemplateInstance(brokerTemplateInstance *templateapi.BrokerTemplateInstance) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMeta(&brokerTemplateInstance.ObjectMeta, false, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.TemplateInstance, field.NewPath("spec.templateInstance"), "TemplateInstance")...)
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.Secret, field.NewPath("spec.secret"), "Secret")...)
@@ -102,7 +102,7 @@ func ValidateBrokerTemplateInstance(brokerTemplateInstance *api.BrokerTemplateIn
 }
 
 // ValidateBrokerTemplateInstanceUpdate tests if required fields in the BrokerTemplateInstance are set during an update
-func ValidateBrokerTemplateInstanceUpdate(brokerTemplateInstance, oldBrokerTemplateInstance *api.BrokerTemplateInstance) (allErrs field.ErrorList) {
+func ValidateBrokerTemplateInstanceUpdate(brokerTemplateInstance, oldBrokerTemplateInstance *templateapi.BrokerTemplateInstance) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMetaUpdate(&brokerTemplateInstance.ObjectMeta, &oldBrokerTemplateInstance.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.TemplateInstance, field.NewPath("spec.templateInstance"), "TemplateInstance")...)
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.Secret, field.NewPath("spec.secret"), "Secret")...)

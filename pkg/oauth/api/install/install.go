@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/v1"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapiv1 "github.com/openshift/origin/pkg/oauth/api/v1"
 )
 
 const importPrefix = "github.com/openshift/origin/pkg/oauth/api"
@@ -21,7 +21,7 @@ const importPrefix = "github.com/openshift/origin/pkg/oauth/api"
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []schema.GroupVersion{v1.LegacySchemeGroupVersion}
+var availableVersions = []schema.GroupVersion{oauthapiv1.LegacySchemeGroupVersion}
 
 func init() {
 	kapi.Registry.RegisterVersions(availableVersions)
@@ -32,7 +32,7 @@ func init() {
 		}
 	}
 	if len(externalVersions) == 0 {
-		glog.Infof("No version is registered for group %v", api.LegacyGroupName)
+		glog.Infof("No version is registered for group %v", oauthapi.LegacyGroupName)
 		return
 	}
 
@@ -70,7 +70,7 @@ func enableVersions(externalVersions []schema.GroupVersion) error {
 
 func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 	// add the internal version to Scheme
-	api.AddToSchemeInCoreGroup(kapi.Scheme)
+	oauthapi.AddToSchemeInCoreGroup(kapi.Scheme)
 	// add the enabled external versions to Scheme
 	for _, v := range externalVersions {
 		if !kapi.Registry.IsEnabledVersion(v) {
@@ -78,8 +78,8 @@ func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 			continue
 		}
 		switch v {
-		case v1.LegacySchemeGroupVersion:
-			v1.AddToSchemeInCoreGroup(kapi.Scheme)
+		case oauthapiv1.LegacySchemeGroupVersion:
+			oauthapiv1.AddToSchemeInCoreGroup(kapi.Scheme)
 
 		default:
 			glog.Errorf("Version %s is not known, so it will not be added to the Scheme.", v)
@@ -96,14 +96,14 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
 	switch version {
-	case v1.LegacySchemeGroupVersion:
+	case oauthapiv1.LegacySchemeGroupVersion:
 		return &meta.VersionInterfaces{
 			ObjectConvertor:  kapi.Scheme,
 			MetadataAccessor: accessor,
 		}, nil
 
 	default:
-		g, _ := kapi.Registry.Group(api.LegacyGroupName)
+		g, _ := kapi.Registry.Group(oauthapi.LegacyGroupName)
 		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 	}
 }

@@ -25,13 +25,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
 	routeapi "github.com/openshift/origin/pkg/route/api"
-	"github.com/openshift/origin/pkg/route/api/v1"
+	routeapiv1 "github.com/openshift/origin/pkg/route/api/v1"
 	tr "github.com/openshift/origin/test/integration/router"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -1228,7 +1228,7 @@ func sendTimeout(t *testing.T, ch chan string, s string, timeout time.Duration) 
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion), e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(routeapiv1.LegacySchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
@@ -1758,7 +1758,7 @@ func getNamespaceConfig(t *testing.T, namespaceNames *[]string) (namespaceLabels
 		})
 	}
 
-	obj, err := runtime.Encode(kapi.Codecs.LegacyCodec(kv1.SchemeGroupVersion), namespaceList)
+	obj, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), namespaceList)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -3,7 +3,7 @@ package oauthclient
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	"github.com/openshift/origin/pkg/oauth/api/validation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -43,14 +43,14 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new client
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	token := obj.(*api.OAuthClient)
+	token := obj.(*oauthapi.OAuthClient)
 	return validation.ValidateClient(token)
 }
 
 // ValidateUpdate validates a client update
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old runtime.Object) field.ErrorList {
-	client := obj.(*api.OAuthClient)
-	oldClient := old.(*api.OAuthClient)
+	client := obj.(*oauthapi.OAuthClient)
+	oldClient := old.(*oauthapi.OAuthClient)
 	return validation.ValidateClientUpdate(client, oldClient)
 }
 
@@ -65,7 +65,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.OAuthClient)
+	obj, ok := o.(*oauthapi.OAuthClient)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a OAuthClient")
 	}
@@ -82,6 +82,6 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.OAuthClient) fields.Set {
-	return api.OAuthClientToSelectableFields(obj)
+func SelectableFields(obj *oauthapi.OAuthClient) fields.Set {
+	return oauthapi.OAuthClientToSelectableFields(obj)
 }

@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 	routeapi "github.com/openshift/origin/pkg/route/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -46,7 +46,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 	found := false
 	for _, f := range ns.Spec.Finalizers {
-		if f == api.FinalizerOrigin {
+		if f == projectapi.FinalizerOrigin {
 			found = true
 			break
 		}
@@ -72,7 +72,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 	found = false
 	for _, f := range ns.Spec.Finalizers {
-		if f == api.FinalizerOrigin {
+		if f == projectapi.FinalizerOrigin {
 			found = true
 			break
 		}

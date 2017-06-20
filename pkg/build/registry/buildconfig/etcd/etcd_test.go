@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
 	"github.com/openshift/origin/pkg/build/registry/buildconfig"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -31,21 +31,21 @@ func TestStorage(t *testing.T) {
 	buildconfig.NewRegistry(storage)
 }
 
-func validBuildConfig() *api.BuildConfig {
-	return &api.BuildConfig{
+func validBuildConfig() *buildapi.BuildConfig {
+	return &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "configid"},
-		Spec: api.BuildConfigSpec{
-			RunPolicy: api.BuildRunPolicySerial,
-			CommonSpec: api.CommonSpec{
-				Source: api.BuildSource{
-					Git: &api.GitBuildSource{
+		Spec: buildapi.BuildConfigSpec{
+			RunPolicy: buildapi.BuildRunPolicySerial,
+			CommonSpec: buildapi.CommonSpec{
+				Source: buildapi.BuildSource{
+					Git: &buildapi.GitBuildSource{
 						URI: "http://github.com/my/repository",
 					},
 				},
-				Strategy: api.BuildStrategy{
-					DockerStrategy: &api.DockerBuildStrategy{},
+				Strategy: buildapi.BuildStrategy{
+					DockerStrategy: &buildapi.DockerBuildStrategy{},
 				},
-				Output: api.BuildOutput{
+				Output: buildapi.BuildOutput{
 					To: &kapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "repository/data",
@@ -67,7 +67,7 @@ func TestCreate(t *testing.T) {
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.BuildConfig{},
+		&buildapi.BuildConfig{},
 	)
 }
 
@@ -80,13 +80,13 @@ func TestUpdate(t *testing.T) {
 		validBuildConfig(),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.BuildConfig)
+			object := obj.(*buildapi.BuildConfig)
 			object.Spec.CommonSpec.Source.Git.URI = "http://github.com/my/otherrepo"
 			return object
 		},
 		// invalid updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.BuildConfig)
+			object := obj.(*buildapi.BuildConfig)
 			object.Spec.CommonSpec.Source.Git.URI = ""
 			return object
 		},

@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	"github.com/openshift/origin/pkg/template/api/validation"
 )
 
@@ -45,7 +45,7 @@ func (brokerTemplateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, o
 
 // Validate validates a new brokertemplateinstance.
 func (brokerTemplateInstanceStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateBrokerTemplateInstance(obj.(*api.BrokerTemplateInstance))
+	return validation.ValidateBrokerTemplateInstance(obj.(*templateapi.BrokerTemplateInstance))
 }
 
 // AllowCreateOnUpdate is false for brokertemplateinstances.
@@ -59,7 +59,7 @@ func (brokerTemplateInstanceStrategy) AllowUnconditionalUpdate() bool {
 
 // ValidateUpdate is the default update validation for an end user.
 func (brokerTemplateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateBrokerTemplateInstanceUpdate(obj.(*api.BrokerTemplateInstance), old.(*api.BrokerTemplateInstance))
+	return validation.ValidateBrokerTemplateInstanceUpdate(obj.(*templateapi.BrokerTemplateInstance), old.(*templateapi.BrokerTemplateInstance))
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -72,7 +72,7 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.BrokerTemplateInstance)
+	obj, ok := o.(*templateapi.BrokerTemplateInstance)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a BrokerTemplateInstance")
 	}
@@ -80,6 +80,6 @@ func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.BrokerTemplateInstance) fields.Set {
-	return api.BrokerTemplateInstanceToSelectableFields(obj)
+func SelectableFields(obj *templateapi.BrokerTemplateInstance) fields.Set {
+	return templateapi.BrokerTemplateInstanceToSelectableFields(obj)
 }

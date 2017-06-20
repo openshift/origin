@@ -14,7 +14,7 @@ import (
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -22,51 +22,51 @@ import (
 
 var sequence = 0
 
-func makeUser() *api.User {
+func makeUser() *userapi.User {
 	sequence++
 	return makeUserFromSequence(sequence)
 }
 
-func makeUserFromSequence(sequence int) *api.User {
+func makeUserFromSequence(sequence int) *userapi.User {
 	userName := fmt.Sprintf("myuser-%d", sequence)
 	userUID := types.UID(fmt.Sprintf("useruid-%d", sequence))
 	userResourceVersion := fmt.Sprintf("%d", sequence+100)
 
-	return &api.User{
+	return &userapi.User{
 		ObjectMeta: metav1.ObjectMeta{Name: userName, UID: userUID, ResourceVersion: userResourceVersion},
 	}
 }
 
-func makeIdentity() *api.Identity {
+func makeIdentity() *userapi.Identity {
 	sequence++
 	return makeIdentityFromSequence(sequence)
 }
 
-func makeIdentityFromSequence(sequence int) *api.Identity {
+func makeIdentityFromSequence(sequence int) *userapi.Identity {
 	providerName := fmt.Sprintf("providername-%d", sequence)
 	providerUserName := fmt.Sprintf("providerusername-%d", sequence)
 	identityName := fmt.Sprintf("%s:%s", providerName, providerUserName)
 	identityUID := types.UID(fmt.Sprintf("identityuid-%d", sequence))
 	identityResourceVersion := fmt.Sprintf("%d", sequence+200)
 
-	return &api.Identity{
+	return &userapi.Identity{
 		ObjectMeta:       metav1.ObjectMeta{Name: identityName, UID: identityUID, ResourceVersion: identityResourceVersion},
 		ProviderName:     providerName,
 		ProviderUserName: providerUserName,
 	}
 }
 
-func makeAssociated() (*api.User, *api.Identity) {
+func makeAssociated() (*userapi.User, *userapi.Identity) {
 	sequence++
 	return associate(makeUserFromSequence(sequence), makeIdentityFromSequence(sequence))
 }
 
-func makeUnassociated() (*api.User, *api.Identity) {
+func makeUnassociated() (*userapi.User, *userapi.Identity) {
 	sequence++
 	return makeUserFromSequence(sequence), makeIdentityFromSequence(sequence)
 }
 
-func associate(user *api.User, identity *api.Identity) (*api.User, *api.Identity) {
+func associate(user *userapi.User, identity *userapi.Identity) (*userapi.User, *userapi.Identity) {
 	userCopy := *user
 	identityCopy := *identity
 	addIdentityToUser(&identityCopy, &userCopy)
@@ -74,7 +74,7 @@ func associate(user *api.User, identity *api.Identity) (*api.User, *api.Identity
 	return &userCopy, &identityCopy
 }
 
-func disassociate(user *api.User, identity *api.Identity) (*api.User, *api.Identity) {
+func disassociate(user *userapi.User, identity *userapi.Identity) (*userapi.User, *userapi.Identity) {
 	userCopy := *user
 	identityCopy := *identity
 	removeIdentityFromUser(&identityCopy, &userCopy)
@@ -82,11 +82,11 @@ func disassociate(user *api.User, identity *api.Identity) (*api.User, *api.Ident
 	return &userCopy, &identityCopy
 }
 
-func setupRegistries(identity *api.Identity, users ...*api.User) (*[]test.Action, *test.UserRegistry, *test.IdentityRegistry, *REST) {
+func setupRegistries(identity *userapi.Identity, users ...*userapi.User) (*[]test.Action, *test.UserRegistry, *test.IdentityRegistry, *REST) {
 	actions := &[]test.Action{}
 
 	userRegistry := &test.UserRegistry{
-		Get:       map[string]*api.User{},
+		Get:       map[string]*userapi.User{},
 		GetErr:    map[string]error{},
 		UpdateErr: map[string]error{},
 		Actions:   actions,
@@ -96,7 +96,7 @@ func setupRegistries(identity *api.Identity, users ...*api.User) (*[]test.Action
 	}
 
 	identityRegistry := &test.IdentityRegistry{
-		Get:     map[string]*api.Identity{},
+		Get:     map[string]*userapi.Identity{},
 		GetErr:  map[string]error{},
 		Actions: actions,
 	}
@@ -125,8 +125,8 @@ func verifyActions(expectedActions []test.Action, actualActions []test.Action, t
 	}
 }
 
-func verifyMapping(object runtime.Object, user *api.User, identity *api.Identity, t *testing.T) {
-	mapping, ok := object.(*api.UserIdentityMapping)
+func verifyMapping(object runtime.Object, user *userapi.User, identity *userapi.Identity, t *testing.T) {
+	mapping, ok := object.(*userapi.UserIdentityMapping)
 	if !ok {
 		t.Errorf("Expected mapping, got %#v", object)
 		return
@@ -241,7 +241,7 @@ func TestCreate(t *testing.T) {
 		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -263,7 +263,7 @@ func TestCreateExists(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -286,7 +286,7 @@ func TestCreateMissingIdentity(t *testing.T) {
 		{Name: "GetIdentity", Object: identity.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -310,7 +310,7 @@ func TestCreateMissingUser(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: identity.Name},
 		User:     kapi.ObjectReference{Name: user.Name},
 	}
@@ -337,7 +337,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Update error")
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -365,7 +365,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 		{Name: "UpdateIdentity", Object: associatedIdentity},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser.Name},
 	}
@@ -405,7 +405,7 @@ func TestUpdate(t *testing.T) {
 		{Name: "UpdateUser", Object: unassociatedUser1},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -436,7 +436,7 @@ func TestUpdateMissingIdentity(t *testing.T) {
 		{Name: "GetIdentity", Object: associatedIdentity1User1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -469,7 +469,7 @@ func TestUpdateMissingUser(t *testing.T) {
 		{Name: "GetUser", Object: unassociatedUser2.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -496,7 +496,7 @@ func TestUpdateOldUserMatches(t *testing.T) {
 		{Name: "GetUser", Object: user.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: identity.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: identity.Name},
 		User:       kapi.ObjectReference{Name: user.Name},
@@ -528,7 +528,7 @@ func TestUpdateWithEmptyResourceVersion(t *testing.T) {
 		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:     kapi.ObjectReference{Name: unassociatedUser2.Name},
 	}
@@ -558,7 +558,7 @@ func TestUpdateWithMismatchedResourceVersion(t *testing.T) {
 		{Name: "GetUser", Object: associatedUser1.Name},
 	}
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: "123"},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -599,7 +599,7 @@ func TestUpdateOldUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update old user")
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -639,7 +639,7 @@ func TestUpdateUserUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update new user")
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},
@@ -679,7 +679,7 @@ func TestUpdateIdentityUpdateError(t *testing.T) {
 	}
 	expectedErr := errors.New("Couldn't update identity")
 
-	mapping := &api.UserIdentityMapping{
+	mapping := &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{ResourceVersion: unassociatedIdentity1.ResourceVersion},
 		Identity:   kapi.ObjectReference{Name: unassociatedIdentity1.Name},
 		User:       kapi.ObjectReference{Name: unassociatedUser2.Name},

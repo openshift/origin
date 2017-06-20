@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/quota/api"
-	"github.com/openshift/origin/pkg/quota/api/v1"
+	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
 )
 
 func installApiGroup() {
@@ -19,14 +19,14 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			GroupName:                  quotaapi.GroupName,
+			VersionPreferenceOrder:     []string{quotaapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: quotaapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("ClusterResourceQuota"),
 		},
 		announced.VersionToSchemeFunc{
-			v1.SchemeGroupVersion.Version: v1.AddToScheme,
+			quotaapiv1.SchemeGroupVersion.Version: quotaapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

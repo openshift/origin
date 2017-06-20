@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/api/v1"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapiv1 "github.com/openshift/origin/pkg/sdn/api/v1"
 )
 
 func installApiGroup() {
@@ -19,14 +19,14 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			GroupName:                  sdnapi.GroupName,
+			VersionPreferenceOrder:     []string{sdnapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: sdnapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("ClusterNetwork", "HostSubnet", "NetNamespace"),
 		},
 		announced.VersionToSchemeFunc{
-			v1.SchemeGroupVersion.Version: v1.AddToScheme,
+			sdnapiv1.SchemeGroupVersion.Version: sdnapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

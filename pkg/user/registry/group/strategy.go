@@ -11,7 +11,7 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -40,7 +40,7 @@ func (groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object
 
 // Validate validates a new group
 func (groupStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateGroup(obj.(*api.Group))
+	return validation.ValidateGroup(obj.(*userapi.Group))
 }
 
 // AllowCreateOnUpdate is false for groups
@@ -58,12 +58,12 @@ func (groupStrategy) Canonicalize(obj runtime.Object) {
 
 // ValidateUpdate is the default update validation for an end group.
 func (groupStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateGroupUpdate(obj.(*api.Group), old.(*api.Group))
+	return validation.ValidateGroupUpdate(obj.(*userapi.Group), old.(*userapi.Group))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.Group)
+	obj, ok := o.(*userapi.Group)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a Group")
 	}
@@ -80,6 +80,6 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.Group) fields.Set {
-	return api.GroupToSelectableFields(obj)
+func SelectableFields(obj *userapi.Group) fields.Set {
+	return userapi.GroupToSelectableFields(obj)
 }

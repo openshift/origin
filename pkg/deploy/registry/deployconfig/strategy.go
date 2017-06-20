@@ -14,7 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	"github.com/openshift/origin/pkg/deploy/api/validation"
 )
 
@@ -48,9 +48,9 @@ func (s strategy) Export(ctx apirequest.Context, obj runtime.Object, exact bool)
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	dc := obj.(*api.DeploymentConfig)
+	dc := obj.(*deployapi.DeploymentConfig)
 	dc.Generation = 1
-	dc.Status = api.DeploymentConfigStatus{}
+	dc.Status = deployapi.DeploymentConfigStatus{}
 
 	for i := range dc.Spec.Triggers {
 		if params := dc.Spec.Triggers[i].ImageChangeParams; params != nil {
@@ -61,8 +61,8 @@ func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newDc := obj.(*api.DeploymentConfig)
-	oldDc := old.(*api.DeploymentConfig)
+	newDc := obj.(*deployapi.DeploymentConfig)
+	oldDc := old.(*deployapi.DeploymentConfig)
 
 	newVersion := newDc.Status.LatestVersion
 	oldVersion := oldDc.Status.LatestVersion
@@ -92,12 +92,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new policy.
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfig(obj.(*api.DeploymentConfig))
+	return validation.ValidateDeploymentConfig(obj.(*deployapi.DeploymentConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfigUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
+	return validation.ValidateDeploymentConfigUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
 }
 
 // CheckGracefulDelete allows a deployment config to be gracefully deleted.
@@ -114,24 +114,24 @@ var StatusStrategy = statusStrategy{Strategy}
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update of status.
 func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newDc := obj.(*api.DeploymentConfig)
-	oldDc := old.(*api.DeploymentConfig)
+	newDc := obj.(*deployapi.DeploymentConfig)
+	oldDc := old.(*deployapi.DeploymentConfig)
 	newDc.Spec = oldDc.Spec
 	newDc.Labels = oldDc.Labels
 }
 
 // ValidateUpdate is the default update validation for an end user updating status.
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*api.DeploymentConfig), old.(*api.DeploymentConfig))
+	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
-	deploymentConfig, ok := obj.(*api.DeploymentConfig)
+	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a DeploymentConfig")
 	}
-	return labels.Set(deploymentConfig.ObjectMeta.Labels), api.DeploymentConfigToSelectableFields(deploymentConfig), nil
+	return labels.Set(deploymentConfig.ObjectMeta.Labels), deployapi.DeploymentConfigToSelectableFields(deploymentConfig), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

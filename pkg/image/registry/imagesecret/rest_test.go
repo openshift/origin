@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 )
 
 func TestGetSecrets(t *testing.T) {
@@ -19,7 +19,7 @@ func TestGetSecrets(t *testing.T) {
 				Type:       kapi.SecretTypeDockercfg,
 			},
 			{
-				ObjectMeta: metav1.ObjectMeta{Name: "secret-2", Annotations: map[string]string{api.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "secret-2", Annotations: map[string]string{imageapi.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
 				Type:       kapi.SecretTypeDockercfg,
 			},
 			{

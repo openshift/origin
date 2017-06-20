@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/hostsubnet"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -20,10 +20,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.HostSubnet{} },
-		NewListFunc:       func() runtime.Object { return &api.HostSubnetList{} },
+		NewFunc:           func() runtime.Object { return &sdnapi.HostSubnet{} },
+		NewListFunc:       func() runtime.Object { return &sdnapi.HostSubnetList{} },
 		PredicateFunc:     hostsubnet.Matcher,
-		QualifiedResource: api.Resource("hostsubnets"),
+		QualifiedResource: sdnapi.Resource("hostsubnets"),
 
 		CreateStrategy: hostsubnet.Strategy,
 		UpdateStrategy: hostsubnet.Strategy,

@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/security/api"
-	"github.com/openshift/origin/pkg/security/api/v1"
+	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 func installApiGroup() {
@@ -18,13 +18,13 @@ func installApiGroup() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  api.GroupName,
-			VersionPreferenceOrder:     []string{v1.SchemeGroupVersion.Version},
+			GroupName:                  securityapi.GroupName,
+			VersionPreferenceOrder:     []string{securityapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
-			AddInternalObjectsToScheme: api.AddToScheme,
+			AddInternalObjectsToScheme: securityapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
-			v1.SchemeGroupVersion.Version: v1.AddToScheme,
+			securityapiv1.SchemeGroupVersion.Version: securityapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

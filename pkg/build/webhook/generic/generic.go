@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -26,8 +26,8 @@ func New() *WebHookPlugin {
 }
 
 // Extract services generic webhooks.
-func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *api.DockerStrategyOptions, proceed bool, err error) {
-	triggers, err := webhook.FindTriggerPolicy(api.GenericWebHookBuildTriggerType, buildCfg)
+func (p *WebHookPlugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
+	triggers, err := webhook.FindTriggerPolicy(buildapi.GenericWebHookBuildTriggerType, buildCfg)
 	if err != nil {
 		return revision, envvars, dockerStrategyOptions, false, err
 	}
@@ -69,7 +69,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		return revision, envvars, dockerStrategyOptions, true, nil
 	}
 
-	var data api.GenericWebHookEvent
+	var data buildapi.GenericWebHookEvent
 	if contentType == "application/yaml" {
 		body, err = yaml.ToJSON(body)
 		if err != nil {
@@ -99,7 +99,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 	if data.Git.Refs != nil {
 		for _, ref := range data.Git.Refs {
 			if webhook.GitRefMatches(ref.Ref, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-				revision = &api.SourceRevision{
+				revision = &buildapi.SourceRevision{
 					Git: &ref.GitSourceRevision,
 				}
 				return revision, envvars, dockerStrategyOptions, true, nil
@@ -112,7 +112,7 @@ func (p *WebHookPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, 
 		warning := webhook.NewWarning(fmt.Sprintf("skipping build. Branch reference from %q does not match configuration", data.Git.Ref))
 		return revision, envvars, dockerStrategyOptions, false, warning
 	}
-	revision = &api.SourceRevision{
+	revision = &buildapi.SourceRevision{
 		Git: &data.Git.GitSourceRevision,
 	}
 	return revision, envvars, dockerStrategyOptions, true, nil

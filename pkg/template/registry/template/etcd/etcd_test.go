@@ -9,7 +9,7 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	_ "github.com/openshift/origin/pkg/template/api/install"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -23,8 +23,8 @@ func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	return storage, server
 }
 
-func validTemplate() *api.Template {
-	return &api.Template{
+func validTemplate() *templateapi.Template {
+	return &templateapi.Template{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
@@ -42,7 +42,7 @@ func TestCreate(t *testing.T) {
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.Template{},
+		&templateapi.Template{},
 	)
 }
 

@@ -3,7 +3,7 @@ package v1_test
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	testutil "github.com/openshift/origin/test/util/api"
 
 	// install all APIs
@@ -13,18 +13,18 @@ import (
 func TestFieldSelectorConversions(t *testing.T) {
 	testutil.CheckFieldLabelConversions(t, "v1", "Group",
 		// Ensure all currently returned labels are supported
-		api.GroupToSelectableFields(&api.Group{}),
+		userapi.GroupToSelectableFields(&userapi.Group{}),
 	)
 
 	testutil.CheckFieldLabelConversions(t, "v1", "Identity",
 		// Ensure all currently returned labels are supported
-		api.IdentityToSelectableFields(&api.Identity{}),
+		userapi.IdentityToSelectableFields(&userapi.Identity{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"providerName", "providerUserName", "user.name", "user.uid",
 	)
 
 	testutil.CheckFieldLabelConversions(t, "v1", "User",
 		// Ensure all currently returned labels are supported
-		api.UserToSelectableFields(&api.User{}),
+		userapi.UserToSelectableFields(&userapi.User{}),
 	)
 }

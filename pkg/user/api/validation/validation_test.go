@@ -3,14 +3,14 @@ package validation
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestValidateGroup(t *testing.T) {
-	validObj := func() *api.Group {
-		return &api.Group{
+	validObj := func() *userapi.Group {
+		return &userapi.Group{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myname",
 			},
@@ -42,8 +42,8 @@ func TestValidateGroup(t *testing.T) {
 }
 
 func TestValidateGroupUpdate(t *testing.T) {
-	validObj := func() *api.Group {
-		return &api.Group{
+	validObj := func() *userapi.Group {
+		return &userapi.Group{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "myname",
 				ResourceVersion: "1",
@@ -78,8 +78,8 @@ func TestValidateGroupUpdate(t *testing.T) {
 }
 
 func TestValidateUser(t *testing.T) {
-	validObj := func() *api.User {
-		return &api.User{
+	validObj := func() *userapi.User {
+		return &userapi.User{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myname",
 			},
@@ -119,8 +119,8 @@ func TestValidateUser(t *testing.T) {
 
 func TestValidateUserUpdate(t *testing.T) {
 
-	validObj := func() *api.User {
-		return &api.User{
+	validObj := func() *userapi.User {
+		return &userapi.User{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "myname",
 				ResourceVersion: "1",
@@ -163,8 +163,8 @@ func TestValidateUserUpdate(t *testing.T) {
 }
 
 func TestValidateIdentity(t *testing.T) {
-	validObj := func() *api.Identity {
-		return &api.Identity{
+	validObj := func() *userapi.Identity {
+		return &userapi.Identity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myprovider:myproviderusername",
 			},
@@ -216,8 +216,8 @@ func TestValidateIdentity(t *testing.T) {
 }
 
 func TestValidateIdentityUpdate(t *testing.T) {
-	validObj := func() *api.Identity {
-		return &api.Identity{
+	validObj := func() *userapi.Identity {
+		return &userapi.Identity{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "myprovider:myproviderusername",
 				ResourceVersion: "1",
@@ -272,8 +272,8 @@ func TestValidateIdentityUpdate(t *testing.T) {
 }
 
 func TestValidateUserIdentityMapping(t *testing.T) {
-	validObj := func() *api.UserIdentityMapping {
-		return &api.UserIdentityMapping{
+	validObj := func() *userapi.UserIdentityMapping {
+		return &userapi.UserIdentityMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myprovider:myproviderusername",
 			},
@@ -306,8 +306,8 @@ func TestValidateUserIdentityMapping(t *testing.T) {
 }
 
 func TestValidateUserIdentityMappingUpdate(t *testing.T) {
-	validObj := func() *api.UserIdentityMapping {
-		return &api.UserIdentityMapping{
+	validObj := func() *userapi.UserIdentityMapping {
+		return &userapi.UserIdentityMapping{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "myprovider:myproviderusername",
 				ResourceVersion: "1",

@@ -4,24 +4,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Group",
-		oapi.GetFieldLabelConversionFunc(api.GroupToSelectableFields(&api.Group{}), nil),
+		oapi.GetFieldLabelConversionFunc(userapi.GroupToSelectableFields(&userapi.Group{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Identity",
-		oapi.GetFieldLabelConversionFunc(api.IdentityToSelectableFields(&api.Identity{}), nil),
+		oapi.GetFieldLabelConversionFunc(userapi.IdentityToSelectableFields(&userapi.Identity{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "User",
-		oapi.GetFieldLabelConversionFunc(api.UserToSelectableFields(&api.User{}), nil),
+		oapi.GetFieldLabelConversionFunc(userapi.UserToSelectableFields(&userapi.User{}), nil),
 	); err != nil {
 		return err
 	}

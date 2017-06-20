@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
 )
 
@@ -61,7 +61,7 @@ func ValidateRedirectURI(redirect string) (bool, string) {
 	return true, ""
 }
 
-func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
+func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&accessToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(accessToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(accessToken.UserName, field.NewPath("userName"))...)
@@ -77,7 +77,7 @@ func ValidateAccessToken(accessToken *api.OAuthAccessToken) field.ErrorList {
 	return allErrs
 }
 
-func ValidateAccessTokenUpdate(newToken, oldToken *api.OAuthAccessToken) field.ErrorList {
+func ValidateAccessTokenUpdate(newToken, oldToken *oauthapi.OAuthAccessToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newToken.ObjectMeta, &oldToken.ObjectMeta, field.NewPath("metadata"))
 	copied := *oldToken
 	copied.ObjectMeta = newToken.ObjectMeta
@@ -86,7 +86,7 @@ func ValidateAccessTokenUpdate(newToken, oldToken *api.OAuthAccessToken) field.E
 
 var codeChallengeRegex = regexp.MustCompile("^[a-zA-Z0-9._~-]{43,128}$")
 
-func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.ErrorList {
+func ValidateAuthorizeToken(authorizeToken *oauthapi.OAuthAuthorizeToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&authorizeToken.ObjectMeta, false, ValidateTokenName, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateClientNameField(authorizeToken.ClientName, field.NewPath("clientName"))...)
 	allErrs = append(allErrs, ValidateUserNameField(authorizeToken.UserName, field.NewPath("userName"))...)
@@ -120,14 +120,14 @@ func ValidateAuthorizeToken(authorizeToken *api.OAuthAuthorizeToken) field.Error
 	return allErrs
 }
 
-func ValidateAuthorizeTokenUpdate(newToken, oldToken *api.OAuthAuthorizeToken) field.ErrorList {
+func ValidateAuthorizeTokenUpdate(newToken, oldToken *oauthapi.OAuthAuthorizeToken) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newToken.ObjectMeta, &oldToken.ObjectMeta, field.NewPath("metadata"))
 	copied := *oldToken
 	copied.ObjectMeta = newToken.ObjectMeta
 	return append(allErrs, validation.ValidateImmutableField(newToken, &copied, field.NewPath(""))...)
 }
 
-func ValidateClient(client *api.OAuthClient) field.ErrorList {
+func ValidateClient(client *oauthapi.OAuthClient) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&client.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	for i, redirect := range client.RedirectURIs {
 		if ok, msg := ValidateRedirectURI(redirect); !ok {
@@ -142,7 +142,7 @@ func ValidateClient(client *api.OAuthClient) field.ErrorList {
 	return allErrs
 }
 
-func ValidateScopeRestriction(restriction api.ScopeRestriction, fldPath *field.Path) field.ErrorList {
+func ValidateScopeRestriction(restriction oauthapi.ScopeRestriction, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	specifiers := 0
@@ -177,7 +177,7 @@ func ValidateScopeRestriction(restriction api.ScopeRestriction, fldPath *field.P
 	return allErrs
 }
 
-func ValidateClientUpdate(client *api.OAuthClient, oldClient *api.OAuthClient) field.ErrorList {
+func ValidateClientUpdate(client *oauthapi.OAuthClient, oldClient *oauthapi.OAuthClient) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs, ValidateClient(client)...)
@@ -199,7 +199,7 @@ func ValidateClientAuthorizationName(name string, prefix bool) []string {
 	return nil
 }
 
-func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorization) field.ErrorList {
+func ValidateClientAuthorization(clientAuthorization *oauthapi.OAuthClientAuthorization) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	expectedName := fmt.Sprintf("%s:%s", clientAuthorization.UserName, clientAuthorization.ClientName)
@@ -222,7 +222,7 @@ func ValidateClientAuthorization(clientAuthorization *api.OAuthClientAuthorizati
 	return allErrs
 }
 
-func ValidateClientAuthorizationUpdate(newAuth *api.OAuthClientAuthorization, oldAuth *api.OAuthClientAuthorization) field.ErrorList {
+func ValidateClientAuthorizationUpdate(newAuth *oauthapi.OAuthClientAuthorization, oldAuth *oauthapi.OAuthClientAuthorization) field.ErrorList {
 	allErrs := ValidateClientAuthorization(newAuth)
 
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&newAuth.ObjectMeta, &oldAuth.ObjectMeta, field.NewPath("metadata"))...)
@@ -304,12 +304,12 @@ func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 	return allErrs
 }
 
-func ValidateOAuthRedirectReference(sref *api.OAuthRedirectReference) field.ErrorList {
+func ValidateOAuthRedirectReference(sref *oauthapi.OAuthRedirectReference) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&sref.ObjectMeta, true, path.ValidatePathSegmentName, field.NewPath("metadata"))
 	return append(allErrs, validateRedirectReference(&sref.Reference)...)
 }
 
-func validateRedirectReference(ref *api.RedirectReference) field.ErrorList {
+func validateRedirectReference(ref *oauthapi.RedirectReference) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if len(ref.Name) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("name"), "may not be empty"))

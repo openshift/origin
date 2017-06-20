@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 const (
@@ -16,8 +16,8 @@ const (
 	validUUID2 = "7ee0204f-1ac5-40aa-a976-efcfca1b4b84"
 )
 
-func makeParameter(name, value string) *api.Parameter {
-	return &api.Parameter{
+func makeParameter(name, value string) *templateapi.Parameter {
+	return &templateapi.Parameter{
 		Name:  name,
 		Value: value,
 	}
@@ -52,41 +52,41 @@ func TestValidateParameter(t *testing.T) {
 
 func TestValidateProcessTemplate(t *testing.T) {
 	var tests = []struct {
-		template        *api.Template
+		template        *templateapi.Template
 		isValidExpected bool
 	}{
 		{ // Empty Template, should pass
-			&api.Template{},
+			&templateapi.Template{},
 			true,
 		},
 		{ // Template with name, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
 			},
 			true,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					*(makeParameter("", "1")),
 				},
 			},
 			false,
 		},
 		{ // Template with valid Parameter, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
 			},
 			true,
 		},
 		{ // Template with Item of unknown Kind, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "templateId"},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
 				Objects: []runtime.Object{},
@@ -108,15 +108,15 @@ func TestValidateProcessTemplate(t *testing.T) {
 
 func TestValidateTemplate(t *testing.T) {
 	var tests = []struct {
-		template        *api.Template
+		template        *templateapi.Template
 		isValidExpected bool
 	}{
 		{ // Empty Template, should fail on empty name
-			&api.Template{},
+			&templateapi.Template{},
 			false,
 		},
 		{ // Template with name, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template",
 					Namespace: metav1.NamespaceDefault,
@@ -125,7 +125,7 @@ func TestValidateTemplate(t *testing.T) {
 			true,
 		},
 		{ // Template without namespace, should fail
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "template",
 				},
@@ -133,7 +133,7 @@ func TestValidateTemplate(t *testing.T) {
 			false,
 		},
 		{ // Template with invalid name characters, should fail
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "templateId",
 					Namespace: metav1.NamespaceDefault,
@@ -142,35 +142,35 @@ func TestValidateTemplate(t *testing.T) {
 			false,
 		},
 		{ // Template with invalid Parameter, should fail on Parameter name
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					*(makeParameter("", "1")),
 				},
 			},
 			false,
 		},
 		{ // Template with valid Parameter, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					*(makeParameter("VALname_NAME", "1")),
 				},
 			},
 			true,
 		},
 		{ // Template with empty items, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
-				Parameters: []api.Parameter{},
+				Parameters: []templateapi.Parameter{},
 				Objects:    []runtime.Object{},
 			},
 			true,
 		},
 		{ // Template with an item that is invalid, should pass
-			&api.Template{
+			&templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{Name: "template", Namespace: metav1.NamespaceDefault},
-				Parameters: []api.Parameter{},
+				Parameters: []templateapi.Parameter{},
 				Objects: []runtime.Object{
 					&kapi.Service{
 						ObjectMeta: metav1.ObjectMeta{
@@ -199,15 +199,15 @@ func TestValidateTemplate(t *testing.T) {
 
 func TestValidateTemplateInstance(t *testing.T) {
 	var tests = []struct {
-		templateInstance  api.TemplateInstance
+		templateInstance  templateapi.TemplateInstance
 		expectedErrorType field.ErrorType
 	}{
 		{
-			templateInstance:  api.TemplateInstance{},
+			templateInstance:  templateapi.TemplateInstance{},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
@@ -216,65 +216,65 @@ func TestValidateTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{},
+				Spec: templateapi.TemplateInstanceSpec{},
 			},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{
-					Template: api.Template{},
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{},
 				},
 			},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{
-					Template: api.Template{
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test",
 							Namespace: "test",
 						},
 					},
-					Requester: &api.TemplateInstanceRequester{
+					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
 			},
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{
-					Template: api.Template{
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test",
 							Namespace: "test",
 						},
-						Parameters: []api.Parameter{
+						Parameters: []templateapi.Parameter{
 							{
 								Name: "b@d",
 							},
 						},
 					},
-					Requester: &api.TemplateInstanceRequester{
+					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -282,13 +282,13 @@ func TestValidateTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{
-					Template: api.Template{
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test",
 							Namespace: "test",
@@ -297,7 +297,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Secret: kapi.LocalObjectReference{
 						Name: "b@d",
 					},
-					Requester: &api.TemplateInstanceRequester{
+					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -305,13 +305,13 @@ func TestValidateTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			templateInstance: api.TemplateInstance{
+			templateInstance: templateapi.TemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: api.TemplateInstanceSpec{
-					Template: api.Template{
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test",
 							Namespace: "test",
@@ -320,7 +320,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Secret: kapi.LocalObjectReference{
 						Name: "test",
 					},
-					Requester: &api.TemplateInstanceRequester{
+					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
 					},
 				},
@@ -349,19 +349,19 @@ func TestValidateTemplateInstance(t *testing.T) {
 }
 
 func TestValidateTemplateInstanceUpdate(t *testing.T) {
-	oldTemplateInstance := &api.TemplateInstance{
+	oldTemplateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "test",
 			Namespace:       "test",
 			ResourceVersion: "1",
 		},
-		Spec: api.TemplateInstanceSpec{
-			Template: api.Template{
+		Spec: templateapi.TemplateInstanceSpec{
+			Template: templateapi.Template{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "test",
 				},
-				Parameters: []api.Parameter{
+				Parameters: []templateapi.Parameter{
 					{
 						Name: "test",
 					},
@@ -370,100 +370,100 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 			Secret: kapi.LocalObjectReference{
 				Name: "test",
 			},
-			Requester: &api.TemplateInstanceRequester{
+			Requester: &templateapi.TemplateInstanceRequester{
 				Username: "test",
 			},
 		},
 	}
 
 	var tests = []struct {
-		modifyTemplateInstance func(*api.TemplateInstance)
+		modifyTemplateInstance func(*templateapi.TemplateInstance)
 		expectedErrorType      field.ErrorType
 	}{
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 			},
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Name = "new"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Namespace = "new"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Name = "new"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Name = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Namespace = "new"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Namespace = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Parameters[0].Name = "new"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Parameters[0].Name = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Template.Parameters = nil
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Secret.Name = "new"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Secret.Name = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Secret.Name = ""
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Requester.Username = "new"
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			modifyTemplateInstance: func(new *api.TemplateInstance) {
+			modifyTemplateInstance: func(new *templateapi.TemplateInstance) {
 				new.Spec.Requester.Username = ""
 			},
 			expectedErrorType: field.ErrorTypeForbidden,
@@ -475,8 +475,8 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		test.modifyTemplateInstance(newTemplateInstance.(*api.TemplateInstance))
-		errs := ValidateTemplateInstanceUpdate(newTemplateInstance.(*api.TemplateInstance), oldTemplateInstance)
+		test.modifyTemplateInstance(newTemplateInstance.(*templateapi.TemplateInstance))
+		errs := ValidateTemplateInstanceUpdate(newTemplateInstance.(*templateapi.TemplateInstance), oldTemplateInstance)
 		if test.expectedErrorType == "" {
 			if len(errs) != 0 {
 				t.Errorf("%d: Unexpected non-empty error list", i)
@@ -497,15 +497,15 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 
 func TestValidateBrokerTemplateInstance(t *testing.T) {
 	var tests = []struct {
-		brokerTemplateInstance api.BrokerTemplateInstance
+		brokerTemplateInstance templateapi.BrokerTemplateInstance
 		expectedErrorType      field.ErrorType
 	}{
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -523,11 +523,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			},
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -542,11 +542,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			},
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -565,12 +565,12 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      validUUID,
 					Namespace: "test",
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -586,11 +586,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeForbidden,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "b@d",
@@ -606,11 +606,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -626,11 +626,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "test",
 						Name:      "test",
@@ -646,11 +646,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -666,11 +666,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -686,11 +686,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -706,11 +706,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					TemplateInstance: kapi.ObjectReference{
 						Kind:      "TemplateInstance",
 						Name:      "test",
@@ -721,11 +721,11 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			brokerTemplateInstance: api.BrokerTemplateInstance{
+			brokerTemplateInstance: templateapi.BrokerTemplateInstance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: validUUID,
 				},
-				Spec: api.BrokerTemplateInstanceSpec{
+				Spec: templateapi.BrokerTemplateInstanceSpec{
 					Secret: kapi.ObjectReference{
 						Kind:      "Secret",
 						Name:      "test",
@@ -758,12 +758,12 @@ func TestValidateBrokerTemplateInstance(t *testing.T) {
 }
 
 func TestValidateBrokerTemplateInstanceUpdate(t *testing.T) {
-	oldBrokerTemplateInstance := &api.BrokerTemplateInstance{
+	oldBrokerTemplateInstance := &templateapi.BrokerTemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            validUUID,
 			ResourceVersion: "1",
 		},
-		Spec: api.BrokerTemplateInstanceSpec{
+		Spec: templateapi.BrokerTemplateInstanceSpec{
 			TemplateInstance: kapi.ObjectReference{
 				Kind:      "TemplateInstance",
 				Name:      "test",
@@ -781,89 +781,89 @@ func TestValidateBrokerTemplateInstanceUpdate(t *testing.T) {
 	}
 
 	var tests = []struct {
-		modifyBrokerTemplateInstance func(*api.BrokerTemplateInstance)
+		modifyBrokerTemplateInstance func(*templateapi.BrokerTemplateInstance)
 		expectedErrorType            field.ErrorType
 	}{
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 			},
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Name = "new"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Namespace = "new"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = "new"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = ""
 			},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Kind = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = "new"
 			},
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = ""
 			},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Name = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = "new"
 			},
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = ""
 			},
 			expectedErrorType: field.ErrorTypeRequired,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.TemplateInstance.Namespace = "b@d"
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = []string{validUUID2}
 			},
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = nil
 			},
 		},
 		{
-			modifyBrokerTemplateInstance: func(new *api.BrokerTemplateInstance) {
+			modifyBrokerTemplateInstance: func(new *templateapi.BrokerTemplateInstance) {
 				new.Spec.BindingIDs = []string{"bad"}
 			},
 			expectedErrorType: field.ErrorTypeInvalid,
@@ -875,8 +875,8 @@ func TestValidateBrokerTemplateInstanceUpdate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		test.modifyBrokerTemplateInstance(newBrokerTemplateInstance.(*api.BrokerTemplateInstance))
-		errs := ValidateBrokerTemplateInstanceUpdate(newBrokerTemplateInstance.(*api.BrokerTemplateInstance), oldBrokerTemplateInstance)
+		test.modifyBrokerTemplateInstance(newBrokerTemplateInstance.(*templateapi.BrokerTemplateInstance))
+		errs := ValidateBrokerTemplateInstanceUpdate(newBrokerTemplateInstance.(*templateapi.BrokerTemplateInstance), oldBrokerTemplateInstance)
 		if test.expectedErrorType == "" {
 			if len(errs) != 0 {
 				t.Errorf("%d: Unexpected non-empty error list", i)

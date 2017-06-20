@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -53,7 +53,7 @@ var (
 // GetImageLabels retrieves Docker labels from image from image repository name and
 // image reference
 func GetImageLabels(c client.ImageStreamImageInterface, imageRepoName, imageRef string) (map[string]string, error) {
-	_, imageID, err := api.ParseImageStreamImageName(imageRef)
+	_, imageID, err := imageapi.ParseImageStreamImageName(imageRef)
 	image, err := c.Get(imageRepoName, imageID)
 
 	if err != nil {

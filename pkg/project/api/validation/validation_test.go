@@ -7,18 +7,18 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/api"
 )
 
 func TestValidateProject(t *testing.T) {
 	testCases := []struct {
 		name    string
-		project api.Project
+		project projectapi.Project
 		numErrs int
 	}{
 		{
 			name: "missing id",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						oapi.OpenShiftDescription: "This is a description",
@@ -31,7 +31,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid id",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "141-.124.$",
 					Annotations: map[string]string{
@@ -45,7 +45,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid id uppercase",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "AA",
 				},
@@ -54,7 +54,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "valid id leading number",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "11",
 				},
@@ -63,7 +63,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid id for create (< 2 characters)",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "h",
 				},
@@ -72,7 +72,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "valid id for create (2+ characters)",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hi",
 				},
@@ -81,7 +81,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid id internal dots",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "1.a.1",
 				},
@@ -90,7 +90,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "has namespace",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "foo",
@@ -105,7 +105,7 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid display name",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
@@ -120,12 +120,12 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "valid node selector",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						api.ProjectNodeSelector: "infra=true, env = test",
+						projectapi.ProjectNodeSelector: "infra=true, env = test",
 					},
 				},
 			},
@@ -133,12 +133,12 @@ func TestValidateProject(t *testing.T) {
 		},
 		{
 			name: "invalid node selector",
-			project: api.Project{
+			project: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: "",
 					Annotations: map[string]string{
-						api.ProjectNodeSelector: "infra, env = $test",
+						projectapi.ProjectNodeSelector: "infra, env = $test",
 					},
 				},
 			},
@@ -154,7 +154,7 @@ func TestValidateProject(t *testing.T) {
 		}
 	}
 
-	project := api.Project{
+	project := projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 			Annotations: map[string]string{
@@ -172,26 +172,26 @@ func TestValidateProject(t *testing.T) {
 func TestValidateProjectUpdate(t *testing.T) {
 	// Ensure we can update projects with short names, to make sure we can
 	// proxy updates to namespaces created outside project validation
-	project := &api.Project{
+	project := &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
-				oapi.OpenShiftDescription: "This is a description",
-				oapi.OpenShiftDisplayName: "display name",
-				api.ProjectNodeSelector:   "infra=true, env = test",
+				oapi.OpenShiftDescription:      "This is a description",
+				oapi.OpenShiftDisplayName:      "display name",
+				projectapi.ProjectNodeSelector: "infra=true, env = test",
 			},
 			Labels: map[string]string{"label-name": "value"},
 		},
 	}
-	updateDisplayname := &api.Project{
+	updateDisplayname := &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "project-name",
 			ResourceVersion: "1",
 			Annotations: map[string]string{
-				oapi.OpenShiftDescription: "This is a description",
-				oapi.OpenShiftDisplayName: "display name change",
-				api.ProjectNodeSelector:   "infra=true, env = test",
+				oapi.OpenShiftDescription:      "This is a description",
+				oapi.OpenShiftDisplayName:      "display name change",
+				projectapi.ProjectNodeSelector: "infra=true, env = test",
 			},
 			Labels: map[string]string{"label-name": "value"},
 		},
@@ -203,12 +203,12 @@ func TestValidateProjectUpdate(t *testing.T) {
 	}
 
 	errorCases := map[string]struct {
-		A api.Project
+		A projectapi.Project
 		T field.ErrorType
 		F string
 	}{
 		"change name": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "different",
 					ResourceVersion: "1",
@@ -220,14 +220,14 @@ func TestValidateProjectUpdate(t *testing.T) {
 			F: "metadata.name",
 		},
 		"invalid displayname": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "display name\n",
-						api.ProjectNodeSelector:   "infra=true, env = test",
+						oapi.OpenShiftDescription:      "This is a description",
+						oapi.OpenShiftDisplayName:      "display name\n",
+						projectapi.ProjectNodeSelector: "infra=true, env = test",
 					},
 					Labels: project.Labels,
 				},
@@ -236,14 +236,14 @@ func TestValidateProjectUpdate(t *testing.T) {
 			F: "metadata.annotations[" + oapi.OpenShiftDisplayName + "]",
 		},
 		"updating disallowed annotation": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
 					Annotations: map[string]string{
-						oapi.OpenShiftDescription: "This is a description",
-						oapi.OpenShiftDisplayName: "display name",
-						api.ProjectNodeSelector:   "infra=true, env = test2",
+						oapi.OpenShiftDescription:      "This is a description",
+						oapi.OpenShiftDisplayName:      "display name",
+						projectapi.ProjectNodeSelector: "infra=true, env = test2",
 					},
 					Labels: project.Labels,
 				},
@@ -252,7 +252,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 			F: "metadata.annotations[openshift.io/node-selector]",
 		},
 		"delete annotation": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
@@ -267,7 +267,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 			F: "metadata.annotations[openshift.io/node-selector]",
 		},
 		"updating label": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",
@@ -279,7 +279,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 			F: "metadata.labels[label-name]",
 		},
 		"deleting label": {
-			A: api.Project{
+			A: projectapi.Project{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "project-name",
 					ResourceVersion: "1",

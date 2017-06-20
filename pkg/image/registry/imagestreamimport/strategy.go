@@ -8,7 +8,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/api/validation"
 )
 
@@ -16,10 +16,10 @@ import (
 type strategy struct {
 	runtime.ObjectTyper
 	allowedRegistries *serverapi.AllowedRegistries
-	registryFn        api.DefaultRegistryFunc
+	registryFn        imageapi.DefaultRegistryFunc
 }
 
-func NewStrategy(registries *serverapi.AllowedRegistries, registryFn api.DefaultRegistryFunc) *strategy {
+func NewStrategy(registries *serverapi.AllowedRegistries, registryFn imageapi.DefaultRegistryFunc) *strategy {
 	return &strategy{
 		ObjectTyper:       kapi.Scheme,
 		allowedRegistries: registries,
@@ -38,7 +38,7 @@ func (s *strategy) GenerateName(string) string {
 func (s *strategy) Canonicalize(runtime.Object) {
 }
 
-func (s *strategy) ValidateAllowedRegistries(isi *api.ImageStreamImport) field.ErrorList {
+func (s *strategy) ValidateAllowedRegistries(isi *imageapi.ImageStreamImport) field.ErrorList {
 	errs := field.ErrorList{}
 	if s.allowedRegistries == nil {
 		return errs
@@ -50,7 +50,7 @@ func (s *strategy) ValidateAllowedRegistries(isi *api.ImageStreamImport) field.E
 		allowedRegistries = append([]configapi.RegistryLocation{{DomainName: localRegistry}}, allowedRegistries...)
 	}
 	validate := func(path *field.Path, name string, insecure bool) field.ErrorList {
-		ref, _ := api.ParseDockerImageReference(name)
+		ref, _ := imageapi.ParseDockerImageReference(name)
 		registryHost, registryPort := ref.RegistryHostPort(insecure)
 		return validation.ValidateRegistryAllowedForImport(path.Child("from", "name"), ref.Name, registryHost, registryPort, &allowedRegistries)
 	}
@@ -66,12 +66,12 @@ func (s *strategy) ValidateAllowedRegistries(isi *api.ImageStreamImport) field.E
 }
 
 func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	newIST := obj.(*api.ImageStreamImport)
-	newIST.Status = api.ImageStreamImportStatus{}
+	newIST := obj.(*imageapi.ImageStreamImport)
+	newIST.Status = imageapi.ImageStreamImportStatus{}
 }
 
 func (s *strategy) PrepareImageForCreate(obj runtime.Object) {
-	image := obj.(*api.Image)
+	image := obj.(*imageapi.Image)
 
 	// signatures can be added using "images" or "imagesignatures" resources
 	image.Signatures = nil
@@ -82,6 +82,6 @@ func (s *strategy) PrepareImageForCreate(obj runtime.Object) {
 }
 
 func (s *strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	isi := obj.(*api.ImageStreamImport)
+	isi := obj.(*imageapi.ImageStreamImport)
 	return validation.ValidateImageStreamImport(isi)
 }

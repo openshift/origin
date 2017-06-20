@@ -17,7 +17,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/api"
 	"github.com/openshift/origin/pkg/build/api/validation"
 	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -63,18 +63,18 @@ var _ = rest.GetterWithOptions(&REST{})
 
 // Get returns a streamer resource with the contents of the build log
 func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (runtime.Object, error) {
-	buildLogOpts, ok := opts.(*api.BuildLogOptions)
+	buildLogOpts, ok := opts.(*buildapi.BuildLogOptions)
 	if !ok {
 		return nil, errors.NewBadRequest("did not get an expected options.")
 	}
 	if errs := validation.ValidateBuildLogOptions(buildLogOpts); len(errs) > 0 {
-		return nil, errors.NewInvalid(api.Kind("BuildLogOptions"), "", errs)
+		return nil, errors.NewInvalid(buildapi.Kind("BuildLogOptions"), "", errs)
 	}
 	obj, err := r.Getter.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	build := obj.(*api.Build)
+	build := obj.(*buildapi.Build)
 	if buildLogOpts.Previous {
 		version := buildutil.VersionForBuild(build)
 		// Use the previous version
@@ -84,11 +84,11 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		if err != nil {
 			return nil, err
 		}
-		build = previous.(*api.Build)
+		build = previous.(*buildapi.Build)
 	}
 	switch build.Status.Phase {
 	// Build has not launched, wait til it runs
-	case api.BuildPhaseNew, api.BuildPhasePending:
+	case buildapi.BuildPhaseNew, buildapi.BuildPhasePending:
 		if buildLogOpts.NoWait {
 			glog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, build.Name, build.Status.Phase)
 			// return empty content if not waiting for build
@@ -100,9 +100,9 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
 		}
 		switch latest.Status.Phase {
-		case api.BuildPhaseError:
+		case buildapi.BuildPhaseError:
 			return nil, errors.NewBadRequest(fmt.Sprintf("build %s encountered an error: %s", build.Name, buildutil.NoBuildLogsMessage))
-		case api.BuildPhaseCancelled:
+		case buildapi.BuildPhaseCancelled:
 			return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
 		}
 		if !ok {
@@ -110,16 +110,16 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		}
 
 	// The build was cancelled
-	case api.BuildPhaseCancelled:
+	case buildapi.BuildPhaseCancelled:
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled. %s", build.Name, buildutil.NoBuildLogsMessage))
 
 	// An error occurred launching the build, return an error
-	case api.BuildPhaseError:
+	case buildapi.BuildPhaseError:
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s is in an error state. %s", build.Name, buildutil.NoBuildLogsMessage))
 	}
 	// The container should be the default build container, so setting it to blank
-	buildPodName := api.GetBuildPodName(build)
-	logOpts := api.BuildToPodLogOptions(buildLogOpts)
+	buildPodName := buildapi.GetBuildPodName(build)
+	logOpts := buildapi.BuildToPodLogOptions(buildLogOpts)
 	location, transport, err := pod.LogLocation(r.PodGetter, r.ConnectionInfo, ctx, buildPodName, logOpts)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -138,10 +138,10 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 
 // NewGetOptions returns a new options object for build logs
 func (r *REST) NewGetOptions() (runtime.Object, bool, string) {
-	return &api.BuildLogOptions{}, false, ""
+	return &buildapi.BuildLogOptions{}, false, ""
 }
 
 // New creates an empty BuildLog resource
 func (r *REST) New() runtime.Object {
-	return &api.BuildLog{}
+	return &buildapi.BuildLog{}
 }

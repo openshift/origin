@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/api/validation"
 	"github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -30,10 +30,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.User{} },
-		NewListFunc:       func() runtime.Object { return &api.UserList{} },
+		NewFunc:           func() runtime.Object { return &userapi.User{} },
+		NewListFunc:       func() runtime.Object { return &userapi.UserList{} },
 		PredicateFunc:     user.Matcher,
-		QualifiedResource: api.Resource("users"),
+		QualifiedResource: userapi.Resource("users"),
 
 		CreateStrategy: user.Strategy,
 		UpdateStrategy: user.Strategy,
@@ -54,7 +54,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 	if name == "~" {
 		user, ok := apirequest.UserFrom(ctx)
 		if !ok || user.GetName() == "" {
-			return nil, kerrs.NewForbidden(api.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
+			return nil, kerrs.NewForbidden(userapi.Resource("user"), "~", errors.New("requests to ~ must be authenticated"))
 		}
 		name = user.GetName()
 
@@ -65,7 +65,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 		if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
 			// The user the authentication layer has identified cannot be a valid persisted user
 			// Return an API representation of the virtual user
-			return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+			return &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 		}
 
 		obj, err := r.Store.Get(ctx, name, options)
@@ -77,7 +77,7 @@ func (r *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 			return nil, err
 		}
 
-		return &api.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
+		return &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: name}, Groups: contextGroups.List()}, nil
 	}
 
 	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {

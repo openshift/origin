@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/api/v1"
+	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	imageapivalidation "github.com/openshift/origin/pkg/image/api/validation"
@@ -744,7 +744,7 @@ func diffBuildSpec(newer, older buildapi.BuildSpec) (string, error) {
 }
 
 func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
-	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
+	codec := kapi.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
 
 	newerJSON, err := runtime.Encode(codec, newer)
 	if err != nil {
@@ -754,7 +754,7 @@ func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error encoding older: %v", err)
 	}
-	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &v1.Build{})
+	patch, err := strategicpatch.CreateTwoWayMergePatch(olderJSON, newerJSON, &buildapiv1.Build{})
 	if err != nil {
 		return nil, fmt.Errorf("error creating a strategic patch: %v", err)
 	}
@@ -762,8 +762,8 @@ func CreateBuildPatch(older, newer *buildapi.Build) ([]byte, error) {
 }
 
 func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, error) {
-	codec := kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion)
-	versionedBuild, err := kapi.Scheme.ConvertToVersion(build, v1.SchemeGroupVersion)
+	codec := kapi.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion)
+	versionedBuild, err := kapi.Scheme.ConvertToVersion(build, buildapiv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +771,7 @@ func ApplyBuildPatch(build *buildapi.Build, patch []byte) (*buildapi.Build, erro
 	if err != nil {
 		return nil, err
 	}
-	patchedJSON, err := strategicpatch.StrategicMergePatch(buildJSON, patch, &v1.Build{})
+	patchedJSON, err := strategicpatch.StrategicMergePatch(buildJSON, patch, &buildapiv1.Build{})
 	if err != nil {
 		return nil, err
 	}

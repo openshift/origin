@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/api"
 )
 
 const (
@@ -737,8 +737,8 @@ The+rest+of+the+certificate+info+is+invalid+and+badly+malformed/
 -----END CERTIFICATE-----`
 )
 
-func createRouteSpecTo(name string, kind string) api.RouteTargetReference {
-	svc := api.RouteTargetReference{
+func createRouteSpecTo(name string, kind string) routeapi.RouteTargetReference {
+	svc := routeapi.RouteTargetReference{
 		Name: name,
 		Kind: kind,
 	}
@@ -750,16 +750,16 @@ func createRouteSpecTo(name string, kind string) api.RouteTargetReference {
 func TestValidateRoute(t *testing.T) {
 	tests := []struct {
 		name           string
-		route          *api.Route
+		route          *routeapi.Route
 		expectedErrors int
 	}{
 		{
 			name: "No Name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
 					To:   createRouteSpecTo("serviceName", "Service"),
 				},
@@ -768,11 +768,11 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "No namespace",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "name",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
 					To:   createRouteSpecTo("serviceName", "Service"),
 				},
@@ -781,12 +781,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "No host",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					To: createRouteSpecTo("serviceName", "Service"),
 				},
 			},
@@ -794,12 +794,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Invalid DNS 952 host",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "**",
 					To:   createRouteSpecTo("serviceName", "Service"),
 				},
@@ -808,12 +808,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "No service name",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
 					To:   createRouteSpecTo("", "Service"),
 				},
@@ -822,12 +822,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "No service kind",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
 					To:   createRouteSpecTo("serviceName", ""),
 				},
@@ -836,15 +836,15 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Zero port",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					To:   createRouteSpecTo("serviceName", "Service"),
-					Port: &api.RoutePort{
+					Port: &routeapi.RoutePort{
 						TargetPort: intstr.FromInt(0),
 					},
 				},
@@ -853,15 +853,15 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Empty string port",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					To:   createRouteSpecTo("serviceName", "Service"),
-					Port: &api.RoutePort{
+					Port: &routeapi.RoutePort{
 						TargetPort: intstr.FromString(""),
 					},
 				},
@@ -870,12 +870,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Valid route",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					To:   createRouteSpecTo("serviceName", "Service"),
 				},
@@ -884,12 +884,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Valid route with path",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					To:   createRouteSpecTo("serviceName", "Service"),
 					Path: "/test",
@@ -899,12 +899,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Invalid route with path",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					To:   createRouteSpecTo("serviceName", "Service"),
 					Path: "test",
@@ -914,17 +914,17 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Passthrough route with path",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "name",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 					Path: "/test",
 					To:   createRouteSpecTo("serviceName", "Service"),
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationPassthrough,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationPassthrough,
 					},
 				},
 			},
@@ -932,12 +932,12 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "No wildcard policy",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "nowildcard",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "no.wildcard.test",
 					To:   createRouteSpecTo("serviceName", "Service"),
 				},
@@ -946,42 +946,42 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "wildcard policy none",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "nowildcard2",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host:           "none.wildcard.test",
 					To:             createRouteSpecTo("serviceName", "Service"),
-					WildcardPolicy: api.WildcardPolicyNone,
+					WildcardPolicy: routeapi.WildcardPolicyNone,
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "wildcard policy subdomain",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "wildcardpolicy",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host:           "subdomain.wildcard.test",
 					To:             createRouteSpecTo("serviceName", "Service"),
-					WildcardPolicy: api.WildcardPolicySubdomain,
+					WildcardPolicy: routeapi.WildcardPolicySubdomain,
 				},
 			},
 			expectedErrors: 0,
 		},
 		{
 			name: "Invalid wildcard policy",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "badwildcard",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host:           "bad.wildcard.test",
 					To:             createRouteSpecTo("serviceName", "Service"),
 					WildcardPolicy: "bad-wolf",
@@ -991,29 +991,29 @@ func TestValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Invalid host for wildcard policy",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "badhost",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					To:             createRouteSpecTo("serviceName", "Service"),
-					WildcardPolicy: api.WildcardPolicySubdomain,
+					WildcardPolicy: routeapi.WildcardPolicySubdomain,
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Empty host for wildcard policy",
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "emptyhost",
 					Namespace: "foo",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host:           "",
 					To:             createRouteSpecTo("serviceName", "Service"),
-					WildcardPolicy: api.WildcardPolicySubdomain,
+					WildcardPolicy: routeapi.WildcardPolicySubdomain,
 				},
 			},
 			expectedErrors: 1,
@@ -1032,14 +1032,14 @@ func TestValidateRoute(t *testing.T) {
 func TestValidateTLS(t *testing.T) {
 	tests := []struct {
 		name           string
-		route          *api.Route
+		route          *routeapi.Route
 		expectedErrors int
 	}{
 		{
 			name: "No TLS Termination",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
 						Termination: "",
 					},
 				},
@@ -1048,10 +1048,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Passthrough termination OK",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationPassthrough,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationPassthrough,
 					},
 				},
 			},
@@ -1059,10 +1059,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination OK with certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              "def",
 						Key:                      "ghi",
 						CACertificate:            "jkl",
@@ -1074,10 +1074,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination OK without certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: "abc",
 					},
 				},
@@ -1086,10 +1086,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination no dest cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationReencrypt,
 						Certificate:   "def",
 						Key:           "ghi",
 						CACertificate: "jkl",
@@ -1100,10 +1100,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Edge termination OK with certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   "abc",
 						Key:           "abc",
 						CACertificate: "abc",
@@ -1114,10 +1114,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Edge termination OK without certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 					},
 				},
 			},
@@ -1125,10 +1125,10 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Edge termination, dest cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationEdge,
 						DestinationCACertificate: "abc",
 					},
 				},
@@ -1137,45 +1137,45 @@ func TestValidateTLS(t *testing.T) {
 		},
 		{
 			name: "Passthrough termination, cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, Certificate: "test"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, Key: "test"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, ca cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, CACertificate: "test"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, dest ca cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, DestinationCACertificate: "test"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Invalid termination type",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
 						Termination: "invalid",
 					},
 				},
@@ -1195,20 +1195,20 @@ func TestValidateTLS(t *testing.T) {
 
 func TestValidatePassthroughInsecureEdgeTerminationPolicy(t *testing.T) {
 
-	insecureTypes := map[api.InsecureEdgeTerminationPolicyType]bool{
+	insecureTypes := map[routeapi.InsecureEdgeTerminationPolicyType]bool{
 		"": false,
-		api.InsecureEdgeTerminationPolicyNone:     false,
-		api.InsecureEdgeTerminationPolicyAllow:    true,
-		api.InsecureEdgeTerminationPolicyRedirect: false,
-		"support HTTPsec":                         true,
-		"or maybe HSTS":                           true,
+		routeapi.InsecureEdgeTerminationPolicyNone:     false,
+		routeapi.InsecureEdgeTerminationPolicyAllow:    true,
+		routeapi.InsecureEdgeTerminationPolicyRedirect: false,
+		"support HTTPsec":                              true,
+		"or maybe HSTS":                                true,
 	}
 
 	for key, expected := range insecureTypes {
-		route := &api.Route{
-			Spec: api.RouteSpec{
-				TLS: &api.TLSConfig{
-					Termination:                   api.TLSTerminationPassthrough,
+		route := &routeapi.Route{
+			Spec: routeapi.RouteSpec{
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationPassthrough,
 					InsecureEdgeTerminationPolicy: key,
 				},
 			},
@@ -1230,62 +1230,62 @@ func TestValidatePassthroughInsecureEdgeTerminationPolicy(t *testing.T) {
 func TestValidateRouteUpdate(t *testing.T) {
 	tests := []struct {
 		name           string
-		route          *api.Route
-		change         func(route *api.Route)
+		route          *routeapi.Route
+		change         func(route *routeapi.Route)
 		expectedErrors int
 	}{
 		{
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "serviceName",
 						Kind: "Service",
 					},
 				},
 			},
-			change:         func(route *api.Route) { route.Spec.Host = "" },
+			change:         func(route *routeapi.Route) { route.Spec.Host = "" },
 			expectedErrors: 0, // now controlled by rbac
 		},
 		{
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "serviceName",
 						Kind: "Service",
 					},
 				},
 			},
-			change:         func(route *api.Route) { route.Spec.Host = "other" },
+			change:         func(route *routeapi.Route) { route.Spec.Host = "other" },
 			expectedErrors: 0, // now controlled by rbac
 		},
 		{
-			route: &api.Route{
+			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "bar",
 					Namespace:       "foo",
 					ResourceVersion: "1",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host: "host",
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "serviceName",
 						Kind: "Service",
 					},
 				},
 			},
-			change:         func(route *api.Route) { route.Name = "baz" },
+			change:         func(route *routeapi.Route) { route.Name = "baz" },
 			expectedErrors: 1,
 		},
 	}
@@ -1295,7 +1295,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		newRoute := copied.(*api.Route)
+		newRoute := copied.(*routeapi.Route)
 		tc.change(newRoute)
 		errs := ValidateRouteUpdate(newRoute, tc.route)
 		if len(errs) != tc.expectedErrors {
@@ -1307,7 +1307,7 @@ func TestValidateRouteUpdate(t *testing.T) {
 func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 	tests := []struct {
 		name           string
-		insecure       api.InsecureEdgeTerminationPolicyType
+		insecure       routeapi.InsecureEdgeTerminationPolicyType
 		expectedErrors int
 	}{
 		{
@@ -1322,17 +1322,17 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 		},
 		{
 			name:           "insecure option none",
-			insecure:       api.InsecureEdgeTerminationPolicyNone,
+			insecure:       routeapi.InsecureEdgeTerminationPolicyNone,
 			expectedErrors: 0,
 		},
 		{
 			name:           "insecure option allow",
-			insecure:       api.InsecureEdgeTerminationPolicyAllow,
+			insecure:       routeapi.InsecureEdgeTerminationPolicyAllow,
 			expectedErrors: 0,
 		},
 		{
 			name:           "insecure option redirect",
-			insecure:       api.InsecureEdgeTerminationPolicyRedirect,
+			insecure:       routeapi.InsecureEdgeTerminationPolicyRedirect,
 			expectedErrors: 0,
 		},
 		{
@@ -1343,10 +1343,10 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		route := &api.Route{
-			Spec: api.RouteSpec{
-				TLS: &api.TLSConfig{
-					Termination:                   api.TLSTerminationEdge,
+		route := &routeapi.Route{
+			Spec: routeapi.RouteSpec{
+				TLS: &routeapi.TLSConfig{
+					Termination:                   routeapi.TLSTerminationEdge,
 					InsecureEdgeTerminationPolicy: tc.insecure,
 				},
 			},
@@ -1362,14 +1362,14 @@ func TestValidateInsecureEdgeTerminationPolicy(t *testing.T) {
 func TestValidateEdgeReencryptInsecureEdgeTerminationPolicy(t *testing.T) {
 	tests := []struct {
 		name  string
-		route *api.Route
+		route *routeapi.Route
 	}{
 		{
 			name: "Reencrypt termination",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: "dca",
 					},
 				},
@@ -1377,10 +1377,10 @@ func TestValidateEdgeReencryptInsecureEdgeTerminationPolicy(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination DestCACert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testDestinationCACertificate,
 					},
 				},
@@ -1388,22 +1388,22 @@ func TestValidateEdgeReencryptInsecureEdgeTerminationPolicy(t *testing.T) {
 		},
 		{
 			name: "Edge termination",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 					},
 				},
 			},
 		},
 	}
 
-	insecureTypes := map[api.InsecureEdgeTerminationPolicyType]bool{
-		api.InsecureEdgeTerminationPolicyNone:     false,
-		api.InsecureEdgeTerminationPolicyAllow:    false,
-		api.InsecureEdgeTerminationPolicyRedirect: false,
-		"support HTTPsec":                         true,
-		"or maybe HSTS":                           true,
+	insecureTypes := map[routeapi.InsecureEdgeTerminationPolicyType]bool{
+		routeapi.InsecureEdgeTerminationPolicyNone:     false,
+		routeapi.InsecureEdgeTerminationPolicyAllow:    false,
+		routeapi.InsecureEdgeTerminationPolicyRedirect: false,
+		"support HTTPsec":                              true,
+		"or maybe HSTS":                                true,
 	}
 
 	for _, tc := range tests {
@@ -1426,15 +1426,15 @@ func TestValidateEdgeReencryptInsecureEdgeTerminationPolicy(t *testing.T) {
 func TestExtendedValidateRoute(t *testing.T) {
 	tests := []struct {
 		name           string
-		route          *api.Route
-		expectRoute    *api.Route
+		route          *routeapi.Route
+		expectRoute    *routeapi.Route
 		expectedErrors int
 	}{
 		{
 			name: "No TLS Termination",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
 						Termination: "",
 					},
 				},
@@ -1443,10 +1443,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Passthrough termination OK",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationPassthrough,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationPassthrough,
 					},
 				},
 			},
@@ -1454,12 +1454,12 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination OK with certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
 
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              testCertificate,
 						Key:                      testPrivateKey,
 						CACertificate:            testCACertificate,
@@ -1471,10 +1471,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination OK with bad config",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              "def",
 						Key:                      "ghi",
 						CACertificate:            "jkl",
@@ -1486,10 +1486,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination OK without certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testDestinationCACertificate,
 					},
 				},
@@ -1498,10 +1498,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination bad config without certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: "abc",
 					},
 				},
@@ -1510,11 +1510,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Reencrypt termination no dest cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationReencrypt,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1525,10 +1525,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination OK with certs without host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1539,11 +1539,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination OK with certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1554,11 +1554,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination bad config with certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   "abc",
 						Key:           "abc",
 						CACertificate: "abc",
@@ -1569,11 +1569,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination mismatched key and cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testExpiredCertPrivateKey,
 						CACertificate: testCACertificate,
@@ -1584,11 +1584,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination expired cert unknown CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testExpiredCAUnknownCertificate,
 						Key:         testExpiredCertPrivateKey,
 					},
@@ -1598,11 +1598,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination expired cert mismatched CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testExpiredCAUnknownCertificate,
 						Key:           testExpiredCertPrivateKey,
 						CACertificate: testCACertificate,
@@ -1613,11 +1613,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination expired cert key mismatch",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testExpiredCAUnknownCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1628,10 +1628,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination OK without certs",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 					},
 				},
 			},
@@ -1639,10 +1639,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Edge termination, dest cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationEdge,
 						DestinationCACertificate: "abc",
 					},
 				},
@@ -1651,45 +1651,45 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Passthrough termination, cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Certificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, Certificate: "test"},
 				},
 			},
 			expectedErrors: 3,
 		},
 		{
 			name: "Passthrough termination, key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, Key: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, Key: "test"},
 				},
 			},
 			expectedErrors: 1,
 		},
 		{
 			name: "Passthrough termination, ca cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, CACertificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, CACertificate: "test"},
 				},
 			},
 			expectedErrors: 2,
 		},
 		{
 			name: "Passthrough termination, dest ca cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{Termination: api.TLSTerminationPassthrough, DestinationCACertificate: "test"},
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{Termination: routeapi.TLSTerminationPassthrough, DestinationCACertificate: "test"},
 				},
 			},
 			expectedErrors: 2,
 		},
 		{
 			name: "Invalid termination type",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
 						Termination: "invalid",
 					},
 				},
@@ -1698,10 +1698,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Double escaped newlines",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              "d\\nef",
 						Key:                      "g\\nhi",
 						CACertificate:            "j\\nkl",
@@ -1713,11 +1713,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "example cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1728,11 +1728,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1743,11 +1743,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert reencrypt",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              testCertificate,
 						Key:                      testPrivateKey,
 						CACertificate:            testCACertificate,
@@ -1759,11 +1759,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert invalid key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testExpiredCertNoKey,
 					},
 				},
@@ -1772,11 +1772,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert mismatched key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testExpiredCertNoKey,
 						Key:         testPrivateKey,
 					},
@@ -1786,11 +1786,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert invalid key reencrypt",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.com",
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						Certificate:              testExpiredCertNoKey,
 						DestinationCACertificate: testExpiredCertNoKey,
 					},
@@ -1800,11 +1800,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "Expired cert with a different route host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "think.different.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testCACertificate,
@@ -1815,11 +1815,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "self-signed cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "self.signer.test",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationReencrypt,
 						Certificate: testSelfSignedCert,
 						Key:         testSelfSignedKey,
 
@@ -1831,11 +1831,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "self-signed cert with different host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "different.co.us",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testSelfSignedCert,
 						Key:         testSelfSignedKey,
 					},
@@ -1845,11 +1845,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "future validity date 2038 cert",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "self.signer.test",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testValidInFutureCert,
 						Key:         testValidInFutureKey,
 					},
@@ -1859,11 +1859,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "future validity date 2038 cert with whitespace",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "self.signer.test",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testValidInFutureCertWithWhitespace,
 						Key:         testValidInFutureKeyWithWhitespace,
 					},
@@ -1873,11 +1873,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "future validity date 2038 cert with different host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.in.the.future.test",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationEdge,
 						Certificate: testValidInFutureCert,
 						Key:         testValidInFutureKey,
 					},
@@ -1887,11 +1887,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "cert with intermediate CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificateWithIntCA,
 						Key:           testPrivateKeyWithIntCA,
 						CACertificate: testIntCACertificateChain,
@@ -1902,11 +1902,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "cert with intermediate CA and diff host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "different.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificateWithIntCA,
 						Key:           testPrivateKeyWithIntCA,
 						CACertificate: testIntCACertificateChain,
@@ -1917,11 +1917,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "expired cert with intermediate CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "expired.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testExpiredCertificateWithIntCA,
 						Key:           testExpiredCertificateKey,
 						CACertificate: testIntCACertificateChain,
@@ -1932,11 +1932,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "expired cert with intermediate CA and diff host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "still.expired.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testExpiredCertificateWithIntCA,
 						Key:           testExpiredCertificateKey,
 						CACertificate: testIntCACertificateChain,
@@ -1947,11 +1947,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "future valid cert with intermediate CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "valid.in.the.future.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testFutureValidCertificateWithIntCA,
 						Key:           testFutureValidCertificateKey,
 						CACertificate: testIntCACertificateChain,
@@ -1962,11 +1962,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "future valid cert with intermediate CA and diff host",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "future.valid.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testFutureValidCertificateWithIntCA,
 						Key:           testFutureValidCertificateKey,
 						CACertificate: testIntCACertificateChain,
@@ -1977,11 +1977,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid CA with csr",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "invalid.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testInvalidCANoCert1,
@@ -1992,11 +1992,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "another invalid CA with private key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "another.invalid.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testInvalidCANoCert2,
@@ -2007,11 +2007,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid CA malformed certificate",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "malformed.ca.test",
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						Certificate:   testCertificate,
 						Key:           testPrivateKey,
 						CACertificate: testInvalidCAMalformedCert,
@@ -2022,11 +2022,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid destination CA with csr",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "csr.destination.ca",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationReencrypt,
 						Certificate: testSelfSignedCert,
 						Key:         testSelfSignedKey,
 
@@ -2038,11 +2038,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid destination CA with private key",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "key.destination.ca",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationReencrypt,
 						Certificate: testSelfSignedCert,
 						Key:         testSelfSignedKey,
 
@@ -2054,11 +2054,11 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "malformed destination CA",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "malformed.destination.ca",
-					TLS: &api.TLSConfig{
-						Termination: api.TLSTerminationReencrypt,
+					TLS: &routeapi.TLSConfig{
+						Termination: routeapi.TLSTerminationReencrypt,
 						Certificate: testSelfSignedCert,
 						Key:         testSelfSignedKey,
 
@@ -2070,10 +2070,10 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "valid destination CA with whitespace",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
 					},
 				},
@@ -2082,19 +2082,19 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "unexpected key type",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
 						Key: "-----BEGIN UNRECOGNIZED-----\n-----END UNRECOGNIZED-----\n",
 					},
 				},
 			},
-			expectRoute: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			expectRoute: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
 						Key: "",
 					},
@@ -2104,19 +2104,19 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid PEM data silently dropped (bad trailer)",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
 						Key: "-----BEGIN UNRECOGNIZED-----\n----END UNRECOGNIZED-----\n",
 					},
 				},
 			},
-			expectRoute: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			expectRoute: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
 						Key: "",
 					},
@@ -2126,19 +2126,19 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "EC PARAMETERS silently dropped",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChain,
 						Key: "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
 					},
 				},
 			},
-			expectRoute: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:              api.TLSTerminationReencrypt,
+			expectRoute: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:              routeapi.TLSTerminationReencrypt,
 						DestinationCACertificate: testIntCACertificateChainCanonical,
 						Key: "",
 					},
@@ -2148,19 +2148,19 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "EC PARAMETERS silently dropped and CA rewritten",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						CACertificate: testIntCACertificateChain,
 						Key:           "-----BEGIN EC PARAMETERS-----\n-----END EC PARAMETERS-----\n",
 					},
 				},
 			},
-			expectRoute: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			expectRoute: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						CACertificate: testIntCACertificateChainCanonical,
 						Key:           "",
 					},
@@ -2170,19 +2170,19 @@ func TestExtendedValidateRoute(t *testing.T) {
 		},
 		{
 			name: "invalid key returns error",
-			route: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						CACertificate: testIntCACertificateChain,
 						Key:           "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----\n",
 					},
 				},
 			},
-			expectRoute: &api.Route{
-				Spec: api.RouteSpec{
-					TLS: &api.TLSConfig{
-						Termination:   api.TLSTerminationEdge,
+			expectRoute: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					TLS: &routeapi.TLSConfig{
+						Termination:   routeapi.TLSTerminationEdge,
 						CACertificate: testIntCACertificateChainCanonical,
 						Key:           "",
 					},
@@ -2243,13 +2243,13 @@ func TestExtendedValidateRoute(t *testing.T) {
 func TestValidateHostName(t *testing.T) {
 	tests := []struct {
 		name           string
-		route          *api.Route
+		route          *routeapi.Route
 		expectedErrors bool
 	}{
 		{
 			name: "valid-host-name",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "www.example.test",
 				},
 			},
@@ -2257,8 +2257,8 @@ func TestValidateHostName(t *testing.T) {
 		},
 		{
 			name: "invalid-host-name",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "name-namespace-1234567890-1234567890-1234567890-1234567890-1234567890-1234567890-1234567890.example.test",
 				},
 			},
@@ -2266,8 +2266,8 @@ func TestValidateHostName(t *testing.T) {
 		},
 		{
 			name: "valid-host-63-chars-label",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "name-namespace-1234567890-1234567890-1234567890-1234567890-1234.example.test",
 				},
 			},
@@ -2275,8 +2275,8 @@ func TestValidateHostName(t *testing.T) {
 		},
 		{
 			name: "invalid-host-64-chars-label",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "name-namespace-1234567890-1234567890-1234567890-1234567890-12345.example.test",
 				},
 			},
@@ -2284,8 +2284,8 @@ func TestValidateHostName(t *testing.T) {
 		},
 		{
 			name: "valid-name-253-chars",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "name-namespace.a1234567890.b1234567890.c1234567890.d1234567890.e1234567890.f1234567890.g1234567890.h1234567890.i1234567890.j1234567890.k1234567890.l1234567890.m1234567890.n1234567890.o1234567890.p1234567890.q1234567890.r1234567890.s12345678.example.test",
 				},
 			},
@@ -2293,8 +2293,8 @@ func TestValidateHostName(t *testing.T) {
 		},
 		{
 			name: "invalid-name-279-chars",
-			route: &api.Route{
-				Spec: api.RouteSpec{
+			route: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
 					Host: "name-namespace.a1234567890.b1234567890.c1234567890.d1234567890.e1234567890.f1234567890.g1234567890.h1234567890.i1234567890.j1234567890.k1234567890.l1234567890.m1234567890.n1234567890.o1234567890.p1234567890.q1234567890.r1234567890.s1234567890.t1234567890.u1234567890.example.test",
 				},
 			},

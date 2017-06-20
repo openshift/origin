@@ -6,24 +6,24 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/extension"
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
-		oapi.GetFieldLabelConversionFunc(api.TemplateToSelectableFields(&api.Template{}), nil),
+		oapi.GetFieldLabelConversionFunc(templateapi.TemplateToSelectableFields(&templateapi.Template{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "TemplateInstance",
-		oapi.GetFieldLabelConversionFunc(api.TemplateInstanceToSelectableFields(&api.TemplateInstance{}), nil),
+		oapi.GetFieldLabelConversionFunc(templateapi.TemplateInstanceToSelectableFields(&templateapi.TemplateInstance{}), nil),
 	); err != nil {
 		return err
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "BrokerTemplateInstance",
-		oapi.GetFieldLabelConversionFunc(api.BrokerTemplateInstanceToSelectableFields(&api.BrokerTemplateInstance{}), nil),
+		oapi.GetFieldLabelConversionFunc(templateapi.BrokerTemplateInstanceToSelectableFields(&templateapi.BrokerTemplateInstance{}), nil),
 	); err != nil {
 		return err
 	}

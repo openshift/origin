@@ -5,29 +5,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/api"
 )
 
 type ClientRegistry struct {
 	Err               error
-	Clients           *api.OAuthClientList
-	Client            *api.OAuthClient
+	Clients           *oauthapi.OAuthClientList
+	Client            *oauthapi.OAuthClient
 	DeletedClientName string
 }
 
-func (r *ClientRegistry) ListClients(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientList, error) {
+func (r *ClientRegistry) ListClients(ctx apirequest.Context, options *metainternal.ListOptions) (*oauthapi.OAuthClientList, error) {
 	return r.Clients, r.Err
 }
 
-func (r *ClientRegistry) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClient, error) {
+func (r *ClientRegistry) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthClient, error) {
 	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) CreateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+func (r *ClientRegistry) CreateClient(ctx apirequest.Context, client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {
 	return r.Client, r.Err
 }
 
-func (r *ClientRegistry) UpdateClient(ctx apirequest.Context, client *api.OAuthClient) (*api.OAuthClient, error) {
+func (r *ClientRegistry) UpdateClient(ctx apirequest.Context, client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {
 	return r.Client, r.Err
 }
 

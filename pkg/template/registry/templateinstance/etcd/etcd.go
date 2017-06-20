@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/api"
 	rest "github.com/openshift/origin/pkg/template/registry/templateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -26,10 +26,10 @@ func NewREST(optsGetter restoptions.Getter, kc kclientset.Interface) (*REST, *St
 
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.TemplateInstance{} },
-		NewListFunc:       func() runtime.Object { return &api.TemplateInstanceList{} },
+		NewFunc:           func() runtime.Object { return &templateapi.TemplateInstance{} },
+		NewListFunc:       func() runtime.Object { return &templateapi.TemplateInstanceList{} },
 		PredicateFunc:     rest.Matcher,
-		QualifiedResource: api.Resource("templateinstances"),
+		QualifiedResource: templateapi.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
@@ -57,7 +57,7 @@ var _ = kapirest.Patcher(&StatusREST{})
 
 // New creates a new templateInstance resource
 func (r *StatusREST) New() runtime.Object {
-	return &api.TemplateInstance{}
+	return &templateapi.TemplateInstance{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.

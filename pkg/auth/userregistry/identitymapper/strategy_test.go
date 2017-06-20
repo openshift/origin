@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/user"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/api"
 	"github.com/openshift/origin/pkg/user/registry/test"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
@@ -19,7 +19,7 @@ type testInitializer struct {
 	called bool
 }
 
-func (t *testInitializer) InitializeUser(identity *api.Identity, user *api.User) error {
+func (t *testInitializer) InitializeUser(identity *userapi.Identity, user *userapi.User) error {
 	t.called = true
 	return nil
 }
@@ -29,12 +29,12 @@ type strategyTestCase struct {
 
 	// Inputs
 	PreferredUsername string
-	Identity          *api.Identity
+	Identity          *userapi.Identity
 
 	// User registry setup
-	ExistingUsers  []*api.User
-	CreateResponse *api.User
-	UpdateResponse *api.User
+	ExistingUsers  []*userapi.User
+	CreateResponse *userapi.User
+	UpdateResponse *userapi.User
 
 	// Expectations
 	ExpectedActions    []test.Action
@@ -43,8 +43,8 @@ type strategyTestCase struct {
 	ExpectedInitialize bool
 }
 
-func makeUser(uid string, name string, identities ...string) *api.User {
-	return &api.User{
+func makeUser(uid string, name string, identities ...string) *userapi.User {
+	return &userapi.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  types.UID(uid),
@@ -52,8 +52,8 @@ func makeUser(uid string, name string, identities ...string) *api.User {
 		Identities: identities,
 	}
 }
-func makeIdentity(uid string, providerName string, providerUserName string, userUID string, userName string) *api.Identity {
-	return &api.Identity{
+func makeIdentity(uid string, providerName string, providerUserName string, userUID string, userName string) *userapi.Identity {
+	return &userapi.Identity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 			UID:  types.UID(uid),
@@ -71,7 +71,7 @@ func makeIdentity(uid string, providerName string, providerUserName string, user
 func (tc strategyTestCase) run(k string, t *testing.T) {
 	actions := []test.Action{}
 	userRegistry := &test.UserRegistry{
-		Get:     map[string]*api.User{},
+		Get:     map[string]*userapi.User{},
 		Actions: &actions,
 	}
 	for _, u := range tc.ExistingUsers {

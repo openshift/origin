@@ -9,7 +9,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/project/api"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -33,7 +32,7 @@ func ValidateProjectName(name string, prefix bool) []string {
 // ValidateProject tests required fields for a Project.
 // This should only be called when creating a project (not on update),
 // since its name validation is more restrictive than default namespace name validation
-func ValidateProject(project *api.Project) field.ErrorList {
+func ValidateProject(project *projectapi.Project) field.ErrorList {
 	result := validation.ValidateObjectMeta(&project.ObjectMeta, false, ValidateProjectName, field.NewPath("metadata"))
 
 	if !validateNoNewLineOrTab(project.Annotations[oapi.OpenShiftDisplayName]) {
@@ -50,7 +49,7 @@ func validateNoNewLineOrTab(s string) bool {
 }
 
 // ValidateProjectUpdate tests to make sure a project update can be applied.  Modifies newProject with immutable fields.
-func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) field.ErrorList {
+func ValidateProjectUpdate(newProject *projectapi.Project, oldProject *projectapi.Project) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newProject.ObjectMeta, &oldProject.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateProject(newProject)...)
 
@@ -95,14 +94,14 @@ func ValidateProjectUpdate(newProject *api.Project, oldProject *api.Project) fie
 	return allErrs
 }
 
-func ValidateProjectRequest(request *api.ProjectRequest) field.ErrorList {
-	project := &api.Project{}
+func ValidateProjectRequest(request *projectapi.ProjectRequest) field.ErrorList {
+	project := &projectapi.Project{}
 	project.ObjectMeta = request.ObjectMeta
 
 	return ValidateProject(project)
 }
 
-func validateNodeSelector(p *api.Project) field.ErrorList {
+func validateNodeSelector(p *projectapi.Project) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(p.Annotations) > 0 {

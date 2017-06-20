@@ -6,24 +6,24 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/api/v1"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestDefaults(t *testing.T) {
-	obj := &v1.PolicyRule{
+	obj := &authorizationapiv1.PolicyRule{
 		APIGroups: nil,
-		Verbs:     []string{api.VerbAll},
-		Resources: []string{api.ResourceAll},
+		Verbs:     []string{authorizationapi.VerbAll},
+		Resources: []string{authorizationapi.ResourceAll},
 	}
-	out := &api.PolicyRule{}
+	out := &authorizationapi.PolicyRule{}
 	if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(out.APIGroups, []string{api.APIGroupAll}) {
+	if !reflect.DeepEqual(out.APIGroups, []string{authorizationapi.APIGroupAll}) {
 		t.Errorf("did not default api groups: %#v", out)
 	}
 }

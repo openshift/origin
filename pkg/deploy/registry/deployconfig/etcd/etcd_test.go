@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
 	"github.com/openshift/origin/pkg/deploy/api/test"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
@@ -32,7 +32,7 @@ func TestStorage(t *testing.T) {
 	deployconfig.NewRegistry(storage)
 }
 
-func validDeploymentConfig() *api.DeploymentConfig {
+func validDeploymentConfig() *deployapi.DeploymentConfig {
 	return test.OkDeploymentConfig(1)
 }
 
@@ -46,7 +46,7 @@ func TestCreate(t *testing.T) {
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.DeploymentConfig{},
+		&deployapi.DeploymentConfig{},
 	)
 }
 
@@ -59,18 +59,18 @@ func TestUpdate(t *testing.T) {
 		validDeploymentConfig(),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.DeploymentConfig)
+			object := obj.(*deployapi.DeploymentConfig)
 			object.Spec.Replicas = 2
 			return object
 		},
 		// invalid updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.DeploymentConfig)
+			object := obj.(*deployapi.DeploymentConfig)
 			object.Spec.Template = &kapi.PodTemplateSpec{}
 			return object
 		},
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.DeploymentConfig)
+			object := obj.(*deployapi.DeploymentConfig)
 			object.Spec.Replicas = -1
 			return object
 		},
