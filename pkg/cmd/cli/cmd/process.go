@@ -230,7 +230,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 			Do().
 			Infos()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to read input object (not a Template?): %v", err)
 		}
 	}
 

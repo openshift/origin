@@ -10,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
+
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +24,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	dockerfileparser "github.com/docker/docker/builder/dockerfile/parser"
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	authapi "github.com/openshift/origin/pkg/authorization/api"
 	buildapi "github.com/openshift/origin/pkg/build/api"
