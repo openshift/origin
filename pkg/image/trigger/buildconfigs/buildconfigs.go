@@ -121,17 +121,14 @@ type BuildConfigReactor struct {
 func (r *BuildConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
 	bc := obj.(*buildapi.BuildConfig)
 
-	var (
-		changed bool
-		id      string
-		from    *kapi.ObjectReference
-		ref     string
-	)
+	var request *buildapi.BuildRequest
+	var fired map[kapi.ObjectReference]string
 	for _, t := range bc.Spec.Triggers {
 		p := t.ImageChange
 		if p == nil || (p.From != nil && p.From.Kind != "ImageStreamTag") {
 			continue
 		}
+		var from *kapi.ObjectReference
 		if p.From != nil {
 			from = p.From
 		} else {
@@ -141,43 +138,64 @@ func (r *BuildConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.
 		if len(namespace) == 0 {
 			namespace = bc.Namespace
 		}
-		latest, _, found := tagRetriever.ImageStreamTag(namespace, from.Name)
+
+		// lookup the source if we haven't already retrieved it
+		var newSource bool
+		latest, found := fired[*from]
 		if !found {
+			latest, _, found = tagRetriever.ImageStreamTag(namespace, from.Name)
+			if !found {
+				continue
+			}
+			newSource = true
+		}
+
+		// LastTriggeredImageID is an image ref, despite the name
+		if latest == p.LastTriggeredImageID {
 			continue
 		}
-		if latest != p.LastTriggeredImageID {
-			changed = true
-			ref = latest
-			break
+
+		// prevent duplicate build trigger causes
+		if fired == nil {
+			fired = make(map[kapi.ObjectReference]string)
+		}
+		fired[*from] = latest
+
+		if request == nil {
+			request = &buildapi.BuildRequest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bc.Name,
+					Namespace: bc.Namespace,
+				},
+			}
+		}
+		if request.TriggeredByImage == nil {
+			request.TriggeredByImage = &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: latest,
+			}
+		}
+		if request.From == nil {
+			request.From = from
+		}
+
+		if newSource {
+			request.TriggeredBy = append(request.TriggeredBy, buildapi.BuildTriggerCause{
+				Message: buildapi.BuildTriggerCauseImageMsg,
+				ImageChangeBuild: &buildapi.ImageChangeCause{
+					ImageID: latest,
+					FromRef: from,
+				},
+			})
 		}
 	}
 
-	if !changed {
+	if request == nil {
 		return nil
 	}
 
 	// instantiate new build
-	glog.V(4).Infof("Running build for BuildConfig %s/%s", bc.Namespace, bc.Name)
-	request := &buildapi.BuildRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      bc.Name,
-			Namespace: bc.Namespace,
-		},
-		TriggeredBy: []buildapi.BuildTriggerCause{
-			{
-				Message: buildapi.BuildTriggerCauseImageMsg,
-				ImageChangeBuild: &buildapi.ImageChangeCause{
-					ImageID: id,
-					FromRef: from,
-				},
-			},
-		},
-		TriggeredByImage: &kapi.ObjectReference{
-			Kind: "DockerImage",
-			Name: ref,
-		},
-		From: from,
-	}
+	glog.V(4).Infof("Requesting build for BuildConfig based on image triggers %s/%s: %#v", bc.Namespace, bc.Name, request)
 	_, err := r.Instantiator.Instantiate(bc.Namespace, request)
 	return err
 }
