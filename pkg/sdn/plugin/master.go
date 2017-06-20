@@ -3,6 +3,7 @@ package plugin
 import (
 	"fmt"
 	"net"
+	"time"
 
 	log "github.com/golang/glog"
 
@@ -15,6 +16,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -63,38 +65,54 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 	osapivalidation.SetDefaultClusterNetwork(*configCN)
 
-	existingCN, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
-	if err != nil {
-		if !kapierrors.IsNotFound(err) {
-			return err
-		}
-		if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
-			return err
-		}
-
-		if _, err = master.osClient.ClusterNetwork().Create(configCN); err != nil {
-			return err
-		}
-		log.Infof("Created ClusterNetwork %s", clusterNetworkToString(configCN))
-
-		if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-			log.Errorf("WARNING: cluster contains objects incompatible with new ClusterNetwork: %v", err)
-		}
-	} else {
-		configChanged, err := clusterNetworkChanged(configCN, existingCN)
+	// try this for a while before just dying
+	var getError error
+	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+		// reset this so that failures come through correctly.
+		getError = nil
+		existingCN, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if err != nil {
-			return err
-		}
-		if configChanged {
-			configCN.TypeMeta = existingCN.TypeMeta
-			configCN.ObjectMeta = existingCN.ObjectMeta
-			if _, err = master.osClient.ClusterNetwork().Update(configCN); err != nil {
-				return err
+			if !kapierrors.IsNotFound(err) {
+				// the first request can fail on permissions
+				getError = err
+				return false, nil
 			}
-			log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(configCN))
+			if err = master.checkClusterNetworkAgainstLocalNetworks(); err != nil {
+				return false, err
+			}
+
+			if _, err = master.osClient.ClusterNetwork().Create(configCN); err != nil {
+				return false, err
+			}
+			log.Infof("Created ClusterNetwork %s", clusterNetworkToString(configCN))
+
+			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
+				log.Errorf("WARNING: cluster contains objects incompatible with new ClusterNetwork: %v", err)
+			}
 		} else {
-			log.V(5).Infof("No change to ClusterNetwork %s", clusterNetworkToString(configCN))
+			configChanged, err := clusterNetworkChanged(configCN, existingCN)
+			if err != nil {
+				return false, err
+			}
+			if configChanged {
+				configCN.TypeMeta = existingCN.TypeMeta
+				configCN.ObjectMeta = existingCN.ObjectMeta
+				if _, err = master.osClient.ClusterNetwork().Update(configCN); err != nil {
+					return false, err
+				}
+				log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(configCN))
+			} else {
+				log.V(5).Infof("No change to ClusterNetwork %s", clusterNetworkToString(configCN))
+			}
 		}
+
+		return true, nil
+	})
+	if err != nil {
+		if getError != nil {
+			return getError
+		}
+		return err
 	}
 
 	if err = master.SubnetStartMaster(master.networkInfo.ClusterNetwork, networkConfig.HostSubnetLength); err != nil {

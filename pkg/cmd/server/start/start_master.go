@@ -804,6 +804,7 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		// TODO we manage this one differently, so its wired by openshift but overrides upstreams
 		"serviceaccount",
 
+		"openshift.io/origin-to-rbac",
 		"openshift.io/serviceaccount-pull-secrets",
 		"openshift.io/origin-namespace",
 		"openshift.io/deployer",
@@ -818,7 +819,6 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		"openshift.io/cluster-quota-mapping",
 		"openshift.io/unidling",
 		"openshift.io/ingress-ip",
-		"openshift.io/origin-to-rbac",
 	)
 
 	if configapi.IsBuildEnabled(&oc.Options) {

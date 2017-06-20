@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -26,13 +27,18 @@ func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	err = sdnplugin.StartMaster(
-		c.NetworkConfig,
-		osClient,
-		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
-		ctx.InternalKubeInformers,
-	)
-	return true, err
+	go func() {
+		err := sdnplugin.StartMaster(
+			c.NetworkConfig,
+			osClient,
+			ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
+			ctx.InternalKubeInformers,
+		)
+		if err != nil {
+			glog.Errorf("failed to start SDN plugin controller: %v", err)
+		}
+	}()
+	return true, nil
 }
 
 type IngressIPControllerConfig struct {
