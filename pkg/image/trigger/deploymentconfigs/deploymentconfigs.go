@@ -167,7 +167,7 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 
 	for i, t := range dc.Spec.Triggers {
 		p := t.ImageChangeParams
-		if p == nil || p.From.Kind != "ImageStreamTag" || len(p.LastTriggeredImage) > 0 {
+		if p == nil || p.From.Kind != "ImageStreamTag" {
 			continue
 		}
 		if !p.Automatic {
@@ -184,6 +184,10 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 			glog.V(4).Infof("trigger %#v in deployment %s is not resolveable", p, dc.Name)
 			return nil, false, nil
 		}
+		if ref == p.LastTriggeredImage {
+			continue
+		}
+
 		if len(ref) == 0 {
 			ref = p.LastTriggeredImage
 		}
