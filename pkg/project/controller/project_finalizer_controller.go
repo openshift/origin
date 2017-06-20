@@ -7,17 +7,17 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 
 	"github.com/golang/glog"
 	projectutil "github.com/openshift/origin/pkg/project/util"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // ProjectFinalizerController is responsible for participating in Kubernetes Namespace termination
 type ProjectFinalizerController struct {
-	client internalclientset.Interface
+	client kclientset.Interface
 
 	queue      workqueue.RateLimitingInterface
 	maxRetries int
@@ -29,7 +29,7 @@ type ProjectFinalizerController struct {
 	syncHandler func(key string) error
 }
 
-func NewProjectFinalizerController(namespaces informers.NamespaceInformer, client internalclientset.Interface) *ProjectFinalizerController {
+func NewProjectFinalizerController(namespaces informers.NamespaceInformer, client kclientset.Interface) *ProjectFinalizerController {
 	c := &ProjectFinalizerController{
 		client:     client,
 		controller: namespaces.Informer().GetController(),
@@ -73,7 +73,7 @@ func (c *ProjectFinalizerController) Run(stopCh <-chan struct{}, workers int) {
 }
 
 func (c *ProjectFinalizerController) enqueueNamespace(obj interface{}) {
-	ns, ok := obj.(*kapi.Namespace)
+	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		return
 	}
@@ -120,13 +120,13 @@ func (c *ProjectFinalizerController) syncNamespace(key string) error {
 	if !exists {
 		return nil
 	}
-	return c.finalize(item.(*kapi.Namespace))
+	return c.finalize(item.(*v1.Namespace))
 }
 
 // finalize processes a namespace and deletes content in origin if its terminating
-func (c *ProjectFinalizerController) finalize(namespace *kapi.Namespace) error {
+func (c *ProjectFinalizerController) finalize(namespace *v1.Namespace) error {
 	// if namespace is not terminating, ignore it
-	if namespace.Status.Phase != kapi.NamespaceTerminating {
+	if namespace.Status.Phase != v1.NamespaceTerminating {
 		return nil
 	}
 

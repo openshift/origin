@@ -9,8 +9,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/security"
@@ -78,7 +79,7 @@ func (c *NamespaceSecurityDefaultsController) Run(stopCh <-chan struct{}, worker
 }
 
 func (c *NamespaceSecurityDefaultsController) enqueueNamespace(obj interface{}) {
-	ns, ok := obj.(*kapi.Namespace)
+	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		return
 	}
@@ -122,7 +123,7 @@ func (c *NamespaceSecurityDefaultsController) syncNamespace(key string) error {
 	if !exists {
 		return nil
 	}
-	return c.allocate(item.(*kapi.Namespace))
+	return c.allocate(item.(*v1.Namespace))
 }
 
 type MCSAllocationFunc func(uid.Block) *mcs.Label
@@ -148,7 +149,7 @@ func DefaultMCSAllocation(from *uid.Range, to *mcs.Range, blockSize int) MCSAllo
 // Next processes a changed namespace and tries to allocate a uid range for it.  If it is
 // successful, an mcs label corresponding to the relative position of the range is also
 // set.
-func (c *NamespaceSecurityDefaultsController) allocate(ns *kapi.Namespace) error {
+func (c *NamespaceSecurityDefaultsController) allocate(ns *v1.Namespace) error {
 	tx := &tx{}
 	defer tx.Rollback()
 
@@ -160,7 +161,7 @@ func (c *NamespaceSecurityDefaultsController) allocate(ns *kapi.Namespace) error
 	if err != nil {
 		return err
 	}
-	ns = obj.(*kapi.Namespace)
+	ns = obj.(*v1.Namespace)
 
 	if ns.Annotations == nil {
 		ns.Annotations = make(map[string]string)
@@ -191,7 +192,7 @@ func (c *NamespaceSecurityDefaultsController) allocate(ns *kapi.Namespace) error
 	return err
 }
 
-func changedAndSetAnnotations(old, ns *kapi.Namespace) bool {
+func changedAndSetAnnotations(old, ns *v1.Namespace) bool {
 	if value, ok := ns.Annotations[security.UIDRangeAnnotation]; ok && value != old.Annotations[security.UIDRangeAnnotation] {
 		return true
 	}

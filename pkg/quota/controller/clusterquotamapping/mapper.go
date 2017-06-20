@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sync"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -145,9 +146,9 @@ func (m *clusterQuotaMapper) removeQuota(quotaName string) {
 
 // requireNamespace updates the label requirements for the given namespace.  This prevents stale updates to the mapping itself.
 // returns true if a modification was made
-func (m *clusterQuotaMapper) requireNamespace(namespace *kapi.Namespace) bool {
+func (m *clusterQuotaMapper) requireNamespace(namespace metav1.Object) bool {
 	m.lock.RLock()
-	selectionFields, exists := m.requiredNamespaceToLabels[namespace.Name]
+	selectionFields, exists := m.requiredNamespaceToLabels[namespace.GetName()]
 	m.lock.RUnlock()
 
 	if selectionFieldsMatch(selectionFields, exists, namespace) {
@@ -156,21 +157,21 @@ func (m *clusterQuotaMapper) requireNamespace(namespace *kapi.Namespace) bool {
 
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	selectionFields, exists = m.requiredNamespaceToLabels[namespace.Name]
+	selectionFields, exists = m.requiredNamespaceToLabels[namespace.GetName()]
 	if selectionFieldsMatch(selectionFields, exists, namespace) {
 		return false
 	}
 
-	m.requiredNamespaceToLabels[namespace.Name] = GetSelectionFields(namespace)
+	m.requiredNamespaceToLabels[namespace.GetName()] = GetSelectionFields(namespace)
 	return true
 }
 
 // completeNamespace updates the latest selectionFields used to generate the mappings for this namespace.  The value is returned
 // by the Get methods for the mapping so that callers can determine staleness
-func (m *clusterQuotaMapper) completeNamespace(namespace *kapi.Namespace) {
+func (m *clusterQuotaMapper) completeNamespace(namespace metav1.Object) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m.completedNamespaceToLabels[namespace.Name] = GetSelectionFields(namespace)
+	m.completedNamespaceToLabels[namespace.GetName()] = GetSelectionFields(namespace)
 }
 
 // removeNamespace deletes a namespace from all mappings
@@ -194,17 +195,17 @@ func (m *clusterQuotaMapper) removeNamespace(namespaceName string) {
 func selectorMatches(selector quotaapi.ClusterResourceQuotaSelector, exists bool, quota *quotaapi.ClusterResourceQuota) bool {
 	return exists && kapi.Semantic.DeepEqual(selector, quota.Spec.Selector)
 }
-func selectionFieldsMatch(selectionFields SelectionFields, exists bool, namespace *kapi.Namespace) bool {
+func selectionFieldsMatch(selectionFields SelectionFields, exists bool, namespace metav1.Object) bool {
 	return exists && reflect.DeepEqual(selectionFields, GetSelectionFields(namespace))
 }
 
 // setMapping maps (or removes a mapping) between a clusterquota and a namespace
 // It returns whether the action worked, whether the quota is out of date, whether the namespace is out of date
 // This allows callers to decide whether to pull new information from the cache or simply skip execution
-func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, namespace *kapi.Namespace, remove bool) (bool /*added*/, bool /*quota matches*/, bool /*namespace matches*/) {
+func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, namespace metav1.Object, remove bool) (bool /*added*/, bool /*quota matches*/, bool /*namespace matches*/) {
 	m.lock.RLock()
 	selector, selectorExists := m.requiredQuotaToSelector[quota.Name]
-	selectionFields, selectionFieldsExist := m.requiredNamespaceToLabels[namespace.Name]
+	selectionFields, selectionFieldsExist := m.requiredNamespaceToLabels[namespace.GetName()]
 	m.lock.RUnlock()
 
 	if !selectorMatches(selector, selectorExists, quota) {
@@ -217,7 +218,7 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	selector, selectorExists = m.requiredQuotaToSelector[quota.Name]
-	selectionFields, selectionFieldsExist = m.requiredNamespaceToLabels[namespace.Name]
+	selectionFields, selectionFieldsExist = m.requiredNamespaceToLabels[namespace.GetName()]
 	if !selectorMatches(selector, selectorExists, quota) {
 		return false, false, selectionFieldsMatch(selectionFields, selectionFieldsExist, namespace)
 	}
@@ -232,13 +233,13 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 		if !ok {
 			m.quotaToNamespaces[quota.Name] = sets.String{}
 		} else {
-			mutated = namespaces.Has(namespace.Name)
-			namespaces.Delete(namespace.Name)
+			mutated = namespaces.Has(namespace.GetName())
+			namespaces.Delete(namespace.GetName())
 		}
 
-		quotas, ok := m.namespaceToQuota[namespace.Name]
+		quotas, ok := m.namespaceToQuota[namespace.GetName()]
 		if !ok {
-			m.namespaceToQuota[namespace.Name] = sets.String{}
+			m.namespaceToQuota[namespace.GetName()] = sets.String{}
 		} else {
 			mutated = mutated || quotas.Has(quota.Name)
 			quotas.Delete(quota.Name)
@@ -246,7 +247,7 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 
 		if mutated {
 			for _, listener := range m.listeners {
-				listener.RemoveMapping(quota.Name, namespace.Name)
+				listener.RemoveMapping(quota.Name, namespace.GetName())
 			}
 		}
 
@@ -258,16 +259,16 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 	namespaces, ok := m.quotaToNamespaces[quota.Name]
 	if !ok {
 		mutated = true
-		m.quotaToNamespaces[quota.Name] = sets.NewString(namespace.Name)
+		m.quotaToNamespaces[quota.Name] = sets.NewString(namespace.GetName())
 	} else {
-		mutated = !namespaces.Has(namespace.Name)
-		namespaces.Insert(namespace.Name)
+		mutated = !namespaces.Has(namespace.GetName())
+		namespaces.Insert(namespace.GetName())
 	}
 
-	quotas, ok := m.namespaceToQuota[namespace.Name]
+	quotas, ok := m.namespaceToQuota[namespace.GetName()]
 	if !ok {
 		mutated = true
-		m.namespaceToQuota[namespace.Name] = sets.NewString(quota.Name)
+		m.namespaceToQuota[namespace.GetName()] = sets.NewString(quota.Name)
 	} else {
 		mutated = mutated || !quotas.Has(quota.Name)
 		quotas.Insert(quota.Name)
@@ -275,7 +276,7 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 
 	if mutated {
 		for _, listener := range m.listeners {
-			listener.AddMapping(quota.Name, namespace.Name)
+			listener.AddMapping(quota.Name, namespace.GetName())
 		}
 	}
 
@@ -283,6 +284,6 @@ func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, na
 
 }
 
-func GetSelectionFields(namespace *kapi.Namespace) SelectionFields {
-	return SelectionFields{Labels: namespace.Labels, Annotations: namespace.Annotations}
+func GetSelectionFields(namespace metav1.Object) SelectionFields {
+	return SelectionFields{Labels: namespace.GetLabels(), Annotations: namespace.GetAnnotations()}
 }

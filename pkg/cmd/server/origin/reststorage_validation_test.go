@@ -100,7 +100,7 @@ func fakeMasterConfig() *MasterConfig {
 		InternalKubeInformers:                         internalKubeInformerFactory,
 		AuthorizationInformers:                        authorizationInformerFactory,
 		QuotaInformers:                                quotaInformerFactory,
-		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingController(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
+		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
 		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
 	}
@@ -124,7 +124,7 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		QuotaInformers:                quotaInformerFactory,
 		EnableBuilds:                  true,
 		EnableTemplateServiceBroker:   false,
-		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingController(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
+		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 	}
 	return ret
 }

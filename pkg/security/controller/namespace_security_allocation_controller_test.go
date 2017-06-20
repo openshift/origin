@@ -10,7 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 
 	"github.com/openshift/origin/pkg/security"
 	"github.com/openshift/origin/pkg/security/mcs"
@@ -23,7 +24,7 @@ func TestController(t *testing.T) {
 	client := &fake.Clientset{}
 	client.AddReactor("*", "*", func(a clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		action = a
-		return true, (*kapi.Namespace)(nil), nil
+		return true, (*v1.Namespace)(nil), nil
 	})
 
 	uidr, _ := uid.NewRange(10, 20, 2)
@@ -35,12 +36,12 @@ func TestController(t *testing.T) {
 		client:       client.Core().Namespaces(),
 	}
 
-	err := c.allocate(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+	err := c.allocate(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got := action.(clientgotesting.CreateAction).GetObject().(*kapi.Namespace)
+	got := action.(clientgotesting.CreateAction).GetObject().(*v1.Namespace)
 	if got.Annotations[security.UIDRangeAnnotation] != "10/2" {
 		t.Errorf("unexpected uid annotation: %#v", got)
 	}
@@ -76,9 +77,9 @@ func TestControllerError(t *testing.T) {
 			actions: 1,
 			reactFn: func(a clientgotesting.Action) (bool, runtime.Object, error) {
 				if a.Matches("get", "namespaces") {
-					return true, &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}, nil
+					return true, &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}, nil
 				}
-				return true, (*kapi.Namespace)(nil), errors.NewConflict(kapi.Resource("namespace"), "test", fmt.Errorf("test conflict"))
+				return true, (*v1.Namespace)(nil), errors.NewConflict(kapi.Resource("namespace"), "test", fmt.Errorf("test conflict"))
 			},
 			errFn: func(err error) bool {
 				return err != nil && strings.Contains(err.Error(), "test conflict")
@@ -91,7 +92,7 @@ func TestControllerError(t *testing.T) {
 
 		if testCase.reactFn == nil {
 			testCase.reactFn = func(a clientgotesting.Action) (bool, runtime.Object, error) {
-				return true, (*kapi.Namespace)(nil), testCase.err()
+				return true, (*v1.Namespace)(nil), testCase.err()
 			}
 		}
 
@@ -106,7 +107,7 @@ func TestControllerError(t *testing.T) {
 			client:       client.Core().Namespaces(),
 		}
 
-		err := c.allocate(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		err := c.allocate(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
 		if !testCase.errFn(err) {
 			t.Errorf("%s: unexpected error: %v", s, err)
 		}
