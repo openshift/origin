@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e962dcae8c0462244bdbe29f7ac43d2ac1bf7ea7
+%global commit b2e3d55869c7d710a3d24b3b5d16f258d4b1cc35
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.119 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e962dca
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.120 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b2e3d55
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.120
+Version:        3.6.121
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -657,6 +657,31 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.121-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1a8ad18
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1e799562a0bb10ff9da976f484ba4c2e5f5ed0b2 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  fdd786b139287f4779b1baa78e4deb2f130e8ce9 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  aca7203cc7612e877cd9c7625dfee00c986be5b9 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  95a85d302c46bb217370ec0b8a71b3fc0c773ace (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e68d9d8beb14ff2096adebd022a3efc9008844d7 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a94c2f2924b06462509e30a9dda0141c51e40e4d (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  54c8cb20b3176f46ee7f87e69ed60a4be87e3b55 (dmcphers+openshiftbot@redhat.com)
+- TestScopedProjectAccess should handle other modifications
+  (ccoleman@redhat.com)
+- Update cluster quota mapping to efficiently handle internal and external
+  (ccoleman@redhat.com)
+- Namespace security allocator should use versioned informers
+  (ccoleman@redhat.com)
+- Project finalizer should use versioned informer (ccoleman@redhat.com)
+
 * Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.120-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console c5d3f3e
   (smunilla@redhat.com)
