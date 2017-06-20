@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 5ffd80393312d677a8beeb126c86a3dd0e38596c
+%global commit 27d409768002631fb496082e45e600427a3dbbbf
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.117 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=5ffd803
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.118 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=27d4097
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.118
+Version:        3.6.119
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -657,6 +657,47 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.119-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 11d8da8
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ca13e6d720a4a2826a3fb744b5b33b3b3bbad6e3 (dmcphers+openshiftbot@redhat.com)
+- Move deployments to use versioned Kubernetes informers (ccoleman@redhat.com)
+- Build controller should reference versioned pods and secrets
+  (ccoleman@redhat.com)
+- Remove last internal use of service from controllers (ccoleman@redhat.com)
+- Bias to using internal versions of some informers for GC
+  (ccoleman@redhat.com)
+- Migrate controllers to external secrets, services, and service accounts
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0bdb9296607544b3d0cc376d781a932fa7daf48e (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bfd1f3a4cc8320376594ec9304e7419697a2dc80 (dmcphers+openshiftbot@redhat.com)
+- Make clients require bash-completion (sdodson@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  421609382be5f72a911a6390b4a4ef3fb196af38 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 47537: Fix typo in secretbox transformer prefix
+  (vsemushi@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  11dc8ce124266e481e12b0aecca96da7d4a5b1d4 (dmcphers+openshiftbot@redhat.com)
+- Ensure OpenShift resources have a stable protobuf serialization
+  (ccoleman@redhat.com)
+- UPSTREAM: 47701: generated changes and client-go bump (ccoleman@redhat.com)
+- UPSTREAM: 47701: Force protobuf to be stable in output (ccoleman@redhat.com)
+- UPSTREAM: 44115: scheduler should not log an error when no fit
+  (decarr@redhat.com)
+- Fix the copy src behavior to copy the directory contents
+  (bbennett@redhat.com)
+- UPSTREAM: 47274: Don't provision for PVCs with AccessModes unsupported by
+  plugin (mawong@redhat.com)
+- Change the MAC addresses to be generated based on IP (dcbw@redhat.com)
+- UPSTREAM: 47462: strip container id from events (decarr@redhat.com)
+- UPSTREAM: 47270: kubectl drain errors if pod is already deleted
+  (decarr@redhat.com)
+- UPSTREAM: 45349: Fix daemonsets to have correct tolerations for
+  TaintNodeNotReady and TaintNodeUnreachable. (avagarwa@redhat.com)
+
 * Mon Jun 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.118-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 652afe2
   (smunilla@redhat.com)
