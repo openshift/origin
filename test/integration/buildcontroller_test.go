@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
+	"github.com/openshift/origin/pkg/cmd/server/start"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
@@ -115,7 +116,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	openshiftConfig, err := origin.BuildMasterConfig(*master)
+	informers, err := start.NewInformers(*master)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	openshiftConfig, err := origin.BuildMasterConfig(*master, informers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +191,6 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		AvailableResources: availableResources,
 		Stop:               wait.NeverStop,
 	}
-
 	openshiftControllerContext := origincontrollers.ControllerContext{
 		KubeControllerContext: controllerContext,
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
@@ -204,7 +209,15 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		SecurityInformers:     openshiftConfig.SecurityInformers,
 		Stop:                  controllerContext.Stop,
 	}
-	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()
+
+	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(*master, informers)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for i := 0; i < counts.BuildControllers; i++ {
 		_, err := openshiftControllerInitializers["openshift.io/build"](openshiftControllerContext)

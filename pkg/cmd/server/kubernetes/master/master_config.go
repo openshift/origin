@@ -51,7 +51,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -59,7 +58,6 @@ import (
 	endpointsstorage "k8s.io/kubernetes/pkg/registry/core/endpoint/storage"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	kversion "k8s.io/kubernetes/pkg/version"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -83,16 +81,11 @@ var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, ap
 
 // MasterConfig defines the required values to start a Kubernetes master
 type MasterConfig struct {
-	Options            configapi.KubernetesMasterConfig
-	InternalKubeClient kinternalclientset.Interface
-	KubeClient         kclientset.Interface
+	// this is a mutated copy of options!
+	// TODO stop mutating values!
+	Options configapi.KubernetesMasterConfig
 
-	Master            *master.Config
-	ControllerManager *cmapp.CMServer
-	SchedulerServer   *scheduleroptions.SchedulerServer
-	CloudProvider     cloudprovider.Interface
-
-	ExternalInformers kexternalinformers.SharedInformerFactory
+	Master *master.Config
 }
 
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
@@ -306,7 +299,7 @@ func buildUpstreamClientCARegistrationHook(s *kapiserveroptions.ServerRunOptions
 	}, nil
 }
 
-func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
+func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
 	podEvictionTimeout, err := time.ParseDuration(masterConfig.KubernetesMasterConfig.PodEvictionTimeout)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
@@ -366,19 +359,6 @@ func buildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	}
 
 	return cmserver, cloud, nil
-}
-
-func buildSchedulerServer(masterConfig configapi.MasterConfig) (*scheduleroptions.SchedulerServer, error) {
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	schedulerserver := scheduleroptions.NewSchedulerServer()
-	schedulerserver.PolicyConfigFile = masterConfig.KubernetesMasterConfig.SchedulerConfigFile
-	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-
-	return schedulerserver, nil
 }
 
 func buildProxyClientCerts(masterConfig configapi.MasterConfig) ([]tls.Certificate, error) {
@@ -598,7 +578,6 @@ func BuildKubernetesMasterConfig(
 	requestContextMapper apirequest.RequestContextMapper,
 	kubeClient kclientset.Interface,
 	internalKubeClient kinternalclientset.Interface,
-	externalKubeInformers kexternalinformers.SharedInformerFactory,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
@@ -606,17 +585,6 @@ func BuildKubernetesMasterConfig(
 	if masterConfig.KubernetesMasterConfig == nil {
 		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
 	}
-
-	controllerServer, cloud, err := buildControllerManagerServer(masterConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	schedulerServer, err := buildSchedulerServer(masterConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	apiserverConfig, err := buildKubeApiserverConfig(
 		masterConfig,
 		requestContextMapper,
@@ -630,15 +598,9 @@ func BuildKubernetesMasterConfig(
 	}
 
 	kmaster := &MasterConfig{
-		Options:            *masterConfig.KubernetesMasterConfig,
-		InternalKubeClient: internalKubeClient,
-		KubeClient:         kubeClient,
+		Options: *masterConfig.KubernetesMasterConfig,
 
-		Master:            apiserverConfig,
-		ControllerManager: controllerServer,
-		CloudProvider:     cloud,
-		SchedulerServer:   schedulerServer,
-		ExternalInformers: externalKubeInformers,
+		Master: apiserverConfig,
 	}
 
 	return kmaster, nil

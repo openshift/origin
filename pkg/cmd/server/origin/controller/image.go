@@ -131,14 +131,14 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	}
 }
 
-type ImageImportControllerOptions struct {
+type ImageImportControllerConfig struct {
 	MaxScheduledImageImportsPerMinute          int
 	ScheduledImageImportMinimumIntervalSeconds int
 	DisableScheduledImport                     bool
 	ResyncPeriod                               time.Duration
 }
 
-func (c *ImageImportControllerOptions) RunController(ctx ControllerContext) (bool, error) {
+func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 
 	controller := imagecontroller.NewImageStreamController(

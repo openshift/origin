@@ -1,14 +1,23 @@
 package controller
 
 import (
+	"k8s.io/client-go/tools/cache"
+
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
 )
 
-type TemplateInstanceControllerConfig struct {
-}
+func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
+	err := ctx.TemplateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
+		templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
+			return []string{string(obj.(*templateapi.Template).UID)}, nil
+		},
+	})
+	if err != nil {
+		return true, err
+	}
 
-func (c *TemplateInstanceControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraTemplateInstanceControllerServiceAccountName
 
 	restConfig, err := ctx.ClientBuilder.Config(saName)
