@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 27d409768002631fb496082e45e600427a3dbbbf
+%global commit e962dcae8c0462244bdbe29f7ac43d2ac1bf7ea7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.118 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=27d4097
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.119 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e962dca
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.119
+Version:        3.6.120
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -657,6 +657,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.120-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console c5d3f3e
+  (smunilla@redhat.com)
+- Revert "make prometheus example work on older servers" (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  eaa5d820b92a0e01cd530e3a00900e06845b538a (dmcphers+openshiftbot@redhat.com)
+- update bindata for prometheus (mfojtik@redhat.com)
+- make prometheus example work on older servers (mfojtik@redhat.com)
+- retry ls-remote in new-app (bparees@redhat.com)
+- improve error message when processing non-template resources
+  (bparees@redhat.com)
+- When sorting SCCs by restrictions don't add a score if SCC allows volumes of
+  projected type. (vsemushi@redhat.com)
+
 * Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.119-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 11d8da8
   (smunilla@redhat.com)
