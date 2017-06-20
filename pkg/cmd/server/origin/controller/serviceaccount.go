@@ -64,24 +64,24 @@ func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerConte
 }
 
 func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error) {
-	kc := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
+	kc := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountPullSecretsControllerServiceAccountName)
 
 	go serviceaccountcontrollers.NewDockercfgDeletedController(
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	go serviceaccountcontrollers.NewDockercfgTokenDeletedController(
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgTokenDeletedControllerOptions{},
 	).Run(ctx.Stop)
 
 	dockerURLsInitialized := make(chan struct{})
 	dockercfgController := serviceaccountcontrollers.NewDockercfgController(
-		ctx.InternalKubeInformers.Core().InternalVersion().ServiceAccounts(),
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		kc,
 		serviceaccountcontrollers.DockercfgControllerOptions{DockerURLsInitialized: dockerURLsInitialized},
 	)
@@ -94,7 +94,7 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 		DockerURLsInitialized: dockerURLsInitialized,
 	}
 	go serviceaccountcontrollers.NewDockerRegistryServiceController(
-		ctx.InternalKubeInformers.Core().InternalVersion().Secrets(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
 		kc,
 		dockerRegistryControllerOptions,
 	).Run(10, ctx.Stop)

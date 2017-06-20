@@ -3,6 +3,7 @@ package defaults
 import (
 	"github.com/golang/glog"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
@@ -33,7 +34,7 @@ func NewBuildDefaults(pluginConfig map[string]configapi.AdmissionPluginConfig) (
 }
 
 // ApplyDefaults applies configured build defaults to a build pod
-func (b BuildDefaults) ApplyDefaults(pod *kapi.Pod) error {
+func (b BuildDefaults) ApplyDefaults(pod *v1.Pod) error {
 	if b.config == nil {
 		return nil
 	}
@@ -57,7 +58,7 @@ func (b BuildDefaults) ApplyDefaults(pod *kapi.Pod) error {
 	return buildadmission.SetBuildInPod(pod, build, version)
 }
 
-func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
+func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 	if len(b.config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
@@ -78,24 +79,24 @@ func (b BuildDefaults) applyPodDefaults(pod *kapi.Pod) {
 	defaultResources := b.config.Resources
 	for i := range pod.Spec.Containers {
 		podEnv := &pod.Spec.Containers[i].Env
-		util.MergeTrustedEnvWithoutDuplicates(b.config.Env, podEnv, false)
+		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(b.config.Env), podEnv, false)
 
 		if pod.Spec.Containers[i].Resources.Limits == nil {
-			pod.Spec.Containers[i].Resources.Limits = kapi.ResourceList{}
+			pod.Spec.Containers[i].Resources.Limits = v1.ResourceList{}
 		}
 		for name, value := range defaultResources.Limits {
-			if _, ok := pod.Spec.Containers[i].Resources.Limits[name]; !ok {
+			if _, ok := pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource limit %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
-				pod.Spec.Containers[i].Resources.Limits[name] = value
+				pod.Spec.Containers[i].Resources.Limits[v1.ResourceName(name)] = value
 			}
 		}
 		if pod.Spec.Containers[i].Resources.Requests == nil {
-			pod.Spec.Containers[i].Resources.Requests = kapi.ResourceList{}
+			pod.Spec.Containers[i].Resources.Requests = v1.ResourceList{}
 		}
 		for name, value := range defaultResources.Requests {
-			if _, ok := pod.Spec.Containers[i].Resources.Requests[name]; !ok {
+			if _, ok := pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)]; !ok {
 				glog.V(5).Infof("Setting default resource request %s for pod %s/%s to %s", name, pod.Namespace, pod.Name, value)
-				pod.Spec.Containers[i].Resources.Requests[name] = value
+				pod.Spec.Containers[i].Resources.Requests[v1.ResourceName(name)] = value
 			}
 		}
 	}

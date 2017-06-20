@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -19,7 +19,7 @@ func TestDockercfgDeletion(t *testing.T) {
 	testcases := map[string]struct {
 		ClientObjects []runtime.Object
 
-		DeletedSecret *api.Secret
+		DeletedSecret *v1.Secret
 
 		ExpectedActions []clientgotesting.Action
 	}{
@@ -27,8 +27,8 @@ func TestDockercfgDeletion(t *testing.T) {
 			DeletedSecret: createdDockercfgSecret(),
 
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts", Version: "v1"}, "default", "default"),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount with reference": {
@@ -36,9 +36,9 @@ func TestDockercfgDeletion(t *testing.T) {
 
 			DeletedSecret: createdDockercfgSecret(),
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
-				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts", Version: "v1"}, "default", "default"),
+				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts", Version: "v1"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "token-secret-1"),
 			},
 		},
 		"deleted dockercfg secret with serviceaccount without reference": {
@@ -46,9 +46,9 @@ func TestDockercfgDeletion(t *testing.T) {
 
 			DeletedSecret: createdDockercfgSecret(),
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", "default"),
-				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
-				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets"}, "default", "token-secret-1"),
+				clientgotesting.NewGetAction(schema.GroupVersionResource{Resource: "serviceaccounts", Version: "v1"}, "default", "default"),
+				clientgotesting.NewUpdateAction(schema.GroupVersionResource{Resource: "serviceaccounts", Version: "v1"}, "default", serviceAccount(tokenSecretReferences(), emptyImagePullSecretReferences())),
+				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "token-secret-1"),
 			},
 		},
 	}
@@ -60,7 +60,7 @@ func TestDockercfgDeletion(t *testing.T) {
 		client := fake.NewSimpleClientset(tc.ClientObjects...)
 		informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
 		controller := NewDockercfgDeletedController(
-			informerFactory.Core().InternalVersion().Secrets(),
+			informerFactory.Core().V1().Secrets(),
 			client,
 			DockercfgDeletedControllerOptions{},
 		)

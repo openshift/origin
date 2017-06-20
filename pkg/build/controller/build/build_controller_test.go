@@ -15,12 +15,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kexternalclientfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalclientfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
@@ -55,19 +55,19 @@ func TestHandleBuild(t *testing.T) {
 		}
 		return b
 	}
-	pod := func(phase kapi.PodPhase) *kapi.Pod {
+	pod := func(phase v1.PodPhase) *v1.Pod {
 		p := mockBuildPod(build(buildapi.BuildPhaseNew))
 		p.Status.Phase = phase
 		switch phase {
-		case kapi.PodRunning, kapi.PodFailed:
+		case v1.PodRunning, v1.PodFailed:
 			p.Status.StartTime = &now
-		case kapi.PodSucceeded:
+		case v1.PodSucceeded:
 			p.Status.StartTime = &now
-			p.Status.ContainerStatuses = []kapi.ContainerStatus{
+			p.Status.ContainerStatuses = []v1.ContainerStatus{
 				{
 					Name: "container",
-					State: kapi.ContainerState{
-						Terminated: &kapi.ContainerStateTerminated{
+					State: v1.ContainerState{
+						Terminated: &v1.ContainerStateTerminated{
 							ExitCode: 0,
 						},
 					},
@@ -88,7 +88,7 @@ func TestHandleBuild(t *testing.T) {
 		build.CreationTimestamp = tm
 		return build
 	}
-	withPodCreationTS := func(pod *kapi.Pod, tm metav1.Time) *kapi.Pod {
+	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
 		pod.CreationTimestamp = tm
 		return pod
 	}
@@ -98,7 +98,7 @@ func TestHandleBuild(t *testing.T) {
 
 		// Conditions
 		build              *buildapi.Build
-		pod                *kapi.Pod
+		pod                *v1.Pod
 		runPolicy          *fakeRunPolicy
 		errorOnPodDelete   bool
 		errorOnPodCreate   bool
@@ -114,7 +114,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:  "cancel running build",
 			build: cancelled(build(buildapi.BuildPhaseRunning)),
-			pod:   pod(kapi.PodRunning),
+			pod:   pod(v1.PodRunning),
 			expectUpdate: newUpdate().phase(buildapi.BuildPhaseCancelled).
 				reason(buildapi.StatusReasonCancelledBuild).
 				message(buildapi.StatusMessageCancelledBuild).
@@ -126,7 +126,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:         "cancel build in terminal state",
 			build:        cancelled(withCompletionTS(build(buildapi.BuildPhaseComplete))),
-			pod:          pod(kapi.PodRunning),
+			pod:          pod(v1.PodRunning),
 			expectUpdate: nil,
 		},
 		{
@@ -143,31 +143,31 @@ func TestHandleBuild(t *testing.T) {
 				phase(buildapi.BuildPhasePending).
 				reason("").
 				message("").
-				podNameAnnotation(pod(kapi.PodPending).Name).
+				podNameAnnotation(pod(v1.PodPending).Name).
 				update,
 			expectPodCreated: true,
 		},
 		{
 			name:  "new with existing newer pod",
 			build: withBuildCreationTS(build(buildapi.BuildPhaseNew), before),
-			pod:   withPodCreationTS(pod(kapi.PodRunning), now),
+			pod:   withPodCreationTS(pod(v1.PodRunning), now),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseRunning).
 				reason("").
 				message("").
 				startTime(now).
-				podNameAnnotation(pod(kapi.PodRunning).Name).
+				podNameAnnotation(pod(v1.PodRunning).Name).
 				update,
 		},
 		{
 			name:  "new with existing older pod",
 			build: withBuildCreationTS(build(buildapi.BuildPhaseNew), now),
-			pod:   withPodCreationTS(pod(kapi.PodRunning), before),
+			pod:   withPodCreationTS(pod(v1.PodRunning), before),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseError).
 				reason(buildapi.StatusReasonBuildPodExists).
 				message(buildapi.StatusMessageBuildPodExists).
-				podNameAnnotation(pod(kapi.PodRunning).Name).
+				podNameAnnotation(pod(v1.PodRunning).Name).
 				startTime(now).
 				completionTime(now).
 				update,
@@ -190,7 +190,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:  "pending -> running",
 			build: build(buildapi.BuildPhasePending),
-			pod:   pod(kapi.PodRunning),
+			pod:   pod(v1.PodRunning),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseRunning).
 				reason("").
@@ -201,7 +201,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:               "pending -> running with update error",
 			build:              build(buildapi.BuildPhasePending),
-			pod:                pod(kapi.PodRunning),
+			pod:                pod(v1.PodRunning),
 			errorOnBuildUpdate: true,
 			expectUpdate:       nil,
 			expectError:        true,
@@ -209,7 +209,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:             "pending -> failed",
 			build:            build(buildapi.BuildPhasePending),
-			pod:              pod(kapi.PodFailed),
+			pod:              pod(v1.PodFailed),
 			expectOnComplete: true,
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseFailed).
@@ -222,13 +222,13 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:         "pending -> pending",
 			build:        build(buildapi.BuildPhasePending),
-			pod:          pod(kapi.PodPending),
+			pod:          pod(v1.PodPending),
 			expectUpdate: nil,
 		},
 		{
 			name:             "running -> complete",
 			build:            build(buildapi.BuildPhaseRunning),
-			pod:              pod(kapi.PodSucceeded),
+			pod:              pod(v1.PodSucceeded),
 			expectOnComplete: true,
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseComplete).
@@ -241,7 +241,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:         "running -> running",
 			build:        build(buildapi.BuildPhaseRunning),
-			pod:          pod(kapi.PodRunning),
+			pod:          pod(v1.PodRunning),
 			expectUpdate: nil,
 		},
 		{
@@ -259,7 +259,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:             "failed -> failed with no completion timestamp",
 			build:            build(buildapi.BuildPhaseFailed),
-			pod:              pod(kapi.PodFailed),
+			pod:              pod(v1.PodFailed),
 			expectOnComplete: true,
 			expectUpdate: newUpdate().
 				startTime(now).
@@ -269,7 +269,7 @@ func TestHandleBuild(t *testing.T) {
 		{
 			name:         "failed -> failed with completion timestamp",
 			build:        withCompletionTS(build(buildapi.BuildPhaseFailed)),
-			pod:          pod(kapi.PodFailed),
+			pod:          pod(v1.PodFailed),
 			expectUpdate: nil,
 		},
 	}
@@ -293,15 +293,15 @@ func TestHandleBuild(t *testing.T) {
 					}
 					return true, patchedBuild, nil
 				})
-			var kubeClient kinternalclientset.Interface
+			var kubeClient kexternalclientset.Interface
 			if tc.pod != nil {
-				kubeClient = fakeKubeInternalClientSet(tc.pod)
+				kubeClient = fakeKubeExternalClientSet(tc.pod)
 			} else {
-				kubeClient = fakeKubeInternalClientSet()
+				kubeClient = fakeKubeExternalClientSet()
 			}
 			podDeleted := false
 			podCreated := false
-			kubeClient.(*kinternalclientfake.Clientset).PrependReactor("delete", "pods",
+			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("delete", "pods",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnPodDelete {
 						return true, nil, fmt.Errorf("error")
@@ -309,7 +309,7 @@ func TestHandleBuild(t *testing.T) {
 					podDeleted = true
 					return true, nil, nil
 				})
-			kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods",
+			kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnPodCreate {
 						return true, nil, fmt.Errorf("error")
@@ -318,7 +318,7 @@ func TestHandleBuild(t *testing.T) {
 					return true, nil, nil
 				})
 
-			bc := newFakeBuildController(openshiftClient, nil, nil, nil, kubeClient)
+			bc := newFakeBuildController(openshiftClient, nil, nil, kubeClient, nil)
 			defer bc.stop()
 
 			runPolicy := tc.runPolicy
@@ -403,8 +403,8 @@ func TestWorkWithNewBuild(t *testing.T) {
 }
 
 func TestCreateBuildPod(t *testing.T) {
-	kubeClient := fakeKubeInternalClientSet()
-	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
+	kubeClient := fakeKubeExternalClientSet()
+	bc := newFakeBuildController(nil, nil, nil, kubeClient, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 
@@ -476,7 +476,7 @@ func TestCreateBuildPodWithImageStreamError(t *testing.T) {
 
 type errorStrategy struct{}
 
-func (*errorStrategy) CreateBuildPod(build *buildapi.Build) (*kapi.Pod, error) {
+func (*errorStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, error) {
 	return nil, fmt.Errorf("error")
 }
 
@@ -502,17 +502,17 @@ func TestCreateBuildPodWithNewerExistingPod(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 	build.Status.StartTimestamp = &now
 
-	existingPod := &kapi.Pod{}
+	existingPod := &v1.Pod{}
 	existingPod.Name = buildapi.GetBuildPodName(build)
 	existingPod.Namespace = build.Namespace
 	existingPod.CreationTimestamp = metav1.NewTime(now.Time.Add(time.Hour))
 
-	kubeClient := fakeKubeInternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
-	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
+	kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
+	bc := newFakeBuildController(nil, nil, nil, kubeClient, nil)
 	bc.start()
 	defer bc.stop()
 
@@ -532,17 +532,17 @@ func TestCreateBuildPodWithOlderExistingPod(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 	build.CreationTimestamp = now
 
-	existingPod := &kapi.Pod{}
+	existingPod := &v1.Pod{}
 	existingPod.Name = buildapi.GetBuildPodName(build)
 	existingPod.Namespace = build.Namespace
 	existingPod.CreationTimestamp = metav1.NewTime(now.Time.Add(-1 * time.Hour))
 
-	kubeClient := fakeKubeInternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
-	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
+	kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
+	bc := newFakeBuildController(nil, nil, nil, kubeClient, nil)
 	defer bc.stop()
 
 	update, err := bc.createBuildPod(build)
@@ -559,12 +559,12 @@ func TestCreateBuildPodWithOlderExistingPod(t *testing.T) {
 }
 
 func TestCreateBuildPodWithPodCreationError(t *testing.T) {
-	kubeClient := fakeKubeInternalClientSet()
+	kubeClient := fakeKubeExternalClientSet()
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, fmt.Errorf("error")
 	}
-	kubeClient.(*kinternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
-	bc := newFakeBuildController(nil, nil, nil, nil, kubeClient)
+	kubeClient.(*kexternalclientfake.Clientset).PrependReactor("create", "pods", errorReaction)
+	bc := newFakeBuildController(nil, nil, nil, kubeClient, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 
@@ -584,10 +584,10 @@ func TestCancelBuild(t *testing.T) {
 	build := mockBuild(buildapi.BuildPhaseRunning, buildapi.BuildOutput{})
 	build.Name = "canceltest"
 	build.Namespace = "testns"
-	pod := &kapi.Pod{}
+	pod := &v1.Pod{}
 	pod.Name = "canceltest-build"
 	pod.Namespace = "testns"
-	client := kinternalclientfake.NewSimpleClientset(pod).Core()
+	client := kexternalclientfake.NewSimpleClientset(pod).Core()
 	bc := BuildController{
 		podClient: client,
 	}
@@ -936,10 +936,6 @@ func fakeKubeInternalClientSet(objects ...runtime.Object) kinternalclientset.Int
 	return kinternalclientfake.NewSimpleClientset(objects...)
 }
 
-func fakeKubeInternalInformers(clientSet kinternalclientset.Interface) kinternalinformers.SharedInformerFactory {
-	return kinternalinformers.NewSharedInformerFactory(clientSet, 0)
-}
-
 func fakeKubeExternalInformers(clientSet kexternalclientset.Interface) kexternalinformers.SharedInformerFactory {
 	return kexternalinformers.NewSharedInformerFactory(clientSet, 0)
 }
@@ -947,7 +943,6 @@ func fakeKubeExternalInformers(clientSet kexternalclientset.Interface) kexternal
 type fakeBuildController struct {
 	*BuildController
 	kubeExternalInformers kexternalinformers.SharedInformerFactory
-	kubeInternalInformers kinternalinformers.SharedInformerFactory
 	buildInformers        buildinformersinternal.SharedInformerFactory
 	imageInformers        imageinformersinternal.SharedInformerFactory
 	stopChan              chan struct{}
@@ -955,7 +950,6 @@ type fakeBuildController struct {
 
 func (c *fakeBuildController) start() {
 	c.kubeExternalInformers.Start(c.stopChan)
-	c.kubeInternalInformers.Start(c.stopChan)
 	c.imageInformers.Start(c.stopChan)
 	c.buildInformers.Start(c.stopChan)
 	if !cache.WaitForCacheSync(wait.NeverStop, c.buildStoreSynced, c.podStoreSynced, c.secretStoreSynced, c.imageStreamStoreSynced) {
@@ -985,7 +979,6 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)
-	kubeInternalInformers := fakeKubeInternalInformers(kubeInternalClient)
 	buildInformers := buildinformersinternal.NewSharedInformerFactory(buildClient, 0)
 	imageInformers := imageinformersinternal.NewSharedInformerFactory(imageClient, 0)
 	stopChan := make(chan struct{})
@@ -993,11 +986,11 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 	params := &BuildControllerParams{
 		BuildInformer:       buildInformers.Build().InternalVersion().Builds(),
 		BuildConfigInformer: buildInformers.Build().InternalVersion().BuildConfigs(),
-		PodInformer:         kubeInternalInformers.Core().InternalVersion().Pods(),
 		ImageStreamInformer: imageInformers.Image().InternalVersion().ImageStreams(),
-		SecretInformer:      kubeInternalInformers.Core().InternalVersion().Secrets(),
-		KubeClientInternal:  kubeInternalClient,
+		PodInformer:         kubeExternalInformers.Core().V1().Pods(),
+		SecretInformer:      kubeExternalInformers.Core().V1().Secrets(),
 		KubeClientExternal:  kubeExternalClient,
+		KubeClientInternal:  kubeInternalClient,
 		OpenshiftClient:     openshiftClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
 			Image: "test/image:latest",
@@ -1016,7 +1009,6 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 	bc := &fakeBuildController{
 		BuildController:       NewBuildController(params),
 		stopChan:              stopChan,
-		kubeInternalInformers: kubeInternalInformers,
 		kubeExternalInformers: kubeExternalInformers,
 		buildInformers:        buildInformers,
 		imageInformers:        imageInformers,
@@ -1212,8 +1204,8 @@ func (f *fakeRunPolicy) Handles(buildapi.BuildRunPolicy) bool {
 	return true
 }
 
-func mockBuildPod(build *buildapi.Build) *kapi.Pod {
-	pod := &kapi.Pod{}
+func mockBuildPod(build *buildapi.Build) *v1.Pod {
+	pod := &v1.Pod{}
 	pod.Name = buildapi.GetBuildPodName(build)
 	pod.Namespace = build.Namespace
 	pod.Annotations = map[string]string{}

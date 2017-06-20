@@ -10,7 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
@@ -123,7 +124,7 @@ func TestBuildOverrideForcePullCustomStrategy(t *testing.T) {
 		ForcePull: true,
 	})
 	build, pod := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestCustomBuild())
-	if pod.Spec.Containers[0].ImagePullPolicy != kapi.PullAlways {
+	if pod.Spec.Containers[0].ImagePullPolicy != v1.PullAlways {
 		t.Errorf("Pod ImagePullPolicy is not PullAlways")
 	}
 	if !build.Spec.Strategy.CustomStrategy.ForcePull {
@@ -195,7 +196,7 @@ func buildPodAdmissionTestDockerBuild() *buildapi.Build {
 	return build
 }
 
-func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *kapi.Pod) {
+func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *v1.Pod) {
 
 	ns := testutil.Namespace()
 	_, err := client.Builds(ns).Create(build)
@@ -215,14 +216,14 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kc
 	}
 	type resultObjs struct {
 		build *buildapi.Build
-		pod   *kapi.Pod
+		pod   *v1.Pod
 	}
 	result := make(chan resultObjs)
 	defer podWatch.Stop()
 	go func() {
 		for e := range podWatch.ResultChan() {
 			if e.Type == watchapi.Added {
-				pod, ok := e.Object.(*kapi.Pod)
+				pod, ok := e.Object.(*v1.Pod)
 				if !ok {
 					t.Fatalf("unexpected object: %v", e.Object)
 				}
@@ -261,24 +262,32 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 	testutil.RequireEtcd(t)
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	master.AdmissionConfig.PluginConfig = pluginConfig
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(master)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
 	}
-
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	internalClusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Fatal(err)
+	}
+	clientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
+	clusterAdminKubeClientset, err := kclientset.NewForConfig(clientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
@@ -286,7 +295,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 	}
 
 	err = testserver.WaitForServiceAccounts(
-		clusterAdminKubeClientset,
+		internalClusterAdminKubeClientset,
 		testutil.Namespace(),
 		[]string{
 			bootstrappolicy.BuilderServiceAccountName,

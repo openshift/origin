@@ -11,9 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	_ "github.com/openshift/origin/pkg/build/api/install"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 func TestCustomCreateBuildPod(t *testing.T) {
@@ -50,10 +52,10 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	if container.Name != "custom-build" {
 		t.Errorf("Expected custom-build, but got %s!", container.Name)
 	}
-	if container.ImagePullPolicy != kapi.PullIfNotPresent {
-		t.Errorf("Expected %v, got %v", kapi.PullIfNotPresent, container.ImagePullPolicy)
+	if container.ImagePullPolicy != v1.PullIfNotPresent {
+		t.Errorf("Expected %v, got %v", v1.PullIfNotPresent, container.ImagePullPolicy)
 	}
-	if actual.Spec.RestartPolicy != kapi.RestartPolicyNever {
+	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
 	if len(container.VolumeMounts) != 3 {
@@ -67,7 +69,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if !kapi.Semantic.DeepEqual(container.Resources, build.Spec.Resources) {
+	if !kapi.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)
 	}
 	if len(actual.Spec.Volumes) != 3 {
@@ -107,8 +109,8 @@ func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", fperr)
 	}
 	container := actual.Spec.Containers[0]
-	if container.ImagePullPolicy != kapi.PullAlways {
-		t.Errorf("Expected %v, got %v", kapi.PullAlways, container.ImagePullPolicy)
+	if container.ImagePullPolicy != v1.PullAlways {
+		t.Errorf("Expected %v, got %v", v1.PullAlways, container.ImagePullPolicy)
 	}
 }
 

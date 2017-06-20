@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kcorelistersinternal "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -54,7 +54,7 @@ func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache
 	c.dcLister.Indexer = dcInformer.GetIndexer()
 	c.dcListerSynced = dcInformer.HasSynced
 
-	c.rcLister = kcorelistersinternal.NewReplicationControllerLister(rcInformer.GetIndexer())
+	c.rcLister = kcorelisters.NewReplicationControllerLister(rcInformer.GetIndexer())
 	c.rcListerSynced = rcInformer.HasSynced
 	return c
 }
@@ -146,7 +146,7 @@ func (c *DeploymentTriggerController) updateDeploymentConfig(old, cur interface{
 	} else {
 		initial, err := deployutil.DecodeDeploymentConfig(latestRc, c.codec)
 		if err != nil {
-			glog.V(2).Infof("Cannot decode dc from replication controller %s: %v", deployutil.LabelForDeployment(latestRc), err)
+			glog.V(2).Infof("Cannot decode dc from replication controller %s: %v", deployutil.LabelForDeploymentV1(latestRc), err)
 			return
 		}
 		shouldInstantiate = !reflect.DeepEqual(newDc.Spec.Template, initial.Spec.Template)

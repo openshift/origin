@@ -13,10 +13,10 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/api"
 	_ "github.com/openshift/origin/pkg/deploy/api/install"
@@ -37,12 +37,12 @@ type deploymentController struct {
 	podIndexer cache.Indexer
 }
 
-func okDeploymentController(client kclientset.Interface, deployment *kapi.ReplicationController, hookPodNames []string, related bool, deployerStatus kapi.PodPhase) *deploymentController {
+func okDeploymentController(client kclientset.Interface, deployment *v1.ReplicationController, hookPodNames []string, related bool, deployerStatus v1.PodPhase) *deploymentController {
 	informerFactory := kinformers.NewSharedInformerFactory(client, 0)
-	rcInformer := informerFactory.Core().InternalVersion().ReplicationControllers()
-	podInformer := informerFactory.Core().InternalVersion().Pods()
+	rcInformer := informerFactory.Core().V1().ReplicationControllers()
+	podInformer := informerFactory.Core().V1().Pods()
 
-	c := NewDeployerController(rcInformer, podInformer, client, kfakeexternal.NewSimpleClientset(), "sa:test", "openshift/origin-deployer", env, codec)
+	c := NewDeployerController(rcInformer, podInformer, client, "sa:test", "openshift/origin-deployer", env, codec)
 	c.podListerSynced = alwaysReady
 	c.rcListerSynced = alwaysReady
 
@@ -65,7 +65,7 @@ func okDeploymentController(client kclientset.Interface, deployment *kapi.Replic
 	}
 }
 
-func deployerPod(deployment *kapi.ReplicationController, alternateName string, related bool) *kapi.Pod {
+func deployerPod(deployment *v1.ReplicationController, alternateName string, related bool) *v1.Pod {
 	deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 	if len(alternateName) > 0 {
 		deployerPodName = alternateName
@@ -73,7 +73,7 @@ func deployerPod(deployment *kapi.ReplicationController, alternateName string, r
 
 	deployment.Namespace = "test"
 
-	pod := &kapi.Pod{
+	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      deployerPodName,
 			Namespace: deployment.Namespace,
@@ -93,15 +93,15 @@ func deployerPod(deployment *kapi.ReplicationController, alternateName string, r
 	return pod
 }
 
-func okContainer() *kapi.Container {
-	return &kapi.Container{
+func okContainer() *v1.Container {
+	return &v1.Container{
 		Image:   "openshift/origin-deployer",
 		Command: []string{"/bin/echo", "hello", "world"},
-		Env:     env,
-		Resources: kapi.ResourceRequirements{
-			Limits: kapi.ResourceList{
-				kapi.ResourceName(kapi.ResourceCPU):    resource.MustParse("10"),
-				kapi.ResourceName(kapi.ResourceMemory): resource.MustParse("10G"),
+		Env:     deployutil.CopyApiEnvVarToV1EnvVar(env),
+		Resources: v1.ResourceRequirements{
+			Limits: v1.ResourceList{
+				v1.ResourceName(v1.ResourceCPU):    resource.MustParse("10"),
+				v1.ResourceName(v1.ResourceMemory): resource.MustParse("10G"),
 			},
 		},
 	}
@@ -111,14 +111,14 @@ func okContainer() *kapi.Container {
 // to a new deployment is valid.
 func TestHandle_createPodOk(t *testing.T) {
 	var (
-		updatedDeployment *kapi.ReplicationController
-		createdPod        *kapi.Pod
+		updatedDeployment *v1.ReplicationController
+		createdPod        *v1.Pod
 		expectedContainer = okContainer()
 	)
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		pod := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod)
+		pod := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod)
 		createdPod = pod
 		return true, pod, nil
 	})
@@ -126,7 +126,7 @@ func TestHandle_createPodOk(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
@@ -134,11 +134,11 @@ func TestHandle_createPodOk(t *testing.T) {
 	// Verify new -> pending
 	config := deploytest.OkDeploymentConfig(1)
 	config.Spec.Strategy = deploytest.OkCustomStrategy()
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Spec.Template.Spec.NodeSelector = map[string]string{"labelKey1": "labelValue1", "labelKey2": "labelValue2"}
 
-	controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -210,24 +210,24 @@ func TestHandle_createPodOk(t *testing.T) {
 // TestHandle_createPodFail ensures that an API failure while creating a
 // deployer pod results in a nonfatal error.
 func TestHandle_createPodFail(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
+		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
 		return true, nil, fmt.Errorf("failed to create pod %q", name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 
-	controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
+	controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
 	err := controller.handle(deployment, false)
 	if err == nil {
@@ -246,50 +246,50 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase kapi.PodPhase
+		podPhase v1.PodPhase
 		expected deployapi.DeploymentStatus
 	}{
 		{
 			name: "pending",
 
-			podPhase: kapi.PodPending,
+			podPhase: v1.PodPending,
 			expected: deployapi.DeploymentStatusPending,
 		},
 		{
 			name: "running",
 
-			podPhase: kapi.PodRunning,
+			podPhase: v1.PodRunning,
 			expected: deployapi.DeploymentStatusRunning,
 		},
 		{
 			name: "complete",
 
-			podPhase: kapi.PodFailed,
+			podPhase: v1.PodFailed,
 			expected: deployapi.DeploymentStatusFailed,
 		},
 		{
 			name: "failed",
 
-			podPhase: kapi.PodSucceeded,
+			podPhase: v1.PodSucceeded,
 			expected: deployapi.DeploymentStatusComplete,
 		},
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *kapi.ReplicationController
+		var updatedDeployment *v1.ReplicationController
 
 		config := deploytest.OkDeploymentConfig(1)
-		deployment, _ := deployutil.MakeDeployment(config, codec)
+		deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 		deployerPodName := deployutil.DeployerPodNameForDeployment(deployment.Name)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
+			name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
 			return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 		})
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 			updatedDeployment = rc
 			return true, rc, nil
 		})
@@ -316,24 +316,24 @@ func TestHandle_deployerPodAlreadyExists(t *testing.T) {
 // deployer pod, when a pod with the same name but missing annotations results
 // a transition to failed.
 func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
+		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
 		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, false, kapi.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, false, v1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -356,25 +356,26 @@ func TestHandle_unrelatedPodAlreadyExists(t *testing.T) {
 // deployer pod, when a pod with the same name but be scaled to zero results
 // a transition to failed.
 func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
-	deployment.Spec.Replicas = 1
+	one := int32(1)
+	deployment.Spec.Replicas = &one
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		name := action.(clientgotesting.CreateAction).GetObject().(*kapi.Pod).Name
+		name := action.(clientgotesting.CreateAction).GetObject().(*v1.Pod).Name
 		return true, nil, kerrors.NewAlreadyExists(kapi.Resource("Pod"), name)
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, false, kapi.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, false, v1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -391,7 +392,7 @@ func TestHandle_unrelatedPodAlreadyExistsTestScaled(t *testing.T) {
 	if e, a := deployapi.DeploymentStatusFailed, deployutil.DeploymentStatusFor(updatedDeployment); e != a {
 		t.Fatalf("expected deployment status %s, got %s", e, a)
 	}
-	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), *updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected failed deployment to be scaled to zero: %d", a)
 	}
 }
@@ -403,25 +404,25 @@ func TestHandle_noop(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase        kapi.PodPhase
+		podPhase        v1.PodPhase
 		deploymentPhase deployapi.DeploymentStatus
 	}{
 		{
 			name: "pending",
 
-			podPhase:        kapi.PodPending,
+			podPhase:        v1.PodPending,
 			deploymentPhase: deployapi.DeploymentStatusPending,
 		},
 		{
 			name: "running",
 
-			podPhase:        kapi.PodRunning,
+			podPhase:        v1.PodRunning,
 			deploymentPhase: deployapi.DeploymentStatusRunning,
 		},
 		{
 			name: "complete",
 
-			podPhase:        kapi.PodFailed,
+			podPhase:        v1.PodFailed,
 			deploymentPhase: deployapi.DeploymentStatusFailed,
 		},
 	}
@@ -429,7 +430,7 @@ func TestHandle_noop(t *testing.T) {
 	for _, test := range tests {
 		client := fake.NewSimpleClientset()
 
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
@@ -458,7 +459,7 @@ func TestHandle_noop(t *testing.T) {
 // TestHandle_failedTest ensures that failed test deployments have their
 // replicas set to zero.
 func TestHandle_failedTest(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -466,18 +467,19 @@ func TestHandle_failedTest(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	// Verify successful cleanup
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
-	deployment, _ := deployutil.MakeDeployment(config, codec)
-	deployment.Spec.Replicas = 1
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	one := int32(1)
+	deployment.Spec.Replicas = &one
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
-	controller := okDeploymentController(client, deployment, nil, true, kapi.PodFailed)
+	controller := okDeploymentController(client, deployment, nil, true, v1.PodFailed)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -486,7 +488,7 @@ func TestHandle_failedTest(t *testing.T) {
 	if updatedDeployment == nil {
 		t.Fatal("deployment not updated")
 	}
-	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), *updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -514,10 +516,10 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 
 	// Verify successful cleanup
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
-	controller := okDeploymentController(client, deployment, hookPods, true, kapi.PodSucceeded)
+	controller := okDeploymentController(client, deployment, hookPods, true, v1.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
 	if err := controller.handle(deployment, false); err != nil {
@@ -538,7 +540,7 @@ func TestHandle_cleanupPodOk(t *testing.T) {
 func TestHandle_cleanupPodOkTest(t *testing.T) {
 	hookPods := []string{"pre", "post"}
 	deletedPodNames := []string{}
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -551,18 +553,19 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
 	// Verify successful cleanup
 	config := deploytest.TestDeploymentConfig(deploytest.OkDeploymentConfig(1))
-	deployment, _ := deployutil.MakeDeployment(config, codec)
-	deployment.Spec.Replicas = 1
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
+	one := int32(1)
+	deployment.Spec.Replicas = &one
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusRunning)
 
-	controller := okDeploymentController(client, deployment, hookPods, true, kapi.PodSucceeded)
+	controller := okDeploymentController(client, deployment, hookPods, true, v1.PodSucceeded)
 	hookPods = append(hookPods, deployment.Name)
 
 	if err := controller.handle(deployment, false); err != nil {
@@ -577,7 +580,7 @@ func TestHandle_cleanupPodOkTest(t *testing.T) {
 	if updatedDeployment == nil {
 		t.Fatal("deployment not updated")
 	}
-	if e, a := int32(0), updatedDeployment.Spec.Replicas; e != a {
+	if e, a := int32(0), *updatedDeployment.Spec.Replicas; e != a {
 		t.Fatalf("expected updated deployment replicas to be %d, got %d", e, a)
 	}
 }
@@ -601,10 +604,10 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 
 	// Verify no-op
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
-	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
+	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
 	pod := deployerPod(deployment, "", true)
 	pod.Labels[deployapi.DeployerPodForDeploymentLabel] = "unrelated"
 	controller.podIndexer.Update(pod)
@@ -632,10 +635,10 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 
 	// Verify error
 	config := deploytest.OkDeploymentConfig(1)
-	deployment, _ := deployutil.MakeDeployment(config, codec)
+	deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusComplete)
 
-	controller := okDeploymentController(client, deployment, nil, true, kapi.PodSucceeded)
+	controller := okDeploymentController(client, deployment, nil, true, v1.PodSucceeded)
 
 	err := controller.handle(deployment, false)
 	if err == nil {
@@ -649,7 +652,7 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 // TestHandle_cancelNew ensures that a New cancelled deployment will be transitioned
 // to Pending even if the deployer pod is Running.
 func TestHandle_cancelNew(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 
 	client := &fake.Clientset{}
 	client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -657,16 +660,16 @@ func TestHandle_cancelNew(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, rc, nil
 	})
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+	deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 
-	controller := okDeploymentController(client, deployment, nil, true, kapi.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, true, v1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -680,10 +683,10 @@ func TestHandle_cancelNew(t *testing.T) {
 // TestHandle_cleanupNewWithDeployers ensures that we will try to cleanup deployer pods
 // for a cancelled deployment.
 func TestHandle_cleanupNewWithDeployers(t *testing.T) {
-	var updatedDeployment *kapi.ReplicationController
+	var updatedDeployment *v1.ReplicationController
 	deletedDeployer := false
 
-	deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+	deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 	deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(deployapi.DeploymentStatusNew)
 	deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 
@@ -697,12 +700,12 @@ func TestHandle_cleanupNewWithDeployers(t *testing.T) {
 		return true, nil, nil
 	})
 	client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+		rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 		updatedDeployment = rc
 		return true, nil, nil
 	})
 
-	controller := okDeploymentController(client, deployment, nil, true, kapi.PodRunning)
+	controller := okDeploymentController(client, deployment, nil, true, v1.PodRunning)
 
 	if err := controller.handle(deployment, false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -725,7 +728,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 		name string
 
 		deploymentPhase deployapi.DeploymentStatus
-		podPhase        kapi.PodPhase
+		podPhase        v1.PodPhase
 
 		expected int
 	}{
@@ -733,7 +736,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			name: "pending",
 
 			deploymentPhase: deployapi.DeploymentStatusPending,
-			podPhase:        kapi.PodPending,
+			podPhase:        v1.PodPending,
 
 			expected: len(hookPods) + 1,
 		},
@@ -741,7 +744,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			name: "running",
 
 			deploymentPhase: deployapi.DeploymentStatusRunning,
-			podPhase:        kapi.PodRunning,
+			podPhase:        v1.PodRunning,
 
 			expected: len(hookPods) + 1,
 		},
@@ -749,7 +752,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			name: "failed",
 
 			deploymentPhase: deployapi.DeploymentStatusFailed,
-			podPhase:        kapi.PodFailed,
+			podPhase:        v1.PodFailed,
 
 			expected: len(hookPods) + 1,
 		},
@@ -757,7 +760,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			name: "complete",
 
 			deploymentPhase: deployapi.DeploymentStatusComplete,
-			podPhase:        kapi.PodSucceeded,
+			podPhase:        v1.PodSucceeded,
 
 			expected: len(hookPods) + 1,
 		},
@@ -777,7 +780,7 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			return true, nil, nil
 		})
 
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 
@@ -824,18 +827,18 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *kapi.ReplicationController
+		var updatedDeployment *v1.ReplicationController
 		updateCalled := false
 
 		client := &fake.Clientset{}
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
 		})
 
-		deployment, err := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		deployment, err := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -843,7 +846,7 @@ func TestHandle_deployerPodDisappeared(t *testing.T) {
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.phase)
 		updatedDeployment = deployment
 
-		controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
+		controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
 		err = controller.handle(deployment, test.willBeDropped)
 		if !test.shouldRetry && err != nil {
@@ -883,7 +886,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 	tests := []struct {
 		name string
 
-		podPhase        kapi.PodPhase
+		podPhase        v1.PodPhase
 		deploymentPhase deployapi.DeploymentStatus
 
 		expected deployapi.DeploymentStatus
@@ -891,7 +894,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "New -> Pending",
 
-			podPhase:        kapi.PodPending,
+			podPhase:        v1.PodPending,
 			deploymentPhase: deployapi.DeploymentStatusNew,
 
 			expected: deployapi.DeploymentStatusPending,
@@ -899,7 +902,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "New -> Running",
 
-			podPhase:        kapi.PodRunning,
+			podPhase:        v1.PodRunning,
 			deploymentPhase: deployapi.DeploymentStatusNew,
 
 			expected: deployapi.DeploymentStatusRunning,
@@ -907,7 +910,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "New -> Complete",
 
-			podPhase:        kapi.PodSucceeded,
+			podPhase:        v1.PodSucceeded,
 			deploymentPhase: deployapi.DeploymentStatusNew,
 
 			expected: deployapi.DeploymentStatusComplete,
@@ -915,7 +918,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "New -> Failed",
 
-			podPhase:        kapi.PodFailed,
+			podPhase:        v1.PodFailed,
 			deploymentPhase: deployapi.DeploymentStatusNew,
 
 			expected: deployapi.DeploymentStatusFailed,
@@ -923,7 +926,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "Pending -> Running",
 
-			podPhase:        kapi.PodRunning,
+			podPhase:        v1.PodRunning,
 			deploymentPhase: deployapi.DeploymentStatusPending,
 
 			expected: deployapi.DeploymentStatusRunning,
@@ -931,7 +934,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "Pending -> Complete",
 
-			podPhase:        kapi.PodSucceeded,
+			podPhase:        v1.PodSucceeded,
 			deploymentPhase: deployapi.DeploymentStatusPending,
 
 			expected: deployapi.DeploymentStatusComplete,
@@ -939,7 +942,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "Pending -> Failed",
 
-			podPhase:        kapi.PodFailed,
+			podPhase:        v1.PodFailed,
 			deploymentPhase: deployapi.DeploymentStatusPending,
 
 			expected: deployapi.DeploymentStatusFailed,
@@ -947,7 +950,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "Running -> Complete",
 
-			podPhase:        kapi.PodSucceeded,
+			podPhase:        v1.PodSucceeded,
 			deploymentPhase: deployapi.DeploymentStatusRunning,
 
 			expected: deployapi.DeploymentStatusComplete,
@@ -955,7 +958,7 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 		{
 			name: "Running -> Failed",
 
-			podPhase:        kapi.PodFailed,
+			podPhase:        v1.PodFailed,
 			deploymentPhase: deployapi.DeploymentStatusRunning,
 
 			expected: deployapi.DeploymentStatusFailed,
@@ -963,18 +966,18 @@ func TestHandle_transitionFromDeployer(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var updatedDeployment *kapi.ReplicationController
+		var updatedDeployment *v1.ReplicationController
 		updateCalled := false
 
 		client := &fake.Clientset{}
 		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			rc := action.(clientgotesting.UpdateAction).GetObject().(*kapi.ReplicationController)
+			rc := action.(clientgotesting.UpdateAction).GetObject().(*v1.ReplicationController)
 			updatedDeployment = rc
 			updateCalled = true
 			return true, nil, nil
 		})
 
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), codec)
+		deployment, _ := deployutil.MakeDeploymentV1(deploytest.OkDeploymentConfig(1), codec)
 		deployment.Annotations[deployapi.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
@@ -1029,14 +1032,14 @@ func TestDeployerCustomLabelsAndAnnotations(t *testing.T) {
 		config.Spec.Strategy = test.strategy
 		config.Spec.Strategy.Labels = test.labels
 		config.Spec.Strategy.Annotations = test.annotations
-		deployment, _ := deployutil.MakeDeployment(config, codec)
+		deployment, _ := deployutil.MakeDeploymentV1(config, codec)
 
 		client := &fake.Clientset{}
 		client.AddReactor("create", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deployerPod(deployment, "", true), nil
 		})
 
-		controller := okDeploymentController(client, nil, nil, true, kapi.PodUnknown)
+		controller := okDeploymentController(client, nil, nil, true, v1.PodUnknown)
 
 		podTemplate, err := controller.makeDeployerPod(deployment)
 		if err != nil {

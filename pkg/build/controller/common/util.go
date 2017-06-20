@@ -9,6 +9,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
@@ -158,7 +159,7 @@ func (e ErrEnvVarResolver) Error() string {
 // including references to existing environment variables, jsonpath references to
 // the build object, secrets, and configmaps.
 // The build.Strategy.BuildStrategy.Env is replaced with the resolved references.
-func ResolveValueFrom(pod *kapi.Pod, client kclientset.Interface) error {
+func ResolveValueFrom(pod *v1.Pod, client kclientset.Interface) error {
 	var outputEnv []kapi.EnvVar
 	var allErrs []error
 

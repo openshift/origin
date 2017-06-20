@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -22,7 +21,6 @@ import (
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 const deploymentRunTimeout = 5 * time.Minute
@@ -852,7 +850,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
 			var pollErr error
 			err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-				deploymentConfig, deploymentsv1, _, err := deploymentInfo(oc, "history-limit")
+				deploymentConfig, deployments, _, err := deploymentInfo(oc, "history-limit")
 				if err != nil {
 					pollErr = err
 					return false, nil
@@ -860,12 +858,6 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 				// we need to filter out any deployments that we don't care about,
 				// namely the active deployment and any newer deployments
-				// TODO: get rid of ugly conversion by porting the deploymentconfig controller to v1 RCs
-				deployments := make([]*kapi.ReplicationController, len(deploymentsv1))
-				for i := range deploymentsv1 {
-					deployments[i] = &kapi.ReplicationController{}
-					v1.Convert_v1_ReplicationController_To_api_ReplicationController(deploymentsv1[i], deployments[i], nil)
-				}
 				oldDeployments := deployutil.DeploymentsForCleanup(deploymentConfig, deployments)
 
 				// we should not have more deployments than acceptable

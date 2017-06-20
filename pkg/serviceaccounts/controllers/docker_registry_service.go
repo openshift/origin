@@ -18,9 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
@@ -64,7 +65,7 @@ func NewDockerRegistryServiceController(secrets informers.SecretInformer, cl kcl
 				return e.client.Core().Services(options.RegistryNamespace).Watch(opts)
 			},
 		},
-		&kapi.Service{},
+		&v1.Service{},
 		options.Resync,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
@@ -212,7 +213,7 @@ func (e *DockerRegistryServiceController) watchForDockerURLChanges() {
 
 // getDockerRegistryLocations returns the dns form and the ip form of the secret
 func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string {
-	key, err := controller.KeyFunc(&kapi.Service{ObjectMeta: metav1.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
+	key, err := controller.KeyFunc(&v1.Service{ObjectMeta: metav1.ObjectMeta{Name: e.serviceName, Namespace: e.serviceNamespace}})
 	if err != nil {
 		return []string{}
 	}
@@ -224,7 +225,7 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 	if !exists {
 		return []string{}
 	}
-	service := obj.(*kapi.Service)
+	service := obj.(*v1.Service)
 
 	hasClusterIP := (len(service.Spec.ClusterIP) > 0) && (net.ParseIP(service.Spec.ClusterIP) != nil)
 	if hasClusterIP && len(service.Spec.Ports) > 0 {
@@ -253,8 +254,8 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange(key string)
 	// new secrets will already get the updated value.
 	for _, obj := range e.secretCache.List() {
 		switch t := obj.(type) {
-		case *kapi.Secret:
-			if t.Type != kapi.SecretTypeDockercfg {
+		case *v1.Secret:
+			if t.Type != v1.SecretTypeDockercfg {
 				continue
 			}
 		default:
@@ -314,11 +315,11 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 	}
 
 	dockerRegistryURLs := e.getRegistryURLs()
-	sharedDockercfgSecret := obj.(*kapi.Secret)
+	sharedDockercfgSecret := obj.(*v1.Secret)
 
 	dockercfg := &credentialprovider.DockerConfig{}
 	// an error here doesn't matter.  If we can't deserialize this, we'll replace it with one that works.
-	json.Unmarshal(sharedDockercfgSecret.Data[kapi.DockerConfigKey], dockercfg)
+	json.Unmarshal(sharedDockercfgSecret.Data[v1.DockerConfigKey], dockercfg)
 
 	dockercfgMap := map[string]credentialprovider.DockerConfigEntry(*dockercfg)
 	existingDockercfgSecretLocations := sets.StringKeySet(dockercfgMap)
@@ -328,11 +329,11 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 	}
 
 	// we need to update it, make a copy
-	uncastObj, err := kapi.Scheme.DeepCopy(obj)
+	uncastObj, err := api.Scheme.DeepCopy(obj)
 	if err != nil {
 		return err
 	}
-	dockercfgSecret := uncastObj.(*kapi.Secret)
+	dockercfgSecret := uncastObj.(*v1.Secret)
 
 	dockerCredentials := dockercfgSecret.Annotations[ServiceAccountTokenValueAnnotation]
 	if len(dockerCredentials) == 0 && len(existingDockercfgSecretLocations) > 0 {
@@ -349,7 +350,7 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 			utilruntime.HandleError(fmt.Errorf("cannot determine SA token: %v", err))
 			return nil
 		}
-		dockerCredentials = string(tokenSecret.(*kapi.Secret).Data[kapi.ServiceAccountTokenKey])
+		dockerCredentials = string(tokenSecret.(*v1.Secret).Data[v1.ServiceAccountTokenKey])
 	}
 
 	newDockercfgMap := credentialprovider.DockerConfig{}
@@ -366,7 +367,7 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 		utilruntime.HandleError(err)
 		return nil
 	}
-	dockercfgSecret.Data[kapi.DockerConfigKey] = dockercfgContent
+	dockercfgSecret.Data[v1.DockerConfigKey] = dockercfgContent
 
 	if _, err := e.client.Core().Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); err != nil {
 		return err

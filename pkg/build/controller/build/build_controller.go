@@ -15,11 +15,12 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kexternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
-	internalversion "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	kexternalcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
+	v1lister "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
@@ -50,14 +51,14 @@ type BuildController struct {
 	buildLister       buildlister.BuildLister
 	buildConfigGetter buildlister.BuildConfigLister
 	buildDeleter      buildclient.BuildDeleter
-	podClient         kcoreclient.PodsGetter
+	podClient         kexternalcoreclient.PodsGetter
 	kubeClient        kclientset.Interface
 
 	queue workqueue.RateLimitingInterface
 
 	buildStore       buildlister.BuildLister
-	secretStore      internalversion.SecretLister
-	podStore         internalversion.PodLister
+	secretStore      v1lister.SecretLister
+	podStore         v1lister.PodLister
 	imageStreamStore imagelister.ImageStreamLister
 
 	podInformer   cache.SharedIndexInformer
@@ -82,8 +83,8 @@ type BuildControllerParams struct {
 	BuildInformer       buildinformer.BuildInformer
 	BuildConfigInformer buildinformer.BuildConfigInformer
 	ImageStreamInformer imageinformers.ImageStreamInformer
-	PodInformer         kcoreinformers.PodInformer
-	SecretInformer      kcoreinformers.SecretInformer
+	PodInformer         kexternalcoreinformers.PodInformer
+	SecretInformer      kexternalcoreinformers.SecretInformer
 	KubeClientInternal  kclientset.Interface
 	KubeClientExternal  kexternalclientset.Interface
 	OpenshiftClient     osclient.Interface
@@ -108,7 +109,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildConfigGetter: buildConfigGetter,
 		buildDeleter:      buildClient,
 		secretStore:       params.SecretInformer.Lister(),
-		podClient:         params.KubeClientInternal.Core(),
+		podClient:         params.KubeClientExternal.Core(),
 		kubeClient:        params.KubeClientInternal,
 		podInformer:       params.PodInformer.Informer(),
 		podStore:          params.PodInformer.Lister(),
@@ -294,7 +295,7 @@ func (bc *BuildController) cancelBuild(build *buildapi.Build) (*buildUpdate, err
 
 // handleNewBuild will check whether policy allows running the new build and if so, creates a pod
 // for the build and returns an update to move it to the Pending phase
-func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *kapi.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
 	// If a pod was found, and it was created after the build was created, it
 	// means that the build is active and its status should be updated
 	if pod != nil {
@@ -320,7 +321,7 @@ func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *kapi.Pod) 
 }
 
 // createPodSpec creates a pod spec for the given build
-func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref string) (*kapi.Pod, error) {
+func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref string) (*v1.Pod, error) {
 	// TODO(rhcarvalho)
 	// The S2I and Docker builders expect build.Spec.Output.To to contain a
 	// resolved reference to a Docker image. Since build.Spec is immutable, we
@@ -481,7 +482,7 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 }
 
 // handleActiveBuild handles a build in either pending or running state
-func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *kapi.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
 
 	if pod == nil {
 		pod = bc.findMissingPod(build)
@@ -493,7 +494,7 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *kapi.Po
 
 	var update *buildUpdate
 	switch pod.Status.Phase {
-	case kapi.PodPending:
+	case v1.PodPending:
 		if build.Status.Phase != buildapi.BuildPhasePending {
 			update = transitionToPhase(buildapi.BuildPhasePending, "", "")
 		}
@@ -503,14 +504,14 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *kapi.Po
 				update = transitionToPhase(buildapi.BuildPhasePending, buildapi.StatusReasonMissingPushSecret, buildapi.StatusMessageMissingPushSecret)
 			}
 		}
-	case kapi.PodRunning:
+	case v1.PodRunning:
 		if build.Status.Phase != buildapi.BuildPhaseRunning {
 			update = transitionToPhase(buildapi.BuildPhaseRunning, "", "")
 			if pod.Status.StartTime != nil {
 				update.setStartTime(*pod.Status.StartTime)
 			}
 		}
-	case kapi.PodSucceeded:
+	case v1.PodSucceeded:
 		if build.Status.Phase != buildapi.BuildPhaseComplete {
 			update = transitionToPhase(buildapi.BuildPhaseComplete, "", "")
 		}
@@ -528,7 +529,7 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *kapi.Po
 				}
 			}
 		}
-	case kapi.PodFailed:
+	case v1.PodFailed:
 		if build.Status.Phase != buildapi.BuildPhaseFailed {
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
@@ -544,7 +545,7 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *kapi.Po
 
 // handleCompletedBuild will only be called on builds that are already in a terminal phase however, their completion timestamp
 // has not been set.
-func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *kapi.Pod) (*buildUpdate, error) {
+func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
 	// Make sure that the completion timestamp has not already been set
 	if build.Status.CompletionTimestamp != nil {
 		return nil, nil
@@ -563,7 +564,7 @@ func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *kapi
 // updateBuild is the single place where any update to a build is done in the build controller.
 // It will check that the update is valid, peform any necessary processing such as calling HandleBuildCompletion,
 // and apply the buildUpdate object as a patch.
-func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdate, pod *kapi.Pod) error {
+func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdate, pod *v1.Pod) error {
 
 	stateTransition := false
 	// Check whether we are transitioning to a different build phase
@@ -654,7 +655,7 @@ func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate
 
 // findMissingPod uses the REST client directly to determine if a pod exists or not.
 // It is called when a corresponding pod for a build is not found in the cache.
-func (bc *BuildController) findMissingPod(build *buildapi.Build) *kapi.Pod {
+func (bc *BuildController) findMissingPod(build *buildapi.Build) *v1.Pod {
 	// Make one last attempt to fetch the pod using the REST client
 	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapi.GetBuildPodName(build), metav1.GetOptions{})
 	if err == nil {
@@ -683,8 +684,8 @@ func (bc *BuildController) getBuildByKey(key string) (*buildapi.Build, error) {
 // is updated or there is a relist of pods
 func (bc *BuildController) podUpdated(old, cur interface{}) {
 	// A periodic relist will send update events for all known pods.
-	curPod := cur.(*kapi.Pod)
-	oldPod := old.(*kapi.Pod)
+	curPod := cur.(*v1.Pod)
+	oldPod := old.(*v1.Pod)
 	// The old and new ResourceVersion will be the same in a relist of pods.
 	// Here we ignore pod relists because we already listen to build relists.
 	if curPod.ResourceVersion == oldPod.ResourceVersion {
@@ -698,14 +699,14 @@ func (bc *BuildController) podUpdated(old, cur interface{}) {
 // podDeleted gets called by the pod informer event handler whenever a pod
 // is deleted
 func (bc *BuildController) podDeleted(obj interface{}) {
-	pod, ok := obj.(*kapi.Pod)
+	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone: %+v", obj))
 			return
 		}
-		pod, ok = tombstone.Obj.(*kapi.Pod)
+		pod, ok = tombstone.Obj.(*v1.Pod)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a pod: %+v", obj))
 			return
@@ -742,7 +743,7 @@ func (bc *BuildController) enqueueBuild(build *buildapi.Build) {
 
 // enqueueBuildForPod adds the build corresponding to the given pod to the controller
 // queue. If a build is not found for the pod, then an error is logged.
-func (bc *BuildController) enqueueBuildForPod(pod *kapi.Pod) {
+func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
 	bc.queue.Add(fmt.Sprintf("%s/%s", pod.Namespace, buildutil.GetBuildName(pod)))
 }
 
@@ -772,7 +773,7 @@ func (bc *BuildController) handleError(err error, key interface{}) {
 }
 
 // isBuildPod returns true if the given pod is a build pod
-func isBuildPod(pod *kapi.Pod) bool {
+func isBuildPod(pod *v1.Pod) bool {
 	return len(buildutil.GetBuildName(pod)) > 0
 }
 

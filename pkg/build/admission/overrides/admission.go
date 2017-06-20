@@ -2,7 +2,7 @@ package overrides
 
 import (
 	"github.com/golang/glog"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
@@ -31,7 +31,7 @@ func NewBuildOverrides(pluginConfig map[string]configapi.AdmissionPluginConfig) 
 }
 
 // ApplyOverrides applies configured overrides to a build in a build pod
-func (b BuildOverrides) ApplyOverrides(pod *kapi.Pod) error {
+func (b BuildOverrides) ApplyOverrides(pod *v1.Pod) error {
 	if b.config == nil {
 		return nil
 	}
@@ -87,14 +87,14 @@ func (b BuildOverrides) ApplyOverrides(pod *kapi.Pod) error {
 	return buildadmission.SetBuildInPod(pod, build, version)
 }
 
-func applyForcePullToPod(pod *kapi.Pod) error {
+func applyForcePullToPod(pod *v1.Pod) error {
 	for i := range pod.Spec.InitContainers {
 		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on init container %s of pod %s/%s", pod.Spec.InitContainers[i].Name, pod.Namespace, pod.Name)
-		pod.Spec.InitContainers[i].ImagePullPolicy = kapi.PullAlways
+		pod.Spec.InitContainers[i].ImagePullPolicy = v1.PullAlways
 	}
 	for i := range pod.Spec.Containers {
 		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on container %s of pod %s/%s", pod.Spec.Containers[i].Name, pod.Namespace, pod.Name)
-		pod.Spec.Containers[i].ImagePullPolicy = kapi.PullAlways
+		pod.Spec.Containers[i].ImagePullPolicy = v1.PullAlways
 	}
 	return nil
 }

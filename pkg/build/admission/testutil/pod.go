@@ -7,14 +7,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 )
 
-type TestPod kapi.Pod
+type TestPod v1.Pod
 
 func Pod() *TestPod {
-	return (*TestPod)(&kapi.Pod{})
+	return (*TestPod)(&v1.Pod{})
 }
 
 func (p *TestPod) WithAnnotation(name, value string) *TestPod {
@@ -27,13 +28,13 @@ func (p *TestPod) WithAnnotation(name, value string) *TestPod {
 
 func (p *TestPod) WithEnvVar(name, value string) *TestPod {
 	if len(p.Spec.InitContainers) == 0 {
-		p.Spec.InitContainers = append(p.Spec.InitContainers, kapi.Container{})
+		p.Spec.InitContainers = append(p.Spec.InitContainers, v1.Container{})
 	}
 	if len(p.Spec.Containers) == 0 {
-		p.Spec.Containers = append(p.Spec.Containers, kapi.Container{})
+		p.Spec.Containers = append(p.Spec.Containers, v1.Container{})
 	}
-	p.Spec.InitContainers[0].Env = append(p.Spec.InitContainers[0].Env, kapi.EnvVar{Name: name, Value: value})
-	p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, kapi.EnvVar{Name: name, Value: value})
+	p.Spec.InitContainers[0].Env = append(p.Spec.InitContainers[0].Env, v1.EnvVar{Name: name, Value: value})
+	p.Spec.Containers[0].Env = append(p.Spec.Containers[0].Env, v1.EnvVar{Name: name, Value: value})
 	return p
 }
 
@@ -87,7 +88,7 @@ func (p *TestPod) GetBuild(t *testing.T) *buildapi.Build {
 }
 
 func (p *TestPod) ToAttributes() admission.Attributes {
-	return admission.NewAttributesRecord((*kapi.Pod)(p),
+	return admission.NewAttributesRecord((*v1.Pod)(p),
 		nil,
 		kapi.Kind("Pod").WithVersion("version"),
 		"default",
@@ -98,6 +99,6 @@ func (p *TestPod) ToAttributes() admission.Attributes {
 		nil)
 }
 
-func (p *TestPod) AsPod() *kapi.Pod {
-	return (*kapi.Pod)(p)
+func (p *TestPod) AsPod() *v1.Pod {
+	return (*v1.Pod)(p)
 }
