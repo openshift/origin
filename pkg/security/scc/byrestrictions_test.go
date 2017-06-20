@@ -144,6 +144,18 @@ func TestVolumePointValue(t *testing.T) {
 			},
 			expectedPoints: 0,
 		},
+		"trivial - projected": {
+			scc: &kapi.SecurityContextConstraints{
+				Volumes: []kapi.FSType{kapi.FSProjected},
+			},
+			expectedPoints: 0,
+		},
+		"trivial - none": {
+			scc: &kapi.SecurityContextConstraints{
+				Volumes: []kapi.FSType{kapi.FSTypeNone},
+			},
+			expectedPoints: 0,
+		},
 		"no volumes allowed": {
 			scc:            newSCC(false, false, false),
 			expectedPoints: 0,

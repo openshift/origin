@@ -49,11 +49,11 @@ func pointValue(constraint *kapi.SecurityContextConstraints) int {
 	return points
 }
 
-// allowsHostPathVolume returns a score based on the volumes allowed by the SCC.
-// Allowing a host volume wil return a score of 10.  Allowance of anything other
-// than kapi.FSTypeSecret, kapi.FSTypeConfigMap, kapi.FSTypeConfigMap, kapi.FSTypeDownwardAPI
-// will result in a score of 5.  If the SCC only allows kapi.FSTypeSecret, kapi.FSTypeConfigMap,
-// kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI it will have a score of 0.
+// volumePointValue returns a score based on the volumes allowed by the SCC.
+// Allowing a host volume will return a score of 10.  Allowance of anything other
+// than Secret, ConfigMap, EmptyDir, DownwardAPI, Projected, and None will result in
+// a score of 5.  If the SCC only allows these trivial types, it will have a
+// score of 0.
 func volumePointValue(scc *kapi.SecurityContextConstraints) int {
 	hasHostVolume := false
 	hasNonTrivialVolume := false
@@ -66,8 +66,8 @@ func volumePointValue(scc *kapi.SecurityContextConstraints) int {
 		// it is easier to specifically list the trivial volumes and allow the
 		// default case to be non-trivial so we don't have to worry about adding
 		// volumes in the future unless they're trivial.
-		case kapi.FSTypeSecret, kapi.FSTypeConfigMap,
-			kapi.FSTypeEmptyDir, kapi.FSTypeDownwardAPI, kapi.FSTypeNone:
+		case kapi.FSTypeSecret, kapi.FSTypeConfigMap, kapi.FSTypeEmptyDir,
+			kapi.FSTypeDownwardAPI, kapi.FSProjected, kapi.FSTypeNone:
 			// do nothing
 		default:
 			hasNonTrivialVolume = true
