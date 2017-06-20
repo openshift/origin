@@ -6125,6 +6125,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
+						"publicDockerImageRepository": {
+							SchemaProps: spec.SchemaProps{
+								Description: "PublicDockerImageRepository represents the public location from where the image can be pulled outside the cluster. The public URL is constructed by reading the route created for the docker-registry service. This field can be empty if the route is not created (iow. the integrated registry is not exposed)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"tags": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image.",

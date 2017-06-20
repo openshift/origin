@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	routeinformer "github.com/openshift/origin/pkg/route/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/version"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
@@ -61,6 +62,7 @@ type OpenshiftAPIConfig struct {
 
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
+	RouteInformers         routeinformer.SharedInformerFactory
 
 	// DeprecatedInformers is a shared factory for getting old style openshift informers
 	DeprecatedOpenshiftClient *osclient.Client

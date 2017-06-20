@@ -465,6 +465,7 @@ func (m *Master) Start() error {
 			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 			openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
+			openshiftConfig.RouteInformers.Start(utilwait.NeverStop)
 		}()
 	} else {
 		openshiftConfig.InternalKubeInformers.Start(utilwait.NeverStop)
@@ -475,6 +476,7 @@ func (m *Master) Start() error {
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
 		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
+		openshiftConfig.RouteInformers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -508,6 +510,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	// Must start policy and quota caching immediately
 	oc.QuotaInformers.Start(utilwait.NeverStop)
 	oc.AuthorizationInformers.Start(utilwait.NeverStop)
+	oc.RouteInformers.Start(utilwait.NeverStop)
 	oc.RunClusterQuotaMappingController()
 	oc.RunGroupCache()
 	oc.RunProjectCache()

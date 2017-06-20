@@ -87,6 +87,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	routeinformer "github.com/openshift/origin/pkg/route/generated/informers/internalversion"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"github.com/openshift/origin/pkg/serviceaccounts"
@@ -184,6 +186,7 @@ type MasterConfig struct {
 	ImageInformers         imageinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
+	RouteInformers         routeinformer.SharedInformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -239,6 +242,10 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	routeClient, err := routeclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	// customListerWatchers := shared.DefaultListerWatcherOverrides{}
 	// if err := addAuthorizationListerWatchers(customListerWatchers, restOptsGetter); err != nil {
@@ -255,6 +262,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 	quotaInformers := quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod)
 	buildInformers := buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod)
 	imageInformers := imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod)
+	routeInformers := routeinformer.NewSharedInformerFactory(routeClient, defaultInformerResyncPeriod)
 	templateInformers := templateinformer.NewSharedInformerFactory(templateClient, defaultInformerResyncPeriod)
 
 	if options.TemplateServiceBrokerConfig != nil {
@@ -393,6 +401,7 @@ func BuildMasterConfig(options configapi.MasterConfig) (*MasterConfig, error) {
 		ImageInformers:         imageInformers,
 		QuotaInformers:         quotaInformers,
 		TemplateInformers:      templateInformers,
+		RouteInformers:         routeInformers,
 	}
 
 	// ensure that the limit range informer will be started

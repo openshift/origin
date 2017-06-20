@@ -270,7 +270,8 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.DeprecatedOpenshiftClient.Images())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.KubeClientInternal.Core())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, c.LimitVerifier)
+	routeInformers := c.RouteInformers.Route().InternalVersion().Routes()
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryNameFn, subjectAccessReviewRegistry, routeInformers, c.LimitVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
