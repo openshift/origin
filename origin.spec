@@ -142,6 +142,7 @@ Obsoletes:      tuned-profiles-openshift-node < %{package_refector_version}
 Summary:        %{product_name} Client binaries for Linux
 Obsoletes:      openshift-clients < %{package_refector_version}
 Requires:       git
+Requires:       bash-completion
 
 %description clients
 %{summary}

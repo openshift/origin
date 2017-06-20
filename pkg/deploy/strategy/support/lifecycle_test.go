@@ -280,6 +280,9 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Volumes: []kapi.Volume{
 						{
 							Name: "volume-2",
+							VolumeSource: kapi.VolumeSource{
+								EmptyDir: &kapi.EmptyDirVolumeSource{},
+							},
 						},
 					},
 					ActiveDeadlineSeconds: &maxDeploymentDurationSeconds,
@@ -328,6 +331,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							Name: "secret-1",
 						},
 					},
+					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -386,6 +390,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							Name: "secret-1",
 						},
 					},
+					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -446,6 +451,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							Name: "secret-1",
 						},
 					},
+					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 			strategyLabels: map[string]string{
@@ -499,6 +505,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 							Name: "secret-1",
 						},
 					},
+					SecurityContext: &kapi.PodSecurityContext{},
 				},
 			},
 		},
@@ -524,7 +531,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 		// Copy the ActiveDeadlineSeconds the deployer pod is running for 5 seconds already
 		test.expected.Spec.ActiveDeadlineSeconds = pod.Spec.ActiveDeadlineSeconds
 		if !kapi.Semantic.DeepEqual(pod, test.expected) {
-			t.Errorf("unexpected pod diff: %v", diff.ObjectDiff(pod, test.expected))
+			t.Errorf("unexpected pod diff: %v", diff.ObjectReflectDiff(pod, test.expected))
 		}
 	}
 }

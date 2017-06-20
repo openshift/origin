@@ -5,7 +5,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
@@ -24,9 +24,9 @@ var (
 	OpenShiftServerSigningServiceUIDOID = oid(OpenShiftServerSigningServiceOID, 1)
 )
 
-// ServiceServerCertificateExtension returns a CertificateExtensionFunc that will add the
+// ServiceServerCertificateExtensionV1 returns a CertificateExtensionFunc that will add the
 // service UID as an x509 v3 extension to the server certificate.
-func ServiceServerCertificateExtension(svc *kapi.Service) crypto.CertificateExtensionFunc {
+func ServiceServerCertificateExtensionV1(svc *kapiv1.Service) crypto.CertificateExtensionFunc {
 	return func(cert *x509.Certificate) error {
 		uid, err := asn1.Marshal(svc.UID)
 		if err != nil {

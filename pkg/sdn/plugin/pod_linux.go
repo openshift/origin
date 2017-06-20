@@ -268,12 +268,15 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		if err != nil {
 			return fmt.Errorf("failed to create container veth: %v", err)
 		}
+		// Force a consistent MAC address based on the IP address
+		if err := ip.SetHWAddrByIP(podInterfaceName, podIP, nil); err != nil {
+			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
+		}
 		// refetch to get hardware address and other properties
 		contVeth, err = netlink.LinkByIndex(contVeth.Attrs().Index)
 		if err != nil {
 			return fmt.Errorf("failed to fetch container veth: %v", err)
 		}
-
 		// Clear out gateway to prevent ConfigureIface from adding the cluster
 		// subnet via the gateway
 		ipamResult.IP4.Gateway = nil

@@ -12,8 +12,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -109,7 +110,7 @@ func (sc *ServiceServingCertUpdateController) enqueueSecret(obj interface{}) {
 }
 
 func (sc *ServiceServingCertUpdateController) addSecret(obj interface{}) {
-	secret := obj.(*kapi.Secret)
+	secret := obj.(*v1.Secret)
 	if len(secret.Annotations[ServiceNameAnnotation]) == 0 {
 		return
 	}
@@ -119,10 +120,10 @@ func (sc *ServiceServingCertUpdateController) addSecret(obj interface{}) {
 }
 
 func (sc *ServiceServingCertUpdateController) updateSecret(old, cur interface{}) {
-	secret := cur.(*kapi.Secret)
+	secret := cur.(*v1.Secret)
 	if len(secret.Annotations[ServiceNameAnnotation]) == 0 {
 		// if the current doesn't have a service name, check the old
-		secret = old.(*kapi.Secret)
+		secret = old.(*v1.Secret)
 		if len(secret.Annotations[ServiceNameAnnotation]) == 0 {
 			return
 		}
@@ -170,7 +171,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 		return nil
 	}
 
-	regenerate, service := sc.requiresRegeneration(obj.(*kapi.Secret))
+	regenerate, service := sc.requiresRegeneration(obj.(*v1.Secret))
 	if !regenerate {
 		return nil
 	}
@@ -180,7 +181,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	if err != nil {
 		return err
 	}
-	secret := t.(*kapi.Secret)
+	secret := t.(*v1.Secret)
 
 	dnsName := service.Name + "." + secret.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix
@@ -188,13 +189,13 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	servingCert, err := sc.ca.MakeServerCert(
 		sets.NewString(dnsName, fqDNSName),
 		certificateLifetime,
-		extensions.ServiceServerCertificateExtension(service),
+		extensions.ServiceServerCertificateExtensionV1(service),
 	)
 	if err != nil {
 		return err
 	}
 	secret.Annotations[ServingCertExpiryAnnotation] = servingCert.Certs[0].NotAfter.Format(time.RFC3339)
-	secret.Data[kapi.TLSCertKey], secret.Data[kapi.TLSPrivateKeyKey], err = servingCert.GetPEMBytes()
+	secret.Data[v1.TLSCertKey], secret.Data[v1.TLSPrivateKeyKey], err = servingCert.GetPEMBytes()
 	if err != nil {
 		return err
 	}
@@ -203,7 +204,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	return err
 }
 
-func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *kapi.Secret) (bool, *kapi.Service) {
+func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *v1.Secret) (bool, *v1.Service) {
 	serviceName := secret.Annotations[ServiceNameAnnotation]
 	if len(serviceName) == 0 {
 		return false, nil
@@ -217,7 +218,7 @@ func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *kapi.
 		return false, nil
 	}
 
-	service := serviceObj.(*kapi.Service)
+	service := serviceObj.(*v1.Service)
 	if service.Annotations[ServingCertSecretAnnotation] != secret.Name {
 		return false, nil
 	}

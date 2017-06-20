@@ -15,9 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -57,8 +57,8 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	informerFactory := informers.NewSharedInformerFactory(kubeclient, controller.NoResyncPeriodFunc())
 
 	controller := NewServiceServingCertController(
-		informerFactory.Core().InternalVersion().Services(),
-		informerFactory.Core().InternalVersion().Secrets(),
+		informerFactory.Core().V1().Services(),
+		informerFactory.Core().V1().Secrets(),
 		kubeclient.Core(), kubeclient.Core(), ca, "cluster.local", 10*time.Minute,
 	)
 	controller.serviceHasSynced = func() bool { return true }
@@ -67,7 +67,7 @@ func controllerSetup(startingObjects []runtime.Object, stopChannel chan struct{}
 	return caOptions.Name, kubeclient, fakeWatch, fakeSecretWatch, controller, informerFactory
 }
 
-func checkGeneratedCertificate(t *testing.T, certData []byte, service *kapi.Service) {
+func checkGeneratedCertificate(t *testing.T, certData []byte, service *v1.Service) {
 	block, _ := pem.Decode(certData)
 	if block == nil {
 		t.Errorf("PEM block not found in secret")
@@ -138,7 +138,7 @@ func TestBasicControllerFlow(t *testing.T) {
 	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
 	namespace := "ns"
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
@@ -158,7 +158,7 @@ func TestBasicControllerFlow(t *testing.T) {
 		switch {
 		case action.Matches("create", "secrets"):
 			createSecret := action.(clientgotesting.CreateAction)
-			newSecret := createSecret.GetObject().(*kapi.Secret)
+			newSecret := createSecret.GetObject().(*v1.Secret)
 			if newSecret.Name != expectedSecretName {
 				t.Errorf("expected %v, got %v", expectedSecretName, newSecret.Name)
 				continue
@@ -178,7 +178,7 @@ func TestBasicControllerFlow(t *testing.T) {
 
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue
@@ -207,15 +207,15 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
 	namespace := "ns"
 
-	existingSecret := &kapi.Secret{}
+	existingSecret := &v1.Secret{}
 	existingSecret.Name = expectedSecretName
 	existingSecret.Namespace = namespace
-	existingSecret.Type = kapi.SecretTypeTLS
+	existingSecret.Type = v1.SecretTypeTLS
 	existingSecret.Annotations = expectedSecretAnnotations
 
 	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, kapierrors.NewAlreadyExists(kapi.Resource("secrets"), "new-secret")
+		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
@@ -232,7 +232,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
@@ -255,7 +255,7 @@ func TestAlreadyExistingSecretControllerFlow(t *testing.T) {
 
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue
@@ -285,15 +285,15 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	namespace := "ns"
 
-	existingSecret := &kapi.Secret{}
+	existingSecret := &v1.Secret{}
 	existingSecret.Name = expectedSecretName
 	existingSecret.Namespace = namespace
-	existingSecret.Type = kapi.SecretTypeTLS
+	existingSecret.Type = v1.SecretTypeTLS
 	existingSecret.Annotations = map[string]string{ServiceUIDAnnotation: "wrong-uid", ServiceNameAnnotation: serviceName}
 
 	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{existingSecret}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, kapierrors.NewAlreadyExists(kapi.Resource("secrets"), "new-secret")
+		return true, &v1.Secret{}, kapierrors.NewAlreadyExists(v1.Resource("secrets"), "new-secret")
 	})
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
@@ -310,7 +310,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
@@ -333,7 +333,7 @@ func TestAlreadyExistingSecretForDifferentUIDControllerFlow(t *testing.T) {
 
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue
@@ -364,7 +364,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 
 	_, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	kubeclient.PrependReactor("create", "secrets", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, kapierrors.NewForbidden(kapi.Resource("secrets"), "new-secret", fmt.Errorf("any reason"))
+		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("secrets"), "new-secret", fmt.Errorf("any reason"))
 	})
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
@@ -381,7 +381,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertErrorAnnotation: expectedError, ServingCertErrorNumAnnotation: "1"}
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
@@ -400,7 +400,7 @@ func TestSecretCreationErrorControllerFlow(t *testing.T) {
 		switch {
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue
@@ -427,13 +427,13 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 
 	caName, kubeclient, fakeWatch, _, controller, informerFactory := controllerSetup([]runtime.Object{}, stopChannel, t)
 	kubeclient.PrependReactor("update", "service", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Service{}, kapierrors.NewForbidden(kapi.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
+		return true, &v1.Service{}, kapierrors.NewForbidden(v1.Resource("fdsa"), "new-service", fmt.Errorf("any service reason"))
 	})
 	kubeclient.PrependReactor("create", "secret", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, kapierrors.NewForbidden(kapi.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
+		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
 	})
 	kubeclient.PrependReactor("update", "secret", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		return true, &kapi.Secret{}, kapierrors.NewForbidden(kapi.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
+		return true, &v1.Secret{}, kapierrors.NewForbidden(v1.Resource("asdf"), "new-secret", fmt.Errorf("any reason"))
 	})
 	controller.syncHandler = func(serviceKey string) error {
 		defer func() { received <- true }()
@@ -448,7 +448,7 @@ func TestSkipGenerationControllerFlow(t *testing.T) {
 	informerFactory.Start(stopChannel)
 	go controller.Run(1, stopChannel)
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
@@ -514,14 +514,14 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
 	namespace := "ns"
 
-	serviceToAdd := &kapi.Service{}
+	serviceToAdd := &v1.Service{}
 	serviceToAdd.Name = serviceName
 	serviceToAdd.Namespace = namespace
 	serviceToAdd.UID = types.UID(serviceUID)
 	serviceToAdd.Annotations = map[string]string{ServingCertSecretAnnotation: expectedSecretName}
 	fakeWatch.Add(serviceToAdd)
 
-	secretToDelete := &kapi.Secret{}
+	secretToDelete := &v1.Secret{}
 	secretToDelete.Name = expectedSecretName
 	secretToDelete.Namespace = namespace
 	secretToDelete.Annotations = map[string]string{ServiceNameAnnotation: serviceName}
@@ -539,7 +539,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 		switch {
 		case action.Matches("create", "secrets"):
 			createSecret := action.(clientgotesting.CreateAction)
-			newSecret := createSecret.GetObject().(*kapi.Secret)
+			newSecret := createSecret.GetObject().(*v1.Secret)
 			if newSecret.Name != expectedSecretName {
 				t.Errorf("expected %v, got %v", expectedSecretName, newSecret.Name)
 				continue
@@ -559,7 +559,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue
@@ -591,7 +591,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 		switch {
 		case action.Matches("create", "secrets"):
 			createSecret := action.(clientgotesting.CreateAction)
-			newSecret := createSecret.GetObject().(*kapi.Secret)
+			newSecret := createSecret.GetObject().(*v1.Secret)
 			if newSecret.Name != expectedSecretName {
 				t.Errorf("expected %v, got %v", expectedSecretName, newSecret.Name)
 				continue
@@ -611,7 +611,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 
 		case action.Matches("update", "services"):
 			updateService := action.(clientgotesting.UpdateAction)
-			service := updateService.GetObject().(*kapi.Service)
+			service := updateService.GetObject().(*v1.Service)
 			if !reflect.DeepEqual(service.Annotations, expectedServiceAnnotations) {
 				t.Errorf("expected %v, got %v", expectedServiceAnnotations, service.Annotations)
 				continue

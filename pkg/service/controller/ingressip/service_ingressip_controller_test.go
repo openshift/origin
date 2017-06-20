@@ -14,11 +14,10 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kfakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
+	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 )
@@ -35,8 +34,8 @@ func newController(t *testing.T, client *fake.Clientset, stopCh <-chan struct{})
 	}
 	informerFactory := informers.NewSharedInformerFactory(client, controller.NoResyncPeriodFunc())
 	controller := NewIngressIPController(
-		informerFactory.Core().InternalVersion().Services().Informer(),
-		client, kfakeexternal.NewSimpleClientset(), ipNet, 10*time.Minute,
+		informerFactory.Core().V1().Services().Informer(),
+		client, ipNet, 10*time.Minute,
 	)
 	informerFactory.Start(stopCh)
 	if !cache.WaitForCacheSync(stopCh, controller.hasSynced) {
@@ -69,24 +68,24 @@ func controllerSetup(t *testing.T, startingObjects []runtime.Object, stopCh <-ch
 	return client, fakeWatch, controller
 }
 
-func newService(name, ip string, typeLoadBalancer bool) *kapi.Service {
-	serviceType := kapi.ServiceTypeClusterIP
+func newService(name, ip string, typeLoadBalancer bool) *v1.Service {
+	serviceType := v1.ServiceTypeClusterIP
 	if typeLoadBalancer {
-		serviceType = kapi.ServiceTypeLoadBalancer
+		serviceType = v1.ServiceTypeLoadBalancer
 	}
-	service := &kapi.Service{
+	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,
 		},
-		Spec: kapi.ServiceSpec{
+		Spec: v1.ServiceSpec{
 			Type: serviceType,
 		},
 	}
 	if len(ip) > 0 {
-		service.Status = kapi.ServiceStatus{
-			LoadBalancer: kapi.LoadBalancerStatus{
-				Ingress: []kapi.LoadBalancerIngress{
+		service.Status = v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{
 					{
 						IP: ip,
 					},
@@ -104,7 +103,7 @@ func TestProcessInitialSync(t *testing.T) {
 
 	allocatedKey := "lb-allocated"
 	allocatedIP := "172.16.0.1"
-	services := []*kapi.Service{
+	services := []*v1.Service{
 		newService("regular", "", false),
 		newService(allocatedKey, allocatedIP, true),
 		newService("lb-reallocate", "foo", true),
@@ -229,7 +228,7 @@ func TestProcessChange(t *testing.T) {
 	for _, test := range tests {
 		stopCh := make(chan struct{})
 		c := newController(t, nil, stopCh)
-		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 			return nil
 		}
 		s := newService("svc", test.ip, test.lb)
@@ -305,9 +304,9 @@ func TestRecordAllocationReallocates(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	c := newController(t, nil, stopCh)
-	var persisted *kapi.Service
+	var persisted *v1.Service
 	// Keep track of the last-persisted service
-	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 		persisted = service
 		return nil
 	}
@@ -334,7 +333,7 @@ func TestAllocateReleasesOnPersistenceFailure(t *testing.T) {
 	c := newController(t, nil, stopCh)
 	expectedFree := c.ipAllocator.Free()
 	expectedErr := errors.New("Persistence failure")
-	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 		return expectedErr
 	}
 	s := newService("svc", "", true)
@@ -403,7 +402,7 @@ func TestEnsureExternalIPRespectsNonIngress(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	c := newController(t, nil, stopCh)
-	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+	c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 		return nil
 	}
 	ingressIP := "172.16.0.1"
@@ -567,8 +566,8 @@ func TestClearPersistedAllocation(t *testing.T) {
 	for _, test := range tests {
 		stopCh := make(chan struct{})
 		c := newController(t, nil, stopCh)
-		var persistedService *kapi.Service
-		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *kapi.Service, targetStatus bool) error {
+		var persistedService *v1.Service
+		c.persistenceHandler = func(client kcoreclient.ServicesGetter, service *v1.Service, targetStatus bool) error {
 			// Save the last persisted service
 			persistedService = service
 			return test.persistenceError

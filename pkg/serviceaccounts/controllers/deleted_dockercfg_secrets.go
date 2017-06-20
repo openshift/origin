@@ -11,9 +11,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 )
 
 // NumServiceAccountUpdateRetries controls the number of times we will retry on conflict errors.
@@ -38,8 +38,8 @@ func NewDockercfgDeletedController(secrets informers.SecretInformer, cl kclients
 		cache.FilteringResourceEventHandler{
 			FilterFunc: func(obj interface{}) bool {
 				switch t := obj.(type) {
-				case *api.Secret:
-					return t.Type == api.SecretTypeDockercfg
+				case *v1.Secret:
+					return t.Type == v1.SecretTypeDockercfg
 				default:
 					utilruntime.HandleError(fmt.Errorf("object passed to %T that is not expected: %T", e, obj))
 					return false
@@ -79,7 +79,7 @@ func (e *DockercfgDeletedController) Run(stopCh <-chan struct{}) {
 // secretDeleted reacts to a Secret being deleted by looking to see if it's a dockercfg secret for a service account, in which case it
 // it removes the references from the service account and removes the token created to back the dockercfgSecret
 func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
-	dockercfgSecret, ok := obj.(*api.Secret)
+	dockercfgSecret, ok := obj.(*v1.Secret)
 	if !ok {
 		return
 	}
@@ -108,7 +108,7 @@ func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 }
 
 // removeDockercfgSecretReference updates the given ServiceAccount to remove ImagePullSecret and Secret references
-func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSecret *api.Secret) error {
+func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSecret *v1.Secret) error {
 	serviceAccount, err := e.getServiceAccount(dockercfgSecret)
 	if kapierrors.IsNotFound(err) {
 		// if the service account is gone, no work to do
@@ -120,7 +120,7 @@ func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSec
 
 	changed := false
 
-	secrets := []api.ObjectReference{}
+	secrets := []v1.ObjectReference{}
 	for _, s := range serviceAccount.Secrets {
 		if s.Name == dockercfgSecret.Name {
 			changed = true
@@ -131,7 +131,7 @@ func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSec
 	}
 	serviceAccount.Secrets = secrets
 
-	imagePullSecrets := []api.LocalObjectReference{}
+	imagePullSecrets := []v1.LocalObjectReference{}
 	for _, s := range serviceAccount.ImagePullSecrets {
 		if s.Name == dockercfgSecret.Name {
 			changed = true
@@ -153,8 +153,8 @@ func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSec
 }
 
 // getServiceAccount returns the ServiceAccount referenced by the given secret.  return nil, but no error if the secret doesn't reference a service account
-func (e *DockercfgDeletedController) getServiceAccount(secret *api.Secret) (*api.ServiceAccount, error) {
-	saName, saUID := secret.Annotations[api.ServiceAccountNameKey], secret.Annotations[api.ServiceAccountUIDKey]
+func (e *DockercfgDeletedController) getServiceAccount(secret *v1.Secret) (*v1.ServiceAccount, error) {
+	saName, saUID := secret.Annotations[v1.ServiceAccountNameKey], secret.Annotations[v1.ServiceAccountUIDKey]
 	if len(saName) == 0 || len(saUID) == 0 {
 		return nil, nil
 	}

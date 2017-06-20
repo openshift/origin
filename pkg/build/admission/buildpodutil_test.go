@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 )
@@ -15,7 +16,7 @@ func TestGetBuild(t *testing.T) {
 	build := u.Build().WithDockerStrategy()
 	for _, version := range []string{"v1"} {
 		pod := u.Pod().WithBuild(t, build.AsBuild(), version)
-		resultBuild, resultVersion, err := GetBuildFromPod((*kapi.Pod)(pod))
+		resultBuild, resultVersion, err := GetBuildFromPod((*v1.Pod)(pod))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -36,7 +37,7 @@ func TestSetBuild(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		err = SetBuildInPod((*kapi.Pod)(pod), build.AsBuild(), groupVersion)
+		err = SetBuildInPod((*v1.Pod)(pod), build.AsBuild(), groupVersion)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -50,7 +51,7 @@ func TestSetBuild(t *testing.T) {
 func TestSetBuildLogLevel(t *testing.T) {
 	build := u.Build().WithSourceStrategy()
 	pod := u.Pod().WithEnvVar("BUILD", "foo")
-	SetPodLogLevelFromBuild((*kapi.Pod)(pod), build.AsBuild())
+	SetPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
 
 	if len(pod.Spec.Containers[0].Args) == 0 {
 		t.Errorf("Builds pod loglevel was not set")
@@ -63,7 +64,7 @@ func TestSetBuildLogLevel(t *testing.T) {
 	build = u.Build().WithSourceStrategy()
 	pod = u.Pod().WithEnvVar("BUILD", "foo")
 	build.Spec.Strategy.SourceStrategy.Env = []kapi.EnvVar{{Name: "BUILD_LOGLEVEL", Value: "7", ValueFrom: nil}}
-	SetPodLogLevelFromBuild((*kapi.Pod)(pod), build.AsBuild())
+	SetPodLogLevelFromBuild((*v1.Pod)(pod), build.AsBuild())
 
 	if pod.Spec.Containers[0].Args[0] != "--loglevel=7" {
 		t.Errorf("Build pod loglevel was not transferred from BUILD_LOGLEVEL environment variable: %#v", pod)

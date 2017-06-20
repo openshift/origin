@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-from shutil import copy, copytree, rmtree
+from shutil import copy, rmtree
+import distutils.dir_util as dir_util
 from subprocess import call
 from tempfile import mkdtemp
 
 from atexit import register
-from os import getenv, mkdir, remove
+from os import getenv, listdir, mkdir, remove
 from os.path import abspath, dirname, exists, isdir, join
 
 if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--h', '-help', '--help']:
@@ -170,11 +171,10 @@ def add_to_context(context_dir, source, destination, container_destination):
 		container_destination)
    	)
     absolute_destination = abspath(join(context_dir, destination))
-    if not exists(absolute_destination):
-        if isdir(source):
-            copytree(source, absolute_destination)
-        else:
-            copy(source, absolute_destination)
+    if isdir(source):
+        dir_util.copy_tree(source, absolute_destination)
+    else:
+        copy(source, absolute_destination)
     with open(join(context_dir, "Dockerfile"), "a") as dockerfile:
         dockerfile.write("ADD {} {}\n".format(destination, container_destination))
 

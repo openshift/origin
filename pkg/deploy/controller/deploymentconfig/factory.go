@@ -14,9 +14,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
@@ -36,24 +36,23 @@ func NewDeploymentConfigController(
 	dcInformer cache.SharedIndexInformer,
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	oc osclient.Interface,
-	internalKubeClientset kclientset.Interface,
-	externalKubeClientset kclientsetexternal.Interface,
+	kubeClientset kclientset.Interface,
 	codec runtime.Codec,
 ) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(externalKubeClientset.CoreV1().RESTClient()).Events("")})
+	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kv1core.New(kubeClientset.CoreV1().RESTClient()).Events("")})
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deploymentconfig-controller"})
 
 	c := &DeploymentConfigController{
 		dn: oc,
-		rn: internalKubeClientset.Core(),
+		rn: kubeClientset.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
 		rcLister:       rcInformer.Lister(),
 		rcListerSynced: rcInformer.Informer().HasSynced,
 		rcControl: oscontroller.RealRCControl{
-			KubeClient: internalKubeClientset,
+			KubeClient: kubeClientset,
 			Recorder:   recorder,
 		},
 
@@ -140,8 +139,8 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 // controller and requeues the deployment config.
 func (c *DeploymentConfigController) updateReplicationController(old, cur interface{}) {
 	// A periodic relist will send update events for all known controllers.
-	curRC := cur.(*kapi.ReplicationController)
-	oldRC := old.(*kapi.ReplicationController)
+	curRC := cur.(*v1.ReplicationController)
+	oldRC := old.(*v1.ReplicationController)
 	if curRC.ResourceVersion == oldRC.ResourceVersion {
 		return
 	}
@@ -152,10 +151,10 @@ func (c *DeploymentConfigController) updateReplicationController(old, cur interf
 }
 
 // deleteReplicationController enqueues the deployment that manages a replicationcontroller when
-// the replicationcontroller is deleted. obj could be an *kapi.ReplicationController, or
+// the replicationcontroller is deleted. obj could be an *v1.ReplicationController, or
 // a DeletionFinalStateUnknown marker item.
 func (c *DeploymentConfigController) deleteReplicationController(obj interface{}) {
-	rc, ok := obj.(*kapi.ReplicationController)
+	rc, ok := obj.(*v1.ReplicationController)
 
 	// When a delete is dropped, the relist will notice a pod in the store not
 	// in the list, leading to the insertion of a tombstone object which contains
@@ -166,7 +165,7 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 			utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		rc, ok = tombstone.Obj.(*kapi.ReplicationController)
+		rc, ok = tombstone.Obj.(*v1.ReplicationController)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a replication controller %#v", obj))
 			return

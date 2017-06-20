@@ -12,8 +12,10 @@ import (
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -25,11 +27,11 @@ const (
 )
 
 // GetBuildName returns name of the build pod.
-func GetBuildName(pod *kapi.Pod) string {
+func GetBuildName(pod metav1.Object) string {
 	if pod == nil {
 		return ""
 	}
-	return pod.Annotations[buildapi.BuildAnnotation]
+	return pod.GetAnnotations()[buildapi.BuildAnnotation]
 }
 
 // GetInputReference returns the From ObjectReference associated with the
@@ -178,12 +180,40 @@ func BuildDeepCopy(build *buildapi.Build) (*buildapi.Build, error) {
 	return copied, nil
 }
 
+func CopyApiResourcesToV1Resources(in *kapi.ResourceRequirements) v1.ResourceRequirements {
+	copied, err := kapi.Scheme.DeepCopy(in)
+	if err != nil {
+		panic(err)
+	}
+	in = copied.(*kapi.ResourceRequirements)
+	out := v1.ResourceRequirements{}
+	if err := v1.Convert_api_ResourceRequirements_To_v1_ResourceRequirements(in, &out, nil); err != nil {
+		panic(err)
+	}
+	return out
+}
+
+func CopyApiEnvVarToV1EnvVar(in []kapi.EnvVar) []v1.EnvVar {
+	copied, err := kapi.Scheme.DeepCopy(in)
+	if err != nil {
+		panic(err)
+	}
+	in = copied.([]kapi.EnvVar)
+	out := make([]v1.EnvVar, len(in))
+	for i := range in {
+		if err := v1.Convert_api_EnvVar_To_v1_EnvVar(&in[i], &out[i], nil); err != nil {
+			panic(err)
+		}
+	}
+	return out
+}
+
 // MergeTrustedEnvWithoutDuplicates merges two environment lists without having
 // duplicate items in the output list.  The source list will be filtered
 // such that only whitelisted environment variables are merged into the
 // output list.  If sourcePrecedence is true, keys in the source list
 // will override keys in the output list.
-func MergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVar, sourcePrecedence bool) {
+func MergeTrustedEnvWithoutDuplicates(source []v1.EnvVar, output *[]v1.EnvVar, sourcePrecedence bool) {
 	// filter out all environment variables except trusted/well known
 	// values, because we do not want random environment variables being
 	// fed into the privileged STI container via the BuildConfig definition.
@@ -194,7 +224,7 @@ func MergeTrustedEnvWithoutDuplicates(source []kapi.EnvVar, output *[]kapi.EnvVa
 
 	index := 0
 	filteredSourceMap := make(map[string]sourceMapItem)
-	filteredSource := []kapi.EnvVar{}
+	filteredSource := []v1.EnvVar{}
 	for _, env := range source {
 		for _, acceptable := range buildapi.WhitelistEnvVarNames {
 			if env.Name == acceptable {

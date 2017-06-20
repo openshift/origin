@@ -55,8 +55,8 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
 	buildConfigInformer := ctx.BuildInformers.Build().InternalVersion().BuildConfigs()
 	imageStreamInformer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
-	podInformer := ctx.InternalKubeInformers.Core().InternalVersion().Pods()
-	secretInformer := ctx.InternalKubeInformers.Core().InternalVersion().Secrets()
+	podInformer := ctx.ExternalKubeInformers.Core().V1().Pods()
+	secretInformer := ctx.ExternalKubeInformers.Core().V1().Secrets()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
 		BuildInformer:       buildInformer,
