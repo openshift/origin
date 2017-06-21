@@ -11,8 +11,8 @@ import (
 	ktransport "k8s.io/client-go/transport"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -66,7 +66,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	}
 
 	// our simple URL to get back a code.  We want to go through the front proxy
-	rawAuthorizeRequest := proxyServer.URL + origin.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
+	rawAuthorizeRequest := proxyServer.URL + oauthutil.OpenShiftOAuthAPIPrefix + "/authorize?response_type=code&client_id=test"
 
 	// the first request we make to the front proxy should challenge us for authentication info
 	shouldBeAChallengeResponse, err := http.Get(rawAuthorizeRequest)

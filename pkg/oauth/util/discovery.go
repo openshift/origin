@@ -1,4 +1,4 @@
-package discovery
+package util
 
 import (
 	"github.com/RangelReale/osin"
@@ -38,12 +38,12 @@ type OauthAuthorizationServerMetadata struct {
 	CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 }
 
-func Get(masterPublicURL, authorizeURL, tokenURL string) OauthAuthorizationServerMetadata {
+func GetOauthMetadata(masterPublicURL string) OauthAuthorizationServerMetadata {
 	config := osinserver.NewDefaultServerConfig()
 	return OauthAuthorizationServerMetadata{
 		Issuer:                masterPublicURL,
-		AuthorizationEndpoint: authorizeURL,
-		TokenEndpoint:         tokenURL,
+		AuthorizationEndpoint: OpenShiftOAuthAuthorizeURL(masterPublicURL),
+		TokenEndpoint:         OpenShiftOAuthTokenURL(masterPublicURL),
 		// Note: this list is incomplete, which is allowed per the draft spec
 		ScopesSupported:               scope.DefaultSupportedScopes(),
 		ResponseTypesSupported:        config.AllowedAuthorizeTypes,

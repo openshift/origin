@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
-	"github.com/openshift/origin/pkg/oauth/discovery"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
@@ -106,7 +106,7 @@ const (
 // masterPublicURL should be internally and externally routable to allow all users to discover this information
 func initOAuthAuthorizationServerMetadataRoute(mux *genericmux.PathRecorderMux, path, masterPublicURL string) {
 	// Build OAuth metadata once
-	metadata, err := json.MarshalIndent(discovery.Get(masterPublicURL, OpenShiftOAuthAuthorizeURL(masterPublicURL), OpenShiftOAuthTokenURL(masterPublicURL)), "", "  ")
+	metadata, err := json.MarshalIndent(oauthutil.GetOauthMetadata(masterPublicURL), "", "  ")
 	if err != nil {
 		glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
 		return
