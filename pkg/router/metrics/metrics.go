@@ -13,10 +13,10 @@ import (
 // Listen starts a server for health, metrics, and profiling on the provided listen port.
 // It will terminate the process if the server fails. Metrics and profiling are only exposed
 // if username and password are provided and the user's input matches.
-func Listen(listenAddr string, username, password string) {
+func Listen(listenAddr string, username, password string, checks ...healthz.HealthzChecker) {
 	go func() {
 		mux := http.NewServeMux()
-		healthz.InstallHandler(mux)
+		healthz.InstallHandler(mux, checks...)
 
 		// TODO: exclude etcd and other unused metrics
 
