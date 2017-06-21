@@ -733,6 +733,15 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	}
 
 	if opt.ServiceCatalog {
+
+		if cfg.AdmissionConfig.PluginConfig == nil {
+			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		}
+
+		cfg.AdmissionConfig.PluginConfig["PodPreset"] = configapi.AdmissionPluginConfig{
+			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
+		}
+
 		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
 			TemplateNamespaces: []string{OpenshiftNamespace},
 		}
