@@ -345,6 +345,13 @@ func MakeDeploymentV1(config *deployapi.DeploymentConfig, codec runtime.Codec) (
 		return nil, fmt.Errorf("couldn't clone podSpec: %v", err)
 	}
 
+	// Fix trailing and leading whitespace in the image field
+	// This is needed to sanitize old deployment configs where spaces were permitted but
+	// kubernetes 3.7 (#47491) tightened the validation of container image fields.
+	for i := range podSpec.Containers {
+		podSpec.Containers[i].Image = strings.TrimSpace(podSpec.Containers[i].Image)
+	}
+
 	controllerLabels := make(labels.Set)
 	for k, v := range config.Labels {
 		controllerLabels[k] = v
