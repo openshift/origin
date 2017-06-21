@@ -171,14 +171,14 @@ func (ds *dockerService) RunPodSandbox(config *runtimeapi.PodSandboxConfig) (id 
 // after us?
 func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	var namespace, name string
+	var hostNetwork bool
 	var checkpointErr, statusErr error
-	needNetworkTearDown := false
 
 	// Try to retrieve sandbox information from docker daemon or sandbox checkpoint
 	status, statusErr := ds.PodSandboxStatus(podSandboxID)
 	if statusErr == nil {
 		nsOpts := status.GetLinux().GetNamespaces().GetOptions()
-		needNetworkTearDown = nsOpts != nil && !nsOpts.HostNetwork
+		hostNetwork = nsOpts != nil && nsOpts.HostNetwork
 		m := status.GetMetadata()
 		namespace = m.Namespace
 		name = m.Name
@@ -211,10 +211,8 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 		} else {
 			namespace = checkpoint.Namespace
 			name = checkpoint.Name
+			hostNetwork = checkpoint.Data != nil && checkpoint.Data.HostNetwork
 		}
-
-		// Always trigger network plugin to tear down
-		needNetworkTearDown = true
 	}
 
 	// WARNING: The following operations made the following assumption:
@@ -227,7 +225,7 @@ func (ds *dockerService) StopPodSandbox(podSandboxID string) error {
 	// effort clean up and will not return error.
 	errList := []error{}
 	ready, ok := ds.getNetworkReady(podSandboxID)
-	if needNetworkTearDown && (ready || !ok) {
+	if !hostNetwork && (ready || !ok) {
 		// Only tear down the pod network if we haven't done so already
 		cID := kubecontainer.BuildContainerID(runtimeName, podSandboxID)
 		err := ds.network.TearDownPod(namespace, name, cID)
@@ -646,6 +644,9 @@ func constructPodSandboxCheckpoint(config *runtimeapi.PodSandboxConfig) *PodSand
 			ContainerPort: &pm.ContainerPort,
 			Protocol:      &proto,
 		})
+	}
+	if nsOptions := config.GetLinux().GetSecurityContext().GetNamespaceOptions(); nsOptions != nil {
+		checkpoint.Data.HostNetwork = nsOptions.HostNetwork
 	}
 	return checkpoint
 }
