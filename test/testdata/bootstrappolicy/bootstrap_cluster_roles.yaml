@@ -3750,6 +3750,16 @@ items:
     - patch
     - update
   - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - patch
+    - update
+  - apiGroups:
     - apps
     - extensions
     attributeRestrictions: null
