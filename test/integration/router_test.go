@@ -1673,6 +1673,10 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 		err := wait.Poll(time.Millisecond*100, time.Duration(reloadInterval)*2*time.Second, func() (bool, error) {
 			_, err := getRoute(routeAddress, routeAddress, scheme, nil, "")
 			lastErr = nil
+
+			if err != nil && strings.Contains(err.Error(), "connection refused") {
+				err = ErrUnavailable
+			}
 			switch err {
 			case ErrUnavailable:
 				return true, nil
