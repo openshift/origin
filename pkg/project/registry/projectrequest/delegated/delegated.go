@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -18,12 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/client"
@@ -39,20 +37,20 @@ type REST struct {
 	templateName      string
 
 	openshiftClient *client.Client
-	kubeClient      kclientset.Interface
+	restConfig      *restclient.Config
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
 	policyBindings authorizationlister.PolicyBindingLister
 }
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, kubeClient kclientset.Interface, policyBindingCache authorizationlister.PolicyBindingLister) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, restConfig *restclient.Config, policyBindingCache authorizationlister.PolicyBindingLister) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
 		templateName:      templateName,
 		openshiftClient:   openshiftClient,
-		kubeClient:        kubeClient,
+		restConfig:        restConfig,
 		policyBindings:    policyBindingCache,
 	}
 }
@@ -169,14 +167,9 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 
 	bulk := configcmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:  client.DefaultMultiRESTMapper(),
-			ObjectTyper: kapi.Scheme,
-			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-				if latest.OriginKind(mapping.GroupVersionKind) {
-					return r.openshiftClient, nil
-				}
-				return r.kubeClient.Core().RESTClient(), nil
-			}),
+			RESTMapper:   client.DefaultMultiRESTMapper(),
+			ObjectTyper:  kapi.Scheme,
+			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},
 		After: stopOnErr,
 		Op:    configcmd.Create,

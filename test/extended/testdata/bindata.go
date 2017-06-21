@@ -139,6 +139,7 @@
 // test/extended/testdata/sti-environment-build-app/.sti/environment
 // test/extended/testdata/sti-environment-build-app/Gemfile
 // test/extended/testdata/sti-environment-build-app/config.ru
+// test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/test-auth-build.yaml
 // test/extended/testdata/test-bc-with-pr-ref.yaml
 // test/extended/testdata/test-build-app/Dockerfile
@@ -7289,6 +7290,81 @@ func testExtendedTestdataStiEnvironmentBuildAppConfigRu() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/sti-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: configsecret
+
+- kind: TemplateInstance
+  apiVersion: template.openshift.io/v1
+  metadata:
+    name: templateinstance
+  spec:
+    template:
+      kind: Template
+      apiVersion: v1
+      metadata:
+        name: template
+        namespace: default
+      objects:
+      - kind: Secret
+        apiVersion: v1
+        metadata:
+          name: secret
+      - kind: Deployment
+        apiVersion: apps/v1beta1
+        metadata:
+          name: deployment
+        spec:
+          replicas: 0
+          selector:
+            matchLabels:
+              key: value
+          template:
+            metadata:
+              labels:
+                key: value
+            spec:
+              containers:
+              - name: hello-openshift
+                image: openshift/hello-openshift
+      - kind: Route
+        apiVersion: v1
+        metadata:
+          name: route
+        spec:
+          to:
+            name: foo
+      - kind: Route
+        apiVersion: route.openshift.io/v1
+        metadata:
+          name: newroute
+        spec:
+          to:
+            name: foo
+
+    secret:
+      name: configsecret
+`)
+
+func testExtendedTestdataTemplatesTemplateinstance_objectkindsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateinstance_objectkindsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -20303,6 +20379,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sti-environment-build-app/.sti/environment": testExtendedTestdataStiEnvironmentBuildAppStiEnvironment,
 	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
 	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
 	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
 	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
@@ -20700,6 +20777,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"Gemfile": &bintree{testExtendedTestdataStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
 					"config.ru": &bintree{testExtendedTestdataStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+				}},
+				"templates": &bintree{nil, map[string]*bintree{
+					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 				}},
 				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
 				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},
