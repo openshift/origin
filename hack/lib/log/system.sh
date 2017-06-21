@@ -55,6 +55,11 @@ function os::log::system::clean_up() {
         return 0
     fi
 
+    if [[ ! -s "${SAR_LOGFILE:-}" ]]; then
+        os::log::warning "No system logger data could be found, log file missing."
+        return 0
+    fi
+
     local log_subset_flags=( "-b" "-B" "-u ALL" "-q" "-r" )
 
     local log_subset_names=( "iops" "paging" "cpu" "queue" "memory" )
