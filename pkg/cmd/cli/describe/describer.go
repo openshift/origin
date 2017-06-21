@@ -729,6 +729,7 @@ func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
 		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		formatString(out, "Image Lookup", fmt.Sprintf("local=%t", imageStream.Spec.LookupPolicy.Local))
 		formatImageStreamTags(out, imageStream)
 		return nil
 	})

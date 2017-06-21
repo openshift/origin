@@ -16,6 +16,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	ometa "github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -35,13 +36,26 @@ var (
 		Once lookup is enabled, simply reference the image stream tag in the image field of the object.
 		For example:
 
-				$ %[1]s import-image mysql:latest --confirm
+				$ %[2]s import-image mysql:latest --confirm
 				$ %[1]s image-lookup mysql
-				$ %[1]s run mysql --image=mysql
+				$ %[2]s run mysql --image=mysql
 
 		will import the latest MySQL image from the DockerHub, set that image stream to handle the
 		"mysql" name within the project, and then launch a deployment that points to the image we
-		imported.`)
+		imported.
+		
+		You may also force image lookup for all of the images on a resource with this command. An
+		annotation is placed on the object which forces an image stream tag lookup in the current
+		namespace for any image that matches, regardless of whether the image stream has lookup
+		enabled.
+
+				$ %[2]s run mysql --image=myregistry:5000/test/mysql:v1
+				$ %[2]s tag --source=docker myregistry:5000/test/mysql:v1 mysql:v1
+				$ %[1]s image-lookup deploy/mysql
+
+		Which should trigger a deployment pointing to the imported mysql:v1 tag.
+
+		Experimental: This feature is under active development and may change without notice.`)
 
 	imageLookupExample = templates.Examples(`
 		# Print all of the image streams and whether they resolve local names
@@ -50,12 +64,20 @@ var (
 		# Use local name lookup on image stream mysql
 		%[1]s image-lookup mysql
 
+		# Force a deployment to use local name lookup
+		%[1]s image-lookup deploy/mysql
+
+		# Show the current status of the deployment lookup
+		%[1]s image-lookup deploy/mysql --list
+
 		# Disable local name lookup on image stream mysql
 		%[1]s image-lookup mysql --enabled=false
 
 		# Set local name lookup on all image streams
 		%[1]s image-lookup --all`)
 )
+
+const alphaResolveNamesAnnotation = "alpha.image.policy.openshift.io/resolve-names"
 
 type ImageLookupOptions struct {
 	Out io.Writer
@@ -77,13 +99,14 @@ type ImageLookupOptions struct {
 	PrintTable  bool
 	PrintObject func(runtime.Object) error
 
+	List  bool
 	Local bool
 
 	Enabled bool
 }
 
 // NewCmdImageLookup implements the set image-lookup command
-func NewCmdImageLookup(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdImageLookup(fullName, parentName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
 	options := &ImageLookupOptions{
 		Out:     out,
 		Err:     errOut,
@@ -91,8 +114,8 @@ func NewCmdImageLookup(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 	}
 	cmd := &cobra.Command{
 		Use:     "image-lookup STREAMNAME [...]",
-		Short:   "Use an image stream when short image names are provided",
-		Long:    fmt.Sprintf(imageLookupLong, fullName),
+		Short:   "Change how images are resolved when deploying applications",
+		Long:    fmt.Sprintf(imageLookupLong, fullName, parentName),
 		Example: fmt.Sprintf(imageLookupExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(options.Complete(f, cmd, args))
@@ -102,11 +125,12 @@ func NewCmdImageLookup(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 	}
 
 	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on")
-	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types")
+	cmd.Flags().StringVarP(&options.Selector, "selector", "l", options.Selector, "Selector (label query) to filter on.")
+	cmd.Flags().BoolVar(&options.All, "all", options.All, "If true, select all resources in the namespace of the specified resource types.")
 	cmd.Flags().StringSliceVarP(&options.Filenames, "filename", "f", options.Filenames, "Filename, directory, or URL to file to use to edit the resource.")
 
-	cmd.Flags().BoolVar(&options.Enabled, "enabled", options.Enabled, "Mark the image stream as resolving tagged images in this namespace")
+	cmd.Flags().BoolVar(&options.List, "list", false, "Display the current states of the requested resources.")
+	cmd.Flags().BoolVar(&options.Enabled, "enabled", options.Enabled, "Mark the image stream as resolving tagged images in this namespace.")
 
 	cmd.Flags().BoolVar(&options.Local, "local", false, "If true, operations will be performed locally.")
 	kcmdutil.AddDryRunFlag(cmd)
@@ -137,7 +161,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	o.PrintTable = len(args) == 0 && !o.All
+	o.PrintTable = (len(args) == 0 && !o.All) || o.List
 
 	mapper, typer := f.Object()
 	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
@@ -152,11 +176,16 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	case o.Local:
 		// perform no lookups on the server
 		// TODO: discovery still requires a running server, doesn't fall back correctly
-	case len(args) == 0:
+	case len(args) == 0 && len(o.Filenames) == 0:
 		o.Builder = o.Builder.
 			SelectorParam(o.Selector).
 			SelectAllParam(true).
 			ResourceTypes("imagestreams")
+	case o.List:
+		o.Builder = o.Builder.
+			SelectorParam(o.Selector).
+			SelectAllParam(o.All).
+			ResourceTypeOrNameArgs(true, args...)
 	default:
 		o.Builder = o.Builder.
 			SelectorParam(o.Selector).
@@ -198,11 +227,43 @@ func (o *ImageLookupOptions) Run() error {
 	}
 
 	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
-		info.Object.(*imageapi.ImageStream).Spec.LookupPolicy.Local = o.Enabled
-		return true, nil
+		switch t := info.Object.(type) {
+		case *imageapi.ImageStream:
+			t.Spec.LookupPolicy.Local = o.Enabled
+			return true, nil
+		default:
+			accessor, ok := ometa.GetAnnotationAccessor(info.Object)
+			if !ok {
+				return true, fmt.Errorf("the resource %s/%s does not support altering image lookup", info.Mapping.Resource, info.Name)
+			}
+			templateAnnotations, ok := accessor.TemplateAnnotations()
+			if ok {
+				if o.Enabled {
+					if templateAnnotations == nil {
+						templateAnnotations = make(map[string]string)
+					}
+					templateAnnotations[alphaResolveNamesAnnotation] = "*"
+				} else {
+					delete(templateAnnotations, alphaResolveNamesAnnotation)
+				}
+				accessor.SetTemplateAnnotations(templateAnnotations)
+				return true, nil
+			}
+			annotations := accessor.Annotations()
+			if o.Enabled {
+				if annotations == nil {
+					annotations = make(map[string]string)
+				}
+				annotations[alphaResolveNamesAnnotation] = "*"
+			} else {
+				delete(annotations, alphaResolveNamesAnnotation)
+			}
+			accessor.SetAnnotations(annotations)
+			return true, nil
+		}
 	})
 	if singleItemImplied && len(patches) == 0 {
-		return fmt.Errorf("%s no changes", infos[0].Name)
+		return fmt.Errorf("%s/%s no changes", infos[0].Mapping.Resource, infos[0].Name)
 	}
 	if o.PrintObject != nil {
 		object, err := resource.AsVersionedObject(infos, !singleItemImplied, o.OutputVersion, kapi.Codecs.LegacyCodec(o.OutputVersion))
@@ -250,7 +311,25 @@ func (o *ImageLookupOptions) printImageLookup(infos []*resource.Info) error {
 	defer w.Flush()
 	fmt.Fprintf(w, "NAME\tLOCAL\n")
 	for _, info := range infos {
-		fmt.Fprintf(w, "%s\t%t\n", info.Name, info.Object.(*imageapi.ImageStream).Spec.LookupPolicy.Local)
+		switch t := info.Object.(type) {
+		case *imageapi.ImageStream:
+			fmt.Fprintf(w, "%s\t%t\n", info.Name, t.Spec.LookupPolicy.Local)
+		default:
+			accessor, ok := ometa.GetAnnotationAccessor(info.Object)
+			if !ok {
+				// has no annotations
+				fmt.Fprintf(w, "%s/%s\tUNKNOWN\n", info.Mapping.Resource, info.Name)
+				break
+			}
+			var enabled bool
+			if a, ok := accessor.TemplateAnnotations(); ok {
+				enabled = a[alphaResolveNamesAnnotation] == "*"
+			}
+			if !enabled {
+				enabled = accessor.Annotations()[alphaResolveNamesAnnotation] == "*"
+			}
+			fmt.Fprintf(w, "%s/%s\t%t\n", info.Mapping.Resource, info.Name, enabled)
+		}
 	}
 	return nil
 }
