@@ -1,6 +1,7 @@
 package route
 
 import (
+	"reflect"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,6 +63,47 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	strategy.PrepareForUpdate(ctx, hostlessUpdatedRoute, persistedRoute)
 	if hostlessUpdatedRoute.Spec.Host != "myhost.com" {
 		t.Fatalf("expected empty spec.host to default to existing spec.host, got %s", hostlessUpdatedRoute.Spec.Host)
+	}
+}
+
+func TestEmptyDefaultCACertificate(t *testing.T) {
+	testCases := []struct {
+		route *routeapi.Route
+	}{
+		{
+			route: &routeapi.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       "foo",
+					Name:            "myroute",
+					UID:             types.UID("abc"),
+					ResourceVersion: "1",
+				},
+				Spec: routeapi.RouteSpec{
+					Host: "myhost.com",
+				},
+			},
+		},
+	}
+	for i, testCase := range testCases {
+		copied, _ := kapi.Scheme.Copy(testCase.route)
+		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied.(*routeapi.Route)); err != nil {
+			t.Errorf("%d: unexpected error: %v", i, err)
+			continue
+		}
+		routeStrategy{}.PrepareForCreate(nil, copied.(*routeapi.Route))
+		if !reflect.DeepEqual(testCase.route, copied) {
+			t.Errorf("%d: unexpected change: %#v", i, copied)
+			continue
+		}
+		if err := DecorateLegacyRouteWithEmptyDestinationCACertificates(copied.(*routeapi.Route)); err != nil {
+			t.Errorf("%d: unexpected error: %v", i, err)
+			continue
+		}
+		routeStrategy{}.PrepareForUpdate(nil, copied.(*routeapi.Route), &routeapi.Route{})
+		if !reflect.DeepEqual(testCase.route, copied) {
+			t.Errorf("%d: unexpected change: %#v", i, copied)
+			continue
+		}
 	}
 }
 

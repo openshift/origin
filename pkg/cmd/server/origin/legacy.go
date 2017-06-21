@@ -7,6 +7,8 @@ import (
 
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	deploymentconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
+	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
+	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 )
 
 var (
@@ -204,6 +206,11 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 					store := *restStorage.Store
 					restStorage.DeleteStrategy = orphanByDefault(store.DeleteStrategy)
 					legacyStorage[resource] = &deploymentconfigetcd.REST{Store: &store}
+				case "routes":
+					restStorage := s.(*routeetcd.REST)
+					store := *restStorage.Store
+					store.Decorator = routeregistry.DecorateLegacyRouteWithEmptyDestinationCACertificates
+					legacyStorage[resource] = &routeetcd.REST{Store: &store}
 
 				default:
 					legacyStorage[resource] = s
