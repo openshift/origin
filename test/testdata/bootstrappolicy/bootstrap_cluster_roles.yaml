@@ -2936,418 +2936,6 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:pv-attach-detach-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - nodes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - nodes
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - nodes/status
-    verbs:
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:pv-binder-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-  - apiGroups:
-    - storage.k8s.io
-    attributeRestrictions: null
-    resources:
-    - storageclasses
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - endpoints
-    - services
-    verbs:
-    - create
-    - delete
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - secrets
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - nodes
-    verbs:
-    - list
-    - watch
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:pv-provisioner-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims/status
-    verbs:
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:pv-recycler-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumes/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - persistentvolumeclaims/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - pods
-    verbs:
-    - create
-    - delete
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:service-ingress-ip-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:service-load-balancer-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services/status
-    verbs:
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - nodes
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
     name: system:openshift:template-service-broker
   rules:
   - apiGroups:
@@ -3408,74 +2996,6 @@ items:
     - routes
     verbs:
     - list
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:unidling-controller
-  rules:
-  - apiGroups:
-    - ""
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers/scale
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - deployments/scale
-    - replicasets/scale
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs/scale
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - endpoints
-    verbs:
-    - get
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers
-    verbs:
-    - get
-    - patch
-    - update
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs
-    verbs:
-    - get
-    - patch
-    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -4051,6 +3571,377 @@ items:
     - imagestreamimports
     verbs:
     - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:sdn-controller
+  rules:
+  - apiGroups:
+    - ""
+    - network.openshift.io
+    attributeRestrictions: null
+    resources:
+    - clusternetworks
+    verbs:
+    - create
+    - get
+    - update
+  - apiGroups:
+    - ""
+    - network.openshift.io
+    attributeRestrictions: null
+    resources:
+    - egressnetworkpolicies
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    - network.openshift.io
+    attributeRestrictions: null
+    resources:
+    - hostsubnets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    - network.openshift.io
+    attributeRestrictions: null
+    resources:
+    - netnamespaces
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - namespaces
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes/status
+    verbs:
+    - update
+  - apiGroups:
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - networkPolicies
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:cluster-quota-reconciliation-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configMaps
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    - quota.openshift.io
+    attributeRestrictions: null
+    resources:
+    - clusterresourcequotas/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:unidling-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - endpoints
+    - replicationcontrollers/scale
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs
+    verbs:
+    - get
+    - patch
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    attributeRestrictions: null
+    resources:
+    - deployments/scale
+    - replicasets/scale
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    attributeRestrictions: null
+    resources:
+    - deploymentconfigs/scale
+    verbs:
+    - get
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:service-ingress-ip-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:pv-recycler-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumes/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims
+    verbs:
+    - get
+    - list
+    - update
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - persistentvolumeclaims/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - pods
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:resourcequota-controller
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotas/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - resourcequotas
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - services
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - replicationcontrollers
+    verbs:
+    - list
   - apiGroups:
     - ""
     attributeRestrictions: null

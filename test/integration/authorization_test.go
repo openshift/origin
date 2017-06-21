@@ -383,10 +383,10 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 	"system:serviceaccount:kube-system:generic-garbage-collector",
 	"system:serviceaccount:kube-system:namespace-controller",
 	"system:serviceaccount:openshift-infra:image-trigger-controller",
-	"system:serviceaccount:openshift-infra:unidling-controller",
 	"system:serviceaccount:openshift-infra:deployment-trigger-controller",
 	"system:serviceaccount:openshift-infra:deploymentconfig-controller",
 	"system:serviceaccount:openshift-infra:template-instance-controller",
+	"system:serviceaccount:openshift-infra:unidling-controller",
 )
 
 type resourceAccessReviewTest struct {

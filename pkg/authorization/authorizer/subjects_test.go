@@ -51,6 +51,8 @@ func TestSubjects(t *testing.T) {
 			"system:serviceaccount:openshift-infra:template-instance-controller",
 			"system:serviceaccount:openshift-infra:template-instance-controller",
 			"system:serviceaccount:openshift-infra:build-controller",
+			"system:serviceaccount:openshift-infra:pv-recycler-controller",
+			"system:serviceaccount:openshift-infra:sdn-controller",
 		),
 		expectedGroups: sets.NewString("RootUsers", "system:cluster-admins", "system:cluster-readers", "system:masters", "system:nodes"),
 	}

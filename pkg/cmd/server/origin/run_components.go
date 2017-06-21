@@ -2,48 +2,22 @@ package origin
 
 import (
 	"net"
-	"sync"
 	"time"
 
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/controller"
-	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 
-	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
-	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/dns"
-	quota "github.com/openshift/origin/pkg/quota"
-	quotacontroller "github.com/openshift/origin/pkg/quota/controller"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotareconciliation"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
-	"github.com/openshift/origin/pkg/service/controller/ingressip"
-	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
-)
-
-const (
-	defaultConcurrentResourceQuotaSyncs int           = 5
-	defaultResourceQuotaSyncPeriod      time.Duration = 5 * time.Minute
-
-	// from CMServer MinResyncPeriod
-	defaultReplenishmentSyncPeriod time.Duration = 12 * time.Hour
-
-	defaultIngressIPSyncPeriod time.Duration = 10 * time.Minute
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -114,14 +88,6 @@ func (c *MasterConfig) RunProjectCache() {
 	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
-// RunSDNController runs openshift-sdn if the said network plugin is provided
-func (c *MasterConfig) RunSDNController() {
-	oClient, kClient := c.SDNControllerClients()
-	if err := sdnplugin.StartMaster(c.Options.NetworkConfig, oClient, kClient, c.InternalKubeInformers); err != nil {
-		glog.Fatalf("SDN initialization failed: %v", err)
-	}
-}
-
 // RunSecurityAllocationController starts the security allocation controller process.
 func (c *MasterConfig) RunSecurityAllocationController() {
 	alloc := c.Options.ProjectConfig.SecurityAllocator
@@ -181,121 +147,4 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 // RunGroupCache starts the group cache
 func (c *MasterConfig) RunGroupCache() {
 	c.GroupCache.Run()
-}
-
-// RunResourceQuotaManager starts resource quota controller for OpenShift resources
-func (c *MasterConfig) RunResourceQuotaManager(cm *cmapp.CMServer) {
-	concurrentResourceQuotaSyncs := defaultConcurrentResourceQuotaSyncs
-	resourceQuotaSyncPeriod := defaultResourceQuotaSyncPeriod
-	replenishmentSyncPeriodFunc := controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod)
-	if cm != nil {
-		// TODO: should these be part of os master config?
-		concurrentResourceQuotaSyncs = int(cm.ConcurrentResourceQuotaSyncs)
-		resourceQuotaSyncPeriod = cm.ResourceQuotaSyncPeriod.Duration
-		replenishmentSyncPeriodFunc = kctrlmgr.ResyncPeriod(cm)
-	}
-
-	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
-	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:                kClientExternal,
-		ResourceQuotaInformer:     c.ExternalKubeInformers.Core().V1().ResourceQuotas(),
-		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
-		Registry:                  resourceQuotaRegistry,
-		GroupKindsToReplenish:     quota.AllEvaluatedGroupKinds,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
-		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
-	}
-	go kresourcequota.NewResourceQuotaController(resourceQuotaControllerOptions).Run(concurrentResourceQuotaSyncs, utilwait.NeverStop)
-}
-
-var initClusterQuotaMapping sync.Once
-
-func (c *MasterConfig) RunClusterQuotaMappingController() {
-	initClusterQuotaMapping.Do(func() {
-		go c.ClusterQuotaMappingController.Run(5, utilwait.NeverStop)
-	})
-}
-
-func (c *MasterConfig) RunClusterQuotaReconciliationController() {
-	osClient, _, kClientExternal := c.ResourceQuotaManagerClients()
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient, kClientExternal)
-	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
-
-	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
-		ClusterQuotaInformer: c.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
-		ClusterQuotaMapper:   c.ClusterQuotaMappingController.GetClusterQuotaMapper(),
-		ClusterQuotaClient:   osClient,
-
-		Registry:                  resourceQuotaRegistry,
-		ResyncPeriod:              defaultResourceQuotaSyncPeriod,
-		ControllerFactory:         quotacontroller.NewAllResourceReplenishmentControllerFactory(c.ExternalKubeInformers, c.ImageInformers.Image().InternalVersion().ImageStreams(), osClient),
-		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(defaultReplenishmentSyncPeriod),
-		GroupKindsToReplenish:     groupKindsToReplenish,
-	}
-	controller := clusterquotareconciliation.NewClusterQuotaReconcilationController(options)
-	c.ClusterQuotaMappingController.GetClusterQuotaMapper().AddListener(controller)
-	go controller.Run(5, utilwait.NeverStop)
-}
-
-// RunIngressIPController starts the ingress ip controller if IngressIPNetworkCIDR is configured.
-func (c *MasterConfig) RunIngressIPController(internalKubeClientset kclientsetinternal.Interface, externalKubeClientset kclientsetexternal.Interface) {
-	if len(c.Options.NetworkConfig.IngressIPNetworkCIDR) == 0 {
-		return
-	}
-
-	_, ipNet, err := net.ParseCIDR(c.Options.NetworkConfig.IngressIPNetworkCIDR)
-	if err != nil {
-		// should have been caught with validation
-		glog.Fatalf("Unable to start ingress ip controller: %v", err)
-	}
-	if ipNet.IP.IsUnspecified() {
-		return
-	}
-	ingressIPController := ingressip.NewIngressIPController(
-		c.ExternalKubeInformers.Core().V1().Services().Informer(),
-		externalKubeClientset,
-		ipNet,
-		defaultIngressIPSyncPeriod,
-	)
-	go ingressIPController.Run(utilwait.NeverStop)
-}
-
-// RunUnidlingController starts the unidling controller
-func (c *MasterConfig) RunUnidlingController() {
-	oc, kc, extensionsClient := c.UnidlingControllerClients()
-	resyncPeriod := 2 * time.Hour
-	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(oc, extensionsClient)
-	dcCoreClient := deployclient.New(oc.RESTClient)
-	cont := unidlingcontroller.NewUnidlingController(scaleNamespacer, kc.Core(), kc.Core(), dcCoreClient, kc.Core(), resyncPeriod)
-
-	cont.Run(utilwait.NeverStop)
-}
-
-func (c *MasterConfig) RunOriginToRBACSyncControllers() {
-	clusterRoles := authorizationsync.NewOriginToRBACClusterRoleController(
-		c.InternalKubeInformers.Rbac().InternalVersion().ClusterRoles(),
-		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies(),
-		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
-	)
-	go clusterRoles.Run(5, utilwait.NeverStop)
-	clusterRoleBindings := authorizationsync.NewOriginToRBACClusterRoleBindingController(
-		c.InternalKubeInformers.Rbac().InternalVersion().ClusterRoleBindings(),
-		c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicyBindings(),
-		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
-	)
-	go clusterRoleBindings.Run(5, utilwait.NeverStop)
-
-	roles := authorizationsync.NewOriginToRBACRoleController(
-		c.InternalKubeInformers.Rbac().InternalVersion().Roles(),
-		c.AuthorizationInformers.Authorization().InternalVersion().Policies(),
-		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
-	)
-	go roles.Run(5, utilwait.NeverStop)
-	roleBindings := authorizationsync.NewOriginToRBACRoleBindingController(
-		c.InternalKubeInformers.Rbac().InternalVersion().RoleBindings(),
-		c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings(),
-		c.PrivilegedLoopbackKubernetesClientsetInternal.Rbac(),
-	)
-	go roleBindings.Run(5, utilwait.NeverStop)
 }
