@@ -3,6 +3,7 @@ package node
 import (
 	"io"
 	"reflect"
+	goruntime "runtime"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestKubeletDefaults(t *testing.T) {
 			NodeLabels:                  nil,
 			OOMScoreAdj:                 -999,
 			LockFilePath:                "",
-			PodInfraContainerImage:      "gcr.io/google_containers/pause-amd64:3.0", // overridden
+			PodInfraContainerImage:      "gcr.io/google_containers/pause-" + goruntime.GOARCH + ":3.0", // overridden
 			Port:                           10250, // overridden
 			ReadOnlyPort:                   10255, // disabled
 			RegisterNode:                   true,
