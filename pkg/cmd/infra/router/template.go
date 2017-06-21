@@ -23,12 +23,15 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	"github.com/openshift/origin/pkg/router/metrics"
 	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
+	"github.com/openshift/origin/pkg/version"
 )
 
 // defaultReloadInterval is how often to do reloads in seconds.
@@ -240,8 +243,9 @@ func (o *TemplateRouterOptions) Validate() error {
 
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
-	statsPort := o.StatsPort
+	glog.Infof("Starting template router (%s)", version.Get())
 
+	statsPort := o.StatsPort
 	switch {
 	case o.MetricsType == "haproxy":
 		if len(o.StatsUsername) == 0 || len(o.StatsPassword) == 0 {
@@ -336,7 +340,15 @@ func (o *TemplateRouterOptions) Run() error {
 		StrictSNI:                o.StrictSNI,
 	}
 
-	oc, kc, err := o.Config.Clients()
+	_, kc, err := o.Config.Clients()
+	if err != nil {
+		return err
+	}
+	routeclient, err := routeinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	if err != nil {
+		return err
+	}
+	projectclient, err := projectinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
 	if err != nil {
 		return err
 	}
@@ -347,7 +359,7 @@ func (o *TemplateRouterOptions) Run() error {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(templatePlugin, oc, o.RouterName, o.RouterCanonicalHostname)
+	statusPlugin := controller.NewStatusAdmitter(templatePlugin, routeclient, o.RouterName, o.RouterCanonicalHostname)
 	var nextPlugin router.Plugin = statusPlugin
 	if o.ExtendedValidation {
 		nextPlugin = controller.NewExtendedValidator(nextPlugin, controller.RejectionRecorder(statusPlugin))
@@ -355,7 +367,7 @@ func (o *TemplateRouterOptions) Run() error {
 	uniqueHostPlugin := controller.NewUniqueHost(nextPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
 	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.RouteAdmissionFunc(), o.AllowWildcardRoutes, o.RouterSelection.DisableNamespaceOwnershipCheck, controller.RejectionRecorder(statusPlugin))
 
-	factory := o.RouterSelection.NewFactory(oc, kc)
+	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Projects(), kc)
 	controller := factory.Create(plugin, false, o.EnableIngress)
 	controller.Run()
 
