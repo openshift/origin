@@ -223,7 +223,7 @@ test-extended:
 # Example:
 #   make run
 run: export OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/lib/init.sh; echo $${OS_OUTPUT_BINPATH}')
-run: export PLATFORM=$(shell bash -c 'source hack/common.sh; os::build::host_platform')
+run: export PLATFORM=$(shell bash -c 'source hack/lib/init.sh; os::build::host_platform')
 run: build
 	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
