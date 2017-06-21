@@ -91,17 +91,18 @@ var (
 
 // Helper contains methods and utilities to help with OpenShift startup
 type Helper struct {
-	hostHelper    *host.HostHelper
-	dockerHelper  *dockerhelper.Helper
-	execHelper    *dockerexec.ExecHelper
-	runHelper     *run.RunHelper
-	client        *docker.Client
-	publicHost    string
-	image         string
-	containerName string
-	routingSuffix string
-	serverIP      string
-	version       *semver.Version
+	hostHelper        *host.HostHelper
+	dockerHelper      *dockerhelper.Helper
+	execHelper        *dockerexec.ExecHelper
+	runHelper         *run.RunHelper
+	client            *docker.Client
+	publicHost        string
+	image             string
+	containerName     string
+	routingSuffix     string
+	serverIP          string
+	version           *semver.Version
+	prereleaseVersion *semver.Version
 }
 
 // StartOptions represent the parameters sent to the start command
@@ -634,6 +635,19 @@ func (h *Helper) ServerVersion() (semver.Version, error) {
 	if h.version != nil {
 		return *h.version, nil
 	}
+	version, err := h.ServerPrereleaseVersion()
+	if err == nil {
+		// ignore pre-release portion
+		version.Pre = []semver.PRVersion{}
+		h.version = &version
+	}
+	return version, err
+}
+
+func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
+	if h.prereleaseVersion != nil {
+		return *h.prereleaseVersion, nil
+	}
 
 	versionText, _, _, err := h.runHelper.New().Image(h.image).
 		Command("version").
@@ -651,13 +665,7 @@ func (h *Helper) ServerVersion() (semver.Version, error) {
 			break
 		}
 	}
-	version, err := semver.Parse(versionStr)
-	if err == nil {
-		// ignore pre-release portion
-		version.Pre = []semver.PRVersion{}
-		h.version = &version
-	}
-	return version, err
+	return semver.Parse(versionStr)
 }
 
 func useDNSIP(version semver.Version) bool {
