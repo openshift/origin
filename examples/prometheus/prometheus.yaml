@@ -23,7 +23,7 @@ parameters:
   generate: expression
   from: "[a-zA-Z0-9]{43}"
 objects:
-# Authorize the prometheus service account to read data about the cluster
+# Authorize the prometheus service account to read data about the cluster (needed for service discovery).
 - apiVersion: v1
   kind: ServiceAccount
   metadata:
@@ -137,6 +137,16 @@ objects:
           - mountPath: /prometheus
             name: data-volume
 
+        # This sidecar watches for changes in the Prometheus configuration and tells
+        # Prometheus to reload the configuration upon change.
+        - name: watch
+          image: weaveworks/watch:master-5b2a6e5
+          imagePullPolicy: IfNotPresent
+          args: ["-v", "-t", "-p=/etc/prometheus", "curl", "-X", "POST", "--fail", "-o", "-", "-sS", "http://localhost:9090/-/reload"]
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/prometheus
+
         restartPolicy: Always
         volumes:
         - configMap:
@@ -158,6 +168,32 @@ objects:
     namespace: "${NAMESPACE}"
   data:
     prometheus.yml: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+
+      rule_files:
+      - 'alerting.rules'
+
+      # An Alertmanager configuration which discovers all endpoints of service
+      # "alertmanager" in the same namespace as Prometheus. If no endpoints are
+      # discovered, no alerts are sent out.
+      alerting:
+        alertmanagers:
+        - scheme: https
+          tls_config:
+            ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            insecure_skip_verify: true
+          kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+              - '${NAMESPACE}'
+          relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name]
+            action: keep
+            regex: '${NAMESPACE};alertmanager'
+
       # A scrape configuration for running Prometheus on a Kubernetes cluster.
       # This uses separate scrape configs for cluster components (i.e. API server, node)
       # and services to allow each to use different authentication configs.
@@ -291,3 +327,14 @@ objects:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+
+    alerting.rules: |
+      # An example alert that fires for any instance that cannot be scraped.
+      ALERT InstanceDown
+      IF up == 0
+      LABELS {
+        severity = "critical"
+      }
+      ANNOTATIONS {
+        description = "Instance {{$labels.instance}} of job {{$labels.job}} is down."
+      }
