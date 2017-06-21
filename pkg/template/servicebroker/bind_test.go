@@ -2,6 +2,11 @@ package servicebroker
 
 import (
 	"testing"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/api"
+
+	templateapi "github.com/openshift/origin/pkg/template/api"
 )
 
 func TestEvaluateJSONPathExpression(t *testing.T) {
@@ -122,5 +127,20 @@ func TestEvaluateJSONPathExpression(t *testing.T) {
 		if result != test.expectedResult {
 			t.Errorf("%d: result %q", i, result)
 		}
+	}
+}
+
+func TestDuplicateCredentialKeys(t *testing.T) {
+	credentials := map[string]interface{}{}
+	err := updateCredentialsForObject(credentials, &api.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Annotations: map[string]string{
+				templateapi.ExposeAnnotationPrefix + "test":       "",
+				templateapi.Base64ExposeAnnotationPrefix + "test": "",
+			},
+		},
+	})
+	if err.Error() != `credential with key "test" already exists` {
+		t.Errorf("unexpected error %q", err)
 	}
 }

@@ -19,6 +19,8 @@ const (
 	// identity information.
 	requesterUsernameTitle       = "Template service broker: requester username"
 	requesterUsernameDescription = "OpenShift user requesting provision/bind"
+
+	noDescriptionProvided = "No description provided."
 )
 
 // Map OpenShift template annotations to open service broker metadata field
@@ -98,10 +100,15 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		},
 	}
 
+	description := template.Annotations["description"]
+	if description == "" {
+		description = noDescriptionProvided
+	}
+
 	return &api.Service{
 		Name:        template.Name,
 		ID:          string(template.UID),
-		Description: template.Annotations["description"],
+		Description: description,
 		Tags:        strings.Split(template.Annotations["tags"], ","),
 		Bindable:    true,
 		Metadata:    metadata,

@@ -238,6 +238,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		Verb:      "get",
 		Group:     kapi.GroupName,
 		Resource:  "secrets",
+		Name:      templateInstance.Spec.Secret.Name,
 	}); err != nil {
 		return err
 	}
@@ -271,6 +272,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		Verb:      "create",
 		Group:     templateapi.GroupName,
 		Resource:  "templateconfigs",
+		Name:      template.Name,
 	}); err != nil {
 		return err
 	}
@@ -288,8 +290,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 
 	// We add an OwnerReference to all objects we create - this is also needed
-	// by the template service broker for cleanup.  TODO: what about any objects
-	// created by the templateinstance in other namespaces?
+	// by the template service broker for cleanup.
 	for _, obj := range template.Objects {
 		meta, _ := meta.Accessor(obj)
 		ref := meta.GetOwnerReferences()
@@ -328,6 +329,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 				Verb:      "create",
 				Group:     info.Mapping.GroupVersionKind.Group,
 				Resource:  info.Mapping.Resource,
+				Name:      info.Name,
 			}); err != nil {
 				return nil, err
 			}

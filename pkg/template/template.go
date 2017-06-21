@@ -96,15 +96,19 @@ func stripNamespace(obj runtime.Object) {
 	if unstruct, ok := obj.(*unstructured.Unstructured); ok && unstruct.Object != nil {
 		if obj, ok := unstruct.Object["metadata"]; ok {
 			if m, ok := obj.(map[string]interface{}); ok {
-				if _, ok := m["namespace"]; ok && !stringParameterExp.MatchString(m["namespace"].(string)) {
-					m["namespace"] = ""
+				if ns, ok := m["namespace"]; ok {
+					if ns, ok := ns.(string); !ok || !stringParameterExp.MatchString(ns) {
+						m["namespace"] = ""
+					}
 				}
 			}
 			return
 		}
-		if _, ok := unstruct.Object["namespace"]; ok && stringParameterExp.MatchString(unstruct.Object["namespace"].(string)) {
-			unstruct.Object["namespace"] = ""
-			return
+		if ns, ok := unstruct.Object["namespace"]; ok {
+			if ns, ok := ns.(string); !ok || !stringParameterExp.MatchString(ns) {
+				unstruct.Object["namespace"] = ""
+				return
+			}
 		}
 	}
 }
