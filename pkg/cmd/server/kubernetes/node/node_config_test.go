@@ -3,6 +3,7 @@ package node
 import (
 	"io"
 	"reflect"
+	goruntime "runtime"
 	"testing"
 	"time"
 
@@ -33,7 +34,7 @@ func TestKubeletDefaults(t *testing.T) {
 				DockerEndpoint:            "unix:///var/run/docker.sock",
 				ImagePullProgressDeadline: metav1.Duration{Duration: 1 * time.Minute},
 				RktAPIEndpoint:            rkt.DefaultRktAPIServiceEndpoint,
-				PodSandboxImage:           "gcr.io/google_containers/pause-amd64:3.0", // overridden
+				PodSandboxImage:           "gcr.io/google_containers/pause-" + goruntime.GOARCH + ":3.0", // overridden
 			},
 		},
 
