@@ -122,7 +122,8 @@ var (
 	}
 	dockerVersion112 = semver.MustParse("1.12.0")
 
-	openshiftVersion36 = semver.MustParse("3.6.0")
+	openshiftVersion36       = semver.MustParse("3.6.0")
+	openshiftVersion36alpha2 = semver.MustParse("3.6.0-alpha.2+3c221d5")
 )
 
 // NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
@@ -368,6 +369,12 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	if err := c.CommonStartConfig.Complete(f, cmd); err != nil {
 		return err
 	}
+
+	// Check if the openshift server version is sufficient to run the service catalog.
+	// Do this first so we can fail quickly if it's not.
+	c.addTask(conditionalTask("Checking service catalog version requirements", c.CheckServiceCatalogPrereqVersion, func() bool {
+		return c.ShouldInstallServiceCatalog
+	}))
 
 	// Create an OpenShift configuration and start a container that uses it.
 	c.addTask(simpleTask("Starting OpenShift container", c.StartOpenShift))
@@ -993,6 +1000,24 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 			c.ImageStreams)
 	}
 	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
+}
+
+// CheckServiceCatalogPrereqVersion ensures the openshift server version is high enough to
+// run the service catalog.
+func (c *ClientStartConfig) CheckServiceCatalogPrereqVersion(out io.Writer) error {
+	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	// 3.6.0-alpha2 was the last release that did not allow the creation of namespace rolebindings w/o first
+	// creating a policybinding object.  This limitation prevents the service catalog template from instantiating.
+
+	// special case for someone who is building a local image using commits based on 3.6.0.alpha2.  They most likely
+	// have the necessary changes.
+	if serverVersion.EQ(openshiftVersion36alpha2) && (serverVersion.String() != openshiftVersion36alpha2.String()) {
+		return nil
+	}
+	if serverVersion.LTE(openshiftVersion36alpha2) {
+		return errors.NewError("Enabling the service catalog requires a newer server level than %v, this server is version %v", openshiftVersion36alpha2, serverVersion)
+	}
+	return nil
 }
 
 // InstallServiceCatalog will start the installation of service catalog components
