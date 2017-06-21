@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit b2e3d55869c7d710a3d24b3b5d16f258d4b1cc35
+%global commit c5b7869d0b29e2865a5cab3f7d3108ab335b50b4
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.120 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b2e3d55
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.121 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c5b7869
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.121
+Version:        3.6.122
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -657,6 +657,19 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jun 21 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.122-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console a4b7297
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b2af7e03656601ffbddee340279068a5899ffa30 (dmcphers+openshiftbot@redhat.com)
+- enforce server version requirement for service catalog (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8166d90d6d05ede9da33463f89751ad3586ceb30 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5912a3ac9352cf8aa8b4d570a70dc91a96cac082 (dmcphers+openshiftbot@redhat.com)
+- give the service catalog controller event CRUD (bparees@redhat.com)
+- doc cluster up --service-catalog flag (bparees@redhat.com)
+
 * Tue Jun 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.121-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1a8ad18
   (smunilla@redhat.com)
