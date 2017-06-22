@@ -1,9 +1,12 @@
 package securitycontextconstraints
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.
@@ -35,6 +38,15 @@ const (
 	runAsRangePoints   points = 20000
 	runAsUserPoints    points = 10000
 
+	capDefaultPoints  points = 5000
+	capAddOnePoints   points = 300
+	capAllowAllPoints points = 4000
+	capAllowOnePoints points = 10
+	capDropAllPoints  points = -3000
+	capDropOnePoints  points = -50
+	capMaxPoints      points = 9999
+	capMinPoints      points = 0
+
 	noPoints points = 0
 )
 
@@ -49,6 +61,9 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 
 	// add points based on volume requests
 	totalPoints += volumePointValue(constraint)
+
+	// add points based on capabilities
+	totalPoints += capabilitiesPointValue(constraint)
 
 	// the map contains points for both RunAsUser and SELinuxContext
 	// strategies by taking advantage that they have identical strategy names
@@ -110,4 +125,40 @@ func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 		return nonTrivialVolumePoints
 	}
 	return noPoints
+}
+
+// hasCap checks for needle in haystack.
+func hasCap(needle string, haystack []kapi.Capability) bool {
+	for _, c := range haystack {
+		if needle == strings.ToUpper(string(c)) {
+			return true
+		}
+	}
+	return false
+}
+
+// capabilitiesPointValue returns a score based on the capabilities allowed,
+// added, or removed by the SCC. This allow us to prefer the more restrictive
+// SCC.
+func capabilitiesPointValue(scc *securityapi.SecurityContextConstraints) points {
+	capsPoints := capDefaultPoints
+	capsPoints += capAddOnePoints * points(len(scc.DefaultAddCapabilities))
+	if hasCap(string(securityapi.AllowAllCapabilities), scc.AllowedCapabilities) {
+		capsPoints += capAllowAllPoints
+	} else if hasCap("ALL", scc.AllowedCapabilities) {
+		capsPoints += capAllowAllPoints
+	} else {
+		capsPoints += capAllowOnePoints * points(len(scc.AllowedCapabilities))
+	}
+	if hasCap("ALL", scc.RequiredDropCapabilities) {
+		capsPoints += capDropAllPoints
+	} else {
+		capsPoints += capDropOnePoints * points(len(scc.RequiredDropCapabilities))
+	}
+	if capsPoints > capMaxPoints {
+		return capMaxPoints
+	} else if capsPoints < capMinPoints {
+		return capMinPoints
+	}
+	return capsPoints
 }
