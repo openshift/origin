@@ -1,4 +1,5 @@
 d   $ORIGIN_DATA_DIR - - - - -
+d   /etc/cni/net.d - - - - -
 d   /var/lib/cni - - - - -
 d   /var/run/secrets - - - - -
 d   $ORIGIN_CONFIG_DIR/sdn - - - - -
