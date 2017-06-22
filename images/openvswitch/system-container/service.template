@@ -16,4 +16,4 @@ WorkingDirectory=$DESTDIR
 RuntimeDirectory=${NAME}
 
 [Install]
-WantedBy=docker.service
+WantedBy=${DOCKER_SERVICE}.service
