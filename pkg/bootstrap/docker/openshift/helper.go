@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/homedir"
@@ -95,7 +94,7 @@ type Helper struct {
 	dockerHelper      *dockerhelper.Helper
 	execHelper        *dockerexec.ExecHelper
 	runHelper         *run.RunHelper
-	client            *docker.Client
+	client            dockerhelper.Interface
 	publicHost        string
 	image             string
 	containerName     string
@@ -132,13 +131,12 @@ type StartOptions struct {
 }
 
 // NewHelper creates a new OpenShift helper
-func NewHelper(client *docker.Client, dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
+func NewHelper(dockerHelper *dockerhelper.Helper, hostHelper *host.HostHelper, image, containerName, publicHostname, routingSuffix string) *Helper {
 	return &Helper{
-		client:        client,
 		dockerHelper:  dockerHelper,
-		execHelper:    dockerexec.NewExecHelper(client, containerName),
+		execHelper:    dockerexec.NewExecHelper(dockerHelper.Client(), containerName),
 		hostHelper:    hostHelper,
-		runHelper:     run.NewRunHelper(client, dockerHelper),
+		runHelper:     run.NewRunHelper(dockerHelper),
 		image:         image,
 		containerName: containerName,
 		publicHost:    publicHostname,
@@ -612,7 +610,7 @@ func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfi
 	return cfg, configPath, nil
 }
 
-func GetConfigFromContainer(client *docker.Client) (*configapi.MasterConfig, error) {
+func GetConfigFromContainer(client dockerhelper.Interface) (*configapi.MasterConfig, error) {
 	r, err := dockerhelper.StreamFileFromContainer(client, OpenShiftContainer, serverMasterConfig)
 	if err != nil {
 		return nil, err
@@ -665,7 +663,25 @@ func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
 			break
 		}
 	}
-	return semver.Parse(versionStr)
+
+	if len(versionStr) == 0 {
+		return semver.Version{}, fmt.Errorf("did not find version in command output")
+	}
+
+	// The OSE version may have > 4 parts to the version string
+	// We'll only take the first 3
+	parts := strings.Split(versionStr, ".")
+	if len(parts) > 3 {
+		versionStr = strings.Join(parts[:3], ".")
+	}
+
+	version, err := semver.Parse(versionStr)
+	if err == nil {
+		// ignore pre-release portion
+		version.Pre = []semver.PRVersion{}
+		h.version = &version
+	}
+	return version, err
 }
 
 func useDNSIP(version semver.Version) bool {
@@ -857,6 +873,7 @@ window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
 		if err != nil {
 			return err
 		}
+		glog.V(5).Infof("cgroup driver from Docker: %s", cgroupDriver)
 		if nodeCfg.KubeletArguments == nil {
 			nodeCfg.KubeletArguments = configapi.ExtendedArguments{}
 		}

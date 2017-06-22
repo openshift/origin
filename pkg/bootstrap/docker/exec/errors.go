@@ -9,17 +9,18 @@ import (
 
 type execError struct {
 	error
-	out, err  []byte
+	stdOut    string
+	stdErr    string
 	container string
 	cmd       []string
 	rc        int
 }
 
-func newExecError(cause error, rc int, stdOut, errOut []byte, container string, cmd []string) error {
+func newExecError(cause error, rc int, stdOut, errOut string, container string, cmd []string) error {
 	return &execError{
 		error:     errors.NewError("Docker exec error").WithCause(cause),
-		out:       stdOut,
-		err:       errOut,
+		stdOut:    stdOut,
+		stdErr:    errOut,
 		container: container,
 		cmd:       cmd,
 		rc:        rc,
@@ -31,11 +32,11 @@ func (e *execError) Details() string {
 	fmt.Fprintf(out, "Container: %s\n", e.container)
 	fmt.Fprintf(out, "Command: %v\n", e.cmd)
 	fmt.Fprintf(out, "Result Code: %d\n", e.rc)
-	if len(e.out) > 0 {
-		errors.PrintLog(out, "Output", e.out)
+	if len(e.stdOut) > 0 {
+		errors.PrintLog(out, "Output", e.stdOut)
 	}
-	if len(e.err) > 0 {
-		errors.PrintLog(out, "Error Output", e.err)
+	if len(e.stdErr) > 0 {
+		errors.PrintLog(out, "Error Output", e.stdErr)
 	}
 	return out.String()
 }

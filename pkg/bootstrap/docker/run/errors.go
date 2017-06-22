@@ -4,22 +4,22 @@ import (
 	"bytes"
 	"fmt"
 
-	docker "github.com/fsouza/go-dockerclient"
-
+	"github.com/docker/engine-api/types/container"
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 )
 
 type runError struct {
 	error
-	out, err []byte
-	config   *docker.Config
+	stdOut string
+	stdErr string
+	config *container.Config
 }
 
-func newRunError(rc int, cause error, stdOut, errOut []byte, config *docker.Config) error {
+func newRunError(rc int, cause error, stdOut, stdErr string, config *container.Config) error {
 	return &runError{
 		error:  errors.NewError("Docker run error rc=%d", rc).WithCause(cause),
-		out:    stdOut,
-		err:    errOut,
+		stdOut: stdOut,
+		stdErr: stdErr,
 		config: config,
 	}
 }
@@ -29,11 +29,11 @@ func (e *runError) Details() string {
 	fmt.Fprintf(out, "Image: %s\n", e.config.Image)
 	fmt.Fprintf(out, "Entrypoint: %v\n", e.config.Entrypoint)
 	fmt.Fprintf(out, "Command: %v\n", e.config.Cmd)
-	if len(e.out) > 0 {
-		errors.PrintLog(out, "Output", e.out)
+	if len(e.stdOut) > 0 {
+		errors.PrintLog(out, "Output", e.stdOut)
 	}
-	if len(e.err) > 0 {
-		errors.PrintLog(out, "Error Output", e.err)
+	if len(e.stdErr) > 0 {
+		errors.PrintLog(out, "Error Output", e.stdErr)
 	}
 	return out.String()
 }
