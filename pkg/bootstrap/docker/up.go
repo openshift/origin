@@ -114,8 +114,12 @@ var (
 		"jenkins pipeline ephemeral":  "examples/jenkins/jenkins-ephemeral-template.json",
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
-		"logging":                     "examples/logging/logging-deployer.yaml",
-		"service catalog":             "examples/service-catalog/service-catalog.yaml",
+	}
+	// internalTemplateLocations are templates that will be registered in an internal namespace
+	// instead of the openshift namespace.
+	internalTemplateLocations = map[string]string{
+		"logging":         "examples/logging/logging-deployer.yaml",
+		"service catalog": "examples/service-catalog/service-catalog.yaml",
 	}
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
@@ -935,6 +939,9 @@ func (c *ClientStartConfig) ImportImageStreams(out io.Writer) error {
 // TODO: Use templates compiled into oc
 func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 	if err := c.importObjects(out, openshift.OpenshiftNamespace, templateLocations); err != nil {
+		return err
+	}
+	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations); err != nil {
 		return err
 	}
 	version, err := c.OpenShiftHelper().ServerVersion()
