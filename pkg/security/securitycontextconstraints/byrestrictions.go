@@ -25,15 +25,15 @@ func (s ByRestrictions) Less(i, j int) bool {
 type points int
 
 const (
-	privilegedPoints points = 20
+	privilegedPoints points = 200000
 
-	hostVolumePoints       points = 10
-	nonTrivialVolumePoints points = 5
+	hostVolumePoints       points = 100000
+	nonTrivialVolumePoints points = 50000
 
-	runAsAnyUserPoints points = 4
-	runAsNonRootPoints points = 3
-	runAsRangePoints   points = 2
-	runAsUserPoints    points = 1
+	runAsAnyUserPoints points = 40000
+	runAsNonRootPoints points = 30000
+	runAsRangePoints   points = 20000
+	runAsUserPoints    points = 10000
 
 	noPoints points = 0
 )
@@ -79,9 +79,9 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 }
 
 // volumePointValue returns a score based on the volumes allowed by the SCC.
-// Allowing a host volume will return a score of 10.  Allowance of anything other
+// Allowing a host volume will return a score of 100000.  Allowance of anything other
 // than Secret, ConfigMap, EmptyDir, DownwardAPI, Projected, and None will result in
-// a score of 5.  If the SCC only allows these trivial types, it will have a
+// a score of 50000.  If the SCC only allows these trivial types, it will have a
 // score of 0.
 func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 	hasHostVolume := false
