@@ -14,7 +14,7 @@ You may customize where the images (built from `openshift/prometheus` and `opens
 
 ### Related to how much data is being gathered by Prometheus
 
-> sort_desc( count by (__name__)({__name__=~".+"}))
+> sort_desc(count by (__name__)({__name__=~".+"}))
 
 Number of metrics series per metric (a series is a unique combination of labels for a given metric).
 
@@ -28,7 +28,7 @@ Number of samples (individual metric values) exposed by each endpoint at the tim
 
 Total number of cores in the cluster.
 
-> sum(sort_desc(rate(container_cpu_usage_seconds_total{id="/"}[5m])))
+> sum(rate(container_cpu_usage_seconds_total{id="/"}[5m]))
 
 Total number of consumed cores.
 
@@ -47,4 +47,3 @@ CPU consumed per namespace on the cluster.
 > drop_common_labels(sort_desc(sum without (cpu) (rate(container_cpu_usage_seconds_total{container_name="prometheus"}[5m]))))
 
 CPU per instance of Prometheus container.
-
