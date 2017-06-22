@@ -27,6 +27,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api"
 	openapigen "k8s.io/kubernetes/pkg/generated/openapi"
