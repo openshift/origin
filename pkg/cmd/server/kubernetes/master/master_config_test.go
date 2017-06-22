@@ -190,7 +190,7 @@ func TestCMServerDefaults(t *testing.T) {
 			ConcurrentJobSyncs:                5,
 			ConcurrentResourceQuotaSyncs:      5,
 			ConcurrentDeploymentSyncs:         5,
-			ConcurrentNamespaceSyncs:          5,
+			ConcurrentNamespaceSyncs:          10,
 			ConcurrentSATokenSyncs:            5,
 			ConcurrentServiceSyncs:            1,
 			ConcurrentGCSyncs:                 20,
