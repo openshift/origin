@@ -19769,6 +19769,7 @@ message: |-
   it using your OpenShift user credentials.
 metadata:
   annotations:
+    openshift.io/display-name: Pipeline Build Example
     description: |-
       This example showcases the new Jenkins Pipeline integration in OpenShift,
       which performs continuous integration and deployment right on the platform.
