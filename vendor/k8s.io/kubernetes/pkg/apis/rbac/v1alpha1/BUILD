@@ -17,7 +17,6 @@ go_library(
         "generated.pb.go",
         "helpers.go",
         "register.go",
-        "types.generated.go",
         "types.go",
         "types_swagger_doc_generated.go",
         "zz_generated.conversion.go",
@@ -28,12 +27,10 @@ go_library(
     deps = [
         "//pkg/apis/rbac:go_default_library",
         "//vendor:github.com/gogo/protobuf/proto",
-        "//vendor:github.com/ugorji/go/codec",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/conversion",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
-        "//vendor:k8s.io/apimachinery/pkg/types",
     ],
 )
 
