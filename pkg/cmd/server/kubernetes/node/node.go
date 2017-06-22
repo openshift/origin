@@ -362,6 +362,9 @@ func (c *NodeConfig) RunProxy() {
 	switch c.ProxyConfig.Mode {
 	case componentconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
+		if bindAddr.Equal(net.IPv4zero) {
+			bindAddr = getNodeIP(c.Client, hostname)
+		}
 		if c.ProxyConfig.IPTablesMasqueradeBit == nil {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
@@ -376,7 +379,7 @@ func (c *NodeConfig) RunProxy() {
 			int(*c.ProxyConfig.IPTablesMasqueradeBit),
 			c.ProxyConfig.ClusterCIDR,
 			hostname,
-			getNodeIP(c.Client, hostname),
+			bindAddr,
 			recorder,
 		)
 		if err != nil {
