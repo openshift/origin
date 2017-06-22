@@ -39,7 +39,7 @@ verify="${VERIFY:-}"
 for pkg in "${packages[@]}"; do
   if [[ -z "${verify}" ]]; then
     grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${pkg}/../..)
-    go list -f '{{.Dir}}' "${grouppkg}/generated/listers/..." | xargs rm -rf
+    # go list -f '{{.Dir}}' "${grouppkg}/generated/listers/..." | xargs rm -rf
   fi
 done
 
