@@ -1305,19 +1305,3 @@ func TestPrintLabelsMultiline(t *testing.T) {
 		}
 	}
 }
-func TestDescribeSCC(t *testing.T) {
-	scc := &api.SecurityContextConstraints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
-		},
-	}
-	f := fake.NewSimpleClientset(scc)
-	d := SecurityContextConstraintsDescriber{f}
-	out, err := d.Describe(scc.Namespace, scc.Name, printers.DescriberSettings{})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !strings.Contains(out, "bar") {
-		t.Errorf("unexpected out: %s", out)
-	}
-}
