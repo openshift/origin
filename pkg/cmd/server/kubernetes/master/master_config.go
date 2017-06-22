@@ -36,6 +36,7 @@ import (
 	kgenericfilters "k8s.io/apiserver/pkg/server/filters"
 	apiserveroptions "k8s.io/apiserver/pkg/server/options"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/apiserver/pkg/server/options/encryptionconfig"
 	apiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
@@ -215,6 +216,17 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 	storageFactory.AddCohabitatingResources(autoscaling.Resource("horizontalpodautoscalers"), extensions.Resource("horizontalpodautoscalers"))
 	// keep Deployments in extensions for backwards compatibility, we'll have to migrate at some point, eventually
 	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
+
+	if server.Etcd.EncryptionProviderConfigFilepath != "" {
+		glog.V(4).Infof("Reading encryption configuration from %q", server.Etcd.EncryptionProviderConfigFilepath)
+		transformerOverrides, err := encryptionconfig.GetTransformerOverrides(server.Etcd.EncryptionProviderConfigFilepath)
+		if err != nil {
+			return nil, err
+		}
+		for groupResource, transformer := range transformerOverrides {
+			storageFactory.SetTransformer(groupResource, transformer)
+		}
+	}
 
 	return storageFactory, nil
 }
