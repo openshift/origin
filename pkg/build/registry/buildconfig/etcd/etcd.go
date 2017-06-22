@@ -24,9 +24,9 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		QualifiedResource: buildapi.Resource("buildconfigs"),
 		PredicateFunc:     buildconfig.Matcher,
 
-		CreateStrategy: buildconfig.Strategy,
-		UpdateStrategy: buildconfig.Strategy,
-		DeleteStrategy: buildconfig.Strategy,
+		CreateStrategy: buildconfig.GroupStrategy,
+		UpdateStrategy: buildconfig.GroupStrategy,
+		DeleteStrategy: buildconfig.GroupStrategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: buildconfig.GetAttrs}

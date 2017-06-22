@@ -12,6 +12,8 @@
 // test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
 // test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
 // test/extended/testdata/build-extended/jvm-runner.yaml
+// test/extended/testdata/build-pruning/default-group-build-config.yaml
+// test/extended/testdata/build-pruning/default-legacy-build-config.yaml
 // test/extended/testdata/build-pruning/errored-build-config.yaml
 // test/extended/testdata/build-pruning/failed-build-config.yaml
 // test/extended/testdata/build-pruning/imagestream.yaml
@@ -684,6 +686,72 @@ func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+`)
+
+func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-group-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+`)
+
+func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-legacy-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
@@ -734,13 +802,10 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   failedBuildsHistoryLimit: 2
-  triggers: {}
-  runPolicy: Serial
   source:
     type: Git
     git:
       uri: 'https://github.com/openshift/non-working-example.git'
-      ref: master
   strategy:
     type: Source
     sourceStrategy:
@@ -748,14 +813,6 @@ spec:
         kind: ImageStreamTag
         namespace: openshift
         name: 'php:7.0'
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'myphp:latest'
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
 `)
 
 func testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
@@ -804,13 +861,10 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   successfulBuildsHistoryLimit: 2
-  triggers: {}
-  runPolicy: Serial
   source:
     type: Git
     git:
       uri: 'https://github.com/openshift/cakephp-ex.git'
-      ref: master
   strategy:
     type: Source
     sourceStrategy:
@@ -818,14 +872,6 @@ spec:
         kind: ImageStreamTag
         namespace: openshift
         name: 'php:7.0'
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'myphp:latest'
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
 `)
 
 func testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
@@ -20254,6 +20300,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
 	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
 	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
+	"test/extended/testdata/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml,
+	"test/extended/testdata/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml,
 	"test/extended/testdata/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildPruningErroredBuildConfigYaml,
 	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
 	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
@@ -20568,6 +20616,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
 				}},
 				"build-pruning": &bintree{nil, map[string]*bintree{
+					"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
+					"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
 					"errored-build-config.yaml": &bintree{testExtendedTestdataBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
 					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
 					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
