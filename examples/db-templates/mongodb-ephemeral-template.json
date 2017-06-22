@@ -28,7 +28,7 @@
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}"
         }
       },
       "stringData" : {
