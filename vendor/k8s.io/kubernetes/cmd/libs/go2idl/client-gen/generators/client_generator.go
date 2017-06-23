@@ -62,10 +62,31 @@ func NameSystems() namer.NameSystems {
 		},
 		Delegate: namer.NewPublicNamer(0),
 	}
+	privateNamer := &ExceptionNamer{
+		Exceptions: map[string]string{
+			// these exceptions are used to deconflict the generated code
+			"github.com/openshift/origin/pkg/build/api/v1.Build":       "buildResource",
+			"github.com/openshift/origin/pkg/build/api.Build":          "buildResource",
+			"github.com/openshift/origin/pkg/image/api/v1.Image":       "imageResource",
+			"github.com/openshift/origin/pkg/image/api.Image":          "imageResource",
+			"github.com/openshift/origin/pkg/project/api/v1.Project":   "projectResource",
+			"github.com/openshift/origin/pkg/project/api.Project":      "projectResource",
+			"github.com/openshift/origin/pkg/route/api/v1.Route":       "routeResource",
+			"github.com/openshift/origin/pkg/route/api.Route":          "routeResource",
+			"github.com/openshift/origin/pkg/template/api/v1.Template": "templateResource",
+			"github.com/openshift/origin/pkg/template/api.Template":    "templateResource",
+			"github.com/openshift/origin/pkg/user/api/v1.User":         "userResource",
+			"github.com/openshift/origin/pkg/user/api.User":            "userResource",
+		},
+		KeyFunc: func(t *types.Type) string {
+			return t.Name.Package + "." + t.Name.Name
+		},
+		Delegate: namer.NewPrivateNamer(0),
+	}
 
 	return namer.NameSystems{
 		"public":             publicNamer,
-		"private":            namer.NewPrivateNamer(0),
+		"private":            privateNamer,
 		"raw":                namer.NewRawNamer("", nil),
 		"publicPlural":       namer.NewPublicPluralNamer(pluralExceptions),
 		"privatePlural":      namer.NewPrivatePluralNamer(pluralExceptions),
