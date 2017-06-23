@@ -11122,7 +11122,7 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
         }
       },
       "stringData" : {
@@ -11376,7 +11376,7 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
         }
       },
       "stringData" : {
@@ -11655,7 +11655,7 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}"
         }
       },
       "stringData" : {
@@ -11938,7 +11938,7 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-admin-password": "{.data['database-admin-password']}"
+          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}"
         }
       },
       "stringData" : {
@@ -12244,7 +12244,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
         }
       },
       "stringData" : {
@@ -12527,7 +12527,7 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root-password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
         }
       },
       "stringData" : {
