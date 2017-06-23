@@ -77,7 +77,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
 	// and we should allow it in general, since you had the power to update and the power to delete.
 	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
-	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingOwnerRefs(a.GetObject(), a.GetOldObject()) {
+	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject()) {
 		return nil
 	}
 

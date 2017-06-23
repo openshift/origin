@@ -19,7 +19,7 @@ func newPod() *kapi.Pod {
 
 }
 
-func TestIsOnlyMutatingOwnerRefs(t *testing.T) {
+func TestIsOnlyMutatingGCFields(t *testing.T) {
 	tests := []struct {
 		name     string
 		obj      func() runtime.Object
@@ -73,6 +73,19 @@ func TestIsOnlyMutatingOwnerRefs(t *testing.T) {
 			expected: true,
 		},
 		{
+			name: "ownerRef and finalizer",
+			obj: func() runtime.Object {
+				obj := newPod()
+				obj.OwnerReferences = append(obj.OwnerReferences, metav1.OwnerReference{Name: "foo"})
+				obj.Finalizers = []string{"final"}
+				return obj
+			},
+			old: func() runtime.Object {
+				return newPod()
+			},
+			expected: true,
+		},
+		{
 			name: "and annotations",
 			obj: func() runtime.Object {
 				obj := newPod()
@@ -101,7 +114,7 @@ func TestIsOnlyMutatingOwnerRefs(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		actual := IsOnlyMutatingOwnerRefs(tc.obj(), tc.old())
+		actual := IsOnlyMutatingGCFields(tc.obj(), tc.old())
 		if tc.expected != actual {
 			t.Errorf("%s: expected %v, got %v", tc.name, tc.expected, actual)
 		}

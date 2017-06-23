@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    openshift.io/scc: privileged
+  name: test-build-pod-issue
+spec:
+  containers:
+  - image: openshift/hello-openshift
+    imagePullPolicy: IfNotPresent
+    name: hello
+    securityContext:
+      privileged: true
+  restartPolicy: Never
