@@ -387,14 +387,14 @@ func ensureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 	if err != nil {
 		return err
 	}
-	waitForVersion := dc.Status.LatestVersion + 1
 
 	g.By("configuring Docker registry to accept schema 2")
 	err = oc.Run("env").Args("dc/docker-registry", value).Execute()
 	if err != nil {
-		return fmt.Errorf("failed to update registry's environment with %s: %v", &waitForVersion, err)
+		return fmt.Errorf("failed to update registry environment: %v", err)
 	}
-	return exutil.WaitForRegistry(oc.AdminClient(), oc.AdminKubeClient(), &waitForVersion, oc)
+
+	return exutil.WaitForDeploymentConfig(oc.AdminKubeClient(), oc.AdminClient(), metav1.NamespaceDefault, "docker-registry", dc.Status.LatestVersion+1, oc)
 }
 
 type byLayerSize []imageapi.ImageLayer

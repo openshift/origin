@@ -31,7 +31,7 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 	args = append(args, cmd...)
 	output, err := oc.Run("exec").Args(args...).Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "RunInPodContainer exec output: %s", output)
+		fmt.Fprintf(g.GinkgoWriter, "RunInPodContainer exec output: %s\n", output)
 	}
 	return err
 }
@@ -50,7 +50,7 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 	}
 	success := strings.Contains(response, contents)
 	if !success {
-		fmt.Fprintf(g.GinkgoWriter, "CheckPageContains was looking for %s but got %s", contents, response)
+		fmt.Fprintf(g.GinkgoWriter, "CheckPageContains was looking for %s but got %s\n", contents, response)
 	}
 	return success, nil
 }
