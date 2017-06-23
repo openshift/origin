@@ -219,6 +219,50 @@ os::build::internal::build_binaries() {
         local_ldflags+=" -s"
       fi
 
+      #Add Windows File Properties/Version Info and Icon Resource for oc.exe
+      if [[ "$platform" == "windows/amd64" ]]; then
+        os::build::version::get_vars
+        os::util::ensure::gopath_binary_exists 'goversioninfo'
+        local major="${OS_GIT_MAJOR}"
+        local minor="${OS_GIT_MINOR%+}"
+        local windows_versioninfo_file=`mktemp --suffix=".versioninfo.json"`
+        cat <<EOF >"${windows_versioninfo_file}"
+{
+	"FixedFileInfo":
+	{
+		"FileFlagsMask": "3f",
+		"FileFlags ": "00",
+		"FileOS": "040004",
+		"FileType": "01",
+		"FileSubType": "00"
+	},
+	"StringFileInfo":
+	{
+		"Comments": "",
+		"CompanyName": "Red Hat, Inc.",
+		"InternalName": "openshift client",
+		"FileVersion": "${OS_GIT_VERSION}",
+		"InternalName": "oc",
+		"LegalCopyright": "© Red Hat, Inc. Licensed under the Apache License, Version 2.0",
+		"LegalTrademarks": "",
+		"OriginalFilename": "oc.exe",
+		"PrivateBuild": "",
+		"ProductName": "OpenShift Client",
+		"ProductVersion": "${OS_GIT_VERSION}",
+		"SpecialBuild": ""
+	},
+	"VarFileInfo":
+	{
+		"Translation": {
+			"LangID": "0409",
+			"CharsetID": "04B0"
+		}
+	}
+}
+EOF
+        goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file} 
+      fi
+
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
           -pkgdir "${OS_OUTPUT_PKGDIR}/${platform}" \
@@ -232,6 +276,10 @@ os::build::internal::build_binaries() {
           local platform_src="/${platform//\//_}"
           mv "${OS_TARGET_BIN}/${platform_src}/"* "${OS_OUTPUT_BINPATH}/${platform}/"
         fi
+      fi
+
+      if [[ "$platform" == "windows/amd64" ]]; then
+        rm ${OS_ROOT}/cmd/oc/oc.syso
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
