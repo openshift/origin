@@ -38,6 +38,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, 
 		Verb:      "create",
 		Group:     kapi.GroupName,
 		Resource:  "secrets",
+		Name:      secret.Name,
 	}); err != nil {
 		return nil, api.Forbidden(err)
 	}
@@ -54,6 +55,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, 
 			Verb:      "get",
 			Group:     kapi.GroupName,
 			Resource:  "secrets",
+			Name:      secret.Name,
 		}); err != nil {
 			return nil, api.Forbidden(err)
 		}
@@ -110,6 +112,7 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceI
 			Verb:      "get",
 			Group:     templateapi.GroupName,
 			Resource:  "templateinstances",
+			Name:      templateInstance.Name,
 		}); err != nil {
 			return nil, api.Forbidden(err)
 		}
@@ -245,6 +248,7 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 			Verb:      "get",
 			Group:     templateapi.GroupName,
 			Resource:  "templates",
+			Name:      template.Name,
 		}); err != nil {
 			return api.Forbidden(err)
 		}
@@ -255,6 +259,7 @@ func (b *Broker) Provision(instanceID string, preq *api.ProvisionRequest) *api.R
 		Verb:      "create",
 		Group:     templateapi.GroupName,
 		Resource:  "templateinstances",
+		Name:      instanceID,
 	}); err != nil {
 		return api.Forbidden(err)
 	}

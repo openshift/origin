@@ -131,4 +131,10 @@ func TestServiceFromTemplate(t *testing.T) {
 	if !reflect.DeepEqual(service, expectedService) {
 		t.Error("service did not match expectedService")
 	}
+
+	template.Annotations["description"] = ""
+	service = serviceFromTemplate(template)
+	if service.Description != noDescriptionProvided {
+		t.Errorf("service.Description incorrectly set to %q", service.Description)
+	}
 }
