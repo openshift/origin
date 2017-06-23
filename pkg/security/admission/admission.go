@@ -6,7 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	"github.com/golang/glog"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -16,10 +18,9 @@ import (
 	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/golang/glog"
+	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
 func init() {
@@ -70,6 +71,13 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	pod, ok := a.GetObject().(*kapi.Pod)
 	// if we can't convert then we don't handle this object so just return
 	if !ok {
+		return nil
+	}
+
+	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
+	// and we should allow it in general, since you had the power to update and the power to delete.
+	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
+	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingOwnerRefs(a.GetObject(), a.GetOldObject()) {
 		return nil
 	}
 
