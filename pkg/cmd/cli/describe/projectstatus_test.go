@@ -1,8 +1,10 @@
 package describe
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+	"text/tabwriter"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -12,6 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/client/testclient"
 	projectapi "github.com/openshift/origin/pkg/project/api"
 )
@@ -462,6 +465,67 @@ func TestProjectStatusErrors(t *testing.T) {
 		_, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
+		}
+	}
+}
+
+func TestPrintMarkerSuggestions(t *testing.T) {
+	testCases := []struct {
+		markers  []osgraph.Marker
+		suggest  bool
+		expected string
+	}{
+		{
+			markers: []osgraph.Marker{
+				{
+					Severity:   osgraph.InfoSeverity,
+					Message:    "Some info message",
+					Suggestion: "Some suggestion",
+				},
+			},
+			suggest:  true,
+			expected: "* Some info message\n  try: Some suggestion\n",
+		},
+		{
+			markers: []osgraph.Marker{
+				{
+					Severity:   osgraph.InfoSeverity,
+					Message:    "Some info message",
+					Suggestion: "Some suggestion",
+				},
+			},
+			suggest:  false,
+			expected: "",
+		},
+		{
+			markers: []osgraph.Marker{
+				{
+					Severity:   osgraph.ErrorSeverity,
+					Message:    "Some error message",
+					Suggestion: "Some suggestion",
+				},
+			},
+			suggest:  false,
+			expected: "* Some error message\n",
+		},
+		{
+			markers: []osgraph.Marker{
+				{
+					Severity:   osgraph.ErrorSeverity,
+					Message:    "Some error message",
+					Suggestion: "Some suggestion",
+				},
+			},
+			suggest:  true,
+			expected: "* Some error message\n  try: Some suggestion\n",
+		},
+	}
+	for _, test := range testCases {
+		var out bytes.Buffer
+		writer := tabwriter.NewWriter(&out, 0, 0, 1, ' ', 0)
+		printMarkerSuggestions(test.markers, test.suggest, writer, "")
+		if out.String() != test.expected {
+			t.Errorf("unexpected output, wanted %q, got %q", test.expected, out.String())
 		}
 	}
 }
