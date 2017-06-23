@@ -284,7 +284,8 @@ func (master *OsdnMaster) VnidStartMaster() error {
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, common.Namespaces)
+	funcs := common.InformerFuncs(&kapi.Namespace{}, master.handleAddOrUpdateNamespace, master.handleDeleteNamespace)
+	master.informers.KubeInformers.Core().InternalVersion().Namespaces().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -304,7 +305,8 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateNetNamespace, master.handleDeleteNetNamespace, common.NetNamespaces)
+	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, master.handleAddOrUpdateNetNamespace, nil)
+	master.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -315,8 +317,4 @@ func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, even
 	if err != nil {
 		glog.Errorf("Error updating netid: %v", err)
 	}
-}
-
-func (master *OsdnMaster) handleDeleteNetNamespace(obj interface{}) {
-	// Ignore, nothing to be done
 }

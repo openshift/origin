@@ -125,7 +125,8 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicyLocked(policy networkapi.Egress
 }
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
-	common.RegisterSharedInformer(proxy.informers, proxy.handleAddOrUpdateEgressNetworkPolicy, proxy.handleDeleteEgressNetworkPolicy, common.EgressNetworkPolicies)
+	funcs := common.InformerFuncs(&networkapi.EgressNetworkPolicy{}, proxy.handleAddOrUpdateEgressNetworkPolicy, proxy.handleDeleteEgressNetworkPolicy)
+	proxy.informers.NetworkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
@@ -151,7 +152,8 @@ func (proxy *OsdnProxy) handleDeleteEgressNetworkPolicy(obj interface{}) {
 }
 
 func (proxy *OsdnProxy) watchNetNamespaces() {
-	common.RegisterSharedInformer(proxy.informers, proxy.handleAddOrUpdateNetNamespace, proxy.handleDeleteNetNamespace, common.NetNamespaces)
+	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, proxy.handleAddOrUpdateNetNamespace, proxy.handleDeleteNetNamespace)
+	proxy.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (proxy *OsdnProxy) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

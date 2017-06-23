@@ -193,7 +193,8 @@ func (vmap *nodeVNIDMap) Start(informers common.SDNInformers) error {
 }
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
-	common.RegisterSharedInformer(vmap.informers, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace, common.NetNamespaces)
+	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace)
+	vmap.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

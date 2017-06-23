@@ -3,30 +3,18 @@ package common
 import (
 	"fmt"
 	"net"
-	"reflect"
 
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/watch"
-	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/networking"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
-
-type SDNInformers struct {
-	KubeInformers    kinternalinformers.SharedInformerFactory
-	NetworkInformers networkinformers.SharedInformerFactory
-}
 
 func HostSubnetToString(subnet *networkapi.HostSubnet) string {
 	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
@@ -170,82 +158,4 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 	}
 
 	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork)
-}
-
-type ResourceName string
-
-const (
-	Nodes                 ResourceName = "Nodes"
-	Namespaces            ResourceName = "Namespaces"
-	NetNamespaces         ResourceName = "NetNamespaces"
-	Services              ResourceName = "Services"
-	HostSubnets           ResourceName = "HostSubnets"
-	Pods                  ResourceName = "Pods"
-	EgressNetworkPolicies ResourceName = "EgressNetworkPolicies"
-	NetworkPolicies       ResourceName = "NetworkPolicies"
-)
-
-// RegisterSharedInformer creates shared informer and registers addOrUpdateFunc and
-// delFunc event handlers for the given resource name.
-func RegisterSharedInformer(si SDNInformers,
-	addOrUpdateFunc func(interface{}, interface{}, watch.EventType),
-	delFunc func(interface{}), resourceName ResourceName) {
-
-	var objType runtime.Object
-	var informer kcache.SharedIndexInformer
-
-	switch resourceName {
-	case Nodes:
-		informer = si.KubeInformers.Core().InternalVersion().Nodes().Informer()
-		objType = &kapi.Node{}
-	case Namespaces:
-		informer = si.KubeInformers.Core().InternalVersion().Namespaces().Informer()
-		objType = &kapi.Namespace{}
-	case Services:
-		informer = si.KubeInformers.Core().InternalVersion().Services().Informer()
-		objType = &kapi.Service{}
-	case Pods:
-		informer = si.KubeInformers.Core().InternalVersion().Pods().Informer()
-		objType = &kapi.Pod{}
-	case NetworkPolicies:
-		informer = si.KubeInformers.Networking().InternalVersion().NetworkPolicies().Informer()
-		objType = &networking.NetworkPolicy{}
-	case HostSubnets:
-		informer = si.NetworkInformers.Network().InternalVersion().HostSubnets().Informer()
-		objType = &networkapi.HostSubnet{}
-	case NetNamespaces:
-		informer = si.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer()
-		objType = &networkapi.NetNamespace{}
-	case EgressNetworkPolicies:
-		informer = si.NetworkInformers.Network().InternalVersion().EgressNetworkPolicies().Informer()
-		objType = &networkapi.EgressNetworkPolicy{}
-	default:
-		glog.Errorf("SDN shared informer failed, unknown resource name: %s", resourceName)
-		return
-	}
-
-	informer.AddEventHandler(kcache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			addOrUpdateFunc(obj, nil, watch.Added)
-		},
-		UpdateFunc: func(old, cur interface{}) {
-			addOrUpdateFunc(cur, old, watch.Modified)
-		},
-		DeleteFunc: func(obj interface{}) {
-			if reflect.TypeOf(objType) != reflect.TypeOf(obj) {
-				tombstone, ok := obj.(kcache.DeletedFinalStateUnknown)
-				if !ok {
-					glog.Errorf("Couldn't get object from tombstone: %+v", obj)
-					return
-				}
-
-				obj = tombstone.Obj
-				if reflect.TypeOf(objType) != reflect.TypeOf(obj) {
-					glog.Errorf("Tombstone contained object, expected resource type: %v but got: %v", reflect.TypeOf(objType), reflect.TypeOf(obj))
-					return
-				}
-			}
-			delFunc(obj)
-		},
-	})
 }

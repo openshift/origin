@@ -55,6 +55,13 @@ type npPolicy struct {
 	selectedIPs []string
 }
 
+type refreshForType string
+
+const (
+	refreshForPods       refreshForType = "pods"
+	refreshForNamespaces refreshForType = "namespaces"
+)
+
 func NewNetworkPolicyPlugin() osdnPolicy {
 	return &networkPolicyPlugin{
 		namespaces:  make(map[uint32]*npNamespace),
@@ -392,7 +399,8 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ne
 }
 
 func (np *networkPolicyPlugin) watchNetworkPolicies() {
-	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdateNetworkPolicy, np.handleDeleteNetworkPolicy, common.NetworkPolicies)
+	funcs := common.InformerFuncs(&networking.NetworkPolicy{}, np.handleAddOrUpdateNetworkPolicy, np.handleDeleteNetworkPolicy)
+	np.node.informers.KubeInformers.Networking().InternalVersion().NetworkPolicies().Informer().AddEventHandler(funcs)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdateNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
@@ -439,7 +447,8 @@ func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
 }
 
 func (np *networkPolicyPlugin) watchPods() {
-	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdatePod, np.handleDeletePod, common.Pods)
+	funcs := common.InformerFuncs(&kapi.Pod{}, np.handleAddOrUpdatePod, np.handleDeletePod)
+	np.node.informers.KubeInformers.Core().InternalVersion().Pods().Informer().AddEventHandler(funcs)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventType watch.EventType) {
@@ -467,7 +476,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventTyp
 	defer np.lock.Unlock()
 
 	np.pods[pod.UID] = *pod
-	np.refreshNetworkPolicies(common.Pods)
+	np.refreshNetworkPolicies(refreshForPods)
 }
 
 func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
@@ -483,11 +492,12 @@ func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
 	defer np.lock.Unlock()
 
 	delete(np.pods, pod.UID)
-	np.refreshNetworkPolicies(common.Pods)
+	np.refreshNetworkPolicies(refreshForPods)
 }
 
 func (np *networkPolicyPlugin) watchNamespaces() {
-	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, common.Namespaces)
+	funcs := common.InformerFuncs(&kapi.Namespace{}, np.handleAddOrUpdateNamespace, np.handleDeleteNamespace)
+	np.node.informers.KubeInformers.Core().InternalVersion().Namespaces().Informer().AddEventHandler(funcs)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -498,7 +508,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, ev
 	defer np.lock.Unlock()
 
 	np.kNamespaces[ns.Name] = *ns
-	np.refreshNetworkPolicies(common.Namespaces)
+	np.refreshNetworkPolicies(refreshForNamespaces)
 }
 
 func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
@@ -509,15 +519,15 @@ func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
 	defer np.lock.Unlock()
 
 	delete(np.kNamespaces, ns.Name)
-	np.refreshNetworkPolicies(common.Namespaces)
+	np.refreshNetworkPolicies(refreshForNamespaces)
 }
 
-func (np *networkPolicyPlugin) refreshNetworkPolicies(watchResourceName common.ResourceName) {
+func (np *networkPolicyPlugin) refreshNetworkPolicies(refreshFor refreshForType) {
 	for _, npns := range np.namespaces {
 		changed := false
 		for _, npp := range npns.policies {
-			if ((watchResourceName == common.Namespaces) && npp.watchesNamespaces) ||
-				((watchResourceName == common.Pods) && npp.watchesPods) {
+			if ((refreshFor == refreshForNamespaces) && npp.watchesNamespaces) ||
+				((refreshFor == refreshForPods) && npp.watchesPods) {
 				if np.updateNetworkPolicy(npns, &npp.policy) {
 					changed = true
 					break

@@ -464,7 +464,8 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 }
 
 func (node *OsdnNode) watchServices() {
-	common.RegisterSharedInformer(node.informers, node.handleAddOrUpdateService, node.handleDeleteService, common.Services)
+	funcs := common.InformerFuncs(&kapi.Service{}, node.handleAddOrUpdateService, node.handleDeleteService)
+	node.informers.KubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {

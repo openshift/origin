@@ -93,7 +93,8 @@ func ipToHex(ip string) string {
 }
 
 func (eip *egressIPWatcher) watchHostSubnets() {
-	common.RegisterSharedInformer(eip.informers, eip.handleAddOrUpdateHostSubnet, eip.handleDeleteHostSubnet, common.HostSubnets)
+	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, eip.handleAddOrUpdateHostSubnet, eip.handleDeleteHostSubnet)
+	eip.informers.NetworkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (eip *egressIPWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
@@ -182,7 +183,8 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 }
 
 func (eip *egressIPWatcher) watchNetNamespaces() {
-	common.RegisterSharedInformer(eip.informers, eip.handleAddOrUpdateNetNamespace, eip.handleDeleteNetNamespace, common.NetNamespaces)
+	funcs := common.InformerFuncs(&networkapi.NetNamespace{}, eip.handleAddOrUpdateNetNamespace, eip.handleDeleteNetNamespace)
+	eip.informers.NetworkInformers.Network().InternalVersion().NetNamespaces().Informer().AddEventHandler(funcs)
 }
 
 func (eip *egressIPWatcher) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {

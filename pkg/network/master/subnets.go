@@ -204,7 +204,8 @@ func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionT
 }
 
 func (master *OsdnMaster) watchNodes() {
-	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateNode, master.handleDeleteNode, common.Nodes)
+	funcs := common.InformerFuncs(&kapi.Node{}, master.handleAddOrUpdateNode, master.handleDeleteNode)
+	master.informers.KubeInformers.Core().InternalVersion().Nodes().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
@@ -247,7 +248,8 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 // - Admin manually deletes HostSubnet to release the allocated subnet because there won't be
 //   node deletion event to trigger HostSubnet deletion in this case.
 func (master *OsdnMaster) watchSubnets() {
-	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateSubnet, master.handleDeleteSubnet, common.HostSubnets)
+	funcs := common.InformerFuncs(&networkapi.HostSubnet{}, master.handleAddOrUpdateSubnet, master.handleDeleteSubnet)
+	master.informers.NetworkInformers.Network().InternalVersion().HostSubnets().Informer().AddEventHandler(funcs)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
