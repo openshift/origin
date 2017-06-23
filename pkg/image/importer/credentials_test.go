@@ -50,7 +50,7 @@ func (k *mockKeyring) Lookup(image string) ([]credentialprovider.LazyAuthConfigu
 
 func TestHubFallback(t *testing.T) {
 	k := &mockKeyring{}
-	basicCredentialsFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"})
+	basicCredentialsFromKeyring(k, &url.URL{Host: "auth.docker.io", Path: "/token"}, nil)
 	if !reflect.DeepEqual([]string{"auth.docker.io/token", "index.docker.io", "docker.io"}, k.calls) {
 		t.Errorf("unexpected calls: %v", k.calls)
 	}
@@ -113,7 +113,7 @@ func Test_basicCredentialsFromKeyring(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			user, password := basicCredentialsFromKeyring(tt.args.keyring, tt.args.target)
+			user, password := basicCredentialsFromKeyring(tt.args.keyring, tt.args.target, nil)
 			if user != tt.user {
 				t.Errorf("basicCredentialsFromKeyring() user = %v, actual = %v", user, tt.user)
 			}

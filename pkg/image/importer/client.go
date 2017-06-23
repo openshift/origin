@@ -86,15 +86,16 @@ func (c Context) WithCredentials(credentials auth.CredentialStore) RepositoryRet
 			}),
 			auth.NewBasicHandler(credentials),
 		}
-	})
+	}, credentials)
 }
 
 type AuthHandlersFunc func(transport http.RoundTripper, registry *url.URL, repoName string) []auth.AuthenticationHandler
 
-func (c Context) WithAuthHandlers(fn AuthHandlersFunc) RepositoryRetriever {
+func (c Context) WithAuthHandlers(fn AuthHandlersFunc, credentials auth.CredentialStore) RepositoryRetriever {
 	return &repositoryRetriever{
-		context:     c,
-		credentials: fn,
+		context:         c,
+		authHandlerFunc: fn,
+		credentials:     credentials,
 
 		pings:    make(map[url.URL]error),
 		redirect: make(map[url.URL]*url.URL),
@@ -102,8 +103,9 @@ func (c Context) WithAuthHandlers(fn AuthHandlersFunc) RepositoryRetriever {
 }
 
 type repositoryRetriever struct {
-	context     Context
-	credentials AuthHandlersFunc
+	context         Context
+	authHandlerFunc AuthHandlersFunc
+	credentials     auth.CredentialStore
 
 	pings    map[url.URL]error
 	redirect map[url.URL]*url.URL
@@ -146,7 +148,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
 			r.context.Challenges,
-			r.credentials(t, registry, repoName)...,
+			r.authHandlerFunc(t, registry, repoName)...,
 		),
 	)
 
@@ -197,6 +199,23 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	}
 
 	r.context.Challenges.AddResponse(resp)
+	if challenges, err := r.context.Challenges.GetChallenges(*resp.Request.URL); err == nil {
+		for _, ch := range challenges {
+			if ch.Scheme != "bearer" && ch.Scheme != "basic" {
+				// we only support bearer and basic scheme
+				continue
+			}
+			// TODO: support multiple realm headers
+			if realm, ok := ch.Parameters["realm"]; ok {
+				if url, err := url.Parse(realm); err == nil {
+					if scs, ok := r.credentials.(*SecretCredentialStore); ok {
+						glog.V(4).Infof("Adding realm entry: %v - %v", registry, url)
+						scs.AddRealm(&registry, url)
+					}
+				}
+			}
+		}
+	}
 
 	return nil, nil
 }
