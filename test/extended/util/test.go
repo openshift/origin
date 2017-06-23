@@ -402,7 +402,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Name
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := legacyclient.NewFromClient(c.Core().RESTClient()).Get(sccName, metav1.GetOptions{})
+		scc, err := legacyclient.NewVersionedFromClient(c.Core().RESTClient()).Get(sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -415,7 +415,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Name
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := legacyclient.NewFromClient(c.Core().RESTClient()).Update(scc); err != nil {
+		if _, err := legacyclient.NewVersionedFromClient(c.Core().RESTClient()).Update(scc); err != nil {
 			return err
 		}
 		return nil

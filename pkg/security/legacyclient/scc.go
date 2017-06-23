@@ -3,18 +3,25 @@ package legacyclient
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	clientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
+	externalclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/scheme"
+	internalclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
 	oclient "github.com/openshift/origin/pkg/client"
 	securityapi "github.com/openshift/origin/pkg/security/api"
 	securityapiinstall "github.com/openshift/origin/pkg/security/api/install"
+	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
 )
 
 // if this is being used, we need to be sure that the core API client has our types in the scheme
 func init() {
-	securityapiinstall.InstallIntoDeprecatedV1(clientscheme.GroupFactoryRegistry, clientscheme.Registry, clientscheme.Scheme)
+	securityapiinstall.InstallIntoDeprecatedV1(internalclientscheme.GroupFactoryRegistry, internalclientscheme.Registry, internalclientscheme.Scheme)
+	securityapi.AddToSchemeInCoreGroup(externalclientscheme.Scheme)
+	securityapi.AddToSchemeInCoreGroup(clientgoscheme.Scheme)
+	securityapiv1.AddToSchemeInCoreGroup(externalclientscheme.Scheme)
+	securityapiv1.AddToSchemeInCoreGroup(clientgoscheme.Scheme)
 }
 
 // New creates a legacy client for SCC access.  This only exists for `oc` compatibility with old servers
@@ -34,6 +41,11 @@ func New(c *rest.Config) (SecurityContextConstraintInterface, error) {
 // New creates a legacy client for SCC access.  This only exists for `oc` compatibility with old servers
 func NewFromClient(client rest.Interface) SecurityContextConstraintInterface {
 	return &securityContextConstraint{client}
+}
+
+// NewVersionedFromClient creates a legacy client for SCC access.  This only exists for `oc` compatibility with old servers
+func NewVersionedFromClient(client rest.Interface) SecurityContextConstraintV1Interface {
+	return &securityContextConstraintV1{client}
 }
 
 // SecurityContextConstraintInterface exposes methods on SecurityContextConstraints resources
@@ -80,5 +92,52 @@ func (c *securityContextConstraint) Delete(name string) (err error) {
 }
 
 func (c *securityContextConstraint) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.r.Get().Prefix("watch").Resource("securitycontextconstraints").VersionedParams(&opts, kapi.ParameterCodec).Watch()
+}
+
+// SecurityContextConstraintV1Interface exposes methods on SecurityContextConstraintV1s resources
+type SecurityContextConstraintV1Interface interface {
+	List(opts metav1.ListOptions) (*securityapiv1.SecurityContextConstraintsList, error)
+	Get(name string, options metav1.GetOptions) (*securityapiv1.SecurityContextConstraints, error)
+	Create(*securityapiv1.SecurityContextConstraints) (*securityapiv1.SecurityContextConstraints, error)
+	Update(*securityapiv1.SecurityContextConstraints) (*securityapiv1.SecurityContextConstraints, error)
+	Delete(name string) error
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
+}
+
+type securityContextConstraintV1 struct {
+	r rest.Interface
+}
+
+func (c *securityContextConstraintV1) List(opts metav1.ListOptions) (result *securityapiv1.SecurityContextConstraintsList, err error) {
+	result = &securityapiv1.SecurityContextConstraintsList{}
+	err = c.r.Get().Resource("securitycontextconstraints").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
+	return
+}
+
+func (c *securityContextConstraintV1) Get(name string, options metav1.GetOptions) (result *securityapiv1.SecurityContextConstraints, err error) {
+	result = &securityapiv1.SecurityContextConstraints{}
+	err = c.r.Get().Resource("securitycontextconstraints").Name(name).VersionedParams(&options, kapi.ParameterCodec).Do().Into(result)
+	return
+}
+
+func (c *securityContextConstraintV1) Create(scc *securityapiv1.SecurityContextConstraints) (result *securityapiv1.SecurityContextConstraints, err error) {
+	result = &securityapiv1.SecurityContextConstraints{}
+	err = c.r.Post().Resource("securitycontextconstraints").Body(scc).Do().Into(result)
+	return
+}
+
+func (c *securityContextConstraintV1) Update(scc *securityapiv1.SecurityContextConstraints) (result *securityapiv1.SecurityContextConstraints, err error) {
+	result = &securityapiv1.SecurityContextConstraints{}
+	err = c.r.Put().Resource("securitycontextconstraints").Name(scc.Name).Body(scc).Do().Into(result)
+	return
+}
+
+func (c *securityContextConstraintV1) Delete(name string) (err error) {
+	err = c.r.Delete().Resource("securitycontextconstraints").Name(name).Do().Error()
+	return
+}
+
+func (c *securityContextConstraintV1) Watch(opts metav1.ListOptions) (watch.Interface, error) {
 	return c.r.Get().Prefix("watch").Resource("securitycontextconstraints").VersionedParams(&opts, kapi.ParameterCodec).Watch()
 }
