@@ -25,6 +25,10 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		g.By("waiting for openshift namespace imagestreams")
+		err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	g.AfterEach(func() {
@@ -45,7 +49,7 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the deployment to complete")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), a58, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), a58, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

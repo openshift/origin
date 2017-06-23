@@ -84,7 +84,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().CoreV1().ReplicationControllers(oc.Namespace()), postgreSQLHelperName, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), postgreSQLHelperName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = oc.KubeFramework().WaitForAnEndpoint(postgreSQLHelperName)
@@ -94,8 +94,8 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		assertReplicationIsWorking := func(masterDeployment, slaveDeployment string, slaveCount int) (exutil.Database, []exutil.Database, exutil.Database) {
 			check := func(err error) {
 				if err != nil {
-					exutil.DumpDeploymentLogs("postgresql-master", oc)
-					exutil.DumpDeploymentLogs("postgresql-slave", oc)
+					exutil.DumpApplicationPodLogs("postgresql-master", oc)
+					exutil.DumpApplicationPodLogs("postgresql-slave", oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
@@ -106,8 +106,8 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 			master, slaves, helper := CreatePostgreSQLReplicationHelpers(oc.KubeClient().CoreV1().Pods(oc.Namespace()), masterDeployment, slaveDeployment, fmt.Sprintf("%s-1", postgreSQLHelperName), slaveCount)
 			err := exutil.WaitUntilAllHelpersAreUp(oc, []exutil.Database{master, helper})
 			if err != nil {
-				exutil.DumpDeploymentLogs("postgresql-master", oc)
-				exutil.DumpDeploymentLogs("postgresql-helper", oc)
+				exutil.DumpApplicationPodLogs("postgresql-master", oc)
+				exutil.DumpApplicationPodLogs("postgresql-helper", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 

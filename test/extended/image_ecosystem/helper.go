@@ -50,7 +50,7 @@ func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, e
 	}
 	success := strings.Contains(response, contents)
 	if !success {
-		fmt.Fprintf(g.GinkgoWriter, "CheckPageContains was looking for %s but got %s", contents, response)
+		fmt.Fprintf(g.GinkgoWriter, "CheckPageContains was looking for %s but got %s\n", contents, response)
 	}
 	return success, nil
 }

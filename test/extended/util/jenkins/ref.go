@@ -333,7 +333,7 @@ func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 
 // Finds the pod running Jenkins
 func FindJenkinsPod(oc *exutil.CLI) *kapiv1.Pod {
-	pods, err := exutil.GetDeploymentConfigPods(oc, "jenkins")
+	pods, err := exutil.GetApplicationPods(oc, "jenkins")
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 	if pods == nil || pods.Items == nil {

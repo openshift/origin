@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	g "github.com/onsi/ginkgo"
-	"github.com/spf13/cobra"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +50,6 @@ type CLI struct {
 	stderr           io.Writer
 	verbose          bool
 	withoutNamespace bool
-	cmd              *cobra.Command
 	kubeFramework    *e2e.Framework
 }
 
