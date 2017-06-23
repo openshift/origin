@@ -196,6 +196,16 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 
 }
 
+// GetMasterThreadDump will get a golang thread stack dump
+func GetMasterThreadDump(oc *CLI) {
+	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n Master thread stack dump:\n\n%s\n\n", string(out))
+		return
+	}
+	fmt.Fprintf(g.GinkgoWriter, "\n\n got error on oc get --raw /debug/pprof/goroutine?godebug=2: %v\n\n", err)
+}
+
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {

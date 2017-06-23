@@ -68,7 +68,8 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		setupJenkins             = func() {
 			// Deploy Jenkins
 			var licensePrefix, pluginName string
-			newAppArgs := []string{"-f", jenkinsTemplatePath}
+			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
+			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi"}
 			newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
 			if !useSnapshotImage {
 				newAppArgs, useSnapshotImage = jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
@@ -118,9 +119,8 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 	g.BeforeEach(func() {
 		setupJenkins()
 
-		if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
-			g.By("start jenkins gc tracking")
-			ticker = jenkins.StartJenkinsGCTracking(oc, oc.Namespace())
+		if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 		}
 
 		g.By("waiting for builder service account")
@@ -130,8 +130,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline with maven slave", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
-				g.By("stopping jenkins gc tracking")
+			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
 				ticker.Stop()
 			}
 		})
@@ -157,8 +156,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using jenkins-client-plugin", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
-				g.By("stopping jenkins gc tracking")
+			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
 				ticker.Stop()
 			}
 		})
@@ -183,8 +181,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline with env vars", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
-				g.By("stopping jenkins gc tracking")
+			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
 				ticker.Stop()
 			}
 		})
@@ -266,8 +263,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Blue-green pipeline", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
-				g.By("stopping jenkins gc tracking")
+			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
 				ticker.Stop()
 			}
 		})
