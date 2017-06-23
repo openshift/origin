@@ -167,18 +167,18 @@ frontend public
   tcp-request content accept if HTTP
 
   # check if we need to redirect/force using https.
-  acl secure_redirect base,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
+  acl secure_redirect req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found
   redirect scheme https if secure_redirect
 
   # Check if it is an edge or reencrypt route exposed insecurely.
-  acl route_http_expose base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
-  use_backend %[base,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map)] if route_http_expose
+  acl route_http_expose req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map) -m found
+  use_backend %[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_route_http_expose.map)] if route_http_expose
 
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_http:%[base,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
+  use_backend be_http:%[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_http_be.map)]
 
   default_backend openshift_default
 
@@ -225,16 +225,16 @@ frontend fe_sni
   mode http
 
   # check re-encrypt backends first - from most specific to general path.
-  acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+  acl reencrypt req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
 
   # Search from most specific to general path (host case).
-  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+  use_backend be_secure:%[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend be_edge_http:%[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
@@ -259,16 +259,16 @@ frontend fe_no_sni
   mode http
 
   # check re-encrypt backends first - path or host based.
-  acl reencrypt base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
+  acl reencrypt req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_reencrypt.map) -m found
 
   # Search from most specific to general path (host case).
-  use_backend be_secure:%[base,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
+  use_backend be_secure:%[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_reencrypt.map)] if reencrypt
 
   # map to http backend
   # Search from most specific to general path (host case).
   # Note: If no match, haproxy uses the default_backend, no other
   #       use_backend directives below this will be processed.
-  use_backend be_edge_http:%[base,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
+  use_backend be_edge_http:%[req.hdr(host),lower,map_reg(/var/lib/haproxy/conf/os_edge_http_be.map)]
 
   default_backend openshift_default
 
