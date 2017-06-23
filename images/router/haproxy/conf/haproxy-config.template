@@ -140,10 +140,11 @@ defaults
   {{- end }}
 {{- end }}
 
+{{ if (gt .StatsPort -1) }}
 {{ if (gt .StatsPort 0) }}
-  listen stats :{{.StatsPort}}
+listen stats :{{.StatsPort}}
 {{- else }}
-  listen stats :1936
+listen stats :1936
 {{- end }}
   mode http
   # Health check monitoring uri.
@@ -158,6 +159,7 @@ defaults
   stats uri /
   stats auth {{.StatsUser}}:{{.StatsPassword}}
 {{- end }}
+{{- end }}
 
 {{ if .BindPorts -}}
 frontend public
@@ -165,6 +167,10 @@ frontend public
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
+
+  {{- if (eq .StatsPort -1) }}
+  monitor-uri /_______internal_router_healthz
+  {{- end }}
 
   # check if we need to redirect/force using https.
   acl secure_redirect base,map_reg(/var/lib/haproxy/conf/os_route_http_redirect.map) -m found

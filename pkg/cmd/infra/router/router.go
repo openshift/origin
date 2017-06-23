@@ -75,7 +75,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
 	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "") == "true", "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 	flag.BoolVar(&o.EnableIngress, "enable-ingress", cmdutil.Env("ROUTER_ENABLE_INGRESS", "") == "true", "Enable configuration via ingress resources")
-	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen.")
+	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
 
 // RouteSelectionFunc returns a func that identifies the host for a route.

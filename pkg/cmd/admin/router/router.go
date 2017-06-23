@@ -682,13 +682,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 	// automatically start the internal metrics agent if we are handling a known type
 	if cfg.Type == "haproxy-router" {
-		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", defaultStatsPort-1)
+		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
 		env["ROUTER_METRICS_TYPE"] = "haproxy"
-		ports = append(ports, kapi.ContainerPort{
-			Name:          "router-stats",
-			ContainerPort: int32(defaultStatsPort - 1),
-			Protocol:      kapi.ProtocolTCP,
-		})
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
@@ -803,9 +798,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 				t.Annotations = make(map[string]string)
 			}
 			t.Annotations["prometheus.io/scrape"] = "true"
-			t.Annotations["prometheus.io/port"] = "1935"
-			t.Annotations["prometheus.io/username"] = cfg.StatsUsername
-			t.Annotations["prometheus.io/password"] = cfg.StatsPassword
+			t.Annotations["prometheus.io/port"] = "1936"
+			t.Annotations["prometheus.openshift.io/username"] = cfg.StatsUsername
+			t.Annotations["prometheus.openshift.io/password"] = cfg.StatsPassword
 			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {

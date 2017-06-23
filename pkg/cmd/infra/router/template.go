@@ -3,6 +3,8 @@ package router
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -116,7 +118,7 @@ type RouterStats struct {
 }
 
 func (o *RouterStats) Bind(flag *pflag.FlagSet) {
-	flag.StringVar(&o.StatsPortString, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port.")
+	flag.StringVar(&o.StatsPortString, "stats-port", util.Env("STATS_PORT", ""), "If the underlying router implementation can provide statistics this is a hint to expose it on this port. Ignored if listen-addr is specified.")
 	flag.StringVar(&o.StatsPassword, "stats-password", util.Env("STATS_PASSWORD", ""), "If the underlying router implementation can provide statistics this is the requested password for auth.")
 	flag.StringVar(&o.StatsUsername, "stats-user", util.Env("STATS_USERNAME", ""), "If the underlying router implementation can provide statistics this is the requested username for auth.")
 }
@@ -179,6 +181,22 @@ func (o *TemplateRouterOptions) Complete() error {
 		}
 		o.StatsPort = statsPort
 	}
+	if len(o.ListenAddr) > 0 {
+		_, port, err := net.SplitHostPort(o.ListenAddr)
+		if err != nil {
+			return fmt.Errorf("listen-addr is not valid: %v", err)
+		}
+		// stats port on listen-addr overrides stats port argument
+		statsPort, err := strconv.Atoi(port)
+		if err != nil {
+			return fmt.Errorf("listen-addr port is not valid: %v", err)
+		}
+		o.StatsPort = statsPort
+	} else {
+		if o.StatsPort != 0 {
+			o.ListenAddr = fmt.Sprintf("0.0.0.0:%d", o.StatsPort)
+		}
+	}
 
 	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 1 {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
@@ -222,9 +240,10 @@ func (o *TemplateRouterOptions) Validate() error {
 
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
-	var reloadCallbacks []func()
+	statsPort := o.StatsPort
+
 	switch {
-	case o.MetricsType == "haproxy" && len(o.ListenAddr) > 0:
+	case o.MetricsType == "haproxy":
 		if len(o.StatsUsername) == 0 || len(o.StatsPassword) == 0 {
 			glog.Warningf("Metrics were requested but no username or password has been provided - the metrics endpoint will not be accessible to prevent accidental security breaches")
 		}
@@ -266,6 +285,7 @@ func (o *TemplateRouterOptions) Run() error {
 				exported = append(exported, i)
 			}
 		}
+
 		_, err := haproxy.NewPrometheusCollector(haproxy.PrometheusOptions{
 			// Only template router customizers who alter the image should need this
 			ScrapeURI: util.Env("ROUTER_METRICS_HAPROXY_SCRAPE_URI", ""),
@@ -279,10 +299,20 @@ func (o *TemplateRouterOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		//reloadCallbacks = append(reloadCallbacks, e.CollectNow)
-	}
-	if len(o.ListenAddr) > 0 {
-		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword)
+
+		// Metrics will handle healthz on the stats port, and instruct the template router to disable stats completely.
+		// The underlying router must provide a custom health check if customized which will be called into.
+		statsPort = -1
+		httpURL := util.Env("ROUTER_METRICS_READY_HTTP_URL", fmt.Sprintf("http://%s:%s/_______internal_router_healthz", "localhost", util.Env("ROUTER_SERVICE_HTTP_PORT", "80")))
+		u, err := url.Parse(httpURL)
+		if err != nil {
+			return fmt.Errorf("ROUTER_METRICS_READY_HTTP_URL must be a valid URL or empty: %v", err)
+		}
+		check := metrics.HTTPBackendAvailable(u)
+		if useProxy := util.Env("ROUTER_USE_PROXY_PROTOCOL", ""); useProxy == "true" || useProxy == "TRUE" {
+			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
+		}
+		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword, check)
 	}
 
 	pluginCfg := templateplugin.TemplatePluginConfig{
@@ -290,12 +320,11 @@ func (o *TemplateRouterOptions) Run() error {
 		TemplatePath:             o.TemplateFile,
 		ReloadScriptPath:         o.ReloadScript,
 		ReloadInterval:           o.ReloadInterval,
-		ReloadCallbacks:          reloadCallbacks,
 		DefaultCertificate:       o.DefaultCertificate,
 		DefaultCertificatePath:   o.DefaultCertificatePath,
 		DefaultCertificateDir:    o.DefaultCertificateDir,
 		DefaultDestinationCAPath: o.DefaultDestinationCAPath,
-		StatsPort:                o.StatsPort,
+		StatsPort:                statsPort,
 		StatsUsername:            o.StatsUsername,
 		StatsPassword:            o.StatsPassword,
 		PeerService:              o.RouterService,
