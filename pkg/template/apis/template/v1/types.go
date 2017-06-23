@@ -117,7 +117,7 @@ type TemplateInstanceSpec struct {
 
 	// secret is a reference to a Secret object containing the necessary
 	// template parameters.
-	Secret kapiv1.LocalObjectReference `json:"secret" protobuf:"bytes,2,opt,name=secret"`
+	Secret *kapiv1.LocalObjectReference `json:"secret,omitempty" protobuf:"bytes,2,opt,name=secret"`
 
 	// requester holds the identity of the agent requesting the template
 	// instantiation.
