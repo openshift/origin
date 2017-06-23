@@ -98,7 +98,7 @@ type TemplateInstanceSpec struct {
 
 	// Secret is a reference to a Secret object containing the necessary
 	// template parameters.
-	Secret kapi.LocalObjectReference
+	Secret *kapi.LocalObjectReference
 
 	// Requester holds the identity of the agent requesting the template
 	// instantiation.

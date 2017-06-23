@@ -235,19 +235,23 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	u := &user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}
 
-	if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-		Namespace: templateInstance.Namespace,
-		Verb:      "get",
-		Group:     kapi.GroupName,
-		Resource:  "secrets",
-		Name:      templateInstance.Spec.Secret.Name,
-	}); err != nil {
-		return err
-	}
+	var secret *kapi.Secret
+	if templateInstance.Spec.Secret != nil {
+		if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: templateInstance.Namespace,
+			Verb:      "get",
+			Group:     kapi.GroupName,
+			Resource:  "secrets",
+			Name:      templateInstance.Spec.Secret.Name,
+		}); err != nil {
+			return err
+		}
 
-	secret, err := c.kc.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
-	if err != nil {
-		return err
+		s, err := c.kc.Core().Secrets(templateInstance.Namespace).Get(templateInstance.Spec.Secret.Name, metav1.GetOptions{})
+		secret = s
+		if err != nil {
+			return err
+		}
 	}
 
 	template, err := c.copyTemplate(&templateInstance.Spec.Template)
@@ -262,10 +266,12 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 	template.ObjectLabels[templateapi.TemplateInstanceLabel] = templateInstance.Name
 
-	for i, param := range template.Parameters {
-		if value, ok := secret.Data[param.Name]; ok {
-			template.Parameters[i].Value = string(value)
-			template.Parameters[i].Generate = ""
+	if secret != nil {
+		for i, param := range template.Parameters {
+			if value, ok := secret.Data[param.Name]; ok {
+				template.Parameters[i].Value = string(value)
+				template.Parameters[i].Generate = ""
+			}
 		}
 	}
 

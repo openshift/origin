@@ -176,7 +176,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 							},
 						},
 					},
-					Secret: kapi.LocalObjectReference{
+					Secret: &kapi.LocalObjectReference{
 						Name: "secret",
 					},
 				},

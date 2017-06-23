@@ -8,6 +8,7 @@ import (
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 	reflect "reflect"
 )
 
@@ -193,6 +194,11 @@ func DeepCopy_v1_TemplateInstanceSpec(in interface{}, out interface{}, c *conver
 		*out = *in
 		if err := DeepCopy_v1_Template(&in.Template, &out.Template, c); err != nil {
 			return err
+		}
+		if in.Secret != nil {
+			in, out := &in.Secret, &out.Secret
+			*out = new(api_v1.LocalObjectReference)
+			**out = **in
 		}
 		if in.Requester != nil {
 			in, out := &in.Requester, &out.Requester

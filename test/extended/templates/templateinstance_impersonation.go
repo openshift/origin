@@ -67,15 +67,6 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 					Username: edituser1.Name,
 				},
 			},
-			// post the status to avoid kicking off the controller
-			Status: templateapi.TemplateInstanceStatus{
-				Conditions: []templateapi.TemplateInstanceCondition{
-					{
-						Type:   templateapi.TemplateInstanceReady,
-						Status: kapi.ConditionTrue,
-					},
-				},
-			},
 		}
 
 		tests = []struct {

@@ -294,7 +294,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 							Namespace: "test",
 						},
 					},
-					Secret: kapi.LocalObjectReference{
+					Secret: &kapi.LocalObjectReference{
 						Name: "b@d",
 					},
 					Requester: &templateapi.TemplateInstanceRequester{
@@ -317,7 +317,47 @@ func TestValidateTemplateInstance(t *testing.T) {
 							Namespace: "test",
 						},
 					},
-					Secret: kapi.LocalObjectReference{
+					Secret: &kapi.LocalObjectReference{},
+					Requester: &templateapi.TemplateInstanceRequester{
+						Username: "test",
+					},
+				},
+			},
+			expectedErrorType: field.ErrorTypeRequired,
+		},
+		{
+			templateInstance: templateapi.TemplateInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test",
+							Namespace: "test",
+						},
+					},
+					Requester: &templateapi.TemplateInstanceRequester{
+						Username: "test",
+					},
+				},
+			},
+		},
+		{
+			templateInstance: templateapi.TemplateInstance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test",
+					Namespace: "test",
+				},
+				Spec: templateapi.TemplateInstanceSpec{
+					Template: templateapi.Template{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test",
+							Namespace: "test",
+						},
+					},
+					Secret: &kapi.LocalObjectReference{
 						Name: "test",
 					},
 					Requester: &templateapi.TemplateInstanceRequester{
@@ -367,7 +407,7 @@ func TestValidateTemplateInstanceUpdate(t *testing.T) {
 					},
 				},
 			},
-			Secret: kapi.LocalObjectReference{
+			Secret: &kapi.LocalObjectReference{
 				Name: "test",
 			},
 			Requester: &templateapi.TemplateInstanceRequester{
