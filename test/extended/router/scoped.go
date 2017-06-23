@@ -79,7 +79,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "first.example.com", changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL+"/Letter", "FIRST.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"second.example.com", "third.example.com"} {
@@ -133,7 +133,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 
 			g.By("checking that the stored domain name does not match a route")
 			host := "first.example.com"
-			err = expectRouteStatusCodeExec(ns, execPodName, routerURL, host, http.StatusServiceUnavailable)
+			err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusServiceUnavailable)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"route-1", "route-2"} {
