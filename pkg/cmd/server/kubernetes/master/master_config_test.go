@@ -31,6 +31,7 @@ var expectedGroupPreferredVersions []string = []string{
 	// keep this sorted:
 	"apps/v1beta1,authentication.k8s.io/v1",
 	"authorization.k8s.io/v1",
+	"authorization.openshift.io/v1",
 	"autoscaling/v1",
 	"batch/v1",
 	"certificates.k8s.io/v1beta1",
@@ -49,6 +50,8 @@ func TestPreferredGroupVersions(t *testing.T) {
 	s := kapi.Registry.AllPreferredGroupVersions()
 	expected := strings.Join(expectedGroupPreferredVersions, ",")
 	if s != expected {
+		t.Logf("expected: %#v", expected)
+		t.Logf("got: %#v", s)
 		t.Errorf("unexpected preferred group versions: %v", diff.StringDiff(expected, s))
 	}
 }
@@ -187,7 +190,7 @@ func TestCMServerDefaults(t *testing.T) {
 			ConcurrentJobSyncs:                5,
 			ConcurrentResourceQuotaSyncs:      5,
 			ConcurrentDeploymentSyncs:         5,
-			ConcurrentNamespaceSyncs:          5,
+			ConcurrentNamespaceSyncs:          10,
 			ConcurrentSATokenSyncs:            5,
 			ConcurrentServiceSyncs:            1,
 			ConcurrentGCSyncs:                 20,

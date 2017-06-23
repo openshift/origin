@@ -189,6 +189,88 @@ func init() {
 			eventsRule(),
 		},
 	})
+
+	// sdn-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraSDNControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "create", "update").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(networkGroup, legacyNetworkGroup).Resources("egressnetworkpolicies").RuleOrDie(),
+			rbac.NewRule("get", "list", "create", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("hostsubnets").RuleOrDie(),
+			rbac.NewRule("get", "list", "create", "update", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("netnamespaces").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			rbac.NewRule("get").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
+			rbac.NewRule("update").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
+			rbac.NewRule("list").Groups(extensionsGroup).Resources("networkPolicies").RuleOrDie(),
+
+			eventsRule(),
+		},
+	})
+
+	// cluster-quota-reconciliation
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraClusterQuotaReconciliationControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configMaps").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("update").Groups(quotaGroup, legacyQuotaGroup).Resources("clusterresourcequotas/status").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// unidling-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraUnidlingControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "update").Groups(kapiGroup).Resources("replicationcontrollers/scale", "endpoints").RuleOrDie(),
+			rbac.NewRule("get", "update", "patch").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+			rbac.NewRule("get", "update", "patch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(extensionsGroup, appsGroup).Resources("replicasets/scale", "deployments/scale").RuleOrDie(),
+			rbac.NewRule("get", "update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/scale").RuleOrDie(),
+			rbac.NewRule("watch", "list").Groups(kapiGroup).Resources("events").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// ingress-ip-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceIngressIPControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("list", "watch", "update").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			rbac.NewRule("update").Groups(kapiGroup).Resources("services/status").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// pv-recycler-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraPersistentVolumeRecyclerControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "update", "create", "delete", "list", "watch").Groups(kapiGroup).Resources("persistentvolumes").RuleOrDie(),
+			rbac.NewRule("update").Groups(kapiGroup).Resources("persistentvolumes/status").RuleOrDie(),
+			rbac.NewRule("get", "update", "list", "watch").Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
+			rbac.NewRule("update").Groups(kapiGroup).Resources("persistentvolumeclaims/status").RuleOrDie(),
+			rbac.NewRule("get", "create", "delete", "list", "watch").Groups(kapiGroup).Resources("pods").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// resourcequota-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraResourceQuotaControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("update").Groups(kapiGroup).Resources("resourcequotas/status").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("resourcequotas").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
 }
 
 // ControllerRoles returns the cluster roles used by controllers

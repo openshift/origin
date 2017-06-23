@@ -13,7 +13,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/docker/docker/cliconfig"
 	dockerclient "github.com/docker/engine-api/client"
-	docker "github.com/fsouza/go-dockerclient"
+	"github.com/docker/engine-api/types/versions"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -36,7 +36,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	dockerutil "github.com/openshift/origin/pkg/cmd/util/docker"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -53,6 +52,8 @@ const (
 
 	defaultRedirectClient  = "openshift-web-console"
 	developmentRedirectURI = "https://localhost:9000"
+
+	dockerAPIVersion122 = "1.22"
 )
 
 var (
@@ -120,7 +121,6 @@ var (
 		"prometheus":          "examples/prometheus/prometheus.yaml",
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
 	}
-	dockerVersion112 = semver.MustParse("1.12.0")
 
 	openshiftVersion36       = semver.MustParse("3.6.0")
 	openshiftVersion36alpha2 = semver.MustParse("3.6.0-alpha.2+3c221d5")
@@ -212,8 +212,7 @@ type CommonStartConfig struct {
 	NoProxy                  []string
 	CACert                   string
 
-	dockerClient    *docker.Client
-	engineAPIClient *dockerclient.Client
+	dockerClient    dockerhelper.Interface
 	dockerHelper    *dockerhelper.Helper
 	hostHelper      *host.HostHelper
 	openshiftHelper *openshift.Helper
@@ -224,6 +223,7 @@ type CommonStartConfig struct {
 	usingDefaultImages         bool
 	usingDefaultOpenShiftImage bool
 	checkAlternatePorts        bool
+	isRHDocker                 bool
 
 	shouldInitializeData *bool
 	shouldCreateUser     *bool
@@ -553,24 +553,24 @@ func (c *CommonStartConfig) CheckOpenShiftClient(out io.Writer) error {
 // GetDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary
 func (c *CommonStartConfig) GetDockerClient(out io.Writer) error {
-	dockerClient, engineAPIClient, err := getDockerClient(out, c.DockerMachine, true)
+	client, err := getDockerClient(out, c.DockerMachine, true)
 	if err != nil {
 		return err
 	}
-	c.dockerClient, c.engineAPIClient = dockerClient, engineAPIClient
+	c.dockerClient = client
 	return nil
 }
 
 // getDockerClient obtains a new Docker client from the environment or
 // from a Docker machine, starting it if necessary and permitted
-func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (*docker.Client, *dockerclient.Client, error) {
+func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine bool) (dockerhelper.Interface, error) {
 	if len(dockerMachine) > 0 {
 		glog.V(2).Infof("Getting client for Docker machine %q", dockerMachine)
-		dockerClient, engineAPIClient, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
+		client, err := getDockerMachineClient(dockerMachine, out, canStartDockerMachine)
 		if err != nil {
-			return nil, nil, errors.ErrNoDockerMachineClient(dockerMachine, err)
+			return nil, errors.ErrNoDockerMachineClient(dockerMachine, err)
 		}
-		return dockerClient, engineAPIClient, nil
+		return client, nil
 	}
 
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
@@ -597,10 +597,6 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 			glog.Infof("DOCKER_CERT_PATH=%s", dockerCertPath)
 		}
 	}
-	dockerClient, _, err := dockerutil.NewHelper().GetClient()
-	if err != nil {
-		return nil, nil, errors.ErrNoDockerClient(err)
-	}
 	// FIXME: Workaround for docker engine API client on OS X - sets the default to
 	// the wrong DOCKER_HOST string
 	if runtime.GOOS == "darwin" {
@@ -609,15 +605,15 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 			os.Setenv("DOCKER_HOST", "unix:///var/run/docker.sock")
 		}
 	}
+	host := os.Getenv("DOCKER_HOST")
+	if len(host) == 0 {
+		host = dockerclient.DefaultDockerHost
+	}
 	engineAPIClient, err := dockerclient.NewEnvClient()
 	if err != nil {
-		return nil, nil, errors.ErrNoDockerClient(err)
+		return nil, errors.ErrNoDockerClient(err)
 	}
-	if err = dockerClient.Ping(); err != nil {
-		return nil, nil, errors.ErrCannotPingDocker(err)
-	}
-	glog.V(4).Infof("Docker ping succeeded")
-	return dockerClient, engineAPIClient, nil
+	return dockerhelper.NewClient(host, engineAPIClient), nil
 }
 
 // CheckExistingOpenShiftContainer checks the state of an OpenShift container. If one
@@ -664,7 +660,7 @@ func (c *CommonStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
 	var err error
 	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
-	if c.UseNsenterMount {
+	if c.UseNsenterMount && c.isRHDocker {
 		fmt.Fprintf(out, "Using nsenter mounter for OpenShift volumes\n")
 	} else {
 		fmt.Fprintf(out, "Using Docker shared volumes for OpenShift volumes\n")
@@ -675,16 +671,17 @@ func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
 // CheckDockerVersion checks that the appropriate Docker version is installed based on whether we are using the nsenter mounter
 // or shared volumes for OpenShift
 func (c *CommonStartConfig) CheckDockerVersion(out io.Writer) error {
-	ver, _, err := c.DockerHelper().Version()
+	ver, isRHDocker, err := c.DockerHelper().APIVersion()
 	if err != nil {
-		glog.V(1).Infof("Failed to check Docker version: %v", err)
+		glog.V(1).Infof("Failed to check Docker API version: %v", err)
 		fmt.Fprintf(out, "WARNING: Cannot verify Docker version\n")
 		return nil
 	}
-	needVersion := dockerVersion112
-	glog.V(5).Infof("Checking that docker version is at least %v", needVersion)
-	if ver.LT(needVersion) {
-		fmt.Fprintf(out, "WARNING: Docker version is %v, it needs to be >= %v\n", ver, needVersion)
+	c.isRHDocker = isRHDocker
+
+	glog.V(5).Infof("Checking that docker API version is at least %v", dockerAPIVersion122)
+	if versions.LessThan(ver, dockerAPIVersion122) {
+		fmt.Fprintf(out, "WARNING: Docker version is %v, it needs to be >= %v\n", ver, dockerAPIVersion122)
 	}
 	return nil
 }
@@ -1185,7 +1182,7 @@ func (c *ClientStartConfig) Clients() (*client.Client, kclientset.Interface, err
 // OpenShiftHelper returns a helper object to work with OpenShift on the server
 func (c *CommonStartConfig) OpenShiftHelper() *openshift.Helper {
 	if c.openshiftHelper == nil {
-		c.openshiftHelper = openshift.NewHelper(c.dockerClient, c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
+		c.openshiftHelper = openshift.NewHelper(c.DockerHelper(), c.HostHelper(), c.openshiftImage(), openshift.OpenShiftContainer, c.PublicHostname, c.RoutingSuffix)
 	}
 	return c.openshiftHelper
 }
@@ -1193,7 +1190,7 @@ func (c *CommonStartConfig) OpenShiftHelper() *openshift.Helper {
 // HostHelper returns a helper object to check Host configuration
 func (c *CommonStartConfig) HostHelper() *host.HostHelper {
 	if c.hostHelper == nil {
-		c.hostHelper = host.NewHostHelper(c.dockerClient, c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir, c.HostPersistentVolumesDir)
+		c.hostHelper = host.NewHostHelper(c.DockerHelper(), c.openshiftImage(), c.HostVolumesDir, c.HostConfigDir, c.HostDataDir, c.HostPersistentVolumesDir)
 	}
 	return c.hostHelper
 }
@@ -1201,7 +1198,7 @@ func (c *CommonStartConfig) HostHelper() *host.HostHelper {
 // DockerHelper returns a helper object to work with the Docker client
 func (c *CommonStartConfig) DockerHelper() *dockerhelper.Helper {
 	if c.dockerHelper == nil {
-		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient, c.engineAPIClient)
+		c.dockerHelper = dockerhelper.NewHelper(c.dockerClient)
 	}
 	return c.dockerHelper
 }
@@ -1225,12 +1222,12 @@ func (c *CommonStartConfig) openshiftImage() string {
 	return fmt.Sprintf("%s:%s", c.Image, c.ImageVersion)
 }
 
-func getDockerMachineClient(machine string, out io.Writer, canStart bool) (*docker.Client, *dockerclient.Client, error) {
+func getDockerMachineClient(machine string, out io.Writer, canStart bool) (dockerhelper.Interface, error) {
 	if !dockermachine.IsRunning(machine) && canStart {
 		fmt.Fprintf(out, "Starting Docker machine '%s'\n", machine)
 		err := dockermachine.Start(machine)
 		if err != nil {
-			return nil, nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
+			return nil, errors.NewError("cannot start Docker machine %q", machine).WithCause(err)
 		}
 		fmt.Fprintf(out, "Started Docker machine '%s'\n", machine)
 	}

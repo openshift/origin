@@ -56,11 +56,11 @@ func NewCmdDown(name, fullName string, f *osclientcmd.Factory, out io.Writer) *c
 // Stop stops the currently running origin container and any
 // containers started by the node.
 func (c *ClientStopConfig) Stop(out io.Writer) error {
-	client, _, err := getDockerClient(out, c.DockerMachine, false)
+	client, err := getDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return err
 	}
-	helper := dockerhelper.NewHelper(client, nil)
+	helper := dockerhelper.NewHelper(client)
 	glog.V(4).Infof("Killing previous socat tunnel")
 	err = openshift.KillExistingSocat()
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		}
 		name = strings.TrimLeft(name, "/")
 		glog.V(4).Infof("Stopping container %s", name)
-		if err = client.StopContainer(name, 0); err != nil {
+		if err = client.ContainerStop(name, 0); err != nil {
 			glog.V(1).Infof("Error stopping container %s: %v", name, err)
 		}
 		glog.V(4).Infof("Removing container %s", name)

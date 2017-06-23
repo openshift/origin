@@ -406,28 +406,41 @@ var (
 		--generator to create a replication controller instead of a deployment config.`)
 
 	runExample = templates.Examples(`
-		# Starts a single instance of nginx.
-	  %[1]s run nginx --image=nginx
+		# Start a single instance of nginx.
+		%[1]s run nginx --image=nginx
 
-	  # Starts a replicated instance of nginx.
-	  %[1]s run nginx --image=nginx --replicas=5
+		# Start a single instance of hazelcast and let the container expose port 5701 .
+		%[1]s run hazelcast --image=hazelcast --port=5701
 
-	  # Dry run. Print the corresponding API objects without creating them.
-	  %[1]s run nginx --image=nginx --dry-run
+		# Start a single instance of hazelcast and set environment variables "DNS_DOMAIN=cluster"
+		# and "POD_NAMESPACE=default" in the container.
+		%[1]s run hazelcast --image=hazelcast --env="DNS_DOMAIN=cluster" --env="POD_NAMESPACE=default"
 
-	  # Start a single instance of nginx, but overload the spec of the replication
-	  # controller with a partial set of values parsed from JSON.
-	  %[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
+		# Start a replicated instance of nginx.
+		%[1]s run nginx --image=nginx --replicas=5
 
-  # Start a single instance of nginx and keep it in the foreground, don't restart it if it exits.
-  %[1]s run -i --tty nginx --image=nginx --restart=Never
+		# Dry run. Print the corresponding API objects without creating them.
+		%[1]s run nginx --image=nginx --dry-run
 
-  # Start the nginx container using the default command, but use custom
-  # arguments (arg1 .. argN) for that command.
-  %[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+		# Start a single instance of nginx, but overload the spec of the deployment config with
+		# a partial set of values parsed from JSON.
+		%[1]s run nginx --image=nginx --overrides='{ "apiVersion": "v1", "spec": { ... } }'
 
-  # Start the nginx container using a different command and custom arguments
-  %[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>`)
+		# Start a pod of busybox and keep it in the foreground, don't restart it if it exits.
+		%[1]s run -i -t busybox --image=busybox --restart=Never
+
+		# Start the nginx container using the default command, but use custom arguments (arg1 .. argN)
+		# for that command.
+		%[1]s run nginx --image=nginx -- <arg1> <arg2> ... <argN>
+
+		# Start the nginx container using a different command and custom arguments.
+		%[1]s run nginx --image=nginx --command -- <cmd> <arg1> ... <argN>
+
+		# Start the job to compute π to 2000 places and print it out.
+		%[1]s run pi --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'
+
+		# Start the cron job to compute π to 2000 places and print it out every 5 minutes.
+		%[1]s run pi --schedule="0/5 * * * ?" --image=perl --restart=OnFailure -- perl -Mbignum=bpi -wle 'print bpi(2000)'`)
 )
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
