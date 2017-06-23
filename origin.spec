@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c5b7869d0b29e2865a5cab3f7d3108ab335b50b4
+%global commit 9940fdff9fe0efa8bca857762d0e9617b2f49b0c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.121 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c5b7869
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.122 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=9940fdf
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.122
+Version:        3.6.123
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -657,6 +657,41 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Jun 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.123-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1922a40
+  (smunilla@redhat.com)
+- bump(k8s.io/kubernetes): e14cf3cef86ecaf0ec2a2b685a8113c0b258eacb
+  (deads@redhat.com)
+- don't use hyphens in template.openshift.io/(base64-)?expose- annotation key
+  (jminter@redhat.com)
+- Update generated completions. (vsemushi@redhat.com)
+- proxy: honor BindAddress for the iptables proxy (dcbw@redhat.com)
+- Handle system logging cleanup when no logfile exists (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  93f3bfb7d598276309585d25eb9e158fb7597fd3 (dmcphers+openshiftbot@redhat.com)
+- Replace fsouza go-docker client with engine-api client in cluster up
+  (cewong@redhat.com)
+- Bump default namespace controller workers to 10 (ccoleman@redhat.com)
+- UPSTREAM: 46796: Bump namespace controller to 10 workers
+  (ccoleman@redhat.com)
+- The hack/common.sh is no more. (jpazdziora@redhat.com)
+- add a display name to the jenkins pipeline example (bparees@redhat.com)
+- UPSTREAM: 46460: Add configuration for encryption providers
+  (vsemushi@redhat.com)
+- fix policies for unidling controller (mfojtik@redhat.com)
+- make sdn retry on auth failure (mfojtik@redhat.com)
+- refactor rest of the origin controllers and kube controllers initialization
+  (mfojtik@redhat.com)
+- UPSTREAM: 46034: Event aggregation: include latest event message in aggregate
+  event (sjenning@redhat.com)
+- UPSTREAM: 47792: Fix rawextension decoding in update (jliggitt@redhat.com)
+- bump(github.com/elazarl/goproxy): c4fc26588b6ef8af07a191fcb6476387bdd46711
+  (jdetiber@redhat.com)
+- UPSTREAM: 44113: vendor: Update elazarl/goproxy to fix e2e test with go1.8
+  (jdetiber@redhat.com)
+- Update oc run help (maszulik@redhat.com)
+- deploy: remove leading and trailing spaces from images (mfojtik@redhat.com)
+
 * Wed Jun 21 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.122-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console a4b7297
   (smunilla@redhat.com)
