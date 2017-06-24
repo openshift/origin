@@ -118,7 +118,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	otx.AddFlow("table=21, priority=0, actions=goto_table:30")
 
 	if oc.useConnTrack {
-		// Table 25: IP from OpenShift container via Service IP; reload tenant-id; filled in by openshift-sdn-ovs
+		// Table 25: IP from OpenShift container via Service IP; reload tenant-id; filled in by setupPodFlows
 		// eg, "table=25, priority=100, ip, nw_src=${ipaddr}, actions=load:${tenant_id}->NXM_NX_REG0[], goto_table:30"
 		otx.AddFlow("table=25, priority=0, actions=drop")
 	}

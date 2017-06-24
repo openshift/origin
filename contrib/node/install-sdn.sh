@@ -14,9 +14,6 @@ os::provision::install-sdn() {
   mkdir -p -m u+rwx,g+rwx,o+rx "${target_confdir}"
   mkdir -p -m u+rwx,g+rwx,o+rx "${target_cnidir}"
 
-  local osdn_plugin_path="${deployed_root}/pkg/sdn/plugin"
-  install -m u+rwx,g+rwx,o+rx "${osdn_plugin_path}/bin/openshift-sdn-ovs" "${target_bindir}"
-
   install -m u+rwx,g+rwx,o+rx "${binaries_path}/sdn-cni-plugin" "${target_cnidir}/openshift-sdn"
   install -m u+rwx,g+rwx,o+rx "${binaries_path}/host-local" "${target_cnidir}"
   install -m u+rwx,g+rwx,o+rx "${binaries_path}/loopback" "${target_cnidir}"
