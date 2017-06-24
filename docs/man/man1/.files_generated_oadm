@@ -50,7 +50,6 @@ oadm-migrate-authorization.1
 oadm-migrate-etcd-ttl.1
 oadm-migrate-image-references.1
 oadm-migrate-storage.1
-oadm-migrate-volumesource.1
 oadm-migrate.1
 oadm-new-project.1
 oadm-options.1
