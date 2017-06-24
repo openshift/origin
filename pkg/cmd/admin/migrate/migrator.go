@@ -49,6 +49,9 @@ func AlwaysRequiresMigration(_ *resource.Info) (Reporter, error) {
 	return ReporterBool(true), nil
 }
 
+// NotChanged is a Reporter returned by operations that are guaranteed to be read-only
+var NotChanged = ReporterBool(false)
+
 // ResourceOptions assists in performing migrations on any object that
 // can be retrieved via the API.
 type ResourceOptions struct {
