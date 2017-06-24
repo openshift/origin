@@ -11,6 +11,11 @@ type TemplateInstanceControllerConfig struct {
 func (c *TemplateInstanceControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraTemplateInstanceControllerServiceAccountName
 
+	restConfig, err := ctx.ClientBuilder.Config(saName)
+	if err != nil {
+		return true, err
+	}
+
 	internalKubeClient, err := ctx.ClientBuilder.KubeInternalClient(saName)
 	if err != nil {
 		return true, err
@@ -27,6 +32,7 @@ func (c *TemplateInstanceControllerConfig) RunController(ctx ControllerContext) 
 	}
 
 	go templatecontroller.NewTemplateInstanceController(
+		restConfig,
 		deprecatedOcClient,
 		internalKubeClient,
 		templateClient.Template(),

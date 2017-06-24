@@ -350,7 +350,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		PolicyBindingLister: c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Lister(),
 		versioner:           c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Informer(),
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.KubeClientInternal, policyBindings)
+	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.GenericConfig.LoopbackClientConfig, policyBindings)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,

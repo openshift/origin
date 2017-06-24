@@ -14,6 +14,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -23,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/config/cmd"
@@ -40,6 +40,7 @@ import (
 // using its own service account, first verifying that the requester also has
 // permissions to instantiate.
 type TemplateInstanceController struct {
+	config         *rest.Config
 	oc             client.Interface
 	kc             kclientsetinternal.Interface
 	templateclient internalversiontemplate.TemplateInterface
@@ -51,8 +52,9 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
+		config:         config,
 		oc:             oc,
 		kc:             kc,
 		templateclient: templateclient,
@@ -305,14 +307,9 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	bulk := cmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:  client.DefaultMultiRESTMapper(),
-			ObjectTyper: kapi.Scheme,
-			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-				if latest.OriginKind(mapping.GroupVersionKind) {
-					return c.oc.(*client.Client), nil
-				}
-				return c.kc.Core().RESTClient(), nil
-			}),
+			RESTMapper:   client.DefaultMultiRESTMapper(),
+			ObjectTyper:  kapi.Scheme,
+			ClientMapper: cmd.ClientMapperFromConfig(c.config),
 		},
 		Op: func(info *resource.Info, namespace string, obj runtime.Object) (runtime.Object, error) {
 			if len(info.Namespace) > 0 {

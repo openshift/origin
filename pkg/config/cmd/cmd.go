@@ -10,9 +10,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/unversioned"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+
+	"github.com/openshift/origin/pkg/api/latest"
+	"github.com/openshift/origin/pkg/client"
 )
 
 type Runner interface {
@@ -97,6 +102,43 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 		}
 	}
 	return errs
+}
+
+// ClientMapperFromConfig returns a ClientMapper suitable for Bulk operations.
+// TODO: copied from
+// pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping and
+// vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util/factory_object_mapping.go#ClientForMapping
+func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
+	return resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+		configCopy := *config
+
+		if latest.OriginKind(mapping.GroupVersionKind) {
+			if err := client.SetOpenShiftDefaults(&configCopy); err != nil {
+				return nil, err
+			}
+			configCopy.APIPath = "/apis"
+			if mapping.GroupVersionKind.Group == kapi.GroupName {
+				configCopy.APIPath = "/oapi"
+			}
+			gv := mapping.GroupVersionKind.GroupVersion()
+			configCopy.GroupVersion = &gv
+			return rest.RESTClientFor(&configCopy)
+		}
+
+		if err := unversioned.SetKubernetesDefaults(&configCopy); err != nil {
+			return nil, err
+		}
+		gvk := mapping.GroupVersionKind
+		switch gvk.Group {
+		case kapi.GroupName:
+			configCopy.APIPath = "/api"
+		default:
+			configCopy.APIPath = "/apis"
+		}
+		gv := gvk.GroupVersion()
+		configCopy.GroupVersion = &gv
+		return rest.RESTClientFor(&configCopy)
+	})
 }
 
 func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, dryRun bool, indent string, prefixForError PrefixForError) AfterFunc {

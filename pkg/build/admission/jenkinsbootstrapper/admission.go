@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/glog"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -15,11 +14,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kclient "k8s.io/kubernetes/pkg/client/unversioned"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/api/latest"
 	authenticationclient "github.com/openshift/origin/pkg/auth/client"
 	buildapi "github.com/openshift/origin/pkg/build/api"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
@@ -101,37 +98,9 @@ func (a *jenkinsBootstrapper) Admit(attributes admission.Attributes) error {
 
 	bulk := &cmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:  kapi.Registry.RESTMapper(),
-			ObjectTyper: kapi.Scheme,
-			ClientMapper: resource.ClientMapperFunc(func(mapping *meta.RESTMapping) (resource.RESTClient, error) {
-				// TODO this is a nasty copy&paste from pkg/cmd/util/clientcmd/factory_object_mapping.go#ClientForMapping
-				if latest.OriginKind(mapping.GroupVersionKind) {
-					if err := client.SetOpenShiftDefaults(&impersonatingConfig); err != nil {
-						return nil, err
-					}
-					impersonatingConfig.APIPath = "/apis"
-					if mapping.GroupVersionKind.Group == kapi.GroupName {
-						impersonatingConfig.APIPath = "/oapi"
-					}
-					gv := mapping.GroupVersionKind.GroupVersion()
-					impersonatingConfig.GroupVersion = &gv
-					return restclient.RESTClientFor(&impersonatingConfig)
-				}
-				// TODO and this from vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util/factory_object_mapping.go#ClientForMapping
-				if err := kclient.SetKubernetesDefaults(&impersonatingConfig); err != nil {
-					return nil, err
-				}
-				gvk := mapping.GroupVersionKind
-				switch gvk.Group {
-				case kapi.GroupName:
-					impersonatingConfig.APIPath = "/api"
-				default:
-					impersonatingConfig.APIPath = "/apis"
-				}
-				gv := gvk.GroupVersion()
-				impersonatingConfig.GroupVersion = &gv
-				return restclient.RESTClientFor(&impersonatingConfig)
-			}),
+			RESTMapper:   kapi.Registry.RESTMapper(),
+			ObjectTyper:  kapi.Scheme,
+			ClientMapper: cmd.ClientMapperFromConfig(&impersonatingConfig),
 		},
 		Op: cmd.Create,
 		After: func(info *resource.Info, err error) bool {
