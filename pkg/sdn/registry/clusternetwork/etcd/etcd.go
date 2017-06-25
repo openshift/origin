@@ -8,7 +8,6 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn/api"
 	"github.com/openshift/origin/pkg/sdn/registry/clusternetwork"
-	"github.com/openshift/origin/pkg/user/registry/user"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -31,7 +30,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: clusternetwork.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusternetwork.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
