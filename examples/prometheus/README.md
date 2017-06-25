@@ -5,7 +5,7 @@ This template creates a Prometheus instance preconfigured to gather OpenShift an
 To deploy, run:
 
 ```
-$ oc new-app -f prometheus.yaml
+$ oc process -f prometheus.yaml -p SERVICE_SIGNER_CERT="$(cat /etc/origin/master/service-signer.crt)" -p PROMETHEUS_HOSTNAME="prometheus.${HOSTNAME}" | oc create -f -
 ```
 
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.

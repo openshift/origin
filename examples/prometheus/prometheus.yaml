@@ -22,6 +22,11 @@ parameters:
   name: SESSION_SECRET
   generate: expression
   from: "[a-zA-Z0-9]{43}"
+- description: The prometheus hostname
+  name: PROMETHEUS_HOSTNAME
+  value: "prometheus.${HOSTNAME}"
+- description: service-signer.crt
+  name: SERVICE_SIGNER_CERT
 objects:
 # Authorize the prometheus service account to read data about the cluster
 - apiVersion: v1
@@ -48,10 +53,12 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
   spec:
+    host: "${PROMETHEUS_HOSTNAME}"
     to:
       name: prometheus
     tls:
       termination: Reencrypt
+      destinationCACertificate: "${SERVICE_SIGNER_CERT}"
 - apiVersion: v1
   kind: Service
   metadata:
@@ -118,6 +125,7 @@ objects:
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
           - -cookie-secret-file=/etc/proxy/secrets/session_secret
           - -skip-auth-regex=^/metrics
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}}'
           volumeMounts:
           - mountPath: /etc/tls/private
             name: prometheus-tls
