@@ -50,7 +50,7 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
 	// and we should allow it in general, since you had the power to update and the power to delete.
 	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
-	if attr.GetOldObject() != nil && oadmission.IsOnlyMutatingOwnerRefs(attr.GetObject(), attr.GetOldObject()) {
+	if attr.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(attr.GetObject(), attr.GetOldObject()) {
 		return nil
 	}
 

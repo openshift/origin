@@ -6,7 +6,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-func IsOnlyMutatingOwnerRefs(obj, old runtime.Object) bool {
+// IsOnlyMutatingGCFields checks finalizers and ownerrefs which GC manipulates
+// and indicates that only those fields are changing
+func IsOnlyMutatingGCFields(obj, old runtime.Object) bool {
 	// make a copy of the newObj so that we can stomp for comparison
 	copied, err := kapi.Scheme.Copy(obj)
 	if err != nil {
@@ -22,6 +24,7 @@ func IsOnlyMutatingOwnerRefs(obj, old runtime.Object) bool {
 		return false
 	}
 	copiedMeta.SetOwnerReferences(oldMeta.GetOwnerReferences())
+	copiedMeta.SetFinalizers(oldMeta.GetFinalizers())
 
 	return kapi.Semantic.DeepEqual(copied, old)
 }

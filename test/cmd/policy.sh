@@ -50,6 +50,11 @@ os::cmd::expect_success_and_not_text 'oc get rolebinding/cluster-admin --no-head
 os::cmd::expect_success 'oc policy remove-group system:unauthenticated'
 os::cmd::expect_success 'oc policy remove-user system:no-user'
 
+# check to make sure that our SCC policies don't prevent GC from deleting pods
+os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/privileged-pod.yaml'
+os::cmd::expect_success 'oc delete pod/test-build-pod-issue --cascade=false'
+os::cmd::try_until_failure 'oc get pods pod/test-build-pod-issue'
+
 
 os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'role "admin" added: "namespaced-user"'
 # Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
