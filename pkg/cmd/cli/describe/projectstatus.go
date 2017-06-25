@@ -372,18 +372,18 @@ func printMarkerSuggestions(markers []osgraph.Marker, suggest bool, out *tabwrit
 		if len(marker.Suggestion) > 0 {
 			suggestionAmount++
 		}
-		if len(marker.Suggestion) > 0 || len(marker.Message) > 0 {
-			if suggest {
-				fmt.Fprintln(out, indent+"* "+marker.Message)
-				switch s := marker.Suggestion.String(); {
-				case strings.Contains(s, "\n"):
-					fmt.Fprintln(out)
-					for _, line := range strings.Split(s, "\n") {
-						fmt.Fprintln(out, indent+"  "+line)
-					}
-				case len(s) > 0:
-					fmt.Fprintln(out, indent+"  try: "+s)
+		if len(marker.Message) > 0 && (suggest || marker.Severity == osgraph.ErrorSeverity) {
+			fmt.Fprintln(out, indent+"* "+marker.Message)
+		}
+		if len(marker.Suggestion) > 0 && suggest {
+			switch s := marker.Suggestion.String(); {
+			case strings.Contains(s, "\n"):
+				fmt.Fprintln(out)
+				for _, line := range strings.Split(s, "\n") {
+					fmt.Fprintln(out, indent+"  "+line)
 				}
+			case len(s) > 0:
+				fmt.Fprintln(out, indent+"  try: "+s)
 			}
 		}
 	}
