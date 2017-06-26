@@ -3,6 +3,7 @@ package images
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -27,6 +28,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())
 
 		username, password, execPodName, ns, host string
+		statsPort                                 int
 		hasHealth, hasMetrics                     bool
 	)
 
@@ -39,9 +41,21 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 		o.Expect(err).NotTo(o.HaveOccurred())
 		env := dc.Spec.Template.Spec.Containers[0].Env
 		username, password = findEnvVar(env, "STATS_USERNAME"), findEnvVar(env, "STATS_PASSWORD")
-
+		statsPortString := findEnvVar(env, "STATS_PORT")
 		hasMetrics = len(findEnvVar(env, "ROUTER_METRICS_TYPE")) > 0
-		hasHealth = len(findEnvVar(env, "ROUTER_LISTEN_ADDR")) > 0
+		listenAddr := findEnvVar(env, "ROUTER_LISTEN_ADDR")
+
+		statsPort = 1936
+		if len(listenAddr) > 0 {
+			hasHealth = true
+			_, port, _ := net.SplitHostPort(listenAddr)
+			statsPortString = port
+		}
+		if len(statsPortString) > 0 {
+			if port, err := strconv.Atoi(statsPortString); err == nil {
+				statsPort = port
+			}
+		}
 
 		epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -59,7 +73,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("listening on the health port")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/healthz", host), 200)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/healthz", host, statsPort), 200)
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -76,7 +90,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/metrics", host), 403)
+			err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking for the expected metrics")
@@ -86,8 +100,8 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			times := 10
 			var results string
 			defer func() { e2e.Logf("received metrics:\n%s", results) }()
-			for {
-				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:1935/metrics", host), username, password)
+			for i := 0; i < 30; i++ {
+				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				p := expfmt.TextParser{}
@@ -160,11 +174,11 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("preventing access without a username and password")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:1935/debug/pprof/heap", host), 403)
+			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), 403)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("at /debug/pprof")
-			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:1935/debug/pprof/heap", host), username, password)
+			results, err := getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/debug/pprof/heap", host, statsPort), username, password)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
