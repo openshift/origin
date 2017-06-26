@@ -36,6 +36,7 @@ type OsdnMaster struct {
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
 	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
+		cleanupOpenShiftNetworkArtifacts(osClient)
 		return nil
 	}
 
@@ -195,4 +196,27 @@ func clusterNetworkChanged(obj *osapi.ClusterNetwork, old *osapi.ClusterNetwork)
 	}
 
 	return changed, nil
+}
+
+func cleanupOpenShiftNetworkArtifacts(osClient *osclient.Client) error {
+	_, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault)
+	if err == nil {
+		osClient.ClusterNetwork().Delete(osapi.ClusterNetworkDefault)
+	}
+
+	hsList, err := osClient.HostSubnets().List(kapi.ListOptions{})
+	if err == nil {
+		for _, hs := range hsList.Items {
+			osClient.HostSubnets().Delete(hs.ObjectMeta.Name)
+		}
+	}
+
+	nnList, err := osClient.NetNamespaces().List(kapi.ListOptions{})
+	if err == nil {
+		for _, nn := range nnList.Items {
+			osClient.NetNamespaces().Delete(nn.ObjectMeta.Name)
+		}
+	}
+
+	return nil
 }

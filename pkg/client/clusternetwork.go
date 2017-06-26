@@ -15,6 +15,7 @@ type ClusterNetworkInterface interface {
 	Get(name string, options metav1.GetOptions) (*sdnapi.ClusterNetwork, error)
 	Create(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
 	Update(sub *sdnapi.ClusterNetwork) (*sdnapi.ClusterNetwork, error)
+	Delete(name string) error
 }
 
 // clusterNetwork implements ClusterNetworkInterface interface
@@ -48,4 +49,9 @@ func (c *clusterNetwork) Update(cn *sdnapi.ClusterNetwork) (result *sdnapi.Clust
 	result = &sdnapi.ClusterNetwork{}
 	err = c.r.Put().Resource("clusterNetworks").Name(cn.Name).Body(cn).Do().Into(result)
 	return
+}
+
+// Delete takes the name of the ClusterNetwork, and returns an error if one occurs during deletion of the ClusterNetwork
+func (c *clusterNetwork) Delete(name string) error {
+	return c.r.Delete().Resource("clusterNetworks").Name(name).Do().Error()
 }
