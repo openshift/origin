@@ -71,7 +71,7 @@ type PodRequest struct {
 	// kubernetes pod name
 	PodName string
 	// kubernetes container ID
-	ContainerId string
+	SandboxID string
 	// kernel network namespace path
 	Netns string
 	// Channel for returning the operation result to the CNIServer
@@ -190,7 +190,7 @@ func cniRequestToPodRequest(r *http.Request) (*PodRequest, error) {
 		Result:  make(chan *PodResult),
 	}
 
-	req.ContainerId, ok = cr.Env["CNI_CONTAINERID"]
+	req.SandboxID, ok = cr.Env["CNI_CONTAINERID"]
 	if !ok {
 		return nil, fmt.Errorf("missing CNI_CONTAINERID")
 	}

@@ -30,8 +30,11 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kubeletapi "k8s.io/kubernetes/pkg/kubelet/api"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
+	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 )
 
@@ -76,10 +79,16 @@ type OsdnNode struct {
 	clearLbr0IptablesRule bool
 
 	kubeInformers kinternalinformers.SharedInformerFactory
+
+	// Holds runtime endpoint shim to make SDN <-> runtime communication
+	runtimeEndpoint       string
+	runtimeRequestTimeout time.Duration
+	runtimeService        kubeletapi.RuntimeService
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory, hostname string, selfIP string, mtu uint32, proxyConfig componentconfig.KubeProxyConfiguration) (*OsdnNode, error) {
+func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
+	hostname string, selfIP string, mtu uint32, proxyConfig componentconfig.KubeProxyConfiguration, runtimeEndpoint string) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
@@ -153,6 +162,12 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
 		kubeInformers:      kubeInformers,
+
+		runtimeEndpoint: runtimeEndpoint,
+		// 2 minutes is the current default value used in kubelet
+		runtimeRequestTimeout: 2 * time.Minute,
+		// populated on demand
+		runtimeService: nil,
 	}
 
 	if err := plugin.dockerPreCNICleanup(); err != nil {
@@ -329,17 +344,24 @@ func (node *OsdnNode) Start() error {
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
 // See https://github.com/containernetworking/cni/issues/89
 func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
+	filter := &kruntimeapi.PodSandboxFilter{
+		LabelSelector: map[string]string{ktypes.KubernetesPodUIDLabel: string(pod.UID)},
+	}
+	sandboxID, err := node.getPodSandboxID(filter)
+	if err != nil {
+		return err
+	}
+
 	req := &cniserver.PodRequest{
 		Command:      cniserver.CNI_UPDATE,
 		PodNamespace: pod.Namespace,
 		PodName:      pod.Name,
-		ContainerId:  getPodContainerID(&pod),
-		// netns is read from docker if needed, since we don't get it from kubelet
-		Result: make(chan *cniserver.PodResult),
+		SandboxID:    sandboxID,
+		Result:       make(chan *cniserver.PodResult),
 	}
 
 	// Send request and wait for the result
-	_, err := node.podManager.handleCNIRequest(req)
+	_, err = node.podManager.handleCNIRequest(req)
 	return err
 }
 

@@ -329,7 +329,7 @@ func TestPodManager(t *testing.T) {
 				Command:      op.command,
 				PodNamespace: op.namespace,
 				PodName:      op.name,
-				ContainerId:  "asd;lfkajsdflkajfs",
+				SandboxID:    "asd;lfkajsdflkajfs",
 				Netns:        "/some/network/namespace",
 				Result:       make(chan *cniserver.PodResult),
 			}
@@ -424,7 +424,7 @@ func TestDirectPodUpdate(t *testing.T) {
 		Command:      op.command,
 		PodNamespace: op.namespace,
 		PodName:      op.name,
-		ContainerId:  "asdfasdfasdfaf",
+		SandboxID:    "asdfasdfasdfaf",
 		Result:       make(chan *cniserver.PodResult),
 	}
 

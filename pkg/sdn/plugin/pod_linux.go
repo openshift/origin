@@ -235,9 +235,9 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	ipamResult, err := m.ipamAdd(req.Netns, req.ContainerId)
+	ipamResult, err := m.ipamAdd(req.Netns, req.SandboxID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.ContainerId, err)
+		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.SandboxID, err)
 	}
 	podIP := ipamResult.IP4.IP.IP
 
@@ -245,7 +245,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	var success bool
 	defer func() {
 		if !success {
-			m.ipamDel(req.ContainerId)
+			m.ipamDel(req.SandboxID)
 			if err := m.hostportSyncer.SyncHostports(TUN, m.getRunningPods()); err != nil {
 				glog.Warningf("failed syncing hostports: %v", err)
 			}
@@ -309,7 +309,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 		return nil, nil, err
 	}
 
-	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, req.ContainerId, vnid)
+	ofport, err := m.ovs.SetUpPod(hostVethName, podIP.String(), contVethMac, req.SandboxID, vnid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -329,10 +329,9 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 		return 0, err
 	}
 
-	if err := m.ovs.UpdatePod(req.ContainerId, vnid); err != nil {
+	if err := m.ovs.UpdatePod(req.SandboxID, vnid); err != nil {
 		return 0, err
 	}
-
 	return vnid, nil
 }
 
@@ -359,7 +358,7 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		}
 	}
 
-	if err := m.ipamDel(req.ContainerId); err != nil {
+	if err := m.ipamDel(req.SandboxID); err != nil {
 		errList = append(errList, err)
 	}
 
