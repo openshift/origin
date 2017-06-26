@@ -34,8 +34,8 @@ import (
 	v1beta1authorization "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1beta1"
 	v1beta1rbac "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/rbac/v1beta1"
 
-	openshiftauthzinternal "github.com/openshift/origin/pkg/authorization/api"
-	openshiftauthzexternal "github.com/openshift/origin/pkg/authorization/api/v1"
+	openshiftauthzinternal "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	openshiftauthzexternal "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 )
 
 const (
