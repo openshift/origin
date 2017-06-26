@@ -83,8 +83,15 @@ os::cmd::expect_success 'oc logout'
 os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list pods'
 
 # make sure we report an error if the config file we pass is not writable
-# Does not work inside of a container, determine why and reenable
-# os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--config=${templocation}/file' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+# skip test altogether if running as the root user, as we are unable to verify file permission errors
+if [[ "$(id -u)" -ne 0 ]]; then
+    templocation="$( mktemp )"
+    chmod uga-w "${templocation}"
+    os::cmd::expect_failure_and_text "oc login '${KUBERNETES_MASTER}' -u test -p test '--config=${templocation}' --insecure-skip-tls-verify" 'KUBECONFIG is set to a file that cannot be created or modified'
+    echo "chattr: ok"
+else
+    echo "info: You are running as the root user. Skipping config file permission check."
+fi
 echo "login warnings: ok"
 
 # login and create serviceaccount and test login and logout with a service account token
