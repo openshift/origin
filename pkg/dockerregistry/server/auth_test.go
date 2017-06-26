@@ -20,13 +20,14 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/authorization/api"
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/client"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 // TestVerifyImageStreamAccess mocks openshift http request/response and
@@ -69,11 +70,19 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
-		client, err := client.New(&restclient.Config{BearerToken: "magic bearer token", Host: server.URL})
+
+		cfg := clientcmd.NewConfig()
+		cfg.SkipEnv = true
+		cfg.CommonConfig = restclient.Config{
+			BearerToken:     "magic bearer token",
+			Host:            server.URL,
+			TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
+		}
+		osclient, err := oapi.NewRegistryClient(cfg).Client()
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = verifyImageStreamAccess(ctx, "foo", "bar", "create", client)
+		err = verifyImageStreamAccess(ctx, "foo", "bar", "create", osclient)
 		if err == nil || test.expectedError == nil {
 			if err != test.expectedError {
 				t.Fatalf("verifyImageStreamAccess did not get expected error - got %s - expected %s", err, test.expectedError)
@@ -394,12 +403,15 @@ func TestAccessController(t *testing.T) {
 		}
 
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
+		cfg := clientcmd.NewConfig()
+		cfg.SkipEnv = true
+		cfg.CommonConfig = restclient.Config{
+			Host:            server.URL,
+			TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
+		}
 		options[AccessControllerOptionParams] = AccessControllerParams{
-			Logger: context.GetLogger(context.Background()),
-			SafeClientConfig: restclient.Config{
-				Host:            server.URL,
-				TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
-			},
+			Logger:         context.GetLogger(context.Background()),
+			RegistryClient: oapi.NewRegistryClient(cfg),
 		}
 		accessController, err := newAccessController(options)
 		if err != nil {

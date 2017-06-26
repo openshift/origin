@@ -8,6 +8,7 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -68,7 +69,7 @@ func TestTagGet(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: tc.pullthrough,
 		})
 
@@ -109,7 +110,7 @@ func TestTagGetWithoutImageStream(t *testing.T) {
 	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ts := &tagService{
@@ -173,7 +174,7 @@ func TestTagCreation(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: tc.pullthrough,
 		})
 
@@ -210,7 +211,7 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ts := &tagService{
@@ -284,7 +285,7 @@ func TestTagDeletion(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: tc.pullthrough,
 		})
 
@@ -321,7 +322,7 @@ func TestTagDeletionWithoutImageStream(t *testing.T) {
 	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ts := &tagService{
@@ -380,7 +381,7 @@ func TestTagGetAll(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: tc.pullthrough,
 		})
 
@@ -408,7 +409,7 @@ func TestTagGetAllWithoutImageStream(t *testing.T) {
 	_, client := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ts := &tagService{
@@ -478,7 +479,7 @@ func TestTagLookup(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: tc.pullthrough,
 		})
 
@@ -515,7 +516,7 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ts := &tagService{

@@ -11,9 +11,10 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	disterrors "github.com/docker/distribution/registry/api/v2"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 // BlobGetterService combines the operations to access and read blobs.
@@ -32,7 +33,7 @@ type remoteBlobGetterService struct {
 	name                string
 	cacheTTL            time.Duration
 	getImageStream      ImageStreamGetter
-	isSecretsNamespacer osclient.ImageStreamSecretsNamespacer
+	isSecretsNamespacer oapi.ClientImageStreamSecretsNamespacer
 	cachedLayers        digestToRepositoryCache
 	digestToStore       map[string]distribution.BlobStore
 }
@@ -45,7 +46,7 @@ func NewBlobGetterService(
 	namespace, name string,
 	cacheTTL time.Duration,
 	imageStreamGetter ImageStreamGetter,
-	isSecretsNamespacer osclient.ImageStreamSecretsNamespacer,
+	isSecretsNamespacer oapi.ClientImageStreamSecretsNamespacer,
 	cachedLayers digestToRepositoryCache,
 ) BlobGetterService {
 	return &remoteBlobGetterService{

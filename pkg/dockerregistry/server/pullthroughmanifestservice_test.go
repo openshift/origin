@@ -16,6 +16,7 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -134,7 +135,7 @@ func TestPullthroughManifests(t *testing.T) {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: true,
 		})
 
@@ -357,7 +358,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: true,
 		})
 		ctx = withRepository(ctx, repo)
@@ -491,7 +492,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, tc.repoName, testRepositoryOptions{
-			client:            client,
+			client:            oapi.NewAPIClient(client, nil),
 			enablePullThrough: true,
 		})
 

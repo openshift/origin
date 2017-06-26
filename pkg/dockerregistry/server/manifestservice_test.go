@@ -10,7 +10,8 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
+	oapitest "github.com/openshift/origin/pkg/dockerregistry/server/oapi/testutil"
 	"github.com/openshift/origin/pkg/dockerregistry/testutil"
 )
 
@@ -23,7 +24,7 @@ func TestManifestServiceExists(t *testing.T) {
 	testImage := testutil.AddRandomImage(t, fos, namespace, repo, tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ms := &manifestService{
@@ -77,7 +78,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	}
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 	})
 
 	ms := &manifestService{
@@ -122,7 +123,7 @@ func TestManifestServicePut(t *testing.T) {
 	tms := newTestManifestService(repoName, nil)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 		blobs:  bs,
 	})
 
@@ -146,10 +147,14 @@ func TestManifestServicePut(t *testing.T) {
 		},
 	}
 
+	osclient, err := oapitest.NewRegistryClient(client).Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ctx := context.Background()
 	ctx = withAuthPerformed(ctx)
-	ctx = withUserClient(ctx, client)
-	ctx = WithConfiguration(ctx, &configuration.Configuration{})
+	ctx = withUserClient(ctx, osclient)
 	dgst, err := ms.Put(ctx, manifest)
 	if err != nil {
 		t.Fatalf("ms.Put(ctx, manifest): %s", err)
@@ -157,7 +162,7 @@ func TestManifestServicePut(t *testing.T) {
 
 	// recreate repository to reset cached image stream
 	r = newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: client,
+		client: oapi.NewAPIClient(client, nil),
 		blobs:  bs,
 	})
 

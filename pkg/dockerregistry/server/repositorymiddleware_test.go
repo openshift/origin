@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -284,7 +284,6 @@ func TestRepositoryBlobStat(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		ctx = WithConfiguration(ctx, &configuration.Configuration{})
 		if !tc.skipAuth {
 			ctx = withAuthPerformed(ctx)
 		}
@@ -308,7 +307,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			}
 		}
 
-		reg, err := newTestRegistry(ctx, client, driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
+		reg, err := newTestRegistry(ctx, oapi.NewAPIClient(client, nil), driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
 		if err != nil {
 			t.Errorf("[%s] unexpected error: %v", tc.name, err)
 			continue
@@ -346,7 +345,6 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 
 	quotaEnforcing = &quotaEnforcingConfig{}
 	ctx := withAuthPerformed(context.Background())
-	ctx = WithConfiguration(ctx, &configuration.Configuration{})
 
 	// this driver holds all the testing blobs in memory during the whole test run
 	driver := inmemory.New()
@@ -375,7 +373,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	registrytest.AddImageStream(t, fos, "nm", "is", nil)
 	registrytest.AddImage(t, fos, testImage, "nm", "is", "latest")
 
-	reg, err := newTestRegistry(ctx, client, driver, blobRepoCacheTTL, false, false)
+	reg, err := newTestRegistry(ctx, oapi.NewAPIClient(client, nil), driver, blobRepoCacheTTL, false, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -677,7 +675,7 @@ func populateTestStorage(
 
 func newTestRegistry(
 	ctx context.Context,
-	osClient client.Interface,
+	osClient oapi.ClientInterface,
 	storageDriver driver.StorageDriver,
 	blobrepositorycachettl time.Duration,
 	pullthrough bool,
@@ -714,7 +712,7 @@ func newTestRegistry(
 
 type testRegistry struct {
 	distribution.Namespace
-	osClient               client.Interface
+	osClient               oapi.ClientInterface
 	pullthrough            bool
 	blobrepositorycachettl time.Duration
 }
@@ -745,7 +743,6 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 		Repository: repo,
 
 		ctx:              ctx,
-		limitClient:      nil,
 		registryOSClient: reg.osClient,
 		registryAddr:     "localhost:5000",
 		namespace:        nm,
@@ -755,6 +752,7 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 		cachedImages:           make(map[digest.Digest]*imageapi.Image),
 		cachedLayers:           cachedLayers,
 		pullthrough:            reg.pullthrough,
+		config:                 &configuration.Configuration{},
 	}
 
 	if reg.pullthrough {

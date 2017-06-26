@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/docker/distribution/context"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 type contextKey string
@@ -61,25 +61,25 @@ func remoteBlobAccessCheckEnabledFrom(ctx context.Context) bool {
 }
 
 // WithRegistryClient returns a new Context with provided registry client.
-func WithRegistryClient(ctx context.Context, client RegistryClient) context.Context {
+func WithRegistryClient(ctx context.Context, client oapi.RegistryClient) context.Context {
 	return context.WithValue(ctx, registryClientKey, client)
 }
 
 // RegistryClientFrom returns the registry client stored in ctx if present.
 // It will panic otherwise.
-func RegistryClientFrom(ctx context.Context) RegistryClient {
-	return ctx.Value(registryClientKey).(RegistryClient)
+func RegistryClientFrom(ctx context.Context) oapi.RegistryClient {
+	return ctx.Value(registryClientKey).(oapi.RegistryClient)
 }
 
 // withUserClient returns a new Context with the origin's client.
 // This client should have the current user's credentials
-func withUserClient(parent context.Context, userClient client.Interface) context.Context {
+func withUserClient(parent context.Context, userClient oapi.ClientInterface) context.Context {
 	return context.WithValue(parent, userClientKey, userClient)
 }
 
 // userClientFrom returns the origin's client stored in ctx, if any.
-func userClientFrom(ctx context.Context) (client.Interface, bool) {
-	userClient, ok := ctx.Value(userClientKey).(client.Interface)
+func userClientFrom(ctx context.Context) (oapi.ClientInterface, bool) {
+	userClient, ok := ctx.Value(userClientKey).(oapi.ClientInterface)
 	return userClient, ok
 }
 

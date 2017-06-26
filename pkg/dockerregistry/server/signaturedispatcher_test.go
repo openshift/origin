@@ -22,6 +22,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
+	regconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	oapitest "github.com/openshift/origin/pkg/dockerregistry/server/oapi/testutil"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 )
@@ -50,9 +52,15 @@ func TestSignatureGet(t *testing.T) {
 	})
 	registrytest.AddImage(t, fos, testImage, "user", "app", "latest")
 
+	osclient, err := oapitest.NewRegistryClient(client).Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
-	ctx = withUserClient(ctx, client)
+	ctx = WithRegistryClient(ctx, oapitest.NewRegistryClient(client))
+	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
+	ctx = withUserClient(ctx, osclient)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
@@ -153,9 +161,15 @@ func TestSignaturePut(t *testing.T) {
 		return true, sign, nil
 	})
 
+	osclient, err := oapitest.NewRegistryClient(client).Client()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
-	ctx = withUserClient(ctx, client)
+	ctx = WithRegistryClient(ctx, oapitest.NewRegistryClient(client))
+	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
+	ctx = withUserClient(ctx, osclient)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{

@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
 
@@ -29,4 +30,6 @@ func RegisterMetricHandler(app *handlers.App) {
 		handlers.NameNotRequired,
 		getMetricsAccess,
 	)
+
+	context.GetLogger(app).Debug("configured metrics endpoint")
 }

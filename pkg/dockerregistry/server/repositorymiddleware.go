@@ -18,11 +18,11 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/server/metrics"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
@@ -105,15 +105,15 @@ func init() {
 				panic(fmt.Sprintf("Configuration error: OpenShift storage driver middleware not activated"))
 			}
 
-			registryOSClient, kCoreClient, errClients := RegistryClientFrom(ctx).Clients()
-			if errClients != nil {
-				return nil, errClients
+			registryOSClient, errClient := RegistryClientFrom(ctx).Client()
+			if errClient != nil {
+				return nil, errClient
 			}
 			if quotaEnforcing == nil {
 				quotaEnforcing = newQuotaEnforcingConfig(ctx, os.Getenv(EnforceQuotaEnvVar), os.Getenv(ProjectCacheTTLEnvVar), options)
 			}
 
-			return newRepositoryWithClient(ctx, registryOSClient, kCoreClient, repo, options)
+			return newRepositoryWithClient(ctx, registryOSClient, repo, options)
 		},
 	)
 
@@ -130,11 +130,11 @@ type repository struct {
 	distribution.Repository
 
 	ctx              context.Context
-	limitClient      kcoreclient.LimitRangesGetter
-	registryOSClient client.Interface
+	registryOSClient oapi.ClientInterface
 	registryAddr     string
 	namespace        string
 	name             string
+	config           *configuration.Configuration
 
 	// if true, the repository will check remote references in the image stream to support pulling "through"
 	// from a remote repository
@@ -160,11 +160,12 @@ type repository struct {
 // newRepositoryWithClient returns a new repository middleware.
 func newRepositoryWithClient(
 	ctx context.Context,
-	registryOSClient client.Interface,
-	limitClient kcoreclient.LimitRangesGetter,
+	registryOSClient oapi.ClientInterface,
 	repo distribution.Repository,
 	options map[string]interface{},
 ) (distribution.Repository, error) {
+	registryConfig := ConfigurationFrom(ctx)
+
 	registryAddr := os.Getenv(DockerRegistryURLEnvVar)
 	if len(registryAddr) == 0 {
 		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
@@ -204,7 +205,6 @@ func newRepositoryWithClient(
 		Repository: repo,
 
 		ctx:                    ctx,
-		limitClient:            limitClient,
 		registryOSClient:       registryOSClient,
 		registryAddr:           registryAddr,
 		namespace:              nameParts[0],
@@ -216,6 +216,7 @@ func newRepositoryWithClient(
 		imageStreamGetter:      imageStreamGetter,
 		cachedImages:           make(map[digest.Digest]*imageapi.Image),
 		cachedLayers:           cachedLayers,
+		config:                 registryConfig,
 	}
 
 	if pullthrough {
@@ -264,9 +265,7 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 		ms = audit.NewManifestService(ctx, ms)
 	}
 
-	config := ConfigurationFrom(ctx)
-
-	if config.Metrics.Enabled {
+	if r.config.Metrics.Enabled {
 		ms = &metrics.ManifestService{
 			Manifests: ms,
 			Reponame:  r.Named().Name(),
@@ -306,9 +305,7 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		bs = audit.NewBlobStore(ctx, bs)
 	}
 
-	config := ConfigurationFrom(ctx)
-
-	if config.Metrics.Enabled {
+	if r.config.Metrics.Enabled {
 		bs = &metrics.BlobStore{
 			Store:    bs,
 			Reponame: r.Named().Name(),
@@ -336,9 +333,7 @@ func (r *repository) Tags(ctx context.Context) distribution.TagService {
 		ts = audit.NewTagService(ctx, ts)
 	}
 
-	config := ConfigurationFrom(ctx)
-
-	if config.Metrics.Enabled {
+	if r.config.Metrics.Enabled {
 		ts = &metrics.TagService{
 			Tags:     ts,
 			Reponame: r.Named().Name(),

@@ -9,8 +9,10 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/api"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 type testRepository struct {
@@ -29,7 +31,7 @@ func (r *testRepository) Blobs(ctx context.Context) distribution.BlobStore {
 }
 
 type testRepositoryOptions struct {
-	client            *testclient.Fake
+	client            oapi.ClientInterface
 	enablePullThrough bool
 	blobs             distribution.BlobStore
 }
@@ -73,6 +75,7 @@ func newTestRepository(
 		registryOSClient:  opts.client,
 		imageStreamGetter: isGetter,
 		cachedImages:      make(map[digest.Digest]*imageapi.Image),
+		config:            &configuration.Configuration{},
 	}
 
 	if opts.enablePullThrough {

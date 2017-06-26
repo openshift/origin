@@ -17,9 +17,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/api"
 	"github.com/openshift/origin/pkg/image/importer"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/oapi"
 )
 
 func getOptionValue(
@@ -163,7 +164,7 @@ func wrapKStatusErrorOnGetImage(repoName string, dgst digest.Digest, err error) 
 // to remote repositories.
 func getImportContext(
 	ctx context.Context,
-	osClient osclient.ImageStreamSecretsNamespacer,
+	osClient oapi.ClientImageStreamSecretsNamespacer,
 	namespace, name string,
 ) importer.RepositoryRetriever {
 	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, metav1.ListOptions{})
@@ -180,7 +181,7 @@ type cachedImageStreamGetter struct {
 	ctx               context.Context
 	namespace         string
 	name              string
-	isNamespacer      osclient.ImageStreamsNamespacer
+	isNamespacer      oapi.ClientImageStreamsNamespacer
 	cachedImageStream *imageapi.ImageStream
 }
 
