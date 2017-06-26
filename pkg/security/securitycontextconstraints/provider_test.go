@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 

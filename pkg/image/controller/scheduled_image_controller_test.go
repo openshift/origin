@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 
@@ -17,24 +17,24 @@ import (
 
 func TestScheduledImport(t *testing.T) {
 	one := int64(1)
-	stream := &api.ImageStream{
+	stream := &imageapi.ImageStream{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test", Namespace: "other", UID: "1", ResourceVersion: "1",
-			Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: "done"},
+			Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: "done"},
 			Generation:  1,
 		},
-		Spec: api.ImageStreamSpec{
-			Tags: map[string]api.TagReference{
+		Spec: imageapi.ImageStreamSpec{
+			Tags: map[string]imageapi.TagReference{
 				"default": {
 					From:         &kapi.ObjectReference{Kind: "DockerImage", Name: "mysql:latest"},
 					Generation:   &one,
-					ImportPolicy: api.TagImportPolicy{Scheduled: true},
+					ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
 				},
 			},
 		},
-		Status: api.ImageStreamStatus{
-			Tags: map[string]api.TagEventList{
-				"default": {Items: []api.TagEvent{{Generation: 1}}},
+		Status: imageapi.ImageStreamStatus{
+			Tags: map[string]imageapi.TagEventList{
+				"default": {Items: []imageapi.TagEvent{{Generation: 1}}},
 			},
 		},
 	}

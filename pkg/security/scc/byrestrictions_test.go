@@ -3,7 +3,7 @@ package scc
 import (
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestPointValue(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // FakeImageStreamMappings implements ImageStreamMappingInterface. Meant to

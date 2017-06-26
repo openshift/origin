@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type ClusterRolesGetter interface {
 
 // ClusterRoleInterface has methods to work with ClusterRole resources.
 type ClusterRoleInterface interface {
-	Create(*api.ClusterRole) (*api.ClusterRole, error)
-	Update(*api.ClusterRole) (*api.ClusterRole, error)
+	Create(*authorization.ClusterRole) (*authorization.ClusterRole, error)
+	Update(*authorization.ClusterRole) (*authorization.ClusterRole, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterRole, error)
-	List(opts v1.ListOptions) (*api.ClusterRoleList, error)
+	Get(name string, options v1.GetOptions) (*authorization.ClusterRole, error)
+	List(opts v1.ListOptions) (*authorization.ClusterRoleList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterRole, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterRole, err error)
 	ClusterRoleExpansion
 }
 
@@ -41,8 +41,8 @@ func newClusterRoles(c *AuthorizationClient) *clusterRoles {
 }
 
 // Create takes the representation of a clusterRole and creates it.  Returns the server's representation of the clusterRole, and an error, if there is any.
-func (c *clusterRoles) Create(clusterRole *api.ClusterRole) (result *api.ClusterRole, err error) {
-	result = &api.ClusterRole{}
+func (c *clusterRoles) Create(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
+	result = &authorization.ClusterRole{}
 	err = c.client.Post().
 		Resource("clusterroles").
 		Body(clusterRole).
@@ -52,8 +52,8 @@ func (c *clusterRoles) Create(clusterRole *api.ClusterRole) (result *api.Cluster
 }
 
 // Update takes the representation of a clusterRole and updates it. Returns the server's representation of the clusterRole, and an error, if there is any.
-func (c *clusterRoles) Update(clusterRole *api.ClusterRole) (result *api.ClusterRole, err error) {
-	result = &api.ClusterRole{}
+func (c *clusterRoles) Update(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
+	result = &authorization.ClusterRole{}
 	err = c.client.Put().
 		Resource("clusterroles").
 		Name(clusterRole.Name).
@@ -84,8 +84,8 @@ func (c *clusterRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v
 }
 
 // Get takes name of the clusterRole, and returns the corresponding clusterRole object, and an error if there is any.
-func (c *clusterRoles) Get(name string, options v1.GetOptions) (result *api.ClusterRole, err error) {
-	result = &api.ClusterRole{}
+func (c *clusterRoles) Get(name string, options v1.GetOptions) (result *authorization.ClusterRole, err error) {
+	result = &authorization.ClusterRole{}
 	err = c.client.Get().
 		Resource("clusterroles").
 		Name(name).
@@ -96,8 +96,8 @@ func (c *clusterRoles) Get(name string, options v1.GetOptions) (result *api.Clus
 }
 
 // List takes label and field selectors, and returns the list of ClusterRoles that match those selectors.
-func (c *clusterRoles) List(opts v1.ListOptions) (result *api.ClusterRoleList, err error) {
-	result = &api.ClusterRoleList{}
+func (c *clusterRoles) List(opts v1.ListOptions) (result *authorization.ClusterRoleList, err error) {
+	result = &authorization.ClusterRoleList{}
 	err = c.client.Get().
 		Resource("clusterroles").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -116,8 +116,8 @@ func (c *clusterRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched clusterRole.
-func (c *clusterRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterRole, err error) {
-	result = &api.ClusterRole{}
+func (c *clusterRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterRole, err error) {
+	result = &authorization.ClusterRole{}
 	err = c.client.Patch(pt).
 		Resource("clusterroles").
 		SubResource(subresources...).

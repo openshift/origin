@@ -17,9 +17,9 @@ import (
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	requestlimitapivalidation "github.com/openshift/origin/pkg/project/admission/requestlimit/api/validation"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,

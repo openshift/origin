@@ -16,8 +16,8 @@ import (
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 

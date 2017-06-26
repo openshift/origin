@@ -16,8 +16,8 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/api"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )

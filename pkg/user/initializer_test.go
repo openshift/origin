@@ -4,38 +4,38 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 func TestInitializerUser(t *testing.T) {
 	testcases := map[string]struct {
-		Identity     *api.Identity
-		User         *api.User
-		ExpectedUser *api.User
+		Identity     *userapi.Identity
+		User         *userapi.User
+		ExpectedUser *userapi.User
 	}{
 		"empty": {
-			Identity:     &api.Identity{},
-			User:         &api.User{},
-			ExpectedUser: &api.User{},
+			Identity:     &userapi.Identity{},
+			User:         &userapi.User{},
+			ExpectedUser: &userapi.User{},
 		},
 		"empty extra": {
-			Identity:     &api.Identity{Extra: map[string]string{}},
-			User:         &api.User{},
-			ExpectedUser: &api.User{},
+			Identity:     &userapi.Identity{Extra: map[string]string{}},
+			User:         &userapi.User{},
+			ExpectedUser: &userapi.User{},
 		},
 		"sets full name": {
-			Identity: &api.Identity{
+			Identity: &userapi.Identity{
 				Extra: map[string]string{"name": "Bob"},
 			},
-			User:         &api.User{},
-			ExpectedUser: &api.User{FullName: "Bob"},
+			User:         &userapi.User{},
+			ExpectedUser: &userapi.User{FullName: "Bob"},
 		},
 		"respects existing full name": {
-			Identity: &api.Identity{
+			Identity: &userapi.Identity{
 				Extra: map[string]string{"name": "Bob"},
 			},
-			User:         &api.User{FullName: "Harold"},
-			ExpectedUser: &api.User{FullName: "Harold"},
+			User:         &userapi.User{FullName: "Harold"},
+			ExpectedUser: &userapi.User{FullName: "Harold"},
 		},
 	}
 

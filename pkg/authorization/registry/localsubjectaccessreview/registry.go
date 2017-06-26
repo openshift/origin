@@ -1,7 +1,7 @@
 package localsubjectaccessreview
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	api "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 )

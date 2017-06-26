@@ -3,7 +3,7 @@ package testclient
 import (
 	clientgotesting "k8s.io/client-go/testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type FakeSubjectRulesReviews struct {

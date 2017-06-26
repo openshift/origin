@@ -3,7 +3,7 @@ package client
 import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type LocalSubjectAccessReviewsImpersonator interface {

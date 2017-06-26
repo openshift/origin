@@ -17,7 +17,7 @@ import (
 	sc "k8s.io/kubernetes/pkg/securitycontext"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	"github.com/openshift/origin/pkg/security/uid"
 )

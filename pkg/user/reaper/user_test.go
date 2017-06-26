@@ -12,12 +12,12 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client/testclient"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
-	authenticationapi "github.com/openshift/origin/pkg/user/api"
+	authenticationapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 var (

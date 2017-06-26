@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/project/api"
+	project "github.com/openshift/origin/pkg/project/apis/project"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // ProjectLister helps list Projects.
 type ProjectLister interface {
 	// List lists all Projects in the indexer.
-	List(selector labels.Selector) (ret []*api.Project, err error)
+	List(selector labels.Selector) (ret []*project.Project, err error)
 	// Get retrieves the Project from the index for a given name.
-	Get(name string) (*api.Project, error)
+	Get(name string) (*project.Project, error)
 	ProjectListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewProjectLister(indexer cache.Indexer) ProjectLister {
 }
 
 // List lists all Projects in the indexer.
-func (s *projectLister) List(selector labels.Selector) (ret []*api.Project, err error) {
+func (s *projectLister) List(selector labels.Selector) (ret []*project.Project, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Project))
+		ret = append(ret, m.(*project.Project))
 	})
 	return ret, err
 }
 
 // Get retrieves the Project from the index for a given name.
-func (s *projectLister) Get(name string) (*api.Project, error) {
-	key := &api.Project{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *projectLister) Get(name string) (*project.Project, error) {
+	key := &project.Project{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("project"), name)
+		return nil, errors.NewNotFound(project.Resource("project"), name)
 	}
-	return obj.(*api.Project), nil
+	return obj.(*project.Project), nil
 }

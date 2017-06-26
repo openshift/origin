@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type RoleBindingsGetter interface {
 
 // RoleBindingInterface has methods to work with RoleBinding resources.
 type RoleBindingInterface interface {
-	Create(*api.RoleBinding) (*api.RoleBinding, error)
-	Update(*api.RoleBinding) (*api.RoleBinding, error)
+	Create(*authorization.RoleBinding) (*authorization.RoleBinding, error)
+	Update(*authorization.RoleBinding) (*authorization.RoleBinding, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.RoleBinding, error)
-	List(opts v1.ListOptions) (*api.RoleBindingList, error)
+	Get(name string, options v1.GetOptions) (*authorization.RoleBinding, error)
+	List(opts v1.ListOptions) (*authorization.RoleBindingList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.RoleBinding, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.RoleBinding, err error)
 	RoleBindingExpansion
 }
 
@@ -43,8 +43,8 @@ func newRoleBindings(c *AuthorizationClient, namespace string) *roleBindings {
 }
 
 // Create takes the representation of a roleBinding and creates it.  Returns the server's representation of the roleBinding, and an error, if there is any.
-func (c *roleBindings) Create(roleBinding *api.RoleBinding) (result *api.RoleBinding, err error) {
-	result = &api.RoleBinding{}
+func (c *roleBindings) Create(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
+	result = &authorization.RoleBinding{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("rolebindings").
@@ -55,8 +55,8 @@ func (c *roleBindings) Create(roleBinding *api.RoleBinding) (result *api.RoleBin
 }
 
 // Update takes the representation of a roleBinding and updates it. Returns the server's representation of the roleBinding, and an error, if there is any.
-func (c *roleBindings) Update(roleBinding *api.RoleBinding) (result *api.RoleBinding, err error) {
-	result = &api.RoleBinding{}
+func (c *roleBindings) Update(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
+	result = &authorization.RoleBinding{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("rolebindings").
@@ -90,8 +90,8 @@ func (c *roleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v
 }
 
 // Get takes name of the roleBinding, and returns the corresponding roleBinding object, and an error if there is any.
-func (c *roleBindings) Get(name string, options v1.GetOptions) (result *api.RoleBinding, err error) {
-	result = &api.RoleBinding{}
+func (c *roleBindings) Get(name string, options v1.GetOptions) (result *authorization.RoleBinding, err error) {
+	result = &authorization.RoleBinding{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindings").
@@ -103,8 +103,8 @@ func (c *roleBindings) Get(name string, options v1.GetOptions) (result *api.Role
 }
 
 // List takes label and field selectors, and returns the list of RoleBindings that match those selectors.
-func (c *roleBindings) List(opts v1.ListOptions) (result *api.RoleBindingList, err error) {
-	result = &api.RoleBindingList{}
+func (c *roleBindings) List(opts v1.ListOptions) (result *authorization.RoleBindingList, err error) {
+	result = &authorization.RoleBindingList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindings").
@@ -125,8 +125,8 @@ func (c *roleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched roleBinding.
-func (c *roleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.RoleBinding, err error) {
-	result = &api.RoleBinding{}
+func (c *roleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.RoleBinding, err error) {
+	result = &authorization.RoleBinding{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("rolebindings").

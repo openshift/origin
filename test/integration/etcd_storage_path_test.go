@@ -43,7 +43,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	expectedEtcdPath string                   // Expected location of object in etcd, do not use any variables, constants, etc to derive this value - always supply the full raw string
 	expectedGVK      *schema.GroupVersionKind // The GVK that we expect this object to be stored as - leave this nil to use the default
 }{
-	// github.com/openshift/origin/pkg/authorization/api/v1
+	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
 	gvr("", "v1", "clusterpolicybindings"): { // no stub because cannot create one of these but it always exists
 		expectedEtcdPath: "openshift.io/authorization/cluster/policybindings/:default",
 	},
@@ -87,7 +87,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/build/api/v1
+	// github.com/openshift/origin/pkg/build/apis/build/v1
 	gvr("", "v1", "builds"): {
 		stub:             `{"metadata": {"name": "build1"}, "spec": {"source": {"dockerfile": "Dockerfile1"}, "strategy": {"dockerStrategy": {"noCache": true}}}}`,
 		expectedEtcdPath: "openshift.io/builds/etcdstoragepathtestnamespace/build1",
@@ -108,7 +108,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/api/v1
+	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
 	gvr("", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
@@ -120,7 +120,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/image/api/v1
+	// github.com/openshift/origin/pkg/image/apis/image/v1
 	gvr("", "v1", "imagestreams"): {
 		stub:             `{"metadata": {"name": "is1"}, "spec": {"dockerImageRepository": "docker"}}`,
 		expectedEtcdPath: "openshift.io/imagestreams/etcdstoragepathtestnamespace/is1",
@@ -141,7 +141,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/oauth/api/v1
+	// github.com/openshift/origin/pkg/oauth/apis/oauth/v1
 	gvr("", "v1", "oauthclientauthorizations"): {
 		stub:             `{"clientName": "system:serviceaccount:etcdstoragepathtestnamespace:client", "metadata": {"name": "user:system:serviceaccount:etcdstoragepathtestnamespace:client"}, "scopes": ["user:info"], "userName": "user", "userUID": "cannot be empty"}`,
 		expectedEtcdPath: "openshift.io/oauth/clientauthorizations/user:system:serviceaccount:etcdstoragepathtestnamespace:client",
@@ -224,7 +224,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/project/api/v1
+	// github.com/openshift/origin/pkg/project/apis/project/v1
 	gvr("", "v1", "projects"): {
 		stub:             `{"metadata": {"name": "namespace2"}, "spec": {"finalizers": ["kubernetes", "openshift.io/origin"]}}`,
 		expectedEtcdPath: "kubernetes.io/namespaces/namespace2",
@@ -237,7 +237,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/quota/api/v1
+	// github.com/openshift/origin/pkg/quota/apis/quota/v1
 	gvr("", "v1", "clusterresourcequotas"): {
 		stub:             `{"metadata": {"name": "quota1"}, "spec": {"selector": {"labels": {"matchLabels": {"a": "b"}}}}}`,
 		expectedEtcdPath: "openshift.io/clusterresourcequotas/quota1",
@@ -249,7 +249,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/route/api/v1
+	// github.com/openshift/origin/pkg/route/apis/route/v1
 	gvr("", "v1", "routes"): {
 		stub:             `{"metadata": {"name": "route1"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
 		expectedEtcdPath: "openshift.io/routes/etcdstoragepathtestnamespace/route1",
@@ -261,7 +261,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/sdn/api/v1
+	// github.com/openshift/origin/pkg/sdn/apis/network/v1
 	gvr("", "v1", "netnamespaces"): {
 		stub:             `{"metadata": {"name": "networkname"}, "netid": 100, "netname": "networkname"}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetnamespaces/networkname",
@@ -300,7 +300,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/security/api/v1
+	// github.com/openshift/origin/pkg/security/apis/security/v1
 	gvr("security.openshift.io", "v1", "securitycontextconstraints"): {
 		stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
 		expectedEtcdPath: "kubernetes.io/securitycontextconstraints/scc2",
@@ -308,7 +308,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/template/api/v1
+	// github.com/openshift/origin/pkg/template/apis/template/v1
 	gvr("", "v1", "templates"): {
 		stub:             `{"message": "Jenkins template", "metadata": {"name": "template1"}}`,
 		expectedEtcdPath: "openshift.io/templates/etcdstoragepathtestnamespace/template1",
@@ -328,7 +328,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/user/api/v1
+	// github.com/openshift/origin/pkg/user/apis/user/v1
 	gvr("", "v1", "groups"): {
 		stub:             `{"metadata": {"name": "group"}, "users": ["user1", "user2"]}`,
 		expectedEtcdPath: "openshift.io/groups/group",
@@ -589,7 +589,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 // Be very careful when whitelisting an object as ephemeral.
 // Doing so removes the safety we gain from this test by skipping that object.
 var ephemeralWhiteList = createEphemeralWhiteList(
-	// github.com/openshift/origin/pkg/authorization/api/v1
+	// github.com/openshift/origin/pkg/authorization/apis/authorization/v1
 
 	// virtual objects that are not stored in etcd  // TODO this will change in the future when policies go away
 	gvr("", "v1", "roles"),
@@ -622,7 +622,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("authorization.openshift.io", "v1", "subjectaccessreviewresponses"),
 	// --
 
-	// github.com/openshift/origin/pkg/build/api/v1
+	// github.com/openshift/origin/pkg/build/apis/build/v1
 
 	// used for streaming build logs from pod, not stored in etcd
 	gvr("", "v1", "buildlogs"),
@@ -637,7 +637,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("build.openshift.io", "v1", "binarybuildrequestoptionses"),
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/api/v1
+	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
 
 	// used for streaming deployment logs from pod, not stored in etcd
 	gvr("", "v1", "deploymentlogs"),
@@ -656,7 +656,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 
 	// --
 
-	// github.com/openshift/origin/pkg/image/api/v1
+	// github.com/openshift/origin/pkg/image/apis/image/v1
 	gvr("", "v1", "imagestreamtags"),                       // part of image stream
 	gvr("image.openshift.io", "v1", "imagestreamtags"),     // part of image stream
 	gvr("", "v1", "imagesignatures"),                       // part of image
@@ -669,22 +669,22 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("image.openshift.io", "v1", "imagestreammappings"), // not stored in etcd
 	// --
 
-	// github.com/openshift/origin/pkg/oauth/api/v1
+	// github.com/openshift/origin/pkg/oauth/apis/oauth/v1
 	gvr("", "v1", "oauthredirectreferences"),                   // Used for specifying redirects, never stored in etcd
 	gvr("oauth.openshift.io", "v1", "oauthredirectreferences"), // Used for specifying redirects, never stored in etcd
 	// --
 
-	// github.com/openshift/origin/pkg/project/api/v1
+	// github.com/openshift/origin/pkg/project/apis/project/v1
 	gvr("", "v1", "projectrequests"),                     // not stored in etcd
 	gvr("project.openshift.io", "v1", "projectrequests"), // not stored in etcd
 	// --
 
-	// github.com/openshift/origin/pkg/quota/api/v1
+	// github.com/openshift/origin/pkg/quota/apis/quota/v1
 	gvr("", "v1", "appliedclusterresourcequotas"),                   // mirror of ClusterResourceQuota that cannot be created
 	gvr("quota.openshift.io", "v1", "appliedclusterresourcequotas"), // mirror of ClusterResourceQuota that cannot be created
 	// --
 
-	// github.com/openshift/origin/pkg/security/api/v1
+	// github.com/openshift/origin/pkg/security/apis/security/v1
 	gvr("", "v1", "podsecuritypolicyselfsubjectreviews"),                      // not stored in etcd
 	gvr("security.openshift.io", "v1", "podsecuritypolicyselfsubjectreviews"), // not stored in etcd
 	gvr("", "v1", "podsecuritypolicyreviews"),                                 // not stored in etcd
@@ -693,14 +693,14 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("security.openshift.io", "v1", "podsecuritypolicysubjectreviews"),     // not stored in etcd
 	// --
 
-	// github.com/openshift/origin/pkg/template/api/v1
+	// github.com/openshift/origin/pkg/template/apis/template/v1
 
 	// deprecated aliases for templateapiv1.Template
 	gvr("", "v1", "templateconfigs"),
 	gvr("", "v1", "processedtemplates"),
 	// --
 
-	// github.com/openshift/origin/pkg/user/api/v1
+	// github.com/openshift/origin/pkg/user/apis/user/v1
 	gvr("", "v1", "useridentitymappings"),                  // pointer from user to identity, not stored in etcd
 	gvr("user.openshift.io", "v1", "useridentitymappings"), // pointer from user to identity, not stored in etcd
 	// --
@@ -802,7 +802,7 @@ var kindWhiteList = sets.NewString(
 	"WatchEvent",
 	// --
 
-	// github.com/openshift/origin/pkg/image/api
+	// github.com/openshift/origin/pkg/image/apis/image
 	"DockerImage",
 	// --
 )

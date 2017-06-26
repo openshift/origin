@@ -5,12 +5,12 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // Registry is an interface for things that know how to store ImageStreamTag objects.
 type Registry interface {
-	GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error)
+	GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error)
 	DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error)
 }
 
@@ -31,12 +31,12 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*api.ImageStreamTag, error) {
+func (s *storage) GetImageStreamTag(ctx apirequest.Context, nameAndTag string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
 	obj, err := s.Get(ctx, nameAndTag, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStreamTag), nil
+	return obj.(*imageapi.ImageStreamTag), nil
 }
 
 func (s *storage) DeleteImageStreamTag(ctx apirequest.Context, nameAndTag string) (*metav1.Status, error) {

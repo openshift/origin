@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 	internalinterfaces "github.com/openshift/origin/pkg/template/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
@@ -35,7 +35,7 @@ func newTemplateInformer(client internalclientset.Interface, resyncPeriod time.D
 				return client.Template().Templates(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.Template{},
+		&template.Template{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newTemplateInformer(client internalclientset.Interface, resyncPeriod time.D
 }
 
 func (f *templateInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.Template{}, newTemplateInformer)
+	return f.factory.InformerFor(&template.Template{}, newTemplateInformer)
 }
 
 func (f *templateInformer) Lister() internalversion.TemplateLister {

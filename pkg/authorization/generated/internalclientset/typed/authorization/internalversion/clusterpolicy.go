@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type ClusterPoliciesGetter interface {
 
 // ClusterPolicyInterface has methods to work with ClusterPolicy resources.
 type ClusterPolicyInterface interface {
-	Create(*api.ClusterPolicy) (*api.ClusterPolicy, error)
-	Update(*api.ClusterPolicy) (*api.ClusterPolicy, error)
+	Create(*authorization.ClusterPolicy) (*authorization.ClusterPolicy, error)
+	Update(*authorization.ClusterPolicy) (*authorization.ClusterPolicy, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterPolicy, error)
-	List(opts v1.ListOptions) (*api.ClusterPolicyList, error)
+	Get(name string, options v1.GetOptions) (*authorization.ClusterPolicy, error)
+	List(opts v1.ListOptions) (*authorization.ClusterPolicyList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterPolicy, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterPolicy, err error)
 	ClusterPolicyExpansion
 }
 
@@ -41,8 +41,8 @@ func newClusterPolicies(c *AuthorizationClient) *clusterPolicies {
 }
 
 // Create takes the representation of a clusterPolicy and creates it.  Returns the server's representation of the clusterPolicy, and an error, if there is any.
-func (c *clusterPolicies) Create(clusterPolicy *api.ClusterPolicy) (result *api.ClusterPolicy, err error) {
-	result = &api.ClusterPolicy{}
+func (c *clusterPolicies) Create(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
+	result = &authorization.ClusterPolicy{}
 	err = c.client.Post().
 		Resource("clusterpolicies").
 		Body(clusterPolicy).
@@ -52,8 +52,8 @@ func (c *clusterPolicies) Create(clusterPolicy *api.ClusterPolicy) (result *api.
 }
 
 // Update takes the representation of a clusterPolicy and updates it. Returns the server's representation of the clusterPolicy, and an error, if there is any.
-func (c *clusterPolicies) Update(clusterPolicy *api.ClusterPolicy) (result *api.ClusterPolicy, err error) {
-	result = &api.ClusterPolicy{}
+func (c *clusterPolicies) Update(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
+	result = &authorization.ClusterPolicy{}
 	err = c.client.Put().
 		Resource("clusterpolicies").
 		Name(clusterPolicy.Name).
@@ -84,8 +84,8 @@ func (c *clusterPolicies) DeleteCollection(options *v1.DeleteOptions, listOption
 }
 
 // Get takes name of the clusterPolicy, and returns the corresponding clusterPolicy object, and an error if there is any.
-func (c *clusterPolicies) Get(name string, options v1.GetOptions) (result *api.ClusterPolicy, err error) {
-	result = &api.ClusterPolicy{}
+func (c *clusterPolicies) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicy, err error) {
+	result = &authorization.ClusterPolicy{}
 	err = c.client.Get().
 		Resource("clusterpolicies").
 		Name(name).
@@ -96,8 +96,8 @@ func (c *clusterPolicies) Get(name string, options v1.GetOptions) (result *api.C
 }
 
 // List takes label and field selectors, and returns the list of ClusterPolicies that match those selectors.
-func (c *clusterPolicies) List(opts v1.ListOptions) (result *api.ClusterPolicyList, err error) {
-	result = &api.ClusterPolicyList{}
+func (c *clusterPolicies) List(opts v1.ListOptions) (result *authorization.ClusterPolicyList, err error) {
+	result = &authorization.ClusterPolicyList{}
 	err = c.client.Get().
 		Resource("clusterpolicies").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -116,8 +116,8 @@ func (c *clusterPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched clusterPolicy.
-func (c *clusterPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterPolicy, err error) {
-	result = &api.ClusterPolicy{}
+func (c *clusterPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterPolicy, err error) {
+	result = &authorization.ClusterPolicy{}
 	err = c.client.Patch(pt).
 		Resource("clusterpolicies").
 		SubResource(subresources...).

@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/build/api/v1"
+	build_v1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	clientset "github.com/openshift/origin/pkg/build/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/build/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/build/generated/listers/build/v1"
@@ -35,7 +35,7 @@ func newBuildInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 				return client.BuildV1().Builds(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.Build{},
+		&build_v1.Build{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newBuildInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 }
 
 func (f *buildInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.Build{}, newBuildInformer)
+	return f.factory.InformerFor(&build_v1.Build{}, newBuildInformer)
 }
 
 func (f *buildInformer) Lister() v1.BuildLister {

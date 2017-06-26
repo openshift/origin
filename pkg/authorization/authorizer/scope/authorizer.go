@@ -7,7 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	defaultauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )

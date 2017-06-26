@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/group"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -20,10 +20,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.Group{} },
-		NewListFunc:       func() runtime.Object { return &api.GroupList{} },
+		NewFunc:           func() runtime.Object { return &userapi.Group{} },
+		NewListFunc:       func() runtime.Object { return &userapi.GroupList{} },
 		PredicateFunc:     group.Matcher,
-		QualifiedResource: api.Resource("groups"),
+		QualifiedResource: userapi.Resource("groups"),
 
 		CreateStrategy: group.Strategy,
 		UpdateStrategy: group.Strategy,

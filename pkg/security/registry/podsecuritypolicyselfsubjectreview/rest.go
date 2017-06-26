@@ -13,8 +13,8 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )

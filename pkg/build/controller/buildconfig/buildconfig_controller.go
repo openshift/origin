@@ -18,7 +18,7 @@ import (
 	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/controller/common"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"

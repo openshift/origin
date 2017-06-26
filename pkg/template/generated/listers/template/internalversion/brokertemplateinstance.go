@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // BrokerTemplateInstanceLister helps list BrokerTemplateInstances.
 type BrokerTemplateInstanceLister interface {
 	// List lists all BrokerTemplateInstances in the indexer.
-	List(selector labels.Selector) (ret []*api.BrokerTemplateInstance, err error)
+	List(selector labels.Selector) (ret []*template.BrokerTemplateInstance, err error)
 	// Get retrieves the BrokerTemplateInstance from the index for a given name.
-	Get(name string) (*api.BrokerTemplateInstance, error)
+	Get(name string) (*template.BrokerTemplateInstance, error)
 	BrokerTemplateInstanceListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewBrokerTemplateInstanceLister(indexer cache.Indexer) BrokerTemplateInstan
 }
 
 // List lists all BrokerTemplateInstances in the indexer.
-func (s *brokerTemplateInstanceLister) List(selector labels.Selector) (ret []*api.BrokerTemplateInstance, err error) {
+func (s *brokerTemplateInstanceLister) List(selector labels.Selector) (ret []*template.BrokerTemplateInstance, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.BrokerTemplateInstance))
+		ret = append(ret, m.(*template.BrokerTemplateInstance))
 	})
 	return ret, err
 }
 
 // Get retrieves the BrokerTemplateInstance from the index for a given name.
-func (s *brokerTemplateInstanceLister) Get(name string) (*api.BrokerTemplateInstance, error) {
-	key := &api.BrokerTemplateInstance{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *brokerTemplateInstanceLister) Get(name string) (*template.BrokerTemplateInstance, error) {
+	key := &template.BrokerTemplateInstance{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("brokertemplateinstance"), name)
+		return nil, errors.NewNotFound(template.Resource("brokertemplateinstance"), name)
 	}
-	return obj.(*api.BrokerTemplateInstance), nil
+	return obj.(*template.BrokerTemplateInstance), nil
 }

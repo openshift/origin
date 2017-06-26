@@ -10,7 +10,7 @@ import (
 	//"k8s.io/kubernetes/pkg/api/unversioned"
 	//utilwait "k8s.io/apimachinery/pkg/util/wait"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

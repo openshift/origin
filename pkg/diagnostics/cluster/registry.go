@@ -13,10 +13,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	osapi "github.com/openshift/origin/pkg/image/api"
+	osapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.

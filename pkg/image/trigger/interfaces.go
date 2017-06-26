@@ -3,7 +3,7 @@ package trigger
 import (
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openshift/origin/pkg/image/api/v1/trigger"
+	"github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 )
 
 type CacheEntry struct {

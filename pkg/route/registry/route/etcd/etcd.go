@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/route"
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	rest "github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -25,10 +25,10 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.Route{} },
-		NewListFunc:       func() runtime.Object { return &api.RouteList{} },
+		NewFunc:           func() runtime.Object { return &routeapi.Route{} },
+		NewListFunc:       func() runtime.Object { return &routeapi.RouteList{} },
 		PredicateFunc:     rest.Matcher,
-		QualifiedResource: api.Resource("routes"),
+		QualifiedResource: routeapi.Resource("routes"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
@@ -56,7 +56,7 @@ var _ = kapirest.Patcher(&StatusREST{})
 
 // New creates a new route resource
 func (r *StatusREST) New() runtime.Object {
-	return &api.Route{}
+	return &routeapi.Route{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.

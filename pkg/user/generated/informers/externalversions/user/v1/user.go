@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/user/api/v1"
+	user_v1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 	clientset "github.com/openshift/origin/pkg/user/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/user/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/user/generated/listers/user/v1"
@@ -35,7 +35,7 @@ func newUserInformer(client clientset.Interface, resyncPeriod time.Duration) cac
 				return client.UserV1().Users(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.User{},
+		&user_v1.User{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newUserInformer(client clientset.Interface, resyncPeriod time.Duration) cac
 }
 
 func (f *userInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.User{}, newUserInformer)
+	return f.factory.InformerFor(&user_v1.User{}, newUserInformer)
 }
 
 func (f *userInformer) Lister() v1.UserLister {

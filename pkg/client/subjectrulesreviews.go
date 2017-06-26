@@ -1,7 +1,7 @@
 package client
 
 import (
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 type SubjectRulesReviewsNamespacer interface {

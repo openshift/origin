@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/sdn/registry/netnamespace"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -20,10 +20,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.NetNamespace{} },
-		NewListFunc:       func() runtime.Object { return &api.NetNamespaceList{} },
+		NewFunc:           func() runtime.Object { return &sdnapi.NetNamespace{} },
+		NewListFunc:       func() runtime.Object { return &sdnapi.NetNamespaceList{} },
 		PredicateFunc:     netnamespace.Matcher,
-		QualifiedResource: api.Resource("netnamespaces"),
+		QualifiedResource: sdnapi.Resource("netnamespaces"),
 
 		CreateStrategy: netnamespace.Strategy,
 		UpdateStrategy: netnamespace.Strategy,

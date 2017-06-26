@@ -10,9 +10,9 @@ import (
 	internalclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
 	oclient "github.com/openshift/origin/pkg/client"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityapiinstall "github.com/openshift/origin/pkg/security/api/install"
-	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapiinstall "github.com/openshift/origin/pkg/security/apis/security/install"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 // if this is being used, we need to be sure that the core API client has our types in the scheme

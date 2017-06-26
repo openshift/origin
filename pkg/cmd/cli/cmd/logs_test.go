@@ -14,10 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 // TestLogsFlagParity makes sure that our copied flags don't slip during rebases

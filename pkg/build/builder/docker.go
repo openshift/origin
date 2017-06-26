@@ -21,14 +21,14 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -39,13 +39,13 @@ type DockerBuilder struct {
 	dockerClient DockerClient
 	gitClient    GitClient
 	tar          tar.Tar
-	build        *api.Build
+	build        *buildapi.Build
 	client       client.BuildInterface
 	cgLimits     *s2iapi.CGroupLimits
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *api.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
@@ -62,7 +62,7 @@ func (d *DockerBuilder) Build() error {
 	var err error
 	ctx := timing.NewContext(context.Background())
 	defer func() {
-		d.build.Status.Stages = api.AppendStageAndStepInfo(d.build.Status.Stages, timing.GetStages(ctx))
+		d.build.Status.Stages = buildapi.AppendStageAndStepInfo(d.build.Status.Stages, timing.GetStages(ctx))
 		handleBuildStatusUpdate(d.build, d.client, nil)
 	}()
 
@@ -82,13 +82,13 @@ func (d *DockerBuilder) Build() error {
 	if err != nil {
 		switch err.(type) {
 		case contextDirNotFoundError:
-			d.build.Status.Phase = api.BuildPhaseFailed
-			d.build.Status.Reason = api.StatusReasonInvalidContextDirectory
-			d.build.Status.Message = api.StatusMessageInvalidContextDirectory
+			d.build.Status.Phase = buildapi.BuildPhaseFailed
+			d.build.Status.Reason = buildapi.StatusReasonInvalidContextDirectory
+			d.build.Status.Message = buildapi.StatusMessageInvalidContextDirectory
 		default:
-			d.build.Status.Phase = api.BuildPhaseFailed
-			d.build.Status.Reason = api.StatusReasonFetchSourceFailed
-			d.build.Status.Message = api.StatusMessageFetchSourceFailed
+			d.build.Status.Phase = buildapi.BuildPhaseFailed
+			d.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
+			d.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
 		}
 
 		handleBuildStatusUpdate(d.build, d.client, nil)
@@ -142,12 +142,12 @@ func (d *DockerBuilder) Build() error {
 			startTime := metav1.Now()
 			err = pullImage(d.dockerClient, imageName, pullAuthConfig)
 
-			timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullBaseImage, startTime, metav1.Now())
+			timing.RecordNewStep(ctx, buildapi.StagePullImages, buildapi.StepPullBaseImage, startTime, metav1.Now())
 
 			if err != nil {
-				d.build.Status.Phase = api.BuildPhaseFailed
-				d.build.Status.Reason = api.StatusReasonPullBuilderImageFailed
-				d.build.Status.Message = api.StatusMessagePullBuilderImageFailed
+				d.build.Status.Phase = buildapi.BuildPhaseFailed
+				d.build.Status.Reason = buildapi.StatusReasonPullBuilderImageFailed
+				d.build.Status.Message = buildapi.StatusMessagePullBuilderImageFailed
 				handleBuildStatusUpdate(d.build, d.client, nil)
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
@@ -158,12 +158,12 @@ func (d *DockerBuilder) Build() error {
 	startTime := metav1.Now()
 	err = d.dockerBuild(buildDir, buildTag, d.build.Spec.Source.Secrets)
 
-	timing.RecordNewStep(ctx, api.StageBuild, api.StepDockerBuild, startTime, metav1.Now())
+	timing.RecordNewStep(ctx, buildapi.StageBuild, buildapi.StepDockerBuild, startTime, metav1.Now())
 
 	if err != nil {
-		d.build.Status.Phase = api.BuildPhaseFailed
-		d.build.Status.Reason = api.StatusReasonDockerBuildFailed
-		d.build.Status.Message = api.StatusMessageDockerBuildFailed
+		d.build.Status.Phase = buildapi.BuildPhaseFailed
+		d.build.Status.Reason = buildapi.StatusReasonDockerBuildFailed
+		d.build.Status.Message = buildapi.StatusMessageDockerBuildFailed
 		handleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
@@ -172,12 +172,12 @@ func (d *DockerBuilder) Build() error {
 	startTime = metav1.Now()
 	err = execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
 
-	timing.RecordNewStep(ctx, api.StagePostCommit, api.StepExecPostCommitHook, startTime, metav1.Now())
+	timing.RecordNewStep(ctx, buildapi.StagePostCommit, buildapi.StepExecPostCommitHook, startTime, metav1.Now())
 
 	if err != nil {
-		d.build.Status.Phase = api.BuildPhaseFailed
-		d.build.Status.Reason = api.StatusReasonPostCommitHookFailed
-		d.build.Status.Message = api.StatusMessagePostCommitHookFailed
+		d.build.Status.Phase = buildapi.BuildPhaseFailed
+		d.build.Status.Reason = buildapi.StatusReasonPostCommitHookFailed
+		d.build.Status.Message = buildapi.StatusMessagePostCommitHookFailed
 		handleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
@@ -205,18 +205,18 @@ func (d *DockerBuilder) Build() error {
 		startTime = metav1.Now()
 		digest, err := pushImage(d.dockerClient, pushTag, pushAuthConfig)
 
-		timing.RecordNewStep(ctx, api.StagePushImage, api.StepPushDockerImage, startTime, metav1.Now())
+		timing.RecordNewStep(ctx, buildapi.StagePushImage, buildapi.StepPushDockerImage, startTime, metav1.Now())
 
 		if err != nil {
-			d.build.Status.Phase = api.BuildPhaseFailed
-			d.build.Status.Reason = api.StatusReasonPushImageToRegistryFailed
-			d.build.Status.Message = api.StatusMessagePushImageToRegistryFailed
+			d.build.Status.Phase = buildapi.BuildPhaseFailed
+			d.build.Status.Reason = buildapi.StatusReasonPushImageToRegistryFailed
+			d.build.Status.Message = buildapi.StatusMessagePushImageToRegistryFailed
 			handleBuildStatusUpdate(d.build, d.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 
 		if len(digest) > 0 {
-			d.build.Status.Output.To = &api.BuildStatusOutputTo{
+			d.build.Status.Output.To = &buildapi.BuildStatusOutputTo{
 				ImageDigest: digest,
 			}
 			handleBuildStatusUpdate(d.build, d.client, nil)
@@ -229,7 +229,7 @@ func (d *DockerBuilder) Build() error {
 // copySecrets copies all files from the directory where the secret is
 // mounted in the builder pod to a directory where the is the Dockerfile, so
 // users can ADD or COPY the files inside their Dockerfile.
-func (d *DockerBuilder) copySecrets(secrets []api.SecretBuildSource, buildDir string) error {
+func (d *DockerBuilder) copySecrets(secrets []buildapi.SecretBuildSource, buildDir string) error {
 	for _, s := range secrets {
 		dstDir := filepath.Join(buildDir, s.DestinationDir)
 		if err := os.MkdirAll(dstDir, 0777); err != nil {
@@ -355,7 +355,7 @@ func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.Key
 	if len(d.build.Spec.Source.ContextDir) > 0 {
 		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
 	}
-	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, api.DefaultDockerLabelNamespace)
+	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, buildapi.DefaultDockerLabelNamespace)
 	addBuildLabels(labels, d.build)
 
 	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(d.build.Spec.Output.ImageLabels))
@@ -389,7 +389,7 @@ func (d *DockerBuilder) setupPullSecret() (*docker.AuthConfigurations, error) {
 }
 
 // dockerBuild performs a docker build on the source that has been retrieved
-func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.SecretBuildSource) error {
+func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapi.SecretBuildSource) error {
 	var noCache bool
 	var forcePull bool
 	var buildArgs []docker.BuildArg
@@ -443,9 +443,9 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []api.Secret
 	if s := d.build.Spec.Strategy.DockerStrategy; s != nil {
 		if policy := s.ImageOptimizationPolicy; policy != nil {
 			switch *policy {
-			case api.ImageOptimizationSkipLayers:
+			case buildapi.ImageOptimizationSkipLayers:
 				return buildDirectImage(dir, false, &opts)
-			case api.ImageOptimizationSkipLayersAndWarn:
+			case buildapi.ImageOptimizationSkipLayersAndWarn:
 				return buildDirectImage(dir, true, &opts)
 			}
 		}

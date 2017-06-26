@@ -11,7 +11,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

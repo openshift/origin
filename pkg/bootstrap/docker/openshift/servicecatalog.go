@@ -15,7 +15,7 @@ import (
 	aggregatorapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
 
-	authzapi "github.com/openshift/origin/pkg/authorization/api"
+	authzapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"

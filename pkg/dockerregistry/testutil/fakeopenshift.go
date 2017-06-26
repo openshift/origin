@@ -12,8 +12,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/image/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // FakeOpenShift is an in-mempory reactors for fake.Client.
@@ -51,7 +50,7 @@ func (fos *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, e
 
 	_, ok := fos.images[image.Name]
 	if ok {
-		return nil, errors.NewAlreadyExists(api.Resource("images"), image.Name)
+		return nil, errors.NewAlreadyExists(imageapi.Resource("images"), image.Name)
 	}
 
 	fos.images[image.Name] = *image
@@ -66,7 +65,7 @@ func (fos *FakeOpenShift) GetImage(name string) (*imageapi.Image, error) {
 
 	image, ok := fos.images[name]
 	if !ok {
-		return nil, errors.NewNotFound(api.Resource("images"), name)
+		return nil, errors.NewNotFound(imageapi.Resource("images"), name)
 	}
 
 	return &image, nil
@@ -78,7 +77,7 @@ func (fos *FakeOpenShift) UpdateImage(image *imageapi.Image) (*imageapi.Image, e
 
 	_, ok := fos.images[image.Name]
 	if !ok {
-		return nil, errors.NewNotFound(api.Resource("images"), image.Name)
+		return nil, errors.NewNotFound(imageapi.Resource("images"), image.Name)
 	}
 
 	fos.images[image.Name] = *image
@@ -95,7 +94,7 @@ func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.Image
 
 	_, ok := fos.imageStreams[ref]
 	if ok {
-		return nil, errors.NewAlreadyExists(api.Resource("imagestreams"), is.Name)
+		return nil, errors.NewAlreadyExists(imageapi.Resource("imagestreams"), is.Name)
 	}
 
 	is.Namespace = namespace
@@ -115,7 +114,7 @@ func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapi.Image
 
 	oldis, ok := fos.imageStreams[ref]
 	if !ok {
-		return nil, errors.NewNotFound(api.Resource("imagestreams"), is.Name)
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), is.Name)
 	}
 
 	is.Namespace = namespace
@@ -135,7 +134,7 @@ func (fos *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.Imag
 
 	is, ok := fos.imageStreams[ref]
 	if !ok {
-		return nil, errors.NewNotFound(api.Resource("imagestreams"), repo)
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), repo)
 	}
 	return &is, nil
 }
@@ -197,7 +196,7 @@ func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi
 	// The user wants to symlink a tag.
 	_, exists := is.Spec.Tags[imageTag]
 	if exists {
-		return nil, errors.NewAlreadyExists(api.Resource("imagestreamtag"), istag.Name)
+		return nil, errors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
 	}
 	is.Spec.Tags[imageTag] = *istag.Tag
 
@@ -232,7 +231,7 @@ func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi
 }
 
 func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*imageapi.ImageStreamImage, error) {
-	name, imageID, err := api.ParseImageStreamImageName(id)
+	name, imageID, err := imageapi.ParseImageStreamImageName(id)
 	if err != nil {
 		return nil, errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
 	}
@@ -243,10 +242,10 @@ func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*ima
 	}
 
 	if repo.Status.Tags == nil {
-		return nil, errors.NewNotFound(api.Resource("imagestreamimage"), id)
+		return nil, errors.NewNotFound(imageapi.Resource("imagestreamimage"), id)
 	}
 
-	event, err := api.ResolveImageID(repo, imageID)
+	event, err := imageapi.ResolveImageID(repo, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -256,16 +255,16 @@ func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*ima
 	if err != nil {
 		return nil, err
 	}
-	if err := api.ImageWithMetadata(image); err != nil {
+	if err := imageapi.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	image.DockerImageManifest = ""
 	image.DockerImageConfig = ""
 
-	isi := api.ImageStreamImage{
+	isi := imageapi.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         namespace,
-			Name:              api.MakeImageStreamImageName(name, imageID),
+			Name:              imageapi.MakeImageStreamImageName(name, imageID),
 			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
 			Annotations:       repo.Annotations,
 		},

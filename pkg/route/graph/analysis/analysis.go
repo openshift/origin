@@ -10,7 +10,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
 )

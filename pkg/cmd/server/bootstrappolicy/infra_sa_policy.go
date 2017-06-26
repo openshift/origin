@@ -9,13 +9,13 @@ import (
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	// we need the conversions registered for our init block
-	_ "github.com/openshift/origin/pkg/authorization/api/install"
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
 const (

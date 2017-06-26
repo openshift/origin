@@ -15,7 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicystorage "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/admin"

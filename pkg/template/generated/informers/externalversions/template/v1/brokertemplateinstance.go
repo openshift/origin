@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/template/api/v1"
+	template_v1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	clientset "github.com/openshift/origin/pkg/template/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/template/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/template/generated/listers/template/v1"
@@ -35,7 +35,7 @@ func newBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod 
 				return client.TemplateV1().BrokerTemplateInstances().Watch(options)
 			},
 		},
-		&api_v1.BrokerTemplateInstance{},
+		&template_v1.BrokerTemplateInstance{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newBrokerTemplateInstanceInformer(client clientset.Interface, resyncPeriod 
 }
 
 func (f *brokerTemplateInstanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.BrokerTemplateInstance{}, newBrokerTemplateInstanceInformer)
+	return f.factory.InformerFor(&template_v1.BrokerTemplateInstance{}, newBrokerTemplateInstanceInformer)
 }
 
 func (f *brokerTemplateInstanceInformer) Lister() v1.BrokerTemplateInstanceLister {

@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	"github.com/openshift/origin/pkg/client"
 )

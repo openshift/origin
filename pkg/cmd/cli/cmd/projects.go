@@ -16,8 +16,8 @@ import (
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/project/api"
-	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 
 	"github.com/spf13/cobra"
 )
@@ -37,7 +37,7 @@ type ProjectsOptions struct {
 }
 
 // SortByProjectName is sort
-type SortByProjectName []api.Project
+type SortByProjectName []projectapi.Project
 
 func (p SortByProjectName) Len() int {
 	return len(p)

@@ -7,7 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )

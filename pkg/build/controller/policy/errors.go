@@ -3,7 +3,7 @@ package policy
 import (
 	"fmt"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // NoBuildNumberLabelError represents an error caused by the build not having

@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/project/api/v1"
+	project_v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	clientset "github.com/openshift/origin/pkg/project/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/project/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/project/generated/listers/project/v1"
@@ -35,7 +35,7 @@ func newProjectInformer(client clientset.Interface, resyncPeriod time.Duration) 
 				return client.ProjectV1().Projects().Watch(options)
 			},
 		},
-		&api_v1.Project{},
+		&project_v1.Project{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newProjectInformer(client clientset.Interface, resyncPeriod time.Duration) 
 }
 
 func (f *projectInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.Project{}, newProjectInformer)
+	return f.factory.InformerFor(&project_v1.Project{}, newProjectInformer)
 }
 
 func (f *projectInformer) Lister() v1.ProjectLister {

@@ -10,7 +10,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )

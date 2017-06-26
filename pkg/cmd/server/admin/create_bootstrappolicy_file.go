@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const (
@@ -78,7 +78,7 @@ func (o CreateBootstrapPolicyFileOptions) CreateBootstrapPolicyFile() error {
 		return err
 	}
 
-	policyTemplate := &api.Template{}
+	policyTemplate := &templateapi.Template{}
 
 	clusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
 	for i := range clusterRoles {

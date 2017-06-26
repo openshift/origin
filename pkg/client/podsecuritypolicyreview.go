@@ -1,6 +1,6 @@
 package client
 
-import securityapi "github.com/openshift/origin/pkg/security/api"
+import securityapi "github.com/openshift/origin/pkg/security/apis/security"
 
 // PodSecurityPolicyReviewsNamespacer has methods to work with PodSecurityPolicyReview resources in the cluster scope
 type PodSecurityPolicyReviewsNamespacer interface {

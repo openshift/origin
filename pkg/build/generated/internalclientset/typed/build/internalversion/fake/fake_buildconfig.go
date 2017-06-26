@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,39 +18,39 @@ type FakeBuildConfigs struct {
 
 var buildconfigsResource = schema.GroupVersionResource{Group: "build.openshift.io", Version: "", Resource: "buildconfigs"}
 
-func (c *FakeBuildConfigs) Create(buildConfig *api.BuildConfig) (result *api.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Create(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(buildconfigsResource, c.ns, buildConfig), &api.BuildConfig{})
+		Invokes(testing.NewCreateAction(buildconfigsResource, c.ns, buildConfig), &build.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.BuildConfig), err
+	return obj.(*build.BuildConfig), err
 }
 
-func (c *FakeBuildConfigs) Update(buildConfig *api.BuildConfig) (result *api.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Update(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(buildconfigsResource, c.ns, buildConfig), &api.BuildConfig{})
+		Invokes(testing.NewUpdateAction(buildconfigsResource, c.ns, buildConfig), &build.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.BuildConfig), err
+	return obj.(*build.BuildConfig), err
 }
 
-func (c *FakeBuildConfigs) UpdateStatus(buildConfig *api.BuildConfig) (*api.BuildConfig, error) {
+func (c *FakeBuildConfigs) UpdateStatus(buildConfig *build.BuildConfig) (*build.BuildConfig, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(buildconfigsResource, "status", c.ns, buildConfig), &api.BuildConfig{})
+		Invokes(testing.NewUpdateSubresourceAction(buildconfigsResource, "status", c.ns, buildConfig), &build.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.BuildConfig), err
+	return obj.(*build.BuildConfig), err
 }
 
 func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(buildconfigsResource, c.ns, name), &api.BuildConfig{})
+		Invokes(testing.NewDeleteAction(buildconfigsResource, c.ns, name), &build.BuildConfig{})
 
 	return err
 }
@@ -58,23 +58,23 @@ func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error 
 func (c *FakeBuildConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(buildconfigsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.BuildConfigList{})
+	_, err := c.Fake.Invokes(action, &build.BuildConfigList{})
 	return err
 }
 
-func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *api.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *build.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(buildconfigsResource, c.ns, name), &api.BuildConfig{})
+		Invokes(testing.NewGetAction(buildconfigsResource, c.ns, name), &build.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.BuildConfig), err
+	return obj.(*build.BuildConfig), err
 }
 
-func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *api.BuildConfigList, err error) {
+func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *build.BuildConfigList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(buildconfigsResource, c.ns, opts), &api.BuildConfigList{})
+		Invokes(testing.NewListAction(buildconfigsResource, c.ns, opts), &build.BuildConfigList{})
 
 	if obj == nil {
 		return nil, err
@@ -84,8 +84,8 @@ func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *api.BuildConfigLis
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.BuildConfigList{}
-	for _, item := range obj.(*api.BuildConfigList).Items {
+	list := &build.BuildConfigList{}
+	for _, item := range obj.(*build.BuildConfigList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -101,12 +101,12 @@ func (c *FakeBuildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched buildConfig.
-func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *build.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(buildconfigsResource, c.ns, name, data, subresources...), &api.BuildConfig{})
+		Invokes(testing.NewPatchSubresourceAction(buildconfigsResource, c.ns, name, data, subresources...), &build.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.BuildConfig), err
+	return obj.(*build.BuildConfig), err
 }

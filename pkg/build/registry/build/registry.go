@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	api "github.com/openshift/origin/pkg/build/api"
+	api "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // Registry is an interface for things that know how to store Builds.

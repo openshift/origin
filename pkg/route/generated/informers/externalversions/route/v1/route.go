@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/route/api/v1"
+	route_v1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	clientset "github.com/openshift/origin/pkg/route/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/route/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/route/generated/listers/route/v1"
@@ -35,7 +35,7 @@ func newRouteInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 				return client.RouteV1().Routes(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.Route{},
+		&route_v1.Route{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newRouteInformer(client clientset.Interface, resyncPeriod time.Duration) ca
 }
 
 func (f *routeInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.Route{}, newRouteInformer)
+	return f.factory.InformerFor(&route_v1.Route{}, newRouteInformer)
 }
 
 func (f *routeInformer) Lister() v1.RouteLister {

@@ -10,9 +10,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 

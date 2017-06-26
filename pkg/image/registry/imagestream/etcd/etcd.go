@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -23,13 +23,13 @@ type REST struct {
 }
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, defaultRegistry api.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, defaultRegistry imageapi.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.ImageStream{} },
-		NewListFunc:       func() runtime.Object { return &api.ImageStreamList{} },
+		NewFunc:           func() runtime.Object { return &imageapi.ImageStream{} },
+		NewListFunc:       func() runtime.Object { return &imageapi.ImageStreamList{} },
 		PredicateFunc:     imagestream.Matcher,
-		QualifiedResource: api.Resource("imagestreams"),
+		QualifiedResource: imageapi.Resource("imagestreams"),
 	}
 
 	rest := &REST{
@@ -75,7 +75,7 @@ type StatusREST struct {
 var _ = rest.Patcher(&StatusREST{})
 
 func (r *StatusREST) New() runtime.Object {
-	return &api.ImageStream{}
+	return &imageapi.ImageStream{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.
@@ -94,7 +94,7 @@ type InternalREST struct {
 }
 
 func (r *InternalREST) New() runtime.Object {
-	return &api.ImageStream{}
+	return &imageapi.ImageStream{}
 }
 
 // Create alters both the spec and status of the object.

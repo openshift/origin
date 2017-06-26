@@ -18,7 +18,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	infrarouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/router"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"

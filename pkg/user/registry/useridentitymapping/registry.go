@@ -7,17 +7,17 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // Registry is an interface implemented by things that know how to store UserIdentityMapping objects.
 type Registry interface {
 	// GetUserIdentityMapping returns a UserIdentityMapping for the named identity
-	GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.UserIdentityMapping, error)
+	GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.UserIdentityMapping, error)
 	// CreateUserIdentityMapping associates a user and an identity
-	CreateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	CreateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
 	// UpdateUserIdentityMapping updates an associated user and identity
-	UpdateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error)
+	UpdateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error)
 	// DeleteUserIdentityMapping removes the user association for the named identity
 	DeleteUserIdentityMapping(ctx apirequest.Context, name string) error
 }
@@ -43,28 +43,28 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.UserIdentityMapping, error) {
+func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.UserIdentityMapping, error) {
 	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.UserIdentityMapping), nil
+	return obj.(*userapi.UserIdentityMapping), nil
 }
 
-func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.UserIdentityMapping), nil
+	return obj.(*userapi.UserIdentityMapping), nil
 }
 
-func (s *storage) UpdateUserIdentityMapping(ctx apirequest.Context, mapping *api.UserIdentityMapping) (*api.UserIdentityMapping, error) {
+func (s *storage) UpdateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
 	obj, _, err := s.Update(ctx, mapping.Name, rest.DefaultUpdatedObjectInfo(mapping, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.UserIdentityMapping), nil
+	return obj.(*userapi.UserIdentityMapping), nil
 }
 
 //

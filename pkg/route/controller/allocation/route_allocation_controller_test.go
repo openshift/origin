@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

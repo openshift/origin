@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"testing"
 )
 

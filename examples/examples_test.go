@@ -18,13 +18,13 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	"github.com/openshift/origin/pkg/api/validation"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

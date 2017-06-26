@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -30,10 +30,10 @@ type REST struct {
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.DeploymentConfig{} },
-		NewListFunc:       func() runtime.Object { return &api.DeploymentConfigList{} },
+		NewFunc:           func() runtime.Object { return &deployapi.DeploymentConfig{} },
+		NewListFunc:       func() runtime.Object { return &deployapi.DeploymentConfigList{} },
 		PredicateFunc:     deployconfig.Matcher,
-		QualifiedResource: api.Resource("deploymentconfigs"),
+		QualifiedResource: deployapi.Resource("deploymentconfigs"),
 
 		CreateStrategy: deployconfig.Strategy,
 		UpdateStrategy: deployconfig.Strategy,
@@ -76,7 +76,7 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.Get
 		return nil, err
 	}
 
-	return api.ScaleFromConfig(deploymentConfig), nil
+	return deployapi.ScaleFromConfig(deploymentConfig), nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
@@ -86,7 +86,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
 	}
 
-	old := api.ScaleFromConfig(deploymentConfig)
+	old := deployapi.ScaleFromConfig(deploymentConfig)
 	obj, err := objInfo.UpdatedObject(ctx, old)
 	if err != nil {
 		return nil, false, err
@@ -118,7 +118,7 @@ type StatusREST struct {
 var _ = rest.Patcher(&StatusREST{})
 
 func (r *StatusREST) New() runtime.Object {
-	return &api.DeploymentConfig{}
+	return &deployapi.DeploymentConfig{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.

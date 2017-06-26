@@ -17,9 +17,9 @@ import (
 	"github.com/openshift/origin/pkg/client/testclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs

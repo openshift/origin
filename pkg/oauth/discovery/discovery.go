@@ -3,7 +3,7 @@ package discovery
 import (
 	"github.com/RangelReale/osin"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 )
 

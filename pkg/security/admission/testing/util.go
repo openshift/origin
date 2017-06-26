@@ -5,7 +5,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	allocator "github.com/openshift/origin/pkg/security"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // CreateSAForTest Build and Initializes a ServiceAccount for tests

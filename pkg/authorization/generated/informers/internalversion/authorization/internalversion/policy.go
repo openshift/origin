@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	internalinterfaces "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
@@ -35,7 +35,7 @@ func newPolicyInformer(client internalclientset.Interface, resyncPeriod time.Dur
 				return client.Authorization().Policies(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.Policy{},
+		&authorization.Policy{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newPolicyInformer(client internalclientset.Interface, resyncPeriod time.Dur
 }
 
 func (f *policyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.Policy{}, newPolicyInformer)
+	return f.factory.InformerFor(&authorization.Policy{}, newPolicyInformer)
 }
 
 func (f *policyInformer) Lister() internalversion.PolicyLister {

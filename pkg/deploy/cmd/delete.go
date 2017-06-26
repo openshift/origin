@@ -13,7 +13,7 @@ import (
 	kutil "k8s.io/kubernetes/pkg/util"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 

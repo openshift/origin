@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
 	internalinterfaces "github.com/openshift/origin/pkg/build/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -35,7 +35,7 @@ func newBuildInformer(client internalclientset.Interface, resyncPeriod time.Dura
 				return client.Build().Builds(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.Build{},
+		&build.Build{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newBuildInformer(client internalclientset.Interface, resyncPeriod time.Dura
 }
 
 func (f *buildInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.Build{}, newBuildInformer)
+	return f.factory.InformerFor(&build.Build{}, newBuildInformer)
 }
 
 func (f *buildInformer) Lister() internalversion.BuildLister {

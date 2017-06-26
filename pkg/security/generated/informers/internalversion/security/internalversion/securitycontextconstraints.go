@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/security/api"
+	security "github.com/openshift/origin/pkg/security/apis/security"
 	internalinterfaces "github.com/openshift/origin/pkg/security/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
@@ -35,7 +35,7 @@ func newSecurityContextConstraintsInformer(client internalclientset.Interface, r
 				return client.Security().SecurityContextConstraints().Watch(options)
 			},
 		},
-		&api.SecurityContextConstraints{},
+		&security.SecurityContextConstraints{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newSecurityContextConstraintsInformer(client internalclientset.Interface, r
 }
 
 func (f *securityContextConstraintsInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.SecurityContextConstraints{}, newSecurityContextConstraintsInformer)
+	return f.factory.InformerFor(&security.SecurityContextConstraints{}, newSecurityContextConstraintsInformer)
 }
 
 func (f *securityContextConstraintsInformer) Lister() internalversion.SecurityContextConstraintsLister {

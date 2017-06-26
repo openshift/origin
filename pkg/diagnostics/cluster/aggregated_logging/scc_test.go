@@ -8,7 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 type fakeSccDiagnostic struct {

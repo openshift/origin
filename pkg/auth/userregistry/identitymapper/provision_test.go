@@ -9,8 +9,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/user/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
@@ -35,7 +34,7 @@ func (t *testNewIdentityGetter) UserForNewIdentity(ctx apirequest.Context, prefe
 }
 
 func TestGetPreferredUsername(t *testing.T) {
-	identity := &api.Identity{}
+	identity := &userapi.Identity{}
 
 	identity.ProviderUserName = "foo"
 	if preferred := getPreferredUserName(identity); preferred != "foo" {
@@ -238,11 +237,11 @@ func TestProvision(t *testing.T) {
 	for k, tc := range testcases {
 		actions := []test.Action{}
 		identityRegistry := &test.IdentityRegistry{
-			Get:     map[string]*api.Identity{},
+			Get:     map[string]*userapi.Identity{},
 			Actions: &actions,
 		}
 		userRegistry := &test.UserRegistry{
-			Get:     map[string]*api.User{},
+			Get:     map[string]*userapi.User{},
 			Actions: &actions,
 		}
 		if tc.ExistingIdentity != nil {

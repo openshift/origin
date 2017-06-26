@@ -8,19 +8,19 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // Registry is an interface implemented by things that know how to store User objects.
 type Registry interface {
 	// ListUsers obtains a list of users having labels which match selector.
-	ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error)
+	ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.UserList, error)
 	// GetUser returns a specific user
-	GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error)
+	GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.User, error)
 	// CreateUser creates a user
-	CreateUser(ctx apirequest.Context, user *api.User) (*api.User, error)
+	CreateUser(ctx apirequest.Context, user *userapi.User) (*userapi.User, error)
 	// UpdateUser updates an existing user
-	UpdateUser(ctx apirequest.Context, user *api.User) (*api.User, error)
+	UpdateUser(ctx apirequest.Context, user *userapi.User) (*userapi.User, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -44,34 +44,34 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*api.UserList, error) {
+func (s *storage) ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.UserList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.UserList), nil
+	return obj.(*userapi.UserList), nil
 }
 
-func (s *storage) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.User, error) {
+func (s *storage) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.User, error) {
 	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.User), nil
+	return obj.(*userapi.User), nil
 }
 
-func (s *storage) CreateUser(ctx apirequest.Context, user *api.User) (*api.User, error) {
+func (s *storage) CreateUser(ctx apirequest.Context, user *userapi.User) (*userapi.User, error) {
 	obj, err := s.Create(ctx, user)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.User), nil
+	return obj.(*userapi.User), nil
 }
 
-func (s *storage) UpdateUser(ctx apirequest.Context, user *api.User) (*api.User, error) {
+func (s *storage) UpdateUser(ctx apirequest.Context, user *userapi.User) (*userapi.User, error) {
 	obj, _, err := s.Update(ctx, user.Name, rest.DefaultUpdatedObjectInfo(user, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.User), nil
+	return obj.(*userapi.User), nil
 }

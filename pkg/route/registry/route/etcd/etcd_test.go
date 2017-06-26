@@ -11,10 +11,10 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	routetypes "github.com/openshift/origin/pkg/route"
-	"github.com/openshift/origin/pkg/route/api"
-	_ "github.com/openshift/origin/pkg/route/api/install"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	_ "github.com/openshift/origin/pkg/route/apis/route/install"
 	"github.com/openshift/origin/pkg/route/registry/route"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -26,11 +26,11 @@ type testAllocator struct {
 	Generate bool
 }
 
-func (a *testAllocator) AllocateRouterShard(*api.Route) (*api.RouterShard, error) {
+func (a *testAllocator) AllocateRouterShard(*routeapi.Route) (*routeapi.RouterShard, error) {
 	a.Allocate = true
 	return nil, a.Err
 }
-func (a *testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
+func (a *testAllocator) GenerateHostname(*routeapi.Route, *routeapi.RouterShard) string {
 	a.Generate = true
 	return a.Hostname
 }
@@ -55,13 +55,13 @@ func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcd
 	return storage, server
 }
 
-func validRoute() *api.Route {
-	return &api.Route{
+func validRoute() *routeapi.Route {
+	return &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "foo",
 		},
-		Spec: api.RouteSpec{
-			To: api.RouteTargetReference{
+		Spec: routeapi.RouteSpec{
+			To: routeapi.RouteTargetReference{
 				Name: "test",
 				Kind: "Service",
 			},
@@ -78,7 +78,7 @@ func TestCreate(t *testing.T) {
 		// valid
 		validRoute(),
 		// invalid
-		&api.Route{
+		&routeapi.Route{
 			ObjectMeta: metav1.ObjectMeta{Name: "_-a123-a_"},
 		},
 	)
@@ -94,7 +94,7 @@ func TestCreateWithAllocation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to create object: %v", err)
 	}
-	result := obj.(*api.Route)
+	result := obj.(*routeapi.Route)
 	if result.Spec.Host != "bar" {
 		t.Fatalf("unexpected route: %#v", result)
 	}
@@ -116,7 +116,7 @@ func TestUpdate(t *testing.T) {
 		validRoute(),
 		// valid update
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Route)
+			object := obj.(*routeapi.Route)
 			if object.Annotations == nil {
 				object.Annotations = map[string]string{}
 			}
@@ -125,7 +125,7 @@ func TestUpdate(t *testing.T) {
 		},
 		// invalid update
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Route)
+			object := obj.(*routeapi.Route)
 			object.Spec.Path = "invalid/path"
 			return object
 		},

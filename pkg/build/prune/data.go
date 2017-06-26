@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // BuildByBuildConfigIndexFunc indexes Build items by their associated BuildConfig, if none, index with key "orphan"

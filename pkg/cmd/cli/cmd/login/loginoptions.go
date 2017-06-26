@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 const defaultClusterURL = "https://localhost:8443"
@@ -399,7 +399,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	return created, nil
 }
 
-func (o LoginOptions) whoAmI() (*api.User, error) {
+func (o LoginOptions) whoAmI() (*userapi.User, error) {
 	return whoAmI(o.Config)
 }
 

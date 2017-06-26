@@ -18,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	authenticationclient "github.com/openshift/origin/pkg/auth/client"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	jenkinscontroller "github.com/openshift/origin/pkg/build/controller/jenkins"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

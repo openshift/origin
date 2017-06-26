@@ -11,7 +11,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -19,10 +19,10 @@ import (
 )
 
 type UserConversion interface {
-	ConvertToAuthorizeToken(interface{}, *api.OAuthAuthorizeToken) error
-	ConvertToAccessToken(interface{}, *api.OAuthAccessToken) error
-	ConvertFromAuthorizeToken(*api.OAuthAuthorizeToken) (interface{}, error)
-	ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, error)
+	ConvertToAuthorizeToken(interface{}, *oauthapi.OAuthAuthorizeToken) error
+	ConvertToAccessToken(interface{}, *oauthapi.OAuthAccessToken) error
+	ConvertFromAuthorizeToken(*oauthapi.OAuthAuthorizeToken) (interface{}, error)
+	ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface{}, error)
 }
 
 type storage struct {
@@ -43,7 +43,7 @@ func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registr
 
 type clientWrapper struct {
 	id     string
-	client *api.OAuthClient
+	client *oauthapi.OAuthClient
 }
 
 // Ensure we implement the secret matcher method that allows us to validate multiple secrets
@@ -179,8 +179,8 @@ func (s *storage) RemoveRefresh(token string) error {
 	return errors.New("not implemented")
 }
 
-func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthAuthorizeToken, error) {
-	token := &api.OAuthAuthorizeToken{
+func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.OAuthAuthorizeToken, error) {
+	token := &oauthapi.OAuthAuthorizeToken{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              data.Code,
 			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
@@ -199,7 +199,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*api.OAuthA
 	return token, nil
 }
 
-func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
+func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeToken) (*osin.AuthorizeData, error) {
 	user, err := s.user.ConvertFromAuthorizeToken(authorize)
 	if err != nil {
 		return nil, err
@@ -226,8 +226,8 @@ func (s *storage) convertFromAuthorizeToken(authorize *api.OAuthAuthorizeToken) 
 	}, nil
 }
 
-func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessToken, error) {
-	token := &api.OAuthAccessToken{
+func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAccessToken, error) {
+	token := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              data.AccessToken,
 			CreationTimestamp: metav1.Time{Time: data.CreatedAt},
@@ -247,7 +247,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*api.OAuthAccessT
 	return token, nil
 }
 
-func (s *storage) convertFromAccessToken(access *api.OAuthAccessToken) (*osin.AccessData, error) {
+func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*osin.AccessData, error) {
 	user, err := s.user.ConvertFromAccessToken(access)
 	if err != nil {
 		return nil, err

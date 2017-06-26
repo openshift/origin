@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type networkPolicyPlugin struct {

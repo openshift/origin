@@ -16,7 +16,7 @@ import (
 	oapi "github.com/openshift/origin/pkg/api"
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/client/testclient"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
 func mustParseTime(t string) time.Time {

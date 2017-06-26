@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // NewSimpleFake returns a client that will respond with the provided objects

@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	quota "github.com/openshift/origin/pkg/quota/api/install"
+	quota "github.com/openshift/origin/pkg/quota/apis/quota/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

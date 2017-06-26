@@ -10,17 +10,17 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/route/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 type testAllocator struct {
 }
 
-func (t testAllocator) AllocateRouterShard(*api.Route) (*api.RouterShard, error) {
-	return &api.RouterShard{}, nil
+func (t testAllocator) AllocateRouterShard(*routeapi.Route) (*routeapi.RouterShard, error) {
+	return &routeapi.RouterShard{}, nil
 }
-func (t testAllocator) GenerateHostname(*api.Route, *api.RouterShard) string {
+func (t testAllocator) GenerateHostname(*routeapi.Route, *routeapi.RouterShard) string {
 	return "mygeneratedhost.com"
 }
 
@@ -39,25 +39,25 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	ctx := apirequest.NewContext()
 	strategy := NewStrategy(testAllocator{}, &testSAR{allow: true})
 
-	hostlessCreatedRoute := &api.Route{}
+	hostlessCreatedRoute := &routeapi.Route{}
 	strategy.Validate(ctx, hostlessCreatedRoute)
 	if hostlessCreatedRoute.Spec.Host != "mygeneratedhost.com" {
 		t.Fatalf("Expected host to be allocated, got %s", hostlessCreatedRoute.Spec.Host)
 	}
 
-	persistedRoute := &api.Route{
+	persistedRoute := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       "foo",
 			Name:            "myroute",
 			UID:             types.UID("abc"),
 			ResourceVersion: "1",
 		},
-		Spec: api.RouteSpec{
+		Spec: routeapi.RouteSpec{
 			Host: "myhost.com",
 		},
 	}
 	obj, _ := kapi.Scheme.DeepCopy(persistedRoute)
-	hostlessUpdatedRoute := obj.(*api.Route)
+	hostlessUpdatedRoute := obj.(*routeapi.Route)
 	hostlessUpdatedRoute.Spec.Host = ""
 	strategy.PrepareForUpdate(ctx, hostlessUpdatedRoute, persistedRoute)
 	if hostlessUpdatedRoute.Spec.Host != "myhost.com" {
@@ -72,8 +72,8 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 	tests := []struct {
 		name           string
 		host, oldHost  string
-		wildcardPolicy api.WildcardPolicyType
-		tls, oldTLS    *api.TLSConfig
+		wildcardPolicy routeapi.WildcardPolicyType
+		tls, oldTLS    *routeapi.TLSConfig
 		expected       string
 		errs           int
 		allow          bool
@@ -85,13 +85,13 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 		},
 		{
 			name:           "no-host-nopolicy",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			expected:       "mygeneratedhost.com",
 			allow:          true,
 		},
 		{
 			name:           "no-host-wildcard-subdomain",
-			wildcardPolicy: api.WildcardPolicySubdomain,
+			wildcardPolicy: routeapi.WildcardPolicySubdomain,
 			expected:       "",
 			allow:          true,
 			errs:           1,
@@ -105,14 +105,14 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 		{
 			name:           "host-no-policy",
 			host:           "no.policy.test",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			expected:       "no.policy.test",
 			allow:          true,
 		},
 		{
 			name:           "host-wildcard-subdomain",
 			host:           "wildcard.policy.test",
-			wildcardPolicy: api.WildcardPolicySubdomain,
+			wildcardPolicy: routeapi.WildcardPolicySubdomain,
 			expected:       "wildcard.policy.test",
 			allow:          true,
 		},
@@ -120,42 +120,42 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			name:           "custom-host-permission-denied",
 			host:           "another.test",
 			expected:       "another.test",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
 		{
 			name:           "tls-permission-denied-destination",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationReencrypt, DestinationCACertificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationReencrypt, DestinationCACertificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
 		{
 			name:           "tls-permission-denied-cert",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Certificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Certificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
 		{
 			name:           "tls-permission-denied-ca-cert",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, CACertificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, CACertificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
 		{
 			name:           "tls-permission-denied-key",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
 		{
 			name:           "no-host-but-allowed",
 			expected:       "mygeneratedhost.com",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 		},
 		{
@@ -163,7 +163,7 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "new.host",
 			expected:       "new.host",
 			oldHost:        "original.host",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -172,7 +172,7 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "new.host",
 			expected:       "new.host",
 			oldHost:        "original.host",
-			wildcardPolicy: api.WildcardPolicyNone,
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          true,
 			errs:           0,
 		},
@@ -181,9 +181,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           0,
 		},
@@ -192,9 +192,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "b"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "b"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -203,9 +203,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Certificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Certificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Certificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Certificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           0,
 		},
@@ -214,9 +214,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Certificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Certificate: "b"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Certificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Certificate: "b"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -225,9 +225,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, CACertificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, CACertificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, CACertificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, CACertificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           0,
 		},
@@ -236,9 +236,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, CACertificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, CACertificate: "b"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, CACertificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, CACertificate: "b"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -247,9 +247,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           0,
 		},
@@ -258,9 +258,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationEdge, Key: "b"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationEdge, Key: "b"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -269,9 +269,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationReencrypt, DestinationCACertificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationReencrypt, DestinationCACertificate: "a"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationReencrypt, DestinationCACertificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationReencrypt, DestinationCACertificate: "a"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           0,
 		},
@@ -280,9 +280,9 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			host:           "host",
 			expected:       "host",
 			oldHost:        "host",
-			tls:            &api.TLSConfig{Termination: api.TLSTerminationReencrypt, DestinationCACertificate: "a"},
-			oldTLS:         &api.TLSConfig{Termination: api.TLSTerminationReencrypt, DestinationCACertificate: "b"},
-			wildcardPolicy: api.WildcardPolicyNone,
+			tls:            &routeapi.TLSConfig{Termination: routeapi.TLSTerminationReencrypt, DestinationCACertificate: "a"},
+			oldTLS:         &routeapi.TLSConfig{Termination: routeapi.TLSTerminationReencrypt, DestinationCACertificate: "b"},
+			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          false,
 			errs:           1,
 		},
@@ -292,18 +292,18 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 		sar := &testSAR{allow: tc.allow}
 		strategy := NewStrategy(testAllocator{}, sar)
 
-		route := &api.Route{
+		route := &routeapi.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:       "wildcard",
 				Name:            tc.name,
 				UID:             types.UID("wild"),
 				ResourceVersion: "1",
 			},
-			Spec: api.RouteSpec{
+			Spec: routeapi.RouteSpec{
 				Host:           tc.host,
 				WildcardPolicy: tc.wildcardPolicy,
 				TLS:            tc.tls,
-				To: api.RouteTargetReference{
+				To: routeapi.RouteTargetReference{
 					Name: "test",
 					Kind: "Service",
 				},
@@ -312,18 +312,18 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 
 		var errs field.ErrorList
 		if len(tc.oldHost) > 0 {
-			oldRoute := &api.Route{
+			oldRoute := &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       "wildcard",
 					Name:            tc.name,
 					UID:             types.UID("wild"),
 					ResourceVersion: "1",
 				},
-				Spec: api.RouteSpec{
+				Spec: routeapi.RouteSpec{
 					Host:           tc.oldHost,
 					WildcardPolicy: tc.wildcardPolicy,
 					TLS:            tc.oldTLS,
-					To: api.RouteTargetReference{
+					To: routeapi.RouteTargetReference{
 						Name: "test",
 						Kind: "Service",
 					},

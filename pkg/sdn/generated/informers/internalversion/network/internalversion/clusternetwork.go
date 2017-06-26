@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
+	network "github.com/openshift/origin/pkg/sdn/apis/network"
 	internalinterfaces "github.com/openshift/origin/pkg/sdn/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/sdn/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/sdn/generated/listers/network/internalversion"
@@ -35,7 +35,7 @@ func newClusterNetworkInformer(client internalclientset.Interface, resyncPeriod 
 				return client.Network().ClusterNetworks(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.ClusterNetwork{},
+		&network.ClusterNetwork{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newClusterNetworkInformer(client internalclientset.Interface, resyncPeriod 
 }
 
 func (f *clusterNetworkInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.ClusterNetwork{}, newClusterNetworkInformer)
+	return f.factory.InformerFor(&network.ClusterNetwork{}, newClusterNetworkInformer)
 }
 
 func (f *clusterNetworkInformer) Lister() internalversion.ClusterNetworkLister {

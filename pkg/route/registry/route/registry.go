@@ -6,19 +6,19 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // Registry is an interface for things that know how to store Routes.
 type Registry interface {
 	// ListRoutes obtains list of routes that match a selector.
-	ListRoutes(ctx apirequest.Context, options *metainternal.ListOptions) (*api.RouteList, error)
+	ListRoutes(ctx apirequest.Context, options *metainternal.ListOptions) (*routeapi.RouteList, error)
 	// GetRoute retrieves a specific route.
-	GetRoute(ctx apirequest.Context, routeID string, options *metav1.GetOptions) (*api.Route, error)
+	GetRoute(ctx apirequest.Context, routeID string, options *metav1.GetOptions) (*routeapi.Route, error)
 	// CreateRoute creates a new route.
-	CreateRoute(ctx apirequest.Context, route *api.Route) error
+	CreateRoute(ctx apirequest.Context, route *routeapi.Route) error
 	// UpdateRoute updates a route.
-	UpdateRoute(ctx apirequest.Context, route *api.Route) error
+	UpdateRoute(ctx apirequest.Context, route *routeapi.Route) error
 	// DeleteRoute deletes a route.
 	DeleteRoute(ctx apirequest.Context, routeID string) error
 	// WatchRoutes watches for new/modified/deleted routes.

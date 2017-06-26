@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
 	scheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,15 +17,15 @@ type BuildConfigsGetter interface {
 
 // BuildConfigInterface has methods to work with BuildConfig resources.
 type BuildConfigInterface interface {
-	Create(*api.BuildConfig) (*api.BuildConfig, error)
-	Update(*api.BuildConfig) (*api.BuildConfig, error)
-	UpdateStatus(*api.BuildConfig) (*api.BuildConfig, error)
+	Create(*build.BuildConfig) (*build.BuildConfig, error)
+	Update(*build.BuildConfig) (*build.BuildConfig, error)
+	UpdateStatus(*build.BuildConfig) (*build.BuildConfig, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.BuildConfig, error)
-	List(opts v1.ListOptions) (*api.BuildConfigList, error)
+	Get(name string, options v1.GetOptions) (*build.BuildConfig, error)
+	List(opts v1.ListOptions) (*build.BuildConfigList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.BuildConfig, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *build.BuildConfig, err error)
 	BuildConfigExpansion
 }
 
@@ -44,8 +44,8 @@ func newBuildConfigs(c *BuildClient, namespace string) *buildConfigs {
 }
 
 // Create takes the representation of a buildConfig and creates it.  Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *buildConfigs) Create(buildConfig *api.BuildConfig) (result *api.BuildConfig, err error) {
-	result = &api.BuildConfig{}
+func (c *buildConfigs) Create(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("buildconfigs").
@@ -56,8 +56,8 @@ func (c *buildConfigs) Create(buildConfig *api.BuildConfig) (result *api.BuildCo
 }
 
 // Update takes the representation of a buildConfig and updates it. Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *buildConfigs) Update(buildConfig *api.BuildConfig) (result *api.BuildConfig, err error) {
-	result = &api.BuildConfig{}
+func (c *buildConfigs) Update(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("buildconfigs").
@@ -71,8 +71,8 @@ func (c *buildConfigs) Update(buildConfig *api.BuildConfig) (result *api.BuildCo
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
 
-func (c *buildConfigs) UpdateStatus(buildConfig *api.BuildConfig) (result *api.BuildConfig, err error) {
-	result = &api.BuildConfig{}
+func (c *buildConfigs) UpdateStatus(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("buildconfigs").
@@ -107,8 +107,8 @@ func (c *buildConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v
 }
 
 // Get takes name of the buildConfig, and returns the corresponding buildConfig object, and an error if there is any.
-func (c *buildConfigs) Get(name string, options v1.GetOptions) (result *api.BuildConfig, err error) {
-	result = &api.BuildConfig{}
+func (c *buildConfigs) Get(name string, options v1.GetOptions) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("buildconfigs").
@@ -120,8 +120,8 @@ func (c *buildConfigs) Get(name string, options v1.GetOptions) (result *api.Buil
 }
 
 // List takes label and field selectors, and returns the list of BuildConfigs that match those selectors.
-func (c *buildConfigs) List(opts v1.ListOptions) (result *api.BuildConfigList, err error) {
-	result = &api.BuildConfigList{}
+func (c *buildConfigs) List(opts v1.ListOptions) (result *build.BuildConfigList, err error) {
+	result = &build.BuildConfigList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("buildconfigs").
@@ -142,8 +142,8 @@ func (c *buildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched buildConfig.
-func (c *buildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.BuildConfig, err error) {
-	result = &api.BuildConfig{}
+func (c *buildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("buildconfigs").

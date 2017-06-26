@@ -10,8 +10,8 @@ import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 

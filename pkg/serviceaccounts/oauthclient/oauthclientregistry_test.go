@@ -16,9 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	ostestclient "github.com/openshift/origin/pkg/client/testclient"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/api/v1"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 var (

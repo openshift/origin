@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	diagutil "github.com/openshift/origin/pkg/diagnostics/util"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 func (d *NetworkDiagnostic) TestSetup() error {

@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -23,10 +23,10 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*R
 
 	store := &registry.Store{
 		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &api.OAuthClientAuthorization{} },
-		NewListFunc:       func() runtime.Object { return &api.OAuthClientAuthorizationList{} },
+		NewFunc:           func() runtime.Object { return &oauthapi.OAuthClientAuthorization{} },
+		NewListFunc:       func() runtime.Object { return &oauthapi.OAuthClientAuthorizationList{} },
 		PredicateFunc:     oauthclientauthorization.Matcher,
-		QualifiedResource: api.Resource("oauthclientauthorizations"),
+		QualifiedResource: oauthapi.Resource("oauthclientauthorizations"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,

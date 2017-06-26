@@ -17,7 +17,7 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
@@ -34,7 +34,7 @@ type imageStreamLister interface {
 // Notifier provides information about when the controller makes a decision
 type Notifier interface {
 	// Importing is invoked when the controller is going to import an image stream
-	Importing(stream *api.ImageStream)
+	Importing(stream *imageapi.ImageStream)
 }
 
 type ImageStreamController struct {
@@ -79,17 +79,17 @@ func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
 }
 
 func (c *ImageStreamController) addImageStream(obj interface{}) {
-	if stream, ok := obj.(*api.ImageStream); ok {
+	if stream, ok := obj.(*imageapi.ImageStream); ok {
 		c.enqueueImageStream(stream)
 	}
 }
 
 func (c *ImageStreamController) updateImageStream(old, cur interface{}) {
-	curStream, ok := cur.(*api.ImageStream)
+	curStream, ok := cur.(*imageapi.ImageStream)
 	if !ok {
 		return
 	}
-	oldStream, ok := old.(*api.ImageStream)
+	oldStream, ok := old.(*imageapi.ImageStream)
 	if !ok {
 		return
 	}
@@ -103,7 +103,7 @@ func (c *ImageStreamController) updateImageStream(old, cur interface{}) {
 	c.enqueueImageStream(curStream)
 }
 
-func (c *ImageStreamController) enqueueImageStream(stream *api.ImageStream) {
+func (c *ImageStreamController) enqueueImageStream(stream *imageapi.ImageStream) {
 	key, err := kcontroller.KeyFunc(stream)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Couldn't get key for image stream %#v: %v", stream, err))
@@ -139,7 +139,7 @@ func (c *ImageStreamController) processNextWorkItem() bool {
 	return true
 }
 
-func (c *ImageStreamController) getByKey(key string) (*api.ImageStream, error) {
+func (c *ImageStreamController) getByKey(key string) (*imageapi.ImageStream, error) {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return nil, err
@@ -157,27 +157,27 @@ func (c *ImageStreamController) getByKey(key string) (*api.ImageStream, error) {
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
-func tagImportable(tagRef api.TagReference) bool {
+func tagImportable(tagRef imageapi.TagReference) bool {
 	return !(tagRef.From == nil || tagRef.From.Kind != "DockerImage" || tagRef.Reference)
 }
 
 // tagNeedsImport is true if the observed tag generation for this tag is older than the
 // specified tag generation (if no tag generation is specified, the controller does not
 // need to import this tag).
-func tagNeedsImport(stream *api.ImageStream, tag string, tagRef api.TagReference, importWhenGenerationNil bool) bool {
+func tagNeedsImport(stream *imageapi.ImageStream, tag string, tagRef imageapi.TagReference, importWhenGenerationNil bool) bool {
 	if !tagImportable(tagRef) {
 		return false
 	}
 	if tagRef.Generation == nil {
 		return importWhenGenerationNil
 	}
-	return *tagRef.Generation > api.LatestObservedTagGeneration(stream, tag)
+	return *tagRef.Generation > imageapi.LatestObservedTagGeneration(stream, tag)
 }
 
 // needsImport returns true if the provided image stream should have tags imported. Partial is returned
 // as true if the spec.dockerImageRepository does not need to be refreshed (if only tags have to be imported).
-func needsImport(stream *api.ImageStream) (ok bool, partial bool) {
-	if stream.Annotations == nil || len(stream.Annotations[api.DockerImageRepositoryCheckAnnotation]) == 0 {
+func needsImport(stream *imageapi.ImageStream) (ok bool, partial bool) {
+	if stream.Annotations == nil || len(stream.Annotations[imageapi.DockerImageRepositoryCheckAnnotation]) == 0 {
 		if len(stream.Spec.DockerImageRepository) > 0 {
 			return true, false
 		}
@@ -218,7 +218,7 @@ func needsImport(stream *api.ImageStream) (ok bool, partial bool) {
 // 3. spec.DockerImageRepository not defined - import tags per each definition.
 //
 // Notifier, if passed, will be invoked if the stream is going to be imported.
-func handleImageStream(stream *api.ImageStream, isNamespacer client.ImageStreamsNamespacer, notifier Notifier) error {
+func handleImageStream(stream *imageapi.ImageStream, isNamespacer client.ImageStreamsNamespacer, notifier Notifier) error {
 	ok, partial := needsImport(stream)
 	if !ok {
 		return nil
@@ -229,20 +229,20 @@ func handleImageStream(stream *api.ImageStream, isNamespacer client.ImageStreams
 		notifier.Importing(stream)
 	}
 
-	isi := &api.ImageStreamImport{
+	isi := &imageapi.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            stream.Name,
 			Namespace:       stream.Namespace,
 			ResourceVersion: stream.ResourceVersion,
 			UID:             stream.UID,
 		},
-		Spec: api.ImageStreamImportSpec{Import: true},
+		Spec: imageapi.ImageStreamImportSpec{Import: true},
 	}
 	for tag, tagRef := range stream.Spec.Tags {
 		if !(partial && tagImportable(tagRef)) && !tagNeedsImport(stream, tag, tagRef, true) {
 			continue
 		}
-		isi.Spec.Images = append(isi.Spec.Images, api.ImageImportSpec{
+		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
 			From:            kapi.ObjectReference{Kind: "DockerImage", Name: tagRef.From.Name},
 			To:              &kapi.LocalObjectReference{Name: tag},
 			ImportPolicy:    tagRef.ImportPolicy,
@@ -250,10 +250,10 @@ func handleImageStream(stream *api.ImageStream, isNamespacer client.ImageStreams
 		})
 	}
 	if repo := stream.Spec.DockerImageRepository; !partial && len(repo) > 0 {
-		insecure := stream.Annotations[api.InsecureRepositoryAnnotation] == "true"
-		isi.Spec.Repository = &api.RepositoryImportSpec{
+		insecure := stream.Annotations[imageapi.InsecureRepositoryAnnotation] == "true"
+		isi.Spec.Repository = &imageapi.RepositoryImportSpec{
 			From:         kapi.ObjectReference{Kind: "DockerImage", Name: repo},
-			ImportPolicy: api.TagImportPolicy{Insecure: insecure},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: insecure},
 		}
 	}
 	result, err := isNamespacer.ImageStreams(stream.Namespace).Import(isi)

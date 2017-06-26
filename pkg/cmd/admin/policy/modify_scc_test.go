@@ -8,8 +8,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 

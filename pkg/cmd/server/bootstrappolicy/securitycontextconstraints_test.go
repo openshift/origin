@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestBootstrappedConstraints(t *testing.T) {

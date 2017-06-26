@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 

@@ -14,8 +14,8 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	"github.com/openshift/origin/pkg/security/api/validation"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	"github.com/openshift/origin/pkg/security/apis/security/validation"
 )
 
 // strategy implements behavior for SecurityContextConstraints objects

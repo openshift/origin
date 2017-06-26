@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 
@@ -116,14 +116,14 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 
 	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
-		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
+		route.Spec.WildcardPolicy = routeapi.WildcardPolicyType(wildcardpolicy)
 	}
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 	route.Spec.Path = kcmdutil.GetFlagString(cmd, "path")
 
-	route.Spec.TLS = new(api.TLSConfig)
-	route.Spec.TLS.Termination = api.TLSTerminationEdge
+	route.Spec.TLS = new(routeapi.TLSConfig)
+	route.Spec.TLS.Termination = routeapi.TLSTerminationEdge
 	cert, err := fileutil.LoadData(kcmdutil.GetFlagString(cmd, "cert"))
 	if err != nil {
 		return err
@@ -142,7 +142,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 
 	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
 	if len(insecurePolicy) > 0 {
-		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = routeapi.InsecureEdgeTerminationPolicyType(insecurePolicy)
 	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
@@ -238,17 +238,17 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 
 	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
-		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
+		route.Spec.WildcardPolicy = routeapi.WildcardPolicyType(wildcardpolicy)
 	}
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 
-	route.Spec.TLS = new(api.TLSConfig)
-	route.Spec.TLS.Termination = api.TLSTerminationPassthrough
+	route.Spec.TLS = new(routeapi.TLSConfig)
+	route.Spec.TLS.Termination = routeapi.TLSTerminationPassthrough
 
 	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
 	if len(insecurePolicy) > 0 {
-		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = routeapi.InsecureEdgeTerminationPolicyType(insecurePolicy)
 	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")
@@ -355,14 +355,14 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 
 	wildcardpolicy := kcmdutil.GetFlagString(cmd, "wildcard-policy")
 	if len(wildcardpolicy) > 0 {
-		route.Spec.WildcardPolicy = api.WildcardPolicyType(wildcardpolicy)
+		route.Spec.WildcardPolicy = routeapi.WildcardPolicyType(wildcardpolicy)
 	}
 
 	route.Spec.Host = kcmdutil.GetFlagString(cmd, "hostname")
 	route.Spec.Path = kcmdutil.GetFlagString(cmd, "path")
 
-	route.Spec.TLS = new(api.TLSConfig)
-	route.Spec.TLS.Termination = api.TLSTerminationReencrypt
+	route.Spec.TLS = new(routeapi.TLSConfig)
+	route.Spec.TLS.Termination = routeapi.TLSTerminationReencrypt
 
 	cert, err := fileutil.LoadData(kcmdutil.GetFlagString(cmd, "cert"))
 	if err != nil {
@@ -387,7 +387,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 
 	insecurePolicy := kcmdutil.GetFlagString(cmd, "insecure-policy")
 	if len(insecurePolicy) > 0 {
-		route.Spec.TLS.InsecureEdgeTerminationPolicy = api.InsecureEdgeTerminationPolicyType(insecurePolicy)
+		route.Spec.TLS.InsecureEdgeTerminationPolicy = routeapi.InsecureEdgeTerminationPolicyType(insecurePolicy)
 	}
 
 	dryRun := kcmdutil.GetFlagBool(cmd, "dry-run")

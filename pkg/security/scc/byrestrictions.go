@@ -1,7 +1,7 @@
 package scc
 
 import (
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.

@@ -8,19 +8,19 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // Registry is an interface implemented by things that know how to store Group objects.
 type Registry interface {
 	// ListGroups obtains a list of groups having labels which match selector.
-	ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*api.GroupList, error)
+	ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error)
 	// GetGroup returns a specific group
-	GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Group, error)
+	GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.Group, error)
 	// CreateGroup creates a group
-	CreateGroup(ctx apirequest.Context, group *api.Group) (*api.Group, error)
+	CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error)
 	// UpdateGroup updates an existing group
-	UpdateGroup(ctx apirequest.Context, group *api.Group) (*api.Group, error)
+	UpdateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error)
 	// DeleteGroup deletes a name.
 	DeleteGroup(ctx apirequest.Context, name string) error
 	// WatchGroups watches groups.
@@ -43,36 +43,36 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*api.GroupList, error) {
+func (s *storage) ListGroups(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.GroupList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.GroupList), nil
+	return obj.(*userapi.GroupList), nil
 }
 
-func (s *storage) GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.Group, error) {
+func (s *storage) GetGroup(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.Group, error) {
 	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Group), nil
+	return obj.(*userapi.Group), nil
 }
 
-func (s *storage) CreateGroup(ctx apirequest.Context, group *api.Group) (*api.Group, error) {
+func (s *storage) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	obj, err := s.Create(ctx, group)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Group), nil
+	return obj.(*userapi.Group), nil
 }
 
-func (s *storage) UpdateGroup(ctx apirequest.Context, group *api.Group) (*api.Group, error) {
+func (s *storage) UpdateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
 	obj, _, err := s.Update(ctx, group.Name, rest.DefaultUpdatedObjectInfo(group, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.Group), nil
+	return obj.(*userapi.Group), nil
 }
 
 func (s *storage) DeleteGroup(ctx apirequest.Context, name string) error {

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

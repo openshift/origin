@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"

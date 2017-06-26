@@ -15,7 +15,7 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 var (

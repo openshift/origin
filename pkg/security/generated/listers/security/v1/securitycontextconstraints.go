@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/security/api"
-	v1 "github.com/openshift/origin/pkg/security/api/v1"
+	security "github.com/openshift/origin/pkg/security/apis/security"
+	v1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,7 +46,7 @@ func (s *securityContextConstraintsLister) Get(name string) (*v1.SecurityContext
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("securitycontextconstraints"), name)
+		return nil, errors.NewNotFound(security.Resource("securitycontextconstraints"), name)
 	}
 	return obj.(*v1.SecurityContextConstraints), nil
 }

@@ -4,7 +4,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	api "github.com/openshift/origin/pkg/build/api"
+	api "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // BuildLogsNamespacer has methods to work with BuildLogs resources in a namespace

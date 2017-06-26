@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/security/api"
+	security "github.com/openshift/origin/pkg/security/apis/security"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // SecurityContextConstraintsLister helps list SecurityContextConstraints.
 type SecurityContextConstraintsLister interface {
 	// List lists all SecurityContextConstraints in the indexer.
-	List(selector labels.Selector) (ret []*api.SecurityContextConstraints, err error)
+	List(selector labels.Selector) (ret []*security.SecurityContextConstraints, err error)
 	// Get retrieves the SecurityContextConstraints from the index for a given name.
-	Get(name string) (*api.SecurityContextConstraints, error)
+	Get(name string) (*security.SecurityContextConstraints, error)
 	SecurityContextConstraintsListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewSecurityContextConstraintsLister(indexer cache.Indexer) SecurityContextC
 }
 
 // List lists all SecurityContextConstraints in the indexer.
-func (s *securityContextConstraintsLister) List(selector labels.Selector) (ret []*api.SecurityContextConstraints, err error) {
+func (s *securityContextConstraintsLister) List(selector labels.Selector) (ret []*security.SecurityContextConstraints, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.SecurityContextConstraints))
+		ret = append(ret, m.(*security.SecurityContextConstraints))
 	})
 	return ret, err
 }
 
 // Get retrieves the SecurityContextConstraints from the index for a given name.
-func (s *securityContextConstraintsLister) Get(name string) (*api.SecurityContextConstraints, error) {
-	key := &api.SecurityContextConstraints{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *securityContextConstraintsLister) Get(name string) (*security.SecurityContextConstraints, error) {
+	key := &security.SecurityContextConstraints{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("securitycontextconstraints"), name)
+		return nil, errors.NewNotFound(security.Resource("securitycontextconstraints"), name)
 	}
-	return obj.(*api.SecurityContextConstraints), nil
+	return obj.(*security.SecurityContextConstraints), nil
 }

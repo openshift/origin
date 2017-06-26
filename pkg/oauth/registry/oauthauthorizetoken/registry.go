@@ -6,17 +6,17 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 // Registry is an interface for things that know how to store AuthorizeToken objects.
 type Registry interface {
 	// ListAuthorizeTokens obtains a list of authorize tokens that match a selector.
-	ListAuthorizeTokens(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthAuthorizeTokenList, error)
+	ListAuthorizeTokens(ctx apirequest.Context, options *metainternal.ListOptions) (*oauthapi.OAuthAuthorizeTokenList, error)
 	// GetAuthorizeToken retrieves a specific authorize token.
-	GetAuthorizeToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthAuthorizeToken, error)
+	GetAuthorizeToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthAuthorizeToken, error)
 	// CreateAuthorizeToken creates a new authorize token.
-	CreateAuthorizeToken(ctx apirequest.Context, token *api.OAuthAuthorizeToken) (*api.OAuthAuthorizeToken, error)
+	CreateAuthorizeToken(ctx apirequest.Context, token *oauthapi.OAuthAuthorizeToken) (*oauthapi.OAuthAuthorizeToken, error)
 	// DeleteAuthorizeToken deletes an authorize token.
 	DeleteAuthorizeToken(ctx apirequest.Context, name string) error
 }
@@ -40,28 +40,28 @@ func NewRegistry(s Storage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListAuthorizeTokens(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthAuthorizeTokenList, error) {
+func (s *storage) ListAuthorizeTokens(ctx apirequest.Context, options *metainternal.ListOptions) (*oauthapi.OAuthAuthorizeTokenList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.OAuthAuthorizeTokenList), nil
+	return obj.(*oauthapi.OAuthAuthorizeTokenList), nil
 }
 
-func (s *storage) GetAuthorizeToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthAuthorizeToken, error) {
+func (s *storage) GetAuthorizeToken(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthAuthorizeToken, error) {
 	obj, err := s.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.OAuthAuthorizeToken), nil
+	return obj.(*oauthapi.OAuthAuthorizeToken), nil
 }
 
-func (s *storage) CreateAuthorizeToken(ctx apirequest.Context, token *api.OAuthAuthorizeToken) (*api.OAuthAuthorizeToken, error) {
+func (s *storage) CreateAuthorizeToken(ctx apirequest.Context, token *oauthapi.OAuthAuthorizeToken) (*oauthapi.OAuthAuthorizeToken, error) {
 	obj, err := s.Create(ctx, token)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.OAuthAuthorizeToken), nil
+	return obj.(*oauthapi.OAuthAuthorizeToken), nil
 }
 
 func (s *storage) DeleteAuthorizeToken(ctx apirequest.Context, name string) error {

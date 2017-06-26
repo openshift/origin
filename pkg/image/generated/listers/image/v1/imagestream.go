@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
-	v1 "github.com/openshift/origin/pkg/image/api/v1"
+	image "github.com/openshift/origin/pkg/image/apis/image"
+	v1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s imageStreamNamespaceLister) Get(name string) (*v1.ImageStream, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("imagestream"), name)
+		return nil, errors.NewNotFound(image.Resource("imagestream"), name)
 	}
 	return obj.(*v1.ImageStream), nil
 }

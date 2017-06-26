@@ -9,7 +9,7 @@ import (
 	"github.com/docker/distribution/digest"
 
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestTagGet(t *testing.T) {

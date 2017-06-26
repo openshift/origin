@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
-	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,7 +46,7 @@ func (s *clusterRoleLister) Get(name string) (*v1.ClusterRole, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("clusterrole"), name)
+		return nil, errors.NewNotFound(authorization.Resource("clusterrole"), name)
 	}
 	return obj.(*v1.ClusterRole), nil
 }

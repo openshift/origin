@@ -4,7 +4,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 // DeploymentLogsNamespacer has methods to work with DeploymentLogs resources in a namespace
@@ -14,7 +14,7 @@ type DeploymentLogsNamespacer interface {
 
 // DeploymentLogInterface exposes methods on DeploymentLogs resources.
 type DeploymentLogInterface interface {
-	Get(name string, opts api.DeploymentLogOptions) *restclient.Request
+	Get(name string, opts deployapi.DeploymentLogOptions) *restclient.Request
 }
 
 // deploymentLogs implements DeploymentLogsNamespacer interface
@@ -32,6 +32,6 @@ func newDeploymentLogs(c *Client, namespace string) *deploymentLogs {
 }
 
 // Get gets the deploymentlogs and return a deploymentLog request
-func (c *deploymentLogs) Get(name string, opts api.DeploymentLogOptions) *restclient.Request {
+func (c *deploymentLogs) Get(name string, opts deployapi.DeploymentLogOptions) *restclient.Request {
 	return c.r.Get().Namespace(c.ns).Resource("deploymentConfigs").Name(name).SubResource("log").VersionedParams(&opts, kapi.ParameterCodec)
 }

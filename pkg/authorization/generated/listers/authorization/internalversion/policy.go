@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // PolicyLister helps list Policies.
 type PolicyLister interface {
 	// List lists all Policies in the indexer.
-	List(selector labels.Selector) (ret []*api.Policy, err error)
+	List(selector labels.Selector) (ret []*authorization.Policy, err error)
 	// Policies returns an object that can list and get Policies.
 	Policies(namespace string) PolicyNamespaceLister
 	PolicyListerExpansion
@@ -29,9 +29,9 @@ func NewPolicyLister(indexer cache.Indexer) PolicyLister {
 }
 
 // List lists all Policies in the indexer.
-func (s *policyLister) List(selector labels.Selector) (ret []*api.Policy, err error) {
+func (s *policyLister) List(selector labels.Selector) (ret []*authorization.Policy, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Policy))
+		ret = append(ret, m.(*authorization.Policy))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *policyLister) Policies(namespace string) PolicyNamespaceLister {
 // PolicyNamespaceLister helps list and get Policies.
 type PolicyNamespaceLister interface {
 	// List lists all Policies in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.Policy, err error)
+	List(selector labels.Selector) (ret []*authorization.Policy, err error)
 	// Get retrieves the Policy from the indexer for a given namespace and name.
-	Get(name string) (*api.Policy, error)
+	Get(name string) (*authorization.Policy, error)
 	PolicyNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type policyNamespaceLister struct {
 }
 
 // List lists all Policies in the indexer for a given namespace.
-func (s policyNamespaceLister) List(selector labels.Selector) (ret []*api.Policy, err error) {
+func (s policyNamespaceLister) List(selector labels.Selector) (ret []*authorization.Policy, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Policy))
+		ret = append(ret, m.(*authorization.Policy))
 	})
 	return ret, err
 }
 
 // Get retrieves the Policy from the indexer for a given namespace and name.
-func (s policyNamespaceLister) Get(name string) (*api.Policy, error) {
+func (s policyNamespaceLister) Get(name string) (*authorization.Policy, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("policy"), name)
+		return nil, errors.NewNotFound(authorization.Resource("policy"), name)
 	}
-	return obj.(*api.Policy), nil
+	return obj.(*authorization.Policy), nil
 }

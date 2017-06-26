@@ -19,8 +19,8 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
-	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/build/util"
@@ -30,12 +30,12 @@ import (
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
 	out             io.Writer
-	build           *api.Build
+	build           *buildapi.Build
 	sourceSecretDir string
 	dockerClient    *docker.Client
 	dockerEndpoint  string
@@ -49,14 +49,14 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 	cfg.out = out
 
 	buildStr := os.Getenv("BUILD")
-	cfg.build = &api.Build{}
+	cfg.build = &buildapi.Build{}
 
 	obj, groupVersionKind, err := kapi.Codecs.UniversalDecoder().Decode([]byte(buildStr), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse build string: %v", err)
 	}
 	ok := false
-	cfg.build, ok = obj.(*api.Build)
+	cfg.build, ok = obj.(*buildapi.Build)
 	if !ok {
 		return nil, fmt.Errorf("build string is not a build: %v", err)
 	}
@@ -75,7 +75,7 @@ func newBuilderConfigFromEnvironment(out io.Writer) (*builderConfig, error) {
 		return nil, errors.NewInvalid(schema.GroupKind{Kind: "Build"}, cfg.build.Name, errs)
 	}
 
-	masterVersion := os.Getenv(api.OriginVersion)
+	masterVersion := os.Getenv(buildapi.OriginVersion)
 	thisVersion := version.Get().String()
 	if len(masterVersion) != 0 && masterVersion != thisVersion {
 		glog.V(3).Infof("warning: OpenShift server version %q differs from this image %q\n", masterVersion, thisVersion)
@@ -213,14 +213,14 @@ func fixSecretPermissions(secretsDir string) (string, error) {
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *api.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient, cgLimits).Build()
 }
 

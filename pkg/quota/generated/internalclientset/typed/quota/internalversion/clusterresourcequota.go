@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/quota/api"
+	quota "github.com/openshift/origin/pkg/quota/apis/quota"
 	scheme "github.com/openshift/origin/pkg/quota/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,15 +17,15 @@ type ClusterResourceQuotasGetter interface {
 
 // ClusterResourceQuotaInterface has methods to work with ClusterResourceQuota resources.
 type ClusterResourceQuotaInterface interface {
-	Create(*api.ClusterResourceQuota) (*api.ClusterResourceQuota, error)
-	Update(*api.ClusterResourceQuota) (*api.ClusterResourceQuota, error)
-	UpdateStatus(*api.ClusterResourceQuota) (*api.ClusterResourceQuota, error)
+	Create(*quota.ClusterResourceQuota) (*quota.ClusterResourceQuota, error)
+	Update(*quota.ClusterResourceQuota) (*quota.ClusterResourceQuota, error)
+	UpdateStatus(*quota.ClusterResourceQuota) (*quota.ClusterResourceQuota, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterResourceQuota, error)
-	List(opts v1.ListOptions) (*api.ClusterResourceQuotaList, error)
+	Get(name string, options v1.GetOptions) (*quota.ClusterResourceQuota, error)
+	List(opts v1.ListOptions) (*quota.ClusterResourceQuotaList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterResourceQuota, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *quota.ClusterResourceQuota, err error)
 	ClusterResourceQuotaExpansion
 }
 
@@ -42,8 +42,8 @@ func newClusterResourceQuotas(c *QuotaClient) *clusterResourceQuotas {
 }
 
 // Create takes the representation of a clusterResourceQuota and creates it.  Returns the server's representation of the clusterResourceQuota, and an error, if there is any.
-func (c *clusterResourceQuotas) Create(clusterResourceQuota *api.ClusterResourceQuota) (result *api.ClusterResourceQuota, err error) {
-	result = &api.ClusterResourceQuota{}
+func (c *clusterResourceQuotas) Create(clusterResourceQuota *quota.ClusterResourceQuota) (result *quota.ClusterResourceQuota, err error) {
+	result = &quota.ClusterResourceQuota{}
 	err = c.client.Post().
 		Resource("clusterresourcequotas").
 		Body(clusterResourceQuota).
@@ -53,8 +53,8 @@ func (c *clusterResourceQuotas) Create(clusterResourceQuota *api.ClusterResource
 }
 
 // Update takes the representation of a clusterResourceQuota and updates it. Returns the server's representation of the clusterResourceQuota, and an error, if there is any.
-func (c *clusterResourceQuotas) Update(clusterResourceQuota *api.ClusterResourceQuota) (result *api.ClusterResourceQuota, err error) {
-	result = &api.ClusterResourceQuota{}
+func (c *clusterResourceQuotas) Update(clusterResourceQuota *quota.ClusterResourceQuota) (result *quota.ClusterResourceQuota, err error) {
+	result = &quota.ClusterResourceQuota{}
 	err = c.client.Put().
 		Resource("clusterresourcequotas").
 		Name(clusterResourceQuota.Name).
@@ -67,8 +67,8 @@ func (c *clusterResourceQuotas) Update(clusterResourceQuota *api.ClusterResource
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
 
-func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *api.ClusterResourceQuota) (result *api.ClusterResourceQuota, err error) {
-	result = &api.ClusterResourceQuota{}
+func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *quota.ClusterResourceQuota) (result *quota.ClusterResourceQuota, err error) {
+	result = &quota.ClusterResourceQuota{}
 	err = c.client.Put().
 		Resource("clusterresourcequotas").
 		Name(clusterResourceQuota.Name).
@@ -100,8 +100,8 @@ func (c *clusterResourceQuotas) DeleteCollection(options *v1.DeleteOptions, list
 }
 
 // Get takes name of the clusterResourceQuota, and returns the corresponding clusterResourceQuota object, and an error if there is any.
-func (c *clusterResourceQuotas) Get(name string, options v1.GetOptions) (result *api.ClusterResourceQuota, err error) {
-	result = &api.ClusterResourceQuota{}
+func (c *clusterResourceQuotas) Get(name string, options v1.GetOptions) (result *quota.ClusterResourceQuota, err error) {
+	result = &quota.ClusterResourceQuota{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
 		Name(name).
@@ -112,8 +112,8 @@ func (c *clusterResourceQuotas) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of ClusterResourceQuotas that match those selectors.
-func (c *clusterResourceQuotas) List(opts v1.ListOptions) (result *api.ClusterResourceQuotaList, err error) {
-	result = &api.ClusterResourceQuotaList{}
+func (c *clusterResourceQuotas) List(opts v1.ListOptions) (result *quota.ClusterResourceQuotaList, err error) {
+	result = &quota.ClusterResourceQuotaList{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -132,8 +132,8 @@ func (c *clusterResourceQuotas) Watch(opts v1.ListOptions) (watch.Interface, err
 }
 
 // Patch applies the patch and returns the patched clusterResourceQuota.
-func (c *clusterResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterResourceQuota, err error) {
-	result = &api.ClusterResourceQuota{}
+func (c *clusterResourceQuotas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *quota.ClusterResourceQuota, err error) {
+	result = &quota.ClusterResourceQuota{}
 	err = c.client.Patch(pt).
 		Resource("clusterresourcequotas").
 		SubResource(subresources...).

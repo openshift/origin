@@ -22,7 +22,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/dockerregistry"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type mockRetriever struct {
@@ -189,11 +189,11 @@ func TestDockerV1Fallback(t *testing.T) {
 	ctx := gocontext.WithValue(gocontext.Background(), ContextKeyV1RegistryClient, client)
 
 	uri, _ = url.Parse(server.URL)
-	isi := &api.ImageStreamImport{
-		Spec: api.ImageStreamImportSpec{
-			Repository: &api.RepositoryImportSpec{
+	isi := &imageapi.ImageStreamImport{
+		Spec: imageapi.ImageStreamImportSpec{
+			Repository: &imageapi.RepositoryImportSpec{
 				From:         kapi.ObjectReference{Kind: "DockerImage", Name: uri.Host + "/test:test"},
-				ImportPolicy: api.TagImportPolicy{Insecure: true},
+				ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
 			},
 		},
 	}

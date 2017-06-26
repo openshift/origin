@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
