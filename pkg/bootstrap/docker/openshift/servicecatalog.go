@@ -35,11 +35,37 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	// Grant all users with the edit role, the ability to manage service catalog instance/binding resources.
+	// Grant all users with the view role, the ability to view service catalog instance/binding resources and
+	// podpreset resources.
+	scViewRule, err := authzapi.NewRule("get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("instances", "bindings").Rule()
+	if err != nil {
+		return errors.NewError("could not create service catalog resource view rule").WithCause(err)
+	}
+	podpresetViewRule, err := authzapi.NewRule("get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
+	if err != nil {
+		return errors.NewError("could not create podpreset resource view rule").WithCause(err)
+	}
+
+	viewRole, err := osClient.ClusterRoles().Get("view", metav1.GetOptions{})
+	if err != nil {
+		return errors.NewError("could not get cluster view role for patching").WithCause(err).WithDetails(h.OriginLog())
+	}
+
+	viewRole.Rules = append(viewRole.Rules, scViewRule, podpresetViewRule)
+	_, err = osClient.ClusterRoles().Update(viewRole)
+	if err != nil {
+		return errors.NewError("could not update the cluster view role to add service catalog resource permissions").WithCause(err).WithDetails(h.OriginLog())
+	}
+
+	// Grant all users with the edit role, the ability to manage service catalog instance/binding resources and
+	// podpreset resources.
 	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("instances", "bindings").Rule()
+	if err != nil {
+		return errors.NewError("could not create service catalog resource edit rule").WithCause(err)
+	}
 	podpresetRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
 	if err != nil {
-		return errors.NewError("could not create service catalog resource rule").WithCause(err)
+		return errors.NewError("could not create podpreset resource edit rule").WithCause(err)
 	}
 
 	editRole, err := osClient.ClusterRoles().Get("edit", metav1.GetOptions{})
@@ -53,6 +79,8 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError("could not update the cluster edit role to add service catalog resource permissions").WithCause(err).WithDetails(h.OriginLog())
 	}
 
+	// Grant all users with the admin role, the ability to manage service catalog instance/binding resources and
+	// podpreset resources.
 	adminRole, err := osClient.ClusterRoles().Get("admin", metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("could not get cluster admin role for patching").WithCause(err).WithDetails(h.OriginLog())
