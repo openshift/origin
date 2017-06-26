@@ -104,16 +104,16 @@ func ruleCovers(ownerRule, subrule authorizationapi.PolicyRule) bool {
 	allResources := authorizationapi.NormalizeResources(ownerRule.Resources)
 
 	ownerGroups := sets.NewString(ownerRule.APIGroups...)
-	groupMatches := ownerGroups.Has(authorizationapi.APIGroupAll) || ownerGroups.HasAll(subrule.APIGroups...) || (len(ownerRule.APIGroups) == 0 && len(subrule.APIGroups) == 0)
+	groupMatches := ownerGroups.Has(authorizationapi.APIGroupAll) || ownerGroups.HasAll(subrule.APIGroups...)
 
-	verbMatches := ownerRule.Verbs.Has(authorizationapi.VerbAll) || ownerRule.Verbs.HasAll(subrule.Verbs.List()...)
-	resourceMatches := ownerRule.Resources.Has(authorizationapi.ResourceAll) || allResources.HasAll(subrule.Resources.List()...)
+	verbMatches := ownerRule.Verbs.Has(authorizationapi.VerbAll) || ownerRule.Verbs.IsSuperset(subrule.Verbs)
+	resourceMatches := ownerRule.Resources.Has(authorizationapi.ResourceAll) || allResources.IsSuperset(subrule.Resources)
 	resourceNameMatches := false
 
 	if len(subrule.ResourceNames) == 0 {
 		resourceNameMatches = (len(ownerRule.ResourceNames) == 0)
 	} else {
-		resourceNameMatches = (len(ownerRule.ResourceNames) == 0) || ownerRule.ResourceNames.HasAll(subrule.ResourceNames.List()...)
+		resourceNameMatches = (len(ownerRule.ResourceNames) == 0) || ownerRule.ResourceNames.IsSuperset(subrule.ResourceNames)
 	}
 
 	nonResourceCovers := nonResourceRuleCovers(ownerRule.NonResourceURLs, subrule.NonResourceURLs)
