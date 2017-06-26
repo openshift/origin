@@ -55,6 +55,7 @@ const (
 	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 	OpenShiftContainer          = "origin"
 	OpenshiftNamespace          = "openshift"
+	OpenshiftInfraNamespace     = "openshift-infra"
 )
 
 var (
