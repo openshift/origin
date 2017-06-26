@@ -61,7 +61,7 @@ middleware:
   storage:
     - name: openshift
 `
-	os.Setenv("DOCKER_REGISTRY_URL", "127.0.0.1:5000")
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "127.0.0.1:5000")
 
 	go dockerregistry.Execute(strings.NewReader(config))
 

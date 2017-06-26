@@ -41,7 +41,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
 	fos, client := registrytest.NewFakeOpenShiftWithClient()
@@ -268,7 +268,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	testImage, err := registrytest.NewImageForManifest(repoName, registrytest.SampleImageManifestSchema1, "", false)
 	if err != nil {

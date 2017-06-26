@@ -32,7 +32,12 @@ const (
 
 	// DockerRegistryURLEnvVar is a mandatory environment variable name specifying url of internal docker
 	// registry. All references to pushed images will be prefixed with its value.
+	// DEPRECATED: Use the OPENSHIFT_DEFAULT_REGISTRY instead.
 	DockerRegistryURLEnvVar = "DOCKER_REGISTRY_URL"
+
+	// OpenShiftDefaultRegistry overrides the DockerRegistryURLEnvVar as in OpenShift the
+	// default registry URL is controller by this environment variable.
+	OpenShiftDefaultRegistry = "OPENSHIFT_DEFAULT_REGISTRY"
 
 	// EnforceQuotaEnvVar is a boolean environment variable that allows to turn quota enforcement on or off.
 	// By default, quota enforcement is off. It overrides openshift middleware configuration option.
@@ -165,10 +170,23 @@ func newRepositoryWithClient(
 	repo distribution.Repository,
 	options map[string]interface{},
 ) (distribution.Repository, error) {
+	// TODO: Deprecate this environment variable.
 	registryAddr := os.Getenv(DockerRegistryURLEnvVar)
 	if len(registryAddr) == 0 {
-		return nil, fmt.Errorf("%s is required", DockerRegistryURLEnvVar)
+		registryAddr = os.Getenv(OpenShiftDefaultRegistry)
+	} else {
+		context.GetLogger(ctx).Infof("DEPRECATED: %q is deprecated, use the %q instead", DockerRegistryURLEnvVar, OpenShiftDefaultRegistry)
 	}
+	// TODO: This is a fallback to assuming there is a service named 'docker-registry'. This
+	// might change in the future and we should make this configurable.
+	if len(registryAddr) == 0 {
+		if len(os.Getenv("DOCKER_REGISTRY_SERVICE_HOST")) > 0 && len(os.Getenv("DOCKER_REGISTRY_SERVICE_PORT")) > 0 {
+			registryAddr = os.Getenv("DOCKER_REGISTRY_SERVICE_HOST") + ":" + os.Getenv("DOCKER_REGISTRY_SERVICE_PORT")
+		} else {
+			return nil, fmt.Errorf("%s variable must be set when running outside of Kubernetes cluster", DockerRegistryURLEnvVar)
+		}
+	}
+	context.GetLogger(ctx).Infof("Using %q as Docker Registry URL", registryAddr)
 
 	acceptschema2, err := getBoolOption(AcceptSchema2EnvVar, "acceptschema2", true, options)
 	if err != nil {
