@@ -112,27 +112,27 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
 	var rootUser int64
 	rootUser = 0
-	pod := &v1.Pod{
+	pod := &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapi.GetBuildPodName(build),
+			Name:      buildapi.GetBuildPodName(build) + "-admissioncheck",
 			Namespace: build.Namespace,
 		},
-		Spec: v1.PodSpec{
+		Spec: kapi.PodSpec{
 			ServiceAccountName: build.Spec.ServiceAccount,
-			Containers: []v1.Container{
+			Containers: []kapi.Container{
 				{
 					Name:  "sti-build",
 					Image: bs.Image,
-					SecurityContext: &v1.SecurityContext{
+					SecurityContext: &kapi.SecurityContext{
 						RunAsUser: &rootUser,
 					},
 				},
 			},
-			RestartPolicy: v1.RestartPolicyNever,
+			RestartPolicy: kapi.RestartPolicyNever,
 		},
 	}
 	userInfo := serviceaccount.UserInfo(build.Namespace, build.Spec.ServiceAccount, "")
-	attrs := admission.NewAttributesRecord(pod, pod, kapi.Kind("Pod").WithVersion(""), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion(""), "", admission.Create, userInfo)
+	attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion(""), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion(""), "", admission.Create, userInfo)
 	err := bs.AdmissionControl.Admit(attrs)
 	if err != nil {
 		glog.V(2).Infof("Admit for root user returned error: %v", err)

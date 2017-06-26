@@ -118,6 +118,7 @@
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
+// test/extended/testdata/s2i-build-root.yaml
 // test/extended/testdata/s2i-dropcaps/root-access-build.yaml
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser
@@ -6467,6 +6468,41 @@ func testExtendedTestdataRun_policySerialLatestOnlyBcYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/run_policy/serial-latest-only-bc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataS2iBuildRootYaml = []byte(`---
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: s2i-build-root
+  creationTimestamp:
+  labels:
+    name: s2i-build-root
+spec:
+  source:
+    binary:
+      asFile: ''
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos
+`)
+
+func testExtendedTestdataS2iBuildRootYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataS2iBuildRootYaml, nil
+}
+
+func testExtendedTestdataS2iBuildRootYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataS2iBuildRootYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/s2i-build-root.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -20360,6 +20396,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
+	"test/extended/testdata/s2i-build-root.yaml": testExtendedTestdataS2iBuildRootYaml,
 	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml": testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile": testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser": testExtendedTestdataS2iDropcapsRootableRubyAdduser,
@@ -20743,6 +20780,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
 					"serial-latest-only-bc.yaml": &bintree{testExtendedTestdataRun_policySerialLatestOnlyBcYaml, map[string]*bintree{}},
 				}},
+				"s2i-build-root.yaml": &bintree{testExtendedTestdataS2iBuildRootYaml, map[string]*bintree{}},
 				"s2i-dropcaps": &bintree{nil, map[string]*bintree{
 					"root-access-build.yaml": &bintree{testExtendedTestdataS2iDropcapsRootAccessBuildYaml, map[string]*bintree{}},
 					"rootable-ruby": &bintree{nil, map[string]*bintree{
