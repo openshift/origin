@@ -23,7 +23,7 @@ import (
 	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("[templates] templateservicebroker security test", func() {
+var _ = g.Describe("[templates][Conformance] templateservicebroker security test", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -41,7 +41,12 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 	)
 
 	g.BeforeEach(func() {
-		var err error
+		isEnabled, err := tsbIsEnabled(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if !isEnabled {
+			g.Skip("template service broker not enabled")
+		}
 
 		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())

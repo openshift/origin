@@ -20,7 +20,7 @@ import (
 // or can impersonate, the requester.
 // 2. Check that templateinstancespecs, particularly including
 // requester.username, are immutable.
-var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
+var _ = g.Describe("[templates][Conformance] templateinstance impersonation tests", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -42,7 +42,12 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 	)
 
 	g.BeforeEach(func() {
-		var err error
+		isEnabled, err := tsbIsEnabled(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if !isEnabled {
+			g.Skip("template service broker not enabled")
+		}
 
 		adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
 		impersonateuser = createUser(cli, "impersonateuser", bootstrappolicy.EditRoleName)

@@ -16,13 +16,22 @@ import (
 
 // ensure that we can instantiate Kubernetes and OpenShift objects, legacy and
 // non-legacy, from a range of API groups.
-var _ = g.Describe("[templates] templateinstance object kinds test", func() {
+var _ = g.Describe("[templates][Conformance] templateinstance object kinds test", func() {
 	defer g.GinkgoRecover()
 
 	var (
 		fixture = exutil.FixturePath("testdata", "templates", "templateinstance_objectkinds.yaml")
 		cli     = exutil.NewCLI("templates", exutil.KubeConfigPath())
 	)
+
+	g.BeforeEach(func() {
+		isEnabled, err := tsbIsEnabled(cli)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if !isEnabled {
+			g.Skip("template service broker not enabled")
+		}
+	})
 
 	g.It("should create objects from varying API groups", func() {
 		err := cli.Run("create").Args("-f", fixture).Execute()
