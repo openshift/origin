@@ -664,13 +664,19 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 	}
 
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error creating policy %s"+
+				" because it already exists (HTTP 409)."+
+				" Adding no-op rule...", policyName)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("Policy %s created.  Adding no-op rule...", policyName)
 	}
 
 	// We need a rule in the policy in order to be able to add the policy to the
 	// vservers, so create a no-op rule now.
-
-	glog.V(4).Infof("Policy %s created.  Adding no-op rule...", policyName)
 
 	rulesUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/policy/%s/rules",
 		f5.host, policyResourceId)
@@ -681,10 +687,15 @@ func (f5 *f5LTM) ensurePolicyExists(policyName string) error {
 
 	err = f5.post(rulesUrl, rulesPayload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error adding no-op rule to policy %s"+
+				" because it already exists (HTTP 409).", policyName)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("No-op rule added to policy %s.", policyName)
 	}
-
-	glog.V(4).Infof("No-op rule added to policy %s.", policyName)
 
 	return nil
 }
@@ -729,10 +740,15 @@ func (f5 *f5LTM) ensureVserverHasPolicy(vserverName, policyName string) error {
 
 	err = f5.post(vserverPoliciesUrl, vserverPoliciesPayload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error adding policy %s to vserver %s"+
+				" because it already exists (HTTP 409).", policyName, vserverName)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("Policy %s added to vserver %s.", policyName, vserverName)
 	}
-
-	glog.V(4).Infof("Policy %s added to vserver %s.", policyName, vserverName)
 
 	return nil
 }
@@ -772,10 +788,15 @@ func (f5 *f5LTM) ensureDatagroupExists(datagroupName string) error {
 
 	err = f5.post(datagroupsUrl, datagroupPayload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error creating datagroup %s"+
+				" because it already exists (HTTP 409).", datagroupName)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("Datagroup %s created.", datagroupName)
 	}
-
-	glog.V(4).Infof("Datagroup %s created.", datagroupName)
 
 	return nil
 }
@@ -811,10 +832,15 @@ func (f5 *f5LTM) ensureIRuleExists(iRuleName, iRule string) error {
 
 	err = f5.post(iRulesUrl, iRulePayload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error creating iRule %s"+
+				" because it already exists (HTTP 409).", iRuleName)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("IRule %s created.", iRuleName)
 	}
-
-	glog.V(4).Infof("IRule %s created.", iRuleName)
 
 	return nil
 }
@@ -1107,7 +1133,14 @@ func (f5 *f5LTM) CreatePool(poolname string) error {
 
 	err := f5.post(url, payload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error creating pool %s"+
+				" because it already exists (HTTP 409).", poolname)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("Pool %s created.", poolname)
 	}
 
 	// We don't really need to initialise f5.poolMembers[poolname] because
@@ -1115,8 +1148,6 @@ func (f5 *f5LTM) CreatePool(poolname string) error {
 	// initialising it to an empty map here saves a REST call later the first
 	// time f5.PoolHasMember is invoked with poolname.
 	f5.poolMembers[poolname] = map[string]bool{}
-
-	glog.V(4).Infof("Pool %s created.", poolname)
 
 	return nil
 }
@@ -1222,7 +1253,14 @@ func (f5 *f5LTM) AddPoolMember(poolname, member string) error {
 
 	err = f5.post(url, payload, nil)
 	if err != nil {
-		return err
+		if err.(F5Error).httpStatusCode == 409 {
+			glog.Warningf("Error adding pool member %s to pool %s"+
+				" because it already exists (HTTP 409).", poolname, member)
+		} else {
+			return err
+		}
+	} else {
+		glog.V(4).Infof("Added pool member %s to pool %s.", member, poolname)
 	}
 
 	members, err := f5.GetPoolMembers(poolname)
@@ -1231,9 +1269,6 @@ func (f5 *f5LTM) AddPoolMember(poolname, member string) error {
 	}
 
 	members[member] = true
-
-	glog.V(4).Infof("Added pool member %s to pool %s.",
-		member, poolname)
 
 	return nil
 }
@@ -1393,6 +1428,9 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 
 	err = f5.post(conditionUrl, conditionPayload, nil)
 	if err != nil {
+		// We check for HTTP 409 elsewhere but here, even if we get a 409
+		// (indicating that the condition already exists), we cannot be sure that
+		// the condition is correct (because the name is simply "0").
 		return err
 	}
 
@@ -1414,6 +1452,10 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 			conditionPayload.Values = []string{segment}
 			err = f5.post(conditionUrl, conditionPayload, nil)
 			if err != nil {
+				// We check for HTTP 409 elsewhere but here, even if we get a 409
+				// (indicating that the condition already exists), we cannot be sure
+				// that the condition is correct (because condition names are
+				// non-descriptive).
 				return err
 			}
 		}
@@ -1433,6 +1475,9 @@ func (f5 *f5LTM) addRoute(policyname, routename, poolname, hostname,
 
 	err = f5.post(actionUrl, actionPayload, nil)
 	if err != nil {
+		// We check for HTTP 409 elsewhere but here, even if we get a 409
+		// (indicating that the condition already exists), we cannot be sure that
+		// the action is correct (because the name is simply "0").
 		return err
 	}
 
