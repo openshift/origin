@@ -39,8 +39,6 @@ var (
 
 		No resources are mutated.`)
 
-	notChanged = migrate.ReporterBool(false)
-
 	errOutOfSync = errors.New("is not in sync with RBAC")
 )
 
@@ -121,7 +119,7 @@ func (o *MigrateAuthorizationOptions) checkParity(obj runtime.Object) (migrate.R
 	default:
 		return nil, nil // indicate that we ignored the object
 	}
-	return notChanged, utilerrors.NewAggregate(errlist) // we only perform read operations
+	return migrate.NotChanged, utilerrors.NewAggregate(errlist) // we only perform read operations
 }
 
 func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *authorizationapi.ClusterRole) []error {
