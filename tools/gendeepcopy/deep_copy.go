@@ -38,6 +38,8 @@ func main() {
 		"k8s.io/apimachinery/pkg/util/sets",
 		"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1alpha1",
 		"k8s.io/kube-aggregator/pkg/apis/apiregistration",
+		"github.com/openshift/origin/pkg/cmd/server/api/v1",
+		"github.com/openshift/origin/pkg/cmd/server/api",
 		"github.com/openshift/origin/pkg/authorization/api/v1",
 		"github.com/openshift/origin/pkg/authorization/api",
 		"github.com/openshift/origin/pkg/build/api/v1",
