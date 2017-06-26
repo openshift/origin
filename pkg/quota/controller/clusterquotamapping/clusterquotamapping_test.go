@@ -19,7 +19,7 @@ import (
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 )

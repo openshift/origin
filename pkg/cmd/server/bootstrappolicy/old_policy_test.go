@@ -3,7 +3,7 @@ package bootstrappolicy_test
 import (
 	"testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )

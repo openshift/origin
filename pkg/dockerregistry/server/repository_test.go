@@ -10,7 +10,7 @@ import (
 	"github.com/docker/distribution/reference"
 
 	"github.com/openshift/origin/pkg/client/testclient"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type testRepository struct {

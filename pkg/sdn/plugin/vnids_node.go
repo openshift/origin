@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type nodeVNIDMap struct {

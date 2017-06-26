@@ -13,13 +13,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
@@ -409,7 +409,7 @@ func removeEscalatingResources(in authorizationapi.PolicyRule) authorizationapi.
 			// we're using a cache of cache of an object that uses pointers to data.  I'm pretty sure we need to do a copy to avoid
 			// muddying the cache
 			ruleCopy = &authorizationapi.PolicyRule{}
-			authorizationapi.DeepCopy_api_PolicyRule(&in, ruleCopy, localCloner)
+			authorizationapi.DeepCopy_authorization_PolicyRule(&in, ruleCopy, localCloner)
 		}
 
 		ruleCopy.Resources.Delete(resource.Resource)

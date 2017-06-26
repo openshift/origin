@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 
 	"github.com/spf13/cobra"
 )

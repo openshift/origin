@@ -17,8 +17,8 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/authorization/util"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	"github.com/openshift/origin/pkg/template/api/validation"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
 
 // templateInstanceStrategy implements behavior for TemplateInstances

@@ -24,8 +24,8 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/project/api"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type ProjectOptions struct {
@@ -100,7 +100,7 @@ func (p *ProjectOptions) Validate() error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
+func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	nameArgs := []string{"projects"}
 	if len(p.ProjectNames) != 0 {
 		nameArgs = append(nameArgs, p.ProjectNames...)
@@ -118,12 +118,12 @@ func (p *ProjectOptions) GetProjects() ([]*api.Project, error) {
 	}
 
 	errList := []error{}
-	projectList := []*api.Project{}
+	projectList := []*projectapi.Project{}
 	_ = r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
 			return err
 		}
-		project, ok := info.Object.(*api.Project)
+		project, ok := info.Object.(*projectapi.Project)
 		if !ok {
 			err := fmt.Errorf("cannot convert input to Project: %v", reflect.TypeOf(info.Object))
 			errList = append(errList, err)

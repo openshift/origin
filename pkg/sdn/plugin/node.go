@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"

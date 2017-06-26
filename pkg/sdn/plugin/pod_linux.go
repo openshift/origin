@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 

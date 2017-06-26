@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func EnsureImageNode(g osgraph.MutableUniqueGraph, img *imageapi.Image) graph.Node {

@@ -16,7 +16,7 @@ import (
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -55,7 +55,7 @@ func (e contextDirNotFoundError) Error() string {
 
 // fetchSource retrieves the inputs defined by the build source into the
 // provided directory, or returns an error if retrieval is not possible.
-func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, build *api.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
+func fetchSource(ctx context.Context, dockerClient DockerClient, dir string, build *buildapi.Build, urlTimeout time.Duration, in io.Reader, gitClient GitClient) (*git.SourceInfo, error) {
 	hasGitSource := false
 
 	// expect to receive input from STDIN
@@ -179,7 +179,7 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 
 // extractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
-func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string) error {
+func extractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir string) error {
 	if source == nil {
 		return nil
 	}
@@ -214,7 +214,7 @@ func extractInputBinary(in io.Reader, source *api.BinaryBuildSource, dir string)
 	return nil
 }
 
-func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *api.GitBuildSource, revision *api.SourceRevision, dir string, timeout time.Duration) (bool, error) {
+func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string, timeout time.Duration) (bool, error) {
 	if gitSource == nil {
 		return false, nil
 	}
@@ -248,7 +248,7 @@ func extractGitSource(ctx context.Context, gitClient GitClient, gitSource *api.G
 		return true, err
 	}
 
-	timing.RecordNewStep(ctx, api.StageFetchInputs, api.StepFetchGitSource, startTime, metav1.Now())
+	timing.RecordNewStep(ctx, buildapi.StageFetchInputs, buildapi.StepFetchGitSource, startTime, metav1.Now())
 
 	// if we specify a commit, ref, or branch to checkout, do so, and update submodules
 	if usingRef {
@@ -332,7 +332,7 @@ func copyImageSource(dockerClient DockerClient, containerID, sourceDir, destDir 
 	return tarHelper.ExtractTarStreamWithLogging(destDir, file, tarOutput)
 }
 
-func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []api.ImageSourcePath, forcePull bool) error {
+func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, image, buildDir string, imageSecretIndex int, paths []buildapi.ImageSourcePath, forcePull bool) error {
 	glog.V(4).Infof("Extracting image source from %s", image)
 	dockerAuth := docker.AuthConfiguration{}
 	if imageSecretIndex != -1 {
@@ -370,7 +370,7 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 			return fmt.Errorf("error pulling image %v: %v", image, err)
 		}
 
-		timing.RecordNewStep(ctx, api.StagePullImages, api.StepPullInputImage, startTime, metav1.Now())
+		timing.RecordNewStep(ctx, buildapi.StagePullImages, buildapi.StepPullInputImage, startTime, metav1.Now())
 
 	}
 

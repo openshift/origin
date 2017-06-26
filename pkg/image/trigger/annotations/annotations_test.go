@@ -14,7 +14,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kapps "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 
-	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 )
 
 type fakeTagResponse struct {

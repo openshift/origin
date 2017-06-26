@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // RoleLister helps list Roles.
 type RoleLister interface {
 	// List lists all Roles in the indexer.
-	List(selector labels.Selector) (ret []*api.Role, err error)
+	List(selector labels.Selector) (ret []*authorization.Role, err error)
 	// Roles returns an object that can list and get Roles.
 	Roles(namespace string) RoleNamespaceLister
 	RoleListerExpansion
@@ -29,9 +29,9 @@ func NewRoleLister(indexer cache.Indexer) RoleLister {
 }
 
 // List lists all Roles in the indexer.
-func (s *roleLister) List(selector labels.Selector) (ret []*api.Role, err error) {
+func (s *roleLister) List(selector labels.Selector) (ret []*authorization.Role, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Role))
+		ret = append(ret, m.(*authorization.Role))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *roleLister) Roles(namespace string) RoleNamespaceLister {
 // RoleNamespaceLister helps list and get Roles.
 type RoleNamespaceLister interface {
 	// List lists all Roles in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.Role, err error)
+	List(selector labels.Selector) (ret []*authorization.Role, err error)
 	// Get retrieves the Role from the indexer for a given namespace and name.
-	Get(name string) (*api.Role, error)
+	Get(name string) (*authorization.Role, error)
 	RoleNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type roleNamespaceLister struct {
 }
 
 // List lists all Roles in the indexer for a given namespace.
-func (s roleNamespaceLister) List(selector labels.Selector) (ret []*api.Role, err error) {
+func (s roleNamespaceLister) List(selector labels.Selector) (ret []*authorization.Role, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Role))
+		ret = append(ret, m.(*authorization.Role))
 	})
 	return ret, err
 }
 
 // Get retrieves the Role from the indexer for a given namespace and name.
-func (s roleNamespaceLister) Get(name string) (*api.Role, error) {
+func (s roleNamespaceLister) Get(name string) (*authorization.Role, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("role"), name)
+		return nil, errors.NewNotFound(authorization.Resource("role"), name)
 	}
-	return obj.(*api.Role), nil
+	return obj.(*authorization.Role), nil
 }

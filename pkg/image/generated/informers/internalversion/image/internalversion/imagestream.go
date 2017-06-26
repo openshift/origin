@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	internalinterfaces "github.com/openshift/origin/pkg/image/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -35,7 +35,7 @@ func newImageStreamInformer(client internalclientset.Interface, resyncPeriod tim
 				return client.Image().ImageStreams(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.ImageStream{},
+		&image.ImageStream{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newImageStreamInformer(client internalclientset.Interface, resyncPeriod tim
 }
 
 func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.ImageStream{}, newImageStreamInformer)
+	return f.factory.InformerFor(&image.ImageStream{}, newImageStreamInformer)
 }
 
 func (f *imageStreamInformer) Lister() internalversion.ImageStreamLister {

@@ -11,13 +11,15 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authapi "github.com/openshift/origin/pkg/authorization/api"
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	hostdiag "github.com/openshift/origin/pkg/diagnostics/host"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	routesapi "github.com/openshift/origin/pkg/route/api"
+	routesapi "github.com/openshift/origin/pkg/route/apis/route"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 // AggregatedLogging is a Diagnostic to check the configurations
@@ -50,8 +52,8 @@ func NewAggregatedLogging(masterConfigFile string, kclient kclientset.Interface,
 	return &AggregatedLogging{nil, masterConfigFile, osclient, kclient, types.NewDiagnosticResult(AggregatedLoggingName)}
 }
 
-func (d *AggregatedLogging) getScc(name string) (*kapi.SecurityContextConstraints, error) {
-	return d.KubeClient.Core().SecurityContextConstraints().Get(name, metav1.GetOptions{})
+func (d *AggregatedLogging) getScc(name string) (*securityapi.SecurityContextConstraints, error) {
+	return legacyclient.NewFromClient(d.KubeClient.Core().RESTClient()).Get(name, metav1.GetOptions{})
 }
 
 func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {

@@ -12,8 +12,8 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/deploy/api/validation"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 

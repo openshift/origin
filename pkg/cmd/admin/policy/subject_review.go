@@ -20,8 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 var (

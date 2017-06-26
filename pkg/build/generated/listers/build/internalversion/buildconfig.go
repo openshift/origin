@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // BuildConfigLister helps list BuildConfigs.
 type BuildConfigLister interface {
 	// List lists all BuildConfigs in the indexer.
-	List(selector labels.Selector) (ret []*api.BuildConfig, err error)
+	List(selector labels.Selector) (ret []*build.BuildConfig, err error)
 	// BuildConfigs returns an object that can list and get BuildConfigs.
 	BuildConfigs(namespace string) BuildConfigNamespaceLister
 	BuildConfigListerExpansion
@@ -29,9 +29,9 @@ func NewBuildConfigLister(indexer cache.Indexer) BuildConfigLister {
 }
 
 // List lists all BuildConfigs in the indexer.
-func (s *buildConfigLister) List(selector labels.Selector) (ret []*api.BuildConfig, err error) {
+func (s *buildConfigLister) List(selector labels.Selector) (ret []*build.BuildConfig, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.BuildConfig))
+		ret = append(ret, m.(*build.BuildConfig))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *buildConfigLister) BuildConfigs(namespace string) BuildConfigNamespaceL
 // BuildConfigNamespaceLister helps list and get BuildConfigs.
 type BuildConfigNamespaceLister interface {
 	// List lists all BuildConfigs in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.BuildConfig, err error)
+	List(selector labels.Selector) (ret []*build.BuildConfig, err error)
 	// Get retrieves the BuildConfig from the indexer for a given namespace and name.
-	Get(name string) (*api.BuildConfig, error)
+	Get(name string) (*build.BuildConfig, error)
 	BuildConfigNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type buildConfigNamespaceLister struct {
 }
 
 // List lists all BuildConfigs in the indexer for a given namespace.
-func (s buildConfigNamespaceLister) List(selector labels.Selector) (ret []*api.BuildConfig, err error) {
+func (s buildConfigNamespaceLister) List(selector labels.Selector) (ret []*build.BuildConfig, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.BuildConfig))
+		ret = append(ret, m.(*build.BuildConfig))
 	})
 	return ret, err
 }
 
 // Get retrieves the BuildConfig from the indexer for a given namespace and name.
-func (s buildConfigNamespaceLister) Get(name string) (*api.BuildConfig, error) {
+func (s buildConfigNamespaceLister) Get(name string) (*build.BuildConfig, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("buildconfig"), name)
+		return nil, errors.NewNotFound(build.Resource("buildconfig"), name)
 	}
-	return obj.(*api.BuildConfig), nil
+	return obj.(*build.BuildConfig), nil
 }

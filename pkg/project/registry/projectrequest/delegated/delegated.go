@@ -22,13 +22,13 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 type REST struct {

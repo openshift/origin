@@ -9,20 +9,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 func TestCompactRules(t *testing.T) {
 	testcases := map[string]struct {
-		Rules    []api.PolicyRule
-		Expected []api.PolicyRule
+		Rules    []authorizationapi.PolicyRule
+		Expected []authorizationapi.PolicyRule
 	}{
 		"empty": {
-			Rules:    []api.PolicyRule{},
-			Expected: []api.PolicyRule{},
+			Rules:    []authorizationapi.PolicyRule{},
+			Expected: []authorizationapi.PolicyRule{},
 		},
 		"simple": {
-			Rules: []api.PolicyRule{
+			Rules: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 				{Verbs: sets.NewString("update", "patch"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
@@ -40,7 +40,7 @@ func TestCompactRules(t *testing.T) {
 				{Verbs: nil, APIGroups: []string{""}, Resources: sets.NewString("pods")},
 				{Verbs: sets.NewString("create"), APIGroups: []string{""}, Resources: sets.NewString("pods")},
 			},
-			Expected: []api.PolicyRule{
+			Expected: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("create", "delete"), APIGroups: []string{"extensions"}, Resources: sets.NewString("daemonsets")},
 				{Verbs: sets.NewString("get", "list", "update", "patch"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 				{Verbs: sets.NewString("educate"), APIGroups: []string{""}, Resources: sets.NewString("dolphins")},
@@ -49,57 +49,57 @@ func TestCompactRules(t *testing.T) {
 			},
 		},
 		"complex multi-group": {
-			Rules: []api.PolicyRule{
+			Rules: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{"", "builds.openshift.io"}, Resources: sets.NewString("builds")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{"", "builds.openshift.io"}, Resources: sets.NewString("builds")},
 			},
-			Expected: []api.PolicyRule{
+			Expected: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{"", "builds.openshift.io"}, Resources: sets.NewString("builds")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{"", "builds.openshift.io"}, Resources: sets.NewString("builds")},
 			},
 		},
 
 		"complex multi-resource": {
-			Rules: []api.PolicyRule{
+			Rules: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 			},
-			Expected: []api.PolicyRule{
+			Expected: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 			},
 		},
 
 		"complex named-resource": {
-			Rules: []api.PolicyRule{
+			Rules: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("mybuild")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("mybuild2")},
 			},
-			Expected: []api.PolicyRule{
+			Expected: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("mybuild")},
 				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("mybuild2")},
 			},
 		},
 
 		"complex non-resource": {
-			Rules: []api.PolicyRule{
+			Rules: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/")},
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/foo")},
 			},
-			Expected: []api.PolicyRule{
+			Expected: []authorizationapi.PolicyRule{
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/")},
 				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/foo")},
 			},
 		},
 
 		"complex attributes": {
-			Rules: []api.PolicyRule{
-				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
-				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
+			Rules: []authorizationapi.PolicyRule{
+				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			},
-			Expected: []api.PolicyRule{
-				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
-				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
+			Expected: []authorizationapi.PolicyRule{
+				{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
+				{Verbs: sets.NewString("list"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			},
 		},
 	}
@@ -129,8 +129,8 @@ func TestCompactRules(t *testing.T) {
 			continue
 		}
 
-		sort.Stable(api.SortableRuleSlice(compacted))
-		sort.Stable(api.SortableRuleSlice(tc.Expected))
+		sort.Stable(authorizationapi.SortableRuleSlice(compacted))
+		sort.Stable(authorizationapi.SortableRuleSlice(tc.Expected))
 		if !reflect.DeepEqual(compacted, tc.Expected) {
 			t.Errorf("%s: Expected\n%#v\ngot\n%#v", k, tc.Expected, compacted)
 			continue
@@ -140,63 +140,63 @@ func TestCompactRules(t *testing.T) {
 
 func TestIsSimpleResourceRule(t *testing.T) {
 	testcases := map[string]struct {
-		Rule     api.PolicyRule
+		Rule     authorizationapi.PolicyRule
 		Simple   bool
 		Resource schema.GroupResource
 	}{
 		"simple, no verbs": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString(), APIGroups: []string{""}, Resources: sets.NewString("builds")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString(), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
 			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 		"simple, one verb": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
 			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 		"simple, multi verb": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get", "list"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get", "list"), APIGroups: []string{""}, Resources: sets.NewString("builds")},
 			Simple:   true,
 			Resource: schema.GroupResource{Group: "", Resource: "builds"},
 		},
 
 		"complex, empty": {
-			Rule:     api.PolicyRule{},
+			Rule:     authorizationapi.PolicyRule{},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, no group": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{}, Resources: sets.NewString("builds")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{}, Resources: sets.NewString("builds")},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, multi group": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{"a", "b"}, Resources: sets.NewString("builds")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{"a", "b"}, Resources: sets.NewString("builds")},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, no resource": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString()},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString()},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, multi resource": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds", "images")},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, resource names": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("foo")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), ResourceNames: sets.NewString("foo")},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, attribute restrictions": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &api.IsPersonalSubjectAccessReview{}},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), AttributeRestrictions: &authorizationapi.IsPersonalSubjectAccessReview{}},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},
 		"complex, non-resource urls": {
-			Rule:     api.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/")},
+			Rule:     authorizationapi.PolicyRule{Verbs: sets.NewString("get"), APIGroups: []string{""}, Resources: sets.NewString("builds"), NonResourceURLs: sets.NewString("/")},
 			Simple:   false,
 			Resource: schema.GroupResource{},
 		},

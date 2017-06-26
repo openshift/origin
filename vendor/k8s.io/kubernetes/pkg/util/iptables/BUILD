@@ -13,6 +13,7 @@ go_library(
     srcs = [
         "doc.go",
         "iptables.go",
+        "iptables_linux.go",
         "save_restore.go",
     ],
     tags = ["automanaged"],
@@ -22,7 +23,9 @@ go_library(
         "//pkg/util/version:go_default_library",
         "//vendor:github.com/godbus/dbus",
         "//vendor:github.com/golang/glog",
+        "//vendor:golang.org/x/sys/unix",
         "//vendor:k8s.io/apimachinery/pkg/util/sets",
+        "//vendor:k8s.io/apimachinery/pkg/util/wait",
     ],
 )
 

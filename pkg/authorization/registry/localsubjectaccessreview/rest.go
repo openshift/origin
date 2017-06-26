@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 )
 

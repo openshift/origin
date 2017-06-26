@@ -9,9 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func init() {

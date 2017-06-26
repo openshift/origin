@@ -4,7 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/route"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // RouteAllocationController abstracts the details of how routes are

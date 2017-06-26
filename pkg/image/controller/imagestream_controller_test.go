@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	client "github.com/openshift/origin/pkg/client/testclient"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -17,38 +17,38 @@ import (
 func TestHandleImageStream(t *testing.T) {
 	two := int64(2)
 	testCases := []struct {
-		stream *api.ImageStream
+		stream *imageapi.ImageStream
 		run    bool
 	}{
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
 			},
 		},
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: api.ImageStreamSpec{
+				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "test/other",
 				},
 			},
 		},
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: "a random error"},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: "a random error"},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: api.ImageStreamSpec{
+				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: "test/other",
 				},
 			},
@@ -56,10 +56,10 @@ func TestHandleImageStream(t *testing.T) {
 
 		// references are ignored
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:      &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Reference: true,
@@ -69,10 +69,10 @@ func TestHandleImageStream(t *testing.T) {
 			},
 		},
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:      &kapi.ObjectReference{Kind: "AnotherImage", Name: "test/other:latest"},
 							Reference: true,
@@ -85,10 +85,10 @@ func TestHandleImageStream(t *testing.T) {
 		// spec tag will be imported
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 						},
@@ -99,10 +99,10 @@ func TestHandleImageStream(t *testing.T) {
 		// spec tag with generation with no pending status will be imported
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
@@ -114,41 +114,41 @@ func TestHandleImageStream(t *testing.T) {
 		// spec tag with generation with older status generation will be imported
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "other"},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{"latest": {Items: []api.TagEvent{{Generation: 1}}}},
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{"latest": {Items: []imageapi.TagEvent{{Generation: 1}}}},
 				},
 			},
 		},
 		// spec tag with generation with status condition error and equal generation will not be imported
 		{
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{"latest": {Conditions: []api.TagEventCondition{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{"latest": {Conditions: []imageapi.TagEventCondition{
 						{
-							Type:       api.ImportSuccess,
+							Type:       imageapi.ImportSuccess,
 							Status:     kapi.ConditionFalse,
 							Generation: 2,
 						},
@@ -159,24 +159,24 @@ func TestHandleImageStream(t *testing.T) {
 		// spec tag with generation with status condition error and older generation will be imported
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{"latest": {Conditions: []api.TagEventCondition{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{"latest": {Conditions: []imageapi.TagEventCondition{
 						{
-							Type:       api.ImportSuccess,
+							Type:       imageapi.ImportSuccess,
 							Status:     kapi.ConditionFalse,
 							Generation: 1,
 						},
@@ -187,35 +187,35 @@ func TestHandleImageStream(t *testing.T) {
 		// spec tag with generation with older status generation will be imported
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{api.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+					Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
 					Name:        "test",
 					Namespace:   "other",
 				},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							From:       &kapi.ObjectReference{Kind: "DockerImage", Name: "test/other:latest"},
 							Generation: &two,
 						},
 					},
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{"latest": {Items: []api.TagEvent{{Generation: 1}}}},
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{"latest": {Items: []imageapi.TagEvent{{Generation: 1}}}},
 				},
 			},
 		},
 		// test external repo
 		{
 			run: true,
-			stream: &api.ImageStream{
+			stream: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test",
 					Namespace: "other",
 				},
-				Spec: api.ImageStreamSpec{
-					Tags: map[string]api.TagReference{
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
 						"1.1": {
 							From: &kapi.ObjectReference{
 								Kind: "DockerImage",

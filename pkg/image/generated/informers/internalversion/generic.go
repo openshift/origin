@@ -4,7 +4,7 @@ package internalversion
 
 import (
 	"fmt"
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -36,9 +36,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=Image, Version=InternalVersion
-	case api.SchemeGroupVersion.WithResource("images"):
+	case image.SchemeGroupVersion.WithResource("images"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Image().InternalVersion().Images().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("imagestreams"):
+	case image.SchemeGroupVersion.WithResource("imagestreams"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Image().InternalVersion().ImageStreams().Informer()}, nil
 
 	}

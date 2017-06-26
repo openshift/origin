@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var errRejectByPolicy = fmt.Errorf("this image is prohibited by policy")

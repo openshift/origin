@@ -69,6 +69,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -215,6 +216,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 	storageFactory.AddCohabitatingResources(autoscaling.Resource("horizontalpodautoscalers"), extensions.Resource("horizontalpodautoscalers"))
 	// keep Deployments in extensions for backwards compatibility, we'll have to migrate at some point, eventually
 	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
+	storageFactory.AddCohabitatingResources(kapi.Resource("securitycontextconstraints"), securityapi.Resource("securitycontextconstraints"))
 
 	return storageFactory, nil
 }

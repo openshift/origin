@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	usercache "github.com/openshift/origin/pkg/user/cache"

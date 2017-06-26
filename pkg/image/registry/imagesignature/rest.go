@@ -10,7 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // REST implements the RESTStorage interface for ImageSignature

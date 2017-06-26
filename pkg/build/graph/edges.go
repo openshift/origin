@@ -5,10 +5,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 

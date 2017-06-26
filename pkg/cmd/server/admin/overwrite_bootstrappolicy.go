@@ -20,7 +20,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
@@ -40,7 +40,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 

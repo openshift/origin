@@ -18,7 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer"
 )
 

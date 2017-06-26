@@ -82,10 +82,6 @@ func (c *FakeCore) Secrets(namespace string) internalversion.SecretInterface {
 	return &FakeSecrets{c, namespace}
 }
 
-func (c *FakeCore) SecurityContextConstraints() internalversion.SecurityContextConstraintsInterface {
-	return &FakeSecurityContextConstraints{c}
-}
-
 func (c *FakeCore) Services(namespace string) internalversion.ServiceInterface {
 	return &FakeServices{c, namespace}
 }

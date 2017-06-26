@@ -8,7 +8,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	template "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

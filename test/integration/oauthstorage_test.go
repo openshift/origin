@@ -13,7 +13,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
@@ -32,23 +32,23 @@ type testUser struct {
 	Err      error
 }
 
-func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *api.OAuthAuthorizeToken) error {
+func (u *testUser) ConvertToAuthorizeToken(_ interface{}, token *oauthapi.OAuthAuthorizeToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertToAccessToken(_ interface{}, token *api.OAuthAccessToken) error {
+func (u *testUser) ConvertToAccessToken(_ interface{}, token *oauthapi.OAuthAccessToken) error {
 	token.UserName = u.UserName
 	token.UserUID = u.UserUID
 	return u.Err
 }
 
-func (u *testUser) ConvertFromAuthorizeToken(*api.OAuthAuthorizeToken) (interface{}, error) {
+func (u *testUser) ConvertFromAuthorizeToken(*oauthapi.OAuthAuthorizeToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
-func (u *testUser) ConvertFromAccessToken(*api.OAuthAccessToken) (interface{}, error) {
+func (u *testUser) ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface{}, error) {
 	return u.UserName, u.Err
 }
 
@@ -124,7 +124,7 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	clientRegistry.CreateClient(apirequest.NewContext(), &api.OAuthClient{
+	clientRegistry.CreateClient(apirequest.NewContext(), &oauthapi.OAuthClient{
 		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
 		Secret:            "secret",
 		AdditionalSecrets: []string{"secret1"},

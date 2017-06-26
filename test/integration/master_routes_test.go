@@ -17,8 +17,8 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	build "github.com/openshift/origin/pkg/build/api"
-	buildv1 "github.com/openshift/origin/pkg/build/api/v1"
+	build "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

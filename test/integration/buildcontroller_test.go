@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
-	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,12 +19,16 @@ import (
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
+	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -149,10 +152,16 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 	openshiftConfig.AppInformers = appinformer.NewSharedInformerFactory(appsClient, 10*time.Minute)
+	securityClient, err := securityclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.SecurityInformers = securityinformer.NewSharedInformerFactory(securityClient, 10*time.Minute)
 	go func() {
 		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
 		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
 		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
+		openshiftConfig.SecurityInformers.Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
@@ -190,8 +199,9 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		ExternalKubeInformers: openshiftConfig.ExternalKubeInformers,
 		InternalKubeInformers: openshiftConfig.InternalKubeInformers,
 		AppInformers:          openshiftConfig.AppInformers,
-		ImageInformers:        openshiftConfig.ImageInformers,
 		BuildInformers:        openshiftConfig.BuildInformers,
+		ImageInformers:        openshiftConfig.ImageInformers,
+		SecurityInformers:     openshiftConfig.SecurityInformers,
 		Stop:                  controllerContext.Stop,
 	}
 	openshiftControllerInitializers, err := openshiftConfig.NewOpenshiftControllerInitializers()

@@ -12,8 +12,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 

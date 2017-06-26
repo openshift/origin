@@ -11,7 +11,7 @@ import (
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"

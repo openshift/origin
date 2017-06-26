@@ -1,7 +1,7 @@
 package client
 
 import (
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

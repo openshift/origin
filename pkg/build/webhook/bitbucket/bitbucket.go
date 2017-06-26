@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 

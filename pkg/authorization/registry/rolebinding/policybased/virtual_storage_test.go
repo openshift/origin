@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	_ "github.com/openshift/origin/pkg/authorization/api/install"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/test"

@@ -4,7 +4,7 @@ package internalversion
 
 import (
 	"fmt"
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -36,21 +36,21 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=Authorization, Version=InternalVersion
-	case api.SchemeGroupVersion.WithResource("clusterpolicies"):
+	case authorization.SchemeGroupVersion.WithResource("clusterpolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterPolicies().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("clusterpolicybindings"):
+	case authorization.SchemeGroupVersion.WithResource("clusterpolicybindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterPolicyBindings().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("clusterroles"):
+	case authorization.SchemeGroupVersion.WithResource("clusterroles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterRoles().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("clusterrolebindings"):
+	case authorization.SchemeGroupVersion.WithResource("clusterrolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().ClusterRoleBindings().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("policies"):
+	case authorization.SchemeGroupVersion.WithResource("policies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().Policies().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("policybindings"):
+	case authorization.SchemeGroupVersion.WithResource("policybindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().PolicyBindings().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("roles"):
+	case authorization.SchemeGroupVersion.WithResource("roles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().Roles().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("rolebindings"):
+	case authorization.SchemeGroupVersion.WithResource("rolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().InternalVersion().RoleBindings().Informer()}, nil
 
 	}

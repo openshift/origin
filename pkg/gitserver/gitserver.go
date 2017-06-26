@@ -23,7 +23,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authapi "github.com/openshift/origin/pkg/authorization/api"
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 )

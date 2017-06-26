@@ -6,8 +6,8 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectvalidation "github.com/openshift/origin/pkg/project/apis/project/validation"
 )
 
 // strategy implements behavior for OAuthClient objects

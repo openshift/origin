@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	network_v1 "github.com/openshift/origin/pkg/sdn/apis/network/v1"
 	clientset "github.com/openshift/origin/pkg/sdn/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/sdn/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/sdn/generated/listers/network/v1"
@@ -35,7 +35,7 @@ func newClusterNetworkInformer(client clientset.Interface, resyncPeriod time.Dur
 				return client.NetworkV1().ClusterNetworks(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.ClusterNetwork{},
+		&network_v1.ClusterNetwork{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newClusterNetworkInformer(client clientset.Interface, resyncPeriod time.Dur
 }
 
 func (f *clusterNetworkInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.ClusterNetwork{}, newClusterNetworkInformer)
+	return f.factory.InformerFor(&network_v1.ClusterNetwork{}, newClusterNetworkInformer)
 }
 
 func (f *clusterNetworkInformer) Lister() v1.ClusterNetworkLister {

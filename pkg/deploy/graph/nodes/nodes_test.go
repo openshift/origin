@@ -7,8 +7,8 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubetypes "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/deploy/api/test"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	"github.com/openshift/origin/pkg/deploy/apis/apps/test"
 )
 
 func TestDCPodTemplateSpecNode(t *testing.T) {

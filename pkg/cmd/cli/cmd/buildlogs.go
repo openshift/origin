@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -33,7 +33,7 @@ var (
 
 // NewCmdBuildLogs implements the OpenShift cli build-logs command
 func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
-	opts := api.BuildLogOptions{}
+	opts := buildapi.BuildLogOptions{}
 	cmd := &cobra.Command{
 		Use:        "build-logs BUILD",
 		Short:      "Show logs from a build",
@@ -67,7 +67,7 @@ func NewCmdBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer) *cobr
 }
 
 // RunBuildLogs contains all the necessary functionality for the OpenShift cli build-logs command
-func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts api.BuildLogOptions, args []string) error {
+func RunBuildLogs(fullName string, f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, opts buildapi.BuildLogOptions, args []string) error {
 	if len(args) != 1 {
 		cmdNamespace := kcmdutil.GetFlagString(cmd, "namespace")
 		var namespace string

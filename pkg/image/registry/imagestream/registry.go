@@ -9,23 +9,23 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // Registry is an interface for things that know how to store ImageStream objects.
 type Registry interface {
 	// ListImageStreams obtains a list of image streams that match a selector.
-	ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error)
+	ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error)
 	// GetImageStream retrieves a specific image stream.
-	GetImageStream(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.ImageStream, error)
+	GetImageStream(ctx apirequest.Context, id string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
 	// CreateImageStream creates a new image stream.
-	CreateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	CreateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStream updates an image stream.
-	UpdateImageStream(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	UpdateImageStream(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStreamSpec updates an image stream's spec.
-	UpdateImageStreamSpec(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	UpdateImageStreamSpec(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStreamStatus updates an image stream's status.
-	UpdateImageStreamStatus(ctx apirequest.Context, repo *api.ImageStream) (*api.ImageStream, error)
+	UpdateImageStreamStatus(ctx apirequest.Context, repo *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// DeleteImageStream deletes an image stream.
 	DeleteImageStream(ctx apirequest.Context, id string) (*metav1.Status, error)
 	// WatchImageStreams watches for new/changed/deleted image streams.
@@ -56,52 +56,52 @@ func NewRegistry(s Storage, status, internal rest.Updater) Registry {
 	return &storage{Storage: s, status: status, internal: internal}
 }
 
-func (s *storage) ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*api.ImageStreamList, error) {
+func (s *storage) ListImageStreams(ctx apirequest.Context, options *metainternal.ListOptions) (*imageapi.ImageStreamList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStreamList), nil
+	return obj.(*imageapi.ImageStreamList), nil
 }
 
-func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, options *metav1.GetOptions) (*api.ImageStream, error) {
+func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 	obj, err := s.Get(ctx, imageStreamID, options)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, err := s.Create(ctx, imageStream)
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+func (s *storage) UpdateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, _, err := s.internal.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+func (s *storage) UpdateImageStreamSpec(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, _, err := s.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*imageapi.ImageStream), nil
 }
 
-func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *api.ImageStream) (*api.ImageStream, error) {
+func (s *storage) UpdateImageStreamStatus(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	obj, _, err := s.status.Update(ctx, imageStream.Name, rest.DefaultUpdatedObjectInfo(imageStream, kapi.Scheme))
 	if err != nil {
 		return nil, err
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*imageapi.ImageStream), nil
 }
 
 func (s *storage) DeleteImageStream(ctx apirequest.Context, imageStreamID string) (*metav1.Status, error) {

@@ -14,8 +14,8 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -43,21 +43,21 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	build := obj.(*api.Build)
+	build := obj.(*buildapi.Build)
 	if len(build.Status.Phase) == 0 {
-		build.Status.Phase = api.BuildPhaseNew
+		build.Status.Phase = buildapi.BuildPhaseNew
 	}
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newBuild := obj.(*api.Build)
-	oldBuild := old.(*api.Build)
+	newBuild := obj.(*buildapi.Build)
+	oldBuild := old.(*buildapi.Build)
 	// If the build is already in a failed state, do not allow an update
 	// of the reason and message. This is to prevent the build controller from
 	// overwriting the reason and message that was set by the builder pod
 	// when it updated the build's details.
-	if oldBuild.Status.Phase == api.BuildPhaseFailed {
+	if oldBuild.Status.Phase == buildapi.BuildPhaseFailed {
 		newBuild.Status.Reason = oldBuild.Status.Reason
 		newBuild.Status.Message = oldBuild.Status.Message
 	}
@@ -69,12 +69,12 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new policy.
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateBuild(obj.(*api.Build))
+	return validation.ValidateBuild(obj.(*buildapi.Build))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateBuildUpdate(obj.(*api.Build), old.(*api.Build))
+	return validation.ValidateBuildUpdate(obj.(*buildapi.Build), old.(*buildapi.Build))
 }
 
 // CheckGracefulDelete allows a build to be gracefully deleted.
@@ -84,11 +84,11 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOp
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
-	build, ok := obj.(*api.Build)
+	build, ok := obj.(*buildapi.Build)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a Build")
 	}
-	return labels.Set(build.ObjectMeta.Labels), api.BuildToSelectableFields(build), nil
+	return labels.Set(build.ObjectMeta.Labels), buildapi.BuildToSelectableFields(build), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -108,8 +108,8 @@ type detailsStrategy struct {
 // Build details currently consists of: Spec.Revision, Status.Reason, and
 // Status.Message, all of which are updated from within the build pod
 func (detailsStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newBuild := obj.(*api.Build)
-	oldBuild := old.(*api.Build)
+	newBuild := obj.(*buildapi.Build)
+	oldBuild := old.(*buildapi.Build)
 
 	// ignore phase updates unless the caller is updating the build to
 	// a completed phase.
@@ -133,8 +133,8 @@ func (detailsStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 
 // Validates that an update is valid by ensuring that no Revision exists and that it's not getting updated to blank
 func (detailsStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	newBuild := obj.(*api.Build)
-	oldBuild := old.(*api.Build)
+	newBuild := obj.(*buildapi.Build)
+	oldBuild := old.(*buildapi.Build)
 	oldRevision := oldBuild.Spec.Revision
 	newRevision := newBuild.Spec.Revision
 	errors := field.ErrorList{}

@@ -25,7 +25,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 

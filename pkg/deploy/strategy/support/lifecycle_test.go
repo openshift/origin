@@ -22,9 +22,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/openshift/origin/pkg/util/namer"
 

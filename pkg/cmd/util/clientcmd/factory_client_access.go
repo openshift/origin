@@ -36,7 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	routegen "github.com/openshift/origin/pkg/route/generator"

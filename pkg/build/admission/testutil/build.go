@@ -1,7 +1,7 @@
 package test
 
 import (
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 type TestBuild buildapi.Build

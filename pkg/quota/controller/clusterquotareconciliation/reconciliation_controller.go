@@ -21,7 +21,7 @@ import (
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/origin/pkg/client"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"

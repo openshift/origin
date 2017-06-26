@@ -11,8 +11,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 

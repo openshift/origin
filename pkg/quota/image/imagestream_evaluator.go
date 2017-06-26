@@ -7,7 +7,7 @@ import (
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 

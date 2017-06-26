@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"sort"
 
+	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )

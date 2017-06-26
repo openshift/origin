@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/deploy/api"
+	apps "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // DeploymentConfigLister helps list DeploymentConfigs.
 type DeploymentConfigLister interface {
 	// List lists all DeploymentConfigs in the indexer.
-	List(selector labels.Selector) (ret []*api.DeploymentConfig, err error)
+	List(selector labels.Selector) (ret []*apps.DeploymentConfig, err error)
 	// DeploymentConfigs returns an object that can list and get DeploymentConfigs.
 	DeploymentConfigs(namespace string) DeploymentConfigNamespaceLister
 	DeploymentConfigListerExpansion
@@ -29,9 +29,9 @@ func NewDeploymentConfigLister(indexer cache.Indexer) DeploymentConfigLister {
 }
 
 // List lists all DeploymentConfigs in the indexer.
-func (s *deploymentConfigLister) List(selector labels.Selector) (ret []*api.DeploymentConfig, err error) {
+func (s *deploymentConfigLister) List(selector labels.Selector) (ret []*apps.DeploymentConfig, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.DeploymentConfig))
+		ret = append(ret, m.(*apps.DeploymentConfig))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *deploymentConfigLister) DeploymentConfigs(namespace string) DeploymentC
 // DeploymentConfigNamespaceLister helps list and get DeploymentConfigs.
 type DeploymentConfigNamespaceLister interface {
 	// List lists all DeploymentConfigs in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.DeploymentConfig, err error)
+	List(selector labels.Selector) (ret []*apps.DeploymentConfig, err error)
 	// Get retrieves the DeploymentConfig from the indexer for a given namespace and name.
-	Get(name string) (*api.DeploymentConfig, error)
+	Get(name string) (*apps.DeploymentConfig, error)
 	DeploymentConfigNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type deploymentConfigNamespaceLister struct {
 }
 
 // List lists all DeploymentConfigs in the indexer for a given namespace.
-func (s deploymentConfigNamespaceLister) List(selector labels.Selector) (ret []*api.DeploymentConfig, err error) {
+func (s deploymentConfigNamespaceLister) List(selector labels.Selector) (ret []*apps.DeploymentConfig, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.DeploymentConfig))
+		ret = append(ret, m.(*apps.DeploymentConfig))
 	})
 	return ret, err
 }
 
 // Get retrieves the DeploymentConfig from the indexer for a given namespace and name.
-func (s deploymentConfigNamespaceLister) Get(name string) (*api.DeploymentConfig, error) {
+func (s deploymentConfigNamespaceLister) Get(name string) (*apps.DeploymentConfig, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("deploymentconfig"), name)
+		return nil, errors.NewNotFound(apps.Resource("deploymentconfig"), name)
 	}
-	return obj.(*api.DeploymentConfig), nil
+	return obj.(*apps.DeploymentConfig), nil
 }

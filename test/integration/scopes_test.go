@@ -11,12 +11,12 @@ import (
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

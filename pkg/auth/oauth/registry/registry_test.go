@@ -15,11 +15,11 @@ import (
 	"github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
-	oapi "github.com/openshift/origin/pkg/oauth/api"
+	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/test"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	usertest "github.com/openshift/origin/pkg/user/registry/test"
 	"k8s.io/apiserver/pkg/authentication/user"
 )

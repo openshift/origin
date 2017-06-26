@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	templatevalidation "github.com/openshift/origin/pkg/template/api/validation"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
 )
 

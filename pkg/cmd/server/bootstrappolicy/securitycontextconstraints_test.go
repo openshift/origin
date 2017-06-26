@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
+
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestBootstrappedConstraints(t *testing.T) {
@@ -19,7 +20,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		SecurityContextConstraintsHostNetwork,
 	}
 	expectedGroups, expectedUsers := getExpectedAccess()
-	expectedVolumes := []kapi.FSType{kapi.FSTypeEmptyDir, kapi.FSTypeSecret, kapi.FSTypeDownwardAPI, kapi.FSTypeConfigMap, kapi.FSTypePersistentVolumeClaim}
+	expectedVolumes := []securityapi.FSType{securityapi.FSTypeEmptyDir, securityapi.FSTypeSecret, securityapi.FSTypeDownwardAPI, securityapi.FSTypeConfigMap, securityapi.FSTypePersistentVolumeClaim}
 
 	groups, users := GetBoostrapSCCAccess(DefaultOpenShiftInfraNamespace)
 	bootstrappedConstraints := GetBootstrapSecurityContextConstraints(groups, users)
@@ -87,9 +88,9 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 	return groups, users
 }
 
-func supportsFSType(fsType kapi.FSType, scc *kapi.SecurityContextConstraints) bool {
+func supportsFSType(fsType securityapi.FSType, scc *securityapi.SecurityContextConstraints) bool {
 	for _, v := range scc.Volumes {
-		if v == kapi.FSTypeAll || v == fsType {
+		if v == securityapi.FSTypeAll || v == fsType {
 			return true
 		}
 	}

@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
-	v1 "github.com/openshift/origin/pkg/image/api/v1"
+	image "github.com/openshift/origin/pkg/image/apis/image"
+	v1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,7 +46,7 @@ func (s *imageLister) Get(name string) (*v1.Image, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("image"), name)
+		return nil, errors.NewNotFound(image.Resource("image"), name)
 	}
 	return obj.(*v1.Image), nil
 }

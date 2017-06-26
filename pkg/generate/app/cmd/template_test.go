@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/openshift/origin/pkg/client/testclient"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )

@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 )
 
 func TestDeploymentConfigStrategy(t *testing.T) {

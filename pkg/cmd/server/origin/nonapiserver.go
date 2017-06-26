@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/oauth/discovery"
 	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 	genericapiserver "k8s.io/apiserver/pkg/server"

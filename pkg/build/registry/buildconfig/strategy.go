@@ -13,8 +13,8 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/apis/build/validation"
 )
 
 // strategy implements behavior for BuildConfig objects
@@ -41,7 +41,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	bc := obj.(*api.BuildConfig)
+	bc := obj.(*buildapi.BuildConfig)
 	dropUnknownTriggers(bc)
 }
 
@@ -51,8 +51,8 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	newBC := obj.(*api.BuildConfig)
-	oldBC := old.(*api.BuildConfig)
+	newBC := obj.(*buildapi.BuildConfig)
+	oldBC := old.(*buildapi.BuildConfig)
 	dropUnknownTriggers(newBC)
 	// Do not allow the build version to go backwards or we'll
 	// get conflicts with existing builds.
@@ -63,21 +63,21 @@ func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object
 
 // Validate validates a new policy.
 func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateBuildConfig(obj.(*api.BuildConfig))
+	return validation.ValidateBuildConfig(obj.(*buildapi.BuildConfig))
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateBuildConfigUpdate(obj.(*api.BuildConfig), old.(*api.BuildConfig))
+	return validation.ValidateBuildConfigUpdate(obj.(*buildapi.BuildConfig), old.(*buildapi.BuildConfig))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
-	buildConfig, ok := obj.(*api.BuildConfig)
+	buildConfig, ok := obj.(*buildapi.BuildConfig)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a BuildConfig")
 	}
-	return labels.Set(buildConfig.ObjectMeta.Labels), api.BuildConfigToSelectableFields(buildConfig), nil
+	return labels.Set(buildConfig.ObjectMeta.Labels), buildapi.BuildConfigToSelectableFields(buildConfig), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -95,10 +95,10 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOp
 }
 
 // dropUnknownTriggers drops any triggers that are of an unknown type
-func dropUnknownTriggers(bc *api.BuildConfig) {
-	triggers := []api.BuildTriggerPolicy{}
+func dropUnknownTriggers(bc *buildapi.BuildConfig) {
+	triggers := []buildapi.BuildTriggerPolicy{}
 	for _, t := range bc.Spec.Triggers {
-		if api.KnownTriggerTypes.Has(string(t.Type)) {
+		if buildapi.KnownTriggerTypes.Has(string(t.Type)) {
 			triggers = append(triggers, t)
 		}
 	}

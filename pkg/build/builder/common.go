@@ -13,7 +13,7 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	utilglog "github.com/openshift/origin/pkg/util/glog"
@@ -49,7 +49,7 @@ type GitClient interface {
 
 // buildInfo returns a slice of KeyValue pairs with build metadata to be
 // inserted into Docker images produced by build.
-func buildInfo(build *api.Build, sourceInfo *git.SourceInfo) []KeyValue {
+func buildInfo(build *buildapi.Build, sourceInfo *git.SourceInfo) []KeyValue {
 	kv := []KeyValue{
 		{"OPENSHIFT_BUILD_NAME", build.Name},
 		{"OPENSHIFT_BUILD_NAMESPACE", build.Namespace},
@@ -105,7 +105,7 @@ func containerName(strategyName, buildName, namespace, containerPurpose string) 
 // postCommitSpec in a new ephemeral Docker container running the given image.
 // It returns an error if the hook cannot be run or returns a non-zero exit
 // code.
-func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitSpec, image, containerName string) error {
+func execPostCommitHook(client DockerClient, postCommitSpec buildapi.BuildPostCommitSpec, image, containerName string) error {
 	command := postCommitSpec.Command
 	args := postCommitSpec.Args
 	script := postCommitSpec.Script
@@ -162,19 +162,19 @@ func execPostCommitHook(client DockerClient, postCommitSpec api.BuildPostCommitS
 	})
 }
 
-func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.SourceRevision {
+func updateBuildRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *buildapi.SourceRevision {
 	if build.Spec.Revision != nil {
 		return build.Spec.Revision
 	}
-	return &api.SourceRevision{
-		Git: &api.GitSourceRevision{
+	return &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
 			Commit:  sourceInfo.CommitID,
 			Message: sourceInfo.Message,
-			Author: api.SourceControlUser{
+			Author: buildapi.SourceControlUser{
 				Name:  sourceInfo.AuthorName,
 				Email: sourceInfo.AuthorEmail,
 			},
-			Committer: api.SourceControlUser{
+			Committer: buildapi.SourceControlUser{
 				Name:  sourceInfo.CommitterName,
 				Email: sourceInfo.CommitterEmail,
 			},
@@ -182,7 +182,7 @@ func updateBuildRevision(build *api.Build, sourceInfo *git.SourceInfo) *api.Sour
 	}
 }
 
-func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) error {
+func retryBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		// before updating, make sure we are using the latest version of the build
 		latestBuild, err := client.Get(build.Name, metav1.GetOptions{})
@@ -208,7 +208,7 @@ func retryBuildStatusUpdate(build *api.Build, client client.BuildInterface, sour
 	})
 }
 
-func handleBuildStatusUpdate(build *api.Build, client client.BuildInterface, sourceRev *api.SourceRevision) {
+func handleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
 	if updateErr := retryBuildStatusUpdate(build, client, sourceRev); updateErr != nil {
 		glog.Infof("error: Unable to update build status: %v", updateErr)
 	}

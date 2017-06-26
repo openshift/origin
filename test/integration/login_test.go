@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -139,7 +139,7 @@ func newLoginOptions(server string, username string, password string, insecure b
 	return loginOptions
 }
 
-func whoami(clientCfg *restclient.Config) (*api.User, error) {
+func whoami(clientCfg *restclient.Config) (*userapi.User, error) {
 	oClient, err := client.New(clientCfg)
 	if err != nil {
 		return nil, err

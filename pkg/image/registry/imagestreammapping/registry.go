@@ -5,13 +5,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // Registry is an interface for things that know how to store ImageStreamMapping objects.
 type Registry interface {
 	// CreateImageStreamMapping creates a new image stream mapping.
-	CreateImageStreamMapping(ctx apirequest.Context, mapping *api.ImageStreamMapping) (*metav1.Status, error)
+	CreateImageStreamMapping(ctx apirequest.Context, mapping *imageapi.ImageStreamMapping) (*metav1.Status, error)
 }
 
 // Storage is an interface for a standard REST Storage backend
@@ -31,7 +31,7 @@ func NewRegistry(s Storage) Registry {
 }
 
 // CreateImageStreamMapping will create an image stream mapping.
-func (s *storage) CreateImageStreamMapping(ctx apirequest.Context, mapping *api.ImageStreamMapping) (*metav1.Status, error) {
+func (s *storage) CreateImageStreamMapping(ctx apirequest.Context, mapping *imageapi.ImageStreamMapping) (*metav1.Status, error) {
 	obj, err := s.Create(ctx, mapping)
 	if err != nil {
 		return nil, err

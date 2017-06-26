@@ -5,7 +5,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	depoyapi "github.com/openshift/origin/pkg/deploy/api"
+	depoyapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 // EnsureDeploymentConfigNode adds the provided deployment config to the graph if it does not exist

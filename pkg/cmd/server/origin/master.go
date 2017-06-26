@@ -22,6 +22,7 @@ import (
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
+	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
@@ -30,9 +31,14 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
+	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
+	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
+	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
+
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
@@ -52,6 +58,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		KubeInternalInformers:              c.InternalKubeInformers,
 		AuthorizationInformers:             c.AuthorizationInformers,
 		QuotaInformers:                     c.QuotaInformers,
+		SecurityInformers:                  c.SecurityInformers,
 		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
 		RuleResolver:                       c.RuleResolver,
 		SubjectLocator:                     c.SubjectLocator,
@@ -67,6 +74,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
 		EnableTemplateServiceBroker:        c.Options.TemplateServiceBrokerConfig != nil,
 		ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+		SCCStorage:                         sccStorage,
 	}
 	if c.Options.OAuthConfig != nil {
 		ret.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
@@ -123,6 +131,8 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
+	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
 	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)

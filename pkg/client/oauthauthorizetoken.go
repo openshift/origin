@@ -1,7 +1,7 @@
 package client
 
 import (
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 type OAuthAuthorizeTokensInterface interface {

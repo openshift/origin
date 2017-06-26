@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
@@ -36,16 +36,16 @@ func makeIdentityInfo(providerName, providerUserName string, extra map[string]st
 	return info
 }
 
-func makeUser(name string, identities ...string) *api.User {
-	return &api.User{
+func makeUser(name string, identities ...string) *userapi.User {
+	return &userapi.User{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Identities: identities,
 	}
 }
-func makeIdentity(providerName, providerUserName string) *api.Identity {
-	return &api.Identity{
+func makeIdentity(providerName, providerUserName string) *userapi.Identity {
+	return &userapi.Identity{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: providerName + ":" + providerUserName,
 		},
@@ -53,14 +53,14 @@ func makeIdentity(providerName, providerUserName string) *api.Identity {
 		ProviderUserName: providerUserName,
 	}
 }
-func makeIdentityWithUserReference(providerName, providerUserName string, userName string, userUID types.UID) *api.Identity {
+func makeIdentityWithUserReference(providerName, providerUserName string, userName string, userUID types.UID) *userapi.Identity {
 	identity := makeIdentity(providerName, providerUserName)
 	identity.User.Name = userName
 	identity.User.UID = userUID
 	return identity
 }
-func makeMapping(user, identity string) *api.UserIdentityMapping {
-	return &api.UserIdentityMapping{
+func makeMapping(user, identity string) *userapi.UserIdentityMapping {
+	return &userapi.UserIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{Name: identity},
 		User:       kapi.ObjectReference{Name: user},
 		Identity:   kapi.ObjectReference{Name: identity},
@@ -118,10 +118,10 @@ func TestUserInitialization(t *testing.T) {
 		Identity authapi.UserIdentityInfo
 		Mapper   authapi.UserIdentityMapper
 
-		CreateIdentity *api.Identity
-		CreateUser     *api.User
-		CreateMapping  *api.UserIdentityMapping
-		UpdateUser     *api.User
+		CreateIdentity *userapi.Identity
+		CreateUser     *userapi.User
+		CreateMapping  *userapi.UserIdentityMapping
+		UpdateUser     *userapi.User
 
 		ExpectedErr        error
 		ExpectedUserName   string
@@ -132,7 +132,7 @@ func TestUserInitialization(t *testing.T) {
 			Identity: makeIdentityInfo("idp", "bob", nil),
 			Mapper:   lookup,
 
-			ExpectedErr: identitymapper.NewLookupError(makeIdentityInfo("idp", "bob", nil), kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob")),
+			ExpectedErr: identitymapper.NewLookupError(makeIdentityInfo("idp", "bob", nil), kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob")),
 		},
 		"lookup existing identity": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -193,7 +193,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"generate with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -202,7 +202,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr:        kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr:        kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 			ExpectedIdentities: []string{"idp:bob"},
 		},
 		"generate with existing mapped identity without user backreference": {
@@ -215,7 +215,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"generate returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -277,7 +277,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -286,7 +286,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add with existing mapped identity without user backreference": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -298,7 +298,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"add returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -367,7 +367,7 @@ func TestUserInitialization(t *testing.T) {
 
 			CreateIdentity: makeIdentity("idp", "bob"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim with existing mapped identity with invalid user UID": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -376,7 +376,7 @@ func TestUserInitialization(t *testing.T) {
 			CreateUser:     makeUser("mappeduser"),
 			CreateIdentity: makeIdentityWithUserReference("idp", "bob", "mappeduser", "invalidUID"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim with existing mapped identity without user backreference": {
 			Identity: makeIdentityInfo("idp", "bob", nil),
@@ -388,7 +388,7 @@ func TestUserInitialization(t *testing.T) {
 			// Update user to a version which does not reference the identity
 			UpdateUser: makeUser("mappeduser"),
 
-			ExpectedErr: kerrs.NewNotFound(api.Resource("useridentitymapping"), "idp:bob"),
+			ExpectedErr: kerrs.NewNotFound(userapi.Resource("useridentitymapping"), "idp:bob"),
 		},
 		"claim returns existing mapping": {
 			Identity: makeIdentityInfo("idp", "bob", nil),

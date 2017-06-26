@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	clusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota"
 )
 

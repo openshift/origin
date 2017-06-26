@@ -16,7 +16,7 @@ import (
 	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	"github.com/openshift/origin/pkg/image/admission/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestAdmitImageStreamMapping(t *testing.T) {

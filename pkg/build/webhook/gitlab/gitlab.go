@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -25,9 +25,9 @@ func New() *WebHook {
 
 // NOTE - unlike github, there is no separate commiter, just the author
 type commit struct {
-	ID      string                `json:"id,omitempty"`
-	Author  api.SourceControlUser `json:"author,omitempty"`
-	Message string                `json:"message,omitempty"`
+	ID      string                     `json:"id,omitempty"`
+	Author  buildapi.SourceControlUser `json:"author,omitempty"`
+	Message string                     `json:"message,omitempty"`
 }
 
 // NOTE - unlike github, the head commit is not highlighted ... only the commit array is provided,
@@ -39,8 +39,8 @@ type pushEvent struct {
 }
 
 // Extract services webhooks from GitLab server
-func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (revision *api.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *api.DockerStrategyOptions, proceed bool, err error) {
-	triggers, err := webhook.FindTriggerPolicy(api.GitLabWebHookBuildTriggerType, buildCfg)
+func (p *WebHook) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (revision *buildapi.SourceRevision, envvars []kapi.EnvVar, dockerStrategyOptions *buildapi.DockerStrategyOptions, proceed bool, err error) {
+	triggers, err := webhook.FindTriggerPolicy(buildapi.GitLabWebHookBuildTriggerType, buildCfg)
 	if err != nil {
 		return revision, envvars, dockerStrategyOptions, proceed, err
 	}
@@ -73,8 +73,8 @@ func (p *WebHook) Extract(buildCfg *api.BuildConfig, secret, path string, req *h
 
 	lastCommit := event.Commits[len(event.Commits)-1]
 
-	revision = &api.SourceRevision{
-		Git: &api.GitSourceRevision{
+	revision = &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
 			Commit:    lastCommit.ID,
 			Author:    lastCommit.Author,
 			Committer: lastCommit.Author,

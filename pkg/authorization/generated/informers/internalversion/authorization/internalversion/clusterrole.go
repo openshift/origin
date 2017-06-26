@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	internalinterfaces "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
@@ -35,7 +35,7 @@ func newClusterRoleInformer(client internalclientset.Interface, resyncPeriod tim
 				return client.Authorization().ClusterRoles().Watch(options)
 			},
 		},
-		&api.ClusterRole{},
+		&authorization.ClusterRole{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newClusterRoleInformer(client internalclientset.Interface, resyncPeriod tim
 }
 
 func (f *clusterRoleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.ClusterRole{}, newClusterRoleInformer)
+	return f.factory.InformerFor(&authorization.ClusterRole{}, newClusterRoleInformer)
 }
 
 func (f *clusterRoleInformer) Lister() internalversion.ClusterRoleLister {

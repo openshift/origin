@@ -14,7 +14,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func unmarshalManifestSchema1(content []byte, signatures [][]byte) (distribution.Manifest, error) {

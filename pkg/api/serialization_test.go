@@ -18,19 +18,19 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	_ "github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	build "github.com/openshift/origin/pkg/build/api"
-	deploy "github.com/openshift/origin/pkg/deploy/api"
-	image "github.com/openshift/origin/pkg/image/api"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	route "github.com/openshift/origin/pkg/route/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	template "github.com/openshift/origin/pkg/template/api"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	build "github.com/openshift/origin/pkg/build/apis/build"
+	deploy "github.com/openshift/origin/pkg/deploy/apis/apps"
+	image "github.com/openshift/origin/pkg/image/apis/image"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	route "github.com/openshift/origin/pkg/route/apis/route"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	template "github.com/openshift/origin/pkg/template/apis/template"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
-	_ "github.com/openshift/origin/pkg/quota/api/install"
+	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -453,6 +453,40 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 		func(u64 *uint64, c fuzz.Continue) {
 			// TODO: uint64's are NOT handled right.
 			*u64 = c.RandUint64() >> 8
+		},
+
+		func(scc *securityapi.SecurityContextConstraints, c fuzz.Continue) {
+			c.FuzzNoCustom(scc) // fuzz self without calling this function again
+			userTypes := []securityapi.RunAsUserStrategyType{securityapi.RunAsUserStrategyMustRunAsNonRoot, securityapi.RunAsUserStrategyMustRunAs, securityapi.RunAsUserStrategyRunAsAny, securityapi.RunAsUserStrategyMustRunAsRange}
+			scc.RunAsUser.Type = userTypes[c.Rand.Intn(len(userTypes))]
+			seLinuxTypes := []securityapi.SELinuxContextStrategyType{securityapi.SELinuxStrategyRunAsAny, securityapi.SELinuxStrategyMustRunAs}
+			scc.SELinuxContext.Type = seLinuxTypes[c.Rand.Intn(len(seLinuxTypes))]
+			supGroupTypes := []securityapi.SupplementalGroupsStrategyType{securityapi.SupplementalGroupsStrategyMustRunAs, securityapi.SupplementalGroupsStrategyRunAsAny}
+			scc.SupplementalGroups.Type = supGroupTypes[c.Rand.Intn(len(supGroupTypes))]
+			fsGroupTypes := []securityapi.FSGroupStrategyType{securityapi.FSGroupStrategyMustRunAs, securityapi.FSGroupStrategyRunAsAny}
+			scc.FSGroup.Type = fsGroupTypes[c.Rand.Intn(len(fsGroupTypes))]
+
+			// when fuzzing the volume types ensure it is set to avoid the defaulter's expansion.
+			// Do not use FSTypeAll or host dir setting to steer clear of defaulting mechanics
+			// which are covered in specific unit tests.
+			volumeTypes := []securityapi.FSType{securityapi.FSTypeAWSElasticBlockStore,
+				securityapi.FSTypeAzureFile,
+				securityapi.FSTypeCephFS,
+				securityapi.FSTypeCinder,
+				securityapi.FSTypeDownwardAPI,
+				securityapi.FSTypeEmptyDir,
+				securityapi.FSTypeFC,
+				securityapi.FSTypeFlexVolume,
+				securityapi.FSTypeFlocker,
+				securityapi.FSTypeGCEPersistentDisk,
+				securityapi.FSTypeGitRepo,
+				securityapi.FSTypeGlusterfs,
+				securityapi.FSTypeISCSI,
+				securityapi.FSTypeNFS,
+				securityapi.FSTypePersistentVolumeClaim,
+				securityapi.FSTypeRBD,
+				securityapi.FSTypeSecret}
+			scc.Volumes = []securityapi.FSType{volumeTypes[c.Rand.Intn(len(volumeTypes))]}
 		},
 	)
 	return f

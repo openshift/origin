@@ -27,16 +27,17 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	"github.com/openshift/origin/pkg/security/legacyclient"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
 
@@ -102,7 +103,12 @@ func (f *ring1Factory) UnstructuredClientForMapping(mapping *meta.RESTMapping) (
 }
 
 func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer, error) {
-	if latest.OriginKind(mapping.GroupVersionKind) {
+	// TODO we need to refactor the describer logic to handle misses or run serverside.
+	// for now we can special case our "sometimes origin, sometimes kube" resource
+	// I think it is correct for more code if this is NOT considered an origin type since
+	// it wasn't an origin type pre 3.6.
+	isSCC := mapping.GroupVersionKind.Kind == "SecurityContextConstraints"
+	if latest.OriginKind(mapping.GroupVersionKind) || isSCC {
 		oClient, kClient, err := f.clientAccessFactory.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
@@ -220,7 +226,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			client.ClusterRoleBindingsInterface(oc),
 			client.RoleBindingsNamespacer(oc),
 			client.OAuthClientAuthorizationsInterface(oc),
-			kc.Core(),
+			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
 		oc, kc, err := f.clientAccessFactory.Clients()
@@ -231,7 +237,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			client.GroupsInterface(oc),
 			client.ClusterRoleBindingsInterface(oc),
 			client.RoleBindingsNamespacer(oc),
-			kc.Core(),
+			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
 		oc, _, err := f.clientAccessFactory.Clients()

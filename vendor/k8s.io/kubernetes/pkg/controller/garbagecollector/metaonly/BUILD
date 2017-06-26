@@ -12,18 +12,15 @@ go_library(
     name = "go_default_library",
     srcs = [
         "metaonly.go",
-        "types.generated.go",
         "types.go",
     ],
     tags = ["automanaged"],
     deps = [
         "//pkg/api:go_default_library",
-        "//vendor:github.com/ugorji/go/codec",
         "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
         "//vendor:k8s.io/apimachinery/pkg/runtime/serializer",
-        "//vendor:k8s.io/apimachinery/pkg/types",
     ],
 )
 

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestIsBuilderImage(t *testing.T) {

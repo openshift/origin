@@ -17,10 +17,10 @@ import (
 	storagev1 "k8s.io/kubernetes/pkg/apis/storage/v1"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

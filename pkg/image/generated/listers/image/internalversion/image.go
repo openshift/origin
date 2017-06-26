@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // ImageLister helps list Images.
 type ImageLister interface {
 	// List lists all Images in the indexer.
-	List(selector labels.Selector) (ret []*api.Image, err error)
+	List(selector labels.Selector) (ret []*image.Image, err error)
 	// Get retrieves the Image from the index for a given name.
-	Get(name string) (*api.Image, error)
+	Get(name string) (*image.Image, error)
 	ImageListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewImageLister(indexer cache.Indexer) ImageLister {
 }
 
 // List lists all Images in the indexer.
-func (s *imageLister) List(selector labels.Selector) (ret []*api.Image, err error) {
+func (s *imageLister) List(selector labels.Selector) (ret []*image.Image, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Image))
+		ret = append(ret, m.(*image.Image))
 	})
 	return ret, err
 }
 
 // Get retrieves the Image from the index for a given name.
-func (s *imageLister) Get(name string) (*api.Image, error) {
-	key := &api.Image{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *imageLister) Get(name string) (*image.Image, error) {
+	key := &image.Image{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("image"), name)
+		return nil, errors.NewNotFound(image.Resource("image"), name)
 	}
-	return obj.(*api.Image), nil
+	return obj.(*image.Image), nil
 }

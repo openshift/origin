@@ -4,7 +4,7 @@ import (
 	"github.com/gonum/graph"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 

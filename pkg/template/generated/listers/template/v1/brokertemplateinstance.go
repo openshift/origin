@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
-	v1 "github.com/openshift/origin/pkg/template/api/v1"
+	template "github.com/openshift/origin/pkg/template/apis/template"
+	v1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -46,7 +46,7 @@ func (s *brokerTemplateInstanceLister) Get(name string) (*v1.BrokerTemplateInsta
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("brokertemplateinstance"), name)
+		return nil, errors.NewNotFound(template.Resource("brokertemplateinstance"), name)
 	}
 	return obj.(*v1.BrokerTemplateInstance), nil
 }

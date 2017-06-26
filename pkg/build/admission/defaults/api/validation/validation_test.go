@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 func TestValidateBuildDefaultsConfig(t *testing.T) {

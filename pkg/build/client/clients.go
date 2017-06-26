@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 )

@@ -9,40 +9,40 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 type BuildConfigRegistry struct {
 	Err             error
-	BuildConfigs    *api.BuildConfigList
-	BuildConfig     *api.BuildConfig
+	BuildConfigs    *buildapi.BuildConfigList
+	BuildConfig     *buildapi.BuildConfig
 	DeletedConfigID string
 	sync.Mutex
 }
 
-func (r *BuildConfigRegistry) ListBuildConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*api.BuildConfigList, error) {
+func (r *BuildConfigRegistry) ListBuildConfigs(ctx apirequest.Context, options *metainternal.ListOptions) (*buildapi.BuildConfigList, error) {
 	r.Lock()
 	defer r.Unlock()
 	return r.BuildConfigs, r.Err
 }
 
-func (r *BuildConfigRegistry) GetBuildConfig(ctx apirequest.Context, id string, options *metav1.GetOptions) (*api.BuildConfig, error) {
+func (r *BuildConfigRegistry) GetBuildConfig(ctx apirequest.Context, id string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 	r.Lock()
 	defer r.Unlock()
 	if r.BuildConfig != nil && r.BuildConfig.Name == id {
 		return r.BuildConfig, r.Err
 	}
-	return nil, kapierrors.NewNotFound(api.Resource("buildconfig"), id)
+	return nil, kapierrors.NewNotFound(buildapi.Resource("buildconfig"), id)
 }
 
-func (r *BuildConfigRegistry) CreateBuildConfig(ctx apirequest.Context, config *api.BuildConfig) error {
+func (r *BuildConfigRegistry) CreateBuildConfig(ctx apirequest.Context, config *buildapi.BuildConfig) error {
 	r.Lock()
 	defer r.Unlock()
 	r.BuildConfig = config
 	return r.Err
 }
 
-func (r *BuildConfigRegistry) UpdateBuildConfig(ctx apirequest.Context, config *api.BuildConfig) error {
+func (r *BuildConfigRegistry) UpdateBuildConfig(ctx apirequest.Context, config *buildapi.BuildConfig) error {
 	r.Lock()
 	defer r.Unlock()
 	r.BuildConfig = config

@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
-	v1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s policyNamespaceLister) Get(name string) (*v1.Policy, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("policy"), name)
+		return nil, errors.NewNotFound(authorization.Resource("policy"), name)
 	}
 	return obj.(*v1.Policy), nil
 }

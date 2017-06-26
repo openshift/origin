@@ -1,7 +1,7 @@
 package fake
 
 import (
-	network "github.com/openshift/origin/pkg/sdn/api/install"
+	network "github.com/openshift/origin/pkg/sdn/apis/network/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

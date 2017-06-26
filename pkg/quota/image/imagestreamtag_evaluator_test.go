@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )

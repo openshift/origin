@@ -12,7 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"

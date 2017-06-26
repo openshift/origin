@@ -8,14 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 // ConvertToRBACClusterRole performs the conversion and guarantees the returned object is safe to mutate.
 func ConvertToRBACClusterRole(originClusterRole *authorizationapi.ClusterRole) (*rbac.ClusterRole, error) {
 	// convert the origin role to an rbac role
 	convertedClusterRole := &rbac.ClusterRole{}
-	if err := authorizationapi.Convert_api_ClusterRole_To_rbac_ClusterRole(originClusterRole, convertedClusterRole, nil); err != nil {
+	if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(originClusterRole, convertedClusterRole, nil); err != nil {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
@@ -54,7 +54,7 @@ func PrepareForUpdateClusterRole(newClusterRole, existingClusterRole *rbac.Clust
 func ConvertToRBACClusterRoleBinding(originClusterRoleBinding *authorizationapi.ClusterRoleBinding) (*rbac.ClusterRoleBinding, error) {
 	// convert the origin roleBinding to an rbac roleBinding
 	convertedClusterRoleBinding := &rbac.ClusterRoleBinding{}
-	if err := authorizationapi.Convert_api_ClusterRoleBinding_To_rbac_ClusterRoleBinding(originClusterRoleBinding, convertedClusterRoleBinding, nil); err != nil {
+	if err := authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(originClusterRoleBinding, convertedClusterRoleBinding, nil); err != nil {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
@@ -84,7 +84,7 @@ func PrepareForUpdateClusterRoleBinding(newClusterRoleBinding, existingClusterRo
 func ConvertToRBACRole(originRole *authorizationapi.Role) (*rbac.Role, error) {
 	// convert the origin role to an rbac role
 	convertedRole := &rbac.Role{}
-	if err := authorizationapi.Convert_api_Role_To_rbac_Role(originRole, convertedRole, nil); err != nil {
+	if err := authorizationapi.Convert_authorization_Role_To_rbac_Role(originRole, convertedRole, nil); err != nil {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.
@@ -117,7 +117,7 @@ func PrepareForUpdateRole(newRole, existingRole *rbac.Role) bool {
 func ConvertToRBACRoleBinding(originRoleBinding *authorizationapi.RoleBinding) (*rbac.RoleBinding, error) {
 	// convert the origin roleBinding to an rbac roleBinding
 	convertedRoleBinding := &rbac.RoleBinding{}
-	if err := authorizationapi.Convert_api_RoleBinding_To_rbac_RoleBinding(originRoleBinding, convertedRoleBinding, nil); err != nil {
+	if err := authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(originRoleBinding, convertedRoleBinding, nil); err != nil {
 		return nil, err
 	}
 	// do a deep copy here since conversion does not guarantee a new object.

@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type ClusterRoleBindingsGetter interface {
 
 // ClusterRoleBindingInterface has methods to work with ClusterRoleBinding resources.
 type ClusterRoleBindingInterface interface {
-	Create(*api.ClusterRoleBinding) (*api.ClusterRoleBinding, error)
-	Update(*api.ClusterRoleBinding) (*api.ClusterRoleBinding, error)
+	Create(*authorization.ClusterRoleBinding) (*authorization.ClusterRoleBinding, error)
+	Update(*authorization.ClusterRoleBinding) (*authorization.ClusterRoleBinding, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterRoleBinding, error)
-	List(opts v1.ListOptions) (*api.ClusterRoleBindingList, error)
+	Get(name string, options v1.GetOptions) (*authorization.ClusterRoleBinding, error)
+	List(opts v1.ListOptions) (*authorization.ClusterRoleBindingList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterRoleBinding, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterRoleBinding, err error)
 	ClusterRoleBindingExpansion
 }
 
@@ -41,8 +41,8 @@ func newClusterRoleBindings(c *AuthorizationClient) *clusterRoleBindings {
 }
 
 // Create takes the representation of a clusterRoleBinding and creates it.  Returns the server's representation of the clusterRoleBinding, and an error, if there is any.
-func (c *clusterRoleBindings) Create(clusterRoleBinding *api.ClusterRoleBinding) (result *api.ClusterRoleBinding, err error) {
-	result = &api.ClusterRoleBinding{}
+func (c *clusterRoleBindings) Create(clusterRoleBinding *authorization.ClusterRoleBinding) (result *authorization.ClusterRoleBinding, err error) {
+	result = &authorization.ClusterRoleBinding{}
 	err = c.client.Post().
 		Resource("clusterrolebindings").
 		Body(clusterRoleBinding).
@@ -52,8 +52,8 @@ func (c *clusterRoleBindings) Create(clusterRoleBinding *api.ClusterRoleBinding)
 }
 
 // Update takes the representation of a clusterRoleBinding and updates it. Returns the server's representation of the clusterRoleBinding, and an error, if there is any.
-func (c *clusterRoleBindings) Update(clusterRoleBinding *api.ClusterRoleBinding) (result *api.ClusterRoleBinding, err error) {
-	result = &api.ClusterRoleBinding{}
+func (c *clusterRoleBindings) Update(clusterRoleBinding *authorization.ClusterRoleBinding) (result *authorization.ClusterRoleBinding, err error) {
+	result = &authorization.ClusterRoleBinding{}
 	err = c.client.Put().
 		Resource("clusterrolebindings").
 		Name(clusterRoleBinding.Name).
@@ -84,8 +84,8 @@ func (c *clusterRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOp
 }
 
 // Get takes name of the clusterRoleBinding, and returns the corresponding clusterRoleBinding object, and an error if there is any.
-func (c *clusterRoleBindings) Get(name string, options v1.GetOptions) (result *api.ClusterRoleBinding, err error) {
-	result = &api.ClusterRoleBinding{}
+func (c *clusterRoleBindings) Get(name string, options v1.GetOptions) (result *authorization.ClusterRoleBinding, err error) {
+	result = &authorization.ClusterRoleBinding{}
 	err = c.client.Get().
 		Resource("clusterrolebindings").
 		Name(name).
@@ -96,8 +96,8 @@ func (c *clusterRoleBindings) Get(name string, options v1.GetOptions) (result *a
 }
 
 // List takes label and field selectors, and returns the list of ClusterRoleBindings that match those selectors.
-func (c *clusterRoleBindings) List(opts v1.ListOptions) (result *api.ClusterRoleBindingList, err error) {
-	result = &api.ClusterRoleBindingList{}
+func (c *clusterRoleBindings) List(opts v1.ListOptions) (result *authorization.ClusterRoleBindingList, err error) {
+	result = &authorization.ClusterRoleBindingList{}
 	err = c.client.Get().
 		Resource("clusterrolebindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -116,8 +116,8 @@ func (c *clusterRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error
 }
 
 // Patch applies the patch and returns the patched clusterRoleBinding.
-func (c *clusterRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterRoleBinding, err error) {
-	result = &api.ClusterRoleBinding{}
+func (c *clusterRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterRoleBinding, err error) {
+	result = &authorization.ClusterRoleBinding{}
 	err = c.client.Patch(pt).
 		Resource("clusterrolebindings").
 		SubResource(subresources...).

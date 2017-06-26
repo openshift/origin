@@ -12,7 +12,7 @@ import (
 	disterrors "github.com/docker/distribution/registry/api/v2"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer"
 )
 

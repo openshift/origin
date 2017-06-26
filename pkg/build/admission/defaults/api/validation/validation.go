@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	"github.com/openshift/origin/pkg/build/admission/defaults/api"
-	buildvalidation "github.com/openshift/origin/pkg/build/api/validation"
+	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
 )
 
 // ValidateBuildDefaultsConfig tests required fields for a Build.

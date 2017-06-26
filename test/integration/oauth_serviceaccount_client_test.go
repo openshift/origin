@@ -28,7 +28,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	testutil "github.com/openshift/origin/test/util"

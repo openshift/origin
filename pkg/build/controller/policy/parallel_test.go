@@ -3,7 +3,7 @@ package policy
 import (
 	"testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 func TestParallelIsRunnableNewBuilds(t *testing.T) {

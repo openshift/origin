@@ -16,7 +16,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/jenkins"
 )
@@ -293,7 +293,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 							errs <- fmt.Errorf("error getting build: %s", err)
 							return
 						}
-						jenkinsBuildURI = build.Annotations[api.BuildJenkinsBuildURIAnnotation]
+						jenkinsBuildURI = build.Annotations[buildapi.BuildJenkinsBuildURIAnnotation]
 						if jenkinsBuildURI != "" {
 							break
 						}

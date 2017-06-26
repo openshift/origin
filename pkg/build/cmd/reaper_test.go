@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	clientgotesting "k8s.io/client-go/testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client/testclient"
 )

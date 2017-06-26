@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/oauth/api/v1"
+	oauth_v1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	clientset "github.com/openshift/origin/pkg/oauth/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/oauth/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/oauth/generated/listers/oauth/v1"
@@ -35,7 +35,7 @@ func newOAuthClientInformer(client clientset.Interface, resyncPeriod time.Durati
 				return client.OauthV1().OAuthClients(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.OAuthClient{},
+		&oauth_v1.OAuthClient{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newOAuthClientInformer(client clientset.Interface, resyncPeriod time.Durati
 }
 
 func (f *oAuthClientInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.OAuthClient{}, newOAuthClientInformer)
+	return f.factory.InformerFor(&oauth_v1.OAuthClient{}, newOAuthClientInformer)
 }
 
 func (f *oAuthClientInformer) Lister() v1.OAuthClientLister {

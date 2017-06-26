@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
+	network "github.com/openshift/origin/pkg/sdn/apis/network"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,29 +18,29 @@ type FakeClusterNetworks struct {
 
 var clusternetworksResource = schema.GroupVersionResource{Group: "network.openshift.io", Version: "", Resource: "clusternetworks"}
 
-func (c *FakeClusterNetworks) Create(clusterNetwork *api.ClusterNetwork) (result *api.ClusterNetwork, err error) {
+func (c *FakeClusterNetworks) Create(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(clusternetworksResource, c.ns, clusterNetwork), &api.ClusterNetwork{})
+		Invokes(testing.NewCreateAction(clusternetworksResource, c.ns, clusterNetwork), &network.ClusterNetwork{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterNetwork), err
+	return obj.(*network.ClusterNetwork), err
 }
 
-func (c *FakeClusterNetworks) Update(clusterNetwork *api.ClusterNetwork) (result *api.ClusterNetwork, err error) {
+func (c *FakeClusterNetworks) Update(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(clusternetworksResource, c.ns, clusterNetwork), &api.ClusterNetwork{})
+		Invokes(testing.NewUpdateAction(clusternetworksResource, c.ns, clusterNetwork), &network.ClusterNetwork{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterNetwork), err
+	return obj.(*network.ClusterNetwork), err
 }
 
 func (c *FakeClusterNetworks) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(clusternetworksResource, c.ns, name), &api.ClusterNetwork{})
+		Invokes(testing.NewDeleteAction(clusternetworksResource, c.ns, name), &network.ClusterNetwork{})
 
 	return err
 }
@@ -48,23 +48,23 @@ func (c *FakeClusterNetworks) Delete(name string, options *v1.DeleteOptions) err
 func (c *FakeClusterNetworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(clusternetworksResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.ClusterNetworkList{})
+	_, err := c.Fake.Invokes(action, &network.ClusterNetworkList{})
 	return err
 }
 
-func (c *FakeClusterNetworks) Get(name string, options v1.GetOptions) (result *api.ClusterNetwork, err error) {
+func (c *FakeClusterNetworks) Get(name string, options v1.GetOptions) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(clusternetworksResource, c.ns, name), &api.ClusterNetwork{})
+		Invokes(testing.NewGetAction(clusternetworksResource, c.ns, name), &network.ClusterNetwork{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterNetwork), err
+	return obj.(*network.ClusterNetwork), err
 }
 
-func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *api.ClusterNetworkList, err error) {
+func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *network.ClusterNetworkList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(clusternetworksResource, c.ns, opts), &api.ClusterNetworkList{})
+		Invokes(testing.NewListAction(clusternetworksResource, c.ns, opts), &network.ClusterNetworkList{})
 
 	if obj == nil {
 		return nil, err
@@ -74,8 +74,8 @@ func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *api.ClusterNetw
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.ClusterNetworkList{}
-	for _, item := range obj.(*api.ClusterNetworkList).Items {
+	list := &network.ClusterNetworkList{}
+	for _, item := range obj.(*network.ClusterNetworkList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -91,12 +91,12 @@ func (c *FakeClusterNetworks) Watch(opts v1.ListOptions) (watch.Interface, error
 }
 
 // Patch applies the patch and returns the patched clusterNetwork.
-func (c *FakeClusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
+func (c *FakeClusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(clusternetworksResource, c.ns, name, data, subresources...), &api.ClusterNetwork{})
+		Invokes(testing.NewPatchSubresourceAction(clusternetworksResource, c.ns, name, data, subresources...), &network.ClusterNetwork{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterNetwork), err
+	return obj.(*network.ClusterNetwork), err
 }

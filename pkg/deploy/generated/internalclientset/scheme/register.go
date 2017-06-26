@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	apps "github.com/openshift/origin/pkg/deploy/api/install"
+	apps "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

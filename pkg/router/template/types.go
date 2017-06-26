@@ -1,7 +1,7 @@
 package templaterouter
 
 import (
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"strings"
 )
 

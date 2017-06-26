@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type ImageComponentType string

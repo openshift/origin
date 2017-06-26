@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,49 +17,49 @@ type FakeClusterRoleBindings struct {
 
 var clusterrolebindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "clusterrolebindings"}
 
-func (c *FakeClusterRoleBindings) Create(clusterRoleBinding *api.ClusterRoleBinding) (result *api.ClusterRoleBinding, err error) {
+func (c *FakeClusterRoleBindings) Create(clusterRoleBinding *authorization.ClusterRoleBinding) (result *authorization.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterrolebindingsResource, clusterRoleBinding), &api.ClusterRoleBinding{})
+		Invokes(testing.NewRootCreateAction(clusterrolebindingsResource, clusterRoleBinding), &authorization.ClusterRoleBinding{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterRoleBinding), err
+	return obj.(*authorization.ClusterRoleBinding), err
 }
 
-func (c *FakeClusterRoleBindings) Update(clusterRoleBinding *api.ClusterRoleBinding) (result *api.ClusterRoleBinding, err error) {
+func (c *FakeClusterRoleBindings) Update(clusterRoleBinding *authorization.ClusterRoleBinding) (result *authorization.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterrolebindingsResource, clusterRoleBinding), &api.ClusterRoleBinding{})
+		Invokes(testing.NewRootUpdateAction(clusterrolebindingsResource, clusterRoleBinding), &authorization.ClusterRoleBinding{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterRoleBinding), err
+	return obj.(*authorization.ClusterRoleBinding), err
 }
 
 func (c *FakeClusterRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterrolebindingsResource, name), &api.ClusterRoleBinding{})
+		Invokes(testing.NewRootDeleteAction(clusterrolebindingsResource, name), &authorization.ClusterRoleBinding{})
 	return err
 }
 
 func (c *FakeClusterRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(clusterrolebindingsResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.ClusterRoleBindingList{})
+	_, err := c.Fake.Invokes(action, &authorization.ClusterRoleBindingList{})
 	return err
 }
 
-func (c *FakeClusterRoleBindings) Get(name string, options v1.GetOptions) (result *api.ClusterRoleBinding, err error) {
+func (c *FakeClusterRoleBindings) Get(name string, options v1.GetOptions) (result *authorization.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(clusterrolebindingsResource, name), &api.ClusterRoleBinding{})
+		Invokes(testing.NewRootGetAction(clusterrolebindingsResource, name), &authorization.ClusterRoleBinding{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterRoleBinding), err
+	return obj.(*authorization.ClusterRoleBinding), err
 }
 
-func (c *FakeClusterRoleBindings) List(opts v1.ListOptions) (result *api.ClusterRoleBindingList, err error) {
+func (c *FakeClusterRoleBindings) List(opts v1.ListOptions) (result *authorization.ClusterRoleBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterrolebindingsResource, opts), &api.ClusterRoleBindingList{})
+		Invokes(testing.NewRootListAction(clusterrolebindingsResource, opts), &authorization.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (c *FakeClusterRoleBindings) List(opts v1.ListOptions) (result *api.Cluster
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.ClusterRoleBindingList{}
-	for _, item := range obj.(*api.ClusterRoleBindingList).Items {
+	list := &authorization.ClusterRoleBindingList{}
+	for _, item := range obj.(*authorization.ClusterRoleBindingList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -84,11 +84,11 @@ func (c *FakeClusterRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, e
 }
 
 // Patch applies the patch and returns the patched clusterRoleBinding.
-func (c *FakeClusterRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterRoleBinding, err error) {
+func (c *FakeClusterRoleBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterrolebindingsResource, name, data, subresources...), &api.ClusterRoleBinding{})
+		Invokes(testing.NewRootPatchSubresourceAction(clusterrolebindingsResource, name, data, subresources...), &authorization.ClusterRoleBinding{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterRoleBinding), err
+	return obj.(*authorization.ClusterRoleBinding), err
 }

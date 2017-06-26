@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // RoleBindingLister helps list RoleBindings.
 type RoleBindingLister interface {
 	// List lists all RoleBindings in the indexer.
-	List(selector labels.Selector) (ret []*api.RoleBinding, err error)
+	List(selector labels.Selector) (ret []*authorization.RoleBinding, err error)
 	// RoleBindings returns an object that can list and get RoleBindings.
 	RoleBindings(namespace string) RoleBindingNamespaceLister
 	RoleBindingListerExpansion
@@ -29,9 +29,9 @@ func NewRoleBindingLister(indexer cache.Indexer) RoleBindingLister {
 }
 
 // List lists all RoleBindings in the indexer.
-func (s *roleBindingLister) List(selector labels.Selector) (ret []*api.RoleBinding, err error) {
+func (s *roleBindingLister) List(selector labels.Selector) (ret []*authorization.RoleBinding, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.RoleBinding))
+		ret = append(ret, m.(*authorization.RoleBinding))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *roleBindingLister) RoleBindings(namespace string) RoleBindingNamespaceL
 // RoleBindingNamespaceLister helps list and get RoleBindings.
 type RoleBindingNamespaceLister interface {
 	// List lists all RoleBindings in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.RoleBinding, err error)
+	List(selector labels.Selector) (ret []*authorization.RoleBinding, err error)
 	// Get retrieves the RoleBinding from the indexer for a given namespace and name.
-	Get(name string) (*api.RoleBinding, error)
+	Get(name string) (*authorization.RoleBinding, error)
 	RoleBindingNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type roleBindingNamespaceLister struct {
 }
 
 // List lists all RoleBindings in the indexer for a given namespace.
-func (s roleBindingNamespaceLister) List(selector labels.Selector) (ret []*api.RoleBinding, err error) {
+func (s roleBindingNamespaceLister) List(selector labels.Selector) (ret []*authorization.RoleBinding, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.RoleBinding))
+		ret = append(ret, m.(*authorization.RoleBinding))
 	})
 	return ret, err
 }
 
 // Get retrieves the RoleBinding from the indexer for a given namespace and name.
-func (s roleBindingNamespaceLister) Get(name string) (*api.RoleBinding, error) {
+func (s roleBindingNamespaceLister) Get(name string) (*authorization.RoleBinding, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("rolebinding"), name)
+		return nil, errors.NewNotFound(authorization.Resource("rolebinding"), name)
 	}
-	return obj.(*api.RoleBinding), nil
+	return obj.(*authorization.RoleBinding), nil
 }

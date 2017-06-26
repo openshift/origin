@@ -23,13 +23,13 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/secret"
 	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildrest "github.com/openshift/origin/pkg/build/registry/build"
 	buildconfigrest "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployrest "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	osautil "github.com/openshift/origin/pkg/serviceaccounts/util"
 )
 

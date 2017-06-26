@@ -1,7 +1,7 @@
 package client
 
 import (
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // ImageStreamMappingsNamespacer has methods to work with ImageStreamMapping resources in a namespace

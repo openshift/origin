@@ -24,7 +24,7 @@ import (
 	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/generator"
 	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"

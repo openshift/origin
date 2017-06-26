@@ -9,13 +9,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	"github.com/openshift/origin/pkg/security/legacyclient"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 const (
@@ -36,7 +36,7 @@ var (
 
 type SCCModificationOptions struct {
 	SCCName      string
-	SCCInterface kcoreclient.SecurityContextConstraintsGetter
+	SCCInterface legacyclient.SecurityContextConstraintInterface
 
 	DefaultSubjectNamespace string
 	Subjects                []kapi.ObjectReference
@@ -149,7 +149,7 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []stri
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = kc.Core()
+	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
@@ -175,7 +175,7 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = kc.Core()
+	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
@@ -186,7 +186,7 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 }
 
 func (o *SCCModificationOptions) AddSCC() error {
-	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName, metav1.GetOptions{})
+	scc, err := o.SCCInterface.Get(o.SCCName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (o *SCCModificationOptions) AddSCC() error {
 	scc.Users = append(scc.Users, usersToAdd...)
 	scc.Groups = append(scc.Groups, groupsToAdd...)
 
-	_, err = o.SCCInterface.SecurityContextConstraints().Update(scc)
+	_, err = o.SCCInterface.Update(scc)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (o *SCCModificationOptions) AddSCC() error {
 }
 
 func (o *SCCModificationOptions) RemoveSCC() error {
-	scc, err := o.SCCInterface.SecurityContextConstraints().Get(o.SCCName, metav1.GetOptions{})
+	scc, err := o.SCCInterface.Get(o.SCCName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (o *SCCModificationOptions) RemoveSCC() error {
 	scc.Users = remainingUsers
 	scc.Groups = remainingGroups
 
-	_, err = o.SCCInterface.SecurityContextConstraints().Update(scc)
+	_, err = o.SCCInterface.Update(scc)
 	if err != nil {
 		return err
 	}

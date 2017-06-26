@@ -13,8 +13,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	_ "k8s.io/kubernetes/pkg/api/install"
 
-	"github.com/openshift/origin/pkg/image/api"
-	_ "github.com/openshift/origin/pkg/image/api/install"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	_ "github.com/openshift/origin/pkg/image/apis/image/install"
 )
 
 type roundTripFunc func(req *http.Request) (*http.Response, error)
@@ -29,33 +29,33 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 		errFn  func(err error) bool
 	}{
 		{
-			status: errors.NewNotFound(api.Resource(""), "").ErrStatus,
+			status: errors.NewNotFound(imageapi.Resource(""), "").ErrStatus,
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 		{
-			status: errors.NewNotFound(api.Resource("ImageStreamImport"), "").ErrStatus,
+			status: errors.NewNotFound(imageapi.Resource("ImageStreamImport"), "").ErrStatus,
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
 		},
 		{
-			status: errors.NewConflict(api.Resource("ImageStreamImport"), "", nil).ErrStatus,
+			status: errors.NewConflict(imageapi.Resource("ImageStreamImport"), "", nil).ErrStatus,
 			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
 		{
-			status: errors.NewForbidden(api.Resource("ImageStreamImport"), "", nil).ErrStatus,
+			status: errors.NewForbidden(imageapi.Resource("ImageStreamImport"), "", nil).ErrStatus,
 			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
 		},
 	}
 	for i, test := range testCases {
 		c, err := New(&restclient.Config{
 			Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(api.SchemeGroupVersion), &test.status)))
+				buf := bytes.NewBuffer([]byte(runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(imageapi.SchemeGroupVersion), &test.status)))
 				return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(buf)}, nil
 			}),
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := c.ImageStreams("test").Import(&api.ImageStreamImport{}); !test.errFn(err) {
+		if _, err := c.ImageStreams("test").Import(&imageapi.ImageStreamImport{}); !test.errFn(err) {
 			t.Errorf("%d: error: %v", i, err)
 		}
 	}

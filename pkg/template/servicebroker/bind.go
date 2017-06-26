@@ -23,8 +23,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {

@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/controller"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type uniqueItem struct {
@@ -42,7 +42,7 @@ type ScheduledImageStreamController struct {
 
 // Importing is invoked when the controller decides to import a stream in order to push back
 // the next schedule time.
-func (s *ScheduledImageStreamController) Importing(stream *api.ImageStream) {
+func (s *ScheduledImageStreamController) Importing(stream *imageapi.ImageStream) {
 	if !s.enabled {
 		return
 	}
@@ -71,16 +71,16 @@ func (s *ScheduledImageStreamController) Run(stopCh <-chan struct{}) {
 }
 
 func (s *ScheduledImageStreamController) addImageStream(obj interface{}) {
-	stream := obj.(*api.ImageStream)
+	stream := obj.(*imageapi.ImageStream)
 	s.enqueueImageStream(stream)
 }
 
 func (s *ScheduledImageStreamController) updateImageStream(old, cur interface{}) {
-	curStream, ok := cur.(*api.ImageStream)
+	curStream, ok := cur.(*imageapi.ImageStream)
 	if !ok {
 		return
 	}
-	oldStream, ok := old.(*api.ImageStream)
+	oldStream, ok := old.(*imageapi.ImageStream)
 	if !ok {
 		return
 	}
@@ -93,13 +93,13 @@ func (s *ScheduledImageStreamController) updateImageStream(old, cur interface{})
 }
 
 func (s *ScheduledImageStreamController) deleteImageStream(obj interface{}) {
-	stream, isStream := obj.(*api.ImageStream)
+	stream, isStream := obj.(*imageapi.ImageStream)
 	if !isStream {
 		tombstone, objIsTombstone := obj.(cache.DeletedFinalStateUnknown)
 		if !objIsTombstone {
 			return
 		}
-		stream, isStream = tombstone.Obj.(*api.ImageStream)
+		stream, isStream = tombstone.Obj.(*imageapi.ImageStream)
 	}
 	key, err := cache.MetaNamespaceKeyFunc(stream)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *ScheduledImageStreamController) deleteImageStream(obj interface{}) {
 }
 
 // enqueueImageStream ensures an image stream is checked for scheduling
-func (s *ScheduledImageStreamController) enqueueImageStream(stream *api.ImageStream) {
+func (s *ScheduledImageStreamController) enqueueImageStream(stream *imageapi.ImageStream) {
 	if !s.enabled {
 		return
 	}
@@ -168,7 +168,7 @@ func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string)
 	if err != nil {
 		return err
 	}
-	stream := copy.(*api.ImageStream)
+	stream := copy.(*imageapi.ImageStream)
 	resetScheduledTags(stream)
 
 	glog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
@@ -176,7 +176,7 @@ func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string)
 }
 
 // resetScheduledTags artificially increments the generation on the tags that should be imported.
-func resetScheduledTags(stream *api.ImageStream) {
+func resetScheduledTags(stream *imageapi.ImageStream) {
 	next := stream.Generation + 1
 	for tag, tagRef := range stream.Spec.Tags {
 		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
@@ -187,7 +187,7 @@ func resetScheduledTags(stream *api.ImageStream) {
 }
 
 // needsScheduling returns true if this image stream has any scheduled tags
-func needsScheduling(stream *api.ImageStream) bool {
+func needsScheduling(stream *imageapi.ImageStream) bool {
 	for _, tagRef := range stream.Spec.Tags {
 		if tagImportable(tagRef) && tagRef.ImportPolicy.Scheduled {
 			return true

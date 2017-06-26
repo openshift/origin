@@ -1,6 +1,6 @@
 {
 	"ImportPath": "k8s.io/kube-aggregator",
-	"GoVersion": "go1.8",
+	"GoVersion": "go1.7",
 	"GodepVersion": "v79",
 	"Packages": [
 		"./..."
@@ -173,6 +173,14 @@
 		{
 			"ImportPath": "github.com/grpc-ecosystem/grpc-gateway/utilities",
 			"Rev": "f52d055dc48aec25854ed7d31862f78913cf17d1"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru",
+			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru/simplelru",
+			"Rev": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4"
 		},
 		{
 			"ImportPath": "github.com/howeyc/gopass",

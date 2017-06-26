@@ -9,7 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota/install"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	"github.com/openshift/origin/pkg/quota/image"
 )

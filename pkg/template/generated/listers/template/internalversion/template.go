@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // TemplateLister helps list Templates.
 type TemplateLister interface {
 	// List lists all Templates in the indexer.
-	List(selector labels.Selector) (ret []*api.Template, err error)
+	List(selector labels.Selector) (ret []*template.Template, err error)
 	// Templates returns an object that can list and get Templates.
 	Templates(namespace string) TemplateNamespaceLister
 	TemplateListerExpansion
@@ -29,9 +29,9 @@ func NewTemplateLister(indexer cache.Indexer) TemplateLister {
 }
 
 // List lists all Templates in the indexer.
-func (s *templateLister) List(selector labels.Selector) (ret []*api.Template, err error) {
+func (s *templateLister) List(selector labels.Selector) (ret []*template.Template, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Template))
+		ret = append(ret, m.(*template.Template))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *templateLister) Templates(namespace string) TemplateNamespaceLister {
 // TemplateNamespaceLister helps list and get Templates.
 type TemplateNamespaceLister interface {
 	// List lists all Templates in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.Template, err error)
+	List(selector labels.Selector) (ret []*template.Template, err error)
 	// Get retrieves the Template from the indexer for a given namespace and name.
-	Get(name string) (*api.Template, error)
+	Get(name string) (*template.Template, error)
 	TemplateNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type templateNamespaceLister struct {
 }
 
 // List lists all Templates in the indexer for a given namespace.
-func (s templateNamespaceLister) List(selector labels.Selector) (ret []*api.Template, err error) {
+func (s templateNamespaceLister) List(selector labels.Selector) (ret []*template.Template, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Template))
+		ret = append(ret, m.(*template.Template))
 	})
 	return ret, err
 }
 
 // Get retrieves the Template from the indexer for a given namespace and name.
-func (s templateNamespaceLister) Get(name string) (*api.Template, error) {
+func (s templateNamespaceLister) Get(name string) (*template.Template, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("template"), name)
+		return nil, errors.NewNotFound(template.Resource("template"), name)
 	}
-	return obj.(*api.Template), nil
+	return obj.(*template.Template), nil
 }

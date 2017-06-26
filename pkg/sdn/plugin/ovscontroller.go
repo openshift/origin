@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang/glog"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	"k8s.io/apimachinery/pkg/util/sets"

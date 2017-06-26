@@ -7,10 +7,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 func NewUserReaper(
@@ -19,7 +19,7 @@ func NewUserReaper(
 	clusterBindingClient client.ClusterRoleBindingsInterface,
 	bindingClient client.RoleBindingsNamespacer,
 	authorizationsClient client.OAuthClientAuthorizationsInterface,
-	sccClient kcoreclient.SecurityContextConstraintsGetter,
+	sccClient legacyclient.SecurityContextConstraintInterface,
 ) kubectl.Reaper {
 	return &UserReaper{
 		userClient:           userClient,
@@ -37,7 +37,7 @@ type UserReaper struct {
 	clusterBindingClient client.ClusterRoleBindingsInterface
 	bindingClient        client.RoleBindingsNamespacer
 	authorizationsClient client.OAuthClientAuthorizationsInterface
-	sccClient            kcoreclient.SecurityContextConstraintsGetter
+	sccClient            legacyclient.SecurityContextConstraintInterface
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,
@@ -54,7 +54,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 	}
 
 	// Remove the user from sccs
-	sccs, err := r.sccClient.SecurityContextConstraints().List(metav1.ListOptions{})
+	sccs, err := r.sccClient.List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (r *UserReaper) Stop(namespace, name string, timeout time.Duration, gracePe
 		if len(retainedUsers) != len(scc.Users) {
 			updatedSCC := scc
 			updatedSCC.Users = retainedUsers
-			if _, err := r.sccClient.SecurityContextConstraints().Update(&updatedSCC); err != nil && !kerrors.IsNotFound(err) {
+			if _, err := r.sccClient.Update(&updatedSCC); err != nil && !kerrors.IsNotFound(err) {
 				glog.Infof("Cannot update scc/%s: %v", scc.Name, err)
 			}
 		}
