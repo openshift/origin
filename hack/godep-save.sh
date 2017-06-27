@@ -52,7 +52,6 @@ REQUIRED_BINS=(
   "k8s.io/kubernetes/test/e2e/generated"
   "github.com/onsi/ginkgo/ginkgo"
   "github.com/jteeuwen/go-bindata/go-bindata"
-  "./..."
 )
 
 TMPGOPATH=`mktemp -d`
@@ -164,8 +163,15 @@ fork-with-fake-packages github.com/docker/docker \
 # kubernetes tests, we have to extract the missing test dependencies and run godep-save again
 # until we converge. Because we rsync kubernetes itself above, two iterations should be enough.
 MISSING_TEST_DEPS=""
+
+# Find subdirs in origin/ and cmd/ excluding
+# cmd/cluster-capacity and cmd/service-catalog and doc.go
+for dir in $(os::util::list_go_src_dirs); do
+ REQUIRED_ALL_DIRS+=" ${dir}/..."
+done
+
 while true; do
-  godep-save -t "${REQUIRED_BINS[@]}" ${MISSING_TEST_DEPS}
+  godep-save -t "${REQUIRED_BINS[@]}" ${REQUIRED_ALL_DIRS} ${MISSING_TEST_DEPS}
   NEW_MISSING_TEST_DEPS="$(missing-test-deps)"
   if [ -z "${NEW_MISSING_TEST_DEPS}" ]; then
     break
