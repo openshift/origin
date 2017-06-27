@@ -96,7 +96,7 @@ func TestDialURL(t *testing.T) {
 			ts.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
 			ts.StartTLS()
 
-			tlsConfigCopy := tc.TLSConfig
+			tlsConfigCopy := utilnet.CloneTLSConfig(tc.TLSConfig)
 			transport := &http.Transport{
 				Dial:            tc.Dial,
 				TLSClientConfig: tlsConfigCopy,
