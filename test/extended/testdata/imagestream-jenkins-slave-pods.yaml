@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  labels:
+    role: jenkins-slave
+  name: jenkins-slave
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+    name: base
+  - from:
+      kind: ImageStreamTag
+      name: base
+    name: latest

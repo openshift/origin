@@ -36,6 +36,7 @@
 // test/extended/testdata/build-timing/test-docker-build.json
 // test/extended/testdata/build-timing/test-is.json
 // test/extended/testdata/build-timing/test-s2i-build.json
+// test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -87,6 +88,8 @@
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml
+// test/extended/testdata/imagestream-jenkins-slave-pods.yaml
+// test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
 // test/extended/testdata/incremental-auth-build.json
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
@@ -102,6 +105,7 @@
 // test/extended/testdata/jenkins-plugin/multitag-job.xml
 // test/extended/testdata/jenkins-plugin/multitag-template.json
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
+// test/extended/testdata/jenkins-slave-template.yaml
 // test/extended/testdata/jobs/v1.yaml
 // test/extended/testdata/ldap/ldapserver-buildconfig.json
 // test/extended/testdata/ldap/ldapserver-deploymentconfig.json
@@ -1492,6 +1496,67 @@ func testExtendedTestdataBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataConfigMapJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    jenkins-slave: |-
+      <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
+        <inheritFrom></inheritFrom>
+        <name>jenkins-slave</name>
+        <instanceCap>2147483647</instanceCap>
+        <idleMinutes>0</idleMinutes>
+        <label>jenkins-slave</label>
+        <serviceAccount>jenkins</serviceAccount>
+        <nodeSelector></nodeSelector>
+        <volumes/>
+        <containers>
+          <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+            <name>jnlp</name>
+            <image>openshift/jenkins-slave-maven-centos7</image>
+            <privileged>false</privileged>
+            <alwaysPullImage>false</alwaysPullImage>
+            <workingDir>/tmp</workingDir>
+            <command></command>
+            <args>${computer.jnlpmac} ${computer.name}</args>
+            <ttyEnabled>false</ttyEnabled>
+            <resourceRequestCpu></resourceRequestCpu>
+            <resourceRequestMemory></resourceRequestMemory>
+            <resourceLimitCpu></resourceLimitCpu>
+            <resourceLimitMemory></resourceLimitMemory>
+            <envVars/>
+          </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+        </containers>
+        <envVars/>
+        <annotations/>
+        <imagePullSecrets/>
+        <nodeProperties/>
+      </org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
+  kind: ConfigMap
+  metadata:
+    labels:
+      role: jenkins-slave
+    name: jenkins-slave
+kind: List
+metadata: {}
+resourceVersion: ""
+selfLink: ""`)
+
+func testExtendedTestdataConfigMapJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataConfigMapJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataConfigMapJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataConfigMapJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/config-map-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -4103,6 +4168,73 @@ func testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataImagestreamJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  labels:
+    role: jenkins-slave
+  name: jenkins-slave
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+    name: base
+  - from:
+      kind: ImageStreamTag
+      name: base
+    name: latest
+`)
+
+func testExtendedTestdataImagestreamJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImagestreamJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataImagestreamJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImagestreamJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/imagestream-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: slave-jenkins
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+    name: base
+  - annotations:
+      role: jenkins-slave
+      slave-label: jenkins-slave
+    from:
+      kind: ImageStreamTag
+      name: base
+    name: latest
+`)
+
+func testExtendedTestdataImagestreamtagJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImagestreamtagJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataIncrementalAuthBuildJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -5489,6 +5621,52 @@ func testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson() (*asset, err
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/jenkins-plugin/shared-resources-template.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataJenkinsSlaveTemplateYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: jenkins-slave-pipeline
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: openshift-jee-sample
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+        
+                node("jenkins-slave") {
+                  sh "mvn --version"
+                }
+
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataJenkinsSlaveTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataJenkinsSlaveTemplateYaml, nil
+}
+
+func testExtendedTestdataJenkinsSlaveTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataJenkinsSlaveTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/jenkins-slave-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -20278,6 +20456,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-timing/test-docker-build.json": testExtendedTestdataBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/build-timing/test-is.json": testExtendedTestdataBuildTimingTestIsJson,
 	"test/extended/testdata/build-timing/test-s2i-build.json": testExtendedTestdataBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -20329,6 +20508,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
+	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
+	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
 	"test/extended/testdata/incremental-auth-build.json": testExtendedTestdataIncrementalAuthBuildJson,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
@@ -20344,6 +20525,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/multitag-job.xml": testExtendedTestdataJenkinsPluginMultitagJobXml,
 	"test/extended/testdata/jenkins-plugin/multitag-template.json": testExtendedTestdataJenkinsPluginMultitagTemplateJson,
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
+	"test/extended/testdata/jenkins-slave-template.yaml": testExtendedTestdataJenkinsSlaveTemplateYaml,
 	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
 	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
 	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
@@ -20615,6 +20797,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-is.json": &bintree{testExtendedTestdataBuildTimingTestIsJson, map[string]*bintree{}},
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 				}},
+				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
 					"build.sh": &bintree{testExtendedTestdataCustomSecretBuilderBuildSh, map[string]*bintree{}},
@@ -20700,6 +20883,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"pod-with-no-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, map[string]*bintree{}},
 					"pod-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, map[string]*bintree{}},
 				}},
+				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"incremental-auth-build.json": &bintree{testExtendedTestdataIncrementalAuthBuildJson, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
@@ -20717,6 +20902,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"multitag-template.json": &bintree{testExtendedTestdataJenkinsPluginMultitagTemplateJson, map[string]*bintree{}},
 					"shared-resources-template.json": &bintree{testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson, map[string]*bintree{}},
 				}},
+				"jenkins-slave-template.yaml": &bintree{testExtendedTestdataJenkinsSlaveTemplateYaml, map[string]*bintree{}},
 				"jobs": &bintree{nil, map[string]*bintree{
 					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
