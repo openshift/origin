@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -33,6 +34,8 @@ import (
 // PruneImagesRecommendedName is the recommended command name
 const PruneImagesRecommendedName = "images"
 
+var errNoToken = errors.New("you must use a client config with a token")
+
 var (
 	imagesLongDesc = templates.LongDesc(`
 		Remove image stream tags, images, and image layers by age or usage
@@ -52,11 +55,13 @@ var (
 		authority other than the one present in current user's config, you may need to specify it
 		using --certificate-authority flag.
 
-		Insecure connection is allowed in following cases unless certificate-authority is specified:
-		 1. --force-insecure is given
+		Insecure connection is allowed in the following cases unless certificate-authority is
+		specified:
+
+		 1. --force-insecure is given  
 		 2. user's config allows for insecure connection (the user logged in to the cluster with
-			--insecure-skip-tls-verify or allowed for insecure connection)
-		 3. registry url is not given or it's a private/link-local address`)
+			--insecure-skip-tls-verify or allowed for insecure connection)  
+		 3. registry url is a private or link-local address`)
 
 	imagesExample = templates.Examples(`
 	  # See, what the prune command would delete if only images more than an hour old and obsoleted
@@ -92,11 +97,10 @@ type PruneImagesOptions struct {
 	Namespace           string
 	ForceInsecure       bool
 
-	OSClient       client.Interface
-	KClient        kclientset.Interface
-	RegistryClient *http.Client
-	Out            io.Writer
-	Insecure       bool
+	ClientConfig *restclient.Config
+	OSClient     client.Interface
+	KubeClient   kclientset.Interface
+	Out          io.Writer
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
@@ -168,18 +172,14 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
+	o.ClientConfig = clientConfig
 
-	o.Insecure = o.ForceInsecure
-	if !o.Insecure && len(o.CABundle) == 0 {
-		o.Insecure = clientConfig.TLSClientConfig.Insecure || len(o.RegistryUrlOverride) == 0 || netutils.IsPrivateAddress(o.RegistryUrlOverride)
-	}
-	osClient, kClient, registryClient, err := getClients(f, o.CABundle, o.Insecure)
+	osClient, kubeClient, err := getClients(f)
 	if err != nil {
 		return err
 	}
 	o.OSClient = osClient
-	o.KClient = kClient
-	o.RegistryClient = registryClient
+	o.KubeClient = kubeClient
 
 	return nil
 }
@@ -218,12 +218,12 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allPods, err := o.KClient.Core().Pods(o.Namespace).List(metav1.ListOptions{})
+	allPods, err := o.KubeClient.Core().Pods(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := o.KClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
+	allRCs, err := o.KubeClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -247,7 +247,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	limitRangesList, err := o.KClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
+	limitRangesList, err := o.KubeClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -260,6 +260,42 @@ func (o PruneImagesOptions) Run() error {
 		}
 		limits = append(limits, &limit)
 		limitRangesMap[limit.Namespace] = limits
+	}
+
+	var (
+		registryHost   = o.RegistryUrlOverride
+		registryClient *http.Client
+		registryPinger prune.RegistryPinger
+	)
+
+	if o.Confirm {
+		if len(registryHost) == 0 {
+			registryHost, err = prune.DetermineRegistryHost(allImages, allStreams)
+			if err != nil {
+				return fmt.Errorf("unable to determine registry: %v", err)
+			}
+		}
+
+		insecure := o.ForceInsecure
+		if !insecure && len(o.CABundle) == 0 {
+			insecure = o.ClientConfig.TLSClientConfig.Insecure || netutils.IsPrivateAddress(registryHost)
+		}
+
+		registryClient, err = getRegistryClient(o.ClientConfig, o.CABundle, insecure)
+		if err != nil {
+			return err
+		}
+		registryPinger = &prune.DefaultRegistryPinger{
+			Client:   registryClient,
+			Insecure: insecure,
+		}
+	} else {
+		registryPinger = &prune.DryRunRegistryPinger{}
+	}
+
+	registryURL, err := registryPinger.Ping(registryHost)
+	if err != nil {
+		return fmt.Errorf("error communicating with registry %s: %v", registryHost, err)
 	}
 
 	options := prune.PrunerOptions{
@@ -276,9 +312,8 @@ func (o PruneImagesOptions) Run() error {
 		DCs:                allDCs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,
-		RegistryClient:     o.RegistryClient,
-		RegistryURL:        o.RegistryUrlOverride,
-		Insecure:           o.Insecure,
+		RegistryClient:     registryClient,
+		RegistryURL:        registryURL,
 	}
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
@@ -379,7 +414,7 @@ type describingLayerLinkDeleter struct {
 
 var _ prune.LayerLinkDeleter = &describingLayerLinkDeleter{}
 
-func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repo, name string) error {
+func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL *url.URL, repo, name string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry repository layer links ...")
@@ -410,7 +445,7 @@ type describingBlobDeleter struct {
 
 var _ prune.BlobDeleter = &describingBlobDeleter{}
 
-func (p *describingBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL, layer string) error {
+func (p *describingBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL *url.URL, layer string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry layer blobs ...")
@@ -442,7 +477,7 @@ type describingManifestDeleter struct {
 
 var _ prune.ManifestDeleter = &describingManifestDeleter{}
 
-func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
+func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, registryURL *url.URL, repo, manifest string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry repository manifest data ...")
@@ -457,46 +492,48 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 
 	err := p.delegate.DeleteManifest(registryClient, registryURL, repo, manifest)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error deleting data for repository %s image manifest %s from the registry: %v\n", repo, manifest, err)
+		fmt.Fprintf(os.Stderr, "error deleting manifest %s from repository %s: %v\n", manifest, repo, err)
 	}
 
 	return err
 }
 
-// getClients returns a Kube client, OpenShift client, and registry client. Note that
-// registryCABundle and registryInsecure=true are mutually exclusive. If registryInsecure=true is
-// specified, the ca bundle is ignored.
-func getClients(f *clientcmd.Factory, registryCABundle string, registryInsecure bool) (*client.Client, kclientset.Interface, *http.Client, error) {
+// getClients returns a OpenShift client and Kube client.
+func getClients(f *clientcmd.Factory) (*client.Client, kclientset.Interface, error) {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
+	if len(clientConfig.BearerToken) == 0 {
+		return nil, nil, errNoToken
+	}
+
+	osClient, kubeClient, err := f.Clients()
+	if err != nil {
+		return nil, nil, err
+	}
+	return osClient, kubeClient, err
+}
+
+// getRegistryClient returns a registry client. Note that registryCABundle and registryInsecure=true are
+// mutually exclusive. If registryInsecure=true is specified, the ca bundle is ignored.
+func getRegistryClient(clientConfig *restclient.Config, registryCABundle string, registryInsecure bool) (*http.Client, error) {
 	var (
-		token          string
-		osClient       *client.Client
-		kClient        kclientset.Interface
-		registryClient *http.Client
+		err                      error
+		cadata                   []byte
+		registryCABundleIncluded = false
+		token                    = clientConfig.BearerToken
 	)
 
-	switch {
-	case len(clientConfig.BearerToken) > 0:
-		osClient, kClient, err = f.Clients()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		token = clientConfig.BearerToken
-	default:
-		err = errors.New("you must use a client config with a token")
-		return nil, nil, nil, err
+	if len(token) == 0 {
+		return nil, errNoToken
 	}
 
-	cadata := []byte{}
-	registryCABundleIncluded := false
 	if len(registryCABundle) > 0 {
 		cadata, err = ioutil.ReadFile(registryCABundle)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to read registry ca bundle: %v", err)
+			return nil, fmt.Errorf("failed to read registry ca bundle: %v", err)
 		}
 	}
 
@@ -532,7 +569,7 @@ func getClients(f *clientcmd.Factory, registryCABundle string, registryInsecure 
 
 	tlsConfig, err := restclient.TLSConfigFor(&registryClientConfig)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	// Add the CA bundle to the client config's CA roots if provided and we haven't done that already.
@@ -550,12 +587,10 @@ func getClients(f *clientcmd.Factory, registryCABundle string, registryInsecure 
 
 	wrappedTransport, err := restclient.HTTPWrappersForConfig(&registryClientConfig, transport)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	registryClient = &http.Client{
+	return &http.Client{
 		Transport: wrappedTransport,
-	}
-
-	return osClient, kClient, registryClient, nil
+	}, nil
 }
