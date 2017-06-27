@@ -108,10 +108,6 @@ ownership/permissions.
 For volume permission problems please consult the Persistent Storage section
 of the Administrator's Guide.
 
-In the case of SELinux this may be resolved on the node by running:
-
-    sudo chcon -R -t svirt_sandbox_file_t [PATH_TO]/openshift.local.volumes
-
 %s`
 
 	clRegNoEP = `

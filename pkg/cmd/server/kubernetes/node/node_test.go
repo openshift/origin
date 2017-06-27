@@ -1,33 +1,12 @@
 package node
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"path"
 )
 
 import "testing"
-
-type fakeCommandExecutor struct {
-	commandFound bool
-	commandErr   error
-	runCalled    bool
-	lookCalled   bool
-}
-
-func (f *fakeCommandExecutor) LookPath(path string) (string, error) {
-	f.lookCalled = true
-	if f.commandFound {
-		return path, nil
-	}
-	return "", errors.New("not found")
-}
-
-func (f *fakeCommandExecutor) Run(command string, args ...string) error {
-	f.runCalled = true
-	return f.commandErr
-}
 
 func TestInitializeVolumeDir(t *testing.T) {
 	parentDir, err := ioutil.TempDir("", "")
@@ -42,22 +21,13 @@ func TestInitializeVolumeDir(t *testing.T) {
 	volumeDir := path.Join(parentDir, "somedir")
 
 	testCases := map[string]struct {
-		chconFound       bool
-		chconRunErr      error
 		dirAlreadyExists bool
 	}{
-		"no chcon":                  {chconFound: false},
-		"have chcon":                {chconFound: true},
-		"chcon error":               {chconFound: true, chconRunErr: errors.New("e")},
-		"volume dir already exists": {chconFound: true, dirAlreadyExists: true},
+		"volume dir does not exist": {dirAlreadyExists: false},
+		"volume dir already exists": {dirAlreadyExists: true},
 	}
 
 	for name, testCase := range testCases {
-		ce := &fakeCommandExecutor{
-			commandFound: testCase.chconFound,
-			commandErr:   testCase.chconRunErr,
-		}
-
 		if testCase.dirAlreadyExists {
 			if err := os.MkdirAll(volumeDir, 0750); err != nil {
 				t.Fatalf("%s: error creating volume dir: %v", name, err)
@@ -69,17 +39,8 @@ func TestInitializeVolumeDir(t *testing.T) {
 		}
 
 		nc := &NodeConfig{VolumeDir: volumeDir}
-		path, err := nc.initializeVolumeDir(ce, nc.VolumeDir)
+		path, err := nc.initializeVolumeDir(nc.VolumeDir)
 
-		if !ce.lookCalled {
-			t.Errorf("%s: expected look for chcon", name)
-		}
-		if !testCase.chconFound && ce.runCalled {
-			t.Errorf("%s: unexpected run after chcon not found", name)
-		}
-		if testCase.chconFound && !ce.runCalled {
-			t.Errorf("%s: expected chcon run", name)
-		}
 		if err != nil {
 			t.Errorf("%s: unexpected err: %s", name, err)
 		}

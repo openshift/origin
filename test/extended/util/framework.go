@@ -1192,7 +1192,7 @@ func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capac
 			return volumes, err
 		}
 		if _, err = exec.LookPath("chcon"); err == nil {
-			err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).Run()
+			err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
 			if err != nil {
 				return volumes, err
 			}

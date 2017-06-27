@@ -82,13 +82,10 @@ function os::test::extended::setup () {
 		SKIP_NODE=1
 	fi
 
-	# when selinux is enforcing, the volume dir selinux label needs to be
-	# svirt_sandbox_file_t
-	#
-	# TODO: fix the selinux policy to either allow openshift_var_lib_dir_t
-	# or to default the volume dir to svirt_sandbox_file_t.
+	# make sure the volume dir has the same label as we would apply to the default VOLUME_DIR
 	if selinuxenabled; then
-		${sudo} chcon -t svirt_sandbox_file_t ${VOLUME_DIR}
+		local label=$(matchpathcon -m dir /var/lib/openshift/openshift.local.volumes)
+		${sudo} chcon "${label}" ${VOLUME_DIR}
 	fi
 	CONFIG_VERSION=""
 	if [[ -n "${API_SERVER_VERSION:-}" ]]; then
