@@ -369,6 +369,18 @@ func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kuberne
 	)
 }
 
+func BuildKubernetesControllersConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
+	if openshiftConfig.Options.KubernetesMasterConfig == nil {
+		return nil, fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
+	}
+	return kubernetes.BuildKubernetesControllersConfig(
+		openshiftConfig.Options,
+		openshiftConfig.KubeClientsetExternal(),
+		openshiftConfig.KubeClientsetInternal(),
+		openshiftConfig.ExternalKubeInformers,
+	)
+}
+
 // Master encapsulates starting the components of the master
 type Master struct {
 	config      *configapi.MasterConfig
@@ -399,14 +411,30 @@ func (m *Master) Start() error {
 		},
 	})
 
-	openshiftConfig, err := origin.BuildMasterConfig(*m.config)
-	if err != nil {
-		return err
-	}
-
-	kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
-	if err != nil {
-		return err
+	var (
+		openshiftConfig  *origin.MasterConfig
+		kubeMasterConfig *kubernetes.MasterConfig
+		err              error
+	)
+	switch {
+	case m.controllers && !m.api:
+		openshiftConfig, err = origin.BuildControllersConfig(*m.config)
+		if err != nil {
+			return err
+		}
+		kubeMasterConfig, err = BuildKubernetesControllersConfig(openshiftConfig)
+		if err != nil {
+			return err
+		}
+	default:
+		openshiftConfig, err = origin.BuildMasterConfig(*m.config)
+		if err != nil {
+			return err
+		}
+		kubeMasterConfig, err = BuildKubernetesMasterConfig(openshiftConfig)
+		if err != nil {
+			return err
+		}
 	}
 
 	// initialize the election module if the controllers will start
