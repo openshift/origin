@@ -138,8 +138,8 @@ var (
 	// part of the domain name.
 	DefaultAllowedRegistriesForImport = &AllowedRegistries{
 		{DomainName: "docker.io"},
-		{DomainName: "*.docker.io"}, // registry-1.docker.io
-		{DomainName: "registry.access.redhat.com"},
+		{DomainName: "*.docker.io"},  // registry-1.docker.io
+		{DomainName: "*.redhat.com"}, // registry.connect.redhat.com and registry.access.redhat.com
 		{DomainName: "gcr.io"},
 		{DomainName: "quay.io"},
 		// FIXME: Probably need to have more fine-tuned pattern defined
