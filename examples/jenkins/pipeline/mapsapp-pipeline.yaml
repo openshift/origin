@@ -37,7 +37,7 @@ parameters:
   value: master
 - name: GITHUB_WEBHOOK_SECRET
   displayName: GitHub Webhook Secret
-  description: A secret string used to configure the GitHub webhook.
+  description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   generate: expression
   from: "[a-zA-Z0-9]{40}"
 - name: GENERIC_WEBHOOK_SECRET
