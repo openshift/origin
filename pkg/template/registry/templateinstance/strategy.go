@@ -17,6 +17,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/authorization/util"
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
@@ -96,7 +97,7 @@ func (s *templateInstanceStrategy) ValidateUpdate(ctx apirequest.Context, obj, o
 	templateInstance := obj.(*templateapi.TemplateInstance)
 	oldTemplateInstance := old.(*templateapi.TemplateInstance)
 	allErrs := validation.ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance)
-	allErrs = append(allErrs, s.validateImpersonation(templateInstance, user)...)
+	allErrs = append(allErrs, s.validateImpersonationUpdate(templateInstance, oldTemplateInstance, user)...)
 
 	return allErrs
 }
@@ -122,6 +123,14 @@ func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
 // SelectableFields returns a field set that can be used for filter selection
 func SelectableFields(obj *templateapi.TemplateInstance) fields.Set {
 	return templateapi.TemplateInstanceToSelectableFields(obj)
+}
+
+func (s *templateInstanceStrategy) validateImpersonationUpdate(templateInstance, oldTemplateInstance *templateapi.TemplateInstance, userinfo user.Info) field.ErrorList {
+	if oadmission.IsOnlyMutatingGCFields(templateInstance, oldTemplateInstance) {
+		return nil
+	}
+
+	return s.validateImpersonation(templateInstance, userinfo)
 }
 
 func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templateapi.TemplateInstance, userinfo user.Info) field.ErrorList {
