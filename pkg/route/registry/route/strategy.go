@@ -52,13 +52,15 @@ func (routeStrategy) NamespaceScoped() bool {
 func (s routeStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	route := obj.(*routeapi.Route)
 	route.Status = routeapi.RouteStatus{}
+	stripEmptyDestinationCACertificate(route)
 }
 
 func (s routeStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	route := obj.(*routeapi.Route)
 	oldRoute := old.(*routeapi.Route)
-	route.Status = oldRoute.Status
 
+	route.Status = oldRoute.Status
+	stripEmptyDestinationCACertificate(route)
 	// Ignore attempts to clear the spec Host
 	// Prevents "immutable field" errors when applying the same route definition used to create
 	if len(route.Spec.Host) == 0 {
@@ -216,6 +218,56 @@ func (routeStatusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old run
 
 func (routeStatusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateRouteStatusUpdate(obj.(*routeapi.Route), old.(*routeapi.Route))
+}
+
+const emptyDestinationCertificate = `-----BEGIN COMMENT-----
+This is an empty PEM file created to provide backwards compatibility
+for reencrypt routes that have no destinationCACertificate. This 
+content will only appear for routes accessed via /oapi/v1/routes.
+-----END COMMENT-----
+`
+
+// stripEmptyDestinationCACertificate removes the empty destinationCACertificate if it matches
+// the current route destination CA certificate.
+func stripEmptyDestinationCACertificate(route *routeapi.Route) {
+	tls := route.Spec.TLS
+	if tls == nil || tls.Termination != routeapi.TLSTerminationReencrypt {
+		return
+	}
+	if tls.DestinationCACertificate == emptyDestinationCertificate {
+		tls.DestinationCACertificate = ""
+	}
+}
+
+// DecorateLegacyRouteWithEmptyDestinationCACertificates is used for /oapi/v1 route endpoints
+// to prevent legacy clients from seeing an empty destination CA certificate for reencrypt routes,
+// which the 'route.openshift.io/v1' endpoint allows. These values are injected in REST responses
+// and stripped in PrepareForCreate and PrepareForUpdate.
+func DecorateLegacyRouteWithEmptyDestinationCACertificates(obj runtime.Object) error {
+	switch t := obj.(type) {
+	case *routeapi.Route:
+		tls := t.Spec.TLS
+		if tls == nil || tls.Termination != routeapi.TLSTerminationReencrypt {
+			return nil
+		}
+		if len(tls.DestinationCACertificate) == 0 {
+			tls.DestinationCACertificate = emptyDestinationCertificate
+		}
+		return nil
+	case *routeapi.RouteList:
+		for i := range t.Items {
+			tls := t.Items[i].Spec.TLS
+			if tls == nil || tls.Termination != routeapi.TLSTerminationReencrypt {
+				continue
+			}
+			if len(tls.DestinationCACertificate) == 0 {
+				tls.DestinationCACertificate = emptyDestinationCertificate
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unknown type passed to %T", obj)
+	}
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
