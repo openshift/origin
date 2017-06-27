@@ -141,13 +141,11 @@ func (m *RCControllerRefManager) AdoptReplicationController(rs *v1.ReplicationCo
 	addControllerPatch := fmt.Sprintf(
 		`{"metadata":{
 			"ownerReferences":[{"apiVersion":"%s","kind":"%s","name":"%s","uid":"%s","controller":true,"blockOwnerDeletion":true}],
-			"uid":"%s",
-			"finalizers": ["%s"]
+			"uid":"%s"
 			}
 		}`,
 		m.controllerKind.GroupVersion(), m.controllerKind.Kind,
-		m.Controller.GetName(), m.Controller.GetUID(), rs.UID,
-		kmetav1.FinalizerDeleteDependents)
+		m.Controller.GetName(), m.Controller.GetUID(), rs.UID)
 	return m.rcControl.PatchReplicationController(rs.Namespace, rs.Name, []byte(addControllerPatch))
 }
 
