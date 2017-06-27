@@ -330,15 +330,26 @@ type DeploymentCauseImageTrigger struct {
 
 type DeploymentConditionType string
 
-// These are valid conditions of a deployment config.
+// These are valid conditions of a DeploymentConfig.
 const (
-	// DeploymentAvailable means the deployment config is available, ie. at least the minimum available
-	// replicas required are up and running for at least minReadySeconds.
+	// DeploymentAvailable means the DeploymentConfig is available, ie. at least the minimum available
+	// replicas required (dc.spec.replicas in case the DeploymentConfig is of Recreate type,
+	// dc.spec.replicas - dc.spec.strategy.rollingParams.maxUnavailable in case it's Rolling) are up and
+	// running for at least dc.spec.minReadySeconds.
 	DeploymentAvailable DeploymentConditionType = "Available"
-	// DeploymentProgressing means the deployment config is progressing. Progress for a deployment
-	// config is considered when a new replica set is created or adopted, and when new pods scale up or
-	// old pods scale down. Progress is not estimated for paused deployment configs, when the deployment
-	// config needs to rollback, or when progressDeadlineSeconds is not specified.
+	// DeploymentProgressing is:
+	// * True: the DeploymentConfig has been successfully deployed or is amidst getting deployed.
+	//   The two different states can be determined by looking at the Reason of the Condition.
+	//   For example, a complete DC will have {Status: True, Reason: NewReplicationControllerAvailable}
+	//   and a DC in the middle of a rollout {Status: True, Reason: ReplicationControllerUpdated}.
+	//   TODO: Represent a successfully deployed DC by using something else for Status like Unknown?
+	// * False: the DeploymentConfig has failed to deploy its latest version.
+	//
+	// This condition is purely informational and depends on the dc.spec.strategy.*params.timeoutSeconds
+	// field, which is responsible for the time in seconds to wait for a rollout before deciding that
+	// no progress can be made, thus the rollout is aborted.
+	//
+	// Progress for a DeploymentConfig is considered when new pods scale up or old pods scale down.
 	DeploymentProgressing DeploymentConditionType = "Progressing"
 	// DeploymentReplicaFailure is added in a deployment config when one of its pods
 	// fails to be created or deleted.
