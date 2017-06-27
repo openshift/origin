@@ -4,7 +4,6 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -149,18 +148,4 @@ func (a *DefaultRuleResolver) RulesFor(user user.Info, namespace string) ([]auth
 	}
 
 	return rules, kerrors.NewAggregate(errs)
-}
-
-func appliesToUser(ruleUsers, ruleGroups sets.String, user user.Info) bool {
-	if ruleUsers.Has(user.GetName()) {
-		return true
-	}
-
-	for _, currGroup := range user.GetGroups() {
-		if ruleGroups.Has(currGroup) {
-			return true
-		}
-	}
-
-	return false
 }

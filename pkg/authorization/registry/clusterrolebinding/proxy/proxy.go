@@ -9,6 +9,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -18,7 +19,7 @@ type ClusterRoleBindingStorage struct {
 	roleBindingStorage rolebindingstorage.VirtualStorage
 }
 
-func NewClusterRoleBindingStorage(clusterBindingRegistry clusterpolicybindingregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleBindingStorage {
+func NewClusterRoleBindingStorage(clusterBindingRegistry clusterpolicybindingregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) clusterrolebinding.Storage {
 	return &ClusterRoleBindingStorage{
 		roleBindingStorage: rolebindingstorage.VirtualStorage{
 			BindingRegistry: clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry),
