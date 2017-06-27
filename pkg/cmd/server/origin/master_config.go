@@ -2,7 +2,6 @@ package origin
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -39,7 +38,6 @@ import (
 	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -96,7 +94,6 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
-	"github.com/openshift/origin/pkg/serviceaccounts"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
@@ -1064,6 +1061,13 @@ func (c *MasterConfig) OAuthServerClients() (*osclient.Client, kclientsetinterna
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
+// ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
+// It must have the following capabilities:
+//  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces
+func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
+	return c.PrivilegedLoopbackOpenShiftClient
+}
+
 // PolicyClient returns the policy client object
 // It must have the following capabilities:
 //  list, watch all policyBindings in all namespaces
@@ -1073,21 +1077,14 @@ func (c *MasterConfig) PolicyClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
-// It must have the following capabilities:
-//  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces
-func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
+// RouteAllocatorClients returns the route allocator client objects
+func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, kclientsetinternal.Interface) {
+	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
-// BuildLogClient returns the build log client object
-func (c *MasterConfig) BuildLogClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// BuildConfigWebHookClient returns the webhook client object
-func (c *MasterConfig) BuildConfigWebHookClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
+// SecurityAllocationControllerClient returns the security allocation controller client object
+func (c *MasterConfig) SecurityAllocationControllerClient() kclientsetexternal.Interface {
+	return c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
 func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, error) {
@@ -1106,107 +1103,7 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 	), nil
 }
 
-// BuildControllerClients returns the build controller client objects
-func (c *MasterConfig) BuildControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// BuildImageChangeTriggerControllerClients returns the build image change trigger controller client objects
-func (c *MasterConfig) BuildImageChangeTriggerControllerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// BuildConfigChangeControllerClients returns the build config change controller client objects
-func (c *MasterConfig) BuildConfigChangeControllerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// ImageImportControllerClient returns the deployment client object
-func (c *MasterConfig) ImageImportControllerClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-func (c *MasterConfig) DeploymentConfigInstantiateClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DeploymentConfigClients returns deploymentConfig and deployment client objects
-func (c *MasterConfig) DeploymentConfigClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// DeploymentLogClient returns the deployment log client object
-func (c *MasterConfig) DeploymentLogClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// SecurityAllocationControllerClient returns the security allocation controller client object
-func (c *MasterConfig) SecurityAllocationControllerClient() kclientsetexternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// RouteAllocatorClients returns the route allocator client objects
-func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// ImageStreamSecretClient returns the client capable of retrieving secrets for an image secret wrapper
-func (c *MasterConfig) ImageStreamSecretClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// ImageStreamImportSecretClient returns the client capable of retrieving image secrets for a namespace
-func (c *MasterConfig) ImageStreamImportSecretClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-// ImageStreamImportSARClient returns the client capable of performing self-SAR requests
-func (c *MasterConfig) ImageStreamImportSARClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-// ResourceQuotaManagerClients returns the client capable of retrieving resources needed for resource quota
-// evaluation
-func (c *MasterConfig) ResourceQuotaManagerClients() (*osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal, c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
 func (c *MasterConfig) WebConsoleEnabled() bool {
 	return c.Options.AssetConfig != nil && !c.Options.DisabledFeatures.Has(configapi.FeatureWebConsole)
-}
-
-// OriginNamespaceControllerClient returns a client for openshift and kubernetes.
-// The kubernetes client object must have authority to execute a finalize request on a namespace
-func (c *MasterConfig) OriginNamespaceControllerClient() kclientsetinternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// UnidlingControllerClients returns the unidling controller clients
-func (c *MasterConfig) UnidlingControllerClients() (*osclient.Client, kclientsetinternal.Interface, kextensionsclient.ScalesGetter) {
-	_, osClient, kClient, _, err := c.GetServiceAccountClients(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	extensionsClient := kextensionsclient.New(kClient.Core().RESTClient())
-	return osClient, kClient, extensionsClient
-}
-
-// GetServiceAccountClients returns an OpenShift and Kubernetes client with the credentials of the
-// named service account in the infra namespace
-func (c *MasterConfig) GetServiceAccountClients(name string) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
-	return c.GetServiceAccountClientsWithConfig(name, c.PrivilegedLoopbackClientConfig)
-}
-
-func (c *MasterConfig) GetServiceAccountClientsWithConfig(name string, config restclient.Config) (*restclient.Config, *osclient.Client, kclientsetinternal.Interface, kclientsetexternal.Interface, error) {
-	if len(name) == 0 {
-		return nil, nil, nil, nil, errors.New("No service account name specified")
-	}
-	configToReturn, oc, internalKubeClientset, externalKubeClientset, err := serviceaccounts.Clients(
-		config,
-		&serviceaccounts.ClientLookupTokenRetriever{Client: c.PrivilegedLoopbackKubernetesClientsetInternal},
-		c.Options.PolicyConfig.OpenShiftInfrastructureNamespace,
-		name,
-	)
-	return configToReturn, oc, internalKubeClientset, externalKubeClientset, err
 }

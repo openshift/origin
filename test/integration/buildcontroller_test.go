@@ -126,10 +126,6 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 
-	// Get the build controller clients, since those rely on service account tokens
-	// We don't want to proceed with the rest of the test until those are available
-	openshiftConfig.BuildControllerClients()
-
 	// this test wants to duplicate the controllers, so it needs to duplicate the wiring.
 	// TODO have this simply start the particular controller it wants multiple times
 	controllerManagerOptions := cmapp.NewCMServer()
