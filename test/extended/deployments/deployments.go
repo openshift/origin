@@ -12,8 +12,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
@@ -24,6 +26,7 @@ import (
 )
 
 const deploymentRunTimeout = 5 * time.Minute
+const deploymentChangeTimeout = 30 * time.Second
 
 var _ = g.Describe("deploymentconfigs", func() {
 	defer g.GinkgoRecover()
@@ -966,6 +969,111 @@ var _ = g.Describe("deploymentconfigs", func() {
 				err = fmt.Errorf("deployment config %q never updated its conditions: %#v", name, conditions)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+	})
+
+	g.Describe("", func() {
+		dcName := "deployment-simple"
+		g.AfterEach(func() {
+			failureTrap(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+			failureTrapForDetachedRCs(oc, dcName, g.CurrentGinkgoTestDescription().Failed)
+		})
+
+		g.It("should adhere to Three Laws of Controllers [Conformance]", func() {
+			namespace := oc.Namespace()
+			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dcName, i) }
+
+			var dc *deployapi.DeploymentConfig
+			var rc1 *kapiv1.ReplicationController
+			var err error
+
+			g.By("should create ControllerRef in RCs it creates", func() {
+				dc, err = readDCFixture(simpleDeploymentFixture)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				dc, err = oc.Client().DeploymentConfigs(namespace).Create(dc)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentRunning)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				rc1, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Get(rcName(1), metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				validRef := HasValidDCControllerRef(dc, rc1)
+				o.Expect(validRef).To(o.BeTrue())
+			})
+
+			err = waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("releasing RCs that no longer match its selector", func() {
+				dc, err = oc.Client().DeploymentConfigs(namespace).Get(dcName, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				patch := []byte(fmt.Sprintf(`{"metadata": {"labels":{"openshift.io/deployment-config.name": "%s-detached"}}}`, dcName))
+				rc1, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(rcName(1), types.StrategicMergePatchType, patch)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
+					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(kcontroller.GetControllerOf(rc1))))
+				o.Expect(err).NotTo(o.HaveOccurred())
+				controllerRef := kcontroller.GetControllerOf(rc1)
+				o.Expect(controllerRef).To(o.BeNil())
+
+				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
+					dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+						return config.Status.AvailableReplicas != dc.Status.AvailableReplicas, nil
+					})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(dc.Status.AvailableReplicas).To(o.BeZero())
+				o.Expect(dc.Status.UnavailableReplicas).To(o.BeZero())
+			})
+
+			g.By("adopting RCs that match its selector and have no ControllerRef", func() {
+				patch := []byte(fmt.Sprintf(`{"metadata": {"labels":{"openshift.io/deployment-config.name": "%s"}}}`, dcName))
+				rc1, err = oc.KubeClient().CoreV1().ReplicationControllers(namespace).Patch(rcName(1), types.StrategicMergePatchType, patch)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				rc1, err = waitForRCModification(oc, namespace, rcName(1), deploymentChangeTimeout,
+					rc1.GetResourceVersion(), rCConditionFromMeta(controllerRefChangeCondition(kcontroller.GetControllerOf(rc1))))
+				o.Expect(err).NotTo(o.HaveOccurred())
+				validRef := HasValidDCControllerRef(dc, rc1)
+				o.Expect(validRef).To(o.BeTrue())
+
+				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
+					dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
+						return config.Status.AvailableReplicas != dc.Status.AvailableReplicas, nil
+					})
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(dc.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
+				o.Expect(dc.Status.UnavailableReplicas).To(o.BeZero())
+			})
+
+			g.By("deleting owned RCs when deleted", func() {
+				// FIXME: Add delete option when we have new client available.
+				// This is working fine now because of finalizers on RCs but when GC gets fixed
+				// and we remove them this will probably break and will require setting deleteOptions
+				// to achieve cascade delete
+				err = oc.Client().DeploymentConfigs(namespace).Delete(dcName)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = wait.PollImmediate(200*time.Millisecond, 5*time.Minute, func() (bool, error) {
+					pods, err := oc.KubeClient().CoreV1().Pods(namespace).List(metav1.ListOptions{})
+					if err != nil {
+						return false, err
+					}
+					return len(pods.Items) == 0, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				err = wait.PollImmediate(200*time.Millisecond, 30*time.Second, func() (bool, error) {
+					rcs, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{})
+					if err != nil {
+						return false, err
+					}
+					return len(rcs.Items) == 0, nil
+				})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			})
 		})
 	})
 })
