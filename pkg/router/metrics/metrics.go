@@ -40,6 +40,7 @@ func Listen(listenAddr string, username, password string, checks ...healthz.Heal
 			Addr:    listenAddr,
 			Handler: mux,
 		}
+		glog.Infof("Router health and metrics port listening at %s", listenAddr)
 		glog.Fatal(server.ListenAndServe())
 	}()
 
