@@ -69,9 +69,11 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	}
 
 	pod, ok := a.GetObject().(*kapi.Pod)
-	// if we can't convert then we don't handle this object so just return
+	// if we can't convert then fail closed since we've already checked that this is supposed to be a pod object.
+	// this shouldn't normally happen during admission but could happen if an integrator passes a versioned
+	// pod object rather than an internal object.
 	if !ok {
-		return nil
+		return admission.NewForbidden(a, fmt.Errorf("object was marked as kind pod but was unable to be converted: %v", a.GetObject()))
 	}
 
 	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
