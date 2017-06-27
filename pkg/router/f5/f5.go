@@ -1318,6 +1318,18 @@ func (f5 *f5LTM) SecureRouteExists(routename string) (bool, error) {
 	return f5.routeExists(httpsPolicyName, routename)
 }
 
+// ReencryptRouteExists checks whether the specified reencrypt route exists.
+func (f5 *f5LTM) ReencryptRouteExists(routename string) (bool, error) {
+	routes, err := f5.getReencryptRoutes()
+	if err != nil {
+		return false, err
+	}
+
+	_, ok := routes[routename]
+
+	return ok, nil
+}
+
 // PassthroughRouteExists checks whether the specified passthrough route exists.
 func (f5 *f5LTM) PassthroughRouteExists(routename string) (bool, error) {
 	routes, err := f5.getPassthroughRoutes()
@@ -1716,6 +1728,24 @@ func (f5 *f5LTM) AddPassthroughRoute(routename, poolname, hostname string) error
 	routes[routename] = passthroughRoute{hostname: hostname, poolname: poolname}
 
 	return f5.updatePassthroughRoutes()
+}
+
+// DeleteReencryptRoute deletes the data-group records for the specified
+// reencrypt route from F5 BIG-IP.
+func (f5 *f5LTM) DeleteReencryptRoute(routename string) error {
+	routes, err := f5.getReencryptRoutes()
+	if err != nil {
+		return err
+	}
+
+	_, exists := routes[routename]
+	if !exists {
+		return fmt.Errorf("Reencrypt route %s does not exist.", routename)
+	}
+
+	delete(routes, routename)
+
+	return f5.updateReencryptRoutes()
 }
 
 // DeletePassthroughRoute deletes the data-group records for the specified
