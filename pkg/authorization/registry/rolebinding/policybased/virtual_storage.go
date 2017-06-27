@@ -36,16 +36,16 @@ type VirtualStorage struct {
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource schema.GroupResource) rolebindingregistry.Storage {
+func NewVirtualStorage(policyBindingRegistry policybindingregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) rolebindingregistry.Storage {
 	return &VirtualStorage{
-		BindingRegistry: bindingRegistry,
+		BindingRegistry: policyBindingRegistry,
 
-		RuleResolver:       ruleResolver,
+		RuleResolver:       liveRuleResolver,
 		CachedRuleResolver: cachedRuleResolver,
 
 		CreateStrategy: rolebindingregistry.LocalStrategy,
 		UpdateStrategy: rolebindingregistry.LocalStrategy,
-		Resource:       resource,
+		Resource:       authorizationapi.Resource("rolebinding"),
 	}
 }
 

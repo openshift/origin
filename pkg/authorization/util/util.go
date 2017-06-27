@@ -8,6 +8,12 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+
+	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 )
 
 // AddUserToSAR adds the requisite user information to a SubjectAccessReview.
@@ -45,4 +51,21 @@ func Authorize(sarClient internalversion.SubjectAccessReviewInterface, user user
 		err = errors.New(resp.Status.Reason)
 	}
 	return kerrors.NewForbidden(schema.GroupResource{Group: resourceAttributes.Group, Resource: resourceAttributes.Resource}, resourceAttributes.Name, err)
+}
+
+func NewLiveRuleResolver(policyRegistry policyregistry.Registry, policyBindingRegistry policybindingregistry.Registry, clusterPolicyRegistry clusterpolicyregistry.Registry, clusterBindingRegistry clusterpolicybindingregistry.Registry) rulevalidation.AuthorizationRuleResolver {
+	return rulevalidation.NewDefaultRuleResolver(
+		&policyregistry.ReadOnlyPolicyListerNamespacer{
+			Registry: policyRegistry,
+		},
+		&policybindingregistry.ReadOnlyPolicyBindingListerNamespacer{
+			Registry: policyBindingRegistry,
+		},
+		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
+			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
+		},
+		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
+			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
+		},
+	)
 }

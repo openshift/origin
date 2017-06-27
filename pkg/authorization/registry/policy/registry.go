@@ -3,12 +3,14 @@ package policy
 import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )
 
 // Registry is an interface for things that know how to store Policies.
@@ -81,4 +83,37 @@ func (s *storage) GetPolicy(ctx apirequest.Context, name string, options *metav1
 func (s *storage) DeletePolicy(ctx apirequest.Context, name string) error {
 	_, _, err := s.Delete(ctx, name, nil)
 	return err
+}
+
+type ReadOnlyPolicyListerNamespacer struct {
+	Registry Registry
+}
+
+func (s ReadOnlyPolicyListerNamespacer) Policies(namespace string) authorizationlister.PolicyNamespaceLister {
+	return readOnlyPolicyLister{registry: s.Registry, namespace: namespace}
+}
+
+func (s ReadOnlyPolicyListerNamespacer) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
+	return s.Policies("").List(label)
+}
+
+type readOnlyPolicyLister struct {
+	registry  Registry
+	namespace string
+}
+
+func (s readOnlyPolicyLister) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
+	list, err := s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
+	if err != nil {
+		return nil, err
+	}
+	var items []*authorizationapi.Policy
+	for i := range list.Items {
+		items = append(items, &list.Items[i])
+	}
+	return items, nil
+}
+
+func (s readOnlyPolicyLister) Get(name string) (*authorizationapi.Policy, error) {
+	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }

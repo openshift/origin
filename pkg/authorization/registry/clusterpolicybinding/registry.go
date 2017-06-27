@@ -121,7 +121,7 @@ func (s *simulatedStorage) DeletePolicyBinding(ctx apirequest.Context, name stri
 }
 
 type ReadOnlyClusterPolicyBinding struct {
-	Registry
+	Registry Registry
 }
 
 func (s ReadOnlyClusterPolicyBinding) List(options metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
@@ -129,15 +129,15 @@ func (s ReadOnlyClusterPolicyBinding) List(options metav1.ListOptions) (*authori
 	if err := metainternal.Convert_v1_ListOptions_To_internalversion_ListOptions(&options, &optint, nil); err != nil {
 		return nil, err
 	}
-	return s.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &optint)
+	return s.Registry.ListClusterPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), ""), &optint)
 }
 
 func (s ReadOnlyClusterPolicyBinding) Get(name string, options *metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
-	return s.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
+	return s.Registry.GetClusterPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), ""), name, options)
 }
 
 type ReadOnlyClusterPolicyBindingClientShim struct {
-	ReadOnlyClusterPolicyBinding
+	ReadOnlyClusterPolicyBinding ReadOnlyClusterPolicyBinding
 }
 
 func (r *ReadOnlyClusterPolicyBindingClientShim) List(label labels.Selector) ([]*authorizationapi.ClusterPolicyBinding, error) {

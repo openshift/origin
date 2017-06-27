@@ -10,9 +10,6 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -21,13 +18,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
 	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
+	"github.com/openshift/origin/pkg/authorization/util"
 
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
 	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
@@ -35,7 +32,6 @@ import (
 	clusterpolicybindingetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
 	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
 	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -159,21 +155,12 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 	}
 	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
 
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		policyListerNamespacer{registry: policyRegistry},
-		policyBindingListerNamespacer{registry: policyBindingRegistry},
-		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
-			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		},
-		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
-			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
-		},
-	)
+	liveRuleResolver := util.NewLiveRuleResolver(policyRegistry, policyBindingRegistry, clusterPolicyRegistry, clusterPolicyBindingRegistry)
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, ruleResolver, nil, authorizationapi.Resource("role"))
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, ruleResolver, nil, authorizationapi.Resource("rolebinding"))
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, nil)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, nil)
+	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, liveRuleResolver, nil)
+	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, liveRuleResolver, nil)
+	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, liveRuleResolver, nil)
+	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyBindingRegistry, liveRuleResolver, nil)
 
 	return r.Visit(func(info *resource.Info, err error) error {
 		if err != nil {
@@ -299,70 +286,4 @@ func OverwriteBootstrapPolicy(optsGetter restoptions.Getter, policyFile, createB
 		}
 		return kerrors.NewAggregate(errs)
 	})
-}
-
-type policyListerNamespacer struct {
-	registry policyregistry.Registry
-}
-
-func (s policyListerNamespacer) Policies(namespace string) authorizationlister.PolicyNamespaceLister {
-	return policyLister{registry: s.registry, namespace: namespace}
-}
-
-func (s policyListerNamespacer) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
-	return s.Policies("").List(label)
-}
-
-type policyLister struct {
-	registry  policyregistry.Registry
-	namespace string
-}
-
-func (s policyLister) List(label labels.Selector) ([]*authorizationapi.Policy, error) {
-	list, err := s.registry.ListPolicies(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
-	if err != nil {
-		return nil, err
-	}
-	var items []*authorizationapi.Policy
-	for i := range list.Items {
-		items = append(items, &list.Items[i])
-	}
-	return items, nil
-}
-
-func (s policyLister) Get(name string) (*authorizationapi.Policy, error) {
-	return s.registry.GetPolicy(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
-}
-
-type policyBindingListerNamespacer struct {
-	registry policybindingregistry.Registry
-}
-
-func (s policyBindingListerNamespacer) PolicyBindings(namespace string) authorizationlister.PolicyBindingNamespaceLister {
-	return policyBindingLister{registry: s.registry, namespace: namespace}
-}
-
-func (s policyBindingListerNamespacer) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
-	return s.PolicyBindings("").List(label)
-}
-
-type policyBindingLister struct {
-	registry  policybindingregistry.Registry
-	namespace string
-}
-
-func (s policyBindingLister) List(label labels.Selector) ([]*authorizationapi.PolicyBinding, error) {
-	list, err := s.registry.ListPolicyBindings(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), &metainternal.ListOptions{LabelSelector: label})
-	if err != nil {
-		return nil, err
-	}
-	var items []*authorizationapi.PolicyBinding
-	for i := range list.Items {
-		items = append(items, &list.Items[i])
-	}
-	return items, nil
-}
-
-func (s policyBindingLister) Get(name string) (*authorizationapi.PolicyBinding, error) {
-	return s.registry.GetPolicyBinding(apirequest.WithNamespace(apirequest.NewContext(), s.namespace), name, &metav1.GetOptions{})
 }

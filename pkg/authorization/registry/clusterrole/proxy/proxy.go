@@ -9,7 +9,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -19,30 +18,18 @@ type ClusterRoleStorage struct {
 	roleStorage rolestorage.VirtualStorage
 }
 
-func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterBindingRegistry clusterpolicybindingregistry.Registry, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleStorage {
-	simulatedPolicyRegistry := clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry)
-
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		nil,
-		nil,
-		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
-			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		},
-		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
-			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterBindingRegistry},
-		},
-	)
-
+func NewClusterRoleStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleStorage {
 	return &ClusterRoleStorage{
 		roleStorage: rolestorage.VirtualStorage{
-			PolicyStorage: simulatedPolicyRegistry,
+			PolicyStorage: clusterpolicyregistry.NewSimulatedRegistry(clusterPolicyRegistry),
 
-			RuleResolver:       ruleResolver,
+			RuleResolver:       liveRuleResolver,
 			CachedRuleResolver: cachedRuleResolver,
 
 			CreateStrategy: roleregistry.ClusterStrategy,
 			UpdateStrategy: roleregistry.ClusterStrategy,
-			Resource:       authorizationapi.Resource("clusterrole")},
+			Resource:       authorizationapi.Resource("clusterrole"),
+		},
 	}
 }
 

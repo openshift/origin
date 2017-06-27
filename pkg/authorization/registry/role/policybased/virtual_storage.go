@@ -38,8 +38,17 @@ type VirtualStorage struct {
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(policyStorage policyregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource schema.GroupResource) roleregistry.Storage {
-	return &VirtualStorage{policyStorage, ruleResolver, cachedRuleResolver, roleregistry.LocalStrategy, roleregistry.LocalStrategy, resource}
+func NewVirtualStorage(policyRegistry policyregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) roleregistry.Storage {
+	return &VirtualStorage{
+		PolicyStorage: policyRegistry,
+
+		RuleResolver:       liveRuleResolver,
+		CachedRuleResolver: cachedRuleResolver,
+
+		CreateStrategy: roleregistry.LocalStrategy,
+		UpdateStrategy: roleregistry.LocalStrategy,
+		Resource:       authorizationapi.Resource("role"),
+	}
 }
 
 func (m *VirtualStorage) New() runtime.Object {
