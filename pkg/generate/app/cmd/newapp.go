@@ -466,7 +466,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment) (string, []runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
 	name := ""
 	for _, ref := range components {
@@ -485,6 +485,12 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 			// if environment variables were passed in, let's apply the environment variables
 			// to every pod template object
 			for i := range result.Objects {
+				switch result.Objects[i].(type) {
+				case *buildapi.BuildConfig:
+					buildEnv := buildutil.GetBuildConfigEnv(result.Objects[i].(*buildapi.BuildConfig))
+					buildEnv = app.JoinEnvironment(buildEnv, buildEnvironment.List())
+					buildutil.SetBuildConfigEnv(result.Objects[i].(*buildapi.BuildConfig), buildEnv)
+				}
 				podSpec, _, err := ometa.GetPodSpec(result.Objects[i])
 				if err == nil {
 					for ii := range podSpec.Containers {
@@ -805,7 +811,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env)
+	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env, buildenv)
 	if err != nil {
 		return nil, err
 	}

@@ -349,6 +349,22 @@ func SafeForLoggingS2IConfig(config *s2iapi.Config) *s2iapi.Config {
 	return &newConfig
 }
 
+// GetBuildConfigEnv gets the buildconfig strategy environment
+func GetBuildConfigEnv(buildConfig *buildapi.BuildConfig) []kapi.EnvVar {
+	switch {
+	case buildConfig.Spec.Strategy.SourceStrategy != nil:
+		return buildConfig.Spec.Strategy.SourceStrategy.Env
+	case buildConfig.Spec.Strategy.DockerStrategy != nil:
+		return buildConfig.Spec.Strategy.DockerStrategy.Env
+	case buildConfig.Spec.Strategy.CustomStrategy != nil:
+		return buildConfig.Spec.Strategy.CustomStrategy.Env
+	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		return buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
+	default:
+		return nil
+	}
+}
+
 // GetBuildEnv gets the build strategy environment
 func GetBuildEnv(build *buildapi.Build) []kapi.EnvVar {
 	switch {
@@ -363,6 +379,23 @@ func GetBuildEnv(build *buildapi.Build) []kapi.EnvVar {
 	default:
 		return nil
 	}
+}
+
+// SetBuildConfigEnv replaces the current buildconfig environment
+func SetBuildConfigEnv(buildConfig *buildapi.BuildConfig, env []kapi.EnvVar) {
+	var oldEnv *[]kapi.EnvVar
+
+	switch {
+	case buildConfig.Spec.Strategy.SourceStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.SourceStrategy.Env
+	case buildConfig.Spec.Strategy.DockerStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.DockerStrategy.Env
+	case buildConfig.Spec.Strategy.CustomStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.CustomStrategy.Env
+	case buildConfig.Spec.Strategy.JenkinsPipelineStrategy != nil:
+		oldEnv = &buildConfig.Spec.Strategy.JenkinsPipelineStrategy.Env
+	}
+	*oldEnv = env
 }
 
 // SetBuildEnv replaces the current build environment
@@ -380,7 +413,6 @@ func SetBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
 		oldEnv = &build.Spec.Strategy.JenkinsPipelineStrategy.Env
 	}
 	*oldEnv = env
-
 }
 
 // UpdateBuildEnv updates the strategy environment
