@@ -50,6 +50,11 @@ type ServiceAccountTokenControllerOptions struct {
 }
 
 func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerContext) (bool, error) {
+	if c.PrivateKey == nil {
+		glog.Infof("Skipped starting Service Account Token Manager, no private key specified")
+		return false, nil
+	}
+
 	go sacontroller.NewTokensController(
 		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
 		ctx.ExternalKubeInformers.Core().V1().Secrets(),

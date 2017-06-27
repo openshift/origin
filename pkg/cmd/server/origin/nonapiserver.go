@@ -24,8 +24,7 @@ type OpenshiftNonAPIConfig struct {
 
 	// these are only needed for the controller endpoint which should be moved out and made an optional
 	// add-on in the chain (as the final delegate) when running an all-in-one
-	EnableControllers bool
-	ControllerPlug    plug.Plug
+	ControllerPlug plug.Plug
 
 	MasterPublicURL string
 	EnableOAuth     bool
@@ -69,7 +68,7 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 	}
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.EnableControllers, c.ControllerPlug)
+	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ControllerPlug)
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
 	if c.EnableTemplateServiceBroker {

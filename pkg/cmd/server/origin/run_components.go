@@ -9,15 +9,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	etcdallocator "k8s.io/kubernetes/pkg/registry/core/service/allocator/storage"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/dns"
 	securitycontroller "github.com/openshift/origin/pkg/security/controller"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
 	"github.com/openshift/origin/pkg/security/uidallocator"
+	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 // RunProjectAuthorizationCache starts the project authorization cache
@@ -88,9 +92,16 @@ func (c *MasterConfig) RunProjectCache() {
 	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
+type SecurityAllocationController struct {
+	SecurityAllocator          *configapi.SecurityAllocator
+	OpenshiftRESTOptionsGetter restoptions.Getter
+	ExternalKubeInformers      kexternalinformers.SharedInformerFactory
+	KubeExternalClient         kclientsetexternal.Interface
+}
+
 // RunSecurityAllocationController starts the security allocation controller process.
-func (c *MasterConfig) RunSecurityAllocationController() {
-	alloc := c.Options.ProjectConfig.SecurityAllocator
+func (c SecurityAllocationController) RunSecurityAllocationController() {
+	alloc := c.SecurityAllocator
 	if alloc == nil {
 		glog.V(3).Infof("Security allocator is disabled - no UIDs assigned to projects")
 		return
@@ -102,7 +113,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to describe UID range: %v", err)
 	}
 
-	opts, err := c.RESTOptionsGetter.GetRESTOptions(schema.GroupResource{Resource: "securityuidranges"})
+	opts, err := c.OpenshiftRESTOptionsGetter.GetRESTOptions(schema.GroupResource{Resource: "securityuidranges"})
 	if err != nil {
 		glog.Fatalf("Unable to load storage options for security UID ranges")
 	}
@@ -118,9 +129,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 		glog.Fatalf("Unable to describe MCS category range: %v", err)
 	}
 
-	kclient := c.SecurityAllocationControllerClient()
-
-	repair := securitycontroller.NewRepair(time.Minute, kclient.Core().Namespaces(), uidRange, etcdAlloc)
+	repair := securitycontroller.NewRepair(time.Minute, c.KubeExternalClient.CoreV1().Namespaces(), uidRange, etcdAlloc)
 	if err := repair.RunOnce(); err != nil {
 		// TODO: v scary, may need to use direct etcd calls?
 		// If the security controller fails during RunOnce it could mean a
@@ -136,7 +145,7 @@ func (c *MasterConfig) RunSecurityAllocationController() {
 
 	controller := securitycontroller.NewNamespaceSecurityDefaultsController(
 		c.ExternalKubeInformers.Core().V1().Namespaces(),
-		kclient.Core().Namespaces(),
+		c.KubeExternalClient.Core().Namespaces(),
 		uidAllocator,
 		securitycontroller.DefaultMCSAllocation(uidRange, mcsRange, alloc.MCSLabelsPerProject),
 	)
