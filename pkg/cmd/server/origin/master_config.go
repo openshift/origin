@@ -29,6 +29,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
+	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
+	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -924,7 +926,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
-	tokenAuthenticators := []authenticator.Request{}
+	tokenAuthenticators := []authenticator.Token{}
 
 	// ServiceAccount token
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
@@ -937,12 +939,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		tokenAuthenticators = append(
-			tokenAuthenticators,
-			bearertoken.New(serviceAccountTokenAuthenticator),
-			websocket.NewProtocolAuthenticator(serviceAccountTokenAuthenticator),
-			paramtoken.New("access_token", serviceAccountTokenAuthenticator, true),
-		)
+		tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
 	}
 
 	// OAuth token
@@ -951,20 +948,26 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		if err != nil {
 			return nil, fmt.Errorf("Error building OAuth token authenticator: %v", err)
 		}
-		oauthTokenRequestAuthenticators := []authenticator.Request{
-			bearertoken.New(oauthTokenAuthenticator),
-			websocket.NewProtocolAuthenticator(oauthTokenAuthenticator),
-			paramtoken.New("access_token", oauthTokenAuthenticator, true),
-		}
-
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(union.New(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
 	if len(tokenAuthenticators) > 0 {
-		authenticators = append(authenticators, union.New(tokenAuthenticators...))
+		// Combine all token authenticators
+		tokenAuth := tokenunion.New(tokenAuthenticators...)
+
+		// wrap with short cache on success.
+		// this means a revoked service account token or access token will be valid for up to 10 seconds.
+		// it also means group membership changes on users may take up to 10 seconds to become effective.
+		tokenAuth = tokencache.New(tokenAuth, 10*time.Second, 0)
+
+		authenticators = append(authenticators,
+			bearertoken.New(tokenAuth),
+			websocket.NewProtocolAuthenticator(tokenAuth),
+			paramtoken.New("access_token", tokenAuth, true),
+		)
 	}
 
 	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
