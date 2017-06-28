@@ -3,7 +3,7 @@
 #  Constants.
 readonly TEST_DIR=$(dirname "${BASH_SOURCE[0]}")
 readonly FAILOVER_IMAGE="openshift/origin-keepalived-ipfailover"
-readonly TEST_VIPS="10.0.2.100-102"
+readonly TEST_VIPS="10.0.2.100-102,2001:DB8:1ABC::1F39-1F3B"
 readonly MONITOR_PORT="12345"
 
 
