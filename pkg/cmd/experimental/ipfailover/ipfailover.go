@@ -102,6 +102,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 	cmd.Flags().StringVar(&options.NotifyScript, "notify-script", "", "Run this script when state changes.")
 	cmd.Flags().StringVar(&options.CheckScript, "check-script", "", "Run this script at the check-interval to verify service is OK")
 	cmd.Flags().IntVar(&options.CheckInterval, "check-interval", ipfailover.DefaultCheckInterval, "Run the check-script at this interval (seconds)")
+	cmd.Flags().StringVar(&options.Preemption, "preemption-strategy", "preempt_delay 300", "Normlly VRRP will preempt a lower priority machine when a higher priority one comes online. 'nopreempt' allows the lower priority machine to maintain its MASTER status. The default 'preempt_delay 300' causes MASTER to switch after 5 min.")
 	cmd.Flags().StringVar(&options.IptablesChain, "iptables-chain", ipfailover.DefaultIptablesChain, "Add a rule to this iptables chain to accept 224.0.0.28 multicast packets if no rule exists. When iptables-chain is empty do not change iptables.")
 	cmd.Flags().StringVarP(&options.NetworkInterface, "interface", "i", "", "Network interface bound by VRRP to use for the set of virtual IP ranges/addresses specified.")
 
