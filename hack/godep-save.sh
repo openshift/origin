@@ -23,7 +23,7 @@ done
 
 # fail early if we don't have a proper kube version from the latest git tag
 function kube-version () {
-    local git_v=$(cd "${GOPATH}/src/k8s.io/kubernetes" && git describe --tags)
+    local git_v=$(cd "${GOPATH}/src/k8s.io/kubernetes" && git describe --tags --match 'v[0-9]*')
     echo "${git_v##-*}"
 }
 if ! [[ "$(kube-version)" =~ v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+ ]]; then
