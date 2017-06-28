@@ -70,8 +70,6 @@ var expectedIndex = []string{
 	"/apis/route.openshift.io/v1",
 	"/apis/security.openshift.io",
 	"/apis/security.openshift.io/v1",
-	"/apis/settings.k8s.io",
-	"/apis/settings.k8s.io/v1alpha1",
 	"/apis/storage.k8s.io",
 	"/apis/storage.k8s.io/v1",
 	"/apis/storage.k8s.io/v1beta1",

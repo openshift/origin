@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -593,7 +594,34 @@ func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
 	return apiLevelSet.Has(apiLevel)
 }
 
-// GetEnabledAPIVersionsForGroup returns the list of API Versions that are enabled for that group
+const kubeAPIEnablementFlag = "runtime-config"
+
+// GetKubeAPIServerFlagAPIEnablement parses the available flag at the groupVersion level
+// with no support for individual resources and no support for the legacy API.
+func GetKubeAPIServerFlagAPIEnablement(flagValue []string) map[schema.GroupVersion]bool {
+	versions := map[schema.GroupVersion]bool{}
+	for _, val := range flagValue {
+		// skip bad flags
+		if !strings.HasPrefix(val, "apis/") {
+			continue
+		}
+		tokens := strings.Split(val[len("apis/"):], "=")
+		if len(tokens) != 2 {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(tokens[0])
+		if err != nil {
+			continue
+		}
+		enabled, _ := strconv.ParseBool(tokens[1])
+		versions[gv] = enabled
+	}
+
+	return versions
+}
+
+// GetEnabledAPIVersionsForGroup returns the list of API Versions that are enabled for that group.
+// It respects the extended args which are used to enable and disable versions in kube too.
 func GetEnabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup string) []string {
 	allowedVersions := KubeAPIGroupsToAllowedVersions[apiGroup]
 	blacklist := sets.NewString(config.DisabledAPIGroupVersions[apiGroup]...)
@@ -602,26 +630,61 @@ func GetEnabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup strin
 		return []string{}
 	}
 
-	enabledVersions := []string{}
+	flagVersions := GetKubeAPIServerFlagAPIEnablement(config.APIServerArguments[kubeAPIEnablementFlag])
+
+	enabledVersions := sets.String{}
 	for _, currVersion := range allowedVersions {
-		if !blacklist.Has(currVersion) {
-			enabledVersions = append(enabledVersions, currVersion)
+		if blacklist.Has(currVersion) {
+			continue
 		}
+		gv := schema.GroupVersion{Group: apiGroup, Version: currVersion}
+		// if this was explicitly disabled via flag, skip it
+		if enabled, ok := flagVersions[gv]; ok && !enabled {
+			continue
+		}
+
+		enabledVersions.Insert(currVersion)
 	}
 
-	return enabledVersions
+	for currVersion, enabled := range flagVersions {
+		if !enabled {
+			continue
+		}
+		if blacklist.Has(currVersion.Version) {
+			continue
+		}
+		if currVersion.Group != apiGroup {
+			continue
+		}
+		enabledVersions.Insert(currVersion.Version)
+	}
+
+	return enabledVersions.List()
 }
 
-// GetDisabledAPIVersionsForGroup returns the list of API Versions that are disabled for that group
+// It respects the extended args which are used to enable and disable versions in kube too.
+// GetDisabledAPIVersionsForGroup returns the list of API Versions that are disabled for that group.
 func GetDisabledAPIVersionsForGroup(config KubernetesMasterConfig, apiGroup string) []string {
 	allowedVersions := sets.NewString(KubeAPIGroupsToAllowedVersions[apiGroup]...)
 	enabledVersions := sets.NewString(GetEnabledAPIVersionsForGroup(config, apiGroup)...)
-	return allowedVersions.Difference(enabledVersions).List()
-}
+	disabledVersions := allowedVersions.Difference(enabledVersions)
+	disabledVersions.Insert(config.DisabledAPIGroupVersions[apiGroup]...)
 
-func HasKubernetesAPIVersion(config KubernetesMasterConfig, groupVersion schema.GroupVersion) bool {
-	enabledVersions := GetEnabledAPIVersionsForGroup(config, groupVersion.Group)
-	return sets.NewString(enabledVersions...).Has(groupVersion.Version)
+	flagVersions := GetKubeAPIServerFlagAPIEnablement(config.APIServerArguments[kubeAPIEnablementFlag])
+	for currVersion, enabled := range flagVersions {
+		if enabled {
+			continue
+		}
+		if disabledVersions.Has(currVersion.Version) {
+			continue
+		}
+		if currVersion.Group != apiGroup {
+			continue
+		}
+		disabledVersions.Insert(currVersion.Version)
+	}
+
+	return disabledVersions.List()
 }
 
 func CIDRsOverlap(cidr1, cidr2 string) bool {
