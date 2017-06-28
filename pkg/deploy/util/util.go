@@ -403,7 +403,6 @@ func MakeDeploymentV1(config *deployapi.DeploymentConfig, codec runtime.Codec) (
 			},
 			Labels:          controllerLabels,
 			OwnerReferences: []metav1.OwnerReference{*controllerRef},
-			Finalizers:      []string{metav1.FinalizerDeleteDependents},
 		},
 		Spec: v1.ReplicationControllerSpec{
 			// The deployment should be inactive initially
