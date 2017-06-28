@@ -51,6 +51,10 @@ import (
 	"github.com/kubernetes-incubator/cluster-capacity/pkg/framework/strategy"
 )
 
+const (
+	podProvisioner = "cc.kubernetes.io/provisioned-by"
+)
+
 type ClusterCapacity struct {
 	// caches modified by emulation strategy
 	resourceStore store.ResourceStore
@@ -210,7 +214,9 @@ func (c *ClusterCapacity) Close() {
 
 func (c *ClusterCapacity) Update(pod *v1.Pod, podCondition *v1.PodCondition, schedulerName string) error {
 	stop := podCondition.Type == v1.PodScheduled && podCondition.Status == v1.ConditionFalse && podCondition.Reason == "Unschedulable"
-	if stop {
+
+	// Only for pending pods provisioned by cluster-capacity
+	if stop && metav1.HasAnnotation(pod.ObjectMeta, podProvisioner) {
 		c.status.StopReason = fmt.Sprintf("%v: %v", podCondition.Reason, podCondition.Message)
 		c.Close()
 		// The Update function can be run more than once before any corresponding
@@ -234,6 +240,14 @@ func (c *ClusterCapacity) nextPod() error {
 	pod.Spec.NodeName = ""
 	// use simulated pod name with an index to construct the name
 	pod.ObjectMeta.Name = fmt.Sprintf("%v-%v", c.simulatedPod.Name, c.simulated)
+
+	// Add pod provisioner annotation
+	if pod.ObjectMeta.Annotations == nil {
+		pod.ObjectMeta.Annotations = map[string]string{}
+	}
+
+	// Stores the scheduler name
+	pod.ObjectMeta.Annotations[podProvisioner] = c.defaultScheduler
 
 	c.simulated++
 	c.lastSimulatedPod = &pod
