@@ -1195,7 +1195,7 @@ func getRoute(routerUrl string, hostName string, protocol string, headers map[st
 // waitForRoute loops until the client returns the expected response or an error was encountered.
 func waitForRoute(routerUrl string, hostName string, protocol string, headers map[string]string, expectedResponse string) error {
 	var lastErr error
-	err := wait.Poll(time.Millisecond*100, 30*time.Second, func() (bool, error) {
+	err := wait.Poll(time.Millisecond*100, 60*time.Second, func() (bool, error) {
 		lastErr = nil
 		resp, err := getRoute(routerUrl, hostName, protocol, headers, expectedResponse)
 		if err == nil {
