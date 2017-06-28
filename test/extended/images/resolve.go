@@ -69,4 +69,65 @@ var _ = g.Describe("[Feature:ImageLookup] Image policy", func() {
 		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
 		defer func() { oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
 	})
+
+	g.It("should perform lookup when the pod has the resolve-names annotation", func() {
+		err := oc.Run("import-image").Args("busybox:latest", "--confirm").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		tag, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("busybox", "latest")
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// pods should auto replace local references
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Create(&kapiv1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "resolve",
+				Annotations: map[string]string{
+					"alpha.image.policy.openshift.io/resolve-names": "*",
+				},
+			},
+			Spec: kapiv1.PodSpec{
+				TerminationGracePeriodSeconds: &one,
+				RestartPolicy:                 kapiv1.RestartPolicyNever,
+				Containers: []kapiv1.Container{
+					{Name: "resolve", Image: "busybox:latest", Command: []string{"/bin/true"}},
+					{Name: "resolve2", Image: "busybox:unknown", Command: []string{"/bin/true"}},
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		if pod.Spec.Containers[0].Image != tag.Image.DockerImageReference {
+			g.Skip("default image resolution is not configured, can't verify pod resolution")
+		}
+
+		o.Expect(pod.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
+		o.Expect(pod.Spec.Containers[1].Image).To(o.HaveSuffix("/" + oc.Namespace() + "/busybox:unknown"))
+		defer func() { oc.KubeClient().CoreV1().Pods(oc.Namespace()).Delete(pod.Name, nil) }()
+
+		// replica sets should auto replace local references
+		rs, err := oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Create(&kextensionsv1beta1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "resolve",
+				Annotations: map[string]string{
+					"alpha.image.policy.openshift.io/resolve-names": "*",
+				},
+			},
+			Spec: kextensionsv1beta1.ReplicaSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"resolve": "true"},
+				},
+				Template: kapiv1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"resolve": "true"}},
+					Spec: kapiv1.PodSpec{
+						TerminationGracePeriodSeconds: &one,
+						Containers: []kapiv1.Container{
+							{Name: "resolve", Image: "busybox:latest", Command: []string{"/bin/true"}},
+						},
+					},
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(rs.Spec.Template.Spec.Containers[0].Image).To(o.Equal(tag.Image.DockerImageReference))
+		defer func() { oc.KubeClient().ExtensionsV1beta1().ReplicaSets(oc.Namespace()).Delete(rs.Name, nil) }()
+	})
 })

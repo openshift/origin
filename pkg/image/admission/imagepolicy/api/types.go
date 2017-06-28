@@ -6,9 +6,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration
-// in a given namespace. Loaded from the namespace.
-const IgnorePolicyRulesAnnotation = "alpha.image.policy.openshift.io/ignore-rules"
+const (
+	// IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration
+	// in a given namespace. Loaded from the namespace.
+	IgnorePolicyRulesAnnotation = "alpha.image.policy.openshift.io/ignore-rules"
+	// ResolveNamesAnnotation when placed on an object template or object requests that all relevant
+	// image names be resolved by taking the name and tag and attempting to resolve a local image stream.
+	// This overrides the imageLookupPolicy on the image stream. If the object is not namespaced the
+	// annotation is ignored. The only valid value is '*'.
+	ResolveNamesAnnotation = "alpha.image.policy.openshift.io/resolve-names"
+)
 
 // ImagePolicyConfig is the configuration for controlling how images are used in the cluster.
 type ImagePolicyConfig struct {

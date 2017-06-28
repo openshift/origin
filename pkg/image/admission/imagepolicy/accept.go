@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/api/meta"
+	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -26,10 +27,20 @@ type policyDecision struct {
 	err    error
 }
 
-func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m meta.ImageReferenceMutator, attr admission.Attributes, excludedRules sets.String) error {
+func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m meta.ImageReferenceMutator, annotations meta.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
 	decisions := policyDecisions{}
 
 	gr := attr.GetResource().GroupResource()
+
+	var resolveAllNames bool
+	if annotations != nil {
+		if a, ok := annotations.TemplateAnnotations(); ok {
+			resolveAllNames = a[api.ResolveNamesAnnotation] == "*"
+		}
+		if !resolveAllNames {
+			resolveAllNames = annotations.Annotations()[api.ResolveNamesAnnotation] == "*"
+		}
+	}
 
 	errs := m.Mutate(func(ref *kapi.ObjectReference) error {
 		// create the attribute set for this particular reference, if we have never seen the reference
@@ -37,7 +48,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 		decision, ok := decisions[*ref]
 		if !ok {
 			if policy.RequestsResolution(gr) {
-				resolvedAttrs, err := resolver.ResolveObjectReference(ref, attr.GetNamespace())
+				resolvedAttrs, err := resolver.ResolveObjectReference(ref, attr.GetNamespace(), resolveAllNames)
 
 				switch {
 				case err != nil && policy.FailOnResolutionFailure(gr):
