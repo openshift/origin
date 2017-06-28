@@ -386,7 +386,7 @@ func IsServerHealthy(url url.URL) (bool, error) {
 		},
 	})
 
-	url.Path = "/healthz"
+	url.Path = "/healthz/ready"
 	req, err := http.NewRequest("GET", url.String(), nil)
 	req.Header.Set("Accept", "text/html")
 	resp, err := transport.RoundTrip(req)
