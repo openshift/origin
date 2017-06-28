@@ -1337,8 +1337,6 @@ _oadm_config_set-cluster()
     flags_with_completion=()
     flags_completion=()
 
-    flags+=("--api-version=")
-    local_nonpersistent_flags+=("--api-version=")
     flags+=("--certificate-authority=")
     flags_with_completion+=("--certificate-authority")
     flags_completion+=("_filedir")
