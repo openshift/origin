@@ -530,24 +530,6 @@ func (f5 *f5LTM) iControlUriResourceId(resourceName string) string {
 	return encodeiControlUriPathComponent(resourcePath)
 }
 
-// iControlUriVserverId returns an encoded Virtual Server id (virtual
-// server name including the partition), which can be used in the iControl
-// REST calls.
-// For example, for a virtual server named ose-vserver in
-// the /rht/ose3/config partition path, the encoded Virtual Server id is:
-//    ~rht~ose-vserver
-func (f5 *f5LTM) iControlUriVserverId(vserverName string) string {
-	// Note: Most resources are stored under the configured partition
-	//       path, which may be a top-level folder or a sub-folder.
-	//       However a virtual server can only be stored under a
-	//       top-level folder.
-	// Example: For a vserver named ose-server in the /rht/ose3/config
-	//          partition path, the encoded URI path component is:
-	//             ~rht~ose-vserver
-	pathComponents := strings.Split(f5.partitionPath, "/")
-	return encodeiControlUriPathComponent(path.Join("/", pathComponents[1], vserverName))
-}
-
 //
 // Routines for controlling F5.
 //
