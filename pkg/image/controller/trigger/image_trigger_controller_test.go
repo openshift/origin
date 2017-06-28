@@ -258,6 +258,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 					{
 						Message: "Image change",
 						ImageChangeBuild: &buildapi.ImageChangeCause{
+							ImageID: "image/result:1",
 							FromRef: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2", Namespace: "other"},
 						},
 					},
@@ -277,6 +278,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 					{
 						Message: "Image change",
 						ImageChangeBuild: &buildapi.ImageChangeCause{
+							ImageID: "image/result:1",
 							FromRef: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag, Namespace: "other"},
 						},
 					},
