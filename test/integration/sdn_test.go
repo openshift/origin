@@ -25,7 +25,7 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 	backoff := utilwait.Backoff{
 		Duration: 100 * time.Millisecond,
 		Factor:   2,
-		Steps:    5,
+		Steps:    10,
 	}
 	var netns *sdnapi.NetNamespace
 	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
