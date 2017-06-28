@@ -13,6 +13,7 @@
 /dind-*.rc
 /os-version-defs
 /.make/
+/cmd/oc/oc.syso
 *.swp
 .vimrc
 .vagrant-openshift.json*

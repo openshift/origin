@@ -221,46 +221,7 @@ os::build::internal::build_binaries() {
 
       #Add Windows File Properties/Version Info and Icon Resource for oc.exe
       if [[ "$platform" == "windows/amd64" ]]; then
-        os::build::version::get_vars
-        os::util::ensure::gopath_binary_exists 'goversioninfo'
-        local major="${OS_GIT_MAJOR}"
-        local minor="${OS_GIT_MINOR%+}"
-        local windows_versioninfo_file=`mktemp --suffix=".versioninfo.json"`
-        cat <<EOF >"${windows_versioninfo_file}"
-{
-	"FixedFileInfo":
-	{
-		"FileFlagsMask": "3f",
-		"FileFlags ": "00",
-		"FileOS": "040004",
-		"FileType": "01",
-		"FileSubType": "00"
-	},
-	"StringFileInfo":
-	{
-		"Comments": "",
-		"CompanyName": "Red Hat, Inc.",
-		"InternalName": "openshift client",
-		"FileVersion": "${OS_GIT_VERSION}",
-		"InternalName": "oc",
-		"LegalCopyright": "© Red Hat, Inc. Licensed under the Apache License, Version 2.0",
-		"LegalTrademarks": "",
-		"OriginalFilename": "oc.exe",
-		"PrivateBuild": "",
-		"ProductName": "OpenShift Client",
-		"ProductVersion": "${OS_GIT_VERSION}",
-		"SpecialBuild": ""
-	},
-	"VarFileInfo":
-	{
-		"Translation": {
-			"LangID": "0409",
-			"CharsetID": "04B0"
-		}
-	}
-}
-EOF
-        goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file} 
+        os::build::generate_windows_versioninfo
       fi
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
@@ -297,7 +258,64 @@ EOF
 }
 readonly -f os::build::build_binaries
 
-# Generates the set of target packages, binaries, and platforms to build for.
+# Generates the .syso file used to add compile-time VERSIONINFO metadata to the
+# Windows binary.
+function os::build::generate_windows_versioninfo() {
+  os::util::ensure::gopath_binary_exists 'goversioninfo'
+  os::build::version::get_vars
+  local major="${OS_GIT_MAJOR}"
+  local minor="${OS_GIT_MINOR%+}"
+  local patch="${OS_GIT_PATCH}"
+  local windows_versioninfo_file=`mktemp --suffix=".versioninfo.json"`
+  cat <<EOF >"${windows_versioninfo_file}"
+{
+	"FixedFileInfo":
+	{
+		"FileVersion": {
+			"Major": ${major},
+			"Minor": ${minor},
+			"Patch": ${patch}
+		},
+		"ProductVersion": {
+			"Major": ${major},
+			"Minor": ${minor},
+			"Patch": ${patch}
+		},
+		"FileFlagsMask": "3f",
+		"FileFlags ": "00",
+		"FileOS": "040004",
+		"FileType": "01",
+		"FileSubType": "00"
+	},
+	"StringFileInfo":
+	{
+		"Comments": "",
+		"CompanyName": "Red Hat, Inc.",
+		"InternalName": "openshift client",
+		"FileVersion": "${OS_GIT_VERSION}",
+		"InternalName": "oc",
+		"LegalCopyright": "© Red Hat, Inc. Licensed under the Apache License, Version 2.0",
+		"LegalTrademarks": "",
+		"OriginalFilename": "oc.exe",
+		"PrivateBuild": "",
+		"ProductName": "OpenShift Client",
+		"ProductVersion": "${OS_GIT_VERSION}",
+		"SpecialBuild": ""
+	},
+	"VarFileInfo":
+	{
+		"Translation": {
+			"LangID": "0409",
+			"CharsetID": "04B0"
+		}
+	}
+}
+EOF
+  goversioninfo -o ${OS_ROOT}/cmd/oc/oc.syso ${windows_versioninfo_file} 
+}
+readonly -f os::build::generate_windows_versioninfo
+
+ # Generates the set of target packages, binaries, and platforms to build for.
 # Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
 # the current platform.
 function os::build::export_targets() {
