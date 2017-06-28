@@ -81,7 +81,8 @@ func NewCmdConfigSetCluster(out io.Writer, configAccess clientcmd.ConfigAccess) 
 	options.insecureSkipTLSVerify.Default(false)
 
 	cmd.Flags().Var(&options.server, clientcmd.FlagAPIServer, clientcmd.FlagAPIServer+" for the cluster entry in kubeconfig")
-	cmd.Flags().Var(&options.apiVersion, clientcmd.FlagAPIVersion, clientcmd.FlagAPIVersion+" for the cluster entry in kubeconfig")
+	cmd.Flags().Var(&options.apiVersion, clientcmd.FlagAPIVersion, "DEPRECATED: "+clientcmd.FlagAPIVersion+" for the cluster entry in kubeconfig")
+	cmd.Flags().MarkDeprecated(clientcmd.FlagAPIVersion, "This flag is no longer respected and will be removed in a future release")
 	f := cmd.Flags().VarPF(&options.insecureSkipTLSVerify, clientcmd.FlagInsecure, "", clientcmd.FlagInsecure+" for the cluster entry in kubeconfig")
 	f.NoOptDefVal = "true"
 	cmd.Flags().Var(&options.certificateAuthority, clientcmd.FlagCAFile, "path to "+clientcmd.FlagCAFile+" file for the cluster entry in kubeconfig")
