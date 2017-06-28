@@ -695,7 +695,7 @@ func (f5 *f5LTM) ensureVserverHasPolicy(vserverName, policyName string) error {
 	glog.V(4).Infof("Checking whether vserver %s has policy %s...",
 		vserverName, policyName)
 
-	vserverResourceId := f5.iControlUriVserverId(vserverName)
+	vserverResourceId := f5.iControlUriResourceId(vserverName)
 
 	// We could use fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s/policies/%s",
 	// f5.host, vserverResourceId, policyName) here, except that F5
@@ -826,7 +826,7 @@ func (f5 *f5LTM) ensureVserverHasIRule(vserverName, iRuleName string) error {
 		vserverName, iRuleName)
 
 	vserverUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s",
-		f5.host, f5.iControlUriVserverId(vserverName))
+		f5.host, f5.iControlUriResourceId(vserverName))
 
 	res := f5VserverIRules{}
 
@@ -2061,7 +2061,7 @@ func (f5 *f5LTM) associateClientSslProfileWithVserver(profilename,
 		profilename, vservername)
 
 	vserverProfileUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s/profiles",
-		f5.host, f5.iControlUriVserverId(vservername))
+		f5.host, f5.iControlUriResourceId(vservername))
 
 	vserverProfilePayload := f5VserverProfilePayload{
 		Name:    profilename,
@@ -2079,7 +2079,7 @@ func (f5 *f5LTM) associateServerSslProfileWithVserver(profilename,
 		profilename, vservername)
 
 	vserverProfileUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s/profiles",
-		f5.host, f5.iControlUriVserverId(vservername))
+		f5.host, f5.iControlUriResourceId(vservername))
 
 	vserverProfilePayload := f5VserverProfilePayload{
 		Name:    profilename,
@@ -2107,7 +2107,7 @@ func (f5 *f5LTM) deleteCertParts(routename string,
 			routename, f5.httpsVserver)
 		serverSslProfileName := fmt.Sprintf("%s-server-ssl-profile", routename)
 		serverSslVserverProfileUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s/profiles/%s",
-			f5.host, f5.iControlUriVserverId(f5.httpsVserver), serverSslProfileName)
+			f5.host, f5.iControlUriResourceId(f5.httpsVserver), serverSslProfileName)
 		err := f5.delete(serverSslVserverProfileUrl, nil)
 		if err != nil {
 			// Iff the profile is not associated with the vserver, we can continue on to
@@ -2142,7 +2142,7 @@ func (f5 *f5LTM) deleteCertParts(routename string,
 			" from vserver %s...", routename, f5.httpsVserver)
 		clientSslProfileName := fmt.Sprintf("%s-client-ssl-profile", routename)
 		clientSslVserverProfileUrl := fmt.Sprintf("https://%s/mgmt/tm/ltm/virtual/%s/profiles/%s",
-			f5.host, f5.iControlUriVserverId(f5.httpsVserver), clientSslProfileName)
+			f5.host, f5.iControlUriResourceId(f5.httpsVserver), clientSslProfileName)
 		err := f5.delete(clientSslVserverProfileUrl, nil)
 		if err != nil {
 			// Iff the profile is not associated with the vserver, we can continue on
