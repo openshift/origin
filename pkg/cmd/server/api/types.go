@@ -87,9 +87,11 @@ var (
 		APIGroupCertificates:      {"v1beta1"},
 		APIGroupPolicy:            {"v1beta1"},
 		APIGroupStorage:           {"v1", "v1beta1"},
-		APIGroupSettings:          {"v1alpha1"},
+		// Disabled alpha APIs:
+		// APIGroupSettings:          {"v1alpha1"},
+		//
 		// TODO: enable as part of a separate binary
-		//APIGroupFederation:  {"v1beta1"},
+		// APIGroupFederation:  {"v1beta1"},
 	}
 
 	OriginAPIGroupsToAllowedVersions = map[string][]string{
