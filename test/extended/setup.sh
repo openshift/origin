@@ -84,7 +84,7 @@ function os::test::extended::setup () {
 
 	# make sure the volume dir has the same label as we would apply to the default VOLUME_DIR
 	if selinuxenabled; then
-		local label=$(matchpathcon -m dir /var/lib/openshift/openshift.local.volumes)
+		local label=$(matchpathcon -n -m dir /var/lib/openshift/openshift.local.volumes)
 		${sudo} chcon "${label}" ${VOLUME_DIR}
 	fi
 	CONFIG_VERSION=""
