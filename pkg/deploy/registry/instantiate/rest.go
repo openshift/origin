@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -51,59 +52,64 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 	if !ok {
 		return nil, errors.NewInternalError(fmt.Errorf("wrong object passed for requesting a new rollout: %#v", obj))
 	}
-
-	configObj, err := r.store.Get(ctx, req.Name, &metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	config := configObj.(*deployapi.DeploymentConfig)
-	old := config
-
-	if errs := validation.ValidateRequestForDeploymentConfig(req, config); len(errs) > 0 {
-		return nil, errors.NewInvalid(deployapi.Kind("DeploymentRequest"), req.Name, errs)
-	}
-
-	// We need to process the deployment config before we can determine if it is possible to trigger
-	// a deployment.
-	if req.Latest {
-		if err := processTriggers(config, r.isn, req.Force, req.ExcludeTriggers); err != nil {
-			return nil, err
+	var ret runtime.Object
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		configObj, err := r.store.Get(ctx, req.Name, &metav1.GetOptions{})
+		if err != nil {
+			return err
 		}
-	}
+		config := configObj.(*deployapi.DeploymentConfig)
+		old := config
 
-	canTrigger, causes, err := canTrigger(config, r.rn, r.decoder, req.Force)
-	if err != nil {
-		return nil, err
-	}
-	// If we cannot trigger then there is nothing to do here.
-	if !canTrigger {
-		return &metav1.Status{
-			Message: fmt.Sprintf("deployment config %q cannot be instantiated", config.Name),
-			Code:    int32(204),
-		}, nil
-	}
-	glog.V(4).Infof("New deployment for %q caused by %#v", config.Name, causes)
+		if errs := validation.ValidateRequestForDeploymentConfig(req, config); len(errs) > 0 {
+			return errors.NewInvalid(deployapi.Kind("DeploymentRequest"), req.Name, errs)
+		}
 
-	config.Status.Details = new(deployapi.DeploymentDetails)
-	config.Status.Details.Causes = causes
-	switch causes[0].Type {
-	case deployapi.DeploymentTriggerOnConfigChange:
-		config.Status.Details.Message = "config change"
-	case deployapi.DeploymentTriggerOnImageChange:
-		config.Status.Details.Message = "image change"
-	case deployapi.DeploymentTriggerManual:
-		config.Status.Details.Message = "manual change"
-	}
-	config.Status.LatestVersion++
+		// We need to process the deployment config before we can determine if it is possible to trigger
+		// a deployment.
+		if req.Latest {
+			if err := processTriggers(config, r.isn, req.Force, req.ExcludeTriggers); err != nil {
+				return err
+			}
+		}
 
-	userInfo, _ := apirequest.UserFrom(ctx)
-	attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
-	if err := r.admit.Admit(attrs); err != nil {
-		return nil, err
-	}
+		canTrigger, causes, err := canTrigger(config, r.rn, r.decoder, req.Force)
+		if err != nil {
+			return err
+		}
+		// If we cannot trigger then there is nothing to do here.
+		if !canTrigger {
+			ret = &metav1.Status{
+				Message: fmt.Sprintf("deployment config %q cannot be instantiated", config.Name),
+				Code:    int32(204),
+			}
+			return nil
+		}
+		glog.V(4).Infof("New deployment for %q caused by %#v", config.Name, causes)
 
-	updated, _, err := r.store.Update(ctx, config.Name, rest.DefaultUpdatedObjectInfo(config, kapi.Scheme))
-	return updated, err
+		config.Status.Details = new(deployapi.DeploymentDetails)
+		config.Status.Details.Causes = causes
+		switch causes[0].Type {
+		case deployapi.DeploymentTriggerOnConfigChange:
+			config.Status.Details.Message = "config change"
+		case deployapi.DeploymentTriggerOnImageChange:
+			config.Status.Details.Message = "image change"
+		case deployapi.DeploymentTriggerManual:
+			config.Status.Details.Message = "manual change"
+		}
+		config.Status.LatestVersion++
+
+		userInfo, _ := apirequest.UserFrom(ctx)
+		attrs := admission.NewAttributesRecord(config, old, deployapi.Kind("DeploymentConfig").WithVersion(""), config.Namespace, config.Name, deployapi.Resource("DeploymentConfig").WithVersion(""), "", admission.Update, userInfo)
+		if err := r.admit.Admit(attrs); err != nil {
+			return err
+		}
+
+		ret, _, err = r.store.Update(ctx, config.Name, rest.DefaultUpdatedObjectInfo(config, kapi.Scheme))
+		return err
+	})
+
+	return ret, err
 }
 
 // processTriggers will go over all deployment triggers that require processing and update
