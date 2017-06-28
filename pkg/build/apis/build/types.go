@@ -80,11 +80,23 @@ const (
 	BuildCancelledEventReason = "BuildCancelled"
 	// BuildCancelledEventMessage is the message associated with the event registered when build is cancelled.
 	BuildCancelledEventMessage = "Build %s/%s has been cancelled"
+
+	// DefaultSuccessfulBuildsHistoryLimit is the default number of successful builds to retain
+	// if the buildconfig does not specify a value.  This only applies to buildconfigs created
+	// via the new group api resource, not the legacy resource.
+	DefaultSuccessfulBuildsHistoryLimit = int32(5)
+
+	// DefaultFailedBuildsHistoryLimit is the default number of failed builds to retain
+	// if the buildconfig does not specify a value.  This only applies to buildconfigs created
+	// via the new group api resource, not the legacy resource.
+	DefaultFailedBuildsHistoryLimit = int32(5)
 )
 
-// WhitelistEnvVarNames is a list of environment variable keys that are allowed to be set by the
-// user on the build pod.
-var WhitelistEnvVarNames = [2]string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
+var (
+	// WhitelistEnvVarNames is a list of environment variable keys that are allowed to be set by the
+	// user on the build pod.
+	WhitelistEnvVarNames = [2]string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
+)
 
 // +genclient=true
 

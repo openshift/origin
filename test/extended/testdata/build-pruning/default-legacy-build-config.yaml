@@ -2,16 +2,11 @@ apiVersion: v1
 kind: BuildConfig
 metadata:
   name: myphp
-  labels:
-    app: myphp
-  annotations:
-    openshift.io/generated-by: OpenShiftWebConsole
 spec:
-  failedBuildsHistoryLimit: 2
   source:
     type: Git
     git:
-      uri: 'https://github.com/openshift/non-working-example.git'
+      uri: 'https://github.com/openshift/cakephp-ex.git'
   strategy:
     type: Source
     sourceStrategy:

@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
 	deploymentconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
@@ -199,7 +200,8 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 				case "buildConfigs":
 					restStorage := s.(*buildconfigetcd.REST)
 					store := *restStorage.Store
-					store.DeleteStrategy = orphanByDefault(store.DeleteStrategy)
+					store.DeleteStrategy = buildconfig.LegacyStrategy
+					store.CreateStrategy = buildconfig.LegacyStrategy
 					legacyStorage[resource] = &buildconfigetcd.REST{Store: &store}
 				case "deploymentConfigs":
 					restStorage := s.(*deploymentconfigetcd.REST)
