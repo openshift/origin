@@ -21,7 +21,10 @@ go_test(
 
 go_library(
     name = "go_default_library",
-    srcs = ["storage_core.go"],
+    srcs = [
+        "scc_patch.go",
+        "storage_core.go",
+    ],
     tags = ["automanaged"],
     deps = [
         "//pkg/api:go_default_library",

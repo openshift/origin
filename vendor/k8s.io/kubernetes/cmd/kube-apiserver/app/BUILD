@@ -84,6 +84,7 @@ go_library(
         "//vendor:k8s.io/apiserver/pkg/server/filters",
         "//vendor:k8s.io/apiserver/pkg/server/healthz",
         "//vendor:k8s.io/apiserver/pkg/server/options",
+        "//vendor:k8s.io/apiserver/pkg/server/options/encryptionconfig",
         "//vendor:k8s.io/apiserver/pkg/server/storage",
         "//vendor:k8s.io/client-go/kubernetes",
         "//vendor:k8s.io/kube-aggregator/pkg/apis/apiregistration",
