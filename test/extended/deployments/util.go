@@ -470,7 +470,7 @@ func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
 }
 
 func DeploymentConfigFailureTrap(oc *exutil.CLI, name string, failed bool) {
-	failureTrap(oc.AsAdmin(), name, failed)
+	failureTrap(oc, name, failed)
 }
 
 func failureTrap(oc *exutil.CLI, name string, failed bool) {
