@@ -10844,6 +10844,8 @@ _oc_explain()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--api-version=")
+    local_nonpersistent_flags+=("--api-version=")
     flags+=("--recursive")
     local_nonpersistent_flags+=("--recursive")
     flags+=("--as=")
