@@ -88,7 +88,8 @@ func (c *ServiceLoadBalancerControllerConfig) RunController(ctx kubecontroller.C
 		ctx.Options.ClusterName,
 	)
 	if err != nil {
-		return true, fmt.Errorf("unable to start service load balancer controller: %v", err)
+		glog.Warningf("unable to start service load balancer controller: %v", err)
+		return false, nil
 	}
 
 	go serviceController.Run(ctx.Stop, int(ctx.Options.ConcurrentServiceSyncs))
