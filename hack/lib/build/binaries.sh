@@ -225,11 +225,22 @@ os::build::internal::build_binaries() {
         os::util::ensure::gopath_binary_exists 'goversioninfo'
         local major="${OS_GIT_MAJOR}"
         local minor="${OS_GIT_MINOR%+}"
+        local patch="${OS_GIT_PATCH}"
         local windows_versioninfo_file=`mktemp --suffix=".versioninfo.json"`
         cat <<EOF >"${windows_versioninfo_file}"
 {
 	"FixedFileInfo":
 	{
+		"FileVersion": {
+			"Major": ${major},
+			"Minor": ${minor},
+			"Patch": ${patch}
+		},
+		"ProductVersion": {
+			"Major": ${major},
+			"Minor": ${minor},
+			"Patch": ${patch}
+		},
 		"FileFlagsMask": "3f",
 		"FileFlags ": "00",
 		"FileOS": "040004",
