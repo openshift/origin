@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 9940fdff9fe0efa8bca857762d0e9617b2f49b0c
+%global commit 4b57b8b0c4cfed618b82c33de7acc45398a0f2dd
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.122 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=9940fdf
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.123 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4b57b8b
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.127
+Version:        3.6.128
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,182 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jun 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.128-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console c982d21
+  (smunilla@redhat.com)
+- UPSTREAM: 44962: Remove misleading error from CronJob controller when it
+  can't find parent (mfojtik@redhat.com)
+- Updated bootstrappolicy (ppospisi@redhat.com)
+- UPSTREAM: 46771: Allow persistent-volume-binder to List Nodes/Zones Available
+  in the Cluster (ppospisi@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  648bef724e728a1c16129997aba33e17ce065081 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2fb62238b922bebd311ccb43bc00c39500452828 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  a16c85b780e7e12846b53e2694a56b360f1c539a (dmcphers+openshiftbot@redhat.com)
+- Fix matchpathcon to only print the label (eparis@redhat.com)
+- deploy: retry instantiate on conflicts (mfojtik@redhat.com)
+- Bumping version ahead of stg for new versioning scheme (jupierce@redhat.com)
+- Clean up and modernize CONTRIBUTING.md (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  69499249c93896c6f67c58fe2b0e8fe6be822c84 (dmcphers+openshiftbot@redhat.com)
+- bump(k8s.io/kubernetes): 314edd5dc58f36ee1238dd2127a61feae14b9a4a
+  (deads@redhat.com)
+- set default build prune limits for group api (bparees@redhat.com)
+- Fix go vet in TestRunAsAnyGenerate (mkhan@redhat.com)
+- Refactor authorization policy REST storage code (mkhan@redhat.com)
+- Use live lookups to resolve uncached role refs (mkhan@redhat.com)
+- Update documentation for DC conditions (mkargaki@redhat.com)
+- UPSTREAM: kubernetes-incubator/cluster-capacity: 81: Fix cluster-capacity to
+  avoid pending pods not created by it. Fixes
+  https://bugzilla.redhat.com/show_bug.cgi?id=1449891 (avagarwa@redhat.com)
+- allow templateinstance updates for GC (deads@redhat.com)
+- add indexer before the informers are started until the generator is rewritten
+  (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  76b9495ac9392d18ebd8eb5de8b83ce19b6f682a (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 47904: prioritize messages for long steps (deads@redhat.com)
+- UPSTREAM: <drop>: Use Clone for CloneTLSConfig for golang 1.8
+  (jdetiber@redhat.com)
+- UPSTREAM: 44058: Make background garbage collection cascading
+  (maszulik@redhat.com)
+- Partial revert 13326de3e8d86386abc4e89ada132d24d6490be3 (maszulik@redhat.com)
+- restore etcd main file (deads@redhat.com)
+- refactor openshift start to separate controllers and apiserver
+  (deads@redhat.com)
+- Add extended tests for DC ControllerRef (tnozicka@gmail.com)
+- Report multiple build causes for image change triggers (ccoleman@redhat.com)
+- Preserve backwards compatibilty for old routes for destination CA
+  (ccoleman@redhat.com)
+- pass an internal pod object to SCC admission control so it works
+  (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c5950988b45d881560f1a14cd68b08c87be28933 (dmcphers+openshiftbot@redhat.com)
+- Image change trigger must be able to create all build types
+  (ccoleman@redhat.com)
+- Add a diagnostic that runs extended validation on routes
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  26d468aab574f66a99496c35c21edc6e45d55dba (dmcphers+openshiftbot@redhat.com)
+- Allow objects to request resolution, not just images (ccoleman@redhat.com)
+- Move the router to use generated clientsets (ccoleman@redhat.com)
+- generated: completions (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b14785bb207e11689c58a6a23dc7cca229d67732 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 45637: --api-version on explain is not deprecated
+  (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  7bc6cbc81bc0e5a9a9a7a732dc860adfa2bd4367 (dmcphers+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ba1ba6dc29593658b0af1b29b0cc506142c4dbaa (dmcphers+openshiftbot@redhat.com)
+- Update output logging in hack/verify-gofmt.sh (skuznets@redhat.com)
+- Router metrics tests should use the configured port (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2a223555a6247f530789cfc2d043b44245a8ce84 (dmcphers+openshiftbot@redhat.com)
+- UPSTREAM: 47823: don't pass CRI error through to waiting state reason
+  (sjenning@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  733e9f20be535f157fd313b204f1636b6e36cd99 (dmcphers+openshiftbot@redhat.com)
+- Fix for go vet warning on ldaputil/client.go (bruno@abstractj.org)
+- Add better logging to hack/push-release.sh (skuznets@redhat.com)
+- sdn: kill containers that fail to update on node restart (dcbw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d0e24f52afc2b6cab5f22df1c59cdcad2d37d572 (dmcphers+openshiftbot@redhat.com)
+- Updating GITHUB_WEBHOOK_SECRET description Updating external examples (that
+  have already had the GITHUB_WEBHOOK_SECRET description updated)
+  (cdaley@redhat.com)
+- move API groups to canonical locations (deads@redhat.com)
+- UPSTREAM: <carry>: update group references (deads@redhat.com)
+- UPSTREAM: coreos/etcd: <drop>: Backwards compatibility to Go 1.7.5
+  (ccoleman@redhat.com)
+- bump(github.com/coreos/etcd):v3.2.1 (ccoleman@redhat.com)
+- stop deleting lister expansions (deads@redhat.com)
+- script to manage the bulk of the moves (deads@redhat.com)
+- UPSTREAM: <carry>: update client namer rules for amguity (deads@redhat.com)
+- manual (deads@redhat.com)
+- generated (deads@redhat.com)
+- pick 14625: Allow setting volumes:[none] to disallow all volume types in SCC
+  (deads@redhat.com)
+- move SCC types to openshift (deads@redhat.com)
+- write manual, backwards compatible client (deads@redhat.com)
+- update generation scripts (deads@redhat.com)
+- UPSTREAM: <drop>: generated SCC changes (deads@redhat.com)
+- UPSTREAM: <carry>: drop SCC manual changes (deads@redhat.com)
+- UPSTREAM: <carry>: add patch to allow shimming SCC (deads@redhat.com)
+- Allow websocket authentication via protocol header (jliggitt@redhat.com)
+- UPSTREAM: 47740: Use websocket protocol authenticator in apiserver
+  (jliggitt@redhat.com)
+- UPSTREAM: 47740: Add websocket protocol authentication method
+  (jliggitt@redhat.com)
+- add ext tests for cfgmap/is -> jenkins slave pod template
+  (gmontero@redhat.com)
+- Generate: oadm migrate volumesource (mkhan@redhat.com)
+- Add oadm migrate volumesource (mkhan@redhat.com)
+- Move NotChanged reporter to allow reuse (mkhan@redhat.com)
+- UPSTREAM: 48017: Plumb preferred version to nested object encoder
+  (jliggitt@redhat.com)
+- UPSTREAM: 47973: include object fieldpath in event key (sjenning@redhat.com)
+- make sure that GC can delete privileged pods (deads@redhat.com)
+- UPSTREAM: 47975: make proto time precision match json (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  066938a2329cb306fe293287d718b51b75159eae (dmcphers+openshiftbot@redhat.com)
+- Fix ClusterNetwork REST GetAttrs (mkhan@redhat.com)
+- Update default allowed registries (maszulik@redhat.com)
+- allow templateinstance controller to instantiate non-v1 objects
+  (jminter@redhat.com)
+- Errors must be always shown in oc status (ffranz@redhat.com)
+- UPSTREAM: 46440: fix api server handler routing (move CRD behind TPR)
+  (jdetiber@redhat.com)
+- UPSTREAM: 41758: Updated key.pm and cert.pm to remove error in setting up
+  localhostCert pool (jdetiber@redhat.com)
+- UPSTREAM: 44583: bump bazel build to go1.8.1 and remove invalid unit tests
+  (jdetiber@redhat.com)
+- UPSTREAM: 44579: make certs used in roundtripper_test same as those used in
+  proxy_test (jdetiber@redhat.com)
+- move SC and logging templates to a system namespace (bparees@redhat.com)
+- UPSTREAM: 45049: Log an EBS vol's instance when attaching fails because
+  VolumeInUse (mawong@redhat.com)
+- Added IPv6 support for the ipfailover keepalived image.  - Added IPv6 Address
+  support  - Added IPv6 Address Range Support  - Added IPv6 Address Validation
+  - Added IPv4 Address Validation  - Added relevant test cases
+  (rmedina@netlabs.com.uy)
+- Build and ship ginkgo binary with extended tests (skuznets@redhat.com)
+- assorted improvements to template service broker - include name of object
+  that fails SAR where appropriate, to improve error   message - prevent bind
+  from working when a given key in credentials is assigned more   than once -
+  in catalog, set description to "No description provided" when no description
+  is provided - prevent a possible panic in the API controller if a malformed
+  template is   passed in - add a test to ensure templateinstances can be
+  created and deleted with   templates with objects in multiple namespaces
+  (jminter@redhat.com)
+- Build junitreport with hack/build-go.sh, based on
+  tools/junitreport/README.md. (jpazdziora@redhat.com)
+- add bash retry around all sh->oc invocations; rework openshift-jee-sample-
+  docker start/verify build; add master stack dump util switch to native mem
+  tracking bump pipeline tests jenkins container mem based on latest native mem
+  analysis (gmontero@redhat.com)
+- node, syscontainer: add bind mount for /var/lib/dockershim
+  (gscrivan@redhat.com)
+- node, syscontainer: add bind mount for /etc/cni/net.d (gscrivan@redhat.com)
+- openvswitch, syscontainer: add missing substitution (gscrivan@redhat.com)
+- Add unit test for second run of DC trigger (tnozicka@gmail.com)
+- don't prevent updates that only touch ownerrefs (deads@redhat.com)
+- Fix godep-save by ignoring cmd/cluster-capacity and cmd/service-catalog dirs.
+  (avagarwa@redhat.com)
+- enable podpresets with service catalog (bparees@redhat.com)
+- Treat connection refused as "not available" in bind test
+  (ccoleman@redhat.com)
+- Stop setting port 1935 in the router configuration (ccoleman@redhat.com)
+- Disable stats port when new router metrics are on (ccoleman@redhat.com)
+- When stats port is -1, completely disable stats port (ccoleman@redhat.com)
+- Format CONTRIBUTING.adoc consistently (skuznets@redhat.com)
+- Remove local Vagrant workflow from CONTRIBUTING.adoc (skuznets@redhat.com)
+- Fix chained DC IST trigger (tnozicka@gmail.com)
+- Do not force any selinux context on volumeDir (eparis@redhat.com)
+- The --ports flag does not modify dc env variables (pcameron@redhat.com)
+- hack: drop obsolete build env from build-images.sh (mkargaki@redhat.com)
+
 * Fri Jun 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.123-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 1922a40
   (smunilla@redhat.com)
