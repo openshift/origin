@@ -731,9 +731,13 @@ func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, names
 			return false, err
 		}
 
-		if dc.Status.LatestVersion > version {
-			return false, fmt.Errorf("latestVersion %d passed %d", dc.Status.LatestVersion, version)
-		}
+		// TODO re-enable this check once @mfojtik introduces a test that ensures we'll only ever get
+		// exactly one deployment triggered.
+		/*
+			if dc.Status.LatestVersion > version {
+				return false, fmt.Errorf("latestVersion %d passed %d", dc.Status.LatestVersion, version)
+			}
+		*/
 		if dc.Status.LatestVersion < version {
 			return false, nil
 		}

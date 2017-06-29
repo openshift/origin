@@ -150,7 +150,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
 				exutil.DumpBuildLogs("openshift-jee-sample-docker", oc)
-				exutil.DumpDeploymentLogs("openshift-jee-sample", oc)
+				exutil.DumpDeploymentLogs("openshift-jee-sample", 1, oc)
 			}
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
@@ -289,8 +289,9 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-sample-pipeline-openshift-client-plugin", oc, true)
 			if err != nil || !br.BuildSuccess {
 				exutil.DumpBuildLogs("ruby", oc)
-				exutil.DumpDeploymentLogs("mongodb", oc)
-				exutil.DumpDeploymentLogs("jenkins-second-deployment", oc)
+				exutil.DumpDeploymentLogs("mongodb", 1, oc)
+				exutil.DumpDeploymentLogs("jenkins-second-deployment", 1, oc)
+				exutil.DumpDeploymentLogs("jenkins-second-deployment", 2, oc)
 			}
 			br.AssertSuccess()
 
