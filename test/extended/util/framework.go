@@ -53,12 +53,16 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
 		for _, lang := range langs {
+			fmt.Fprintf(g.GinkgoWriter, "Checking language %v \n", lang)
 			is, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "ImageStream Error: %#v \n", err)
 				return false
 			}
 			for tag := range is.Spec.Tags {
+				fmt.Fprintf(g.GinkgoWriter, "Checking tag %v \n", tag)
 				if _, ok := is.Status.Tags[tag]; !ok {
+					fmt.Fprintf(g.GinkgoWriter, "Tag Error: %#v \n", ok)
 					return false
 				}
 			}
@@ -68,13 +72,16 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 
 	success := false
 	for i := 0; i < 10; i++ {
+		fmt.Fprintf(g.GinkgoWriter, "Running scan #%v \n", i)
 		success = scan()
 		if success {
 			break
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Sleeping for 3 seconds \n")
 		time.Sleep(3 * time.Second)
 	}
 	if success {
+		fmt.Fprintf(g.GinkgoWriter, "Success! \n")
 		return nil
 	}
 	DumpImageStreams(oc)
@@ -110,17 +117,17 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
 // as part of debugging when the language imagestreams in the openshift namespace seem to disappear
 func DumpImageStreams(oc *CLI) {
-	out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
+	out, err := oc.Run("get").Args("is", "-n", "openshift", "-o", "yaml", "--config", KubeConfigPath()).Output()
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in openshift namespace: \n%s\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in openshift namespace: %+v\n", err)
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in openshift namespace: %+v\n%#v\n", err, out)
 	}
-	out, err = oc.Run("get").Args("is").Output()
+	out, err = oc.Run("get").Args("is", "-o", "yaml").Output()
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in dynamic test namespace: \n%s\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in dynamic test namespace: %+v\n", err)
+		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in dynamic test namespace: %+v\n%#v\n", err, out)
 	}
 	ids, err := ListImages()
 	if err != nil {
