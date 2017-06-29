@@ -66,7 +66,8 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			assertPageCountIs(2, dcLabelOne)
 
 			g.By("modifying the source code with disabled hot deploy")
-			RunInPodContainer(oc, dcLabelOne, modifyCommand)
+			err = RunInPodContainer(oc, dcLabelOne, modifyCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			assertPageCountIs(3, dcLabelOne)
 
 			pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabelOne.String()})
@@ -85,7 +86,8 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 
 			g.By("modifying the source code with enabled hot deploy")
 			assertPageCountIs(4, dcLabelTwo)
-			RunInPodContainer(oc, dcLabelTwo, modifyCommand)
+			err = RunInPodContainer(oc, dcLabelTwo, modifyCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			assertPageCountIs(1337, dcLabelTwo)
 		})
 	})

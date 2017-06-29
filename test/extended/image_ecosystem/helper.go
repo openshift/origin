@@ -31,7 +31,7 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 	args = append(args, cmd...)
 	output, err := oc.Run("exec").Args(args...).Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "RunInPodContainer exec output: %s", output)
+		fmt.Fprintf(g.GinkgoWriter, "RunInPodContainer exec output: %s\n", output)
 	}
 	return err
 }
