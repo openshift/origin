@@ -407,8 +407,9 @@ func MakeDeploymentV1(config *deployapi.DeploymentConfig, codec runtime.Codec) (
 		},
 		Spec: v1.ReplicationControllerSpec{
 			// The deployment should be inactive initially
-			Replicas: &zero,
-			Selector: selector,
+			Replicas:        &zero,
+			Selector:        selector,
+			MinReadySeconds: config.Spec.MinReadySeconds,
 			Template: &v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:      podLabels,
