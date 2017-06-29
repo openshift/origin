@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 	scheme "github.com/openshift/origin/pkg/template/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type BrokerTemplateInstancesGetter interface {
 
 // BrokerTemplateInstanceInterface has methods to work with BrokerTemplateInstance resources.
 type BrokerTemplateInstanceInterface interface {
-	Create(*api.BrokerTemplateInstance) (*api.BrokerTemplateInstance, error)
-	Update(*api.BrokerTemplateInstance) (*api.BrokerTemplateInstance, error)
+	Create(*template.BrokerTemplateInstance) (*template.BrokerTemplateInstance, error)
+	Update(*template.BrokerTemplateInstance) (*template.BrokerTemplateInstance, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.BrokerTemplateInstance, error)
-	List(opts v1.ListOptions) (*api.BrokerTemplateInstanceList, error)
+	Get(name string, options v1.GetOptions) (*template.BrokerTemplateInstance, error)
+	List(opts v1.ListOptions) (*template.BrokerTemplateInstanceList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.BrokerTemplateInstance, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.BrokerTemplateInstance, err error)
 	BrokerTemplateInstanceExpansion
 }
 
@@ -41,8 +41,8 @@ func newBrokerTemplateInstances(c *TemplateClient) *brokerTemplateInstances {
 }
 
 // Create takes the representation of a brokerTemplateInstance and creates it.  Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
-func (c *brokerTemplateInstances) Create(brokerTemplateInstance *api.BrokerTemplateInstance) (result *api.BrokerTemplateInstance, err error) {
-	result = &api.BrokerTemplateInstance{}
+func (c *brokerTemplateInstances) Create(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
+	result = &template.BrokerTemplateInstance{}
 	err = c.client.Post().
 		Resource("brokertemplateinstances").
 		Body(brokerTemplateInstance).
@@ -52,8 +52,8 @@ func (c *brokerTemplateInstances) Create(brokerTemplateInstance *api.BrokerTempl
 }
 
 // Update takes the representation of a brokerTemplateInstance and updates it. Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
-func (c *brokerTemplateInstances) Update(brokerTemplateInstance *api.BrokerTemplateInstance) (result *api.BrokerTemplateInstance, err error) {
-	result = &api.BrokerTemplateInstance{}
+func (c *brokerTemplateInstances) Update(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
+	result = &template.BrokerTemplateInstance{}
 	err = c.client.Put().
 		Resource("brokertemplateinstances").
 		Name(brokerTemplateInstance.Name).
@@ -84,8 +84,8 @@ func (c *brokerTemplateInstances) DeleteCollection(options *v1.DeleteOptions, li
 }
 
 // Get takes name of the brokerTemplateInstance, and returns the corresponding brokerTemplateInstance object, and an error if there is any.
-func (c *brokerTemplateInstances) Get(name string, options v1.GetOptions) (result *api.BrokerTemplateInstance, err error) {
-	result = &api.BrokerTemplateInstance{}
+func (c *brokerTemplateInstances) Get(name string, options v1.GetOptions) (result *template.BrokerTemplateInstance, err error) {
+	result = &template.BrokerTemplateInstance{}
 	err = c.client.Get().
 		Resource("brokertemplateinstances").
 		Name(name).
@@ -96,8 +96,8 @@ func (c *brokerTemplateInstances) Get(name string, options v1.GetOptions) (resul
 }
 
 // List takes label and field selectors, and returns the list of BrokerTemplateInstances that match those selectors.
-func (c *brokerTemplateInstances) List(opts v1.ListOptions) (result *api.BrokerTemplateInstanceList, err error) {
-	result = &api.BrokerTemplateInstanceList{}
+func (c *brokerTemplateInstances) List(opts v1.ListOptions) (result *template.BrokerTemplateInstanceList, err error) {
+	result = &template.BrokerTemplateInstanceList{}
 	err = c.client.Get().
 		Resource("brokertemplateinstances").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -116,8 +116,8 @@ func (c *brokerTemplateInstances) Watch(opts v1.ListOptions) (watch.Interface, e
 }
 
 // Patch applies the patch and returns the patched brokerTemplateInstance.
-func (c *brokerTemplateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.BrokerTemplateInstance, err error) {
-	result = &api.BrokerTemplateInstance{}
+func (c *brokerTemplateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.BrokerTemplateInstance, err error) {
+	result = &template.BrokerTemplateInstance{}
 	err = c.client.Patch(pt).
 		Resource("brokertemplateinstances").
 		SubResource(subresources...).

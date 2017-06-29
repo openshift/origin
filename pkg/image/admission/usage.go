@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // InternalImageReferenceHandler is a function passed to the computer when processing images that allows a

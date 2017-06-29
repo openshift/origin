@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/quota/api/v1"
+	quota_v1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	clientset "github.com/openshift/origin/pkg/quota/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/quota/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/quota/generated/listers/quota/v1"
@@ -35,7 +35,7 @@ func newClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod ti
 				return client.QuotaV1().ClusterResourceQuotas().Watch(options)
 			},
 		},
-		&api_v1.ClusterResourceQuota{},
+		&quota_v1.ClusterResourceQuota{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newClusterResourceQuotaInformer(client clientset.Interface, resyncPeriod ti
 }
 
 func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.ClusterResourceQuota{}, newClusterResourceQuotaInformer)
+	return f.factory.InformerFor(&quota_v1.ClusterResourceQuota{}, newClusterResourceQuotaInformer)
 }
 
 func (f *clusterResourceQuotaInformer) Lister() v1.ClusterResourceQuotaLister {

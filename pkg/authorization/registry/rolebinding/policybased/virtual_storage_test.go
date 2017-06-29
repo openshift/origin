@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	_ "github.com/openshift/origin/pkg/authorization/api/install"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/test"
@@ -70,7 +70,7 @@ func makeTestStorage() rolebindingregistry.Storage {
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
 	policyRegistry := test.NewPolicyRegistry([]authorizationapi.Policy{}, nil)
 
-	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, bindingRegistry, clusterPolicyRegistry, clusterBindingRegistry), nil, authorizationapi.Resource("rolebinding"))
+	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(policyRegistry, bindingRegistry, clusterPolicyRegistry, clusterBindingRegistry), nil)
 }
 
 func makeClusterTestStorage() rolebindingregistry.Storage {
@@ -78,7 +78,7 @@ func makeClusterTestStorage() rolebindingregistry.Storage {
 	clusterPolicyRegistry := test.NewClusterPolicyRegistry(testNewClusterPolicies(), nil)
 	bindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry)
 
-	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(nil, nil, clusterPolicyRegistry, clusterBindingRegistry), nil, authorizationapi.Resource("clusterrolebinding"))
+	return NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(nil, nil, clusterPolicyRegistry, clusterBindingRegistry), nil)
 }
 
 func TestCreateValidationError(t *testing.T) {
@@ -355,7 +355,7 @@ func TestDeleteError(t *testing.T) {
 	bindingRegistry := &test.PolicyBindingRegistry{}
 	bindingRegistry.Err = errors.New("Sample Error")
 
-	storage := NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}), nil, authorizationapi.Resource("rolebinding"))
+	storage := NewVirtualStorage(bindingRegistry, rulevalidation.NewDefaultRuleResolver(&test.PolicyRegistry{}, bindingRegistry, &test.ClusterPolicyRegistry{}, &test.ClusterPolicyBindingRegistry{}), nil)
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	_, _, err := storage.Delete(ctx, "foo", nil)
 	if err != bindingRegistry.Err {

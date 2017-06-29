@@ -2,7 +2,7 @@ package user
 
 import (
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 type DefaultUserInitStrategy struct {

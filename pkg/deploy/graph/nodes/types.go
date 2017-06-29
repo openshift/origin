@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 var (

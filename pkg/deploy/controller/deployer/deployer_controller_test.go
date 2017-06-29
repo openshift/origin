@@ -18,10 +18,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	_ "github.com/openshift/origin/pkg/deploy/api/install"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 

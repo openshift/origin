@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 

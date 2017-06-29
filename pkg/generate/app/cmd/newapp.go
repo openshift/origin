@@ -25,8 +25,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	authapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -36,7 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 )

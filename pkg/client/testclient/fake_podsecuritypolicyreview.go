@@ -1,7 +1,7 @@
 package testclient
 
 import (
-	securityapi "github.com/openshift/origin/pkg/security/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
 )

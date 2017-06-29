@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/template"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // PipelineTemplate stores the configuration of the

@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // FakeUsers implements UsersInterface. Meant to be embedded into a struct to get a default

@@ -5,7 +5,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authorizationapi.RoleBinding {

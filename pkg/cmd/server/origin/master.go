@@ -21,18 +21,28 @@ import (
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
+	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
+	"crypto/x509"
+	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/plug"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
+	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
+	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
+	sccStorage := sccstorage.NewREST(kubeAPIServerConfig.RESTOptionsGetter)
+
 	// make a shallow copy to let us twiddle a few things
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
@@ -52,6 +62,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		KubeInternalInformers:              c.InternalKubeInformers,
 		AuthorizationInformers:             c.AuthorizationInformers,
 		QuotaInformers:                     c.QuotaInformers,
+		SecurityInformers:                  c.SecurityInformers,
 		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
 		RuleResolver:                       c.RuleResolver,
 		SubjectLocator:                     c.SubjectLocator,
@@ -67,6 +78,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
 		EnableTemplateServiceBroker:        c.Options.TemplateServiceBrokerConfig != nil,
 		ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
+		SCCStorage:                         sccStorage,
 	}
 	if c.Options.OAuthConfig != nil {
 		ret.ServiceAccountMethod = c.Options.OAuthConfig.GrantConfig.ServiceAccountMethod
@@ -75,11 +87,10 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	return ret, ret.Validate()
 }
 
-func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config) *OpenshiftNonAPIConfig {
+func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) *OpenshiftNonAPIConfig {
 	ret := &OpenshiftNonAPIConfig{
 		GenericConfig:               &kubeAPIServerConfig,
-		EnableControllers:           c.Options.Controllers != configapi.ControllersDisabled,
-		ControllerPlug:              c.ControllerPlug,
+		ControllerPlug:              controllerPlug,
 		EnableOAuth:                 c.Options.OAuthConfig != nil,
 		KubeClientInternal:          c.PrivilegedLoopbackKubernetesClientsetInternal,
 		EnableTemplateServiceBroker: c.Options.TemplateServiceBrokerConfig != nil,
@@ -97,8 +108,8 @@ func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Co
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, stopCh <-chan struct{}) {
-	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(*kubeAPIServerConfig.GenericConfig)
+func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) {
+	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(*kubeAPIServerConfig.GenericConfig, controllerPlug)
 	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(apiserver.EmptyDelegate, stopCh)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
@@ -123,6 +134,8 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
+	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
 	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
@@ -242,60 +255,75 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 	}, nil
 }
 
-func (c *MasterConfig) RunHealth() error {
-	postGoRestfulMux := genericmux.NewPathRecorderMux("master-healthz")
-
-	healthz.InstallHandler(postGoRestfulMux, healthz.PingHealthz)
-	initReadinessCheckRoute(postGoRestfulMux, "/healthz/ready", func() bool { return true })
-	genericroutes.Profiling{}.Install(postGoRestfulMux)
-	genericroutes.MetricsWithReset{}.Install(postGoRestfulMux)
-
-	// TODO: replace me with a service account for controller manager
-	tokenReview := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
-	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, c.APIClientCAs, 5*time.Minute)
+// TODO refactor this out of this package and split apiserver and controllers for good!
+func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeInternal kclientsetinternal.Interface) error {
+	clientCAs, err := getClientCertCAPool(servingInfo)
 	if err != nil {
 		return err
 	}
-	sarClient := clientgoclientset.New(c.PrivilegedLoopbackKubernetesClientsetInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
+
+	mux := genericmux.NewPathRecorderMux("master-healthz")
+
+	healthz.InstallHandler(mux, healthz.PingHealthz)
+	initReadinessCheckRoute(mux, "/healthz/ready", func() bool { return true })
+	genericroutes.Profiling{}.Install(mux)
+	genericroutes.MetricsWithReset{}.Install(mux)
+
+	// TODO: replace me with a service account for controller manager
+	tokenReview := clientgoclientset.New(kubeInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
+	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, clientCAs, 5*time.Minute)
+	if err != nil {
+		return err
+	}
+	sarClient := clientgoclientset.New(kubeInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
 	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
 	if err != nil {
 		return err
 	}
 
+	// requestInfoFactory for controllers only needs to be able to handle non-API endpoints
+	requestInfoResolver := apiserver.NewRequestInfoResolver(&apiserver.Config{})
+	// the request context mapper for controllers is always separate
+	requestContextMapper := apirequest.NewRequestContextMapper()
+	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, requestInfoResolver)
+
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	contextMapper := c.getRequestContextMapper()
-	handler := serverhandlers.AuthorizationFilter(postGoRestfulMux, authz, c.AuthorizationAttributeBuilder, contextMapper)
-	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, contextMapper)
+	handler := serverhandlers.AuthorizationFilter(mux, authz, authorizationAttributeBuilder, requestContextMapper)
+	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, requestContextMapper)
 	handler = apiserverfilters.WithPanicRecovery(handler)
-	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(&apiserver.Config{}), contextMapper)
-	handler = apirequest.WithRequestContext(handler, contextMapper)
+	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
+	handler = apirequest.WithRequestContext(handler, requestContextMapper)
 
-	c.serve(handler, []string{"Started health checks at %s"})
+	serveControllers(servingInfo, handler)
 	return nil
 }
 
 // serve starts serving the provided http.Handler using security settings derived from the MasterConfig
-func (c *MasterConfig) serve(handler http.Handler, messages []string) {
-	timeout := c.Options.ServingInfo.RequestTimeoutSeconds
+func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handler) {
+	timeout := servingInfo.RequestTimeoutSeconds
 	if timeout == -1 {
 		timeout = 0
 	}
 
 	server := &http.Server{
-		Addr:           c.Options.ServingInfo.BindAddress,
+		Addr:           servingInfo.BindAddress,
 		Handler:        handler,
 		ReadTimeout:    time.Duration(timeout) * time.Second,
 		WriteTimeout:   time.Duration(timeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	clientCAs, err := getClientCertCAPool(servingInfo)
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	go utilwait.Forever(func() {
-		for _, s := range messages {
-			glog.Infof(s, c.Options.ServingInfo.BindAddress)
-		}
-		if c.TLS {
-			extraCerts, err := configapi.GetNamedCertificateMap(c.Options.ServingInfo.NamedCertificates)
+		glog.Infof("Started health checks at %s", servingInfo.BindAddress)
+
+		if configapi.UseTLS(servingInfo.ServingInfo) {
+			extraCerts, err := configapi.GetNamedCertificateMap(servingInfo.NamedCertificates)
 			if err != nil {
 				glog.Fatal(err)
 			}
@@ -303,17 +331,35 @@ func (c *MasterConfig) serve(handler http.Handler, messages []string) {
 				// Populate PeerCertificates in requests, but don't reject connections without certificates
 				// This allows certificates to be validated by authenticators, while still allowing other auth types
 				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  c.ClientCAs,
+				ClientCAs:  clientCAs,
 				// Set SNI certificate func
 				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-				MinVersion:     crypto.TLSVersionOrDie(c.Options.ServingInfo.MinTLSVersion),
-				CipherSuites:   crypto.CipherSuitesOrDie(c.Options.ServingInfo.CipherSuites),
+				MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
+				CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
 			})
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.ServerCert.CertFile, c.Options.ServingInfo.ServerCert.KeyFile))
+			glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.ServerCert.CertFile, servingInfo.ServerCert.KeyFile))
 		} else {
 			glog.Fatal(server.ListenAndServe())
 		}
 	}, 0)
+}
+
+func getClientCertCAPool(servingInfo configapi.HTTPServingInfo) (*x509.CertPool, error) {
+	if !configapi.UseTLS(servingInfo.ServingInfo) {
+		return nil, nil
+	}
+
+	roots := x509.NewCertPool()
+	// Add CAs for API
+	certs, err := cmdutil.CertificatesFromFile(servingInfo.ClientCA)
+	if err != nil {
+		return nil, err
+	}
+	for _, root := range certs {
+		roots.AddCert(root)
+	}
+
+	return roots, nil
 }
 
 // InitializeObjects ensures objects in Kubernetes and etcd are properly populated.

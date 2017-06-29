@@ -6,10 +6,12 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
@@ -19,13 +21,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	restclient "k8s.io/client-go/rest"
-	kctrlmgr "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
-	"k8s.io/kubernetes/pkg/controller"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -40,9 +40,12 @@ import (
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
+	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/version"
@@ -354,15 +357,11 @@ func (o MasterOptions) CreateCerts() error {
 }
 
 func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
-	if openshiftConfig.Options.KubernetesMasterConfig == nil {
-		return nil, fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
-	}
 	return kubernetes.BuildKubernetesMasterConfig(
 		openshiftConfig.Options,
 		openshiftConfig.RequestContextMapper,
 		openshiftConfig.KubeClientsetExternal(),
 		openshiftConfig.KubeClientsetInternal(),
-		openshiftConfig.ExternalKubeInformers,
 		openshiftConfig.KubeAdmissionControl,
 		openshiftConfig.Authenticator,
 		openshiftConfig.Authorizer,
@@ -399,34 +398,115 @@ func (m *Master) Start() error {
 		},
 	})
 
-	openshiftConfig, err := origin.BuildMasterConfig(*m.config)
+	if m.config.KubernetesMasterConfig == nil {
+		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
+	}
+
+	// informers are shared amongst all the various components we build
+	informers, err := NewInformers(*m.config)
 	if err != nil {
 		return err
 	}
+	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
+	// as a separate API server which can be chained as a delegate
+	var controllerPlug plug.Plug
 
-	kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
-	if err != nil {
-		return err
-	}
+	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
+	if controllersEnabled {
+		kubeInternal, _, err := configapi.GetInternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		if err != nil {
+			return err
+		}
 
-	// initialize the election module if the controllers will start
-	if m.controllers {
-		openshiftConfig.ControllerPlug, openshiftConfig.ControllerPlugStart, err = origin.NewLeaderElection(
+		// you can't double run healthz, so only do this next bit if we aren't starting the API
+		if !m.api {
+			imageTemplate := variable.NewDefaultImageTemplate()
+			imageTemplate.Format = m.config.ImageConfig.Format
+			imageTemplate.Latest = m.config.ImageConfig.Latest
+
+			glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
+			if len(m.config.DisabledFeatures) > 0 {
+				glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
+			}
+			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
+
+			if err := origin.RunControllerServer(m.config.ServingInfo, kubeInternal); err != nil {
+				return err
+			}
+		}
+
+		kubeControllerManagerConfig, cloudProvider, err := kubernetes.BuildControllerManagerServer(*m.config)
+		if err != nil {
+			return err
+		}
+		kubeExternal, _, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		if err != nil {
+			return err
+		}
+
+		// run controllers asynchronously (not required to be "ready")
+		var controllerPlugStart func()
+		controllerPlug, controllerPlugStart, err = origin.NewLeaderElection(
 			*m.config,
-			kubeMasterConfig.ControllerManager.KubeControllerManagerConfiguration.LeaderElection,
-			openshiftConfig.PrivilegedLoopbackKubernetesClientsetExternal,
+			kubeControllerManagerConfig.KubeControllerManagerConfiguration.LeaderElection,
+			kubeExternal,
 		)
 		if err != nil {
 			return err
 		}
+
+		// TODO refactor this controller so that it no longer relies on direct etcd access
+		// these restoptions are used to directly access small keysets on etcd that do NOT overlap with access
+		// by the main API server, so we aren't paying a large cost for the separation.
+		restOptsGetter, err := originrest.StorageOptions(*m.config)
+		if err != nil {
+			return err
+		}
+		allocationController := origin.SecurityAllocationController{
+			SecurityAllocator:          m.config.ProjectConfig.SecurityAllocator,
+			OpenshiftRESTOptionsGetter: restOptsGetter,
+			ExternalKubeInformers:      informers.GetExternalKubeInformers(),
+			KubeExternalClient:         kubeExternal,
+		}
+
+		go func() {
+			controllerPlugStart()
+			// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
+			// this ensures no code is still running as a controller, and allows a process manager to reset
+			// the controller to come back into a candidate state and compete for the lease
+			if err := controllerPlug.WaitForStop(); err != nil {
+				glog.Fatalf("Controller shutdown due to lease being lost: %v", err)
+			}
+			glog.Fatalf("Controller graceful shutdown requested")
+		}()
+
+		go func() {
+			controllerPlug.WaitForStart()
+
+			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, informers, utilwait.NeverStop)
+			if err != nil {
+				glog.Fatal(err)
+			}
+
+			if err := startControllers(*m.config, allocationController, cloudProvider, informers, controllerContext); err != nil {
+				glog.Fatal(err)
+			}
+
+			informers.Start(utilwait.NeverStop)
+		}()
 	}
 
-	// any controller that uses a core informer must be initialized *before* the API server starts core informers
-	// the API server adds its controllers at the correct time, but if the controllers are running, they need to be
-	// kicked separately
+	if m.api {
+		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
+		if err != nil {
+			return err
+		}
 
-	switch {
-	case m.api:
+		kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
+		if err != nil {
+			return err
+		}
+
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
@@ -434,61 +514,21 @@ func (m *Master) Start() error {
 		}
 		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
 
-		if err := StartAPI(openshiftConfig, kubeMasterConfig); err != nil {
+		if err := StartAPI(openshiftConfig, kubeMasterConfig, informers, controllerPlug); err != nil {
 			return err
 		}
 
-	case m.controllers:
-		glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
-		if len(m.config.DisabledFeatures) > 0 {
-			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
-		}
-		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
-
-		if err := startHealth(openshiftConfig); err != nil {
-			return err
-		}
-	}
-
-	if m.controllers {
-		// run controllers asynchronously (not required to be "ready")
-		go func() {
-			if err := startControllers(openshiftConfig, kubeMasterConfig); err != nil {
-				glog.Fatal(err)
-			}
-
-			openshiftConfig.InternalKubeInformers.Start(utilwait.NeverStop)
-			openshiftConfig.ExternalKubeInformers.Start(utilwait.NeverStop)
-			openshiftConfig.AppInformers.Start(utilwait.NeverStop)
-			openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
-			openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
-			openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
-			openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
-			openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
-		}()
-	} else {
-		openshiftConfig.InternalKubeInformers.Start(utilwait.NeverStop)
-		openshiftConfig.ExternalKubeInformers.Start(utilwait.NeverStop)
-		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
-		openshiftConfig.AuthorizationInformers.Start(utilwait.NeverStop)
-		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
-		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
-		openshiftConfig.QuotaInformers.Start(utilwait.NeverStop)
-		openshiftConfig.TemplateInformers.Start(utilwait.NeverStop)
+		informers.Start(utilwait.NeverStop)
 	}
 
 	return nil
-}
-
-func startHealth(openshiftConfig *origin.MasterConfig) error {
-	return openshiftConfig.RunHealth()
 }
 
 // StartAPI starts the components of the master that are considered part of the API - the Kubernetes
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
+func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *informers, controllerPlug plug.Plug) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)
@@ -533,7 +573,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 		}
 	}
 
-	oc.Run(kc.Master, embeddedAssetConfig, utilwait.NeverStop)
+	oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop)
 
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {
@@ -541,8 +581,8 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
 	}
 
 	// start up the informers that we're trying to use in the API server
-	oc.InternalKubeInformers.Start(utilwait.NeverStop)
-	oc.ExternalKubeInformers.Start(utilwait.NeverStop)
+	informers.GetInternalKubeInformers().Start(utilwait.NeverStop)
+	informers.GetExternalKubeInformers().Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
@@ -634,131 +674,58 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kin
 }
 
 // startControllers launches the controllers
-func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) error {
-	if oc.Options.Controllers == configapi.ControllersDisabled {
-		return nil
+// allocation controller is passed in because it wants direct etcd access.  Naughty.
+func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, cloudProvider cloudprovider.Interface, informers *informers, controllerContext origincontrollers.ControllerContext) error {
+	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(options, informers)
+	if err != nil {
+		return err
 	}
-
-	go func() {
-		oc.ControllerPlugStart()
-		// when a manual shutdown (DELETE /controllers) or lease lost occurs, the process should exit
-		// this ensures no code is still running as a controller, and allows a process manager to reset
-		// the controller to come back into a candidate state and compete for the lease
-		if err := oc.ControllerPlug.WaitForStop(); err != nil {
-			glog.Fatalf("Controller shutdown due to lease being lost: %v", err)
-		}
-		glog.Fatalf("Controller graceful shutdown requested")
-	}()
-
-	oc.ControllerPlug.WaitForStart()
-	glog.Infof("Controllers starting (%s)", oc.Options.Controllers)
-
-	// Get configured options (or defaults) for k8s controllers
-	controllerManagerOptions := cmapp.NewCMServer()
-	if kc != nil && kc.ControllerManager != nil {
-		controllerManagerOptions = kc.ControllerManager
-	}
-
-	rootClientBuilder := controller.SimpleControllerClientBuilder{
-		ClientConfig: &oc.PrivilegedLoopbackClientConfig,
-	}
-
-	availableResources, err := kctrlmgr.GetAvailableResources(rootClientBuilder)
+	kubeControllerConfig, err := origin.BuildKubeControllerConfig(options)
 	if err != nil {
 		return err
 	}
 
-	openshiftControllerContext := origincontrollers.ControllerContext{
-		KubeControllerContext: kctrlmgr.ControllerContext{
-			ClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
-				CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-				AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
-				Namespace:            "kube-system",
-			},
-			InformerFactory: genericInformers{
-				SharedInformerFactory: oc.ExternalKubeInformers,
-				generic: []GenericResourceInformer{
-					// use our existing internal informers to satisfy the generic informer requests (which don't require strong
-					// types).
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.AppInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.AuthorizationInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.BuildInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.ImageInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.TemplateInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.QuotaInformers.ForResource(resource)
-					}),
-					oc.ExternalKubeInformers,
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-						return oc.InternalKubeInformers.ForResource(resource)
-					}),
-				},
-				bias: map[schema.GroupVersionResource]schema.GroupVersionResource{
-					{Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: "v1beta1"}: {Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "roles", Version: "v1beta1"}:               {Group: "rbac.authorization.k8s.io", Resource: "roles", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: runtime.APIVersionInternal},
-					{Group: "", Resource: "securitycontextconstraints", Version: "v1"}:                        {Group: "", Resource: "securitycontextconstraints", Version: runtime.APIVersionInternal},
-				},
-			},
-			Options:            *controllerManagerOptions,
-			AvailableResources: availableResources,
-			Stop:               utilwait.NeverStop,
-		},
-		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
-			ControllerClientBuilder: controller.SAControllerClientBuilder{
-				ClientConfig:         restclient.AnonymousClientConfig(&oc.PrivilegedLoopbackClientConfig),
-				CoreClient:           oc.PrivilegedLoopbackKubernetesClientsetExternal.Core(),
-				AuthenticationClient: oc.PrivilegedLoopbackKubernetesClientsetExternal.Authentication(),
-				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
-			},
-		},
-		InternalKubeInformers:  oc.InternalKubeInformers,
-		ExternalKubeInformers:  oc.ExternalKubeInformers,
-		AuthorizationInformers: oc.AuthorizationInformers,
-		AppInformers:           oc.AppInformers,
-		BuildInformers:         oc.BuildInformers,
-		ImageInformers:         oc.ImageInformers,
-		TemplateInformers:      oc.TemplateInformers,
-		QuotaInformers:         oc.QuotaInformers,
-		Stop:                   utilwait.NeverStop,
-	}
 	// We need to start the serviceaccount-tokens controller first as it provides token
 	// generation for other controllers.
-	preStartControllers, err := oc.NewOpenShiftControllerPreStartInitializers()
-	if err != nil {
-		return err
-	}
-	if started, err := preStartControllers["serviceaccount-token"](openshiftControllerContext); err != nil {
+	startSATokenController := openshiftControllerConfig.ServiceAccountContentControllerInit()
+	if enabled, err := startSATokenController(controllerContext); err != nil {
 		return fmt.Errorf("Error starting serviceaccount-token controller: %v", err)
-	} else if !started {
+	} else if !enabled {
 		glog.Warningf("Skipping serviceaccount-token controller")
+	} else {
+		glog.Infof("Started serviceaccount-token controller")
 	}
-	glog.Infof("Started serviceaccount-token controller")
 
 	// The service account controllers require informers in order to create service account tokens
 	// for other controllers, which means we need to start their informers (which use the privileged
 	// loopback client) before the other controllers will run.
-	oc.ExternalKubeInformers.Start(utilwait.NeverStop)
+	controllerContext.ExternalKubeInformers.Start(controllerContext.Stop)
 
-	oc.RunSecurityAllocationController()
-
-	kubernetesControllerInitializers, err := oc.NewKubernetesControllerInitalizers(kc)
+	// right now we have controllers which are relying on the ability to make requests before the bootstrap policy is in place
+	// In 3.7, we will be fixed by the post start hook that prevents readiness unless policy is in place
+	// for 3.6, just make sure we don't proceed until the garbage collector can hit discovery
+	// wait for bootstrap permissions to be established.  This check isn't perfect, but it ensures that at least the controllers checking discovery can succeed
+	gcClientset := controllerContext.KubeControllerContext.ClientBuilder.ClientOrDie("generic-garbage-collector")
+	err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+		result := gcClientset.Discovery().RESTClient().Get().AbsPath("/apis").Do()
+		var statusCode int
+		result.StatusCode(&statusCode)
+		if statusCode >= http.StatusOK && statusCode < http.StatusMultipleChoices {
+			return true, nil
+		}
+		return false, nil
+	})
 	if err != nil {
 		return err
 	}
-	openshiftControllerInitializers, err := oc.NewOpenshiftControllerInitializers()
+
+	allocationController.RunSecurityAllocationController()
+
+	kubernetesControllerInitializers, err := kubeControllerConfig.GetControllerInitializers(cloudProvider)
+	if err != nil {
+		return err
+	}
+	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
 	if err != nil {
 		return err
 	}
@@ -771,77 +738,21 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 		openshiftControllerInitializers[name] = origincontrollers.FromKubeInitFunc(initFn)
 	}
 
-	allowedControllers := sets.NewString(
-		"persistentvolume-binder",
-		"attachdetach",
-		"node",
-		"openshift.io/scheduler",
-		"service",
-		// TODO I think this kube part should become a blacklist kept in sync during rebases with a unit test.
-		"endpoint",
-		"replicationcontroller",
-		"podgc",
-		"namespace",
-		"garbagecollector",
-		"daemonset",
-		"job",
-		"deployment",
-		"replicaset",
-		"horizontalpodautoscaling",
-		"disruption",
-		"statefuleset",
-		"cronjob",
-		"certificatesigningrequests",
-		// not used in openshift.  Yet?
-		// "ttl",
-		// "bootstrapsigner",
-		// "tokencleaner",
-
-		// These controllers need to have their own init functions until we extend the upstream controller config
-		// TODO this controller takes different evaluators.
-		// "resourcequota",
-
-		// TODO we manage this one differently, so its wired by openshift but overrides upstreams
-		"serviceaccount",
-
-		"openshift.io/origin-to-rbac",
-		"openshift.io/serviceaccount-pull-secrets",
-		"openshift.io/origin-namespace",
-		"openshift.io/deployer",
-		"openshift.io/deploymentconfig",
-		"openshift.io/deploymenttrigger",
-		"openshift.io/image-trigger",
-		"openshift.io/image-import",
-		"openshift.io/service-serving-cert",
-		"openshift.io/sdn",
-		"resourcequota",
-		"openshift.io/cluster-quota-reconciliation",
-		"openshift.io/cluster-quota-mapping",
-		"openshift.io/unidling",
-		"openshift.io/ingress-ip",
-	)
-
-	if configapi.IsBuildEnabled(&oc.Options) {
-		allowedControllers.Insert("openshift.io/build")
-		allowedControllers.Insert("openshift.io/build-config-change")
-	}
-	if oc.Options.TemplateServiceBrokerConfig != nil {
-		allowedControllers.Insert("openshift.io/templateinstance")
-	}
+	excludedControllers := getExcludedControllers(options)
 
 	for controllerName, initFn := range openshiftControllerInitializers {
 		// TODO remove this.  Only call one to start to prove the principle
-		if !allowedControllers.Has(controllerName) {
+		if excludedControllers.Has(controllerName) {
 			glog.Warningf("%q is skipped", controllerName)
 			continue
 		}
-		if !openshiftControllerContext.IsControllerEnabled(controllerName) {
+		if !controllerContext.IsControllerEnabled(controllerName) {
 			glog.Warningf("%q is disabled", controllerName)
 			continue
 		}
 
 		glog.V(1).Infof("Starting %q", controllerName)
-		started, err := initFn(openshiftControllerContext)
+		started, err := initFn(controllerContext)
 		if err != nil {
 			glog.Fatalf("Error starting %q (%v)", controllerName, err)
 			return err
@@ -856,6 +767,24 @@ func startControllers(oc *origin.MasterConfig, kc *kubernetes.MasterConfig) erro
 	glog.Infof("Started Origin Controllers")
 
 	return nil
+}
+
+func getExcludedControllers(options configapi.MasterConfig) sets.String {
+	excludedControllers := sets.NewString(
+		// not used in openshift.  Yet?
+		"ttl",
+		"bootstrapsigner",
+		"tokencleaner",
+	)
+	if !configapi.IsBuildEnabled(&options) {
+		excludedControllers.Insert("openshift.io/build")
+		excludedControllers.Insert("openshift.io/build-config-change")
+	}
+	if options.TemplateServiceBrokerConfig == nil {
+		excludedControllers.Insert("openshift.io/templateinstance")
+	}
+
+	return excludedControllers
 }
 
 func (o MasterOptions) IsWriteConfigOnly() bool {

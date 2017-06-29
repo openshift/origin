@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/groups/sync/interfaces"
-	ouserapi "github.com/openshift/origin/pkg/user/api"
+	ouserapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister

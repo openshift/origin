@@ -3,7 +3,7 @@ package identitymapper
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/registry/test"
 )
 
@@ -28,7 +28,7 @@ func TestStrategyClaim(t *testing.T) {
 			PreferredUsername: "bob",
 			Identity:          makeIdentity("", "idp", "bob", "", ""),
 
-			ExistingUsers:  []*api.User{makeUser("bobUserUID", "bob")},
+			ExistingUsers:  []*userapi.User{makeUser("bobUserUID", "bob")},
 			UpdateResponse: makeUser("bobUserUID", "bob", "idp:bob"),
 
 			ExpectedActions: []test.Action{
@@ -43,7 +43,7 @@ func TestStrategyClaim(t *testing.T) {
 			PreferredUsername: "bob",
 			Identity:          makeIdentity("", "idp", "bob", "", ""),
 
-			ExistingUsers:  []*api.User{makeUser("bobUserUID", "bob", "otheridp:user")},
+			ExistingUsers:  []*userapi.User{makeUser("bobUserUID", "bob", "otheridp:user")},
 			UpdateResponse: makeUser("bobUserUID", "bob", "otheridp:user", "idp:bob"),
 
 			ExpectedActions: []test.Action{

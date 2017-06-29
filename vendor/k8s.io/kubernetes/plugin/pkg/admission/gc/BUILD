@@ -16,6 +16,7 @@ go_library(
         "//vendor:k8s.io/apimachinery/pkg/api/equality",
         "//vendor:k8s.io/apimachinery/pkg/api/meta",
         "//vendor:k8s.io/apimachinery/pkg/runtime",
+        "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
         "//vendor:k8s.io/apiserver/pkg/admission",
         "//vendor:k8s.io/apiserver/pkg/authorization/authorizer",
     ],

@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/user/api"
-	v1 "github.com/openshift/origin/pkg/user/api/v1"
+	user "github.com/openshift/origin/pkg/user/apis/user"
+	v1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s userNamespaceLister) Get(name string) (*v1.User, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("user"), name)
+		return nil, errors.NewNotFound(user.Resource("user"), name)
 	}
 	return obj.(*v1.User), nil
 }

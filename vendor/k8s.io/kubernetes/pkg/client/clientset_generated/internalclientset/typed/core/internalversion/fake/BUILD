@@ -30,7 +30,6 @@ go_library(
         "fake_replicationcontroller.go",
         "fake_resourcequota.go",
         "fake_secret.go",
-        "fake_securitycontextconstraints.go",
         "fake_service.go",
         "fake_service_expansion.go",
         "fake_serviceaccount.go",

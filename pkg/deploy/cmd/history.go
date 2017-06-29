@@ -14,7 +14,7 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 

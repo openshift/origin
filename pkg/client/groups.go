@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 // GroupsInterface has methods to work with Group resources

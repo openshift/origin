@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
+	network "github.com/openshift/origin/pkg/sdn/apis/network"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // ClusterNetworkLister helps list ClusterNetworks.
 type ClusterNetworkLister interface {
 	// List lists all ClusterNetworks in the indexer.
-	List(selector labels.Selector) (ret []*api.ClusterNetwork, err error)
+	List(selector labels.Selector) (ret []*network.ClusterNetwork, err error)
 	// ClusterNetworks returns an object that can list and get ClusterNetworks.
 	ClusterNetworks(namespace string) ClusterNetworkNamespaceLister
 	ClusterNetworkListerExpansion
@@ -29,9 +29,9 @@ func NewClusterNetworkLister(indexer cache.Indexer) ClusterNetworkLister {
 }
 
 // List lists all ClusterNetworks in the indexer.
-func (s *clusterNetworkLister) List(selector labels.Selector) (ret []*api.ClusterNetwork, err error) {
+func (s *clusterNetworkLister) List(selector labels.Selector) (ret []*network.ClusterNetwork, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ClusterNetwork))
+		ret = append(ret, m.(*network.ClusterNetwork))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *clusterNetworkLister) ClusterNetworks(namespace string) ClusterNetworkN
 // ClusterNetworkNamespaceLister helps list and get ClusterNetworks.
 type ClusterNetworkNamespaceLister interface {
 	// List lists all ClusterNetworks in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.ClusterNetwork, err error)
+	List(selector labels.Selector) (ret []*network.ClusterNetwork, err error)
 	// Get retrieves the ClusterNetwork from the indexer for a given namespace and name.
-	Get(name string) (*api.ClusterNetwork, error)
+	Get(name string) (*network.ClusterNetwork, error)
 	ClusterNetworkNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type clusterNetworkNamespaceLister struct {
 }
 
 // List lists all ClusterNetworks in the indexer for a given namespace.
-func (s clusterNetworkNamespaceLister) List(selector labels.Selector) (ret []*api.ClusterNetwork, err error) {
+func (s clusterNetworkNamespaceLister) List(selector labels.Selector) (ret []*network.ClusterNetwork, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ClusterNetwork))
+		ret = append(ret, m.(*network.ClusterNetwork))
 	})
 	return ret, err
 }
 
 // Get retrieves the ClusterNetwork from the indexer for a given namespace and name.
-func (s clusterNetworkNamespaceLister) Get(name string) (*api.ClusterNetwork, error) {
+func (s clusterNetworkNamespaceLister) Get(name string) (*network.ClusterNetwork, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("clusternetwork"), name)
+		return nil, errors.NewNotFound(network.Resource("clusternetwork"), name)
 	}
-	return obj.(*api.ClusterNetwork), nil
+	return obj.(*network.ClusterNetwork), nil
 }

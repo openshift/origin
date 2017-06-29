@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,29 +18,29 @@ type FakePolicyBindings struct {
 
 var policybindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "policybindings"}
 
-func (c *FakePolicyBindings) Create(policyBinding *api.PolicyBinding) (result *api.PolicyBinding, err error) {
+func (c *FakePolicyBindings) Create(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(policybindingsResource, c.ns, policyBinding), &api.PolicyBinding{})
+		Invokes(testing.NewCreateAction(policybindingsResource, c.ns, policyBinding), &authorization.PolicyBinding{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.PolicyBinding), err
+	return obj.(*authorization.PolicyBinding), err
 }
 
-func (c *FakePolicyBindings) Update(policyBinding *api.PolicyBinding) (result *api.PolicyBinding, err error) {
+func (c *FakePolicyBindings) Update(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(policybindingsResource, c.ns, policyBinding), &api.PolicyBinding{})
+		Invokes(testing.NewUpdateAction(policybindingsResource, c.ns, policyBinding), &authorization.PolicyBinding{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.PolicyBinding), err
+	return obj.(*authorization.PolicyBinding), err
 }
 
 func (c *FakePolicyBindings) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(policybindingsResource, c.ns, name), &api.PolicyBinding{})
+		Invokes(testing.NewDeleteAction(policybindingsResource, c.ns, name), &authorization.PolicyBinding{})
 
 	return err
 }
@@ -48,23 +48,23 @@ func (c *FakePolicyBindings) Delete(name string, options *v1.DeleteOptions) erro
 func (c *FakePolicyBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(policybindingsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.PolicyBindingList{})
+	_, err := c.Fake.Invokes(action, &authorization.PolicyBindingList{})
 	return err
 }
 
-func (c *FakePolicyBindings) Get(name string, options v1.GetOptions) (result *api.PolicyBinding, err error) {
+func (c *FakePolicyBindings) Get(name string, options v1.GetOptions) (result *authorization.PolicyBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(policybindingsResource, c.ns, name), &api.PolicyBinding{})
+		Invokes(testing.NewGetAction(policybindingsResource, c.ns, name), &authorization.PolicyBinding{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.PolicyBinding), err
+	return obj.(*authorization.PolicyBinding), err
 }
 
-func (c *FakePolicyBindings) List(opts v1.ListOptions) (result *api.PolicyBindingList, err error) {
+func (c *FakePolicyBindings) List(opts v1.ListOptions) (result *authorization.PolicyBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(policybindingsResource, c.ns, opts), &api.PolicyBindingList{})
+		Invokes(testing.NewListAction(policybindingsResource, c.ns, opts), &authorization.PolicyBindingList{})
 
 	if obj == nil {
 		return nil, err
@@ -74,8 +74,8 @@ func (c *FakePolicyBindings) List(opts v1.ListOptions) (result *api.PolicyBindin
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.PolicyBindingList{}
-	for _, item := range obj.(*api.PolicyBindingList).Items {
+	list := &authorization.PolicyBindingList{}
+	for _, item := range obj.(*authorization.PolicyBindingList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -91,12 +91,12 @@ func (c *FakePolicyBindings) Watch(opts v1.ListOptions) (watch.Interface, error)
 }
 
 // Patch applies the patch and returns the patched policyBinding.
-func (c *FakePolicyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.PolicyBinding, err error) {
+func (c *FakePolicyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.PolicyBinding, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(policybindingsResource, c.ns, name, data, subresources...), &api.PolicyBinding{})
+		Invokes(testing.NewPatchSubresourceAction(policybindingsResource, c.ns, name, data, subresources...), &authorization.PolicyBinding{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.PolicyBinding), err
+	return obj.(*authorization.PolicyBinding), err
 }

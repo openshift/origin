@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 

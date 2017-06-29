@@ -15,7 +15,7 @@ import (
 	aggregatorapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
 
-	authzapi "github.com/openshift/origin/pkg/authorization/api"
+	authzapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -37,6 +37,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 
 	// Grant all users with the edit role, the ability to manage service catalog instance/binding resources.
 	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("instances", "bindings").Rule()
+	podpresetRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
 	if err != nil {
 		return errors.NewError("could not create service catalog resource rule").WithCause(err)
 	}
@@ -46,7 +47,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError("could not get cluster edit role for patching").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	editRole.Rules = append(editRole.Rules, scRule)
+	editRole.Rules = append(editRole.Rules, scRule, podpresetRule)
 	_, err = osClient.ClusterRoles().Update(editRole)
 	if err != nil {
 		return errors.NewError("could not update the cluster edit role to add service catalog resource permissions").WithCause(err).WithDetails(h.OriginLog())
@@ -57,7 +58,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError("could not get cluster admin role for patching").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	adminRole.Rules = append(adminRole.Rules, scRule)
+	adminRole.Rules = append(adminRole.Rules, scRule, podpresetRule)
 	_, err = osClient.ClusterRoles().Update(adminRole)
 	if err != nil {
 		return errors.NewError("could not update the cluster admin role to add service catalog resource permissions").WithCause(err).WithDetails(h.OriginLog())
@@ -84,7 +85,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 	glog.V(2).Infof("instantiating service catalog template")
 
 	// Stands up the service catalog apiserver, etcd, and controller manager
-	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), "openshift", catalogTemplate, catalogNamespace, params)
+	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), OpenshiftInfraNamespace, catalogTemplate, catalogNamespace, params)
 	if err != nil {
 		return errors.NewError("cannot instantiate service catalog template").WithCause(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // Default DNS suffix to use if no configuration is passed to this plugin.

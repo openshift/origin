@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 type ImagePolicyAttributes struct {

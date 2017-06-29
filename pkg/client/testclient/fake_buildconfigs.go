@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 )
 

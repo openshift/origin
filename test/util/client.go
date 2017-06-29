@@ -23,7 +23,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 

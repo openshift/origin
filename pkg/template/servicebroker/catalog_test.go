@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func TestServiceFromTemplate(t *testing.T) {
@@ -130,5 +130,11 @@ func TestServiceFromTemplate(t *testing.T) {
 
 	if !reflect.DeepEqual(service, expectedService) {
 		t.Error("service did not match expectedService")
+	}
+
+	template.Annotations["description"] = ""
+	service = serviceFromTemplate(template)
+	if service.Description != noDescriptionProvided {
+		t.Errorf("service.Description incorrectly set to %q", service.Description)
 	}
 }

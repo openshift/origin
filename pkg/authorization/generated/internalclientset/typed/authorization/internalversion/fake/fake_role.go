@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,29 +18,29 @@ type FakeRoles struct {
 
 var rolesResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "roles"}
 
-func (c *FakeRoles) Create(role *api.Role) (result *api.Role, err error) {
+func (c *FakeRoles) Create(role *authorization.Role) (result *authorization.Role, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(rolesResource, c.ns, role), &api.Role{})
+		Invokes(testing.NewCreateAction(rolesResource, c.ns, role), &authorization.Role{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.Role), err
+	return obj.(*authorization.Role), err
 }
 
-func (c *FakeRoles) Update(role *api.Role) (result *api.Role, err error) {
+func (c *FakeRoles) Update(role *authorization.Role) (result *authorization.Role, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(rolesResource, c.ns, role), &api.Role{})
+		Invokes(testing.NewUpdateAction(rolesResource, c.ns, role), &authorization.Role{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.Role), err
+	return obj.(*authorization.Role), err
 }
 
 func (c *FakeRoles) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(rolesResource, c.ns, name), &api.Role{})
+		Invokes(testing.NewDeleteAction(rolesResource, c.ns, name), &authorization.Role{})
 
 	return err
 }
@@ -48,23 +48,23 @@ func (c *FakeRoles) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(rolesResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.RoleList{})
+	_, err := c.Fake.Invokes(action, &authorization.RoleList{})
 	return err
 }
 
-func (c *FakeRoles) Get(name string, options v1.GetOptions) (result *api.Role, err error) {
+func (c *FakeRoles) Get(name string, options v1.GetOptions) (result *authorization.Role, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(rolesResource, c.ns, name), &api.Role{})
+		Invokes(testing.NewGetAction(rolesResource, c.ns, name), &authorization.Role{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.Role), err
+	return obj.(*authorization.Role), err
 }
 
-func (c *FakeRoles) List(opts v1.ListOptions) (result *api.RoleList, err error) {
+func (c *FakeRoles) List(opts v1.ListOptions) (result *authorization.RoleList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(rolesResource, c.ns, opts), &api.RoleList{})
+		Invokes(testing.NewListAction(rolesResource, c.ns, opts), &authorization.RoleList{})
 
 	if obj == nil {
 		return nil, err
@@ -74,8 +74,8 @@ func (c *FakeRoles) List(opts v1.ListOptions) (result *api.RoleList, err error) 
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.RoleList{}
-	for _, item := range obj.(*api.RoleList).Items {
+	list := &authorization.RoleList{}
+	for _, item := range obj.(*authorization.RoleList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -91,12 +91,12 @@ func (c *FakeRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched role.
-func (c *FakeRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Role, err error) {
+func (c *FakeRoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.Role, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(rolesResource, c.ns, name, data, subresources...), &api.Role{})
+		Invokes(testing.NewPatchSubresourceAction(rolesResource, c.ns, name, data, subresources...), &authorization.Role{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.Role), err
+	return obj.(*authorization.Role), err
 }

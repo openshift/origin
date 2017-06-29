@@ -9,10 +9,11 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -67,6 +68,11 @@ type WantsInternalKubernetesInformers interface {
 // cluster quota and namespaces and get access to the informer.
 type WantsClusterQuota interface {
 	SetClusterQuota(clusterquotamapping.ClusterQuotaMapper, quotainformer.ClusterResourceQuotaInformer)
+	admission.Validator
+}
+
+type WantsSecurityInformer interface {
+	SetSecurityInformers(securityinformer.SharedInformerFactory)
 	admission.Validator
 }
 

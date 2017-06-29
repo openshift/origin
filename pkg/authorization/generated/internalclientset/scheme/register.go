@@ -1,7 +1,7 @@
 package scheme
 
 import (
-	authorization "github.com/openshift/origin/pkg/authorization/api/install"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
 	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

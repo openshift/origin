@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 var (

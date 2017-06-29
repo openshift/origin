@@ -7,7 +7,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )

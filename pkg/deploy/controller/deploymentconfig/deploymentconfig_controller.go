@@ -24,7 +24,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	oscontroller "github.com/openshift/origin/pkg/controller"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 

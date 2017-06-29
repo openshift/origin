@@ -15,12 +15,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
-	image "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"

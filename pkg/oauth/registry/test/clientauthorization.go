@@ -7,19 +7,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	"github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 type ClientAuthorizationRegistry struct {
 	GetErr               error
-	ClientAuthorizations *api.OAuthClientAuthorizationList
-	ClientAuthorization  *api.OAuthClientAuthorization
+	ClientAuthorizations *oauthapi.OAuthClientAuthorizationList
+	ClientAuthorization  *oauthapi.OAuthClientAuthorization
 
 	CreateErr            error
-	CreatedAuthorization *api.OAuthClientAuthorization
+	CreatedAuthorization *oauthapi.OAuthClientAuthorization
 
 	UpdateErr            error
-	UpdatedAuthorization *api.OAuthClientAuthorization
+	UpdatedAuthorization *oauthapi.OAuthClientAuthorization
 
 	DeleteErr                      error
 	DeletedClientAuthorizationName string
@@ -29,20 +29,20 @@ func (r *ClientAuthorizationRegistry) ClientAuthorizationName(userName, clientNa
 	return fmt.Sprintf("%s:%s", userName, clientName)
 }
 
-func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx apirequest.Context, options *metainternal.ListOptions) (*api.OAuthClientAuthorizationList, error) {
+func (r *ClientAuthorizationRegistry) ListClientAuthorizations(ctx apirequest.Context, options *metainternal.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error) {
 	return r.ClientAuthorizations, r.GetErr
 }
 
-func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*api.OAuthClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) GetClientAuthorization(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthClientAuthorization, error) {
 	return r.ClientAuthorization, r.GetErr
 }
 
-func (r *ClientAuthorizationRegistry) CreateClientAuthorization(ctx apirequest.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) CreateClientAuthorization(ctx apirequest.Context, grant *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
 	r.CreatedAuthorization = grant
 	return r.ClientAuthorization, r.CreateErr
 }
 
-func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(ctx apirequest.Context, grant *api.OAuthClientAuthorization) (*api.OAuthClientAuthorization, error) {
+func (r *ClientAuthorizationRegistry) UpdateClientAuthorization(ctx apirequest.Context, grant *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
 	r.UpdatedAuthorization = grant
 	return r.ClientAuthorization, r.UpdateErr
 }

@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

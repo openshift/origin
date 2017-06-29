@@ -11,8 +11,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
 
@@ -167,7 +167,7 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 
 	for i, t := range dc.Spec.Triggers {
 		p := t.ImageChangeParams
-		if p == nil || p.From.Kind != "ImageStreamTag" || len(p.LastTriggeredImage) > 0 {
+		if p == nil || p.From.Kind != "ImageStreamTag" {
 			continue
 		}
 		if !p.Automatic {
@@ -184,6 +184,10 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 			glog.V(4).Infof("trigger %#v in deployment %s is not resolveable", p, dc.Name)
 			return nil, false, nil
 		}
+		if ref == p.LastTriggeredImage {
+			continue
+		}
+
 		if len(ref) == 0 {
 			ref = p.LastTriggeredImage
 		}

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	"github.com/openshift/origin/pkg/user/registry/user"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

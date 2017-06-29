@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 type FakeOAuthClient struct {

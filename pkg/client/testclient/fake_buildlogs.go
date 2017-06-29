@@ -4,7 +4,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // FakeBuildLogs implements BuildLogsInterface. Meant to be embedded into a struct to get a default

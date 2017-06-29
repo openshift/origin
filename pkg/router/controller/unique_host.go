@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	"github.com/openshift/origin/pkg/route/api/validation"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/apis/route/validation"
 	"github.com/openshift/origin/pkg/router"
 )
 

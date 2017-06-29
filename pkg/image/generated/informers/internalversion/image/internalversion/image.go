@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	internalinterfaces "github.com/openshift/origin/pkg/image/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -35,7 +35,7 @@ func newImageInformer(client internalclientset.Interface, resyncPeriod time.Dura
 				return client.Image().Images().Watch(options)
 			},
 		},
-		&api.Image{},
+		&image.Image{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newImageInformer(client internalclientset.Interface, resyncPeriod time.Dura
 }
 
 func (f *imageInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.Image{}, newImageInformer)
+	return f.factory.InformerFor(&image.Image{}, newImageInformer)
 }
 
 func (f *imageInformer) Lister() internalversion.ImageLister {

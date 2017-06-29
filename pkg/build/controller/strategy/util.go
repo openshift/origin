@@ -11,10 +11,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/golang/glog"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/namer"
 	"github.com/openshift/origin/pkg/version"
 )

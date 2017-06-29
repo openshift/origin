@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 
 	sigtypes "github.com/containers/image/types"

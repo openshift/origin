@@ -7,7 +7,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/user"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 

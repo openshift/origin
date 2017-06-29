@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	apps_v1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	clientset "github.com/openshift/origin/pkg/deploy/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/deploy/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/deploy/generated/listers/apps/v1"
@@ -35,7 +35,7 @@ func newDeploymentConfigInformer(client clientset.Interface, resyncPeriod time.D
 				return client.AppsV1().DeploymentConfigs(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.DeploymentConfig{},
+		&apps_v1.DeploymentConfig{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newDeploymentConfigInformer(client clientset.Interface, resyncPeriod time.D
 }
 
 func (f *deploymentConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.DeploymentConfig{}, newDeploymentConfigInformer)
+	return f.factory.InformerFor(&apps_v1.DeploymentConfig{}, newDeploymentConfigInformer)
 }
 
 func (f *deploymentConfigInformer) Lister() v1.DeploymentConfigLister {

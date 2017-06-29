@@ -75,7 +75,7 @@ parameters:
     of your repository.
   displayName: Context Directory
   name: CONTEXT_DIR
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression

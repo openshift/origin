@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 

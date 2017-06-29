@@ -9,7 +9,7 @@ import (
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	"k8s.io/kubernetes/pkg/client/retry"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 // DeploymentConfigsNamespacer has methods to work with DeploymentConfig resources in a namespace

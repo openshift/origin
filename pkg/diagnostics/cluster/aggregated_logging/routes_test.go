@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/diagnostics/log"
-	routesapi "github.com/openshift/origin/pkg/route/api"
+	routesapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 const (

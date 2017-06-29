@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type PolicyBindingsGetter interface {
 
 // PolicyBindingInterface has methods to work with PolicyBinding resources.
 type PolicyBindingInterface interface {
-	Create(*api.PolicyBinding) (*api.PolicyBinding, error)
-	Update(*api.PolicyBinding) (*api.PolicyBinding, error)
+	Create(*authorization.PolicyBinding) (*authorization.PolicyBinding, error)
+	Update(*authorization.PolicyBinding) (*authorization.PolicyBinding, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.PolicyBinding, error)
-	List(opts v1.ListOptions) (*api.PolicyBindingList, error)
+	Get(name string, options v1.GetOptions) (*authorization.PolicyBinding, error)
+	List(opts v1.ListOptions) (*authorization.PolicyBindingList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.PolicyBinding, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.PolicyBinding, err error)
 	PolicyBindingExpansion
 }
 
@@ -43,8 +43,8 @@ func newPolicyBindings(c *AuthorizationClient, namespace string) *policyBindings
 }
 
 // Create takes the representation of a policyBinding and creates it.  Returns the server's representation of the policyBinding, and an error, if there is any.
-func (c *policyBindings) Create(policyBinding *api.PolicyBinding) (result *api.PolicyBinding, err error) {
-	result = &api.PolicyBinding{}
+func (c *policyBindings) Create(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
+	result = &authorization.PolicyBinding{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("policybindings").
@@ -55,8 +55,8 @@ func (c *policyBindings) Create(policyBinding *api.PolicyBinding) (result *api.P
 }
 
 // Update takes the representation of a policyBinding and updates it. Returns the server's representation of the policyBinding, and an error, if there is any.
-func (c *policyBindings) Update(policyBinding *api.PolicyBinding) (result *api.PolicyBinding, err error) {
-	result = &api.PolicyBinding{}
+func (c *policyBindings) Update(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
+	result = &authorization.PolicyBinding{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("policybindings").
@@ -90,8 +90,8 @@ func (c *policyBindings) DeleteCollection(options *v1.DeleteOptions, listOptions
 }
 
 // Get takes name of the policyBinding, and returns the corresponding policyBinding object, and an error if there is any.
-func (c *policyBindings) Get(name string, options v1.GetOptions) (result *api.PolicyBinding, err error) {
-	result = &api.PolicyBinding{}
+func (c *policyBindings) Get(name string, options v1.GetOptions) (result *authorization.PolicyBinding, err error) {
+	result = &authorization.PolicyBinding{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policybindings").
@@ -103,8 +103,8 @@ func (c *policyBindings) Get(name string, options v1.GetOptions) (result *api.Po
 }
 
 // List takes label and field selectors, and returns the list of PolicyBindings that match those selectors.
-func (c *policyBindings) List(opts v1.ListOptions) (result *api.PolicyBindingList, err error) {
-	result = &api.PolicyBindingList{}
+func (c *policyBindings) List(opts v1.ListOptions) (result *authorization.PolicyBindingList, err error) {
+	result = &authorization.PolicyBindingList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policybindings").
@@ -125,8 +125,8 @@ func (c *policyBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched policyBinding.
-func (c *policyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.PolicyBinding, err error) {
-	result = &api.PolicyBinding{}
+func (c *policyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.PolicyBinding, err error) {
+	result = &authorization.PolicyBinding{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("policybindings").

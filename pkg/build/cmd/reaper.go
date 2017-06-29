@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/util"

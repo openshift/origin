@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
+	network "github.com/openshift/origin/pkg/sdn/apis/network"
 	scheme "github.com/openshift/origin/pkg/sdn/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type ClusterNetworksGetter interface {
 
 // ClusterNetworkInterface has methods to work with ClusterNetwork resources.
 type ClusterNetworkInterface interface {
-	Create(*api.ClusterNetwork) (*api.ClusterNetwork, error)
-	Update(*api.ClusterNetwork) (*api.ClusterNetwork, error)
+	Create(*network.ClusterNetwork) (*network.ClusterNetwork, error)
+	Update(*network.ClusterNetwork) (*network.ClusterNetwork, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterNetwork, error)
-	List(opts v1.ListOptions) (*api.ClusterNetworkList, error)
+	Get(name string, options v1.GetOptions) (*network.ClusterNetwork, error)
+	List(opts v1.ListOptions) (*network.ClusterNetworkList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *network.ClusterNetwork, err error)
 	ClusterNetworkExpansion
 }
 
@@ -43,8 +43,8 @@ func newClusterNetworks(c *NetworkClient, namespace string) *clusterNetworks {
 }
 
 // Create takes the representation of a clusterNetwork and creates it.  Returns the server's representation of the clusterNetwork, and an error, if there is any.
-func (c *clusterNetworks) Create(clusterNetwork *api.ClusterNetwork) (result *api.ClusterNetwork, err error) {
-	result = &api.ClusterNetwork{}
+func (c *clusterNetworks) Create(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
+	result = &network.ClusterNetwork{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -55,8 +55,8 @@ func (c *clusterNetworks) Create(clusterNetwork *api.ClusterNetwork) (result *ap
 }
 
 // Update takes the representation of a clusterNetwork and updates it. Returns the server's representation of the clusterNetwork, and an error, if there is any.
-func (c *clusterNetworks) Update(clusterNetwork *api.ClusterNetwork) (result *api.ClusterNetwork, err error) {
-	result = &api.ClusterNetwork{}
+func (c *clusterNetworks) Update(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
+	result = &network.ClusterNetwork{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -90,8 +90,8 @@ func (c *clusterNetworks) DeleteCollection(options *v1.DeleteOptions, listOption
 }
 
 // Get takes name of the clusterNetwork, and returns the corresponding clusterNetwork object, and an error if there is any.
-func (c *clusterNetworks) Get(name string, options v1.GetOptions) (result *api.ClusterNetwork, err error) {
-	result = &api.ClusterNetwork{}
+func (c *clusterNetworks) Get(name string, options v1.GetOptions) (result *network.ClusterNetwork, err error) {
+	result = &network.ClusterNetwork{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -103,8 +103,8 @@ func (c *clusterNetworks) Get(name string, options v1.GetOptions) (result *api.C
 }
 
 // List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
-func (c *clusterNetworks) List(opts v1.ListOptions) (result *api.ClusterNetworkList, err error) {
-	result = &api.ClusterNetworkList{}
+func (c *clusterNetworks) List(opts v1.ListOptions) (result *network.ClusterNetworkList, err error) {
+	result = &network.ClusterNetworkList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("clusternetworks").
@@ -125,8 +125,8 @@ func (c *clusterNetworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched clusterNetwork.
-func (c *clusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterNetwork, err error) {
-	result = &api.ClusterNetwork{}
+func (c *clusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *network.ClusterNetwork, err error) {
+	result = &network.ClusterNetwork{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("clusternetworks").

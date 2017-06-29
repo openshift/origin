@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 )
 
 var basic = kubectl.BasicReplicationController{}

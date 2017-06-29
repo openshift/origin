@@ -21,7 +21,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscontroller "github.com/openshift/origin/pkg/controller"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 const (

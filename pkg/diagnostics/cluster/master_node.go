@@ -11,12 +11,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 const masterNotRunningAsANode = `Unable to find a node matching the cluster server IP.

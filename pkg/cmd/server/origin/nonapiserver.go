@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/oauth/discovery"
 	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -24,8 +24,7 @@ type OpenshiftNonAPIConfig struct {
 
 	// these are only needed for the controller endpoint which should be moved out and made an optional
 	// add-on in the chain (as the final delegate) when running an all-in-one
-	EnableControllers bool
-	ControllerPlug    plug.Plug
+	ControllerPlug plug.Plug
 
 	MasterPublicURL string
 	EnableOAuth     bool
@@ -69,7 +68,7 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 	}
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.EnableControllers, c.ControllerPlug)
+	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ControllerPlug)
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
 	if c.EnableTemplateServiceBroker {

@@ -5,9 +5,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
-	authapi "github.com/openshift/origin/pkg/authorization/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	routesapi "github.com/openshift/origin/pkg/route/api"
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	routesapi "github.com/openshift/origin/pkg/route/apis/route"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 //diagnosticReporter provides diagnostic messages
@@ -23,7 +24,7 @@ type routesAdapter interface {
 }
 
 type sccAdapter interface {
-	getScc(name string) (*kapi.SecurityContextConstraints, error)
+	getScc(name string) (*securityapi.SecurityContextConstraints, error)
 }
 
 type clusterRoleBindingsAdapter interface {

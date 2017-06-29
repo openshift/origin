@@ -14,7 +14,7 @@ import (
 	rbaclister "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	origininformers "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion/authorization/internalversion"
 	originlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
 )

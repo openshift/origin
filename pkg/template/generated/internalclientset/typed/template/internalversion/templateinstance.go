@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/template/api"
+	template "github.com/openshift/origin/pkg/template/apis/template"
 	scheme "github.com/openshift/origin/pkg/template/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,15 +17,15 @@ type TemplateInstancesGetter interface {
 
 // TemplateInstanceInterface has methods to work with TemplateInstance resources.
 type TemplateInstanceInterface interface {
-	Create(*api.TemplateInstance) (*api.TemplateInstance, error)
-	Update(*api.TemplateInstance) (*api.TemplateInstance, error)
-	UpdateStatus(*api.TemplateInstance) (*api.TemplateInstance, error)
+	Create(*template.TemplateInstance) (*template.TemplateInstance, error)
+	Update(*template.TemplateInstance) (*template.TemplateInstance, error)
+	UpdateStatus(*template.TemplateInstance) (*template.TemplateInstance, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.TemplateInstance, error)
-	List(opts v1.ListOptions) (*api.TemplateInstanceList, error)
+	Get(name string, options v1.GetOptions) (*template.TemplateInstance, error)
+	List(opts v1.ListOptions) (*template.TemplateInstanceList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.TemplateInstance, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.TemplateInstance, err error)
 	TemplateInstanceExpansion
 }
 
@@ -44,8 +44,8 @@ func newTemplateInstances(c *TemplateClient, namespace string) *templateInstance
 }
 
 // Create takes the representation of a templateInstance and creates it.  Returns the server's representation of the templateInstance, and an error, if there is any.
-func (c *templateInstances) Create(templateInstance *api.TemplateInstance) (result *api.TemplateInstance, err error) {
-	result = &api.TemplateInstance{}
+func (c *templateInstances) Create(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
+	result = &template.TemplateInstance{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("templateinstances").
@@ -56,8 +56,8 @@ func (c *templateInstances) Create(templateInstance *api.TemplateInstance) (resu
 }
 
 // Update takes the representation of a templateInstance and updates it. Returns the server's representation of the templateInstance, and an error, if there is any.
-func (c *templateInstances) Update(templateInstance *api.TemplateInstance) (result *api.TemplateInstance, err error) {
-	result = &api.TemplateInstance{}
+func (c *templateInstances) Update(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
+	result = &template.TemplateInstance{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("templateinstances").
@@ -71,8 +71,8 @@ func (c *templateInstances) Update(templateInstance *api.TemplateInstance) (resu
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
 
-func (c *templateInstances) UpdateStatus(templateInstance *api.TemplateInstance) (result *api.TemplateInstance, err error) {
-	result = &api.TemplateInstance{}
+func (c *templateInstances) UpdateStatus(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
+	result = &template.TemplateInstance{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("templateinstances").
@@ -107,8 +107,8 @@ func (c *templateInstances) DeleteCollection(options *v1.DeleteOptions, listOpti
 }
 
 // Get takes name of the templateInstance, and returns the corresponding templateInstance object, and an error if there is any.
-func (c *templateInstances) Get(name string, options v1.GetOptions) (result *api.TemplateInstance, err error) {
-	result = &api.TemplateInstance{}
+func (c *templateInstances) Get(name string, options v1.GetOptions) (result *template.TemplateInstance, err error) {
+	result = &template.TemplateInstance{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("templateinstances").
@@ -120,8 +120,8 @@ func (c *templateInstances) Get(name string, options v1.GetOptions) (result *api
 }
 
 // List takes label and field selectors, and returns the list of TemplateInstances that match those selectors.
-func (c *templateInstances) List(opts v1.ListOptions) (result *api.TemplateInstanceList, err error) {
-	result = &api.TemplateInstanceList{}
+func (c *templateInstances) List(opts v1.ListOptions) (result *template.TemplateInstanceList, err error) {
+	result = &template.TemplateInstanceList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("templateinstances").
@@ -142,8 +142,8 @@ func (c *templateInstances) Watch(opts v1.ListOptions) (watch.Interface, error) 
 }
 
 // Patch applies the patch and returns the patched templateInstance.
-func (c *templateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.TemplateInstance, err error) {
-	result = &api.TemplateInstance{}
+func (c *templateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.TemplateInstance, err error) {
+	result = &template.TemplateInstance{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("templateinstances").

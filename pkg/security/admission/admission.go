@@ -6,20 +6,21 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/glog"
+
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	allocator "github.com/openshift/origin/pkg/security"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
 	oscc "github.com/openshift/origin/pkg/security/scc"
+	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
-	scc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-
-	allocator "github.com/openshift/origin/pkg/security"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/golang/glog"
 )
 
 func init() {
@@ -32,11 +33,11 @@ func init() {
 type constraint struct {
 	*admission.Handler
 	client    kclientset.Interface
-	sccLister kcorelisters.SecurityContextConstraintsLister
+	sccLister securitylisters.SecurityContextConstraintsLister
 }
 
 var _ admission.Interface = &constraint{}
-var _ = kadmission.WantsInternalKubeInformerFactory(&constraint{})
+var _ = oadmission.WantsSecurityInformer(&constraint{})
 var _ = kadmission.WantsInternalKubeClientSet(&constraint{})
 
 // NewConstraint creates a new SCC constraint admission plugin.
@@ -70,6 +71,13 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	pod, ok := a.GetObject().(*kapi.Pod)
 	// if we can't convert then we don't handle this object so just return
 	if !ok {
+		return nil
+	}
+
+	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
+	// and we should allow it in general, since you had the power to update and the power to delete.
+	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
+	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject()) {
 		return nil
 	}
 
@@ -127,8 +135,9 @@ func (c *constraint) Admit(a admission.Attributes) error {
 }
 
 // SetInformers implements WantsInformers interface for constraint.
-func (c *constraint) SetInternalKubeInformerFactory(informers kinternalinformers.SharedInformerFactory) {
-	c.sccLister = informers.Core().InternalVersion().SecurityContextConstraints().Lister()
+
+func (c *constraint) SetSecurityInformers(informers securityinformer.SharedInformerFactory) {
+	c.sccLister = informers.Security().InternalVersion().SecurityContextConstraints().Lister()
 }
 
 func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {

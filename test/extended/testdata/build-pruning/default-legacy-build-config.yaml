@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'

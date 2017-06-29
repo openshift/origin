@@ -25,8 +25,8 @@ import (
 
 	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	"github.com/openshift/origin/pkg/build/api/validation"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
@@ -35,7 +35,7 @@ import (
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )

@@ -11,7 +11,7 @@ import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 )

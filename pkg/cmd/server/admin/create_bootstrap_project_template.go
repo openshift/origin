@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const CreateBootstrapProjectTemplateCommand = "create-bootstrap-project-template"

@@ -20,7 +20,7 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestPullthroughServeBlob(t *testing.T) {

@@ -11,8 +11,8 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/client/testclient"
-	userapi "github.com/openshift/origin/pkg/user/api"
-	_ "github.com/openshift/origin/pkg/user/api/install"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	_ "github.com/openshift/origin/pkg/user/apis/user/install"
 )
 
 func TestListAllOpenShiftGroups(t *testing.T) {

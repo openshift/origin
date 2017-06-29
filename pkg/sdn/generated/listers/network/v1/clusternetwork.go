@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/sdn/api"
-	v1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	network "github.com/openshift/origin/pkg/sdn/apis/network"
+	v1 "github.com/openshift/origin/pkg/sdn/apis/network/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s clusterNetworkNamespaceLister) Get(name string) (*v1.ClusterNetwork, err
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("clusternetwork"), name)
+		return nil, errors.NewNotFound(network.Resource("clusternetwork"), name)
 	}
 	return obj.(*v1.ClusterNetwork), nil
 }

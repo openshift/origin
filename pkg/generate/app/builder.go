@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/errors"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 var s2iEnvironmentNames = []string{"STI_LOCATION", "STI_SCRIPTS_URL", "STI_BUILDER"}

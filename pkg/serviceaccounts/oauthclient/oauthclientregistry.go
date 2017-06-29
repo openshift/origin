@@ -18,9 +18,9 @@ import (
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	osclient "github.com/openshift/origin/pkg/client"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 

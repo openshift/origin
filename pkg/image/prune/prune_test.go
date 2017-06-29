@@ -23,10 +23,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/api/graph"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 

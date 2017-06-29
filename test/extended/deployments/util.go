@@ -2,9 +2,13 @@ package deployments
 
 import (
 	"fmt"
+	"io/ioutil"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/ghodss/yaml"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -13,11 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 func deploymentStatuses(rcs []kapi.ReplicationController) []string {
@@ -385,6 +393,67 @@ func waitForDeployerToComplete(oc *exutil.CLI, name string, timeout time.Duratio
 	return output, nil
 }
 
+func isControllerRefChange(controllee metav1.Object, old *metav1.OwnerReference) (bool, error) {
+	if old != nil && old.Controller != nil && *old.Controller == false {
+		return false, fmt.Errorf("old ownerReference is not a controllerRef")
+	}
+	return !reflect.DeepEqual(old, kcontroller.GetControllerOf(controllee)), nil
+}
+
+func controllerRefChangeCondition(old *metav1.OwnerReference) func(controllee metav1.Object) (bool, error) {
+	return func(controllee metav1.Object) (bool, error) {
+		return isControllerRefChange(controllee, old)
+	}
+}
+
+func rCConditionFromMeta(condition func(metav1.Object) (bool, error)) func(rc *kapiv1.ReplicationController) (bool, error) {
+	return func(rc *kapiv1.ReplicationController) (bool, error) {
+		return condition(rc)
+	}
+}
+
+func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *kapiv1.ReplicationController) (bool, error)) (*kapiv1.ReplicationController, error) {
+	watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	if err != nil {
+		return nil, err
+	}
+
+	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+		if event.Type != watch.Modified {
+			return false, fmt.Errorf("different kind of event appeared while waiting for modification: event: %#v", event)
+		}
+		return condition(event.Object.(*kapiv1.ReplicationController))
+	})
+	if err != nil {
+		return nil, err
+	}
+	if event.Type != watch.Modified {
+		return nil, fmt.Errorf("waiting for RC modification failed: event: %v", event)
+	}
+	return event.Object.(*kapiv1.ReplicationController), nil
+}
+
+func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *deployapi.DeploymentConfig) (bool, error)) (*deployapi.DeploymentConfig, error) {
+	watcher, err := oc.Client().DeploymentConfigs(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	if err != nil {
+		return nil, err
+	}
+
+	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+		if event.Type != watch.Modified {
+			return false, fmt.Errorf("different kind of event appeared while waiting for modification: event: %#v", event)
+		}
+		return condition(event.Object.(*deployapi.DeploymentConfig))
+	})
+	if err != nil {
+		return nil, err
+	}
+	if event.Type != watch.Modified {
+		return nil, fmt.Errorf("waiting for DC modification failed: event: %v", event)
+	}
+	return event.Object.(*deployapi.DeploymentConfig), nil
+}
+
 // createFixture will create the provided fixture and return the resource and the
 // name separately.
 // TODO: Probably move to a more general location like test/extended/util/cli.go
@@ -436,4 +505,61 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
+}
+
+func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {
+	if !failed {
+		return
+	}
+	kclient := oc.KubeClient()
+	requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, selection.NotEquals, []string{dcName})
+	if err != nil {
+		e2e.Logf("failed to create requirement for DC %q", dcName)
+		return
+	}
+	dc, err := kclient.CoreV1().ReplicationControllers(oc.Namespace()).List(metav1.ListOptions{
+		LabelSelector: labels.NewSelector().Add(*requirement).String(),
+	})
+	if err != nil {
+		e2e.Logf("Error getting detached RCs; DC %q: %v", dcName, err)
+		return
+	}
+	if len(dc.Items) == 0 {
+		e2e.Logf("No detached RCs found.")
+	} else {
+		out, err := oc.Run("get").Args("rc", "-o", "yaml", "-l", fmt.Sprintf("%s!=%s", deployapi.DeploymentConfigAnnotation, dcName)).Output()
+		if err != nil {
+			e2e.Logf("Failed to list detached RCs!")
+			return
+		}
+		e2e.Logf("There are detached RCs: \n%s", out)
+	}
+}
+
+// Checks controllerRef from controllee to DC.
+// Return true is the controllerRef is valid, false otherwise
+func HasValidDCControllerRef(dc metav1.Object, controllee metav1.Object) bool {
+	ref := kcontroller.GetControllerOf(controllee)
+	return ref != nil &&
+		ref.UID == dc.GetUID() &&
+		ref.APIVersion == deployutil.DeploymentConfigControllerRefKind.GroupVersion().String() &&
+		ref.Kind == deployutil.DeploymentConfigControllerRefKind.Kind &&
+		ref.Name == dc.GetName()
+}
+
+func readDCFixture(path string) (*deployapi.DeploymentConfig, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	dcv1 := new(deployapiv1.DeploymentConfig)
+	err = yaml.Unmarshal(data, dcv1)
+	if err != nil {
+		return nil, err
+	}
+
+	dc := new(deployapi.DeploymentConfig)
+	err = deployapiv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
+	return dc, err
 }

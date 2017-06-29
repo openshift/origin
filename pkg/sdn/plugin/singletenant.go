@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type singleTenantPlugin struct{}

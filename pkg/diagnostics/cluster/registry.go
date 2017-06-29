@@ -13,10 +13,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	osapi "github.com/openshift/origin/pkg/image/api"
+	osapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
@@ -107,10 +107,6 @@ ownership/permissions.
 
 For volume permission problems please consult the Persistent Storage section
 of the Administrator's Guide.
-
-In the case of SELinux this may be resolved on the node by running:
-
-    sudo chcon -R -t svirt_sandbox_file_t [PATH_TO]/openshift.local.volumes
 
 %s`
 

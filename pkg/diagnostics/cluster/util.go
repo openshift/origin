@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
 )
 

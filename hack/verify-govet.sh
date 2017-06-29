@@ -4,7 +4,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::golang::verify_go_version
 
 govet_blacklist=(
-	"pkg/auth/ldaputil/client.go:[0-9]+: assignment copies lock value to c: crypto/tls.Config contains sync.Once contains sync.Mutex"
 	"pkg/.*/client/clientset_generated/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
 	"pkg/.*/client/clientset_generated/release_v1_./fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
 	"pkg/.*/clientset/internalclientset/fake/clientset_generated.go:[0-9]+: literal copies lock value from fakePtr: github.com/openshift/origin/vendor/k8s.io/kubernetes/pkg/client/testing/core.Fake"
@@ -23,9 +22,7 @@ function govet_blacklist_contains() {
 	return 1
 }
 
-test_dirs="$(os::util::list_go_src_files | cut -d '/' -f 1-2 | sort -u | grep -v "^./cmd")"
-test_dirs+=" $(os::util::list_go_src_files | grep "^./cmd/"| cut -d '/' -f 1-3 | LC_ALL=C sort -u)"
-for test_dir in ${test_dirs}; do
+for test_dir in $(os::util::list_go_src_dirs); do
 	if ! result="$(go tool vet -shadow=false "${test_dir}" 2>&1)"; then
 		while read -r line; do
 			if ! govet_blacklist_contains "${line}"; then

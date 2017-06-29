@@ -15,12 +15,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestImportNothing(t *testing.T) {
 	ctx := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
-	isi := &api.ImageStreamImport{}
+	isi := &imageapi.ImageStreamImport{}
 	i := NewImageStreamImporter(ctx, 5, nil, nil)
 	if err := i.Import(nil, isi); err != nil {
 		t.Fatal(err)
@@ -61,19 +61,19 @@ func TestImport(t *testing.T) {
 	}
 	testCases := []struct {
 		retriever RepositoryRetriever
-		isi       api.ImageStreamImport
-		expect    func(*api.ImageStreamImport, *testing.T)
+		isi       imageapi.ImageStreamImport
+		expect    func(*imageapi.ImageStreamImport, *testing.T)
 	}{
 		{
 			retriever: insecureRetriever,
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Images: []api.ImageImportSpec{
-						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"}, ImportPolicy: api.TagImportPolicy{Insecure: true}},
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Images: []imageapi.ImageImportSpec{
+						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"}, ImportPolicy: imageapi.TagImportPolicy{Insecure: true}},
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if !insecureRetriever.insecure {
 					t.Errorf("expected retriever to beset insecure: %#v", insecureRetriever)
 				}
@@ -87,9 +87,9 @@ func TestImport(t *testing.T) {
 					getErr:      fmt.Errorf("no such digest"),
 				},
 			},
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Images: []api.ImageImportSpec{
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Images: []imageapi.ImageImportSpec{
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"}},
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}},
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test///un/parse/able/image"}},
@@ -97,7 +97,7 @@ func TestImport(t *testing.T) {
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if !expectStatusError(isi.Status.Images[0].Status, "Internal error occurred: no such manifest tag") {
 					t.Errorf("unexpected status: %#v", isi.Status.Images[0].Status)
 				}
@@ -121,14 +121,14 @@ func TestImport(t *testing.T) {
 		},
 		{
 			retriever: &mockRetriever{err: fmt.Errorf("error")},
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Repository: &api.RepositoryImportSpec{
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Repository: &imageapi.RepositoryImportSpec{
 						From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"},
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if !reflect.DeepEqual(isi.Status.Repository.AdditionalTags, []string(nil)) {
 					t.Errorf("unexpected additional tags: %#v", isi.Status.Repository)
 				}
@@ -142,15 +142,15 @@ func TestImport(t *testing.T) {
 		},
 		{
 			retriever: &mockRetriever{repo: &mockRepository{manifest: etcdManifestSchema1}},
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Images: []api.ImageImportSpec{
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Images: []imageapi.ImageImportSpec{
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test@sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238"}},
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test:tag"}},
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if len(isi.Status.Images) != 2 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
@@ -184,14 +184,14 @@ func TestImport(t *testing.T) {
 					manifest: busyboxManifestSchema2,
 				},
 			},
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Images: []api.ImageImportSpec{
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Images: []imageapi.ImageImportSpec{
 						{From: kapi.ObjectReference{Kind: "DockerImage", Name: "test:busybox"}},
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if len(isi.Status.Images) != 1 {
 					t.Errorf("unexpected number of images: %#v", isi.Status.Repository.Images)
 				}
@@ -231,14 +231,14 @@ func TestImport(t *testing.T) {
 					getByTagErr: fmt.Errorf("no such manifest tag"),
 				},
 			},
-			isi: api.ImageStreamImport{
-				Spec: api.ImageStreamImportSpec{
-					Repository: &api.RepositoryImportSpec{
+			isi: imageapi.ImageStreamImport{
+				Spec: imageapi.ImageStreamImportSpec{
+					Repository: &imageapi.RepositoryImportSpec{
 						From: kapi.ObjectReference{Kind: "DockerImage", Name: "test"},
 					},
 				},
 			},
-			expect: func(isi *api.ImageStreamImport, t *testing.T) {
+			expect: func(isi *imageapi.ImageStreamImport, t *testing.T) {
 				if !reflect.DeepEqual(isi.Status.Repository.AdditionalTags, []string{"v2"}) {
 					t.Errorf("unexpected additional tags: %#v", isi.Status.Repository)
 				}

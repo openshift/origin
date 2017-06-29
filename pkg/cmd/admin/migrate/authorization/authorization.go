@@ -12,7 +12,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -38,8 +38,6 @@ var (
 		* rolebinding
 
 		No resources are mutated.`)
-
-	notChanged = migrate.ReporterBool(false)
 
 	errOutOfSync = errors.New("is not in sync with RBAC")
 )
@@ -121,7 +119,7 @@ func (o *MigrateAuthorizationOptions) checkParity(obj runtime.Object) (migrate.R
 	default:
 		return nil, nil // indicate that we ignored the object
 	}
-	return notChanged, utilerrors.NewAggregate(errlist) // we only perform read operations
+	return migrate.NotChanged, utilerrors.NewAggregate(errlist) // we only perform read operations
 }
 
 func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *authorizationapi.ClusterRole) []error {

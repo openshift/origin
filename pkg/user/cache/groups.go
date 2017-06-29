@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/origin/pkg/controller"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
 )
 

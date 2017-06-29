@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -13,11 +14,10 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kscc "k8s.io/kubernetes/pkg/securitycontextconstraints"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 )
 
@@ -93,7 +93,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 }
 
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
-func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider kscc.SecurityContextConstraintsProvider, spec kapi.PodSpec, constraint *kapi.SecurityContextConstraints) (bool, error) {
+func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider kscc.SecurityContextConstraintsProvider, spec kapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
 	pod := &kapi.Pod{
 		Spec: spec,
 	}

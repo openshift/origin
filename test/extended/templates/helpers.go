@@ -6,8 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"

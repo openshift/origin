@@ -12,6 +12,8 @@
 // test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
 // test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
 // test/extended/testdata/build-extended/jvm-runner.yaml
+// test/extended/testdata/build-pruning/default-group-build-config.yaml
+// test/extended/testdata/build-pruning/default-legacy-build-config.yaml
 // test/extended/testdata/build-pruning/errored-build-config.yaml
 // test/extended/testdata/build-pruning/failed-build-config.yaml
 // test/extended/testdata/build-pruning/imagestream.yaml
@@ -36,6 +38,7 @@
 // test/extended/testdata/build-timing/test-docker-build.json
 // test/extended/testdata/build-timing/test-is.json
 // test/extended/testdata/build-timing/test-s2i-build.json
+// test/extended/testdata/config-map-jenkins-slave-pods.yaml
 // test/extended/testdata/custom-secret-builder/Dockerfile
 // test/extended/testdata/custom-secret-builder/build.sh
 // test/extended/testdata/deployments/custom-deployment.yaml
@@ -87,6 +90,8 @@
 // test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml
 // test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml
+// test/extended/testdata/imagestream-jenkins-slave-pods.yaml
+// test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml
 // test/extended/testdata/incremental-auth-build.json
 // test/extended/testdata/jenkins-plugin/build-job-clone.xml
 // test/extended/testdata/jenkins-plugin/build-job-slave.xml
@@ -102,6 +107,7 @@
 // test/extended/testdata/jenkins-plugin/multitag-job.xml
 // test/extended/testdata/jenkins-plugin/multitag-template.json
 // test/extended/testdata/jenkins-plugin/shared-resources-template.json
+// test/extended/testdata/jenkins-slave-template.yaml
 // test/extended/testdata/jobs/v1.yaml
 // test/extended/testdata/ldap/ldapserver-buildconfig.json
 // test/extended/testdata/ldap/ldapserver-deploymentconfig.json
@@ -118,6 +124,7 @@
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
 // test/extended/testdata/run_policy/serial-latest-only-bc.yaml
+// test/extended/testdata/s2i-build-root.yaml
 // test/extended/testdata/s2i-dropcaps/root-access-build.yaml
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile
 // test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser
@@ -139,6 +146,7 @@
 // test/extended/testdata/sti-environment-build-app/.sti/environment
 // test/extended/testdata/sti-environment-build-app/Gemfile
 // test/extended/testdata/sti-environment-build-app/config.ru
+// test/extended/testdata/templates/templateinstance_objectkinds.yaml
 // test/extended/testdata/test-auth-build.yaml
 // test/extended/testdata/test-bc-with-pr-ref.yaml
 // test/extended/testdata/test-build-app/Dockerfile
@@ -683,6 +691,72 @@ func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml = []byte(`apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+`)
+
+func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningDefaultGroupBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-group-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml = []byte(`apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: myphp
+spec:
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/openshift/cakephp-ex.git'
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'php:7.0'
+`)
+
+func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, nil
+}
+
+func testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/build-pruning/default-legacy-build-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildPruningErroredBuildConfigYaml = []byte(`apiVersion: v1
 kind: BuildConfig
 metadata:
@@ -733,13 +807,10 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   failedBuildsHistoryLimit: 2
-  triggers: {}
-  runPolicy: Serial
   source:
     type: Git
     git:
       uri: 'https://github.com/openshift/non-working-example.git'
-      ref: master
   strategy:
     type: Source
     sourceStrategy:
@@ -747,14 +818,6 @@ spec:
         kind: ImageStreamTag
         namespace: openshift
         name: 'php:7.0'
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'myphp:latest'
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
 `)
 
 func testExtendedTestdataBuildPruningFailedBuildConfigYamlBytes() ([]byte, error) {
@@ -803,13 +866,10 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   successfulBuildsHistoryLimit: 2
-  triggers: {}
-  runPolicy: Serial
   source:
     type: Git
     git:
       uri: 'https://github.com/openshift/cakephp-ex.git'
-      ref: master
   strategy:
     type: Source
     sourceStrategy:
@@ -817,14 +877,6 @@ spec:
         kind: ImageStreamTag
         namespace: openshift
         name: 'php:7.0'
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'myphp:latest'
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:
 `)
 
 func testExtendedTestdataBuildPruningSuccessfulBuildConfigYamlBytes() ([]byte, error) {
@@ -1491,6 +1543,67 @@ func testExtendedTestdataBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataConfigMapJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    jenkins-slave: |-
+      <org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
+        <inheritFrom></inheritFrom>
+        <name>jenkins-slave</name>
+        <instanceCap>2147483647</instanceCap>
+        <idleMinutes>0</idleMinutes>
+        <label>jenkins-slave</label>
+        <serviceAccount>jenkins</serviceAccount>
+        <nodeSelector></nodeSelector>
+        <volumes/>
+        <containers>
+          <org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+            <name>jnlp</name>
+            <image>openshift/jenkins-slave-maven-centos7</image>
+            <privileged>false</privileged>
+            <alwaysPullImage>false</alwaysPullImage>
+            <workingDir>/tmp</workingDir>
+            <command></command>
+            <args>${computer.jnlpmac} ${computer.name}</args>
+            <ttyEnabled>false</ttyEnabled>
+            <resourceRequestCpu></resourceRequestCpu>
+            <resourceRequestMemory></resourceRequestMemory>
+            <resourceLimitCpu></resourceLimitCpu>
+            <resourceLimitMemory></resourceLimitMemory>
+            <envVars/>
+          </org.csanchez.jenkins.plugins.kubernetes.ContainerTemplate>
+        </containers>
+        <envVars/>
+        <annotations/>
+        <imagePullSecrets/>
+        <nodeProperties/>
+      </org.csanchez.jenkins.plugins.kubernetes.PodTemplate>
+  kind: ConfigMap
+  metadata:
+    labels:
+      role: jenkins-slave
+    name: jenkins-slave
+kind: List
+metadata: {}
+resourceVersion: ""
+selfLink: ""`)
+
+func testExtendedTestdataConfigMapJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataConfigMapJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataConfigMapJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataConfigMapJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/config-map-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -4102,6 +4215,73 @@ func testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataImagestreamJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  labels:
+    role: jenkins-slave
+  name: jenkins-slave
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+    name: base
+  - from:
+      kind: ImageStreamTag
+      name: base
+    name: latest
+`)
+
+func testExtendedTestdataImagestreamJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImagestreamJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataImagestreamJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImagestreamJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/imagestream-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml = []byte(`apiVersion: v1
+kind: ImageStream
+metadata:
+  name: slave-jenkins
+spec:
+  tags:
+  - from:
+      kind: DockerImage
+      name: docker.io/openshift/jenkins-slave-maven-centos7:latest
+    name: base
+  - annotations:
+      role: jenkins-slave
+      slave-label: jenkins-slave
+    from:
+      kind: ImageStreamTag
+      name: base
+    name: latest
+`)
+
+func testExtendedTestdataImagestreamtagJenkinsSlavePodsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, nil
+}
+
+func testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataImagestreamtagJenkinsSlavePodsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataIncrementalAuthBuildJson = []byte(`{
   "kind": "Template",
   "apiVersion": "v1",
@@ -5492,6 +5672,52 @@ func testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson() (*asset, err
 	return a, nil
 }
 
+var _testExtendedTestdataJenkinsSlaveTemplateYaml = []byte(`apiVersion: v1
+kind: Template
+metadata:
+  name: jenkins-slave-pipeline
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    creationTimestamp: null
+    name: openshift-jee-sample
+  spec:
+    strategy:
+      jenkinsPipelineStrategy:
+        jenkinsfile: |-
+          try {
+             timeout(time: 20, unit: 'MINUTES') {
+        
+                node("jenkins-slave") {
+                  sh "mvn --version"
+                }
+
+             }
+          } catch (err) {
+             echo "in catch block"
+             echo "Caught: ${err}"
+             currentBuild.result = 'FAILURE'
+             throw err
+          }
+      type: JenkinsPipeline
+`)
+
+func testExtendedTestdataJenkinsSlaveTemplateYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataJenkinsSlaveTemplateYaml, nil
+}
+
+func testExtendedTestdataJenkinsSlaveTemplateYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataJenkinsSlaveTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/jenkins-slave-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataJobsV1Yaml = []byte(`apiVersion: batch/v1
 kind: Job
 metadata:
@@ -6470,6 +6696,41 @@ func testExtendedTestdataRun_policySerialLatestOnlyBcYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataS2iBuildRootYaml = []byte(`---
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: s2i-build-root
+  creationTimestamp:
+  labels:
+    name: s2i-build-root
+spec:
+  source:
+    binary:
+      asFile: ''
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos
+`)
+
+func testExtendedTestdataS2iBuildRootYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataS2iBuildRootYaml, nil
+}
+
+func testExtendedTestdataS2iBuildRootYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataS2iBuildRootYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/s2i-build-root.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataS2iDropcapsRootAccessBuildYaml = []byte(`apiVersion: v1
 items:
 - apiVersion: v1
@@ -7289,6 +7550,81 @@ func testExtendedTestdataStiEnvironmentBuildAppConfigRu() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/sti-environment-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: configsecret
+
+- kind: TemplateInstance
+  apiVersion: template.openshift.io/v1
+  metadata:
+    name: templateinstance
+  spec:
+    template:
+      kind: Template
+      apiVersion: v1
+      metadata:
+        name: template
+        namespace: default
+      objects:
+      - kind: Secret
+        apiVersion: v1
+        metadata:
+          name: secret
+      - kind: Deployment
+        apiVersion: apps/v1beta1
+        metadata:
+          name: deployment
+        spec:
+          replicas: 0
+          selector:
+            matchLabels:
+              key: value
+          template:
+            metadata:
+              labels:
+                key: value
+            spec:
+              containers:
+              - name: hello-openshift
+                image: openshift/hello-openshift
+      - kind: Route
+        apiVersion: v1
+        metadata:
+          name: route
+        spec:
+          to:
+            name: foo
+      - kind: Route
+        apiVersion: route.openshift.io/v1
+        metadata:
+          name: newroute
+        spec:
+          to:
+            name: foo
+
+    secret:
+      name: configsecret
+`)
+
+func testExtendedTestdataTemplatesTemplateinstance_objectkindsYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateinstance_objectkindsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -19275,7 +19611,7 @@ parameters:
     of your repository.
   displayName: Context Directory
   name: CONTEXT_DIR
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -19354,7 +19690,7 @@ parameters:
   value: master
 - name: GITHUB_WEBHOOK_SECRET
   displayName: GitHub Webhook Secret
-  description: A secret string used to configure the GitHub webhook.
+  description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   generate: expression
   from: "[a-zA-Z0-9]{40}"
 - name: GENERIC_WEBHOOK_SECRET
@@ -19475,7 +19811,7 @@ parameters:
   displayName: Source Ref
   required: true
   value: master
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -19535,13 +19871,13 @@ objects:
              timeout(time: 20, unit: 'MINUTES') {
                 def appName="${APP_NAME}"
                 def project=""
-        
+
                 node {
                   stage("Initialize") {
                     project = env.PROJECT_NAME
                   }
                 }
-        
+
                 node("maven") {
                   stage("Checkout") {
                     git url: "${GIT_SOURCE_URL}", branch: "${GIT_SOURCE_REF}"
@@ -19551,11 +19887,12 @@ objects:
                     stash name:"war", includes:"target/ROOT.war"
                   }
                 }
-        
+
                 node {
                   stage("Build Image") {
                     unstash name:"war"
-                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
+                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}"
+                    openshiftVerifyBuild bldCfg: "${appName}-docker", namespace: project, waitTime: '20', waitUnit: 'min'
                   }
                   stage("Deploy") {
                     openshiftDeploy deploymentConfig: appName, namespace: project
@@ -19836,7 +20173,7 @@ parameters:
     of your repository.
   displayName: Context Directory
   name: CONTEXT_DIR
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -20177,6 +20514,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
 	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
 	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
+	"test/extended/testdata/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml,
+	"test/extended/testdata/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml,
 	"test/extended/testdata/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildPruningErroredBuildConfigYaml,
 	"test/extended/testdata/build-pruning/failed-build-config.yaml": testExtendedTestdataBuildPruningFailedBuildConfigYaml,
 	"test/extended/testdata/build-pruning/imagestream.yaml": testExtendedTestdataBuildPruningImagestreamYaml,
@@ -20201,6 +20540,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/build-timing/test-docker-build.json": testExtendedTestdataBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/build-timing/test-is.json": testExtendedTestdataBuildTimingTestIsJson,
 	"test/extended/testdata/build-timing/test-s2i-build.json": testExtendedTestdataBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/config-map-jenkins-slave-pods.yaml": testExtendedTestdataConfigMapJenkinsSlavePodsYaml,
 	"test/extended/testdata/custom-secret-builder/Dockerfile": testExtendedTestdataCustomSecretBuilderDockerfile,
 	"test/extended/testdata/custom-secret-builder/build.sh": testExtendedTestdataCustomSecretBuilderBuildSh,
 	"test/extended/testdata/deployments/custom-deployment.yaml": testExtendedTestdataDeploymentsCustomDeploymentYaml,
@@ -20252,6 +20592,8 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/image-pull-secrets/pod-with-new-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNewPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-no-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml,
 	"test/extended/testdata/image-pull-secrets/pod-with-old-pull-secret.yaml": testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml,
+	"test/extended/testdata/imagestream-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamJenkinsSlavePodsYaml,
+	"test/extended/testdata/imagestreamtag-jenkins-slave-pods.yaml": testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml,
 	"test/extended/testdata/incremental-auth-build.json": testExtendedTestdataIncrementalAuthBuildJson,
 	"test/extended/testdata/jenkins-plugin/build-job-clone.xml": testExtendedTestdataJenkinsPluginBuildJobCloneXml,
 	"test/extended/testdata/jenkins-plugin/build-job-slave.xml": testExtendedTestdataJenkinsPluginBuildJobSlaveXml,
@@ -20267,6 +20609,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/jenkins-plugin/multitag-job.xml": testExtendedTestdataJenkinsPluginMultitagJobXml,
 	"test/extended/testdata/jenkins-plugin/multitag-template.json": testExtendedTestdataJenkinsPluginMultitagTemplateJson,
 	"test/extended/testdata/jenkins-plugin/shared-resources-template.json": testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson,
+	"test/extended/testdata/jenkins-slave-template.yaml": testExtendedTestdataJenkinsSlaveTemplateYaml,
 	"test/extended/testdata/jobs/v1.yaml": testExtendedTestdataJobsV1Yaml,
 	"test/extended/testdata/ldap/ldapserver-buildconfig.json": testExtendedTestdataLdapLdapserverBuildconfigJson,
 	"test/extended/testdata/ldap/ldapserver-deploymentconfig.json": testExtendedTestdataLdapLdapserverDeploymentconfigJson,
@@ -20283,6 +20626,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
 	"test/extended/testdata/run_policy/serial-latest-only-bc.yaml": testExtendedTestdataRun_policySerialLatestOnlyBcYaml,
+	"test/extended/testdata/s2i-build-root.yaml": testExtendedTestdataS2iBuildRootYaml,
 	"test/extended/testdata/s2i-dropcaps/root-access-build.yaml": testExtendedTestdataS2iDropcapsRootAccessBuildYaml,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/Dockerfile": testExtendedTestdataS2iDropcapsRootableRubyDockerfile,
 	"test/extended/testdata/s2i-dropcaps/rootable-ruby/adduser": testExtendedTestdataS2iDropcapsRootableRubyAdduser,
@@ -20304,6 +20648,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sti-environment-build-app/.sti/environment": testExtendedTestdataStiEnvironmentBuildAppStiEnvironment,
 	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
 	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
+	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
 	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
 	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
 	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
@@ -20490,6 +20835,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
 				}},
 				"build-pruning": &bintree{nil, map[string]*bintree{
+					"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
+					"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
 					"errored-build-config.yaml": &bintree{testExtendedTestdataBuildPruningErroredBuildConfigYaml, map[string]*bintree{}},
 					"failed-build-config.yaml": &bintree{testExtendedTestdataBuildPruningFailedBuildConfigYaml, map[string]*bintree{}},
 					"imagestream.yaml": &bintree{testExtendedTestdataBuildPruningImagestreamYaml, map[string]*bintree{}},
@@ -20537,6 +20884,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"test-is.json": &bintree{testExtendedTestdataBuildTimingTestIsJson, map[string]*bintree{}},
 					"test-s2i-build.json": &bintree{testExtendedTestdataBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 				}},
+				"config-map-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataConfigMapJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"custom-secret-builder": &bintree{nil, map[string]*bintree{
 					"Dockerfile": &bintree{testExtendedTestdataCustomSecretBuilderDockerfile, map[string]*bintree{}},
 					"build.sh": &bintree{testExtendedTestdataCustomSecretBuilderBuildSh, map[string]*bintree{}},
@@ -20622,6 +20970,8 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"pod-with-no-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithNoPullSecretYaml, map[string]*bintree{}},
 					"pod-with-old-pull-secret.yaml": &bintree{testExtendedTestdataImagePullSecretsPodWithOldPullSecretYaml, map[string]*bintree{}},
 				}},
+				"imagestream-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamJenkinsSlavePodsYaml, map[string]*bintree{}},
+				"imagestreamtag-jenkins-slave-pods.yaml": &bintree{testExtendedTestdataImagestreamtagJenkinsSlavePodsYaml, map[string]*bintree{}},
 				"incremental-auth-build.json": &bintree{testExtendedTestdataIncrementalAuthBuildJson, map[string]*bintree{}},
 				"jenkins-plugin": &bintree{nil, map[string]*bintree{
 					"build-job-clone.xml": &bintree{testExtendedTestdataJenkinsPluginBuildJobCloneXml, map[string]*bintree{}},
@@ -20639,6 +20989,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"multitag-template.json": &bintree{testExtendedTestdataJenkinsPluginMultitagTemplateJson, map[string]*bintree{}},
 					"shared-resources-template.json": &bintree{testExtendedTestdataJenkinsPluginSharedResourcesTemplateJson, map[string]*bintree{}},
 				}},
+				"jenkins-slave-template.yaml": &bintree{testExtendedTestdataJenkinsSlaveTemplateYaml, map[string]*bintree{}},
 				"jobs": &bintree{nil, map[string]*bintree{
 					"v1.yaml": &bintree{testExtendedTestdataJobsV1Yaml, map[string]*bintree{}},
 				}},
@@ -20665,6 +21016,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"serial-bc.yaml": &bintree{testExtendedTestdataRun_policySerialBcYaml, map[string]*bintree{}},
 					"serial-latest-only-bc.yaml": &bintree{testExtendedTestdataRun_policySerialLatestOnlyBcYaml, map[string]*bintree{}},
 				}},
+				"s2i-build-root.yaml": &bintree{testExtendedTestdataS2iBuildRootYaml, map[string]*bintree{}},
 				"s2i-dropcaps": &bintree{nil, map[string]*bintree{
 					"root-access-build.yaml": &bintree{testExtendedTestdataS2iDropcapsRootAccessBuildYaml, map[string]*bintree{}},
 					"rootable-ruby": &bintree{nil, map[string]*bintree{
@@ -20701,6 +21053,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					}},
 					"Gemfile": &bintree{testExtendedTestdataStiEnvironmentBuildAppGemfile, map[string]*bintree{}},
 					"config.ru": &bintree{testExtendedTestdataStiEnvironmentBuildAppConfigRu, map[string]*bintree{}},
+				}},
+				"templates": &bintree{nil, map[string]*bintree{
+					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
 				}},
 				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
 				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},

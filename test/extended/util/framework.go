@@ -37,11 +37,11 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/test/e2e/framework"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/namer"
 	"github.com/openshift/origin/test/extended/testdata"
 )
@@ -194,6 +194,16 @@ func DumpDeploymentLogs(dc string, oc *CLI) {
 		}
 	}
 
+}
+
+// GetMasterThreadDump will get a golang thread stack dump
+func GetMasterThreadDump(oc *CLI) {
+	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "\n\n Master thread stack dump:\n\n%s\n\n", string(out))
+		return
+	}
+	fmt.Fprintf(g.GinkgoWriter, "\n\n got error on oc get --raw /debug/pprof/goroutine?godebug=2: %v\n\n", err)
 }
 
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
@@ -1182,7 +1192,7 @@ func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capac
 			return volumes, err
 		}
 		if _, err = exec.LookPath("chcon"); err == nil {
-			err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).Run()
+			err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
 			if err != nil {
 				return volumes, err
 			}

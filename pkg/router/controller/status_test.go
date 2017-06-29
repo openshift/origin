@@ -15,8 +15,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client/testclient"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 )
 
 type fakePlugin struct {
@@ -48,8 +48,8 @@ func TestStatusNoOp(t *testing.T) {
 	now := nowFn()
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake()
-	admitter := NewStatusAdmitter(p, c, "test", "a.b.c.d")
+	c := fake.NewSimpleClientset()
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "a.b.c.d")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -78,7 +78,7 @@ func TestStatusNoOp(t *testing.T) {
 	}
 }
 
-func checkResult(t *testing.T, err error, c *testclient.Fake, admitter *StatusAdmitter, targetHost string, targetObjTime metav1.Time, targetCachedTime *time.Time, ingressInd int, actionInd int) *routeapi.Route {
+func checkResult(t *testing.T, err error, c *fake.Clientset, admitter *StatusAdmitter, targetHost string, targetObjTime metav1.Time, targetCachedTime *time.Time, ingressInd int, actionInd int) *routeapi.Route {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -116,8 +116,8 @@ func TestStatusResetsHost(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -146,14 +146,14 @@ func TestStatusAdmitsRouteOnForbidden(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
 		return true, nil, errors.NewForbidden(kapi.Resource("Route"), "route1", nil)
 	})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -181,14 +181,14 @@ func TestStatusBackoffOnConflict(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
 		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
 	})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -215,8 +215,8 @@ func TestStatusRecordRejection(t *testing.T) {
 	now := nowFn()
 	nowFn = func() metav1.Time { return now }
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -247,8 +247,8 @@ func TestStatusRecordRejectionNoChange(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -284,8 +284,8 @@ func TestStatusRecordRejectionWithStatus(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -331,8 +331,8 @@ func TestStatusRecordRejectionOnHostUpdateOnly(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -380,14 +380,14 @@ func TestStatusRecordRejectionConflict(t *testing.T) {
 	nowFn = func() metav1.Time { return now }
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
 			return false, nil, nil
 		}
 		return true, nil, errors.NewConflict(kapi.Resource("Route"), "route1", nil)
 	})
-	admitter := NewStatusAdmitter(p, c, "test", "")
+	admitter := NewStatusAdmitter(p, c.Route(), "test", "")
 	admitter.RecordRouteRejection(&routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -434,8 +434,8 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the initial pre-population
 	now1 := metav1.Now()
 	nowFn = func() metav1.Time { return now1 }
-	c1 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter1 := NewStatusAdmitter(p, c1, "test", "")
+	c1 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter1 := NewStatusAdmitter(p, c1.Route(), "test", "")
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route1.test.local"},
@@ -447,8 +447,8 @@ func TestStatusFightBetweenReplicas(t *testing.T) {
 	// the new deployment's replica
 	now2 := metav1.Time{Time: now1.Time.Add(time.Minute)}
 	nowFn = func() metav1.Time { return now2 }
-	c2 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
-	admitter2 := NewStatusAdmitter(p, c2, "test", "")
+	c2 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	admitter2 := NewStatusAdmitter(p, c2.Route(), "test", "")
 	outObj1.Spec.Host = "route1.test-new.local"
 	err = admitter2.HandleRoute(watch.Added, outObj1)
 
@@ -477,7 +477,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	now1 := metav1.Now()
 	nowFn = func() metav1.Time { return now1 }
 	touched1 := metav1.Time{Time: now1.Add(-time.Minute)}
-	c1 := testclient.NewSimpleFake(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
+	c1 := fake.NewSimpleClientset(&routeapi.Route{ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")}})
 	returnConflict := true
 	c1.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() != "status" {
@@ -489,7 +489,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	admitter1 := NewStatusAdmitter(p, c1, "test2", "")
+	admitter1 := NewStatusAdmitter(p, c1.Route(), "test2", "")
 	err := admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
@@ -527,7 +527,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 	now2 := metav1.Now()
 	nowFn = func() metav1.Time { return now2 }
 	touched2 := metav1.Time{Time: now2.Add(-time.Minute)}
-	//c2 := testclient.NewSimpleFake(&routeapi.Route{})
+	//c2 := fake.NewSimpleClientset(&routeapi.Route{})
 	err = admitter1.HandleRoute(watch.Added, &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{Name: "route1", Namespace: "default", UID: types.UID("uid1")},
 		Spec:       routeapi.RouteSpec{Host: "route2.test-new.local"},
@@ -564,7 +564,7 @@ func TestStatusFightBetweenRouters(t *testing.T) {
 
 func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *routeapi.Route, expectUpdate bool, conflict bool) *routeapi.Route {
 	// initialize a new client
-	c := testclient.NewSimpleFake(srcObj)
+	c := fake.NewSimpleClientset(srcObj)
 	if conflict {
 		c.PrependReactor("update", "routes", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if action.GetSubresource() != "status" {
@@ -574,7 +574,7 @@ func makePass(t *testing.T, host string, admitter *StatusAdmitter, srcObj *route
 		})
 	}
 
-	admitter.client = c
+	admitter.client = c.Route()
 
 	inputObjRaw, err := kapi.Scheme.DeepCopy(srcObj)
 	if err != nil {

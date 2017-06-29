@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 type testPodCreationStrategy struct {

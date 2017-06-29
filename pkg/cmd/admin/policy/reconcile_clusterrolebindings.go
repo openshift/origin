@@ -15,14 +15,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name

@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 

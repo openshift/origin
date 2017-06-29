@@ -1,12 +1,12 @@
 package scc
 
 import (
-	kapi "k8s.io/kubernetes/pkg/api"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // ByRestrictions is a helper to sort SCCs based on priority.  If priorities are equal
 // a string compare of the name is used.
-type ByPriority []*kapi.SecurityContextConstraints
+type ByPriority []*securityapi.SecurityContextConstraints
 
 func (s ByPriority) Len() int {
 	return len(s)
@@ -46,7 +46,7 @@ func (s ByPriority) Less(i, j int) bool {
 	return iSCC.Name < jSCC.Name
 }
 
-func getPriority(scc *kapi.SecurityContextConstraints) int {
+func getPriority(scc *securityapi.SecurityContextConstraints) int {
 	if scc.Priority == nil {
 		return 0
 	}

@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // ImageStreamLister helps list ImageStreams.
 type ImageStreamLister interface {
 	// List lists all ImageStreams in the indexer.
-	List(selector labels.Selector) (ret []*api.ImageStream, err error)
+	List(selector labels.Selector) (ret []*image.ImageStream, err error)
 	// ImageStreams returns an object that can list and get ImageStreams.
 	ImageStreams(namespace string) ImageStreamNamespaceLister
 	ImageStreamListerExpansion
@@ -29,9 +29,9 @@ func NewImageStreamLister(indexer cache.Indexer) ImageStreamLister {
 }
 
 // List lists all ImageStreams in the indexer.
-func (s *imageStreamLister) List(selector labels.Selector) (ret []*api.ImageStream, err error) {
+func (s *imageStreamLister) List(selector labels.Selector) (ret []*image.ImageStream, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ImageStream))
+		ret = append(ret, m.(*image.ImageStream))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *imageStreamLister) ImageStreams(namespace string) ImageStreamNamespaceL
 // ImageStreamNamespaceLister helps list and get ImageStreams.
 type ImageStreamNamespaceLister interface {
 	// List lists all ImageStreams in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.ImageStream, err error)
+	List(selector labels.Selector) (ret []*image.ImageStream, err error)
 	// Get retrieves the ImageStream from the indexer for a given namespace and name.
-	Get(name string) (*api.ImageStream, error)
+	Get(name string) (*image.ImageStream, error)
 	ImageStreamNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type imageStreamNamespaceLister struct {
 }
 
 // List lists all ImageStreams in the indexer for a given namespace.
-func (s imageStreamNamespaceLister) List(selector labels.Selector) (ret []*api.ImageStream, err error) {
+func (s imageStreamNamespaceLister) List(selector labels.Selector) (ret []*image.ImageStream, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ImageStream))
+		ret = append(ret, m.(*image.ImageStream))
 	})
 	return ret, err
 }
 
 // Get retrieves the ImageStream from the indexer for a given namespace and name.
-func (s imageStreamNamespaceLister) Get(name string) (*api.ImageStream, error) {
+func (s imageStreamNamespaceLister) Get(name string) (*image.ImageStream, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("imagestream"), name)
+		return nil, errors.NewNotFound(image.Resource("imagestream"), name)
 	}
-	return obj.(*api.ImageStream), nil
+	return obj.(*image.ImageStream), nil
 }

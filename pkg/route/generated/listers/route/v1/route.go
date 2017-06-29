@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/route/api"
-	v1 "github.com/openshift/origin/pkg/route/api/v1"
+	route "github.com/openshift/origin/pkg/route/apis/route"
+	v1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s routeNamespaceLister) Get(name string) (*v1.Route, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("route"), name)
+		return nil, errors.NewNotFound(route.Resource("route"), name)
 	}
 	return obj.(*v1.Route), nil
 }

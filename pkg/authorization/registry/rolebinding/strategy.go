@@ -11,8 +11,8 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	"github.com/openshift/origin/pkg/authorization/api/validation"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 )
 
 // strategy implements behavior for nodes

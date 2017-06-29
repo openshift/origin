@@ -16,7 +16,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	templatesapi "github.com/openshift/origin/pkg/template/api"
+	templatesapi "github.com/openshift/origin/pkg/template/apis/template"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

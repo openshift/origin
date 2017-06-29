@@ -3,12 +3,12 @@ package integration
 import (
 	"testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

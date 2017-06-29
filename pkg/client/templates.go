@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // TemplatesNamespacer has methods to work with Template resources in a namespace

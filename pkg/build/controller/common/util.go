@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"

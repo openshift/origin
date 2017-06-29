@@ -14,7 +14,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 const (

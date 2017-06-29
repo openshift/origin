@@ -30,8 +30,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	watchjson "k8s.io/kubernetes/pkg/watch/json"
 
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	"github.com/openshift/origin/pkg/route/api/v1"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	tr "github.com/openshift/origin/test/integration/router"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -1228,7 +1228,7 @@ func sendTimeout(t *testing.T, ch chan string, s string, timeout time.Duration) 
 
 // eventString marshals the event into a string
 func eventString(e *watch.Event) string {
-	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(v1.LegacySchemeGroupVersion), e)
+	obj, _ := watchjson.Object(kapi.Codecs.LegacyCodec(routeapiv1.LegacySchemeGroupVersion), e)
 	s, _ := json.Marshal(obj)
 	return string(s)
 }
@@ -1673,6 +1673,10 @@ func TestRouterBindsPortsAfterSync(t *testing.T) {
 		err := wait.Poll(time.Millisecond*100, time.Duration(reloadInterval)*2*time.Second, func() (bool, error) {
 			_, err := getRoute(routeAddress, routeAddress, scheme, nil, "")
 			lastErr = nil
+
+			if err != nil && strings.Contains(err.Error(), "connection refused") {
+				err = ErrUnavailable
+			}
 			switch err {
 			case ErrUnavailable:
 				return true, nil

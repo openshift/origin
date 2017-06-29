@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 // FakeEgressNetworkPolicy implements EgressNetworkPolicyInterface. Meant to be embedded into a struct to get a default

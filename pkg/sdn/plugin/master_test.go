@@ -3,7 +3,7 @@ package plugin
 import (
 	"testing"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 func Test_clusterNetworkChanged(t *testing.T) {

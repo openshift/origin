@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/image/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
 	scheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,15 +17,15 @@ type ImageStreamsGetter interface {
 
 // ImageStreamInterface has methods to work with ImageStream resources.
 type ImageStreamInterface interface {
-	Create(*api.ImageStream) (*api.ImageStream, error)
-	Update(*api.ImageStream) (*api.ImageStream, error)
-	UpdateStatus(*api.ImageStream) (*api.ImageStream, error)
+	Create(*image.ImageStream) (*image.ImageStream, error)
+	Update(*image.ImageStream) (*image.ImageStream, error)
+	UpdateStatus(*image.ImageStream) (*image.ImageStream, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ImageStream, error)
-	List(opts v1.ListOptions) (*api.ImageStreamList, error)
+	Get(name string, options v1.GetOptions) (*image.ImageStream, error)
+	List(opts v1.ListOptions) (*image.ImageStreamList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ImageStream, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *image.ImageStream, err error)
 	ImageStreamExpansion
 }
 
@@ -44,8 +44,8 @@ func newImageStreams(c *ImageClient, namespace string) *imageStreams {
 }
 
 // Create takes the representation of a imageStream and creates it.  Returns the server's representation of the imageStream, and an error, if there is any.
-func (c *imageStreams) Create(imageStream *api.ImageStream) (result *api.ImageStream, err error) {
-	result = &api.ImageStream{}
+func (c *imageStreams) Create(imageStream *image.ImageStream) (result *image.ImageStream, err error) {
+	result = &image.ImageStream{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -56,8 +56,8 @@ func (c *imageStreams) Create(imageStream *api.ImageStream) (result *api.ImageSt
 }
 
 // Update takes the representation of a imageStream and updates it. Returns the server's representation of the imageStream, and an error, if there is any.
-func (c *imageStreams) Update(imageStream *api.ImageStream) (result *api.ImageStream, err error) {
-	result = &api.ImageStream{}
+func (c *imageStreams) Update(imageStream *image.ImageStream) (result *image.ImageStream, err error) {
+	result = &image.ImageStream{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -71,8 +71,8 @@ func (c *imageStreams) Update(imageStream *api.ImageStream) (result *api.ImageSt
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
 
-func (c *imageStreams) UpdateStatus(imageStream *api.ImageStream) (result *api.ImageStream, err error) {
-	result = &api.ImageStream{}
+func (c *imageStreams) UpdateStatus(imageStream *image.ImageStream) (result *image.ImageStream, err error) {
+	result = &image.ImageStream{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -107,8 +107,8 @@ func (c *imageStreams) DeleteCollection(options *v1.DeleteOptions, listOptions v
 }
 
 // Get takes name of the imageStream, and returns the corresponding imageStream object, and an error if there is any.
-func (c *imageStreams) Get(name string, options v1.GetOptions) (result *api.ImageStream, err error) {
-	result = &api.ImageStream{}
+func (c *imageStreams) Get(name string, options v1.GetOptions) (result *image.ImageStream, err error) {
+	result = &image.ImageStream{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -120,8 +120,8 @@ func (c *imageStreams) Get(name string, options v1.GetOptions) (result *api.Imag
 }
 
 // List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
-func (c *imageStreams) List(opts v1.ListOptions) (result *api.ImageStreamList, err error) {
-	result = &api.ImageStreamList{}
+func (c *imageStreams) List(opts v1.ListOptions) (result *image.ImageStreamList, err error) {
+	result = &image.ImageStreamList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -142,8 +142,8 @@ func (c *imageStreams) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched imageStream.
-func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ImageStream, err error) {
-	result = &api.ImageStream{}
+func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *image.ImageStream, err error) {
+	result = &image.ImageStream{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("imagestreams").

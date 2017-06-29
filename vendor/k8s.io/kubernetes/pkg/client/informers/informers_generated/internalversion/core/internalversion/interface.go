@@ -52,8 +52,6 @@ type Interface interface {
 	ResourceQuotas() ResourceQuotaInformer
 	// Secrets returns a SecretInformer.
 	Secrets() SecretInformer
-	// SecurityContextConstraints returns a SecurityContextConstraintsInformer.
-	SecurityContextConstraints() SecurityContextConstraintsInformer
 	// Services returns a ServiceInformer.
 	Services() ServiceInformer
 	// ServiceAccounts returns a ServiceAccountInformer.
@@ -137,11 +135,6 @@ func (v *version) ResourceQuotas() ResourceQuotaInformer {
 // Secrets returns a SecretInformer.
 func (v *version) Secrets() SecretInformer {
 	return &secretInformer{factory: v.SharedInformerFactory}
-}
-
-// SecurityContextConstraints returns a SecurityContextConstraintsInformer.
-func (v *version) SecurityContextConstraints() SecurityContextConstraintsInformer {
-	return &securityContextConstraintsInformer{factory: v.SharedInformerFactory}
 }
 
 // Services returns a ServiceInformer.

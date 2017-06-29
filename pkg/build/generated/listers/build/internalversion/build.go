@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/build/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // BuildLister helps list Builds.
 type BuildLister interface {
 	// List lists all Builds in the indexer.
-	List(selector labels.Selector) (ret []*api.Build, err error)
+	List(selector labels.Selector) (ret []*build.Build, err error)
 	// Builds returns an object that can list and get Builds.
 	Builds(namespace string) BuildNamespaceLister
 	BuildListerExpansion
@@ -29,9 +29,9 @@ func NewBuildLister(indexer cache.Indexer) BuildLister {
 }
 
 // List lists all Builds in the indexer.
-func (s *buildLister) List(selector labels.Selector) (ret []*api.Build, err error) {
+func (s *buildLister) List(selector labels.Selector) (ret []*build.Build, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Build))
+		ret = append(ret, m.(*build.Build))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *buildLister) Builds(namespace string) BuildNamespaceLister {
 // BuildNamespaceLister helps list and get Builds.
 type BuildNamespaceLister interface {
 	// List lists all Builds in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.Build, err error)
+	List(selector labels.Selector) (ret []*build.Build, err error)
 	// Get retrieves the Build from the indexer for a given namespace and name.
-	Get(name string) (*api.Build, error)
+	Get(name string) (*build.Build, error)
 	BuildNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type buildNamespaceLister struct {
 }
 
 // List lists all Builds in the indexer for a given namespace.
-func (s buildNamespaceLister) List(selector labels.Selector) (ret []*api.Build, err error) {
+func (s buildNamespaceLister) List(selector labels.Selector) (ret []*build.Build, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Build))
+		ret = append(ret, m.(*build.Build))
 	})
 	return ret, err
 }
 
 // Get retrieves the Build from the indexer for a given namespace and name.
-func (s buildNamespaceLister) Get(name string) (*api.Build, error) {
+func (s buildNamespaceLister) Get(name string) (*build.Build, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("build"), name)
+		return nil, errors.NewNotFound(build.Resource("build"), name)
 	}
-	return obj.(*api.Build), nil
+	return obj.(*build.Build), nil
 }

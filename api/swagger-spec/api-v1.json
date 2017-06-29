@@ -19340,13 +19340,16 @@
       "description": "iSCSI target portal List. The portal is either an IP or ip_addr:port if the port is other than default (typically TCP ports 860 and 3260)."
      },
      "chapAuthDiscovery": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "whether support iSCSI Discovery CHAP authentication"
      },
      "chapAuthSession": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "whether support iSCSI Session CHAP authentication"
      },
      "secretRef": {
-      "$ref": "v1.LocalObjectReference"
+      "$ref": "v1.LocalObjectReference",
+      "description": "CHAP secret for iSCSI target and initiator authentication"
      }
     }
    },
@@ -21844,7 +21847,7 @@
       "items": {
        "$ref": "v1.FSType"
       },
-      "description": "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use '*'."
+      "description": "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use \"*\". To allow no volumes, set to [\"none\"]."
      },
      "allowHostNetwork": {
       "type": "boolean",

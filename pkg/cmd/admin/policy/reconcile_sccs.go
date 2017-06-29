@@ -8,19 +8,21 @@ import (
 
 	"github.com/spf13/cobra"
 
+	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	sccutil "k8s.io/kubernetes/pkg/securitycontextconstraints/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 // ReconcileSCCRecommendedName is the recommended command name
@@ -40,7 +42,7 @@ type ReconcileSCCOptions struct {
 	Out    io.Writer
 	Output string
 
-	SCCClient kcoreclient.SecurityContextConstraintsInterface
+	SCCClient legacyclient.SecurityContextConstraintInterface
 	NSClient  kcoreclient.NamespaceInterface
 }
 
@@ -118,7 +120,7 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory,
 	if err != nil {
 		return err
 	}
-	o.SCCClient = kClient.Core().SecurityContextConstraints()
+	o.SCCClient = legacyclient.NewFromClient(kClient.Core().RESTClient())
 	o.NSClient = kClient.Core().Namespaces()
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
@@ -168,8 +170,8 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f *clientcmd.
 
 // ChangedSCCs returns the SCCs that must be created and/or updated to match the
 // recommended bootstrap SCCs.
-func (o *ReconcileSCCOptions) ChangedSCCs() ([]*kapi.SecurityContextConstraints, error) {
-	changedSCCs := []*kapi.SecurityContextConstraints{}
+func (o *ReconcileSCCOptions) ChangedSCCs() ([]*securityapi.SecurityContextConstraints, error) {
+	changedSCCs := []*securityapi.SecurityContextConstraints{}
 
 	groups, users := bootstrappolicy.GetBoostrapSCCAccess(o.InfraNamespace)
 	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
@@ -195,7 +197,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() ([]*kapi.SecurityContextConstraints,
 }
 
 // ReplaceChangedSCCs persists the changed SCCs.
-func (o *ReconcileSCCOptions) ReplaceChangedSCCs(changedSCCs []*kapi.SecurityContextConstraints) error {
+func (o *ReconcileSCCOptions) ReplaceChangedSCCs(changedSCCs []*securityapi.SecurityContextConstraints) error {
 	for i := range changedSCCs {
 		_, err := o.SCCClient.Get(changedSCCs[i].Name, metav1.GetOptions{})
 		if err != nil && !kapierrors.IsNotFound(err) {
@@ -224,7 +226,7 @@ func (o *ReconcileSCCOptions) ReplaceChangedSCCs(changedSCCs []*kapi.SecurityCon
 // it does this by making the expected SCC mirror the actual SCC for items that
 // we are not reconciling and performing a diff (ignoring changes to metadata).
 // If a diff is produced then the expected SCC is submitted as needing an update.
-func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextConstraints, actual kapi.SecurityContextConstraints) (*kapi.SecurityContextConstraints, bool) {
+func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityapi.SecurityContextConstraints, actual securityapi.SecurityContextConstraints) (*securityapi.SecurityContextConstraints, bool) {
 	needsUpdate := false
 
 	// if unioning old and new groups/users then make the expected contain all
@@ -274,7 +276,7 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected kapi.SecurityContextCon
 }
 
 // sortVolumes sorts the volume slice of the SCC in place.
-func sortVolumes(scc *kapi.SecurityContextConstraints) {
+func sortVolumes(scc *securityapi.SecurityContextConstraints) {
 	if scc.Volumes == nil || len(scc.Volumes) == 0 {
 		return
 	}
@@ -284,10 +286,10 @@ func sortVolumes(scc *kapi.SecurityContextConstraints) {
 }
 
 // sliceToFSType converts a string slice into FStypes.
-func sliceToFSType(s []string) []kapi.FSType {
-	fsTypes := []kapi.FSType{}
+func sliceToFSType(s []string) []securityapi.FSType {
+	fsTypes := []securityapi.FSType{}
 	for _, v := range s {
-		fsTypes = append(fsTypes, kapi.FSType(v))
+		fsTypes = append(fsTypes, securityapi.FSType(v))
 	}
 	return fsTypes
 }

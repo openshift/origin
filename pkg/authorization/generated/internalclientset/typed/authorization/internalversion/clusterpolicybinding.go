@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type ClusterPolicyBindingsGetter interface {
 
 // ClusterPolicyBindingInterface has methods to work with ClusterPolicyBinding resources.
 type ClusterPolicyBindingInterface interface {
-	Create(*api.ClusterPolicyBinding) (*api.ClusterPolicyBinding, error)
-	Update(*api.ClusterPolicyBinding) (*api.ClusterPolicyBinding, error)
+	Create(*authorization.ClusterPolicyBinding) (*authorization.ClusterPolicyBinding, error)
+	Update(*authorization.ClusterPolicyBinding) (*authorization.ClusterPolicyBinding, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.ClusterPolicyBinding, error)
-	List(opts v1.ListOptions) (*api.ClusterPolicyBindingList, error)
+	Get(name string, options v1.GetOptions) (*authorization.ClusterPolicyBinding, error)
+	List(opts v1.ListOptions) (*authorization.ClusterPolicyBindingList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterPolicyBinding, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterPolicyBinding, err error)
 	ClusterPolicyBindingExpansion
 }
 
@@ -41,8 +41,8 @@ func newClusterPolicyBindings(c *AuthorizationClient) *clusterPolicyBindings {
 }
 
 // Create takes the representation of a clusterPolicyBinding and creates it.  Returns the server's representation of the clusterPolicyBinding, and an error, if there is any.
-func (c *clusterPolicyBindings) Create(clusterPolicyBinding *api.ClusterPolicyBinding) (result *api.ClusterPolicyBinding, err error) {
-	result = &api.ClusterPolicyBinding{}
+func (c *clusterPolicyBindings) Create(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
+	result = &authorization.ClusterPolicyBinding{}
 	err = c.client.Post().
 		Resource("clusterpolicybindings").
 		Body(clusterPolicyBinding).
@@ -52,8 +52,8 @@ func (c *clusterPolicyBindings) Create(clusterPolicyBinding *api.ClusterPolicyBi
 }
 
 // Update takes the representation of a clusterPolicyBinding and updates it. Returns the server's representation of the clusterPolicyBinding, and an error, if there is any.
-func (c *clusterPolicyBindings) Update(clusterPolicyBinding *api.ClusterPolicyBinding) (result *api.ClusterPolicyBinding, err error) {
-	result = &api.ClusterPolicyBinding{}
+func (c *clusterPolicyBindings) Update(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
+	result = &authorization.ClusterPolicyBinding{}
 	err = c.client.Put().
 		Resource("clusterpolicybindings").
 		Name(clusterPolicyBinding.Name).
@@ -84,8 +84,8 @@ func (c *clusterPolicyBindings) DeleteCollection(options *v1.DeleteOptions, list
 }
 
 // Get takes name of the clusterPolicyBinding, and returns the corresponding clusterPolicyBinding object, and an error if there is any.
-func (c *clusterPolicyBindings) Get(name string, options v1.GetOptions) (result *api.ClusterPolicyBinding, err error) {
-	result = &api.ClusterPolicyBinding{}
+func (c *clusterPolicyBindings) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicyBinding, err error) {
+	result = &authorization.ClusterPolicyBinding{}
 	err = c.client.Get().
 		Resource("clusterpolicybindings").
 		Name(name).
@@ -96,8 +96,8 @@ func (c *clusterPolicyBindings) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of ClusterPolicyBindings that match those selectors.
-func (c *clusterPolicyBindings) List(opts v1.ListOptions) (result *api.ClusterPolicyBindingList, err error) {
-	result = &api.ClusterPolicyBindingList{}
+func (c *clusterPolicyBindings) List(opts v1.ListOptions) (result *authorization.ClusterPolicyBindingList, err error) {
+	result = &authorization.ClusterPolicyBindingList{}
 	err = c.client.Get().
 		Resource("clusterpolicybindings").
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -116,8 +116,8 @@ func (c *clusterPolicyBindings) Watch(opts v1.ListOptions) (watch.Interface, err
 }
 
 // Patch applies the patch and returns the patched clusterPolicyBinding.
-func (c *clusterPolicyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterPolicyBinding, err error) {
-	result = &api.ClusterPolicyBinding{}
+func (c *clusterPolicyBindings) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterPolicyBinding, err error) {
+	result = &authorization.ClusterPolicyBinding{}
 	err = c.client.Patch(pt).
 		Resource("clusterpolicybindings").
 		SubResource(subresources...).

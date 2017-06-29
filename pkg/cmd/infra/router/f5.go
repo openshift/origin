@@ -15,7 +15,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router/controller"
 	f5plugin "github.com/openshift/origin/pkg/router/f5"
 )
@@ -214,16 +216,24 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	oc, kc, err := o.Config.Clients()
+	_, kc, err := o.Config.Clients()
+	if err != nil {
+		return err
+	}
+	routeclient, err := routeinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
+	if err != nil {
+		return err
+	}
+	projectclient, err := projectinternalclientset.NewForConfig(o.Config.OpenShiftConfig())
 	if err != nil {
 		return err
 	}
 
-	statusPlugin := controller.NewStatusAdmitter(f5Plugin, oc, o.RouterName, "")
+	statusPlugin := controller.NewStatusAdmitter(f5Plugin, routeclient, o.RouterName, "")
 	uniqueHostPlugin := controller.NewUniqueHost(statusPlugin, o.RouteSelectionFunc(), o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
 	plugin := controller.NewHostAdmitter(uniqueHostPlugin, o.F5RouteAdmitterFunc(), false, o.RouterSelection.DisableNamespaceOwnershipCheck, statusPlugin)
 
-	factory := o.RouterSelection.NewFactory(oc, kc)
+	factory := o.RouterSelection.NewFactory(routeclient, projectclient.Projects(), kc)
 	watchNodes := (len(o.InternalAddress) != 0 && len(o.VxlanGateway) != 0)
 	controller := factory.Create(plugin, watchNodes, o.EnableIngress)
 	controller.Run()

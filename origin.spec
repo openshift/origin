@@ -232,31 +232,8 @@ of docker.  Exclude those versions of docker.
 %if 0%{make_redistributable}
 # Create Binaries for all supported arches
 %{os_git_vars} hack/build-cross.sh
+%{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
 %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
-%else
-# Create Binaries only for building arch
-%ifarch x86_64
-  BUILD_PLATFORM="linux/amd64"
-%endif
-%ifarch %{ix86}
-  BUILD_PLATFORM="linux/386"
-%endif
-%ifarch ppc64le
-  BUILD_PLATFORM="linux/ppc64le"
-%endif
-%ifarch %{arm} aarch64
-  BUILD_PLATFORM="linux/arm64"
-%endif
-%ifarch s390x
-  BUILD_PLATFORM="linux/s390x"
-%endif
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
-OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
-%endif
-
-# Build cluster capacity
-%if 0%{make_redistributable}
-# Create Binaries for all supported arches
 %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %else
 # Create Binaries only for building arch
@@ -275,6 +252,9 @@ OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/ser
 %ifarch s390x
   BUILD_PLATFORM="linux/s390x"
 %endif
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-cross.sh
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} hack/build-go.sh vendor/github.com/onsi/ginkgo/ginkgo
+OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog/hack/build-cross.sh
 OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} unset GOPATH; cmd/cluster-capacity/go/src/github.com/kubernetes-incubator/cluster-capacity/hack/build-cross.sh
 %endif
 
@@ -292,8 +272,11 @@ do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
 done
+
+# Install tests
 install -d %{buildroot}%{_libexecdir}/%{name}
 install -p -m 755 _output/local/bin/${PLATFORM}/extended.test %{buildroot}%{_libexecdir}/%{name}/
+install -p -m 755 _output/local/bin/${PLATFORM}/ginkgo %{buildroot}%{_libexecdir}/%{name}/
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac

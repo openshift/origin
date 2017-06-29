@@ -14,14 +14,14 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers

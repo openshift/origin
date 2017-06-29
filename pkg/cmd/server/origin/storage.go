@@ -16,8 +16,9 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	authzapiv1 "github.com/openshift/origin/pkg/authorization/api/v1"
-	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
+	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	"github.com/openshift/origin/pkg/authorization/util"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
@@ -30,7 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
@@ -38,7 +39,7 @@ import (
 	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
-	imageapiv1 "github.com/openshift/origin/pkg/image/api/v1"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -51,30 +52,30 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/api/v1"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
-	projectapiv1 "github.com/openshift/origin/pkg/project/api/v1"
+	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
-	routeapiv1 "github.com/openshift/origin/pkg/route/api/v1"
+	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
-	networkapiv1 "github.com/openshift/origin/pkg/sdn/api/v1"
+	networkapiv1 "github.com/openshift/origin/pkg/sdn/apis/network/v1"
 	clusternetworketcd "github.com/openshift/origin/pkg/sdn/registry/clusternetwork/etcd"
 	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/sdn/registry/egressnetworkpolicy/etcd"
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
 	templateregistry "github.com/openshift/origin/pkg/template/registry/template"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/template/etcd"
 	templateinstanceetcd "github.com/openshift/origin/pkg/template/registry/templateinstance/etcd"
-	userapiv1 "github.com/openshift/origin/pkg/user/api/v1"
+	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
@@ -85,36 +86,24 @@ import (
 	"github.com/openshift/origin/pkg/build/registry/buildclone"
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
 
-	quotaapiv1 "github.com/openshift/origin/pkg/quota/api/v1"
+	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
-	clusterpolicyetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy/etcd"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
-	clusterpolicybindingetcd "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding/etcd"
-	clusterrolestorage "github.com/openshift/origin/pkg/authorization/registry/clusterrole/proxy"
-	clusterrolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding/proxy"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
-	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
-	policyetcd "github.com/openshift/origin/pkg/authorization/registry/policy/etcd"
-	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
-	policybindingetcd "github.com/openshift/origin/pkg/authorization/registry/policybinding/etcd"
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
-	rolestorage "github.com/openshift/origin/pkg/authorization/registry/role/policybased"
-	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	rolebindingrestrictionetcd "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction/etcd"
 	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 
 	// register api groups
@@ -208,28 +197,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	policyStorage, err := policyetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	policyRegistry := policyregistry.NewRegistry(policyStorage)
-	policyBindingStorage, err := policybindingetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	policyBindingRegistry := policybindingregistry.NewRegistry(policyBindingStorage)
-
-	clusterPolicyStorage, err := clusterpolicyetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	clusterPolicyRegistry := clusterpolicyregistry.NewRegistry(clusterPolicyStorage)
-	clusterPolicyBindingStorage, err := clusterpolicybindingetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	clusterPolicyBindingRegistry := clusterpolicybindingregistry.NewRegistry(clusterPolicyBindingStorage)
-
 	clusterPolicies := clusterPolicyLister{
 		ClusterPolicyLister: c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies().Lister(),
 		versioner:           c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies().Informer(),
@@ -237,10 +204,10 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, clusterPolicies)
 	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, clusterPolicies)
 
-	roleStorage := rolestorage.NewVirtualStorage(policyRegistry, c.RuleResolver, nil, authorizationapi.Resource("role"))
-	roleBindingStorage := rolebindingstorage.NewVirtualStorage(policyBindingRegistry, c.RuleResolver, nil, authorizationapi.Resource("rolebinding"))
-	clusterRoleStorage := clusterrolestorage.NewClusterRoleStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
-	clusterRoleBindingStorage := clusterrolebindingstorage.NewClusterRoleBindingStorage(clusterPolicyRegistry, clusterPolicyBindingRegistry, c.RuleResolver)
+	authStorage, err := util.GetAuthorizationStorage(c.GenericConfig.RESTOptionsGetter, c.RuleResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error building authorization REST storage: %v", err)
+	}
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -249,17 +216,22 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
 
+	sccStorage := c.SCCStorage
+	// TODO allow this when we're sure that its storing correctly and we want to allow starting up without embedding kube
+	if false && sccStorage == nil {
+		sccStorage = sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
+	}
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
 		c.KubeClientInternal,
 	)
 	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeClientInternal,
 	)
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
-		oscc.NewDefaultSCCMatcher(c.KubeInternalInformers.Core().InternalVersion().SecurityContextConstraints().Lister()),
+		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeClientInternal,
 	)
 
@@ -350,7 +322,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		PolicyBindingLister: c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Lister(),
 		versioner:           c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Informer(),
 	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.KubeClientInternal, policyBindings)
+	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.GenericConfig.LoopbackClientConfig, policyBindings)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildConfigRegistry,
@@ -455,20 +427,21 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
 		"subjectRulesReviews":        subjectRulesReviewStorage,
 
-		"policies":       policyStorage,
-		"policyBindings": policyBindingStorage,
-		"roles":          roleStorage,
-		"roleBindings":   roleBindingStorage,
+		"policies":       authStorage.Policy,
+		"policyBindings": authStorage.PolicyBinding,
+		"roles":          authStorage.Role,
+		"roleBindings":   authStorage.RoleBinding,
 
-		"clusterPolicies":       clusterPolicyStorage,
-		"clusterPolicyBindings": clusterPolicyBindingStorage,
-		"clusterRoleBindings":   clusterRoleBindingStorage,
-		"clusterRoles":          clusterRoleStorage,
+		"clusterPolicies":       authStorage.ClusterPolicy,
+		"clusterPolicyBindings": authStorage.ClusterPolicyBinding,
+		"clusterRoleBindings":   authStorage.ClusterRoleBinding,
+		"clusterRoles":          authStorage.ClusterRole,
 
 		"roleBindingRestrictions": roleBindingRestrictionStorage,
 	}
 
 	storage[securityapiv1.SchemeGroupVersion] = map[string]rest.Storage{
+		"securityContextConstraints":          sccStorage,
 		"podSecurityPolicyReviews":            podSecurityPolicyReviewStorage,
 		"podSecurityPolicySubjectReviews":     podSecurityPolicySubjectStorage,
 		"podSecurityPolicySelfSubjectReviews": podSecurityPolicySelfSubjectReviewStorage,

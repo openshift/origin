@@ -11,7 +11,9 @@ import (
 
 // initControllerRoutes adds a web service endpoint for managing the execution
 // state of the controllers.
-func initControllerRoutes(apiContainer *restful.Container, path string, canStart bool, plug plug.Plug) {
+func initControllerRoutes(apiContainer *restful.Container, path string, plug plug.Plug) {
+	canStart := plug != nil
+
 	ws := new(restful.WebService).
 		Path(path).
 		Doc("Check whether the controllers are running on this master")

@@ -12,10 +12,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	userapi "github.com/openshift/origin/pkg/user/api"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 type GroupCache interface {

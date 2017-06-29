@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 const (

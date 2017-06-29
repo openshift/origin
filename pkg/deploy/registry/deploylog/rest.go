@@ -23,8 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	"github.com/openshift/origin/pkg/deploy/api/validation"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 	"github.com/openshift/origin/pkg/deploy/registry"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )

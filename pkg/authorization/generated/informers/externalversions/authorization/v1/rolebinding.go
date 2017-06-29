@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/authorization/api/v1"
+	authorization_v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	clientset "github.com/openshift/origin/pkg/authorization/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/authorization/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/v1"
@@ -35,7 +35,7 @@ func newRoleBindingInformer(client clientset.Interface, resyncPeriod time.Durati
 				return client.AuthorizationV1().RoleBindings(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.RoleBinding{},
+		&authorization_v1.RoleBinding{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newRoleBindingInformer(client clientset.Interface, resyncPeriod time.Durati
 }
 
 func (f *roleBindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.RoleBinding{}, newRoleBindingInformer)
+	return f.factory.InformerFor(&authorization_v1.RoleBinding{}, newRoleBindingInformer)
 }
 
 func (f *roleBindingInformer) Lister() v1.RoleBindingLister {

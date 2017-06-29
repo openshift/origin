@@ -1,7 +1,7 @@
 package fake
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,49 +17,49 @@ type FakeClusterPolicies struct {
 
 var clusterpoliciesResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "clusterpolicies"}
 
-func (c *FakeClusterPolicies) Create(clusterPolicy *api.ClusterPolicy) (result *api.ClusterPolicy, err error) {
+func (c *FakeClusterPolicies) Create(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterpoliciesResource, clusterPolicy), &api.ClusterPolicy{})
+		Invokes(testing.NewRootCreateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterPolicy), err
+	return obj.(*authorization.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) Update(clusterPolicy *api.ClusterPolicy) (result *api.ClusterPolicy, err error) {
+func (c *FakeClusterPolicies) Update(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterpoliciesResource, clusterPolicy), &api.ClusterPolicy{})
+		Invokes(testing.NewRootUpdateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterPolicy), err
+	return obj.(*authorization.ClusterPolicy), err
 }
 
 func (c *FakeClusterPolicies) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterpoliciesResource, name), &api.ClusterPolicy{})
+		Invokes(testing.NewRootDeleteAction(clusterpoliciesResource, name), &authorization.ClusterPolicy{})
 	return err
 }
 
 func (c *FakeClusterPolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(clusterpoliciesResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &api.ClusterPolicyList{})
+	_, err := c.Fake.Invokes(action, &authorization.ClusterPolicyList{})
 	return err
 }
 
-func (c *FakeClusterPolicies) Get(name string, options v1.GetOptions) (result *api.ClusterPolicy, err error) {
+func (c *FakeClusterPolicies) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(clusterpoliciesResource, name), &api.ClusterPolicy{})
+		Invokes(testing.NewRootGetAction(clusterpoliciesResource, name), &authorization.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterPolicy), err
+	return obj.(*authorization.ClusterPolicy), err
 }
 
-func (c *FakeClusterPolicies) List(opts v1.ListOptions) (result *api.ClusterPolicyList, err error) {
+func (c *FakeClusterPolicies) List(opts v1.ListOptions) (result *authorization.ClusterPolicyList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterpoliciesResource, opts), &api.ClusterPolicyList{})
+		Invokes(testing.NewRootListAction(clusterpoliciesResource, opts), &authorization.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (c *FakeClusterPolicies) List(opts v1.ListOptions) (result *api.ClusterPoli
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &api.ClusterPolicyList{}
-	for _, item := range obj.(*api.ClusterPolicyList).Items {
+	list := &authorization.ClusterPolicyList{}
+	for _, item := range obj.(*authorization.ClusterPolicyList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -84,11 +84,11 @@ func (c *FakeClusterPolicies) Watch(opts v1.ListOptions) (watch.Interface, error
 }
 
 // Patch applies the patch and returns the patched clusterPolicy.
-func (c *FakeClusterPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.ClusterPolicy, err error) {
+func (c *FakeClusterPolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.ClusterPolicy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(clusterpoliciesResource, name, data, subresources...), &api.ClusterPolicy{})
+		Invokes(testing.NewRootPatchSubresourceAction(clusterpoliciesResource, name, data, subresources...), &authorization.ClusterPolicy{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*api.ClusterPolicy), err
+	return obj.(*authorization.ClusterPolicy), err
 }

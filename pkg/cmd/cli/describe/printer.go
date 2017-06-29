@@ -17,17 +17,18 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 var (
@@ -70,6 +71,8 @@ var (
 
 	templateInstanceColumns       = []string{"NAME", "TEMPLATE"}
 	brokerTemplateInstanceColumns = []string{"NAME", "TEMPLATEINSTANCE"}
+
+	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY", "READONLYROOTFS", "VOLUMES"}
 )
 
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
@@ -155,6 +158,9 @@ func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, p
 	p.Handler(templateInstanceColumns, nil, printTemplateInstanceList)
 	p.Handler(brokerTemplateInstanceColumns, nil, printBrokerTemplateInstance)
 	p.Handler(brokerTemplateInstanceColumns, nil, printBrokerTemplateInstanceList)
+
+	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraints)
+	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraintsList)
 
 	return p
 }
@@ -1193,5 +1199,27 @@ func printBrokerTemplateInstanceList(list *templateapi.BrokerTemplateInstanceLis
 			return err
 		}
 	}
+	return nil
+}
+
+func printSecurityContextConstraints(item *securityapi.SecurityContextConstraints, w io.Writer, options kprinters.PrintOptions) error {
+	priority := "<none>"
+	if item.Priority != nil {
+		priority = fmt.Sprintf("%d", *item.Priority)
+	}
+
+	_, err := fmt.Fprintf(w, "%s\t%t\t%v\t%s\t%s\t%s\t%s\t%s\t%t\t%v\n", item.Name, item.AllowPrivilegedContainer,
+		item.AllowedCapabilities, item.SELinuxContext.Type,
+		item.RunAsUser.Type, item.FSGroup.Type, item.SupplementalGroups.Type, priority, item.ReadOnlyRootFilesystem, item.Volumes)
+	return err
+}
+
+func printSecurityContextConstraintsList(list *securityapi.SecurityContextConstraintsList, w io.Writer, options kprinters.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printSecurityContextConstraints(&item, w, options); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

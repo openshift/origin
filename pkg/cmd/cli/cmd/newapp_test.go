@@ -13,8 +13,8 @@ import (
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // TestNewAppDefaultFlags ensures that flags default values are set.

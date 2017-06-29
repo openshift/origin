@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/util/restoptions"
 
@@ -36,8 +36,8 @@ func TestStorage(t *testing.T) {
 	image.NewRegistry(storage)
 }
 
-func validImage() *api.Image {
-	return &api.Image{
+func validImage() *imageapi.Image {
+	return &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         "foo",
 			GenerateName: "foo",
@@ -57,7 +57,7 @@ func TestCreate(t *testing.T) {
 	test.TestCreate(
 		valid,
 		// invalid
-		&api.Image{},
+		&imageapi.Image{},
 	)
 }
 
@@ -70,13 +70,13 @@ func TestUpdate(t *testing.T) {
 		validImage(),
 		// updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Image)
+			object := obj.(*imageapi.Image)
 			object.DockerImageReference = "openshift/origin"
 			return object
 		},
 		// invalid updateFunc
 		func(obj runtime.Object) runtime.Object {
-			object := obj.(*api.Image)
+			object := obj.(*imageapi.Image)
 			object.DockerImageReference = "\\"
 			return object
 		},
@@ -228,17 +228,17 @@ const etcdManifestNoSignature = `{
 
 func TestCreateSetsMetadata(t *testing.T) {
 	testCases := []struct {
-		image  *api.Image
-		expect func(*api.Image) bool
+		image  *imageapi.Image
+		expect func(*imageapi.Image) bool
 	}{
 		{
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 			},
 		},
 		{
-			expect: func(image *api.Image) bool {
+			expect: func(image *imageapi.Image) bool {
 				if image.DockerImageMetadata.Size != 28643712 {
 					t.Errorf("image had size %d", image.DockerImageMetadata.Size)
 					return false
@@ -249,7 +249,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 				}
 				return true
 			},
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo"},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
@@ -271,7 +271,7 @@ func TestCreateSetsMetadata(t *testing.T) {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
 			continue
 		}
-		image, ok := obj.(*api.Image)
+		image, ok := obj.(*imageapi.Image)
 		if !ok {
 			t.Errorf("%d: Expected image type, got: %#v", i, obj)
 			continue
@@ -284,13 +284,13 @@ func TestCreateSetsMetadata(t *testing.T) {
 
 func TestUpdateResetsMetadata(t *testing.T) {
 	testCases := []struct {
-		image    *api.Image
-		existing *api.Image
-		expect   func(*api.Image) bool
+		image    *imageapi.Image
+		existing *imageapi.Image
+		expect   func(*imageapi.Image) bool
 	}{
 		// manifest changes are ignored
 		{
-			expect: func(image *api.Image) bool {
+			expect: func(image *imageapi.Image) bool {
 				if image.Labels["a"] != "b" {
 					t.Errorf("unexpected labels: %s", image.Labels)
 					return false
@@ -317,13 +317,13 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				}
 				return true
 			},
-			existing: &api.Image{
+			existing: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
-				DockerImageLayers:    []api.ImageLayer{{Name: "test", LayerSize: 10}},
-				DockerImageMetadata:  api.DockerImage{ID: "foo"},
+				DockerImageLayers:    []imageapi.ImageLayer{{Name: "test", LayerSize: 10}},
+				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
 			},
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1", Labels: map[string]string{"a": "b"}},
 				DockerImageReference: "openshift/ruby-19-centos",
 				DockerImageManifest:  etcdManifest,
@@ -331,7 +331,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 		},
 		// existing manifest is preserved, and unpacked
 		{
-			expect: func(image *api.Image) bool {
+			expect: func(image *imageapi.Image) bool {
 				if len(image.DockerImageManifest) != 0 {
 					t.Errorf("unexpected not empty manifest")
 					return false
@@ -354,21 +354,21 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				}
 				return true
 			},
-			existing: &api.Image{
+			existing: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
-				DockerImageLayers:    []api.ImageLayer{},
+				DockerImageLayers:    []imageapi.ImageLayer{},
 				DockerImageManifest:  etcdManifest,
 			},
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
-				DockerImageMetadata:  api.DockerImage{ID: "foo"},
+				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
 			},
 		},
 		// old manifest is replaced because the new manifest matches the digest
 		{
-			expect: func(image *api.Image) bool {
+			expect: func(image *imageapi.Image) bool {
 				if image.DockerImageManifest != etcdManifest {
 					t.Errorf("unexpected manifest: %s", image.DockerImageManifest)
 					return false
@@ -391,16 +391,16 @@ func TestUpdateResetsMetadata(t *testing.T) {
 				}
 				return true
 			},
-			existing: &api.Image{
+			existing: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos-2",
-				DockerImageLayers:    []api.ImageLayer{},
+				DockerImageLayers:    []imageapi.ImageLayer{},
 				DockerImageManifest:  etcdManifestNoSignature,
 			},
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta:           metav1.ObjectMeta{Name: "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238", ResourceVersion: "1"},
 				DockerImageReference: "openshift/ruby-19-centos",
-				DockerImageMetadata:  api.DockerImage{ID: "foo"},
+				DockerImageMetadata:  imageapi.DockerImage{ID: "foo"},
 				DockerImageManifest:  etcdManifest,
 			},
 		}}
@@ -419,7 +419,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 		}
 
 		// Copy the resource version into our update object
-		test.image.ResourceVersion = created.(*api.Image).ResourceVersion
+		test.image.ResourceVersion = created.(*imageapi.Image).ResourceVersion
 		obj, _, err := storage.Update(apirequest.NewDefaultContext(), test.image.Name, rest.DefaultUpdatedObjectInfo(test.image, kapi.Scheme))
 		if err != nil {
 			t.Errorf("%d: Unexpected non-nil error: %#v", i, err)
@@ -429,7 +429,7 @@ func TestUpdateResetsMetadata(t *testing.T) {
 			t.Errorf("%d: Expected nil obj, got %v", i, obj)
 			continue
 		}
-		image, ok := obj.(*api.Image)
+		image, ok := obj.(*imageapi.Image)
 		if !ok {
 			t.Errorf("%d: Expected image type, got: %#v", i, obj)
 			continue

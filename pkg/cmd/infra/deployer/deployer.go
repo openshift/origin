@@ -21,7 +21,7 @@ import (
 	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
 	"github.com/openshift/origin/pkg/deploy/strategy/rolling"

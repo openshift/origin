@@ -7,6 +7,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbac "k8s.io/kubernetes/pkg/apis/rbac"
+
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 const saRolePrefix = "system:openshift:controller:"
@@ -165,6 +167,15 @@ func init() {
 			rbac.NewRule("get", "update").Groups(batchGroup).Resources("cronjobs").RuleOrDie(),
 			rbac.NewRule("get", "update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
 			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs/instantiate").RuleOrDie(),
+			// trigger controller must be able to modify these build types
+			// TODO: move to a new custom binding that can be removed separately from end user access?
+			rbac.NewRule("create").Groups(buildGroup, legacyBuildGroup).Resources(
+				authorizationapi.SourceBuildResource,
+				authorizationapi.DockerBuildResource,
+				authorizationapi.OptimizedDockerBuildResource,
+				authorizationapi.JenkinsPipelineBuildResource,
+			).RuleOrDie(),
+
 			eventsRule(),
 		},
 	})

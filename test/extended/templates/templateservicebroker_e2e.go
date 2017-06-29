@@ -14,13 +14,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	"github.com/openshift/origin/pkg/openservicebroker/client"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	templateapiv1 "github.com/openshift/origin/pkg/template/api/v1"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )

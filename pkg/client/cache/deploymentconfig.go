@@ -7,9 +7,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // StoreToDeploymentConfigLister gives a store List and Exists methods. The store must contain only deploymentconfigs.

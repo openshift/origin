@@ -330,6 +330,16 @@ items:
     - list
     - watch
   - apiGroups:
+    - security.openshift.io
+    - ""
+    attributeRestrictions: null
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - template.openshift.io
     - ""
     attributeRestrictions: null
@@ -3485,6 +3495,17 @@ items:
     - create
   - apiGroups:
     - ""
+    - build.openshift.io
+    attributeRestrictions: null
+    resources:
+    - builds/docker
+    - builds/jenkinspipeline
+    - builds/optimizeddocker
+    - builds/source
+    verbs:
+    - create
+  - apiGroups:
+    - ""
     attributeRestrictions: null
     resources:
     - events
@@ -4651,6 +4672,14 @@ items:
     - secrets
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - nodes
+    verbs:
+    - get
+    - list
   - apiGroups:
     - ""
     attributeRestrictions: null

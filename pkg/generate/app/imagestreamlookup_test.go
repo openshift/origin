@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func testImageStreamClient(imageStreams *imageapi.ImageStreamList, images map[string]*imageapi.ImageStreamImage) client.Interface {

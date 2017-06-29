@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -52,17 +51,6 @@ import (
 type commandExecutor interface {
 	LookPath(executable string) (string, error)
 	Run(command string, args ...string) error
-}
-
-type defaultCommandExecutor struct{}
-
-func (ce defaultCommandExecutor) LookPath(executable string) (string, error) {
-	return exec.LookPath(executable)
-}
-
-func (ce defaultCommandExecutor) Run(command string, args ...string) error {
-	c := exec.Command(command, args...)
-	return c.Run()
 }
 
 const minimumDockerAPIVersionWithPullByID = "1.18"
@@ -181,14 +169,14 @@ func (c *NodeConfig) HandleDockerError(message string) {
 // an absolute path and create the directory if it does not exist. Will exit if
 // an error is encountered.
 func (c *NodeConfig) EnsureVolumeDir() {
-	if volumeDir, err := c.initializeVolumeDir(&defaultCommandExecutor{}, c.VolumeDir); err != nil {
+	if volumeDir, err := c.initializeVolumeDir(c.VolumeDir); err != nil {
 		glog.Fatal(err)
 	} else {
 		c.VolumeDir = volumeDir
 	}
 }
 
-func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (string, error) {
+func (c *NodeConfig) initializeVolumeDir(path string) (string, error) {
 	rootDirectory, err := filepath.Abs(path)
 	if err != nil {
 		return "", fmt.Errorf("Error converting volume directory to an absolute path: %v", err)
@@ -197,14 +185,6 @@ func (c *NodeConfig) initializeVolumeDir(ce commandExecutor, path string) (strin
 	if _, err := os.Stat(rootDirectory); os.IsNotExist(err) {
 		if err := os.MkdirAll(rootDirectory, 0750); err != nil {
 			return "", fmt.Errorf("Couldn't create kubelet volume root directory '%s': %s", rootDirectory, err)
-		}
-	}
-	// always try to chcon, in case the volume dir existed prior to the node starting
-	if chconPath, err := ce.LookPath("chcon"); err != nil {
-		glog.V(2).Infof("Couldn't locate 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
-	} else {
-		if err := ce.Run(chconPath, "-t", "svirt_sandbox_file_t", rootDirectory); err != nil {
-			glog.Warningf("Error running 'chcon' to set the kubelet volume root directory SELinux context: %s", err)
 		}
 	}
 	return rootDirectory, nil

@@ -5609,7 +5609,7 @@ parameters:
     of your repository.
   displayName: Context Directory
   name: CONTEXT_DIR
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -5688,7 +5688,7 @@ parameters:
   value: master
 - name: GITHUB_WEBHOOK_SECRET
   displayName: GitHub Webhook Secret
-  description: A secret string used to configure the GitHub webhook.
+  description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   generate: expression
   from: "[a-zA-Z0-9]{40}"
 - name: GENERIC_WEBHOOK_SECRET
@@ -5809,7 +5809,7 @@ parameters:
   displayName: Source Ref
   required: true
   value: master
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -5869,13 +5869,13 @@ objects:
              timeout(time: 20, unit: 'MINUTES') {
                 def appName="${APP_NAME}"
                 def project=""
-        
+
                 node {
                   stage("Initialize") {
                     project = env.PROJECT_NAME
                   }
                 }
-        
+
                 node("maven") {
                   stage("Checkout") {
                     git url: "${GIT_SOURCE_URL}", branch: "${GIT_SOURCE_REF}"
@@ -5885,11 +5885,12 @@ objects:
                     stash name:"war", includes:"target/ROOT.war"
                   }
                 }
-        
+
                 node {
                   stage("Build Image") {
                     unstash name:"war"
-                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war --follow -n ${project}"
+                    sh "oc start-build ${appName}-docker --from-file=target/ROOT.war -n ${project}"
+                    openshiftVerifyBuild bldCfg: "${appName}-docker", namespace: project, waitTime: '20', waitUnit: 'min'
                   }
                   stage("Deploy") {
                     openshiftDeploy deploymentConfig: appName, namespace: project
@@ -6170,7 +6171,7 @@ parameters:
     of your repository.
   displayName: Context Directory
   name: CONTEXT_DIR
-- description: A secret string used to configure the GitHub webhook.
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
   displayName: GitHub Webhook Secret
   from: '[a-zA-Z0-9]{40}'
   generate: expression
@@ -6962,7 +6963,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -7538,7 +7539,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -8105,7 +8106,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -8625,7 +8626,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -9175,7 +9176,7 @@ var _examplesQuickstartsDjangoPostgresqlPersistentJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -9705,7 +9706,7 @@ var _examplesQuickstartsDjangoPostgresqlJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -10038,7 +10039,7 @@ var _examplesQuickstartsHttpdJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -10564,7 +10565,7 @@ var _examplesQuickstartsNodejsMongodbPersistentJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -11105,7 +11106,7 @@ var _examplesQuickstartsNodejsMongodbJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -11709,7 +11710,7 @@ var _examplesQuickstartsRailsPostgresqlPersistentJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },
@@ -12309,7 +12310,7 @@ var _examplesQuickstartsRailsPostgresqlJson = []byte(`{
     {
       "name": "GITHUB_WEBHOOK_SECRET",
       "displayName": "GitHub Webhook Secret",
-      "description": "A secret string used to configure the GitHub webhook.",
+      "description": "Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.",
       "generate": "expression",
       "from": "[a-zA-Z0-9]{40}"
     },

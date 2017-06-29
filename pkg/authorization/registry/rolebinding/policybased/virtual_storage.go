@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
@@ -36,16 +36,16 @@ type VirtualStorage struct {
 }
 
 // NewVirtualStorage creates a new REST for policies.
-func NewVirtualStorage(bindingRegistry policybindingregistry.Registry, ruleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver, resource schema.GroupResource) rolebindingregistry.Storage {
+func NewVirtualStorage(policyBindingRegistry policybindingregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) rolebindingregistry.Storage {
 	return &VirtualStorage{
-		BindingRegistry: bindingRegistry,
+		BindingRegistry: policyBindingRegistry,
 
-		RuleResolver:       ruleResolver,
+		RuleResolver:       liveRuleResolver,
 		CachedRuleResolver: cachedRuleResolver,
 
 		CreateStrategy: rolebindingregistry.LocalStrategy,
 		UpdateStrategy: rolebindingregistry.LocalStrategy,
-		Resource:       resource,
+		Resource:       authorizationapi.Resource("rolebinding"),
 	}
 }
 

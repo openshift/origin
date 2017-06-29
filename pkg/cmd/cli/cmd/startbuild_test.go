@@ -18,7 +18,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/client/testclient"
 )

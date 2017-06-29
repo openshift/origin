@@ -7,7 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/db"
 	testutil "github.com/openshift/origin/test/util"

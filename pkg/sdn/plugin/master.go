@@ -9,8 +9,8 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
-	osapi "github.com/openshift/origin/pkg/sdn/api"
-	osapivalidation "github.com/openshift/origin/pkg/sdn/api/validation"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	osapivalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"

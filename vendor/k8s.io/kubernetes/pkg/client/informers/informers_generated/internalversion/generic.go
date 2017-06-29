@@ -107,8 +107,6 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().InternalVersion().ResourceQuotas().Informer()}, nil
 	case api.SchemeGroupVersion.WithResource("secrets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().InternalVersion().Secrets().Informer()}, nil
-	case api.SchemeGroupVersion.WithResource("securitycontextconstraints"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().InternalVersion().SecurityContextConstraints().Informer()}, nil
 	case api.SchemeGroupVersion.WithResource("services"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Core().InternalVersion().Services().Informer()}, nil
 	case api.SchemeGroupVersion.WithResource("serviceaccounts"):

@@ -19,8 +19,8 @@ import (
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/project/api"
-	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 
 	"github.com/spf13/cobra"
@@ -328,7 +328,7 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 	return projectErr
 }
 
-func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]api.Project, error) {
+func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]projectapi.Project, error) {
 	projects, err := oClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		return projects.Items, nil

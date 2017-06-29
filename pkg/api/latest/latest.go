@@ -85,6 +85,11 @@ func getOrCreateOriginKinds() map[schema.GroupVersionKind]bool {
 			// enumerate all supported versions, get the kinds, and register with the mapper how to address our resources
 			for _, version := range Versions {
 				for kind, t := range api.Scheme.KnownTypes(version) {
+					// these don't require special handling at the RESTMapping level since they are either "normal" when groupified
+					// or under /api (not /oapi)
+					if kind == "SecurityContextConstraints" {
+						continue
+					}
 					if !strings.Contains(t.PkgPath(), "github.com/openshift/origin") || strings.Contains(t.PkgPath(), "github.com/openshift/origin/vendor/") {
 						continue
 					}

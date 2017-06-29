@@ -25,23 +25,23 @@ import (
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	"github.com/openshift/origin/pkg/client"
 	loginerrors "github.com/openshift/origin/pkg/cmd/cli/cmd/errors"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployedges "github.com/openshift/origin/pkg/deploy/graph"
 	deployanalysis "github.com/openshift/origin/pkg/deploy/graph/analysis"
 	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	projectapihelpers "github.com/openshift/origin/pkg/project/api/helpers"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routeanalysis "github.com/openshift/origin/pkg/route/graph/analysis"
 	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
@@ -372,18 +372,18 @@ func printMarkerSuggestions(markers []osgraph.Marker, suggest bool, out *tabwrit
 		if len(marker.Suggestion) > 0 {
 			suggestionAmount++
 		}
-		if len(marker.Suggestion) > 0 || len(marker.Message) > 0 {
-			if suggest {
-				fmt.Fprintln(out, indent+"* "+marker.Message)
-				switch s := marker.Suggestion.String(); {
-				case strings.Contains(s, "\n"):
-					fmt.Fprintln(out)
-					for _, line := range strings.Split(s, "\n") {
-						fmt.Fprintln(out, indent+"  "+line)
-					}
-				case len(s) > 0:
-					fmt.Fprintln(out, indent+"  try: "+s)
+		if len(marker.Message) > 0 && (suggest || marker.Severity == osgraph.ErrorSeverity) {
+			fmt.Fprintln(out, indent+"* "+marker.Message)
+		}
+		if len(marker.Suggestion) > 0 && suggest {
+			switch s := marker.Suggestion.String(); {
+			case strings.Contains(s, "\n"):
+				fmt.Fprintln(out)
+				for _, line := range strings.Split(s, "\n") {
+					fmt.Fprintln(out, indent+"  "+line)
 				}
+			case len(s) > 0:
+				fmt.Fprintln(out, indent+"  try: "+s)
 			}
 		}
 	}

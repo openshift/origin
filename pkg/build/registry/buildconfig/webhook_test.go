@@ -18,8 +18,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/build/api"
-	buildapiv1 "github.com/openshift/origin/pkg/build/api/v1"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/registry/test"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
@@ -29,17 +29,17 @@ import (
 )
 
 type buildConfigInstantiator struct {
-	Build   *api.Build
+	Build   *buildapi.Build
 	Err     error
-	Request *api.BuildRequest
+	Request *buildapi.BuildRequest
 }
 
-func (i *buildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
+func (i *buildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	i.Request = request
 	if i.Build != nil {
 		return i.Build, i.Err
 	}
-	return &api.Build{
+	return &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      request.Name,
 			Namespace: namespace,
@@ -51,11 +51,11 @@ type plugin struct {
 	Secret, Path          string
 	Err                   error
 	Env                   []kapi.EnvVar
-	DockerStrategyOptions *api.DockerStrategyOptions
+	DockerStrategyOptions *buildapi.DockerStrategyOptions
 	Proceed               bool
 }
 
-func (p *plugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
+func (p *plugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error) {
 	p.Secret, p.Path = secret, path
 	return nil, p.Env, p.DockerStrategyOptions, p.Proceed, p.Err
 }
@@ -83,7 +83,7 @@ func newStorage() (*rest.WebHook, *buildConfigInstantiator, *test.BuildConfigReg
 
 func TestNewWebHook(t *testing.T) {
 	hook, _, _ := newStorage()
-	if out, ok := hook.New().(*api.Build); !ok {
+	if out, ok := hook.New().(*buildapi.Build); !ok {
 		t.Errorf("unexpected new: %#v", out)
 	}
 }
@@ -116,7 +116,7 @@ func TestConnectWebHook(t *testing.T) {
 	testCases := map[string]struct {
 		Name        string
 		Path        string
-		Obj         *api.BuildConfig
+		Obj         *buildapi.BuildConfig
 		RegErr      error
 		ErrFn       func(error) bool
 		WFn         func(*httptest.ResponseRecorder) bool
@@ -126,7 +126,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns generic error": {
 			Name: "test",
 			Path: "secret/err",
-			Obj:  &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:  &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool {
 				return strings.Contains(err.Error(), "Internal error occurred: hook failed: test error")
 			},
@@ -135,21 +135,21 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns unauthorized for bad secret": {
 			Name:        "test",
 			Path:        "secret/errsecret",
-			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
 		},
 		"hook returns unauthorized for bad hook": {
 			Name:        "test",
 			Path:        "secret/errhook",
-			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
 		},
 		"hook returns unauthorized for missing build config": {
 			Name:        "test",
 			Path:        "secret/errhook",
-			Obj:         &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:         &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			RegErr:      fmt.Errorf("any old error"),
 			ErrFn:       kerrors.IsUnauthorized,
 			Instantiate: false,
@@ -157,7 +157,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns 200 for ok hook": {
 			Name:  "test",
 			Path:  "secret/ok",
-			Obj:   &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:   &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool { return err == nil },
 			WFn: func(w *httptest.ResponseRecorder) bool {
 				body, _ := ioutil.ReadAll(w.Body)
@@ -178,7 +178,7 @@ func TestConnectWebHook(t *testing.T) {
 		"hook returns 200 for okenv hook": {
 			Name:  "test",
 			Path:  "secret/okenv",
-			Obj:   &api.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
+			Obj:   &buildapi.BuildConfig{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"}},
 			ErrFn: func(err error) bool { return err == nil },
 			WFn: func(w *httptest.ResponseRecorder) bool {
 				return w.Code == http.StatusOK
@@ -234,8 +234,8 @@ func TestConnectWebHook(t *testing.T) {
 
 type okBuildConfigInstantiator struct{}
 
-func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
-	return &api.Build{
+func (*okBuildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	return &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      request.Name,
@@ -245,19 +245,19 @@ func (*okBuildConfigInstantiator) Instantiate(namespace string, request *api.Bui
 
 type errorBuildConfigInstantiator struct{}
 
-func (*errorBuildConfigInstantiator) Instantiate(namespace string, request *api.BuildRequest) (*api.Build, error) {
+func (*errorBuildConfigInstantiator) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	return nil, errors.New("Build error!")
 }
 
 type errorBuildConfigGetter struct{}
 
-func (*errorBuildConfigGetter) Get(namespace, name string) (*api.BuildConfig, error) {
-	return &api.BuildConfig{}, errors.New("BuildConfig error!")
+func (*errorBuildConfigGetter) Get(namespace, name string) (*buildapi.BuildConfig, error) {
+	return &buildapi.BuildConfig{}, errors.New("BuildConfig error!")
 }
 
 type errorBuildConfigUpdater struct{}
 
-func (*errorBuildConfigUpdater) Update(buildConfig *api.BuildConfig) error {
+func (*errorBuildConfigUpdater) Update(buildConfig *buildapi.BuildConfig) error {
 	return errors.New("BuildConfig error!")
 }
 
@@ -265,43 +265,43 @@ type pathPlugin struct {
 	Path string
 }
 
-func (p *pathPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
+func (p *pathPlugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error) {
 	p.Path = path
 	return nil, []kapi.EnvVar{}, nil, true, nil
 }
 
 type errPlugin struct{}
 
-func (*errPlugin) Extract(buildCfg *api.BuildConfig, secret, path string, req *http.Request) (*api.SourceRevision, []kapi.EnvVar, *api.DockerStrategyOptions, bool, error) {
+func (*errPlugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, req *http.Request) (*buildapi.SourceRevision, []kapi.EnvVar, *buildapi.DockerStrategyOptions, bool, error) {
 	return nil, []kapi.EnvVar{}, nil, false, errors.New("Plugin error!")
 }
 
-var testBuildConfig = &api.BuildConfig{
+var testBuildConfig = &buildapi.BuildConfig{
 	ObjectMeta: metav1.ObjectMeta{Name: "build100"},
-	Spec: api.BuildConfigSpec{
-		Triggers: []api.BuildTriggerPolicy{
+	Spec: buildapi.BuildConfigSpec{
+		Triggers: []buildapi.BuildTriggerPolicy{
 			{
-				Type: api.GitHubWebHookBuildTriggerType,
-				GitHubWebHook: &api.WebHookTrigger{
+				Type: buildapi.GitHubWebHookBuildTriggerType,
+				GitHubWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret101",
 				},
 			},
 			{
-				Type: api.GitLabWebHookBuildTriggerType,
-				GitLabWebHook: &api.WebHookTrigger{
+				Type: buildapi.GitLabWebHookBuildTriggerType,
+				GitLabWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret201",
 				},
 			},
 			{
-				Type: api.BitbucketWebHookBuildTriggerType,
-				BitbucketWebHook: &api.WebHookTrigger{
+				Type: buildapi.BitbucketWebHookBuildTriggerType,
+				BitbucketWebHook: &buildapi.WebHookTrigger{
 					Secret: "secret301",
 				},
 			},
 		},
-		CommonSpec: api.CommonSpec{
-			Source: api.BuildSource{
-				Git: &api.GitBuildSource{
+		CommonSpec: buildapi.CommonSpec{
+			Source: buildapi.BuildSource{
+				Git: &buildapi.GitBuildSource{
 					URI: "git://github.com/my/repo.git",
 				},
 			},
@@ -309,8 +309,8 @@ var testBuildConfig = &api.BuildConfig{
 		},
 	},
 }
-var mockBuildStrategy = api.BuildStrategy{
-	SourceStrategy: &api.SourceBuildStrategy{
+var mockBuildStrategy = buildapi.BuildStrategy{
+	SourceStrategy: &buildapi.SourceBuildStrategy{
 		From: kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: "repository/image",
@@ -447,13 +447,13 @@ func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 }
 
 func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
-	revision := &api.SourceRevision{
-		Git: &api.GitSourceRevision{
-			Author: api.SourceControlUser{
+	revision := &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
+			Author: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
-			Committer: api.SourceControlUser{
+			Committer: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
@@ -470,20 +470,20 @@ func TestGeneratedBuildTriggerInfoGenericWebHook(t *testing.T) {
 		if cause.GenericWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != api.BuildTriggerCauseGenericMsg {
+		if cause.Message != buildapi.BuildTriggerCauseGenericMsg {
 			t.Errorf("Expected build reason to be 'Generic WebHook, go %s'", cause.Message)
 		}
 	}
 }
 
 func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
-	revision := &api.SourceRevision{
-		Git: &api.GitSourceRevision{
-			Author: api.SourceControlUser{
+	revision := &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
+			Author: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
-			Committer: api.SourceControlUser{
+			Committer: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
@@ -500,20 +500,20 @@ func TestGeneratedBuildTriggerInfoGitHubWebHook(t *testing.T) {
 		if cause.GitHubWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != api.BuildTriggerCauseGithubMsg {
+		if cause.Message != buildapi.BuildTriggerCauseGithubMsg {
 			t.Errorf("Expected build reason to be 'GitHub WebHook, go %s'", cause.Message)
 		}
 	}
 }
 
 func TestGeneratedBuildTriggerInfoGitLabWebHook(t *testing.T) {
-	revision := &api.SourceRevision{
-		Git: &api.GitSourceRevision{
-			Author: api.SourceControlUser{
+	revision := &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
+			Author: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
-			Committer: api.SourceControlUser{
+			Committer: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
@@ -530,20 +530,20 @@ func TestGeneratedBuildTriggerInfoGitLabWebHook(t *testing.T) {
 		if cause.GitLabWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != api.BuildTriggerCauseGitLabMsg {
+		if cause.Message != buildapi.BuildTriggerCauseGitLabMsg {
 			t.Errorf("Expected build reason to be 'GitLab WebHook, go %s'", cause.Message)
 		}
 	}
 }
 
 func TestGeneratedBuildTriggerInfoBitbucketWebHook(t *testing.T) {
-	revision := &api.SourceRevision{
-		Git: &api.GitSourceRevision{
-			Author: api.SourceControlUser{
+	revision := &buildapi.SourceRevision{
+		Git: &buildapi.GitSourceRevision{
+			Author: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
-			Committer: api.SourceControlUser{
+			Committer: buildapi.SourceControlUser{
 				Name:  "John Doe",
 				Email: "john.doe@test.com",
 			},
@@ -560,7 +560,7 @@ func TestGeneratedBuildTriggerInfoBitbucketWebHook(t *testing.T) {
 		if cause.BitbucketWebHook.Secret != hiddenSecret {
 			t.Errorf("Expected obfuscated secret to be: %s", hiddenSecret)
 		}
-		if cause.Message != api.BuildTriggerCauseBitbucketMsg {
+		if cause.Message != buildapi.BuildTriggerCauseBitbucketMsg {
 			t.Errorf("Expected build reason to be 'Bitbucket WebHook, go %s'", cause.Message)
 		}
 	}

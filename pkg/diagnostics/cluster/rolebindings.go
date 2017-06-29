@@ -7,7 +7,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
 	policycmd "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/diagnostics/types"

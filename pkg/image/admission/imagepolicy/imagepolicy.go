@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/validation"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
@@ -73,7 +73,7 @@ type integratedRegistryMatcher struct {
 
 // imageResolver abstracts identifying an image for a particular reference.
 type imageResolver interface {
-	ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error)
+	ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error)
 }
 
 // imageResolutionPolicy determines whether an image should be resolved
@@ -194,6 +194,8 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}
 
+	annotations, _ := meta.GetAnnotationAccessor(attr.GetObject())
+
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
 	if ns := attr.GetNamespace(); len(ns) > 0 {
@@ -204,7 +206,7 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		}
 	}
 
-	if err := accept(a.accepter, policy, a.resolver, m, attr, excluded); err != nil {
+	if err := accept(a.accepter, policy, a.resolver, m, annotations, attr, excluded); err != nil {
 		return err
 	}
 
@@ -248,7 +250,7 @@ var now = time.Now
 
 // ResolveObjectReference converts a reference into an image API or returns an error. If the kind is not recognized
 // this method will return an error to prevent references that may be images from being ignored.
-func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	switch ref.Kind {
 	case "ImageStreamTag":
 		ns := ref.Namespace
@@ -259,7 +261,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if !ok {
 			return &rules.ImagePolicyAttributes{IntegratedRegistry: true}, fmt.Errorf("references of kind ImageStreamTag must be of the form NAME:TAG")
 		}
-		return c.resolveImageStreamTag(ns, name, tag, false)
+		return c.resolveImageStreamTag(ns, name, tag, false, false)
 
 	case "ImageStreamImage":
 		ns := ref.Namespace
@@ -277,7 +279,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 		if err != nil {
 			return nil, err
 		}
-		return c.resolveImageReference(ref, defaultNamespace)
+		return c.resolveImageReference(ref, defaultNamespace, forceResolveLocalNames)
 
 	default:
 		return nil, fmt.Errorf("image policy does not allow image references of kind %q", ref.Kind)
@@ -286,7 +288,7 @@ func (c *imageResolutionCache) ResolveObjectReference(ref *kapi.ObjectReference,
 
 // Resolve converts an image reference into a resolved image or returns an error. Only images located in the internal
 // registry or those with a digest can be resolved - all other scenarios will return an error.
-func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageReference, defaultNamespace string, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	// images by ID can be checked for policy
 	if len(ref.ID) > 0 {
 		now := now()
@@ -305,7 +307,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 	}
 
 	fullReference := c.integrated.Matches(ref.Registry)
-	partialReference := len(ref.Registry) == 0 && len(ref.Namespace) == 0 && len(ref.Name) > 0
+	partialReference := forceResolveLocalNames || (len(ref.Registry) == 0 && len(ref.Namespace) == 0 && len(ref.Name) > 0)
 	if !fullReference && !partialReference {
 		return nil, fmt.Errorf("only images imported into the registry are allowed (%s)", ref.Exact())
 	}
@@ -314,16 +316,16 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 	if len(tag) == 0 {
 		tag = imageapi.DefaultImageTag
 	}
-	if len(ref.Namespace) == 0 {
+	if len(ref.Namespace) == 0 || forceResolveLocalNames {
 		ref.Namespace = defaultNamespace
 	}
 
-	return c.resolveImageStreamTag(ref.Namespace, ref.Name, tag, partialReference)
+	return c.resolveImageStreamTag(ref.Namespace, ref.Name, tag, partialReference, forceResolveLocalNames)
 }
 
 // resolveImageStreamTag loads an image stream tag and creates a fully qualified image stream image reference,
 // or returns an error.
-func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial bool) (*rules.ImagePolicyAttributes, error) {
+func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
 	resolved, err := c.tags.ImageStreamTags(namespace).Get(name, tag)
 	if err != nil {
@@ -334,7 +336,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		// to the internal registry. This prevents the lookup from going to the original location, which is consistent
 		// with the intent of resolving local names.
 		if isImageStreamTagNotFound(err) {
-			if stream, err := c.streams.ImageStreams(namespace).Get(name, metav1.GetOptions{}); err == nil && stream.Spec.LookupPolicy.Local && len(stream.Status.DockerImageRepository) > 0 {
+			if stream, err := c.streams.ImageStreams(namespace).Get(name, metav1.GetOptions{}); err == nil && (forceResolveLocalNames || stream.Spec.LookupPolicy.Local) && len(stream.Status.DockerImageRepository) > 0 {
 				if ref, err := imageapi.ParseDockerImageReference(stream.Status.DockerImageRepository); err == nil {
 					glog.V(4).Infof("%s/%s:%s points to a local name resolving stream, but the tag does not exist", namespace, name, tag)
 					ref.Tag = tag
@@ -347,7 +349,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		return attrs, err
 	}
 	if partial {
-		if !resolved.LookupPolicy.Local {
+		if !forceResolveLocalNames && !resolved.LookupPolicy.Local {
 			attrs.IntegratedRegistry = false
 			return attrs, fmt.Errorf("ImageStreamTag does not allow local references")
 		}

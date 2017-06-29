@@ -375,6 +375,28 @@
         },
         {
             "type": "bind",
+            "source": "/etc/cni/net.d",
+            "destination": "/etc/cni/net.d",
+            "options": [
+                "bind",
+                "slave",
+                "rw",
+                "mode=777"
+            ]
+        },
+        {
+            "type": "bind",
+            "source": "/var/lib/dockershim",
+            "destination": "/var/lib/dockershim",
+            "options": [
+                "bind",
+                "slave",
+                "rw",
+                "mode=777"
+            ]
+        },
+        {
+            "type": "bind",
             "source": "/var/lib/cni",
             "destination": "/var/lib/cni",
             "options": [

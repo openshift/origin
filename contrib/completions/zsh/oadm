@@ -3091,6 +3091,51 @@ _oadm_migrate_storage()
     noun_aliases=()
 }
 
+_oadm_migrate_volumesource()
+{
+    last_command="oadm_migrate_volumesource"
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--as=")
+    flags+=("--azure-container-registry-config=")
+    flags+=("--certificate-authority=")
+    flags_with_completion+=("--certificate-authority")
+    flags_completion+=("_filedir")
+    flags+=("--client-certificate=")
+    flags_with_completion+=("--client-certificate")
+    flags_completion+=("_filedir")
+    flags+=("--client-key=")
+    flags_with_completion+=("--client-key")
+    flags_completion+=("_filedir")
+    flags+=("--cluster=")
+    flags+=("--config=")
+    flags_with_completion+=("--config")
+    flags_completion+=("_filedir")
+    flags+=("--context=")
+    flags+=("--google-json-key=")
+    flags+=("--insecure-skip-tls-verify")
+    flags+=("--log-flush-frequency=")
+    flags+=("--loglevel=")
+    flags+=("--logspec=")
+    flags+=("--match-server-version")
+    flags+=("--namespace=")
+    two_word_flags+=("-n")
+    flags+=("--request-timeout=")
+    flags+=("--server=")
+    flags+=("--token=")
+    flags+=("--user=")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
 _oadm_migrate()
 {
     last_command="oadm_migrate"
@@ -3099,6 +3144,7 @@ _oadm_migrate()
     commands+=("etcd-ttl")
     commands+=("image-references")
     commands+=("storage")
+    commands+=("volumesource")
 
     flags=()
     two_word_flags=()

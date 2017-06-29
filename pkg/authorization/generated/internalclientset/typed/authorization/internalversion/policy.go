@@ -1,7 +1,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -17,14 +17,14 @@ type PoliciesGetter interface {
 
 // PolicyInterface has methods to work with Policy resources.
 type PolicyInterface interface {
-	Create(*api.Policy) (*api.Policy, error)
-	Update(*api.Policy) (*api.Policy, error)
+	Create(*authorization.Policy) (*authorization.Policy, error)
+	Update(*authorization.Policy) (*authorization.Policy, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*api.Policy, error)
-	List(opts v1.ListOptions) (*api.PolicyList, error)
+	Get(name string, options v1.GetOptions) (*authorization.Policy, error)
+	List(opts v1.ListOptions) (*authorization.PolicyList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Policy, err error)
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.Policy, err error)
 	PolicyExpansion
 }
 
@@ -43,8 +43,8 @@ func newPolicies(c *AuthorizationClient, namespace string) *policies {
 }
 
 // Create takes the representation of a policy and creates it.  Returns the server's representation of the policy, and an error, if there is any.
-func (c *policies) Create(policy *api.Policy) (result *api.Policy, err error) {
-	result = &api.Policy{}
+func (c *policies) Create(policy *authorization.Policy) (result *authorization.Policy, err error) {
+	result = &authorization.Policy{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("policies").
@@ -55,8 +55,8 @@ func (c *policies) Create(policy *api.Policy) (result *api.Policy, err error) {
 }
 
 // Update takes the representation of a policy and updates it. Returns the server's representation of the policy, and an error, if there is any.
-func (c *policies) Update(policy *api.Policy) (result *api.Policy, err error) {
-	result = &api.Policy{}
+func (c *policies) Update(policy *authorization.Policy) (result *authorization.Policy, err error) {
+	result = &authorization.Policy{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("policies").
@@ -90,8 +90,8 @@ func (c *policies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.Li
 }
 
 // Get takes name of the policy, and returns the corresponding policy object, and an error if there is any.
-func (c *policies) Get(name string, options v1.GetOptions) (result *api.Policy, err error) {
-	result = &api.Policy{}
+func (c *policies) Get(name string, options v1.GetOptions) (result *authorization.Policy, err error) {
+	result = &authorization.Policy{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policies").
@@ -103,8 +103,8 @@ func (c *policies) Get(name string, options v1.GetOptions) (result *api.Policy, 
 }
 
 // List takes label and field selectors, and returns the list of Policies that match those selectors.
-func (c *policies) List(opts v1.ListOptions) (result *api.PolicyList, err error) {
-	result = &api.PolicyList{}
+func (c *policies) List(opts v1.ListOptions) (result *authorization.PolicyList, err error) {
+	result = &authorization.PolicyList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("policies").
@@ -125,8 +125,8 @@ func (c *policies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched policy.
-func (c *policies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api.Policy, err error) {
-	result = &api.Policy{}
+func (c *policies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.Policy, err error) {
+	result = &authorization.Policy{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("policies").

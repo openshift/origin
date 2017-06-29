@@ -1,32 +1,32 @@
 package validation
 
 import (
-	authorizationvalidation "github.com/openshift/origin/pkg/authorization/api/validation"
-	buildvalidation "github.com/openshift/origin/pkg/build/api/validation"
-	deployvalidation "github.com/openshift/origin/pkg/deploy/api/validation"
-	imagevalidation "github.com/openshift/origin/pkg/image/api/validation"
-	oauthvalidation "github.com/openshift/origin/pkg/oauth/api/validation"
-	projectvalidation "github.com/openshift/origin/pkg/project/api/validation"
-	quotavalidation "github.com/openshift/origin/pkg/quota/api/validation"
-	routevalidation "github.com/openshift/origin/pkg/route/api/validation"
-	sdnvalidation "github.com/openshift/origin/pkg/sdn/api/validation"
-	securityvalidation "github.com/openshift/origin/pkg/security/api/validation"
-	templatevalidation "github.com/openshift/origin/pkg/template/api/validation"
-	uservalidation "github.com/openshift/origin/pkg/user/api/validation"
+	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
+	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
+	deployvalidation "github.com/openshift/origin/pkg/deploy/apis/apps/validation"
+	imagevalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
+	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	projectvalidation "github.com/openshift/origin/pkg/project/apis/project/validation"
+	quotavalidation "github.com/openshift/origin/pkg/quota/apis/quota/validation"
+	routevalidation "github.com/openshift/origin/pkg/route/apis/route/validation"
+	sdnvalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
+	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
+	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	oauthapi "github.com/openshift/origin/pkg/oauth/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	sdnapi "github.com/openshift/origin/pkg/sdn/api"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
-	userapi "github.com/openshift/origin/pkg/user/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	// required to be loaded before we register
@@ -100,6 +100,7 @@ func registerAll() {
 	Validator.MustRegister(&userapi.UserIdentityMapping{}, uservalidation.ValidateUserIdentityMapping, uservalidation.ValidateUserIdentityMappingUpdate)
 	Validator.MustRegister(&userapi.Group{}, uservalidation.ValidateGroup, uservalidation.ValidateGroupUpdate)
 
+	Validator.MustRegister(&securityapi.SecurityContextConstraints{}, securityvalidation.ValidateSecurityContextConstraints, securityvalidation.ValidateSecurityContextConstraintsUpdate)
 	Validator.MustRegister(&securityapi.PodSecurityPolicySubjectReview{}, securityvalidation.ValidatePodSecurityPolicySubjectReview, nil)
 	Validator.MustRegister(&securityapi.PodSecurityPolicySelfSubjectReview{}, securityvalidation.ValidatePodSecurityPolicySelfSubjectReview, nil)
 	Validator.MustRegister(&securityapi.PodSecurityPolicyReview{}, securityvalidation.ValidatePodSecurityPolicyReview, nil)

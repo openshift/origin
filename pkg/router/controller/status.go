@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	client "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 )
 
@@ -27,7 +27,7 @@ type RejectionRecorder interface {
 // StatusAdmitter ensures routes added to the plugin have status set.
 type StatusAdmitter struct {
 	plugin                  router.Plugin
-	client                  client.RoutesNamespacer
+	client                  client.RoutesGetter
 	routerName              string
 	routerCanonicalHostname string
 
@@ -39,7 +39,7 @@ type StatusAdmitter struct {
 // route has a status field set that matches this router. The admitter manages
 // an LRU of recently seen conflicting updates to handle when two router processes
 // with differing configurations are writing updates at the same time.
-func NewStatusAdmitter(plugin router.Plugin, client client.RoutesNamespacer, name, hostName string) *StatusAdmitter {
+func NewStatusAdmitter(plugin router.Plugin, client client.RoutesGetter, name, hostName string) *StatusAdmitter {
 	expected, _ := lru.New(1024)
 	return &StatusAdmitter{
 		plugin:                  plugin,
@@ -227,7 +227,7 @@ func (a *StatusAdmitter) recordIngressTouch(route *routeapi.Route, touch *metav1
 // admitRoute returns true if the route has already been accepted to this router, or
 // updates the route to contain an accepted condition. Returns an error if the route could
 // not be admitted due to a failure, or false if the route can't be admitted at this time.
-func (a *StatusAdmitter) admitRoute(oc client.RoutesNamespacer, route *routeapi.Route, name, hostName string) (bool, error) {
+func (a *StatusAdmitter) admitRoute(oc client.RoutesGetter, route *routeapi.Route, name, hostName string) (bool, error) {
 	ingress, updated := findOrCreateIngress(route, name, hostName)
 
 	// keep lastTouch around

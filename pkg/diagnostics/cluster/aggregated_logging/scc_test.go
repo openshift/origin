@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/api"
-
 	"github.com/openshift/origin/pkg/diagnostics/log"
+
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 type fakeSccDiagnostic struct {
 	fakeDiagnostic
-	fakeScc kapi.SecurityContextConstraints
+	fakeScc securityapi.SecurityContextConstraints
 }
 
 func newFakeSccDiagnostic(t *testing.T) *fakeSccDiagnostic {
@@ -22,7 +22,7 @@ func newFakeSccDiagnostic(t *testing.T) *fakeSccDiagnostic {
 	}
 }
 
-func (f *fakeSccDiagnostic) getScc(name string) (*kapi.SecurityContextConstraints, error) {
+func (f *fakeSccDiagnostic) getScc(name string) (*securityapi.SecurityContextConstraints, error) {
 	json, _ := json.Marshal(f.fakeScc)
 	f.test.Logf(">> test#getScc(%s), err: %s, scc:%s", name, f.err, string(json))
 	if f.err != nil {

@@ -3,7 +3,7 @@
 package v1
 
 import (
-	api_v1 "github.com/openshift/origin/pkg/image/api/v1"
+	image_v1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	clientset "github.com/openshift/origin/pkg/image/generated/clientset"
 	internalinterfaces "github.com/openshift/origin/pkg/image/generated/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/origin/pkg/image/generated/listers/image/v1"
@@ -35,7 +35,7 @@ func newImageStreamInformer(client clientset.Interface, resyncPeriod time.Durati
 				return client.ImageV1().ImageStreams(meta_v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api_v1.ImageStream{},
+		&image_v1.ImageStream{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newImageStreamInformer(client clientset.Interface, resyncPeriod time.Durati
 }
 
 func (f *imageStreamInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api_v1.ImageStream{}, newImageStreamInformer)
+	return f.factory.InformerFor(&image_v1.ImageStream{}, newImageStreamInformer)
 }
 
 func (f *imageStreamInformer) Lister() v1.ImageStreamLister {

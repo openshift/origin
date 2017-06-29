@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/user/api/validation"
+	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 func ValidateOAuthConfig(config *api.OAuthConfig, fldPath *field.Path) ValidationResults {

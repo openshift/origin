@@ -7,9 +7,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
+	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
@@ -19,25 +19,12 @@ type ClusterRoleBindingStorage struct {
 	roleBindingStorage rolebindingstorage.VirtualStorage
 }
 
-func NewClusterRoleBindingStorage(clusterPolicyRegistry clusterpolicyregistry.Registry, clusterPolicyBindingRegistry clusterpolicybindingregistry.Registry, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) *ClusterRoleBindingStorage {
-	simulatedPolicyBindingRegistry := clusterpolicybindingregistry.NewSimulatedRegistry(clusterPolicyBindingRegistry)
-
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		nil,
-		nil,
-		&clusterpolicyregistry.ReadOnlyClusterPolicyClientShim{
-			ReadOnlyClusterPolicy: clusterpolicyregistry.ReadOnlyClusterPolicy{Registry: clusterPolicyRegistry},
-		},
-		&clusterpolicybindingregistry.ReadOnlyClusterPolicyBindingClientShim{
-			ReadOnlyClusterPolicyBinding: clusterpolicybindingregistry.ReadOnlyClusterPolicyBinding{Registry: clusterPolicyBindingRegistry},
-		},
-	)
-
+func NewClusterRoleBindingStorage(clusterBindingRegistry clusterpolicybindingregistry.Registry, liveRuleResolver, cachedRuleResolver rulevalidation.AuthorizationRuleResolver) clusterrolebinding.Storage {
 	return &ClusterRoleBindingStorage{
-		rolebindingstorage.VirtualStorage{
-			BindingRegistry: simulatedPolicyBindingRegistry,
+		roleBindingStorage: rolebindingstorage.VirtualStorage{
+			BindingRegistry: clusterpolicybindingregistry.NewSimulatedRegistry(clusterBindingRegistry),
 
-			RuleResolver:       ruleResolver,
+			RuleResolver:       liveRuleResolver,
 			CachedRuleResolver: cachedRuleResolver,
 
 			CreateStrategy: rolebindingregistry.ClusterStrategy,

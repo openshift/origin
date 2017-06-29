@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 const DefaultProjectRequestForbidden = "You may not request a new project via this API."

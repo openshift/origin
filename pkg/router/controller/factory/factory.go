@@ -19,9 +19,9 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	osclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
 )
@@ -31,7 +31,7 @@ import (
 // If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
 	KClient        kcoreclient.EndpointsGetter
-	OSClient       osclient.RoutesNamespacer
+	OSClient       osclient.RoutesGetter
 	IngressClient  kextensionsclient.IngressesGetter
 	SecretClient   kcoreclient.SecretsGetter
 	NodeClient     kcoreclient.NodesGetter
@@ -43,7 +43,7 @@ type RouterControllerFactory struct {
 }
 
 // NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(oc osclient.RoutesNamespacer, kc kclientset.Interface) *RouterControllerFactory {
+func NewDefaultRouterControllerFactory(oc osclient.RoutesGetter, kc kclientset.Interface) *RouterControllerFactory {
 	return &RouterControllerFactory{
 		KClient:        kc.Core(),
 		OSClient:       oc,
@@ -321,7 +321,7 @@ func hostIndexFunc(obj interface{}) ([]string, error) {
 // routeLW is a ListWatcher for routes that can be filtered to a label, field, or
 // namespace.
 type routeLW struct {
-	client    osclient.RoutesNamespacer
+	client    osclient.RoutesGetter
 	label     labels.Selector
 	field     fields.Selector
 	namespace string

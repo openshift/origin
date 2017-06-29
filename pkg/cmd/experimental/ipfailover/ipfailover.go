@@ -23,6 +23,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
 var (
@@ -210,8 +211,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 }
 
 func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string) error {
-
-	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
+	sccList, err := legacyclient.NewFromClient(client.Core().RESTClient()).List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

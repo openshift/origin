@@ -19,14 +19,14 @@ import (
 	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy/api/install"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/api/validation"
 	"github.com/openshift/origin/pkg/image/admission/imagepolicy/rules"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
@@ -35,10 +35,10 @@ const (
 	badSHA  = "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1"
 )
 
-type resolveFunc func(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error)
+type resolveFunc func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error)
 
-func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
-	return fn(ref, defaultNamespace)
+func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error) {
+	return fn(ref, defaultNamespace, forceLocalResolve)
 }
 
 func setDefaultCache(p *imagePolicyPlugin) kcache.Indexer {
@@ -366,7 +366,7 @@ func TestAdmissionResolution(t *testing.T) {
 	setDefaultCache(p)
 
 	resolveCalled := 0
-	p.resolver = resolveFunc(func(ref *kapi.ObjectReference, defaultNamespace string) (*rules.ImagePolicyAttributes, error) {
+	p.resolver = resolveFunc(func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error) {
 		resolveCalled++
 		switch ref.Name {
 		case "index.docker.io/mysql:latest":
@@ -726,6 +726,46 @@ func TestAdmissionResolveImages(t *testing.T) {
 			expect: &kapiextensions.ReplicaSet{
 				Spec: kapiextensions.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// resolves replica sets that specifically request lookup
+		{
+			policy: api.RequiredRewrite,
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: false},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{api.ResolveNamesAnnotation: "*"}},
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{api.ResolveNamesAnnotation: "*"}},
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},

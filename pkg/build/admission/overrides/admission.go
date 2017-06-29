@@ -7,7 +7,7 @@ import (
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	"github.com/openshift/origin/pkg/build/admission/overrides/api/validation"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 

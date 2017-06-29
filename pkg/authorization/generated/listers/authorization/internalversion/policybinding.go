@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // PolicyBindingLister helps list PolicyBindings.
 type PolicyBindingLister interface {
 	// List lists all PolicyBindings in the indexer.
-	List(selector labels.Selector) (ret []*api.PolicyBinding, err error)
+	List(selector labels.Selector) (ret []*authorization.PolicyBinding, err error)
 	// PolicyBindings returns an object that can list and get PolicyBindings.
 	PolicyBindings(namespace string) PolicyBindingNamespaceLister
 	PolicyBindingListerExpansion
@@ -29,9 +29,9 @@ func NewPolicyBindingLister(indexer cache.Indexer) PolicyBindingLister {
 }
 
 // List lists all PolicyBindings in the indexer.
-func (s *policyBindingLister) List(selector labels.Selector) (ret []*api.PolicyBinding, err error) {
+func (s *policyBindingLister) List(selector labels.Selector) (ret []*authorization.PolicyBinding, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.PolicyBinding))
+		ret = append(ret, m.(*authorization.PolicyBinding))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *policyBindingLister) PolicyBindings(namespace string) PolicyBindingName
 // PolicyBindingNamespaceLister helps list and get PolicyBindings.
 type PolicyBindingNamespaceLister interface {
 	// List lists all PolicyBindings in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.PolicyBinding, err error)
+	List(selector labels.Selector) (ret []*authorization.PolicyBinding, err error)
 	// Get retrieves the PolicyBinding from the indexer for a given namespace and name.
-	Get(name string) (*api.PolicyBinding, error)
+	Get(name string) (*authorization.PolicyBinding, error)
 	PolicyBindingNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type policyBindingNamespaceLister struct {
 }
 
 // List lists all PolicyBindings in the indexer for a given namespace.
-func (s policyBindingNamespaceLister) List(selector labels.Selector) (ret []*api.PolicyBinding, err error) {
+func (s policyBindingNamespaceLister) List(selector labels.Selector) (ret []*authorization.PolicyBinding, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.PolicyBinding))
+		ret = append(ret, m.(*authorization.PolicyBinding))
 	})
 	return ret, err
 }
 
 // Get retrieves the PolicyBinding from the indexer for a given namespace and name.
-func (s policyBindingNamespaceLister) Get(name string) (*api.PolicyBinding, error) {
+func (s policyBindingNamespaceLister) Get(name string) (*authorization.PolicyBinding, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("policybinding"), name)
+		return nil, errors.NewNotFound(authorization.Resource("policybinding"), name)
 	}
-	return obj.(*api.PolicyBinding), nil
+	return obj.(*authorization.PolicyBinding), nil
 }

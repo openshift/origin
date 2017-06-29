@@ -12,9 +12,11 @@ readonly numeric_re='^[0-9]+$'
 
 function haproxyHealthCheck() {
   local wait_time=${MAX_RELOAD_WAIT_TIME:-$max_wait_time}
-  local port=${STATS_PORT:-"1936"}
+  local port=${ROUTER_SERVICE_HTTP_PORT:-"80"}
+  local url="http://localhost:${port}"
   local retries=0
   local start_ts=$(date +"%s")
+  local proxy_proto="${ROUTER_USE_PROXY_PROTOCOL-}"
 
   if ! [[ $wait_time =~ $numeric_re ]]; then
     echo " - Invalid max reload wait time, using default $max_wait_time ..."
@@ -23,18 +25,39 @@ function haproxyHealthCheck() {
 
   local end_ts=$((start_ts + wait_time))
 
-  local proxy_proto="${ROUTER_USE_PROXY_PROTOCOL:-FALSE}"
-  echo " - Proxy protocol '${proxy_proto}'.  Checking HAProxy /healthz on port $port ..."
-  while true; do
-    local httpcode=$(curl $timeout_opts -s -o /dev/null -I -w "%{http_code}" http://localhost:${port}/healthz)
+  # test with proxy protocol on
+  if [[ "${proxy_proto}" == "TRUE" || "${proxy_proto}" == "true" ]]; then
+    echo " - Proxy protocol on, checking ${url} ..."
+    while true; do
+      local statusline=$(echo $'PROXY UNKNOWN\r\nGET / HTTP/1.1\r\n' | socat tcp-connect:localhost:${port} stdio | head -1)
 
-    if [ "$httpcode" == "200" ]; then
-      echo " - HAProxy port $port health check ok : $retries retry attempt(s)."
+      if [[ "$statusline" == *" 503 "* ]]; then
+        echo " - Health check ok : $retries retry attempt(s)."
+        return 0
+      fi
+
+      if [ $(date +"%s") -ge $end_ts ]; then
+        echo " - Exceeded max wait time ($wait_time) in health check - $retries retry attempt(s)."
+        return 1
+      fi
+
+      sleep 0.5
+      retries=$((retries + 1))
+    done
+    return 0
+  fi
+
+  echo " - Checking ${url} ..."
+  while true; do
+    local httpcode=$(curl $timeout_opts -s -o /dev/null -I -w "%{http_code}" ${url})
+
+    if [ "$httpcode" == "503" ]; then
+      echo " - Health check ok : $retries retry attempt(s)."
       return 0
     fi
 
     if [ $(date +"%s") -ge $end_ts ]; then
-      echo " - Exceeded max wait time ($wait_time) in HAProxy health check - $retries retry attempt(s)."
+      echo " - Exceeded max wait time ($wait_time) in health check - $retries retry attempt(s)."
       return 1
     fi
 

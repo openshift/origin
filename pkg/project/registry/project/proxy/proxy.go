@@ -17,10 +17,9 @@ import (
 	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/project/api"
-	projectapi "github.com/openshift/origin/pkg/project/api"
+	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectregistry "github.com/openshift/origin/pkg/project/registry/project"
@@ -56,12 +55,12 @@ func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, a
 
 // New returns a new Project
 func (s *REST) New() runtime.Object {
-	return &api.Project{}
+	return &projectapi.Project{}
 }
 
 // NewList returns a new ProjectList
 func (*REST) NewList() runtime.Object {
-	return &api.ProjectList{}
+	return &projectapi.ProjectList{}
 }
 
 var _ = rest.Lister(&REST{})
@@ -127,7 +126,7 @@ var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
 func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
-	project, ok := obj.(*api.Project)
+	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)
 	}
@@ -156,7 +155,7 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 		return nil, false, err
 	}
 
-	project, ok := obj.(*api.Project)
+	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, false, fmt.Errorf("not a project: %#v", obj)
 	}

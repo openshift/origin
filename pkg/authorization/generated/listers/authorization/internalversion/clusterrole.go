@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // ClusterRoleLister helps list ClusterRoles.
 type ClusterRoleLister interface {
 	// List lists all ClusterRoles in the indexer.
-	List(selector labels.Selector) (ret []*api.ClusterRole, err error)
+	List(selector labels.Selector) (ret []*authorization.ClusterRole, err error)
 	// Get retrieves the ClusterRole from the index for a given name.
-	Get(name string) (*api.ClusterRole, error)
+	Get(name string) (*authorization.ClusterRole, error)
 	ClusterRoleListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewClusterRoleLister(indexer cache.Indexer) ClusterRoleLister {
 }
 
 // List lists all ClusterRoles in the indexer.
-func (s *clusterRoleLister) List(selector labels.Selector) (ret []*api.ClusterRole, err error) {
+func (s *clusterRoleLister) List(selector labels.Selector) (ret []*authorization.ClusterRole, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ClusterRole))
+		ret = append(ret, m.(*authorization.ClusterRole))
 	})
 	return ret, err
 }
 
 // Get retrieves the ClusterRole from the index for a given name.
-func (s *clusterRoleLister) Get(name string) (*api.ClusterRole, error) {
-	key := &api.ClusterRole{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *clusterRoleLister) Get(name string) (*authorization.ClusterRole, error) {
+	key := &authorization.ClusterRole{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("clusterrole"), name)
+		return nil, errors.NewNotFound(authorization.Resource("clusterrole"), name)
 	}
-	return obj.(*api.ClusterRole), nil
+	return obj.(*authorization.ClusterRole), nil
 }

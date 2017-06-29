@@ -21,9 +21,6 @@ os::build::release::check_for_rpms
 # OS_RELEASE_COMMIT is required by image-build
 os::build::archive::detect_local_release_tars $(os::build::host_platform_friendly)
 
-# Without this, the dockerregistry lacks gcs+oss storage drivers in non-cross builds.
-readonly OS_GOFLAGS_TAGS="include_gcs include_oss"
-
 # we need to mount RPMs into the container builds for installation
 OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
 

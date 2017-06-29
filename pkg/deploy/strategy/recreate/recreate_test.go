@@ -10,9 +10,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deploytest "github.com/openshift/origin/pkg/deploy/api/test"
-	deployv1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	cmdtest "github.com/openshift/origin/pkg/deploy/cmd/test"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"

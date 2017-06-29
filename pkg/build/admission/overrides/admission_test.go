@@ -9,7 +9,7 @@ import (
 
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

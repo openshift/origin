@@ -13,8 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client/testclient"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 )
 
 const (
@@ -772,7 +772,7 @@ func TestStatusWildcardPolicyNoOp(t *testing.T) {
 	now := nowFn()
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake()
+	c := fake.NewSimpleClientset()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, true, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{
@@ -810,7 +810,7 @@ func TestStatusWildcardPolicyNotAllowedNoOp(t *testing.T) {
 	now := nowFn()
 	touched := metav1.Time{Time: now.Add(-time.Minute)}
 	p := &fakePlugin{}
-	c := testclient.NewSimpleFake()
+	c := fake.NewSimpleClientset()
 	recorder := rejectionRecorder{rejections: make(map[string]string)}
 	admitter := NewHostAdmitter(p, wildcardAdmitter, false, false, recorder)
 	err := admitter.HandleRoute(watch.Added, &routeapi.Route{

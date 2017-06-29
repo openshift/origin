@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 const (

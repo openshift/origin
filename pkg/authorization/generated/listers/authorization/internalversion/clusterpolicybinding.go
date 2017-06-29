@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/authorization/api"
+	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,9 +13,9 @@ import (
 // ClusterPolicyBindingLister helps list ClusterPolicyBindings.
 type ClusterPolicyBindingLister interface {
 	// List lists all ClusterPolicyBindings in the indexer.
-	List(selector labels.Selector) (ret []*api.ClusterPolicyBinding, err error)
+	List(selector labels.Selector) (ret []*authorization.ClusterPolicyBinding, err error)
 	// Get retrieves the ClusterPolicyBinding from the index for a given name.
-	Get(name string) (*api.ClusterPolicyBinding, error)
+	Get(name string) (*authorization.ClusterPolicyBinding, error)
 	ClusterPolicyBindingListerExpansion
 }
 
@@ -30,22 +30,22 @@ func NewClusterPolicyBindingLister(indexer cache.Indexer) ClusterPolicyBindingLi
 }
 
 // List lists all ClusterPolicyBindings in the indexer.
-func (s *clusterPolicyBindingLister) List(selector labels.Selector) (ret []*api.ClusterPolicyBinding, err error) {
+func (s *clusterPolicyBindingLister) List(selector labels.Selector) (ret []*authorization.ClusterPolicyBinding, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.ClusterPolicyBinding))
+		ret = append(ret, m.(*authorization.ClusterPolicyBinding))
 	})
 	return ret, err
 }
 
 // Get retrieves the ClusterPolicyBinding from the index for a given name.
-func (s *clusterPolicyBindingLister) Get(name string) (*api.ClusterPolicyBinding, error) {
-	key := &api.ClusterPolicyBinding{ObjectMeta: v1.ObjectMeta{Name: name}}
+func (s *clusterPolicyBindingLister) Get(name string) (*authorization.ClusterPolicyBinding, error) {
+	key := &authorization.ClusterPolicyBinding{ObjectMeta: v1.ObjectMeta{Name: name}}
 	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("clusterpolicybinding"), name)
+		return nil, errors.NewNotFound(authorization.Resource("clusterpolicybinding"), name)
 	}
-	return obj.(*api.ClusterPolicyBinding), nil
+	return obj.(*authorization.ClusterPolicyBinding), nil
 }

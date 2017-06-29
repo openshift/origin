@@ -3,8 +3,8 @@ package app
 import (
 	"strings"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func templateScorer(template templateapi.Template, term string) (float32, bool) {

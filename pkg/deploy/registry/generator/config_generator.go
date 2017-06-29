@@ -11,9 +11,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // DeploymentConfigGenerator reconciles a DeploymentConfig with other pieces of deployment-related state

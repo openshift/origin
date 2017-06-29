@@ -15,10 +15,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	oclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	routeapi "github.com/openshift/origin/pkg/route/api"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 )
@@ -75,7 +76,7 @@ func (o *RouterSelection) Bind(flag *pflag.FlagSet) {
 	flag.BoolVar(&o.AllowWildcardRoutes, "allow-wildcard-routes", cmdutil.Env("ROUTER_ALLOW_WILDCARD_ROUTES", "") == "true", "Allow wildcard host names for routes")
 	flag.BoolVar(&o.DisableNamespaceOwnershipCheck, "disable-namespace-ownership-check", cmdutil.Env("ROUTER_DISABLE_NAMESPACE_OWNERSHIP_CHECK", "") == "true", "Disables the namespace ownership checks for a route host with different paths or for overlapping host names in the case of wildcard routes. Please be aware that if namespace ownership checks are disabled, routes in a different namespace can use this mechanism to 'steal' sub-paths for existing domains. This is only safe if route creation privileges are restricted, or if all the users can be trusted.")
 	flag.BoolVar(&o.EnableIngress, "enable-ingress", cmdutil.Env("ROUTER_ENABLE_INGRESS", "") == "true", "Enable configuration via ingress resources")
-	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen.")
+	flag.StringVar(&o.ListenAddr, "listen-addr", cmdutil.Env("ROUTER_LISTEN_ADDR", ""), "The name of an interface to listen on to expose metrics and health checking. If not specified, will not listen. Overrides stats port.")
 }
 
 // RouteSelectionFunc returns a func that identifies the host for a route.
@@ -220,8 +221,8 @@ func (o *RouterSelection) Complete() error {
 }
 
 // NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
-	factory := controllerfactory.NewDefaultRouterControllerFactory(oc, kc)
+func (o *RouterSelection) NewFactory(routeclient routeclient.RoutesGetter, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, kc)
 	factory.Labels = o.Labels
 	factory.Fields = o.Fields
 	factory.Namespace = o.Namespace
@@ -232,7 +233,7 @@ func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclientset.Interfa
 		factory.Namespaces = namespaceNames{kc.Core().Namespaces(), o.NamespaceLabels}
 	case o.ProjectLabels != nil:
 		glog.Infof("Router is only using routes in projects matching %s", o.ProjectLabels)
-		factory.Namespaces = projectNames{oc.Projects(), o.ProjectLabels}
+		factory.Namespaces = projectNames{projectclient, o.ProjectLabels}
 	case len(factory.Namespace) > 0:
 		glog.Infof("Router is only using resources in namespace %s", factory.Namespace)
 	default:
@@ -243,7 +244,7 @@ func (o *RouterSelection) NewFactory(oc oclient.Interface, kc kclientset.Interfa
 
 // projectNames returns the names of projects matching the label selector
 type projectNames struct {
-	client   oclient.ProjectInterface
+	client   projectclient.ProjectResourceInterface
 	selector labels.Selector
 }
 

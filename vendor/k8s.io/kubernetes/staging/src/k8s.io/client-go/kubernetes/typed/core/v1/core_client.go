@@ -39,7 +39,6 @@ type CoreV1Interface interface {
 	ReplicationControllersGetter
 	ResourceQuotasGetter
 	SecretsGetter
-	SecurityContextConstraintsGetter
 	ServicesGetter
 	ServiceAccountsGetter
 }
@@ -103,10 +102,6 @@ func (c *CoreV1Client) ResourceQuotas(namespace string) ResourceQuotaInterface {
 
 func (c *CoreV1Client) Secrets(namespace string) SecretInterface {
 	return newSecrets(c, namespace)
-}
-
-func (c *CoreV1Client) SecurityContextConstraints() SecurityContextConstraintsInterface {
-	return newSecurityContextConstraints(c)
 }
 
 func (c *CoreV1Client) Services(namespace string) ServiceInterface {

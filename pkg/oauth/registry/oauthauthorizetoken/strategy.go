@@ -14,8 +14,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/oauth/api"
-	"github.com/openshift/origin/pkg/oauth/api/validation"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
@@ -53,7 +53,7 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new token
 func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	token := obj.(*api.OAuthAuthorizeToken)
+	token := obj.(*oauthapi.OAuthAuthorizeToken)
 	validationErrors := validation.ValidateAuthorizeToken(token)
 
 	client, err := s.clientGetter.GetClient(ctx, token.ClientName, &metav1.GetOptions{})
@@ -69,8 +69,8 @@ func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 
 // ValidateUpdate validates an update
 func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	oldToken := old.(*api.OAuthAuthorizeToken)
-	newToken := obj.(*api.OAuthAuthorizeToken)
+	oldToken := old.(*oauthapi.OAuthAuthorizeToken)
+	newToken := obj.(*oauthapi.OAuthAuthorizeToken)
 	return validation.ValidateAuthorizeTokenUpdate(newToken, oldToken)
 }
 
@@ -85,7 +85,7 @@ func (strategy) AllowUnconditionalUpdate() bool {
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.OAuthAuthorizeToken)
+	obj, ok := o.(*oauthapi.OAuthAuthorizeToken)
 	if !ok {
 		return nil, nil, fmt.Errorf("not a OAuthAuthorizeToken")
 	}
@@ -102,6 +102,6 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.OAuthAuthorizeToken) fields.Set {
-	return api.OAuthAuthorizeTokenToSelectableFields(obj)
+func SelectableFields(obj *oauthapi.OAuthAuthorizeToken) fields.Set {
+	return oauthapi.OAuthAuthorizeTokenToSelectableFields(obj)
 }

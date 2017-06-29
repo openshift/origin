@@ -9,7 +9,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"

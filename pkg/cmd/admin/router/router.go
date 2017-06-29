@@ -24,7 +24,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	authapi "github.com/openshift/origin/pkg/authorization/api"
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -32,8 +32,9 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 	oscc "github.com/openshift/origin/pkg/security/scc"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
@@ -284,7 +285,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 	cmd.Flags().StringVar(&cfg.ForceSubdomain, "force-subdomain", "", "A router path format to force on all routes used by this router (will ignore the route host value)")
 	cmd.Flags().StringVar(&cfg.ImageTemplate.Format, "images", cfg.ImageTemplate.Format, "The image to base this router on - ${component} will be replaced with --type")
 	cmd.Flags().BoolVar(&cfg.ImageTemplate.Latest, "latest-images", cfg.ImageTemplate.Latest, "If true, attempt to use the latest images for the router instead of the latest release.")
-	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs to expose on the router pod. The default is set for HAProxy. Port pairs are applied to the service and to host ports (if specified).")
+	cmd.Flags().StringVar(&cfg.Ports, "ports", cfg.Ports, "A comma delimited list of ports or port pairs that set the port in the router pod containerPort and hostPort. It also sets service port and targetPort to expose on the router pod. This does not modify the env variables. That can be done using oc env or by editing the router's dc. This is used when host-network=false.")
 	cmd.Flags().StringVar(&cfg.RouterCanonicalHostname, "router-canonical-hostname", cfg.RouterCanonicalHostname, "CanonicalHostname is the external host name for the router that can be used as a CNAME for the host requested for this route. This value is optional and may not be set in all cases.")
 	cmd.Flags().Int32Var(&cfg.Replicas, "replicas", cfg.Replicas, "The replication factor of the router; commonly 2 when high availability is desired.")
 	cmd.Flags().StringVar(&cfg.Labels, "labels", cfg.Labels, "A set of labels to uniquely identify the router and its components.")
@@ -682,13 +683,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 	// automatically start the internal metrics agent if we are handling a known type
 	if cfg.Type == "haproxy-router" {
-		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", defaultStatsPort-1)
+		env["ROUTER_LISTEN_ADDR"] = fmt.Sprintf("0.0.0.0:%d", cfg.StatsPort)
 		env["ROUTER_METRICS_TYPE"] = "haproxy"
-		ports = append(ports, kapi.ContainerPort{
-			Name:          "router-stats",
-			ContainerPort: int32(defaultStatsPort - 1),
-			Protocol:      kapi.ProtocolTCP,
-		})
 	}
 	env.Add(secretEnv)
 	if len(defaultCert) > 0 {
@@ -803,9 +799,9 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 				t.Annotations = make(map[string]string)
 			}
 			t.Annotations["prometheus.io/scrape"] = "true"
-			t.Annotations["prometheus.io/port"] = "1935"
-			t.Annotations["prometheus.io/username"] = cfg.StatsUsername
-			t.Annotations["prometheus.io/password"] = cfg.StatsPassword
+			t.Annotations["prometheus.io/port"] = "1936"
+			t.Annotations["prometheus.openshift.io/username"] = cfg.StatsUsername
+			t.Annotations["prometheus.openshift.io/password"] = cfg.StatsPassword
 			t.Spec.ClusterIP = clusterIP
 			for j, servicePort := range t.Spec.Ports {
 				for _, targetPort := range ports {
@@ -895,7 +891,7 @@ func validateServiceAccount(client kclientset.Interface, ns string, serviceAccou
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := client.Core().SecurityContextConstraints().List(metav1.ListOptions{})
+	sccList, err := legacyclient.NewFromClient(client.Core().RESTClient()).List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

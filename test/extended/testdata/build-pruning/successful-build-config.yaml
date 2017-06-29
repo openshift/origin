@@ -8,13 +8,10 @@ metadata:
     openshift.io/generated-by: OpenShiftWebConsole
 spec:
   successfulBuildsHistoryLimit: 2
-  triggers: {}
-  runPolicy: Serial
   source:
     type: Git
     git:
       uri: 'https://github.com/openshift/cakephp-ex.git'
-      ref: master
   strategy:
     type: Source
     sourceStrategy:
@@ -22,11 +19,3 @@ spec:
         kind: ImageStreamTag
         namespace: openshift
         name: 'php:7.0'
-  output:
-    to:
-      kind: ImageStreamTag
-      name: 'myphp:latest'
-  resources: {}
-  postCommit: {}
-  nodeSelector: null
-status:

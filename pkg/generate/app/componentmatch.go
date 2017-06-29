@@ -1,8 +1,8 @@
 package app
 
 import (
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // ComponentMatch is a match to a provided component

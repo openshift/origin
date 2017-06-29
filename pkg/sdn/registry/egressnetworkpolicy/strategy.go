@@ -11,8 +11,8 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/sdn/api"
-	"github.com/openshift/origin/pkg/sdn/api/validation"
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/apis/network/validation"
 )
 
 // enpStrategy implements behavior for EgressNetworkPolicies
@@ -44,7 +44,7 @@ func (enpStrategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new egress network policy
 func (enpStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateEgressNetworkPolicy(obj.(*api.EgressNetworkPolicy))
+	return validation.ValidateEgressNetworkPolicy(obj.(*sdnapi.EgressNetworkPolicy))
 }
 
 // AllowCreateOnUpdate is false for egress network policies
@@ -58,12 +58,12 @@ func (enpStrategy) AllowUnconditionalUpdate() bool {
 
 // ValidateUpdate is the default update validation for a EgressNetworkPolicy
 func (enpStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateEgressNetworkPolicyUpdate(obj.(*api.EgressNetworkPolicy), old.(*api.EgressNetworkPolicy))
+	return validation.ValidateEgressNetworkPolicyUpdate(obj.(*sdnapi.EgressNetworkPolicy), old.(*sdnapi.EgressNetworkPolicy))
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
 func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
-	obj, ok := o.(*api.EgressNetworkPolicy)
+	obj, ok := o.(*sdnapi.EgressNetworkPolicy)
 	if !ok {
 		return nil, nil, fmt.Errorf("not an EgressNetworkPolicy")
 	}
@@ -80,6 +80,6 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 // SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *api.EgressNetworkPolicy) fields.Set {
-	return api.EgressNetworkPolicyToSelectableFields(obj)
+func SelectableFields(obj *sdnapi.EgressNetworkPolicy) fields.Set {
+	return sdnapi.EgressNetworkPolicyToSelectableFields(obj)
 }

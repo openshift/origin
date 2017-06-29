@@ -51,7 +51,6 @@ go_library(
         "//pkg/registry/core/service/portallocator:go_default_library",
         "//pkg/registry/core/service/storage:go_default_library",
         "//pkg/registry/core/serviceaccount/storage:go_default_library",
-        "//pkg/registry/securitycontextconstraints/etcd:go_default_library",
         "//vendor:github.com/golang/glog",
         "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
         "//vendor:k8s.io/apimachinery/pkg/util/net",

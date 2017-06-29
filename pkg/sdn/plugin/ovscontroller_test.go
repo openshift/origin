@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

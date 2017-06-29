@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.

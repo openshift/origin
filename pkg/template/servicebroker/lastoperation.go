@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

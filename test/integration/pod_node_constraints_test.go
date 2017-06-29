@@ -14,7 +14,7 @@ import (
 	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	pluginapi "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"

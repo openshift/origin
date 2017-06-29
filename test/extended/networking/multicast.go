@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	osapi "github.com/openshift/origin/pkg/sdn/api"
+	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 

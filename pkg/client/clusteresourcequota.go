@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 )
 
 type ClusterResourceQuotasInterface interface {

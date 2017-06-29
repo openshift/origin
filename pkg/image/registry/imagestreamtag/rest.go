@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 )

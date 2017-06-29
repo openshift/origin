@@ -4,17 +4,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	_ "github.com/openshift/origin/pkg/authorization/api"
-	_ "github.com/openshift/origin/pkg/build/api"
-	_ "github.com/openshift/origin/pkg/deploy/api"
-	_ "github.com/openshift/origin/pkg/image/api"
-	_ "github.com/openshift/origin/pkg/oauth/api"
-	_ "github.com/openshift/origin/pkg/project/api"
-	_ "github.com/openshift/origin/pkg/route/api"
-	_ "github.com/openshift/origin/pkg/sdn/api"
-	_ "github.com/openshift/origin/pkg/security/api"
-	_ "github.com/openshift/origin/pkg/template/api"
-	_ "github.com/openshift/origin/pkg/user/api"
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	_ "github.com/openshift/origin/pkg/build/apis/build"
+	_ "github.com/openshift/origin/pkg/deploy/apis/apps"
+	_ "github.com/openshift/origin/pkg/image/apis/image"
+	_ "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	_ "github.com/openshift/origin/pkg/project/apis/project"
+	_ "github.com/openshift/origin/pkg/route/apis/route"
+	_ "github.com/openshift/origin/pkg/sdn/apis/network"
+	_ "github.com/openshift/origin/pkg/security/apis/security"
+	_ "github.com/openshift/origin/pkg/template/apis/template"
+	_ "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 const (

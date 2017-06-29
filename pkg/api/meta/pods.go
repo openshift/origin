@@ -3,6 +3,7 @@ package meta
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -16,10 +17,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/api/v1"
-	securityapi "github.com/openshift/origin/pkg/security/api"
-	securityapiv1 "github.com/openshift/origin/pkg/security/api/v1"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 type ContainerMutator interface {
@@ -92,7 +93,9 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 	case *kapi.PodTemplate:
 		return &r.Template.Spec, field.NewPath("template", "spec"), nil
 	case *kapi.ReplicationController:
-		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		}
 	case *extensions.DaemonSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *extensions.Deployment:
@@ -114,7 +117,9 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 	case *securityapi.PodSecurityPolicyReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *deployapi.DeploymentConfig:
-		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		}
 	}
 	return nil, nil, errNoPodSpec
 }
@@ -129,7 +134,9 @@ func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
 	case *kapiv1.PodTemplate:
 		return &r.Template.Spec, field.NewPath("template", "spec"), nil
 	case *kapiv1.ReplicationController:
-		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		}
 	case *extensionsv1beta1.DaemonSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *extensionsv1beta1.Deployment:
@@ -153,9 +160,81 @@ func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
 	case *securityapiv1.PodSecurityPolicyReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *deployapiv1.DeploymentConfig:
-		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
+		}
 	}
 	return nil, nil, errNoPodSpec
+}
+
+// GetTemplateMetaObject returns a mutable metav1.Object interface for the template
+// the object contains, or false if no such object is available.
+func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
+	switch r := obj.(type) {
+	case *kapiv1.PodTemplate:
+		return &r.Template.ObjectMeta, true
+	case *kapiv1.ReplicationController:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+	case *extensionsv1beta1.DaemonSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *extensionsv1beta1.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *extensionsv1beta1.ReplicaSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *batchv1.Job:
+		return &r.Spec.Template.ObjectMeta, true
+	case *batchv2alpha1.CronJob:
+		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
+	case *batchv2alpha1.JobTemplate:
+		return &r.Template.Spec.Template.ObjectMeta, true
+	case *appsv1beta1.StatefulSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *appsv1beta1.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapiv1.PodSecurityPolicySubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapiv1.PodSecurityPolicySelfSubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapiv1.PodSecurityPolicyReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *deployapiv1.DeploymentConfig:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+	case *kapi.PodTemplate:
+		return &r.Template.ObjectMeta, true
+	case *kapi.ReplicationController:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+	case *extensions.DaemonSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *extensions.Deployment:
+		return &r.Spec.Template.ObjectMeta, true
+	case *extensions.ReplicaSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *batch.Job:
+		return &r.Spec.Template.ObjectMeta, true
+	case *batch.CronJob:
+		return &r.Spec.JobTemplate.Spec.Template.ObjectMeta, true
+	case *batch.JobTemplate:
+		return &r.Template.Spec.Template.ObjectMeta, true
+	case *apps.StatefulSet:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapi.PodSecurityPolicySubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapi.PodSecurityPolicySelfSubjectReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *securityapi.PodSecurityPolicyReview:
+		return &r.Spec.Template.ObjectMeta, true
+	case *deployapi.DeploymentConfig:
+		if r.Spec.Template != nil {
+			return &r.Spec.Template.ObjectMeta, true
+		}
+	}
+	return nil, false
 }
 
 type containerMutator struct {

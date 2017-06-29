@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // testReplenishment lets us test replenishment functions are invoked

@@ -55,6 +55,7 @@ const (
 	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
 	OpenShiftContainer          = "origin"
 	OpenshiftNamespace          = "openshift"
+	OpenshiftInfraNamespace     = "openshift-infra"
 )
 
 var (
@@ -749,6 +750,15 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	}
 
 	if opt.ServiceCatalog {
+
+		if cfg.AdmissionConfig.PluginConfig == nil {
+			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		}
+
+		cfg.AdmissionConfig.PluginConfig["PodPreset"] = configapi.AdmissionPluginConfig{
+			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
+		}
+
 		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
 			TemplateNamespaces: []string{OpenshiftNamespace},
 		}

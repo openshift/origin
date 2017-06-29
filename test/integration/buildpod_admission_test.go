@@ -16,7 +16,7 @@ import (
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"

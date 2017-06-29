@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 

@@ -3,7 +3,7 @@ package meta
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 type buildSpecMutator struct {

@@ -3,8 +3,8 @@
 package v1
 
 import (
-	api "github.com/openshift/origin/pkg/deploy/api"
-	v1 "github.com/openshift/origin/pkg/deploy/api/v1"
+	apps "github.com/openshift/origin/pkg/deploy/apis/apps"
+	v1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -73,7 +73,7 @@ func (s deploymentConfigNamespaceLister) Get(name string) (*v1.DeploymentConfig,
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("deploymentconfig"), name)
+		return nil, errors.NewNotFound(apps.Resource("deploymentconfig"), name)
 	}
 	return obj.(*v1.DeploymentConfig), nil
 }

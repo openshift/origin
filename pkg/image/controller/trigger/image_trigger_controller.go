@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/controller"
 
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	"github.com/openshift/origin/pkg/image/trigger"

@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/user/api"
+	user "github.com/openshift/origin/pkg/user/apis/user"
 	internalinterfaces "github.com/openshift/origin/pkg/user/generated/informers/internalversion/internalinterfaces"
 	internalclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	internalversion "github.com/openshift/origin/pkg/user/generated/listers/user/internalversion"
@@ -35,7 +35,7 @@ func newUserInformer(client internalclientset.Interface, resyncPeriod time.Durat
 				return client.User().Users(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&api.User{},
+		&user.User{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -44,7 +44,7 @@ func newUserInformer(client internalclientset.Interface, resyncPeriod time.Durat
 }
 
 func (f *userInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&api.User{}, newUserInformer)
+	return f.factory.InformerFor(&user.User{}, newUserInformer)
 }
 
 func (f *userInformer) Lister() internalversion.UserLister {

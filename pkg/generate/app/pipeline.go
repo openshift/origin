@@ -14,11 +14,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	build "github.com/openshift/origin/pkg/build/api"
-	deploy "github.com/openshift/origin/pkg/deploy/api"
+	build "github.com/openshift/origin/pkg/build/apis/build"
+	deploy "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate"
-	image "github.com/openshift/origin/pkg/image/api"
-	route "github.com/openshift/origin/pkg/route/api"
+	image "github.com/openshift/origin/pkg/image/apis/image"
+	route "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 

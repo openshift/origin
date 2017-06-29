@@ -3,7 +3,7 @@
 package internalversion
 
 import (
-	api "github.com/openshift/origin/pkg/route/api"
+	route "github.com/openshift/origin/pkg/route/apis/route"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +12,7 @@ import (
 // RouteLister helps list Routes.
 type RouteLister interface {
 	// List lists all Routes in the indexer.
-	List(selector labels.Selector) (ret []*api.Route, err error)
+	List(selector labels.Selector) (ret []*route.Route, err error)
 	// Routes returns an object that can list and get Routes.
 	Routes(namespace string) RouteNamespaceLister
 	RouteListerExpansion
@@ -29,9 +29,9 @@ func NewRouteLister(indexer cache.Indexer) RouteLister {
 }
 
 // List lists all Routes in the indexer.
-func (s *routeLister) List(selector labels.Selector) (ret []*api.Route, err error) {
+func (s *routeLister) List(selector labels.Selector) (ret []*route.Route, err error) {
 	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Route))
+		ret = append(ret, m.(*route.Route))
 	})
 	return ret, err
 }
@@ -44,9 +44,9 @@ func (s *routeLister) Routes(namespace string) RouteNamespaceLister {
 // RouteNamespaceLister helps list and get Routes.
 type RouteNamespaceLister interface {
 	// List lists all Routes in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*api.Route, err error)
+	List(selector labels.Selector) (ret []*route.Route, err error)
 	// Get retrieves the Route from the indexer for a given namespace and name.
-	Get(name string) (*api.Route, error)
+	Get(name string) (*route.Route, error)
 	RouteNamespaceListerExpansion
 }
 
@@ -58,21 +58,21 @@ type routeNamespaceLister struct {
 }
 
 // List lists all Routes in the indexer for a given namespace.
-func (s routeNamespaceLister) List(selector labels.Selector) (ret []*api.Route, err error) {
+func (s routeNamespaceLister) List(selector labels.Selector) (ret []*route.Route, err error) {
 	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*api.Route))
+		ret = append(ret, m.(*route.Route))
 	})
 	return ret, err
 }
 
 // Get retrieves the Route from the indexer for a given namespace and name.
-func (s routeNamespaceLister) Get(name string) (*api.Route, error) {
+func (s routeNamespaceLister) Get(name string) (*route.Route, error) {
 	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(api.Resource("route"), name)
+		return nil, errors.NewNotFound(route.Resource("route"), name)
 	}
-	return obj.(*api.Route), nil
+	return obj.(*route.Route), nil
 }

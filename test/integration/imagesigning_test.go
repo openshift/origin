@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

@@ -23,8 +23,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	routeapi "github.com/openshift/origin/pkg/route/api"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
@@ -117,6 +117,10 @@ func updateCredentialsForObject(credentials map[string]interface{}, obj runtime.
 		}
 
 		if prefix != "" && len(k) > len(prefix) {
+			if _, exists := credentials[k[len(prefix):]]; exists {
+				return fmt.Errorf("credential with key %q already exists", k[len(prefix):])
+			}
+
 			result, err := evaluateJSONPathExpression(obj, k, v, prefix == templateapi.Base64ExposeAnnotationPrefix)
 			if err != nil {
 				return err
@@ -200,6 +204,7 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		Verb:      "get",
 		Group:     templateapi.GroupName,
 		Resource:  "templateinstances",
+		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
 	}); err != nil {
 		return api.Forbidden(err)
 	}

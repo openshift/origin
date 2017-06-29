@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	dockerregistryserver "github.com/openshift/origin/pkg/dockerregistry/server"
-	imageapi "github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	exutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 )

@@ -24,13 +24,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	imageapi "github.com/openshift/origin/pkg/image/api"
-	triggerapi "github.com/openshift/origin/pkg/image/api/v1/trigger"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 	"github.com/openshift/origin/pkg/image/trigger"
 	"github.com/openshift/origin/pkg/image/trigger/annotations"
@@ -258,6 +258,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 					{
 						Message: "Image change",
 						ImageChangeBuild: &buildapi.ImageChangeCause{
+							ImageID: "image/result:1",
 							FromRef: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:2", Namespace: "other"},
 						},
 					},
@@ -277,6 +278,7 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 					{
 						Message: "Image change",
 						ImageChangeBuild: &buildapi.ImageChangeCause{
+							ImageID: "image/result:1",
 							FromRef: &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:" + imageapi.DefaultImageTag, Namespace: "other"},
 						},
 					},

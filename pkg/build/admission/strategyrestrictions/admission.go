@@ -9,8 +9,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
-	buildapi "github.com/openshift/origin/pkg/build/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
@@ -46,6 +46,14 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	if buildapi.IsResourceOrLegacy("builds", gr) && attr.GetSubresource() == "details" {
 		return nil
 	}
+
+	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
+	// and we should allow it in general, since you had the power to update and the power to delete.
+	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
+	if attr.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(attr.GetObject(), attr.GetOldObject()) {
+		return nil
+	}
+
 	switch obj := attr.GetObject().(type) {
 	case *buildapi.Build:
 		return a.checkBuildAuthorization(obj, attr)

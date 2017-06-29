@@ -15,10 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
-	"github.com/openshift/origin/pkg/image/api"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -28,7 +28,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-var testDefaultRegistry = api.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
+var testDefaultRegistry = imageapi.DefaultRegistryFunc(func() (string, bool) { return "defaultregistry:5000", true })
 
 type fakeSubjectAccessReviewRegistry struct {
 }
@@ -63,8 +63,8 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 func TestGet(t *testing.T) {
 	tests := map[string]struct {
 		input       string
-		repo        *api.ImageStream
-		image       *api.Image
+		repo        *imageapi.ImageStream
+		image       *imageapi.Image
 		expectError bool
 	}{
 		"empty string": {
@@ -94,16 +94,16 @@ func TestGet(t *testing.T) {
 		},
 		"nil tags": {
 			input:       "repo@id",
-			repo:        &api.ImageStream{},
+			repo:        &imageapi.ImageStream{},
 			expectError: true,
 		},
 		"image not found": {
 			input: "repo@id",
-			repo: &api.ImageStream{
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{
+			repo: &imageapi.ImageStream{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
 						"latest": {
-							Items: []api.TagEvent{
+							Items: []imageapi.TagEvent{
 								{Image: "anotherid"},
 							},
 						},
@@ -114,15 +114,15 @@ func TestGet(t *testing.T) {
 		},
 		"happy path": {
 			input: "repo@id",
-			repo: &api.ImageStream{
+			repo: &imageapi.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Name:      "repo",
 				},
-				Status: api.ImageStreamStatus{
-					Tags: map[string]api.TagEventList{
+				Status: imageapi.ImageStreamStatus{
+					Tags: map[string]imageapi.TagEventList{
 						"latest": {
-							Items: []api.TagEvent{
+							Items: []imageapi.TagEvent{
 								{Image: "anotherid"},
 								{Image: "anotherid2"},
 								{Image: "id"},
@@ -131,7 +131,7 @@ func TestGet(t *testing.T) {
 					},
 				},
 			},
-			image: &api.Image{
+			image: &imageapi.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
 				},
@@ -236,7 +236,7 @@ func TestGet(t *testing.T) {
 				return
 			}
 
-			imageStreamImage := obj.(*api.ImageStreamImage)
+			imageStreamImage := obj.(*imageapi.ImageStreamImage)
 			// validate a couple of the fields
 			if e, a := test.repo.Namespace, "ns"; e != a {
 				t.Errorf("%s: namespace: expected %q, got %q", name, e, a)

@@ -21,11 +21,14 @@ import (
 	"github.com/openshift/origin/pkg/api/validation"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclientfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
-	quotaapi "github.com/openshift/origin/pkg/quota/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	quotaclientfake "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	securityclientfake "github.com/openshift/origin/pkg/security/generated/internalclientset/fake"
+	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -41,10 +44,6 @@ var KnownUpdateValidationExceptions = []reflect.Type{
 // It doesn't guarantee that it's actually called, but it does guarantee that it at least exists
 func TestValidationRegistration(t *testing.T) {
 	config := fakeOpenshiftAPIServerConfig()
-	// serverConfig, err := config.newOpenshiftAPIConfig(apiserver.Config{})
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	storageMap, err := config.GetRestStorage()
 	if err != nil {
@@ -110,10 +109,13 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
 	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
 	quotaInformerFactory := quotainformer.NewSharedInformerFactory(quotaclientfake.NewSimpleClientset(), 0)
+	securityInformerFactory := securityinformer.NewSharedInformerFactory(securityclientfake.NewSimpleClientset(), 0)
+	restOptionsGetter := restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}})
+	sccStorage := sccstorage.NewREST(restOptionsGetter)
 
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.Config{
-			RESTOptionsGetter: restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
+			RESTOptionsGetter: restOptionsGetter,
 		},
 
 		KubeClientExternal:            &kclientsetexternal.Clientset{},
@@ -122,6 +124,8 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		KubeInternalInformers:         internalkubeInformerFactory,
 		AuthorizationInformers:        authorizationInformerFactory,
 		QuotaInformers:                quotaInformerFactory,
+		SecurityInformers:             securityInformerFactory,
+		SCCStorage:                    sccStorage,
 		EnableBuilds:                  true,
 		EnableTemplateServiceBroker:   false,
 		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),

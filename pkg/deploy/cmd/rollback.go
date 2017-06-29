@@ -9,7 +9,7 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/api"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 func NewDeploymentConfigRollbacker(oc client.Interface) kubectl.Rollbacker {

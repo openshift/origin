@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/client"
-	templateapi "github.com/openshift/origin/pkg/template/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
