@@ -336,8 +336,14 @@ func autoConvert_v1_TemplateInstanceSpec_To_template_TemplateInstanceSpec(in *Te
 	if err := Convert_v1_Template_To_template_Template(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
-		return err
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
+		*out = new(api.LocalObjectReference)
+		if err := api_v1.Convert_v1_LocalObjectReference_To_api_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
 	}
 	out.Requester = (*template.TemplateInstanceRequester)(unsafe.Pointer(in.Requester))
 	return nil
@@ -351,8 +357,14 @@ func autoConvert_template_TemplateInstanceSpec_To_v1_TemplateInstanceSpec(in *te
 	if err := Convert_template_Template_To_v1_Template(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(&in.Secret, &out.Secret, s); err != nil {
-		return err
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
+		*out = new(api_v1.LocalObjectReference)
+		if err := api_v1.Convert_api_LocalObjectReference_To_v1_LocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Secret = nil
 	}
 	out.Requester = (*TemplateInstanceRequester)(unsafe.Pointer(in.Requester))
 	return nil

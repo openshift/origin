@@ -61,9 +61,13 @@ func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (a
 		err.Field = "spec.template." + err.Field
 		allErrs = append(allErrs, err)
 	}
-	if templateInstance.Spec.Secret.Name != "" {
-		for _, msg := range oapi.GetNameValidationFunc(validation.ValidateSecretName)(templateInstance.Spec.Secret.Name, false) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.secret.name"), templateInstance.Spec.Secret.Name, msg))
+	if templateInstance.Spec.Secret != nil {
+		if templateInstance.Spec.Secret.Name != "" {
+			for _, msg := range oapi.GetNameValidationFunc(validation.ValidateSecretName)(templateInstance.Spec.Secret.Name, false) {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec.secret.name"), templateInstance.Spec.Secret.Name, msg))
+			}
+		} else {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.secret.name"), ""))
 		}
 	}
 	if templateInstance.Spec.Requester == nil {

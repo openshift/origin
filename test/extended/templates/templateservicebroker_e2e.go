@@ -160,7 +160,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{
 			Template: *template,
-			Secret: kapi.LocalObjectReference{
+			Secret: &kapi.LocalObjectReference{
 				Name: secret.Name,
 			},
 			Requester: &templateapi.TemplateInstanceRequester{

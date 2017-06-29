@@ -84,7 +84,7 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceI
 		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
 		Spec: templateapi.TemplateInstanceSpec{
 			Template: *template,
-			Secret:   kapi.LocalObjectReference{Name: secret.Name},
+			Secret:   &kapi.LocalObjectReference{Name: secret.Name},
 			Requester: &templateapi.TemplateInstanceRequester{
 				Username: u.GetName(),
 			},
