@@ -10,6 +10,7 @@
 #
 # Globals:
 #  - ARTIFACT_DIR
+#  - SKIP_CLEANUP
 #  - SKIP_TEARDOWN
 #  - SKIP_IMAGE_CLEANUP
 # Arguments:
@@ -17,6 +18,11 @@
 # Returns:
 #  None
 function os::cleanup::all() {
+	if [[ -n "${SKIP_CLEANUP:-}" ]]; then
+		os::log::warning "[CLEANUP] Skipping cleanup routines..."
+		return 0
+	fi
+
 	# All of our cleanup is best-effort, so we do not care
 	# if any specific step fails.
 	set +o errexit
