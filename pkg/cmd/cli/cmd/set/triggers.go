@@ -226,8 +226,6 @@ func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
-		SelectorParam(o.Selector).
-		ResourceTypeOrNameArgs(o.All, args...).
 		Flatten()
 
 	if !o.Local {
