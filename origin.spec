@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4b57b8b0c4cfed618b82c33de7acc45398a0f2dd
+%global commit b8e473da0106542c48dc9752ef80cce3a094084c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.123 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4b57b8b
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.128 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=b8e473d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.128
+Version:        3.6.129
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,32 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Jun 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.129-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 8e1222f
+  (smunilla@redhat.com)
+- temporarily remove the new-app conformance test (bparees@redhat.com)
+- Deployer controller emits event when failed to create deploy pod
+  (decarr@redhat.com)
+- SDN controller requires access to watch resources (ccoleman@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  da50b0868c606de8b4ecb4640bafa65fdef0569c (dmcphers+openshiftbot@redhat.com)
+- don't use admin client, it loses namespace info (bparees@redhat.com)
+- Remove the unnecessary golang duplicity. (#14946) (jpazdziora@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  c9b5dba5598acd17d18a8cef1bd0715dda19c2cc (dmcphers+openshiftbot@redhat.com)
+- extended: add deployment config failure trap to new-app (#14952) (mi@mifo.sk)
+- more env, server side debug for pipeline ext tests (gmontero@redhat.com)
+- UPSTREAM: 48261: fix removing finalizer for gc (deads@redhat.com)
+- make service controller failure non-fatal again (sjenning@redhat.com)
+- update bulk to have a serialization priority (deads@redhat.com)
+- remove unused privileged clients from master config (mfojtik@redhat.com)
+- Additional debugging information for WaitForOpenShiftNamespaceImageStreams
+  (cdaley@redhat.com)
+- make templateinstance secret optional (bparees@redhat.com)
+- Allow project admins to create/edit/delete NetworkPolicies (danw@redhat.com)
+- minor fixes made while debugging image_ecosystem extended test failure
+  (jminter@redhat.com)
+
 * Thu Jun 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.128-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console c982d21
   (smunilla@redhat.com)
