@@ -2,20 +2,21 @@ package aggregated_logging
 
 import (
 	"fmt"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var loggingServices = sets.NewString("logging-es", "logging-es-cluster", "logging-es-ops", "logging-es-ops-cluster", "logging-kibana", "logging-kibana-ops")
+var expectedLoggingServices = sets.NewString("logging-es", "logging-es-cluster", "logging-kibana")
+var optionalLoggingServices = sets.NewString("logging-es-ops", "logging-es-ops-cluster", "logging-kibana-ops", "logging-mux")
+var loggingServices = expectedLoggingServices.Union(optionalLoggingServices)
 
 const serviceNotFound = `
 Expected to find '%s' among the logging services for the project but did not.  
 `
-const serviceOpsNotFound = `
-Expected to find '%s' among the logging services for the project but did not. This
-may not matter if you chose not to install a separate logging stack to support operations.
+const serviceOptionalNotFound = `
+Looked for '%s' among the logging services for the project but did not find it.
+This optional component may not have been specified by logging install options.
 `
 
 // checkServices looks to see if the aggregated logging services exist
@@ -35,8 +36,8 @@ func checkServices(r diagnosticReporter, adapter servicesAdapter, project string
 		if foundServices.Has(service) {
 			checkServiceEndpoints(r, adapter, project, service)
 		} else {
-			if strings.Contains(service, "-ops") {
-				r.Warn("AGL0215", nil, fmt.Sprintf(serviceOpsNotFound, service))
+			if optionalLoggingServices.Has(service) {
+				r.Info("AGL0215", fmt.Sprintf(serviceOptionalNotFound, service))
 			} else {
 				r.Error("AGL0217", nil, fmt.Sprintf(serviceNotFound, service))
 			}
@@ -52,10 +53,6 @@ func checkServiceEndpoints(r diagnosticReporter, adapter servicesAdapter, projec
 		return
 	}
 	if len(endpoints.Subsets) == 0 {
-		if strings.Contains(service, "-ops") {
-			r.Info("AGL0223", fmt.Sprintf("There are no endpoints found for service '%s'. This could mean you choose not to install a separate operations cluster during installation.", service))
-		} else {
-			r.Warn("AGL0225", nil, fmt.Sprintf("There are no endpoints found for service '%s'. This means there are no pods serviced by this service and this component is not functioning", service))
-		}
+		r.Error("AGL0225", nil, fmt.Sprintf("There are no endpoints found for service '%s'. This means that no pods provide this service and this component is not functioning.", service))
 	}
 }
