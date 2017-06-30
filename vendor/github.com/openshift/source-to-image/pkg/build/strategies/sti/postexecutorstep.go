@@ -2,6 +2,7 @@ package sti
 
 import (
 	"archive/tar"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,8 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
+
+const maximumLabelSize = 10240
 
 type postExecutorStepContext struct {
 	// id of the previous image that we're holding because after committing the image, we'll lose it.
@@ -104,6 +107,8 @@ type commitImageStep struct {
 	image   string
 	builder *STI
 	docker  dockerpkg.Docker
+	fs      util.FileSystem
+	tar     s2itar.Tar
 }
 
 func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
@@ -116,7 +121,15 @@ func (step *commitImageStep) execute(ctx *postExecutorStepContext) error {
 
 	cmd := createCommandForExecutingRunScript(step.builder.scriptsURL, ctx.destination)
 
+	if err = checkAndGetNewLabels(step.builder, step.docker, step.tar, ctx.containerID); err != nil {
+		return fmt.Errorf("could not check for new labels for %q image: %v", step.image, err)
+	}
+
 	ctx.labels = createLabelsForResultingImage(step.builder, step.docker, step.image)
+
+	if err = checkLabelSize(ctx.labels); err != nil {
+		return fmt.Errorf("label validation failed for %q image: %v", step.image, err)
+	}
 
 	// Set the image entrypoint back to its original value on commit, the running
 	// container has "env" as its entrypoint and we don't want to commit that.
@@ -211,46 +224,10 @@ func (step *downloadFilesFromBuilderImageStep) execute(ctx *postExecutorStepCont
 }
 
 func (step *downloadFilesFromBuilderImageStep) downloadAndExtractFile(artifactPath, artifactsDir, containerID string) error {
-	glog.V(5).Infof("Downloading file %q", artifactPath)
-
-	fd, err := ioutil.TempFile(artifactsDir, "s2i-runtime-artifact")
-	if err != nil {
-		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonFSOperationFailed,
-			utilstatus.ReasonMessageFSOperationFailed,
-		)
-		return fmt.Errorf("could not create temporary file for runtime artifact: %v", err)
+	if res, err := downloadAndExtractFileFromContainer(step.docker, step.tar, artifactPath, artifactsDir, containerID); err != nil {
+		step.builder.result.BuildInfo.FailureReason = res
+		return err
 	}
-	defer func() {
-		fd.Close()
-		os.Remove(fd.Name())
-	}()
-
-	if err := step.docker.DownloadFromContainer(artifactPath, fd, containerID); err != nil {
-		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonGenericS2IBuildFailed,
-			utilstatus.ReasonMessageGenericS2iBuildFailed,
-		)
-		return fmt.Errorf("could not download file (%q -> %q) from container %s: %v", artifactPath, fd.Name(), containerID, err)
-	}
-
-	// after writing to the file descriptor we need to rewind pointer to the beginning of the file before next reading
-	if _, err := fd.Seek(0, os.SEEK_SET); err != nil {
-		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonGenericS2IBuildFailed,
-			utilstatus.ReasonMessageGenericS2iBuildFailed,
-		)
-		return fmt.Errorf("could not seek to the beginning of the file %q: %v", fd.Name(), err)
-	}
-
-	if err := step.tar.ExtractTarStream(artifactsDir, fd); err != nil {
-		step.builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
-			utilstatus.ReasonGenericS2IBuildFailed,
-			utilstatus.ReasonMessageGenericS2iBuildFailed,
-		)
-		return fmt.Errorf("could not extract runtime artifact %q into the directory %q: %v", artifactPath, artifactsDir, err)
-	}
-
 	return nil
 }
 
@@ -450,22 +427,20 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 	}
 
 	configLabels := builder.config.Labels
+	newLabels := builder.newLabels
 
-	return mergeLabels(configLabels, generatedLabels, existingLabels)
+	return mergeLabels(configLabels, generatedLabels, existingLabels, newLabels)
 }
 
-func mergeLabels(configLabels, generatedLabels, existingLabels map[string]string) map[string]string {
-	result := map[string]string{}
-	for k, v := range existingLabels {
-		result[k] = v
+func mergeLabels(labels ...map[string]string) map[string]string {
+	mergedLabels := map[string]string{}
+
+	for _, labelMap := range labels {
+		for k, v := range labelMap {
+			mergedLabels[k] = v
+		}
 	}
-	for k, v := range generatedLabels {
-		result[k] = v
-	}
-	for k, v := range configLabels {
-		result[k] = v
-	}
-	return result
+	return mergedLabels
 }
 
 func createCommandForExecutingRunScript(scriptsURL map[string]string, location string) string {
@@ -481,4 +456,116 @@ func createCommandForExecutingRunScript(scriptsURL map[string]string, location s
 		cmd = path.Join(location, "scripts", api.Run)
 	}
 	return cmd
+}
+
+func downloadAndExtractFileFromContainer(docker dockerpkg.Docker, tar s2itar.Tar, sourcePath, destinationPath, containerID string) (api.FailureReason, error) {
+	glog.V(5).Infof("Downloading file %q", sourcePath)
+
+	fd, err := ioutil.TempFile(destinationPath, "s2i-runtime-artifact")
+	if err != nil {
+		res := utilstatus.NewFailureReason(
+			utilstatus.ReasonFSOperationFailed,
+			utilstatus.ReasonMessageFSOperationFailed,
+		)
+		return res, fmt.Errorf("could not create temporary file for runtime artifact: %v", err)
+	}
+	defer func() {
+		fd.Close()
+		os.Remove(fd.Name())
+	}()
+
+	if err := docker.DownloadFromContainer(sourcePath, fd, containerID); err != nil {
+		res := utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
+		return res, fmt.Errorf("could not download file (%q -> %q) from container %s: %v", sourcePath, fd.Name(), containerID, err)
+	}
+
+	// after writing to the file descriptor we need to rewind pointer to the beginning of the file before next reading
+	if _, err := fd.Seek(0, os.SEEK_SET); err != nil {
+		res := utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
+		return res, fmt.Errorf("could not seek to the beginning of the file %q: %v", fd.Name(), err)
+	}
+
+	if err := tar.ExtractTarStream(destinationPath, fd); err != nil {
+		res := utilstatus.NewFailureReason(
+			utilstatus.ReasonGenericS2IBuildFailed,
+			utilstatus.ReasonMessageGenericS2iBuildFailed,
+		)
+		return res, fmt.Errorf("could not extract artifact %q into the directory %q: %v", sourcePath, destinationPath, err)
+	}
+
+	return utilstatus.NewFailureReason("", ""), nil
+}
+
+func checkLabelSize(labels map[string]string) error {
+	var sum = 0
+	for k, v := range labels {
+		sum += len(k) + len(v)
+	}
+
+	if sum > maximumLabelSize {
+		return fmt.Errorf("label size '%d' exceeds the maximum limit '%d'", sum, maximumLabelSize)
+	}
+
+	return nil
+}
+
+// check for new labels and apply to the output image.
+func checkAndGetNewLabels(builder *STI, docker dockerpkg.Docker, tar s2itar.Tar, containerID string) error {
+	glog.V(3).Infof("Checking for new Labels to apply... ")
+
+	// metadata filename and its path inside the container
+	metadataFilename := "image_metadata.json"
+	sourceFilepath := filepath.Join("/tmp/.s2i", metadataFilename)
+
+	// create the 'downloadPath' folder if it doesn't exist
+	downloadPath := filepath.Join(builder.config.WorkingDir, "metadata")
+	glog.V(3).Infof("Creating the download path '%s'", downloadPath)
+	if err := os.MkdirAll(downloadPath, 0700); err != nil {
+		glog.Errorf("Error creating dir %q for '%s': %v", downloadPath, metadataFilename, err)
+		return err
+	}
+
+	// download & extract the file from container
+	if _, err := downloadAndExtractFileFromContainer(docker, tar, sourceFilepath, downloadPath, containerID); err != nil {
+		glog.V(3).Infof("unable to download and extract '%s' ... continuing", metadataFilename)
+		return nil
+	}
+
+	// open the file
+	filePath := filepath.Join(downloadPath, metadataFilename)
+	fd, err := os.Open(filePath)
+	if fd == nil || err != nil {
+		return fmt.Errorf("unable to open file '%s' : %v", downloadPath, err)
+	}
+	defer fd.Close()
+
+	// read the file to a string
+	str, err := ioutil.ReadAll(fd)
+	if err != nil {
+		return fmt.Errorf("error reading file '%s' in to a string: %v", filePath, err)
+	}
+	glog.V(3).Infof("new Labels File contents : \n%s\n", str)
+
+	// string into a map
+	var data map[string]interface{}
+
+	if err = json.Unmarshal([]byte(str), &data); err != nil {
+		return fmt.Errorf("JSON Unmarshal Error with '%s' file : %v", metadataFilename, err)
+	}
+
+	// update newLabels[]
+	labels := data["labels"]
+	for _, l := range labels.([]interface{}) {
+		for k, v := range l.(map[string]interface{}) {
+			builder.newLabels[k] = v.(string)
+		}
+	}
+
+	return nil
 }

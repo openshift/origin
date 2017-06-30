@@ -65,6 +65,7 @@ type STI struct {
 	incremental            bool
 	sourceInfo             *api.SourceInfo
 	env                    []string
+	newLabels              map[string]string
 
 	// Interfaces
 	preparer  build.Preparer
@@ -124,6 +125,7 @@ func New(client dockerpkg.Client, config *api.Config, fs util.FileSystem, overri
 		externalScripts:        map[string]bool{},
 		installedScripts:       map[string]bool{},
 		scriptsURL:             map[string]string{},
+		newLabels:              map[string]string{},
 	}
 
 	if len(config.RuntimeImage) > 0 {
@@ -707,6 +709,8 @@ func (builder *STI) initPostExecutorSteps() {
 				image:   builder.config.BuilderImage,
 				builder: builder,
 				docker:  builder.docker,
+				fs:      builder.fs,
+				tar:     builder.tar,
 			},
 			&reportSuccessStep{
 				builder: builder,
