@@ -70,6 +70,10 @@ func getListOfFilesToIgnore(workingDir string) (map[string]string, error) {
 	for scanner.Scan() {
 		filespec := strings.Trim(scanner.Text(), " ")
 
+		if len(filespec) == 0 {
+			continue
+		}
+
 		if strings.HasPrefix(filespec, "#") {
 			continue
 		}

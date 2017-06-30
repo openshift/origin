@@ -204,7 +204,7 @@ func (t *stiTar) CreateTarStreamToTarWriter(dir string, includeDirInPath bool, t
 		}
 		// on Windows, directory symlinks report as a directory and as a symlink.
 		// They should be treated as symlinks.
-		if (info.Mode()&os.ModeSymlink != 0 || !info.IsDir()) && !t.shouldExclude(path) {
+		if !t.shouldExclude(path) {
 			// if file is a link just writing header info is enough
 			if info.Mode()&os.ModeSymlink != 0 {
 				if dir == path {
@@ -217,6 +217,15 @@ func (t *stiTar) CreateTarStreamToTarWriter(dir string, includeDirInPath bool, t
 				// shouldn't.  https://github.com/golang/go/issues/17540
 				if err == nil && info.Mode()&os.ModeDir != 0 {
 					return filepath.SkipDir
+				}
+				return err
+			}
+			if info.IsDir() {
+				if dir == path {
+					return nil
+				}
+				if err = t.writeTarHeader(tarWriter, dir, path, info, includeDirInPath, logger); err != nil {
+					glog.Errorf("Error writing header for %q: %v", info.Name(), err)
 				}
 				return err
 			}
