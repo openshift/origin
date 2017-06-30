@@ -687,6 +687,7 @@ items:
     - deployments/scale
     - horizontalpodautoscalers
     - jobs
+    - networkpolicies
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -3624,21 +3625,13 @@ items:
     - network.openshift.io
     attributeRestrictions: null
     resources:
-    - egressnetworkpolicies
-    verbs:
-    - get
-    - list
-  - apiGroups:
-    - ""
-    - network.openshift.io
-    attributeRestrictions: null
-    resources:
     - hostsubnets
     verbs:
     - create
     - delete
     - get
     - list
+    - watch
   - apiGroups:
     - ""
     - network.openshift.io
@@ -3651,6 +3644,7 @@ items:
     - get
     - list
     - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3665,14 +3659,18 @@ items:
     resources:
     - services
     verbs:
+    - get
     - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
     - namespaces
     verbs:
+    - get
     - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3680,6 +3678,8 @@ items:
     - nodes
     verbs:
     - get
+    - list
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3687,13 +3687,6 @@ items:
     - nodes/status
     verbs:
     - update
-  - apiGroups:
-    - extensions
-    attributeRestrictions: null
-    resources:
-    - networkPolicies
-    verbs:
-    - list
   - apiGroups:
     - ""
     attributeRestrictions: null

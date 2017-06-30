@@ -153,8 +153,21 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	}
 	o.Config.ErrOut = o.ErrOut
 
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	mapper, typer := f.Object()
+	// ignore errors.   We use this to make a best guess at preferred seralizations, but the command might run without a server
+	discoveryClient, _ := f.DiscoveryClient()
+
 	o.Action.Out, o.Action.ErrOut = out, o.ErrOut
-	o.Action.Bulk.Mapper = clientcmd.ResourceMapper(f)
+	o.Action.Bulk.Mapper = &resource.Mapper{
+		RESTMapper:   mapper,
+		ObjectTyper:  typer,
+		ClientMapper: configcmd.ClientMapperFromConfig(clientConfig),
+	}
+	o.Action.Bulk.PreferredSerializationOrder = configcmd.PreferredSerializationOrder(discoveryClient)
 	o.Action.Bulk.Op = configcmd.Create
 	// Retry is used to support previous versions of the API server that will
 	// consider the presence of an unknown trigger type to be an error.
@@ -168,7 +181,6 @@ func (o *ObjectGeneratorOptions) Complete(baseName, commandName string, f *clien
 	o.BaseName = baseName
 	o.CommandName = commandName
 
-	mapper, _ := f.Object()
 	o.PrintObject = cmdutil.VersionedPrintObject(f.PrintObject, c, mapper, out)
 	o.LogsForObject = f.LogsForObject
 	if err := CompleteAppConfig(o.Config, f, c, args); err != nil {

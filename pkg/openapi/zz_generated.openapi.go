@@ -9852,7 +9852,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"template", "secret", "requester"},
+					Required: []string{"template", "requester"},
 				},
 			},
 			Dependencies: []string{

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/pflag"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/unversioned"
@@ -51,6 +53,10 @@ type IgnoreErrorFunc func(e error) bool
 type Bulk struct {
 	Mapper Mapper
 
+	// PreferredSerializationOrder take a list of GVKs to decide how to serialize out the individual list items
+	// It allows partial values, so you specify just groups or versions as a for instance
+	PreferredSerializationOrder []schema.GroupVersionKind
+
 	Op          OpFunc
 	After       AfterFunc
 	Retry       RetryFunc
@@ -72,7 +78,7 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 
 	errs := []error{}
 	for i, item := range list.Items {
-		info, err := b.Mapper.InfoForObject(item, []schema.GroupVersionKind{{Group: ""}})
+		info, err := b.Mapper.InfoForObject(item, b.getPreferredSerializationOrder())
 		if err != nil {
 			errs = append(errs, err)
 			if after(info, err) {
@@ -102,6 +108,15 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 		}
 	}
 	return errs
+}
+
+func (b *Bulk) getPreferredSerializationOrder() []schema.GroupVersionKind {
+	if len(b.PreferredSerializationOrder) > 0 {
+		return b.PreferredSerializationOrder
+	}
+	// it seems that the underlying impl expects to have at least one, even though this
+	// logically means something different.
+	return []schema.GroupVersionKind{{Group: ""}}
 }
 
 // ClientMapperFromConfig returns a ClientMapper suitable for Bulk operations.
@@ -139,6 +154,54 @@ func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
 		configCopy.GroupVersion = &gv
 		return rest.RESTClientFor(&configCopy)
 	})
+}
+
+// PreferredSerializationOrder returns the preferred ordering via discovery. If anything fails, it just
+// returns a list of with the empty (legacy) group
+func PreferredSerializationOrder(client discovery.DiscoveryInterface) []schema.GroupVersionKind {
+	ret := []schema.GroupVersionKind{{Group: ""}}
+	if client == nil {
+		return ret
+	}
+
+	groups, err := client.ServerGroups()
+	if err != nil {
+		return ret
+	}
+
+	resources, err := client.ServerResources()
+	if err != nil {
+		return ret
+	}
+
+	// add resources with kinds first, then groupversions second as a fallback.  Not all server versions provide kinds
+	// we have to specify individual kinds since our local scheme may have kinds not present on the server
+	for _, resourceList := range resources {
+		for _, resource := range resourceList.APIResources {
+			// if this is a sub resource, skip it
+			if strings.Contains(resource.Name, "/") {
+				continue
+			}
+			// if there is no kind, skip it
+			if len(resource.Kind) == 0 {
+				continue
+			}
+			gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
+			if err != nil {
+				continue
+			}
+			ret = append(ret, gv.WithKind(resource.Kind))
+		}
+	}
+
+	// we actually have to get to the granularity of versions because the server may not support the same versions
+	// in a group that we have locally.
+	for _, group := range groups.Groups {
+		for _, version := range group.Versions {
+			ret = append(ret, schema.GroupVersionKind{Group: group.Name, Version: version.Version})
+		}
+	}
+	return ret
 }
 
 func NewPrintNameOrErrorAfterIndent(mapper meta.RESTMapper, short bool, operation string, out, errs io.Writer, dryRun bool, indent string, prefixForError PrefixForError) AfterFunc {

@@ -61,7 +61,8 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			assertPageCountIs(2)
 
 			g.By("modifying the source code with disabled hot deploy")
-			RunInPodContainer(oc, dcLabel, modifyCommand)
+			err = RunInPodContainer(oc, dcLabel, modifyCommand)
+			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("checking page count after modifying the source code")
 			assertPageCountIs(1337)
 		})

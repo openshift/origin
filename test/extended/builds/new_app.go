@@ -4,6 +4,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	deployutil "github.com/openshift/origin/test/extended/deployments"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -12,7 +13,7 @@ const (
 	a59 = "a2345678901234567890123456789012345678901234567890123456789"
 )
 
-var _ = g.Describe("[builds][Conformance] oc new-app", func() {
+var _ = g.Describe("[builds][NotConformant] oc new-app", func() {
 	// Previously, the maximum length of app names creatable by new-app has
 	// inadvertently been decreased, e.g. by creating an annotation somewhere
 	// whose name itself includes the app name.  Ensure we can create and fully
@@ -24,6 +25,11 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.AfterEach(func() {
+		deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentGinkgoTestDescription().Failed)
+		deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentGinkgoTestDescription().Failed)
 	})
 
 	g.It("should succeed with a --name of 58 characters", func() {

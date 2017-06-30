@@ -469,6 +469,10 @@ func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
 	return resource, parts[1], nil
 }
 
+func DeploymentConfigFailureTrap(oc *exutil.CLI, name string, failed bool) {
+	failureTrap(oc, name, failed)
+}
+
 func failureTrap(oc *exutil.CLI, name string, failed bool) {
 	if !failed {
 		return

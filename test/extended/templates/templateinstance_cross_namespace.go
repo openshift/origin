@@ -58,7 +58,7 @@ var _ = g.Describe("[templates] templateinstance cross-namespace test", func() {
 						},
 					},
 				},
-				Secret: kapi.LocalObjectReference{
+				Secret: &kapi.LocalObjectReference{
 					Name: "secret",
 				},
 			},
