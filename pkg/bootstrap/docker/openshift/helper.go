@@ -751,6 +751,9 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 
 	if opt.ServiceCatalog {
 
+		// podpresets is a v1alpha1 api so we need to enable those apis explicitly.
+		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/settings.k8s.io/v1alpha1=true")
+
 		if cfg.AdmissionConfig.PluginConfig == nil {
 			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
 		}
