@@ -646,10 +646,12 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 		// No support in Swagger's OpenAPI sepc v.2 ¯\_(ツ)_/¯
 		// TODO: Add x509 specification once available
 	}
-
+	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(kapi.Scheme)
 	return &openapicommon.Config{
-		GetDefinitions: openapigenerated.GetOpenAPIDefinitions,
-		IgnorePrefixes: []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
+		ProtocolList:      []string{"https"},
+		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,
+		IgnorePrefixes:    []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
+		GetDefinitionName: defNamer.GetDefinitionName,
 		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
 			op := r.Operation
 			path := r.Path
