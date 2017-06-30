@@ -143,6 +143,9 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			deploymentPod, err := c.pn.Pods(deployment.Namespace).Create(deployerPod)
 			// Retry on error.
 			if err != nil {
+				// if we cannot create a deployment pod (i.e lack of quota), match normal replica set experience and
+				// emit an event.
+				c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedCreate", fmt.Sprintf("Error creating deployer pod: %v", err))
 				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
 			}
 			updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
@@ -510,7 +513,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationCon
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *v1.ReplicationController, eventType, title, message string) {
 	if config, _ := deployutil.DecodeDeploymentConfig(deployment, c.codec); config != nil {
-		c.recorder.Eventf(config, eventType, title, fmt.Sprintf("%s: %s", deployment.Name, message))
+		c.recorder.Eventf(config, eventType, title, message)
 	} else {
 		c.recorder.Eventf(deployment, eventType, title, message)
 	}
@@ -533,7 +536,7 @@ func (c *DeploymentController) handleErr(err error, key interface{}, deployment 
 		return
 	}
 
-	msg := fmt.Sprintf("About to stop retrying %q: %v", deployment.Name, err)
+	msg := fmt.Sprintf("Stop retrying: %v", err)
 	if _, isActionableErr := err.(actionableError); isActionableErr {
 		c.emitDeploymentEvent(deployment, v1.EventTypeWarning, "FailedRetry", msg)
 	}
