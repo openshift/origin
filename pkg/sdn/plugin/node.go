@@ -253,6 +253,25 @@ func ensureDockerClient() (dockertools.Interface, error) {
 	return dockerClient, nil
 }
 
+func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
+	for _, pod := range pods {
+		// Get the sandbox ID for this pod from the runtime
+		filter := &kruntimeapi.PodSandboxFilter{
+			LabelSelector: map[string]string{ktypes.KubernetesPodUIDLabel: string(pod.UID)},
+		}
+		sandboxID, err := node.getPodSandboxID(filter)
+		if err != nil {
+			return err
+		}
+
+		log.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", pod.Namespace, pod.Name)
+		if err := node.runtimeService.StopPodSandbox(sandboxID); err != nil {
+			log.Warningf("Failed to kill pod '%s/%s' sandbox: %v", pod.Namespace, pod.Name, err)
+		}
+	}
+	return nil
+}
+
 func (node *OsdnNode) Start() error {
 	var err error
 	node.networkInfo, err = getNetworkInfo(node.osClient)
@@ -324,10 +343,7 @@ func (node *OsdnNode) Start() error {
 		// Kill pods we couldn't recover; they will get restarted and then
 		// we'll be able to set them up correctly
 		if len(podsToKill) > 0 {
-			docker, err := ensureDockerClient()
-			if err != nil {
-				log.Warningf("failed to get docker client: %v", err)
-			} else if err := killUpdateFailedPods(docker, podsToKill); err != nil {
+			if err := node.killUpdateFailedPods(podsToKill); err != nil {
 				log.Warningf("failed to restart pods that failed to update at startup: %v", err)
 			}
 		}
