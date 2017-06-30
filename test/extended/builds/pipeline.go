@@ -44,7 +44,7 @@ func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI,
 			fmt.Fprintf(g.GinkgoWriter, "\n error getting %s job log: %#v", name, err)
 		}
 		if dumpMaster {
-			exutil.DumpDeploymentLogs("jenkins", oc)
+			exutil.DumpApplicationPodLogs("jenkins", oc)
 		}
 		fmt.Fprintf(g.GinkgoWriter, "\n\n END debugAnyJenkinsFailure\n\n")
 	}
@@ -89,7 +89,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), "jenkins", oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "jenkins", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			j = jenkins.NewRef(oc)
@@ -98,7 +98,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			_, err = j.WaitForContent("", 200, 10*time.Minute, "")
 
 			if err != nil {
-				exutil.DumpDeploymentLogs("jenkins", oc)
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 			}
 
 			o.Expect(err).NotTo(o.HaveOccurred())

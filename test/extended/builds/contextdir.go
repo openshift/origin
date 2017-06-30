@@ -50,7 +50,7 @@ var _ = g.Describe("[builds][Slow] builds with a context directory", func() {
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
 			g.By("waiting for a deployment")
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), dcName, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")

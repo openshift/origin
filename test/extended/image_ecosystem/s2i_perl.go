@@ -45,7 +45,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), dcName, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -77,11 +77,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			g.By("turning on hot-deploy")
 			err = oc.Run("env").Args("dc", dcName, "PERL_APACHE2_RELOAD=true").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.Run("scale").Args("dc", dcName, "--replicas=0").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitUntilPodIsGone(oc.KubeClient().Core().Pods(oc.Namespace()), pods.Items[0].Name, 1*time.Minute)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.Run("scale").Args("dc", dcName, "--replicas=1").Execute()
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 2, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("modifying the source code with enabled hot deploy")
