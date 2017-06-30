@@ -3631,6 +3631,7 @@ items:
     - delete
     - get
     - list
+    - update
     - watch
   - apiGroups:
     - ""
