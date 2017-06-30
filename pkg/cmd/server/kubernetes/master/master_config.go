@@ -318,6 +318,7 @@ func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
 	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
 
+	// IF YOU ADD ANYTHING TO THIS LIST, MAKE SURE THAT YOU UPDATE THEIR STRATEGIES TO PREVENT GC FINALIZERS
 	cmserver.GCIgnoredResources = append(cmserver.GCIgnoredResources,
 		// explicitly disabled from GC for now - not enough value to track them
 		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
