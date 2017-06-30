@@ -143,7 +143,14 @@ func friendlyName(name string) string {
 }
 
 func typeName(t reflect.Type) string {
-	return fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+	return canonicalName(fmt.Sprintf("%s.%s", t.PkgPath(), t.Name()))
+}
+
+func canonicalName(name string) string {
+	if i := strings.LastIndex(name, "/vendor/"); i != -1 {
+		return name[i+len("/vendor/"):]
+	}
+	return name
 }
 
 // NewDefinitionNamer constructs a new DefinitionNamer to be used to customize OpenAPI spec.
@@ -162,6 +169,7 @@ func NewDefinitionNamer(s *runtime.Scheme) DefinitionNamer {
 
 // GetDefinitionName returns the name and tags for a given definition
 func (d *DefinitionNamer) GetDefinitionName(servePath string, name string) (string, spec.Extensions) {
+	name = canonicalName(name)
 	if groupVersionKinds, ok := d.typeGroupVersionKinds[name]; ok {
 		return friendlyName(name), spec.Extensions{
 			extensionGVK: []v1.GroupVersionKind(groupVersionKinds),
