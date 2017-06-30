@@ -97,8 +97,8 @@ var (
 		"rhel7":   "examples/image-streams/image-streams-rhel7.json",
 	}
 
-	// defaultImageStreams is the default key for the above imageStreams
-	// mapping. It should be set during build via -ldflags.
+	// defaultImageStreams is the default key for the above imageStreams mapping.
+	// It should be set during build via -ldflags.
 	defaultImageStreams string
 
 	templateLocations = map[string]string{
@@ -130,7 +130,7 @@ var (
 	openshiftVersion36alpha2 = semver.MustParse("3.6.0-alpha.2+3c221d5")
 )
 
-// NewCmdUp creates a command that starts openshift on Docker with reasonable defaults
+// NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
 func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer) *cobra.Command {
 	config := &ClientStartConfig{
 		CommonStartConfig: CommonStartConfig{
@@ -312,8 +312,8 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	c.addTask(conditionalTask("Create Docker machine", c.CreateDockerMachine, func() bool { return c.ShouldCreateDockerMachine }))
 	// Get a Docker client.
-	// If a Docker machine was specified, make sure that the machine is
-	// running. Otherwise, use environment variables.
+	// If a Docker machine was specified, make sure that the machine is running.
+	// Otherwise, use environment variables.
 	c.addTask(simpleTask("Checking Docker client", c.GetDockerClient))
 
 	// Check that we have the minimum Docker version available to run OpenShift
@@ -323,14 +323,14 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// If one exists but not running, delete it.
 	c.addTask(simpleTask("Checking for existing OpenShift container", c.CheckExistingOpenShiftContainer))
 
-	// Ensure that the OpenShift Docker image is available. If not present,
-	// pull it.
+	// Ensure that the OpenShift Docker image is available.
+	// If not present, pull it.
 	t := simpleTask(fmt.Sprintf("Checking for %s image", c.openshiftImage()), c.CheckOpenShiftImage)
 	t.stdOut = true
 	c.addTask(t)
 
-	// Ensure that the Docker daemon has the right --insecure-registry argument. If
-	// not, then exit.
+	// Ensure that the Docker daemon has the right --insecure-registry argument.
+	// If not, then exit.
 	if !c.SkipRegistryCheck {
 		c.addTask(simpleTask("Checking Docker daemon configuration", c.CheckDockerInsecureRegistry))
 	}
@@ -620,9 +620,9 @@ func getDockerClient(out io.Writer, dockerMachine string, canStartDockerMachine 
 	return dockerhelper.NewClient(host, engineAPIClient), nil
 }
 
-// CheckExistingOpenShiftContainer checks the state of an OpenShift container. If one
-// is already running, it throws an error. If one exists, it removes it so a new one
-// can be created.
+// CheckExistingOpenShiftContainer checks the state of an OpenShift container.
+// If one is already running, it throws an error.
+// If one exists, it removes it so a new one can be created.
 func (c *CommonStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error {
 	container, running, err := c.DockerHelper().GetContainerState(openshift.OpenShiftContainer)
 	if err != nil {
@@ -641,8 +641,8 @@ func (c *CommonStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error
 	return nil
 }
 
-// CheckOpenShiftImage checks whether the OpenShift image exists. If not it tells the
-// Docker daemon to pull it.
+// CheckOpenShiftImage checks whether the OpenShift image exists.
+// If not it tells the Docker daemon to pull it.
 func (c *CommonStartConfig) CheckOpenShiftImage(out io.Writer) error {
 	return c.DockerHelper().CheckAndPull(c.openshiftImage(), out)
 }
@@ -659,8 +659,8 @@ func (c *CommonStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
 	return nil
 }
 
-// CheckNsenterMounter checks whether the Docker host can use the nsenter mounter from Kubernetes. Otherwise,
-// a shared volume is needed in Docker
+// CheckNsenterMounter checks whether the Docker host can use the nsenter mounter from Kubernetes.
+// Otherwise, a shared volume is needed in Docker
 func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
 	var err error
 	c.UseNsenterMount, err = c.HostHelper().CanUseNsenterMounter()
@@ -787,8 +787,7 @@ func (c *CommonStartConfig) DetermineServerIP(out io.Writer) error {
 	return nil
 }
 
-// updateNoProxy will add some default values to the NO_PROXY setting
-// if they are not present
+// updateNoProxy will add some default values to the NO_PROXY setting if they are not present
 func (c *ClientStartConfig) updateNoProxy() {
 	values := []string{"127.0.0.1", c.ServerIP, "localhost", openshift.RegistryServiceIP, openshift.ServiceCatalogServiceIP, "172.30.0.0/8"}
 	ipFromServer, err := c.OpenShiftHelper().ServerIP()
@@ -1006,7 +1005,7 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 	return c.OpenShiftHelper().InstallMetrics(f, openshift.MetricsHost(c.RoutingSuffix, c.ServerIP), c.Image, c.ImageVersion)
 }
 
-// CheckServiceCatalogPrereqVersion ensures the openshift server version is high enough to
+// CheckServiceCatalogPrereqVersion ensures the OpenShift server version is high enough to
 // run the service catalog.
 func (c *ClientStartConfig) CheckServiceCatalogPrereqVersion(out io.Writer) error {
 	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
@@ -1080,7 +1079,8 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 
 	if c.ShouldCreateUser() {
 		msg += fmt.Sprintf("You are logged in as:\n"+
-			"    User:     %s\n\n", initialUser)
+			"    User:     %s\n"+
+			"    Password: <any value>\n\n", initialUser)
 		msg += "To login as administrator:\n" +
 			"    oc login -u system:admin\n\n"
 	}
