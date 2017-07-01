@@ -1,6 +1,9 @@
 package builds
 
 import (
+	"math/rand"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -8,12 +11,26 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-const (
-	a58 = "a234567890123456789012345678901234567890123456789012345678"
-	a59 = "a2345678901234567890123456789012345678901234567890123456789"
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+var (
+	a58 = RandStringRunes(58)
+	a59 = RandStringRunes(59)
 )
 
-var _ = g.Describe("[builds][NotConformant] oc new-app", func() {
+var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 	// Previously, the maximum length of app names creatable by new-app has
 	// inadvertently been decreased, e.g. by creating an annotation somewhere
 	// whose name itself includes the app name.  Ensure we can create and fully
