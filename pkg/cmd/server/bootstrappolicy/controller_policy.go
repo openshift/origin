@@ -206,7 +206,7 @@ func init() {
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraSDNControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("get", "create", "update").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
-			rbac.NewRule("get", "list", "watch", "create", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("hostsubnets").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("hostsubnets").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch", "create", "update", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("netnamespaces").RuleOrDie(),
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),

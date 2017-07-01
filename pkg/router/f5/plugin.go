@@ -510,6 +510,28 @@ func (p *F5Plugin) deleteRoute(routename string) error {
 				return err
 			}
 		}
+	} else {
+		reencryptRouteExists, err := p.F5Client.ReencryptRouteExists(routename)
+		if err != nil {
+			glog.V(4).Infof("F5Client.ReencryptRouteExists failed: %v", err)
+			return err
+		}
+
+		if reencryptRouteExists {
+			err = p.F5Client.DeleteReencryptRoute(routename)
+			if err != nil {
+				f5err, ok := err.(F5Error)
+				if ok && f5err.httpStatusCode == 404 {
+					glog.V(4).Infof("Reencrypt route %s does not exist.",
+						routename)
+				} else {
+					glog.V(4).Infof("Error deleting reencrypt route %s: %v",
+						routename, err)
+					// Don't continue if we could not clean up the reencrypt route.
+					return err
+				}
+			}
+		}
 	}
 
 	return nil

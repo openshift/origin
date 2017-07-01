@@ -204,7 +204,21 @@ func (c *AvailableConditionController) sync(key string) error {
 		}
 		ctx, _ := context.WithTimeout(req.Context(), 5*time.Second)
 		req.WithContext(ctx)
-		resp, err := httpClient.Do(req)
+		var requestErr error
+		go func() {
+			var resp *http.Response
+			resp, requestErr = httpClient.Do(req)
+			if resp != nil {
+				resp.Body.Close()
+			}
+		}()
+
+		// wait for the request to finish to be cancelled, then check the error
+		<-ctx.Done()
+		err = ctx.Err()
+		if err == nil {
+			err = requestErr
+		}
 		if err != nil {
 			availableCondition.Status = apiregistration.ConditionFalse
 			availableCondition.Reason = "FailedDiscoveryCheck"
@@ -218,7 +232,6 @@ func (c *AvailableConditionController) sync(key string) error {
 			// along with other requeues done via service change, endpoint change, and resync
 			return err
 		}
-		resp.Body.Close()
 	}
 
 	availableCondition.Reason = "Passed"

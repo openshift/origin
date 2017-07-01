@@ -36,14 +36,15 @@ function os::build::version::openshift_vars() {
 			fi
 		fi
 		# Use git describe to find the version based on annotated tags.
-		if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --long --tags --abbrev=7 "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
+		if [[ -n ${OS_GIT_VERSION-} ]] || OS_GIT_VERSION=$("${git[@]}" describe --long --tags --abbrev=7 --match 'v[0-9]*' "${OS_GIT_COMMIT}^{commit}" 2>/dev/null); then
 			# Try to match the "git describe" output to a regex to try to extract
 			# the "major" and "minor" versions and whether this is the exact tagged
 			# version or whether the tree is between two tagged versions.
-			if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)(\.[0-9]+)*([-].*)?$ ]]; then
+			if [[ "${OS_GIT_VERSION}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(\.[0-9]+)*([-].*)?$ ]]; then
 				OS_GIT_MAJOR=${BASH_REMATCH[1]}
 				OS_GIT_MINOR=${BASH_REMATCH[2]}
-				if [[ -n "${BASH_REMATCH[4]}" ]]; then
+				OS_GIT_PATCH=${BASH_REMATCH[3]}
+				if [[ -n "${BASH_REMATCH[5]}" ]]; then
 					OS_GIT_MINOR+="+"
 				fi
 			fi
@@ -111,6 +112,7 @@ OS_GIT_TREE_STATE='${OS_GIT_TREE_STATE-}'
 OS_GIT_VERSION='${OS_GIT_VERSION-}'
 OS_GIT_MAJOR='${OS_GIT_MAJOR-}'
 OS_GIT_MINOR='${OS_GIT_MINOR-}'
+OS_GIT_PATCH='${OS_GIT_PATCH-}'
 KUBE_GIT_COMMIT='${KUBE_GIT_COMMIT-}'
 KUBE_GIT_VERSION='${KUBE_GIT_VERSION-}'
 ETCD_GIT_VERSION='${ETCD_GIT_VERSION-}'

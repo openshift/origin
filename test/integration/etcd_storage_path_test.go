@@ -958,7 +958,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 			defer func() {
 				if !t.Failed() { // do not cleanup if test has already failed since we may need things in the etcd dump
 					if err := client.cleanup(all); err != nil {
-						t.Fatalf("failed to clean up etcd: %#v", err)
+						t.Errorf("failed to clean up etcd: %#v", err)
 					}
 				}
 			}()

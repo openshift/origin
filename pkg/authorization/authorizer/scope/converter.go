@@ -135,6 +135,22 @@ const (
 	UserFull = UserIndicator + "full"
 )
 
+var defaultSupportedScopesMap = map[string]string{
+	UserInfo:               "Read-only access to your user information (including username, identities, and group membership)",
+	UserAccessCheck:        `Read-only access to view your privileges (for example, "can I create builds?")`,
+	UserListScopedProjects: `Read-only access to list your projects viewable with this token and view their metadata (display name, description, etc.)`,
+	UserListAllProjects:    `Read-only access to list your projects and view their metadata (display name, description, etc.)`,
+	UserFull:               `Full read/write access with all of your permissions`,
+}
+
+func DefaultSupportedScopes() []string {
+	return sets.StringKeySet(defaultSupportedScopesMap).List()
+}
+
+func DefaultSupportedScopesMap() map[string]string {
+	return defaultSupportedScopesMap
+}
+
 // user:<scope name>
 type userEvaluator struct{}
 
@@ -153,16 +169,10 @@ func (userEvaluator) Validate(scope string) error {
 
 func (userEvaluator) Describe(scope string) (string, string, error) {
 	switch scope {
-	case UserInfo:
-		return "Read-only access to your user information (including username, identities, and group membership)", "", nil
-	case UserAccessCheck:
-		return `Read-only access to view your privileges (for example, "can I create builds?")`, "", nil
-	case UserListScopedProjects:
-		return `Read-only access to list your projects viewable with this token and view their metadata (display name, description, etc.)`, "", nil
-	case UserListAllProjects:
-		return `Read-only access to list your projects and view their metadata (display name, description, etc.)`, "", nil
+	case UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
+		return defaultSupportedScopesMap[scope], "", nil
 	case UserFull:
-		return `Full read/write access with all of your permissions`, `Includes any access you have to escalating resources like secrets`, nil
+		return defaultSupportedScopesMap[scope], `Includes any access you have to escalating resources like secrets`, nil
 	default:
 		return "", "", fmt.Errorf("unrecognized scope: %v", scope)
 	}

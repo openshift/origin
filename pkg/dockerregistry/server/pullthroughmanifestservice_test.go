@@ -51,7 +51,7 @@ func createTestRegistryServer(t *testing.T, ctx context.Context) *httptest.Serve
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	return remoteRegistryServer
 }

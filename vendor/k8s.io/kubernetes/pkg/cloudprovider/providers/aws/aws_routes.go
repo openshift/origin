@@ -108,7 +108,7 @@ func (c *Cloud) configureInstanceSourceDestCheck(instanceID string, sourceDestCh
 
 	_, err := c.ec2.ModifyInstanceAttribute(request)
 	if err != nil {
-		return fmt.Errorf("error configuring source-dest-check on instance %s: %v", instanceID, err)
+		return fmt.Errorf("error configuring source-dest-check on instance %s: %q", instanceID, err)
 	}
 	return nil
 }
@@ -155,7 +155,7 @@ func (c *Cloud) CreateRoute(clusterName string, nameHint string, route *cloudpro
 
 		_, err = c.ec2.DeleteRoute(request)
 		if err != nil {
-			return fmt.Errorf("error deleting blackholed AWS route (%s): %v", aws.StringValue(deleteRoute.DestinationCidrBlock), err)
+			return fmt.Errorf("error deleting blackholed AWS route (%s): %q", aws.StringValue(deleteRoute.DestinationCidrBlock), err)
 		}
 	}
 
@@ -167,7 +167,7 @@ func (c *Cloud) CreateRoute(clusterName string, nameHint string, route *cloudpro
 
 	_, err = c.ec2.CreateRoute(request)
 	if err != nil {
-		return fmt.Errorf("error creating AWS route (%s): %v", route.DestinationCIDR, err)
+		return fmt.Errorf("error creating AWS route (%s): %q", route.DestinationCIDR, err)
 	}
 
 	return nil
@@ -187,7 +187,7 @@ func (c *Cloud) DeleteRoute(clusterName string, route *cloudprovider.Route) erro
 
 	_, err = c.ec2.DeleteRoute(request)
 	if err != nil {
-		return fmt.Errorf("error deleting AWS route (%s): %v", route.DestinationCIDR, err)
+		return fmt.Errorf("error deleting AWS route (%s): %q", route.DestinationCIDR, err)
 	}
 
 	return nil

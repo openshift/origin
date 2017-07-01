@@ -27,6 +27,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	oversion "github.com/openshift/origin/pkg/version"
 )
 
@@ -217,8 +218,8 @@ func (c *AssetConfig) addHandlers(handler http.Handler) (http.Handler, error) {
 		KubernetesAddr:        masterURL.Host,
 		KubernetesPrefix:      server.DefaultLegacyAPIPrefix,
 		KubernetesResources:   k8sResources.List(),
-		OAuthAuthorizeURI:     OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthTokenURI:         OpenShiftOAuthTokenURL(masterURL.String()),
+		OAuthAuthorizeURI:     oauthutil.OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthTokenURI:         oauthutil.OpenShiftOAuthTokenURL(masterURL.String()),
 		OAuthRedirectBase:     c.Options.PublicURL,
 		OAuthClientID:         OpenShiftWebConsoleClientID,
 		LogoutURI:             c.Options.LogoutURL,

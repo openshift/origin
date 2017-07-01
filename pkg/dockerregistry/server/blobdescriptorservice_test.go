@@ -89,7 +89,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("DOCKER_REGISTRY_URL", serverURL.Host)
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	desc, _, err := registrytest.UploadRandomTestBlob(serverURL, nil, "user/app")
 	if err != nil {

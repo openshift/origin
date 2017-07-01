@@ -1,4 +1,4 @@
-package discovery
+package util
 
 import (
 	"reflect"
@@ -7,18 +7,18 @@ import (
 	"github.com/RangelReale/osin"
 )
 
-func TestGet(t *testing.T) {
-	actual := Get("https://localhost:8443", "https://localhost:8443/oauth/authorize", "https://localhost:8443/oauth/token")
+func TestGetOauthMetadata(t *testing.T) {
+	actual := GetOauthMetadata("https://localhost:8443")
 	expected := OauthAuthorizationServerMetadata{
 		Issuer:                "https://localhost:8443",
 		AuthorizationEndpoint: "https://localhost:8443/oauth/authorize",
 		TokenEndpoint:         "https://localhost:8443/oauth/token",
 		ScopesSupported: []string{
+			"user:check-access",
 			"user:full",
 			"user:info",
-			"user:check-access",
-			"user:list-scoped-projects",
 			"user:list-projects",
+			"user:list-scoped-projects",
 		},
 		ResponseTypesSupported: osin.AllowedAuthorizeType{
 			"code",

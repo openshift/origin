@@ -17,7 +17,7 @@ import (
 func setup(t *testing.T) (ovs.Interface, *ovsController, []string) {
 	ovsif := ovs.NewFake(BR)
 	oc := NewOVSController(ovsif, 0, true)
-	err := oc.SetupOVS("10.128.0.0/14", "172.30.0.0/16", "10.128.0.0/23", "10.128.0.1")
+	err := oc.SetupOVS("10.128.0.0/14", "172.30.0.0/16", "10.128.0.0/23", "10.128.0.1", "172.17.0.4")
 	if err != nil {
 		t.Fatalf("Unexpected error setting up OVS: %v", err)
 	}
