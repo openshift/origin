@@ -540,7 +540,7 @@ func IsTerminatedDeployment(deployment runtime.Object) bool {
 	return IsCompleteDeployment(deployment) || IsFailedDeployment(deployment)
 }
 
-// IsCompleteDeployment returns true if the passed deployment failed.
+// IsCompleteDeployment returns true if the passed deployment is in state complete.
 func IsCompleteDeployment(deployment runtime.Object) bool {
 	current := DeploymentStatusFor(deployment)
 	return current == deployapi.DeploymentStatusComplete

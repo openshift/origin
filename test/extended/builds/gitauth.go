@@ -74,7 +74,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the deployment of the gitserver to be in the Complete phase")
-		err = exutil.WaitForADeploymentToComplete(oc.KubeClient().Core().ReplicationControllers(oc.Namespace()), gitServerDeploymentConfigName, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), gitServerDeploymentConfigName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		sourceSecretName := secretFunc()
@@ -88,7 +88,7 @@ var _ = g.Describe("[builds][Slow] can use private repositories as build input",
 		g.By("starting a test build")
 		br, _ := exutil.StartBuildAndWait(oc, buildConfigName)
 		if !br.BuildSuccess {
-			exutil.DumpDeploymentLogs(gitServerDeploymentConfigName, oc)
+			exutil.DumpApplicationPodLogs(gitServerDeploymentConfigName, oc)
 		}
 		br.AssertSuccess()
 	}
