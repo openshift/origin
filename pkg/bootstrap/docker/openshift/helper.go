@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -669,19 +670,13 @@ func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
 		return semver.Version{}, fmt.Errorf("did not find version in command output")
 	}
 
-	// The OSE version may have > 4 parts to the version string
-	// We'll only take the first 3
-	parts := strings.Split(versionStr, ".")
-	if len(parts) > 3 {
-		versionStr = strings.Join(parts[:3], ".")
-	}
+	// The OCP version may have > 4 parts to the version string,
+	// e.g. 3.5.1.1-prerelease, whereas Origin will be 3.5.1-prerelease,
+	// drop the 4th digit for OCP.
+	re := regexp.MustCompile("([0-9]+).([0-9]+).([0-9]+).([0-9]+)(.*)")
+	versionStr = re.ReplaceAllString(versionStr, "${1}.${2}.${3}${5}")
 
 	version, err := semver.Parse(versionStr)
-	if err == nil {
-		// ignore pre-release portion
-		version.Pre = []semver.PRVersion{}
-		h.version = &version
-	}
 	return version, err
 }
 
