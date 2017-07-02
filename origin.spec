@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 19fc7b6cc7939af7e65d32c40e3c2dfc980f39d8
+%global commit 857118cd2072b79afb3db20dc57c8b514144246d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.129 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=19fc7b6
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.130 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=857118c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.130
+Version:        3.6.131
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,26 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Jul 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.131-1
+- Revert "Windows compile time info" (ccoleman@redhat.com)
+- Bug 1453190 - Fix pod update operation (rpenta@redhat.com)
+- ipfailover - control preempt strategy (pcameron@redhat.com)
+- set triggers is fetching resources twice (ccoleman@redhat.com)
+- bump(github.com/opencontainers/runc):
+  d223e2adae83f62d58448a799a5da05730228089 (sjenning@redhat.com)
+- explicitly enable alpha apis when SC is on (bparees@redhat.com)
+- UPSTREAM: 48343: don't accept delete tokens taht are waiting to be reaped
+  (deads@redhat.com)
+- don't accept deleted tokens (deads@redhat.com)
+- loosen deploymentconfig version checking in extended tests
+  (bparees@redhat.com)
+- bug fixes to extended test deployment config logging (jminter@redhat.com)
+- Router bug fix: allow access with mixedcase/uppercase hostnames
+  (yhlou@travelsky.com)
+- UPSTREAM: 47367: add client side event spam filtering (decarr@redhat.com)
+- bump(github.com/juju/ratelimit): 5b9ff866471762aa2ab2dced63c9fb6f53921342
+  (decarr@redhat.com)
+
 * Sat Jul 01 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.130-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 8aad754
   (smunilla@redhat.com)
