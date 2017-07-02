@@ -71,6 +71,8 @@ os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-name
 # non-string parameterized values should be stripped
 os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-refstripped\")].metadata.namespace}"' 'namespace is not found'
 os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/template-with-namespaces.json -o jsonpath="{.items[?(@.metadata.name==\"route-edge-prefix-refstripped\")].metadata.namespace}"' 'namespace is not found'
+# ensure --build-env environment variables get added to the buildconfig
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-app-label.json --build-env FOO=bar -o yaml' 'FOO'
 # ensure the objects can actually get created with a namespace specified
 project=$(oc project -q)
 os::cmd::expect_success 'oc new-project template-substitute'
