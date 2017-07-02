@@ -239,13 +239,13 @@ func (oc *ovsController) cleanupPodFlows(podIP string) error {
 	return otx.EndTransaction()
 }
 
-func getPodNote(containerID string) (string, error) {
-	bytes, err := hex.DecodeString(containerID)
+func getPodNote(sandboxID string) (string, error) {
+	bytes, err := hex.DecodeString(sandboxID)
 	if err != nil {
-		return "", fmt.Errorf("failed to decode container ID %q: %v", containerID, err)
+		return "", fmt.Errorf("failed to decode sandbox ID %q: %v", sandboxID, err)
 	}
 	if len(bytes) != 32 {
-		return "", fmt.Errorf("invalid container ID %q length; expected 32 bytes", containerID)
+		return "", fmt.Errorf("invalid sandbox ID %q length; expected 32 bytes", sandboxID)
 	}
 	var note string
 	for _, b := range bytes {
@@ -257,8 +257,8 @@ func getPodNote(containerID string) (string, error) {
 	return note, nil
 }
 
-func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, containerID string, vnid uint32) (int, error) {
-	note, err := getPodNote(containerID)
+func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, sandboxID string, vnid uint32) (int, error) {
+	note, err := getPodNote(sandboxID)
 	if err != nil {
 		return -1, err
 	}
@@ -308,8 +308,8 @@ func (oc *ovsController) SetPodBandwidth(hostVeth string, ingressBPS, egressBPS 
 	return nil
 }
 
-func getPodDetailsByContainerID(flows []string, containerID string) (int, string, string, string, error) {
-	note, err := getPodNote(containerID)
+func getPodDetailsBySandboxID(flows []string, sandboxID string) (int, string, string, string, error) {
+	note, err := getPodNote(sandboxID)
 	if err != nil {
 		return 0, "", "", "", err
 	}
@@ -350,12 +350,12 @@ func getPodDetailsByContainerID(flows []string, containerID string) (int, string
 	return 0, "", "", "", fmt.Errorf("failed to find pod details from OVS flows")
 }
 
-func (oc *ovsController) UpdatePod(containerID string, vnid uint32) error {
+func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 	flows, err := oc.ovs.DumpFlows()
 	if err != nil {
 		return err
 	}
-	ofport, podIP, podMAC, note, err := getPodDetailsByContainerID(flows, containerID)
+	ofport, podIP, podMAC, note, err := getPodDetailsBySandboxID(flows, sandboxID)
 	if err != nil {
 		return err
 	}
