@@ -36,6 +36,7 @@ func generateEnvEntries(name string, options *ipfailover.IPFailoverConfigCmdOpti
 		"OPENSHIFT_HA_IPTABLES_CHAIN":    options.IptablesChain,
 		"OPENSHIFT_HA_NOTIFY_SCRIPT":     options.NotifyScript,
 		"OPENSHIFT_HA_CHECK_SCRIPT":      options.CheckScript,
+		"OPENSHIFT_HA_PREEMPTION":        options.Preemption,
 		"OPENSHIFT_HA_CHECK_INTERVAL":    interval,
 		// "OPENSHIFT_HA_UNICAST_PEERS":     "127.0.0.1",
 	})
