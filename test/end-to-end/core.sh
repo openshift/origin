@@ -541,6 +541,11 @@ os::cmd::expect_success "oc create route edge --service=frontend --cert=${MASTER
                                               --ca-cert=${MASTER_CONFIG_DIR}/ca.crt                 \
                                               --hostname=www.example.com -n test"
 os::cmd::try_until_text "curl -s -k --resolve 'www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST}' https://www.example.com" "Hello from OpenShift" "$((10*TIME_SEC))"
+# Ensure mixedcase requests work properly for edge/reencrypt routes (SNI-enabled)
+os::cmd::try_until_text "curl -s -k --resolve 'www.example.com:443:${CONTAINER_ACCESSIBLE_API_HOST}' https://wWw.ExAmPlE.cOm" "Hello from OpenShift" "$((10*TIME_SEC))"
+# Ensure mixedcase requests work properly for edge/reencrypt routes (SNI-disabled)
+os::cmd::try_until_text "curl -s -k -H 'Host: wWw.ExAmPlE.cOm' https://${CONTAINER_ACCESSIBLE_API_HOST}" "Hello from OpenShift" "$((10*TIME_SEC))"
+# TODO: Ensure mixedcase requests work properly for passthrough routes
 
 # Pod node selection
 os::log::info "Validating pod.spec.nodeSelector rejections"

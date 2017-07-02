@@ -28,14 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 )
 
-func deploymentStatuses(rcs []kapi.ReplicationController) []string {
-	statuses := []string{}
-	for _, rc := range rcs {
-		statuses = append(statuses, string(deployutil.DeploymentStatusFor(&rc)))
-	}
-	return statuses
-}
-
 func deploymentPods(pods []kapiv1.Pod) (map[string][]*kapiv1.Pod, error) {
 	deployers := make(map[string][]*kapiv1.Pod)
 	for i := range pods {

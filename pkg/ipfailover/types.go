@@ -26,6 +26,14 @@ const (
 	// between calls to the CheckScript
 	DefaultCheckInterval = 2
 
+	// DefaultPreemption strategy determines what to do when a lower
+	// priority machine has MASTER and a higher priority machine becomes
+	// available. The choices are "nopreempt" which leaves the lower priority
+	// machine as MASTER and "preempt_delay 300" (the default) which allows the
+	// supplied number of seconds to settle and then switches to the higher
+	// priority machine.
+	DefaultPreemption = "preempt_delay 300"
+
 	// DefaultIptablesChain is the default iptables chain on which to add
 	// a rule that accesses 224.0.0.18 (if none exists).
 	DefaultIptablesChain = "INPUT"
@@ -51,6 +59,7 @@ type IPFailoverConfigCmdOptions struct {
 	NotifyScript     string
 	CheckScript      string
 	CheckInterval    int
+	Preemption       string
 	NetworkInterface string
 	WatchPort        int
 	VRRPIDOffset     int

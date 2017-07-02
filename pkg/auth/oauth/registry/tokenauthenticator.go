@@ -40,6 +40,9 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 	if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {
 		return nil, false, ErrExpired
 	}
+	if token.DeletionTimestamp != nil {
+		return nil, false, ErrExpired
+	}
 
 	u, err := a.users.GetUser(ctx, token.UserName, &metav1.GetOptions{})
 	if err != nil {

@@ -10,7 +10,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -139,15 +137,6 @@ func DumpImageStreams(oc *CLI) {
 	}
 }
 
-func DumpNamedBuildLogs(buildName string, oc *CLI) {
-	buildOuput, err := oc.Run("logs").Args("-f", "build/"+buildName, "--timestamps").Output()
-	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs for %s: %s\n\n", buildName, buildOuput)
-	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on build logs for %s: %+v\n\n", buildName, err)
-	}
-}
-
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
 func DumpBuildLogs(bc string, oc *CLI) {
 	buildOutput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
@@ -163,41 +152,54 @@ func DumpBuildLogs(bc string, oc *CLI) {
 	ExaminePodDiskUsage(oc)
 }
 
-func GetDeploymentConfigPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
+func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
+	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", deployapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
+}
+
+func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
 	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("deploymentconfig=%s", dcName)).String()})
 }
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
-func DumpDeploymentLogs(dc string, oc *CLI) {
-	fmt.Fprintf(g.GinkgoWriter, "\n\nDumping logs for deploymentconfig %q in namespace %q\n\n", dc, oc.Namespace())
+func DumpDeploymentLogs(dcName string, version int64, oc *CLI) {
+	fmt.Fprintf(g.GinkgoWriter, "Dumping deployment logs for deploymentconfig %q\n", dcName)
 
-	pods, err := GetDeploymentConfigPods(oc, dc)
+	pods, err := GetDeploymentConfigPods(oc, dcName, version)
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q: %+v\n\n", dc, err)
+		fmt.Fprintf(g.GinkgoWriter, "Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
 		return
 	}
 
-	if pods == nil || pods.Items == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\nUnable to retrieve logs for deploymentconfig %q. No pods found: %+v\n\n", dc, pods)
+	DumpPodLogs(pods.Items, oc)
+}
+
+// DumpApplicationPodLogs will dump the latest application logs for a DeploymentConfig for debug purposes
+func DumpApplicationPodLogs(dcName string, oc *CLI) {
+	fmt.Fprintf(g.GinkgoWriter, "Dumping application logs for deploymentconfig %q\n", dcName)
+
+	pods, err := GetApplicationPods(oc, dcName)
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
 		return
 	}
 
-	for _, pod := range pods.Items {
-		podName := pod.ObjectMeta.Name
-		fmt.Fprintf(g.GinkgoWriter, "\n\nDescribing deploymentconfig %q pod %q\n", dc, podName)
-		descOutput, err := oc.Run("describe").Args("pod/" + podName).Output()
+	DumpPodLogs(pods.Items, oc)
+}
+
+func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
+	for _, pod := range pods {
+		descOutput, err := oc.Run("describe").Args("pod/" + pod.Name).Output()
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "%s\n\n", descOutput)
+			fmt.Fprintf(g.GinkgoWriter, "Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "Error retrieving pod description: %v\n\n", err)
+			fmt.Fprintf(g.GinkgoWriter, "Error retrieving description for pod %q: %v\n\n", pod.Name, err)
 		}
 
-		fmt.Fprintf(g.GinkgoWriter, "\n\nLog for deploymentconfig %q pod %q\n---->\n", dc, podName)
-		depOutput, err := oc.Run("logs").Args("pod/" + podName).Output()
+		depOutput, err := oc.Run("logs").Args("pod/" + pod.Name).Output()
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "%s\n<----end of log for %q\n", depOutput, podName)
+			fmt.Fprintf(g.GinkgoWriter, "Log for pod %q\n---->\n%s\n<----end of log for %[1]q\n", pod.Name, depOutput)
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n<----unable to retrieve logs: %v\n", err)
+			fmt.Fprintf(g.GinkgoWriter, "Error retrieving logs for pod %q: %v\n\n", pod.Name, err)
 		}
 	}
 
@@ -270,16 +272,6 @@ func ExaminePodDiskUsage(oc *CLI) {
 	} else {
 		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod du: %v\n", err)
 	}
-}
-
-// WriteObjectToFile writes the JSON representation of runtime.Object into a temporary
-// file.
-func WriteObjectToFile(obj runtime.Object, filename string) error {
-	content, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapi.Registry.EnabledVersions()...), obj)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(filename, []byte(content), 0644)
 }
 
 // VarSubOnFile reads in srcFile, finds instances of ${key} from the map
@@ -733,217 +725,79 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 		strings.Contains(i.Annotations[imageapi.DockerImageRepositoryCheckAnnotation], "error")
 }
 
-// compareResourceControllerNames compares names of two resource controllers. It returns:
-//  -1 if rc a is older than b
-//   1 if rc a is newer than b
-//   0 if their names are the same
-func compareResourceControllerNames(a, b string) int {
-	var reDeploymentConfigName = regexp.MustCompile(`^(.*)-(\d+)$`)
-	am := reDeploymentConfigName.FindStringSubmatch(a)
-	bm := reDeploymentConfigName.FindStringSubmatch(b)
+// WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
+// to a given version and report minimum availability.
+func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, namespace, name string, version int64, cli *CLI) error {
+	fmt.Fprintf(g.GinkgoWriter, "waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
+	var dc *deployapi.DeploymentConfig
 
-	if len(am) == 0 || len(bm) == 0 {
-		switch {
-		case a < b:
-			return -1
-		case a > b:
-			return 1
-		default:
-			return 0
-		}
-	}
-
-	aname, averstr := am[0], am[1]
-	bname, bverstr := bm[0], bm[1]
-
-	aver, _ := strconv.Atoi(averstr)
-	bver, _ := strconv.Atoi(bverstr)
-
-	switch {
-	case aname < bname || (aname == bname && aver < bver):
-		return -1
-	case bname < aname || (bname == aname && bver < aver):
-		return 1
-	default:
-		return 0
-	}
-}
-
-// WaitForADeployment waits for a deployment to fulfill either isOK or isFailed.
-// When isOK returns true, WaitForADeployment returns nil, when isFailed returns
-// true, WaitForADeployment returns an error including the deployment status.
-// WaitForADeployment waits for at most a certain timeout (non-configurable).
-func WaitForADeployment(client kcoreclient.ReplicationControllerInterface, name string, isOK, isFailed func(*kapiv1.ReplicationController) bool, oc *CLI) error {
-	timeout := 15 * time.Minute
-
-	// closing done signals that any pending operation should be aborted.
-	done := make(chan struct{})
-	defer close(done)
-
-	// okOrFailed returns whether a replication controller matches either of
-	// the predicates isOK or isFailed, and the associated error in case of
-	// failure.
-	okOrFailed := func(rc *kapiv1.ReplicationController) (err error, matched bool) {
-		if isOK(rc) {
-			return nil, true
-		}
-		if isFailed(rc) {
-			return fmt.Errorf("The deployment %q status is %q", name, rc.Annotations[deployapi.DeploymentStatusAnnotation]), true
-		}
-		return nil, false
-	}
-
-	// waitForDeployment waits until okOrFailed returns true or the done
-	// channel is closed.
-	waitForDeployment := func() (err error, retry bool) {
-		requirement, err := labels.NewRequirement(deployapi.DeploymentConfigAnnotation, selection.Equals, []string{name})
-		if err != nil {
-			return fmt.Errorf("unexpected error generating label selector: %v", err), false
-		}
-		list, err := client.List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
-		if err != nil {
-			return err, false
-		}
-		// multiple deployments are conceivable; so we look to see how the latest depoy does
-		var lastRC *kapiv1.ReplicationController
-		for _, rc := range list.Items {
-			if lastRC == nil {
-				lastRC = &rc
-				continue
-			}
-			if compareResourceControllerNames(lastRC.GetName(), rc.GetName()) <= 0 {
-				lastRC = &rc
-			}
-		}
-
-		if lastRC != nil {
-			err, matched := okOrFailed(lastRC)
-			if matched {
-				return err, false
-			}
-		}
-
-		w, err := client.Watch(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String(), ResourceVersion: list.ResourceVersion})
-		if err != nil {
-			return err, false
-		}
-		defer w.Stop()
-		for {
-			select {
-			case val, ok := <-w.ResultChan():
-				if !ok {
-					// watcher error, re-get and re-watch
-					return nil, true
-				}
-				rc, ok := val.Object.(*kapiv1.ReplicationController)
-				if !ok {
-					continue
-				}
-				if lastRC == nil {
-					lastRC = rc
-				}
-				// multiple deployments are conceivable; so we look to see how the latest deployment does
-				if compareResourceControllerNames(lastRC.GetName(), rc.GetName()) <= 0 {
-					lastRC = rc
-					err, matched := okOrFailed(rc)
-					if matched {
-						return err, false
-					}
-				}
-			case <-done:
-				// no more time left, stop what we were doing,
-				// do no retry.
-				return nil, false
-			}
-		}
-	}
-
-	// errCh is buffered so the goroutine below never blocks on sending,
-	// preventing a goroutine leak if we reach the timeout.
-	errCh := make(chan error, 1)
-
-	go func() {
-		defer close(errCh)
-		err, retry := waitForDeployment()
-		for retry {
-			err, retry = waitForDeployment()
-		}
-		errCh <- err
-	}()
-
-	select {
-	case err := <-errCh:
-		if err != nil {
-			DumpDeploymentLogs(name, oc)
-		}
-		return err
-	case <-time.After(timeout):
-		DumpDeploymentLogs(name, oc)
-		// end for timing issues where we miss watch updates
-		return fmt.Errorf("timed out waiting for deployment %q after %v", name, timeout)
-	}
-}
-
-// WaitForADeploymentToComplete waits for a deployment to complete.
-func WaitForADeploymentToComplete(client kcoreclient.ReplicationControllerInterface, name string, oc *CLI) error {
-	return WaitForADeployment(client, name, CheckDeploymentCompletedFn, CheckDeploymentFailedFn, oc)
-}
-
-// WaitForRegistry waits until a newly deployed registry becomes ready. If waitForDCVersion is given, the
-// function will wait until a corresponding replica controller completes. If not give, the latest version of
-// registry's deployment config will be fetched from etcd.
-func WaitForRegistry(
-	dcNamespacer client.DeploymentConfigsNamespacer,
-	kubeClient kclientset.Interface,
-	waitForDCVersion *int64,
-	oc *CLI,
-) error {
-	var latestVersion int64
 	start := time.Now()
-
-	if waitForDCVersion != nil {
-		latestVersion = *waitForDCVersion
-	} else {
-		dc, err := dcNamespacer.DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
+	err := wait.Poll(time.Second, 15*time.Minute, func() (done bool, err error) {
+		dc, err = oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
-			return err
+			return false, err
 		}
-		latestVersion = dc.Status.LatestVersion
-	}
-	fmt.Fprintf(g.GinkgoWriter, "waiting for deployment of version %d to complete\n", latestVersion)
 
-	err := WaitForADeployment(kubeClient.CoreV1().ReplicationControllers(metav1.NamespaceDefault), "docker-registry",
-		func(rc *kapiv1.ReplicationController) bool {
-			if !CheckDeploymentCompletedFn(rc) {
-				return false
+		// TODO re-enable this check once @mfojtik introduces a test that ensures we'll only ever get
+		// exactly one deployment triggered.
+		/*
+			if dc.Status.LatestVersion > version {
+				return false, fmt.Errorf("latestVersion %d passed %d", dc.Status.LatestVersion, version)
 			}
-			v, err := strconv.ParseInt(rc.Annotations[deployapi.DeploymentVersionAnnotation], 10, 64)
-			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "failed to parse %q of replication controller %q: %v\n", deployapi.DeploymentVersionAnnotation, rc.Name, err)
-				return false
+		*/
+		if dc.Status.LatestVersion < version {
+			return false, nil
+		}
+
+		var progressing, available *deployapi.DeploymentCondition
+		for i, condition := range dc.Status.Conditions {
+			switch condition.Type {
+			case deployapi.DeploymentProgressing:
+				progressing = &dc.Status.Conditions[i]
+
+			case deployapi.DeploymentAvailable:
+				available = &dc.Status.Conditions[i]
 			}
-			return v >= latestVersion
-		},
-		func(rc *kapiv1.ReplicationController) bool {
-			v, err := strconv.ParseInt(rc.Annotations[deployapi.DeploymentVersionAnnotation], 10, 64)
-			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "failed to parse %q of replication controller %q: %v\n", deployapi.DeploymentVersionAnnotation, rc.Name, err)
-				return false
-			}
-			if v < latestVersion {
-				return false
-			}
-			return CheckDeploymentFailedFn(rc)
-		}, oc)
+		}
+
+		if progressing != nil && progressing.Status == kapi.ConditionFalse {
+			return false, fmt.Errorf("not progressing")
+		}
+
+		if progressing != nil &&
+			progressing.Status == kapi.ConditionTrue &&
+			progressing.Reason == deployapi.NewRcAvailableReason &&
+			available != nil &&
+			available.Status == kapi.ConditionTrue {
+			return true, nil
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "got error %q when waiting for deploymentconfig %s/%s to be available with version %d\n", err, namespace, name, version)
+		cli.Run("get").Args("dc", dc.Name, "-o", "yaml").Execute()
+
+		DumpDeploymentLogs(name, version, cli)
+		DumpApplicationPodLogs(name, cli)
+
+		return err
+	}
+
+	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{deployutil.LatestDeploymentNameForConfig(dc)})
 	if err != nil {
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{fmt.Sprintf("docker-registry-%d", latestVersion)})
-	pods, err := WaitForPods(kubeClient.CoreV1().Pods(metav1.NamespaceDefault), labels.NewSelector().Add(*requirement), CheckPodIsReadyFn, 1, time.Minute)
-	now := time.Now()
-	fmt.Fprintf(g.GinkgoWriter, "deployed registry pod %s after %s\n", pods[0], now.Sub(start).String())
-	return err
+	podnames, err := GetPodNamesByFilter(kc.CoreV1().Pods(namespace), labels.NewSelector().Add(*requirement), func(kapiv1.Pod) bool { return true })
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(g.GinkgoWriter, "deploymentconfig %s/%s available after %s\npods: %s\n", namespace, name, time.Now().Sub(start), strings.Join(podnames, ", "))
+
+	return nil
 }
 
 func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
@@ -1019,20 +873,6 @@ func WaitForResourceQuotaSync(
 		}
 	}
 	return nil, wait.ErrWaitTimeout
-}
-
-// CheckDeploymentCompletedFn returns true if the deployment completed
-var CheckDeploymentCompletedFn = func(dv1 *kapiv1.ReplicationController) bool {
-	d := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(dv1, d, nil)
-	return deployutil.IsCompleteDeployment(d)
-}
-
-// CheckDeploymentFailedFn returns true if the deployment failed
-var CheckDeploymentFailedFn = func(dv1 *kapiv1.ReplicationController) bool {
-	d := &kapi.ReplicationController{}
-	kapiv1.Convert_v1_ReplicationController_To_api_ReplicationController(dv1, d, nil)
-	return deployutil.IsFailedDeployment(d)
 }
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
@@ -1385,15 +1225,6 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 	return fmt.Sprintf("%s:%d", endpoint.Subsets[0].Addresses[0].IP, endpoint.Subsets[0].Ports[0].Port), nil
 }
 
-// GetPodForImage creates a new Pod that runs the containers from specified
-// Docker image reference
-func GetPodForImage(dockerImageReference string) *kapiv1.Pod {
-	return GetPodForContainer(kapiv1.Container{
-		Name:  "test",
-		Image: dockerImageReference,
-	})
-}
-
 // CreateExecPodOrFail creates a simple busybox pod in a sleep loop used as a
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
@@ -1401,26 +1232,6 @@ func GetPodForImage(dockerImageReference string) *kapiv1.Pod {
 func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) string {
 	framework.Logf("Creating new exec pod")
 	execPod := framework.NewHostExecPodSpec(ns, name)
-	created, err := client.Pods(ns).Create(execPod)
-	o.Expect(err).NotTo(o.HaveOccurred())
-	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
-		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, nil
-		}
-		return retrievedPod.Status.Phase == kapiv1.PodRunning, nil
-	})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	return created.Name
-}
-
-// CreateExecPodOnNode launches a exec pod in the given namespace and node
-// waits until it's Running, created pod name would be returned
-// TODO: expose upstream
-func CreateExecPodOnNode(client kcoreclient.CoreV1Interface, ns, nodeName, name string) string {
-	framework.Logf("Creating exec pod %q in namespace %q", name, ns)
-	execPod := framework.NewHostExecPodSpec(ns, name)
-	execPod.Spec.NodeName = nodeName
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
 	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {

@@ -21,15 +21,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
-
-func getPodContainerID(pod *kapi.Pod) string {
-	if len(pod.Status.ContainerStatuses) > 0 {
-		return kcontainer.ParseContainerID(pod.Status.ContainerStatuses[0].ContainerID).ID
-	}
-	return ""
-}
 
 func hostSubnetToString(subnet *osapi.HostSubnet) string {
 	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)

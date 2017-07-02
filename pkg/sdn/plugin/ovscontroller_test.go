@@ -215,16 +215,16 @@ func TestOVSService(t *testing.T) {
 }
 
 const (
-	containerID         string = "bcb5d8d287fcf97458c48ad643b101079e3bc265a94e097e7407440716112f69"
-	containerNote       string = "bc.b5.d8.d2.87.fc.f9.74.58.c4.8a.d6.43.b1.01.07.9e.3b.c2.65.a9.4e.09.7e.74.07.44.07.16.11.2f.69"
-	containerNoteAction string = "note:" + containerNote
+	sandboxID         string = "bcb5d8d287fcf97458c48ad643b101079e3bc265a94e097e7407440716112f69"
+	sandboxNote       string = "bc.b5.d8.d2.87.fc.f9.74.58.c4.8a.d6.43.b1.01.07.9e.3b.c2.65.a9.4e.09.7e.74.07.44.07.16.11.2f.69"
+	sandboxNoteAction string = "note:" + sandboxNote
 )
 
 func TestOVSPod(t *testing.T) {
 	ovsif, oc, origFlows := setup(t)
 
 	// Add
-	ofport, err := oc.SetUpPod("veth1", "10.128.0.2", "11:22:33:44:55:66", containerID, 42)
+	ofport, err := oc.SetUpPod("veth1", "10.128.0.2", "11:22:33:44:55:66", sandboxID, 42)
 	if err != nil {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", containerNoteAction},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", sandboxNoteAction},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -262,7 +262,7 @@ func TestOVSPod(t *testing.T) {
 	}
 
 	// Update
-	err = oc.UpdatePod(containerID, 43)
+	err = oc.UpdatePod(sandboxID, 43)
 	if err != nil {
 		t.Fatalf("Unexpected error adding pod rules: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestOVSPod(t *testing.T) {
 	err = assertFlowChanges(origFlows, flows,
 		flowChange{
 			kind:  flowAdded,
-			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", containerNoteAction},
+			match: []string{"table=20", fmt.Sprintf("in_port=%d", ofport), "arp", "10.128.0.2", "11:22:33:44:55:66", sandboxNoteAction},
 		},
 		flowChange{
 			kind:  flowAdded,
@@ -317,18 +317,18 @@ func TestOVSPod(t *testing.T) {
 
 func TestGetPodDetails(t *testing.T) {
 	type testcase struct {
-		containerID string
-		flows       []string
-		ofport      int
-		ip          string
-		mac         string
-		note        string
-		errStr      string
+		sandboxID string
+		flows     []string
+		ofport    int
+		ip        string
+		mac       string
+		note      string
+		errStr    string
 	}
 
 	testcases := []testcase{
 		{
-			containerID: containerID,
+			sandboxID: sandboxID,
 			flows: []string{
 				"cookie=0x0, duration=12.243s, table=0, n_packets=0, n_bytes=0, priority=250,ip,in_port=2,nw_dst=224.0.0.0/4 actions=drop",
 				"cookie=0x0, duration=12.258s, table=0, n_packets=0, n_bytes=0, priority=200,arp,in_port=1,arp_spa=10.128.0.0/14,arp_tpa=10.130.0.0/23 actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10",
@@ -388,12 +388,12 @@ func TestGetPodDetails(t *testing.T) {
 			ofport: 3,
 			ip:     "10.130.0.2",
 			mac:    "4a:77:32:e4:ab:9d",
-			note:   containerNote,
+			note:   sandboxNote,
 		},
 	}
 
 	for _, tc := range testcases {
-		ofport, ip, mac, note, err := getPodDetailsByContainerID(tc.flows, tc.containerID)
+		ofport, ip, mac, note, err := getPodDetailsBySandboxID(tc.flows, tc.sandboxID)
 		if err != nil {
 			if tc.errStr != "" {
 				if !strings.Contains(err.Error(), tc.errStr) {

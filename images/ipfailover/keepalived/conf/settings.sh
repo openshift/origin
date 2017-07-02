@@ -68,6 +68,15 @@ HA_NOTIFY_SCRIPT="${OPENSHIFT_HA_NOTIFY_SCRIPT:-""}"
 # Default is 2
 HA_CHECK_INTERVAL="${OPENSHIFT_HA_CHECK_INTERVAL:-"2"}"
 
+#  VRRP will preempt a lower priority machine when a higher priority one
+#  comes back online. You can change the preemption strategy to either:
+#     "nopreempt"  - which allows the lower priority machine to maintain its
+#                    'MASTER' status.
+#     OR
+#     "preempt_delay 300"  - waits 5 mins (in seconds) after startup to
+#                            preempt lower priority MASTERs.
+PREEMPTION="${OPENSHIFT_HA_PREEMPTION:-"preempt_delay 300"}"
+
 
 #  ========================================================================
 #  Default settings - not currently exposed or overridden on OpenShift.
@@ -93,17 +102,6 @@ SMTP_SERVER="${OPENSHIFT_HA_SMTP_SERVER:-"127.0.0.1"}"
 
 #  SMTP connect timeout (in seconds).
 SMTP_CONNECT_TIMEOUT=30
-
-
-#  VRRP will preempt a lower priority machine when a higher priority one
-#  comes back online. You can change the preemption strategy to either:
-#     "nopreempt"  - which allows the lower priority machine to maintain its
-#                    'MASTER' status.
-#     OR
-#     "preempt_delay 300"  - waits 5 mins (in seconds) after startup to
-#                            preempt lower priority MASTERs.
-PREEMPTION="preempt_delay 300"
-
 
 #  By default, the IP for binding vrrpd is the primary IP on the above
 #  specified interface. If you want to hide the location of vrrpd, you can
