@@ -397,9 +397,9 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 		ns = "-n " + ns
 	}
 	if err != nil {
-		fmt.Fprintf(t.out, "%-10s %s/%s %s: %v\n", prefix, info.Mapping.Resource, info.Name, ns, err)
+		fmt.Fprintf(t.out, "%-10s %s %s/%s: %v\n", prefix, ns, info.Mapping.Resource, info.Name, err)
 	} else {
-		fmt.Fprintf(t.out, "%-10s %s/%s %s\n", prefix, info.Mapping.Resource, info.Name, ns)
+		fmt.Fprintf(t.out, "%-10s %s %s/%s\n", prefix, ns, info.Mapping.Resource, info.Name)
 	}
 }
 

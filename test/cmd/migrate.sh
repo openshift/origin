@@ -20,10 +20,10 @@ project="$( oc project -q )"
 
 os::test::junit::declare_suite_start "cmd/migrate/storage"
 os::cmd::expect_success_and_text     'oadm migrate storage' 'summary \(dry run\)'
-os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2' 'migrated \(dry run\): serviceaccounts/deployer'
-os::cmd::expect_success_and_not_text 'oadm migrate storage --loglevel=2 --include=pods' 'migrated \(dry run\): serviceaccounts/deployer'
-os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/\xFF' 'migrated \(dry run\): serviceaccounts/deployer'
-os::cmd::expect_success_and_not_text 'oadm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/deployer' 'migrated \(dry run\): serviceaccounts/deployer'
+os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2' "migrated \(dry run\): -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oadm migrate storage --loglevel=2 --include=pods' "migrated \(dry run\): -n ${project} serviceaccounts/deployer"
+os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/\xFF' "migrated \(dry run\): -n default serviceaccounts/deployer"
+os::cmd::expect_success_and_not_text 'oadm migrate storage --loglevel=2 --include=sa --from-key=default/ --to-key=default/deployer' "migrated \(dry run\): -n default serviceaccounts/deployer"
 os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2 --confirm' 'unchanged:'
 os::test::junit::declare_suite_end
 
@@ -49,7 +49,7 @@ os::cmd::expect_failure_and_text     'oadm migrate image-references a/b=a/b --lo
 os::cmd::expect_failure_and_text     'oadm migrate image-references */*=*/* --loglevel=1' 'at least one change'
 # verify dry run
 os::cmd::expect_success_and_text     'oadm migrate image-references my.docker.io/*=docker.io/* --loglevel=1' 'migrated=0'
-os::cmd::expect_success_and_text     'oadm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --loglevel=1' 'migrated \(dry run\): imagestreams/test -n '
+os::cmd::expect_success_and_text     'oadm migrate image-references --include=imagestreams docker.io/*=my.docker.io/* --loglevel=1' "migrated \(dry run\): -n ${project} imagestreams/test"
 os::cmd::expect_success_and_text     'oadm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=1'
 os::cmd::expect_success_and_text     'oadm migrate image-references --include=imagestreams docker.io/mysql=my.docker.io/* --all-namespaces=false --loglevel=1 -o yaml' 'dockerImageReference: my.docker.io/mysql@sha256:'
 os::cmd::expect_success_and_text     'oadm migrate image-references --include=imagestreams docker.io/other=my.docker.io/* --all-namespaces=false --loglevel=1' 'migrated=0'
@@ -66,7 +66,7 @@ os::test::junit::declare_suite_end
 os::test::junit::declare_suite_start 'cmd/migrate/volumesource'
 os::cmd::expect_success_and_text     'oadm migrate volumesource' 'summary \(dry run\): total=[0-9]+ errors=0 ignored=0 unchanged=[0-9]+ migrated=0'
 os::cmd::expect_success_and_text     'oc create -f test/testdata/pod-with-volumesource-metadata.yaml' 'pod "vsmpod" created'
-os::cmd::expect_failure_and_text     'oadm migrate volumesource' "pods/vsmpod -n ${project}: volumeSource.metadata is not nil"
+os::cmd::expect_failure_and_text     'oadm migrate volumesource' " -n ${project} pods/vsmpod: volumeSource.metadata is not nil"
 os::cmd::expect_failure_and_text     'oadm migrate volumesource' 'summary \(dry run\): total=[0-9]+ errors=1 ignored=0 unchanged=[0-9]+ migrated=0'
 os::cmd::expect_success_and_text     'oc delete pod vsmpod' 'pod "vsmpod" deleted'
 os::cmd::expect_failure_and_text     'oc get pod vsmpod' 'Error from server \(NotFound\): pods "vsmpod" not found'
