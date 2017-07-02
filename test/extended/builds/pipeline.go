@@ -331,6 +331,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if succeeded")
 			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
@@ -339,6 +340,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if env is set")
 			_, err = j.WaitForContent("FOO2 is BAR2", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
@@ -348,6 +350,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err = exutil.StartBuildAndWait(oc, "sample-pipeline-withenvs")
 			if err != nil || !br.BuildSuccess {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
@@ -357,6 +360,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if succeeded")
 			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
@@ -365,6 +369,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if env is set")
 			_, err = j.WaitForContent("FOO1 is BAR1", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
@@ -373,6 +378,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("get build console logs and see if env is still not set")
 			_, err = j.WaitForContent("FOO2 is null", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
 			if err != nil {
+				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
 			}
