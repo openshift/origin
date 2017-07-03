@@ -23,8 +23,6 @@ type OpenshiftControllerConfig struct {
 	UnidlingControllerConfig  UnidlingControllerConfig
 	IngressIPControllerConfig IngressIPControllerConfig
 
-	OriginToRBACSyncControllerConfig OriginToRBACSyncControllerConfig
-
 	ClusterQuotaMappingControllerConfig        ClusterQuotaMappingControllerConfig
 	ClusterQuotaReconciliationControllerConfig ClusterQuotaReconciliationControllerConfig
 }
@@ -60,7 +58,6 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
 	ret["openshift.io/cluster-quota-mapping"] = c.ClusterQuotaMappingControllerConfig.RunController
 
-	ret["openshift.io/origin-to-rbac"] = c.OriginToRBACSyncControllerConfig.RunController
 	return ret, nil
 }
 

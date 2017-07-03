@@ -1,4 +1,4 @@
-package authorizationsync
+package util
 
 import (
 	"strings"
@@ -9,25 +9,18 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/util/convert"
 )
 
 // ConvertToRBACClusterRole performs the conversion and guarantees the returned object is safe to mutate.
 func ConvertToRBACClusterRole(originClusterRole *authorizationapi.ClusterRole) (*rbac.ClusterRole, error) {
 	// convert the origin role to an rbac role
-	equivalentClusterRole, err := convert.ClusterRoleToRBAC(originClusterRole)
+	equivalentClusterRole, err := ClusterRoleToRBAC(originClusterRole)
 	if err != nil {
 		return nil, err
 	}
 
 	// normalize rules before persisting so RBAC's case sensitive authorizer will work
 	normalizePolicyRules(equivalentClusterRole.Rules)
-
-	// there's one wrinkle.  If `openshift.io/reconcile-protect` is to true, then we must set rbac.authorization.kubernetes.io/autoupdate to false to
-	if equivalentClusterRole.Annotations["openshift.io/reconcile-protect"] == "true" {
-		equivalentClusterRole.Annotations["rbac.authorization.kubernetes.io/autoupdate"] = "false"
-		delete(equivalentClusterRole.Annotations, "openshift.io/reconcile-protect")
-	}
 
 	// resource version cannot be set during creation
 	equivalentClusterRole.ResourceVersion = ""
@@ -49,7 +42,7 @@ func PrepareForUpdateClusterRole(newClusterRole, existingClusterRole *rbac.Clust
 // ConvertToRBACClusterRoleBinding performs the conversion and guarantees the returned object is safe to mutate.
 func ConvertToRBACClusterRoleBinding(originClusterRoleBinding *authorizationapi.ClusterRoleBinding) (*rbac.ClusterRoleBinding, error) {
 	// convert the origin roleBinding to an rbac roleBinding
-	equivalentClusterRoleBinding, err := convert.ClusterRoleBindingToRBAC(originClusterRoleBinding)
+	equivalentClusterRoleBinding, err := ClusterRoleBindingToRBAC(originClusterRoleBinding)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +67,7 @@ func PrepareForUpdateClusterRoleBinding(newClusterRoleBinding, existingClusterRo
 // ConvertToRBACRole performs the conversion and guarantees the returned object is safe to mutate.
 func ConvertToRBACRole(originRole *authorizationapi.Role) (*rbac.Role, error) {
 	// convert the origin role to an rbac role
-	equivalentRole, err := convert.RoleToRBAC(originRole)
+	equivalentRole, err := RoleToRBAC(originRole)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +95,7 @@ func PrepareForUpdateRole(newRole, existingRole *rbac.Role) bool {
 // ConvertToRBACRoleBinding performs the conversion and guarantees the returned object is safe to mutate.
 func ConvertToRBACRoleBinding(originRoleBinding *authorizationapi.RoleBinding) (*rbac.RoleBinding, error) {
 	// convert the origin roleBinding to an rbac roleBinding
-	equivalentRoleBinding, err := convert.RoleBindingToRBAC(originRoleBinding)
+	equivalentRoleBinding, err := RoleBindingToRBAC(originRoleBinding)
 	if err != nil {
 		return nil, err
 	}

@@ -58,20 +58,6 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	policyBinding := &authorizationapi.PolicyBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "namespace",
-			Name:      "policybinding",
-		},
-		PolicyRef: kapi.ObjectReference{
-			Namespace: "namespace",
-			Name:      authorizationapi.GetPolicyBindingName("policy"),
-		},
-	}
-	if _, err := clusterAdminClient.PolicyBindings("namespace").Create(policyBinding); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	rolebindingAlice := &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
