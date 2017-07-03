@@ -190,7 +190,7 @@ func TestAddPort(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Unexpectedly failed to get error")
 	}
-	if err.Error() != "Allocated ofport (3) did not match request (5)" {
+	if err.Error() != "allocated ofport (3) did not match request (5)" {
 		t.Fatalf("Got wrong error: %v", err)
 	}
 	ensureTestResults(t, fexec)

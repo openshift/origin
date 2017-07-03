@@ -177,7 +177,7 @@ func (ovsif *ovsExec) GetOFPort(port string) (int, error) {
 	}
 	ofport, err := strconv.Atoi(ofportStr)
 	if err != nil {
-		return -1, fmt.Errorf("Could not parse allocated ofport %q: %v", ofportStr, err)
+		return -1, fmt.Errorf("could not parse allocated ofport %q: %v", ofportStr, err)
 	}
 	return ofport, nil
 }
@@ -198,8 +198,11 @@ func (ovsif *ovsExec) AddPort(port string, ofportRequest int, properties ...stri
 		return -1, err
 	}
 	ofport, err := ovsif.GetOFPort(port)
+	if err != nil {
+		return -1, fmt.Errorf("failed to get %q OVS port: %v", port, err)
+	}
 	if ofportRequest > 0 && ofportRequest != ofport {
-		return -1, fmt.Errorf("Allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
+		return -1, fmt.Errorf("allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
 	}
 	return ofport, nil
 }
