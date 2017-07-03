@@ -146,7 +146,7 @@ func TestSync(t *testing.T) {
 				Type:    apiregistration.Available,
 				Status:  apiregistration.ConditionFalse,
 				Reason:  "FailedDiscoveryCheck",
-				Message: `no response from https:///apis: context deadline exceeded`,
+				Message: `no response from https:///apis: Get https:///apis: http: no Host in request URL`,
 			},
 		},
 	}

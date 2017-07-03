@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"golang.org/x/net/context"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -197,28 +196,26 @@ func (c *AvailableConditionController) sync(key string) error {
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
+			// the request should happen quickly.
+			Timeout: 5 * time.Second,
 		}
-		req, err := http.NewRequest("GET", discoveryURL, nil)
-		if err != nil {
-			return err
-		}
-		ctx, _ := context.WithTimeout(req.Context(), 5*time.Second)
-		req.WithContext(ctx)
-		var requestErr error
+
+		errCh := make(chan error)
 		go func() {
-			var resp *http.Response
-			resp, requestErr = httpClient.Do(req)
+			resp, err := httpClient.Get(discoveryURL)
 			if resp != nil {
 				resp.Body.Close()
 			}
+			errCh <- err
 		}()
 
-		// wait for the request to finish to be cancelled, then check the error
-		<-ctx.Done()
-		err = ctx.Err()
-		if err == nil {
-			err = requestErr
+		var err error
+		select {
+		case err = <-errCh:
+		case <-time.After(6 * time.Second):
+			err = fmt.Errorf("timed out waiting for %v", discoveryURL)
 		}
+
 		if err != nil {
 			availableCondition.Status = apiregistration.ConditionFalse
 			availableCondition.Reason = "FailedDiscoveryCheck"
