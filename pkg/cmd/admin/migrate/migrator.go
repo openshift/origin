@@ -16,7 +16,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -327,10 +326,10 @@ func (o *ResourceVisitor) Visit(fn MigrateVisitFunc) error {
 	switch {
 	case err != nil:
 		fmt.Fprintf(out, "error: exited without processing all resources: %v\n", err)
-		err = cmdutil.ErrExit
+		err = kcmdutil.ErrExit
 	case t.errors > 0:
 		fmt.Fprintf(out, "error: %d resources failed to migrate\n", t.errors)
-		err = cmdutil.ErrExit
+		err = kcmdutil.ErrExit
 	}
 	return err
 }
