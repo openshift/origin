@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 857118cd2072b79afb3db20dc57c8b514144246d
+%global commit f93baf810efe31bd7dd851b7dea5e589e004de1b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.130 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=857118c
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.131 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f93baf8
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.131
+Version:        3.6.132
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,13 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Jul 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.132-1
+- oadm migrate was double printing early exit error (ccoleman@redhat.com)
+- Restore custom HPA controller setup (sross@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  b4097ed9cdefeb304d684c5ff34a764a45244c7c (bparees@redhat.com)
+- oc new-app --build-env doesn't work on templates (cdaley@redhat.com)
+
 * Sun Jul 02 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.131-1
 - Revert "Windows compile time info" (ccoleman@redhat.com)
 - Bug 1453190 - Fix pod update operation (rpenta@redhat.com)
