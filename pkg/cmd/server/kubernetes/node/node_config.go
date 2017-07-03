@@ -171,10 +171,6 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
-	if enableDNS {
-		// if we are running local DNS, skydns will load the default recursive nameservers for us
-		server.ResolverConfig = ""
-	}
 	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
 	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
