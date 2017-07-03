@@ -10,6 +10,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kappsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
+	kbatchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
+	kbatchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	kextensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
@@ -120,8 +122,17 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	case *kappsv1beta1.Deployment:
 		_, err := u.kclient.Apps().Deployments(t.Namespace).Update(t)
 		return err
+	case *kextensionsv1beta1.Deployment:
+		_, err := u.kclient.Extensions().Deployments(t.Namespace).Update(t)
+		return err
 	case *kappsv1beta1.StatefulSet:
 		_, err := u.kclient.Apps().StatefulSets(t.Namespace).Update(t)
+		return err
+	case *kbatchv1.Job:
+		_, err := u.kclient.Batch().Jobs(t.Namespace).Update(t)
+		return err
+	case *kbatchv2alpha1.CronJob:
+		_, err := u.kclient.BatchV2alpha1().CronJobs(t.Namespace).Update(t)
 		return err
 	case *kapiv1.Pod:
 		_, err := u.kclient.Core().Pods(t.Namespace).Update(t)
