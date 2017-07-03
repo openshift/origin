@@ -1955,7 +1955,7 @@ metadata:
   name: minreadytest
 spec:
   replicas: 2
-  minReadySeconds: 500
+  minReadySeconds: 60
   selector:
     name: minreadytest
   template:

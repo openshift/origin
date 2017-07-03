@@ -563,3 +563,11 @@ func readDCFixture(path string) (*deployapi.DeploymentConfig, error) {
 	err = deployapiv1.Convert_v1_DeploymentConfig_To_apps_DeploymentConfig(dcv1, dc, nil)
 	return dc, err
 }
+
+func readDCFixtureOrDie(path string) *deployapi.DeploymentConfig {
+	data, err := readDCFixture(path)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
