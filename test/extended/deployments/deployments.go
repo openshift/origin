@@ -1,6 +1,7 @@
 package deployments
 
 import (
+	//"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -9,11 +10,11 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -382,7 +383,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
 				istag, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("sample-stream", "deployed")
-				if errors.IsNotFound(err) {
+				if kerrors.IsNotFound(err) {
 					return false, nil
 				}
 				if err != nil {
@@ -882,53 +883,85 @@ var _ = g.Describe("deploymentconfigs", func() {
 	})
 
 	g.Describe("with minimum ready seconds set [Conformance]", func() {
+		dc := readDCFixtureOrDie(minReadySecondsFixture)
+		rcName := func(i int) string { return fmt.Sprintf("%s-%d", dc.Name, i) }
 		g.AfterEach(func() {
-			failureTrap(oc, "minreadytest", g.CurrentGinkgoTestDescription().Failed)
+			failureTrap(oc, dc.Name, g.CurrentGinkgoTestDescription().Failed)
 		})
 
 		g.It("should not transition the deployment to Complete before satisfied", func() {
-			_, name, err := createFixture(oc, minReadySecondsFixture)
+			namespace := oc.Namespace()
+			watcher, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: rcName(1), ResourceVersion: ""}))
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("verifying the deployment is marked running")
-			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+			o.Expect(dc.Spec.Triggers).To(o.BeNil())
+			// FIXME: remove when tests are migrated to the new client
+			// (the old one incorrectly translates nil into an empty array)
+			dc.Spec.Triggers = append(dc.Spec.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
+			dc, err = oc.Client().DeploymentConfigs(namespace).Create(dc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployment is created")
+			rcEvent, err := watch.Until(deploymentChangeTimeout, watcher, func(event watch.Event) (bool, error) {
+				if event.Type == watch.Added {
+					return true, nil
+				}
+				return false, fmt.Errorf("different kind of event appeared while waiting for Added event: %#v", event)
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			rc1 := rcEvent.Object.(*kapiv1.ReplicationController)
 
 			g.By("verifying that all pods are ready")
-			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+			rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentRunTimeout,
+				rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
+					return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
+				})
 			o.Expect(err).NotTo(o.HaveOccurred())
-
-			selector := labels.Set(config.Spec.Selector).AsSelector()
-			opts := metav1.ListOptions{LabelSelector: selector.String()}
-			ready := 0
-			if err := wait.PollImmediate(500*time.Millisecond, 3*time.Minute, func() (bool, error) {
-				pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(opts)
-				if err != nil {
-					return false, nil
-				}
-
-				ready = 0
-				for i := range pods.Items {
-					pod := pods.Items[i]
-					if kapiv1.IsPodReady(&pod) {
-						ready++
-					}
-				}
-
-				return len(pods.Items) == ready, nil
-			}); err != nil {
-				o.Expect(fmt.Errorf("deployment config %q never became ready (ready: %d, desired: %d)",
-					config.Name, ready, config.Spec.Replicas)).NotTo(o.HaveOccurred())
-			}
+			o.Expect(rc1.Status.AvailableReplicas).To(o.BeZero())
 
 			g.By("verifying that the deployment is still running")
-			latestName := deployutil.DeploymentNameForConfigVersion(name, config.Status.LatestVersion)
-			latest, err := oc.InternalKubeClient().Core().ReplicationControllers(oc.Namespace()).Get(latestName, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			if deployutil.IsTerminatedDeployment(latest) {
-				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", latest.Name)).NotTo(o.HaveOccurred())
+			if deployutil.IsTerminatedDeployment(rc1) {
+				o.Expect(fmt.Errorf("expected deployment %q not to have terminated", rc1.Name)).NotTo(o.HaveOccurred())
 			}
-			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+
+			g.By("waiting for the deployment to finish")
+			rc1, err = waitForRCModification(oc, namespace, rc1.Name,
+				deploymentChangeTimeout+time.Duration(dc.Spec.MinReadySeconds)*time.Second,
+				rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
+					if rc.Status.AvailableReplicas == dc.Spec.Replicas {
+						return true, nil
+					}
+
+					// FIXME: There is a race between deployer pod updating phase and RC updating AvailableReplicas
+					// FIXME: Enable this when we switch pod acceptors to use RC AvailableReplicas with MinReadySecondsSet
+					//if deployutil.DeploymentStatusFor(rc) == deployapi.DeploymentStatusComplete {
+					//	e2e.Logf("Failed RC: %#v", rc)
+					//	return false, errors.New("deployment shouldn't be completed before ReadyReplicas become AvailableReplicas")
+					//}
+					return false, nil
+				})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(rc1.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
+			// FIXME: There is a race between deployer pod updating phase and RC updating AvailableReplicas
+			// FIXME: Enable this when we switch pod acceptors to use RC AvailableReplicas with MinReadySecondsSet
+			//// Deployment status can't be updated yet but should be right after
+			//o.Expect(deployutil.DeploymentStatusFor(rc1)).To(o.Equal(deployapi.DeploymentStatusRunning))
+			// It should finish right after
+			// FIXME: remove this condition when the above is fixed
+			if deployutil.DeploymentStatusFor(rc1) != deployapi.DeploymentStatusComplete {
+				// FIXME: remove this assertion when the above is fixed
+				o.Expect(deployutil.DeploymentStatusFor(rc1)).To(o.Equal(deployapi.DeploymentStatusRunning))
+				rc1, err = waitForRCModification(oc, namespace, rc1.Name, deploymentChangeTimeout,
+					rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
+						return deployutil.DeploymentStatusFor(rc) == deployapi.DeploymentStatusComplete, nil
+					})
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}
+
+			// We might check that minReadySecond passed between pods becoming ready
+			// and available but I don't think there is a way to get a timestamp from events
+			// and other ways are just flaky.
+			// But since we are reusing MinReadySeconds and AvailableReplicas from RC it should be tested there
 		})
 	})
 
