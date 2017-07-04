@@ -33,6 +33,10 @@ func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
 }
 
+func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
+
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 
 // NamespaceScoped is false for OAuth objects

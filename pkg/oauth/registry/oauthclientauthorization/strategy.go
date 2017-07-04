@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -27,6 +28,10 @@ type strategy struct {
 
 func NewStrategy(clientGetter oauthclient.Getter) strategy {
 	return strategy{ObjectTyper: kapi.Scheme, clientGetter: clientGetter}
+}
+
+func (strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+	return rest.Unsupported
 }
 
 func (strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
