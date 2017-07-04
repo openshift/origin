@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f93baf810efe31bd7dd851b7dea5e589e004de1b
+%global commit fea7212e64327100a73f462e79a906a917779099
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.131 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f93baf8
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.132 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=fea7212
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.132
+Version:        3.6.133
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,24 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Jul 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.133-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 599adf3
+  (smunilla@redhat.com)
+- UPSTREAM: 48394: Verify no-op updates against etcd always
+  (ccoleman@redhat.com)
+- add audit logging to apiserver starts (deads@redhat.com)
+- Image trigger controller should handle extensions v1beta1
+  (ccoleman@redhat.com)
+- move the panic handler first (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1c22134e39384afb563dba02546031a4676b55ae (eparis+openshiftbot@redhat.com)
+- cli: recognize persistent volume claim in status (mfojtik@redhat.com)
+- generated: OpenAPI spec (ccoleman@redhat.com)
+- UPSTREAM: 44784: Handle vendored names in OpenAPI gen (ccoleman@redhat.com)
+- Pass correct namer to OpenAPI spec (ccoleman@redhat.com)
+- UPSTREAM: 47078: HPA: only send updates when the status has changed
+  (sross@redhat.com)
+
 * Mon Jul 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.132-1
 - oadm migrate was double printing early exit error (ccoleman@redhat.com)
 - Restore custom HPA controller setup (sross@redhat.com)
