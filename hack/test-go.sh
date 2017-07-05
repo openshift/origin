@@ -21,8 +21,8 @@
 #  - DLV_DEBUG            toggles running tests using delve debugger
 function cleanup() {
     return_code=$?
-    os::cleanup::all "${return_code}"
 
+    os::test::junit::generate_report
     if [[ "${JUNIT_REPORT_NUM_FAILED:-}" == "0 failed" ]]; then
         if [[ "${return_code}" -ne "0" ]]; then
             os::log::warning "While the jUnit report found no failed tests, the \`go test\` process failed."
@@ -30,6 +30,7 @@ function cleanup() {
         fi
     fi
 
+    os::util::describe_return_code "${return_code}"
     exit "${return_code}"
 }
 trap "cleanup" EXIT

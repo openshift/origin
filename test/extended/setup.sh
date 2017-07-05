@@ -42,7 +42,9 @@ function os::test::extended::setup () {
 
 	function cleanup() {
 		return_code=$?
-		os::cleanup::all "${return_code}"
+		os::test::junit::generate_report
+		os::cleanup::all
+		os::util::describe_return_code "${return_code}"
 		exit "${return_code}"
 	}
 	trap "cleanup" EXIT

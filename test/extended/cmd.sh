@@ -14,7 +14,9 @@ function cleanup() {
 
 	docker rmi test/scratchimage
 
-	os::cleanup::all "${return_code}"
+	os::test::junit::generate_report
+	os::cleanup::all
+	os::util::describe_return_code "${return_code}"
 	exit "${return_code}"
 }
 trap "cleanup" EXIT

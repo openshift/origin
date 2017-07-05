@@ -10,20 +10,22 @@
 #
 # Globals:
 #  - ARTIFACT_DIR
+#  - SKIP_CLEANUP
 #  - SKIP_TEARDOWN
 #  - SKIP_IMAGE_CLEANUP
 # Arguments:
-#  1 - return code of the script
+#  None
 # Returns:
 #  None
 function os::cleanup::all() {
-	local return_code="$1"
+	if [[ -n "${SKIP_CLEANUP:-}" ]]; then
+		os::log::warning "[CLEANUP] Skipping cleanup routines..."
+		return 0
+	fi
 
 	# All of our cleanup is best-effort, so we do not care
 	# if any specific step fails.
 	set +o errexit
-
-	os::test::junit::generate_report
 
 	os::log::info "[CLEANUP] Beginning cleanup routines..."
 	os::cleanup::dump_events
@@ -38,7 +40,6 @@ function os::cleanup::all() {
 		os::cleanup::processes
 		os::cleanup::prune_etcd
 	fi
-	os::util::describe_return_code "${return_code}"
 }
 readonly -f os::cleanup::all
 
