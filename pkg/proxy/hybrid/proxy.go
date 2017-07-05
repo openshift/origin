@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api"
+	apihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/config"
@@ -64,7 +65,7 @@ func (p *HybridProxier) OnServiceUpdate(services []*api.Service) {
 	defer p.usingUserspaceLock.Unlock()
 
 	for _, service := range services {
-		if !api.IsServiceIPSet(service) {
+		if !apihelper.IsServiceIPSet(service) {
 			// Skip service with no ClusterIP set
 			continue
 		}

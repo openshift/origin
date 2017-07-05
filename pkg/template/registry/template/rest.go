@@ -35,7 +35,7 @@ func (s *REST) New() runtime.Object {
 }
 
 // Create processes a Template and creates a new list of objects
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	tpl, ok := obj.(*templateapi.Template)
 	if !ok {
 		return nil, errors.NewBadRequest("not a template")

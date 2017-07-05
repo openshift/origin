@@ -64,7 +64,7 @@ func (s *DeprecatedREST) New() runtime.Object {
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (s *DeprecatedREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *DeprecatedREST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	rollback, ok := obj.(*deployapi.DeploymentConfigRollback)
 	if !ok {
 		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))

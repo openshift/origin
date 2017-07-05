@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 )
 
 func TestParseImageStreamImageName(t *testing.T) {
@@ -760,7 +761,7 @@ func TestImageWithMetadata(t *testing.T) {
 		if test.expectError {
 			continue
 		}
-		if e, a := test.expectedImage, imageWithMetadata; !kapi.Semantic.DeepEqual(e, a) {
+		if e, a := test.expectedImage, imageWithMetadata; !kapihelper.Semantic.DeepEqual(e, a) {
 			t.Errorf("%s: image: %s", name, diff.ObjectDiff(e, a))
 		}
 	}

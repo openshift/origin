@@ -50,7 +50,7 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 	}
 
 	if dryRun {
-		out := bytes.NewBuffer([]byte("\n"))
+		out := kinternalprinters.NewPrefixWriter(bytes.NewBuffer([]byte("\n")))
 		kinternalprinters.DescribePodTemplate(rolledback.Spec.Template, out)
 		return out.String(), nil
 	}

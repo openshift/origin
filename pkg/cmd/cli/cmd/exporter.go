@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -45,22 +46,22 @@ type DefaultExporter struct{}
 func (e *DefaultExporter) AddExportOptions(flags *pflag.FlagSet) {
 }
 
-func exportObjectMeta(objMeta *metav1.ObjectMeta, exact bool) {
-	objMeta.UID = ""
+func exportObjectMeta(objMeta metav1.Object, exact bool) {
+	objMeta.SetUID("")
 	if !exact {
-		objMeta.Namespace = ""
+		objMeta.SetNamespace("")
 	}
-	objMeta.CreationTimestamp = metav1.Time{}
-	objMeta.DeletionTimestamp = nil
-	objMeta.ResourceVersion = ""
-	objMeta.SelfLink = ""
-	if len(objMeta.GenerateName) > 0 && !exact {
-		objMeta.Name = ""
+	objMeta.SetCreationTimestamp(metav1.Time{})
+	objMeta.SetDeletionTimestamp(nil)
+	objMeta.SetResourceVersion("")
+	objMeta.SetSelfLink("")
+	if len(objMeta.GetGenerateName()) > 0 && !exact {
+		objMeta.SetName("")
 	}
 }
 
 func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
-	if meta, err := metav1.ObjectMetaFor(obj); err == nil {
+	if meta, err := meta.Accessor(obj); err == nil {
 		exportObjectMeta(meta, exact)
 	} else {
 		glog.V(4).Infof("Object of type %v does not have ObjectMeta: %v", reflect.TypeOf(obj), err)

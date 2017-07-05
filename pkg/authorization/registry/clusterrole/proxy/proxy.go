@@ -66,11 +66,11 @@ func (s *ClusterRoleStorage) Delete(ctx apirequest.Context, name string, options
 	return ret.(*metav1.Status), false, err
 }
 
-func (s *ClusterRoleStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *ClusterRoleStorage) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	clusterObj := obj.(*authorizationapi.ClusterRole)
 	convertedObj := authorizationapi.ToRole(clusterObj)
 
-	ret, err := s.roleStorage.Create(ctx, convertedObj)
+	ret, err := s.roleStorage.Create(ctx, convertedObj, false)
 	if ret == nil {
 		return nil, err
 	}

@@ -58,7 +58,7 @@ func (s *storage) GetClientAuthorization(ctx apirequest.Context, name string, op
 }
 
 func (s *storage) CreateClientAuthorization(ctx apirequest.Context, client *oauthapi.OAuthClientAuthorization) (*oauthapi.OAuthClientAuthorization, error) {
-	obj, err := s.Create(ctx, client)
+	obj, err := s.Create(ctx, client, false)
 	if err != nil {
 		return nil, err
 	}

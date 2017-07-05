@@ -38,7 +38,7 @@ type DebugOptions struct {
 	Client *client.Client
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
-	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
+	LogsForObject func(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
 
 	NoStdin    bool
 	ForceTTY   bool

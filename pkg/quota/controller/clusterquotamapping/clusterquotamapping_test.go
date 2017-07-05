@@ -14,9 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	externalfake "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	internalfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -55,13 +53,10 @@ func runFuzzer(t *testing.T) {
 
 	startingNamespaces := CreateStartingNamespaces()
 	internalKubeClient := internalfake.NewSimpleClientset(startingNamespaces...)
-	externalKubeClient := externalfake.NewSimpleClientset(startingNamespaces...)
 	nsWatch := watch.NewFake()
 	internalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
-	externalKubeClient.PrependWatchReactor("namespaces", clientgotesting.DefaultWatchReactor(nsWatch, nil))
 
 	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(internalKubeClient, 10*time.Minute)
-	externalKubeInformerFactory := kexternalinformers.NewSharedInformerFactory(externalKubeClient, 10*time.Minute)
 
 	startingQuotas := CreateStartingQuotas()
 	quotaWatch := watch.NewFake()
@@ -72,7 +67,6 @@ func runFuzzer(t *testing.T) {
 	go controller.Run(5, stopCh)
 	quotaFactory.Start(stopCh)
 	internalKubeInformerFactory.Start(stopCh)
-	externalKubeInformerFactory.Start(stopCh)
 
 	finalNamespaces := map[string]*kapi.Namespace{}
 	finalQuotas := map[string]*quotaapi.ClusterResourceQuota{}

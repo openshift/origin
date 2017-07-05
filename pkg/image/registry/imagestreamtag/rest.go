@@ -106,7 +106,7 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 	return newISTag(tag, imageStream, image, false)
 }
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	istag, ok := obj.(*imageapi.ImageStreamTag)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("obj is not an ImageStreamTag: %#v", obj))

@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -17,7 +18,7 @@ func (_ fakeImageCreater) New() runtime.Object {
 	return nil
 }
 
-func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (_ fakeImageCreater) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	return obj, nil
 }
 
@@ -195,7 +196,7 @@ func TestImportSuccessful(t *testing.T) {
 			t.Errorf("%s: expected success, didn't get one", name)
 		}
 		actual := test.stream.Status.Tags[ref.Tag].Items[0]
-		if !kapi.Semantic.DeepEqual(actual, test.expected) {
+		if !kapihelper.Semantic.DeepEqual(actual, test.expected) {
 			t.Errorf("%s: expected %#v, got %#v", name, test.expected, actual)
 		}
 	}

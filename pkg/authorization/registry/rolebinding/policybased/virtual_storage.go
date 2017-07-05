@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -118,7 +119,7 @@ func (m *VirtualStorage) Delete(ctx apirequest.Context, name string, options *me
 	return &metav1.Status{Status: metav1.StatusSuccess}, true, nil
 }
 
-func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (m *VirtualStorage) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	return m.createRoleBinding(ctx, obj, rulevalidation.EscalationAllowed(ctx))
 }
 
@@ -237,7 +238,7 @@ func (m *VirtualStorage) updateRoleBinding(ctx apirequest.Context, name string, 
 			return errors.New(registry.OptimisticLockErrorMsg)
 		}
 		// non-mutating change
-		if kapi.Semantic.DeepEqual(oldRoleBinding, roleBinding) {
+		if kapihelper.Semantic.DeepEqual(oldRoleBinding, roleBinding) {
 			updatedRoleBinding = roleBinding
 			return nil
 		}

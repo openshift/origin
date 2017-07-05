@@ -147,7 +147,7 @@ func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 	o.Client = client
 
 	version := kcmdutil.GetFlagInt64(cmd, "version")
-	_, resource := meta.KindToResource(infos[0].Mapping.GroupVersionKind)
+	_, resource := meta.UnsafeGuessKindToResource(infos[0].Mapping.GroupVersionKind)
 
 	gr := resource.GroupResource()
 	// TODO: podLogOptions should be included in our own logOptions objects.

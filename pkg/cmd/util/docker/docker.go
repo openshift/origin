@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
@@ -65,7 +65,7 @@ func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 // KubeDocker provides a wrapper to Kubernetes Docker interface
 // This wrapper is compatible with OpenShift Docker interface.
 type KubeDocker struct {
-	dockertools.DockerInterface
+	dockertools.Interface
 }
 
 // Ping implements the DockerInterface Ping method.

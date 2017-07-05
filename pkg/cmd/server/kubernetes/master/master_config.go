@@ -653,7 +653,7 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,
 		IgnorePrefixes:    []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
 		GetDefinitionName: defNamer.GetDefinitionName,
-		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
+		GetOperationIDAndTags: func(r *restful.Route) (string, []string, error) {
 			op := r.Operation
 			path := r.Path
 			// DEPRECATED: These endpoints are going to be removed in 1.8 or 1.9 release.
@@ -671,7 +671,7 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			if op != r.Operation {
 				return op, []string{}, nil
 			}
-			return apiserverendpointsopenapi.GetOperationIDAndTags(servePath, r)
+			return apiserverendpointsopenapi.GetOperationIDAndTags(r)
 		},
 		Info: &spec.Info{
 			InfoProps: spec.InfoProps{

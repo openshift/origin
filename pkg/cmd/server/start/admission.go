@@ -26,29 +26,59 @@ import (
 	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
 	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	_ "github.com/openshift/origin/pkg/security/admission"
+	_ "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/alwayspullimages"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/defaulttolerationseconds"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/exec"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/podpreset"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/default"
+	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
-	"k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle"
+	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 )
+
+// TODO register this per apiserver or at least per process
+var OriginAdmissionPlugins = &admission.Plugins{}
+
+func init() {
+	RegisterAllAdmissionPlugins(OriginAdmissionPlugins)
+}
+
+// RegisterAllAdmissionPlugins registers all admission plugins
+func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
+	kubeapiserver.RegisterAllAdmissionPlugins(plugins)
+	authorizationrestrictusers.Register(plugins)
+	buildjenkinsbootstrapper.Register(plugins)
+	buildsecretinjector.Register(plugins)
+	buildstrategyrestrictions.Register(plugins)
+	imageadmission.Register(plugins)
+	imagepolicy.Register(plugins)
+	ingressadmission.Register(plugins)
+	projectlifecycle.Register(plugins)
+	projectnodeenv.Register(plugins)
+	projectrequestlimit.Register(plugins)
+	quotaclusterresourceoverride.Register(plugins)
+	quotaclusterresourcequota.Register(plugins)
+	quotarunonceduration.Register(plugins)
+	schedulerpodnodeconstraints.Register(plugins)
+	securityadmission.Register(plugins)
+	securityadmission.RegisterSCCExecRestrictions(plugins)
+	serviceadmit.RegisterExternalIP(plugins)
+	serviceadmit.RegisterRestrictedEndpoints(plugins)
+}
 
 var (
 	defaultOnPlugins = sets.NewString(

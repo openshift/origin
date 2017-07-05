@@ -307,7 +307,7 @@ func printDeploymentConfigSpec(kc kclientset.Interface, dc deployapi.DeploymentC
 
 	// Pod template
 	fmt.Fprintf(w, "Template:\n")
-	kinternalprinters.DescribePodTemplate(spec.Template, w)
+	kinternalprinters.DescribePodTemplate(spec.Template, kinternalprinters.NewPrefixWriter(w))
 
 	return nil
 }

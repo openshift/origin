@@ -68,12 +68,12 @@ func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) 
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	policy, ok := obj.(*authorizationapi.Policy)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a Policy")
+		return nil, nil, false, fmt.Errorf("not a Policy")
 	}
-	return labels.Set(policy.ObjectMeta.Labels), authorizationapi.PolicyToSelectableFields(policy), nil
+	return labels.Set(policy.ObjectMeta.Labels), authorizationapi.PolicyToSelectableFields(policy), policy.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
