@@ -173,11 +173,18 @@ func (ovsif *ovsExec) DeleteBridge() error {
 func (ovsif *ovsExec) GetOFPort(port string) (int, error) {
 	ofportStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "ofport")
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("failed to get OVS port for %s: %v", port, err)
 	}
 	ofport, err := strconv.Atoi(ofportStr)
 	if err != nil {
 		return -1, fmt.Errorf("could not parse allocated ofport %q: %v", ofportStr, err)
+	}
+	if ofport == -1 {
+		errStr, err := ovsif.exec(OVS_VSCTL, "get", "Interface", port, "error")
+		if err != nil || errStr == "" {
+			errStr = "unknown error"
+		}
+		return -1, fmt.Errorf("error on port %s: %s", port, errStr)
 	}
 	return ofport, nil
 }
@@ -199,7 +206,7 @@ func (ovsif *ovsExec) AddPort(port string, ofportRequest int, properties ...stri
 	}
 	ofport, err := ovsif.GetOFPort(port)
 	if err != nil {
-		return -1, fmt.Errorf("failed to get %q OVS port: %v", port, err)
+		return -1, err
 	}
 	if ofportRequest > 0 && ofportRequest != ofport {
 		return -1, fmt.Errorf("allocated ofport (%d) did not match request (%d)", ofport, ofportRequest)
