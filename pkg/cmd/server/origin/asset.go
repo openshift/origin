@@ -185,7 +185,7 @@ func (c *AssetConfig) addHandlers(handler http.Handler) (http.Handler, error) {
 			if strings.HasSuffix(kind, "List") {
 				continue
 			}
-			resource, _ := meta.KindToResource(version.WithKind(kind))
+			resource, _ := meta.UnsafeGuessKindToResource(version.WithKind(kind))
 			if latest.OriginKind(version.WithKind(kind)) {
 				if !deadOriginVersions.Has(version.String()) {
 					originResources.Insert(resource.Resource)

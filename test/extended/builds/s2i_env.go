@@ -57,7 +57,7 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the service to become available")
-			err = oc.KubeFramework().WaitForAnEndpoint(buildTestService)
+			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), buildTestService)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod container has TEST_ENV variable set")

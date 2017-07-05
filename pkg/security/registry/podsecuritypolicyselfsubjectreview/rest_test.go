@@ -108,7 +108,7 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
 		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
-		obj, err := storage.Create(ctx, reviewRequest)
+		obj, err := storage.Create(ctx, reviewRequest, false)
 		if err != nil {
 			t.Errorf("%s - Unexpected error", testName)
 		}

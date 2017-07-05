@@ -11,6 +11,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	kapiv1pod "k8s.io/kubernetes/pkg/api/v1/pod"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -79,7 +80,7 @@ func waitForPodCondition(c kclientset.Interface, ns, podName, desc string, timeo
 func waitForPodSuccessInNamespace(c kclientset.Interface, podName string, contName string, namespace string) error {
 	return waitForPodCondition(c, namespace, podName, "success or failure", podStartTimeout, func(pod *kapiv1.Pod) (bool, error) {
 		// Cannot use pod.Status.Phase == api.PodSucceeded/api.PodFailed due to #2632
-		ci, ok := kapiv1.GetContainerStatus(pod.Status.ContainerStatuses, contName)
+		ci, ok := kapiv1pod.GetContainerStatus(pod.Status.ContainerStatuses, contName)
 		if !ok {
 			e2e.Logf("No Status.Info for container '%s' in pod '%s' yet", contName, podName)
 		} else {

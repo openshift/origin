@@ -99,7 +99,7 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 		Follow:     true,
 		LimitBytes: &bytelim,
 	}
-	req, err := d.Factory.LogsForObject(pod, podLogsOpts)
+	req, err := d.Factory.LogsForObject(pod, podLogsOpts, 1*time.Minute)
 	if err != nil {
 		r.Error("DCli2005", err, fmt.Sprintf("The request for diagnostic pod logs failed unexpectedly. Error: (%T) %[1]v", err))
 		return

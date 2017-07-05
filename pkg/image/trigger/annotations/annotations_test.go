@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kapps "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 
@@ -280,7 +281,7 @@ func TestAnnotationsReactor(t *testing.T) {
 			t.Fatal(err)
 		}
 		err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
-		if !kapi.Semantic.DeepEqual(initial, test.obj) {
+		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 			t.Errorf("%d: should not have mutated: %s", i, diff.ObjectReflectDiff(initial, test.obj))
 		}
 		switch {

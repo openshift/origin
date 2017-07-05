@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
 	"github.com/openshift/origin/pkg/api/latest"
@@ -65,7 +65,7 @@ func validImageStream() *imageapi.ImageStream {
 
 func create(t *testing.T, storage *REST, obj *imageapi.ImageStream) *imageapi.ImageStream {
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
-	newObj, err := storage.Create(ctx, obj)
+	newObj, err := storage.Create(ctx, obj, false)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestGetImageStreamOK(t *testing.T) {
 	}
 	got := obj.(*imageapi.ImageStream)
 	got.ResourceVersion = image.ResourceVersion
-	if !kapi.Semantic.DeepEqual(image, got) {
+	if !kapihelper.Semantic.DeepEqual(image, got) {
 		t.Errorf("Expected %#v, got %#v", image, got)
 	}
 }

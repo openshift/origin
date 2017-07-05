@@ -147,7 +147,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 		}
 
 		// Let caller modify knode's status, then push to api server.
-		_, condition := kapi.GetNodeCondition(&node.Status, kapi.NodeNetworkUnavailable)
+		_, condition := GetNodeCondition(&node.Status, kapi.NodeNetworkUnavailable)
 		if condition != nil && condition.Status != kapi.ConditionFalse && condition.Reason == "NoRouteCreated" {
 			condition.Status = kapi.ConditionFalse
 			condition.Reason = "RouteCreated"
@@ -165,6 +165,21 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(node *kapi
 	} else if cleared {
 		log.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.ObjectMeta.Name)
 	}
+}
+
+// TODO remove this and switch to external
+// GetNodeCondition extracts the provided condition from the given status and returns that.
+// Returns nil and -1 if the condition is not present, and the index of the located condition.
+func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionType) (int, *kapi.NodeCondition) {
+	if status == nil {
+		return -1, nil
+	}
+	for i := range status.Conditions {
+		if status.Conditions[i].Type == conditionType {
+			return i, &status.Conditions[i]
+		}
+	}
+	return -1, nil
 }
 
 func (master *OsdnMaster) watchNodes() {

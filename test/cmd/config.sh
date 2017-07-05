@@ -39,7 +39,7 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   NEW_CONFIG_LOC="${BASETMPDIR}/new-config.yaml"
 
   # make sure non-existing --cluster and --user can still be set
-  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" set'
+  os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
   os::cmd::expect_failure_and_text "env -u KUBECONFIG -u KUBERNETES_MASTER oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
   os::cmd::expect_failure_and_text "oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
 )

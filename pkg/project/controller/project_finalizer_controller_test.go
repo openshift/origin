@@ -38,7 +38,10 @@ func TestSyncNamespaceThatIsTerminating(t *testing.T) {
 
 	// TODO: we will expect a finalize namespace call after rebase
 	expectedActionSet := []clientgotesting.Action{
-		clientgotesting.NewListAction(schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"}, "", metav1.ListOptions{}),
+		clientgotesting.NewListAction(
+			schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespace"},
+			schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Namespace"},
+			"", metav1.ListOptions{}),
 	}
 	kubeActionSet := []clientgotesting.Action{}
 	for i := range mockKubeClient.Actions() {

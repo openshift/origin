@@ -159,10 +159,5 @@ func checkVolumeSourceMetadataIsNil(obj runtime.Object) (migrate.Reporter, error
 }
 
 func specHasVolumeSourceMetadata(spec *kapi.PodTemplateSpec) bool {
-	for _, volume := range spec.Spec.Volumes {
-		if volume.VolumeSource.Metadata != nil {
-			return true
-		}
-	}
 	return false
 }

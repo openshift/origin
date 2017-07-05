@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -264,7 +265,7 @@ func ValidateImageStreamTag(ist *imageapi.ImageStreamTag) field.ErrorList {
 	result := validation.ValidateObjectMeta(&ist.ObjectMeta, true, path.ValidatePathSegmentName, field.NewPath("metadata"))
 	if ist.Tag != nil {
 		result = append(result, ValidateImageStreamTagReference(*ist.Tag, field.NewPath("tag"))...)
-		if ist.Tag.Annotations != nil && !kapi.Semantic.DeepEqual(ist.Tag.Annotations, ist.ObjectMeta.Annotations) {
+		if ist.Tag.Annotations != nil && !kapihelper.Semantic.DeepEqual(ist.Tag.Annotations, ist.ObjectMeta.Annotations) {
 			result = append(result, field.Invalid(field.NewPath("tag", "annotations"), "<map>", "tag annotations must not be provided or must be equal to the object meta annotations"))
 		}
 	}
@@ -278,7 +279,7 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *imageapi.ImageStreamTag) field
 
 	if newIST.Tag != nil {
 		result = append(result, ValidateImageStreamTagReference(*newIST.Tag, field.NewPath("tag"))...)
-		if newIST.Tag.Annotations != nil && !kapi.Semantic.DeepEqual(newIST.Tag.Annotations, newIST.ObjectMeta.Annotations) {
+		if newIST.Tag.Annotations != nil && !kapihelper.Semantic.DeepEqual(newIST.Tag.Annotations, newIST.ObjectMeta.Annotations) {
 			result = append(result, field.Invalid(field.NewPath("tag", "annotations"), "<map>", "tag annotations must not be provided or must be equal to the object meta annotations"))
 		}
 	}
@@ -290,7 +291,7 @@ func ValidateImageStreamTagUpdate(newIST, oldIST *imageapi.ImageStreamTag) field
 	newISTCopy.Tag, oldISTCopy.Tag = nil, nil
 	newISTCopy.LookupPolicy = oldISTCopy.LookupPolicy
 	newISTCopy.Generation = oldISTCopy.Generation
-	if !kapi.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
+	if !kapihelper.Semantic.Equalities.DeepEqual(&newISTCopy, &oldISTCopy) {
 		//glog.Infof("objects differ: ", diff.ObjectDiff(oldISTCopy, newISTCopy))
 		result = append(result, field.Invalid(field.NewPath("metadata"), "", "may not update fields other than metadata.annotations"))
 	}

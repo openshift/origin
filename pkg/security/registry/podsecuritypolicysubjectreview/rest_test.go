@@ -136,7 +136,7 @@ func TestAllowed(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-		obj, err := storage.Create(ctx, reviewRequest)
+		obj, err := storage.Create(ctx, reviewRequest, false)
 		if err != nil {
 			t.Errorf("%s - Unexpected error: %v", testName, err)
 			continue
@@ -263,7 +263,7 @@ func TestRequests(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
-		_, err := storage.Create(ctx, testcase.request)
+		_, err := storage.Create(ctx, testcase.request, false)
 		switch {
 		case err == nil && len(testcase.errorMessage) == 0:
 			continue

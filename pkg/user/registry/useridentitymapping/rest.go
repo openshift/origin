@@ -43,7 +43,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 }
 
 // Create associates a user and identity if they both exist, and the identity is not already mapped to a user
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	mapping, ok := obj.(*userapi.UserIdentityMapping)
 	if !ok {
 		return nil, kerrs.NewBadRequest("invalid type")

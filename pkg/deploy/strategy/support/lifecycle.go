@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapipod "k8s.io/kubernetes/pkg/api/pod"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/origin/pkg/client"
@@ -568,7 +569,7 @@ func (c *acceptAvailablePods) Accept(rc *kapi.ReplicationController) error {
 			if c.acceptedPods.Has(pod.Name) {
 				continue
 			}
-			if kapi.IsPodAvailable(pod, c.minReadySeconds, metav1.NewTime(time.Now())) {
+			if kapipod.IsPodAvailable(pod, c.minReadySeconds, metav1.NewTime(time.Now())) {
 				// If the pod is ready, track it as accepted.
 				c.acceptedPods.Insert(pod.Name)
 			} else {

@@ -279,7 +279,7 @@ func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
+	pluginInitializer := kubeadmission.NewPluginInitializer(c, nil, f, nil, nil, nil, nil)
 	pluginInitializer.Initialize(plugin)
 	err = kadmission.Validate(plugin)
 	return plugin, f, err

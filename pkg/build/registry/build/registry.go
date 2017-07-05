@@ -59,7 +59,7 @@ func (s *storage) GetBuild(ctx apirequest.Context, name string, options *metav1.
 }
 
 func (s *storage) CreateBuild(ctx apirequest.Context, build *api.Build) error {
-	_, err := s.Create(ctx, build)
+	_, err := s.Create(ctx, build, false)
 	return err
 }
 
