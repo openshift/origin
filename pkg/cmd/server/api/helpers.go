@@ -241,6 +241,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
+
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
 	}
 
 	if config.AuthConfig.RequestHeader != nil {
@@ -268,6 +272,21 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	refs = append(refs, &config.AuditConfig.AuditFilePath)
 
+	return refs
+}
+
+func appendFlagsWithFileExtensions(refs []*string, args ExtendedArguments) []*string {
+	for key, s := range args {
+		if len(s) == 0 {
+			continue
+		}
+		if !strings.HasSuffix(key, "-file") && !strings.HasSuffix(key, "-dir") {
+			continue
+		}
+		for i := range s {
+			refs = append(refs, &s[i])
+		}
+	}
 	return refs
 }
 
@@ -299,6 +318,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	if config.PodManifestConfig != nil {
 		refs = append(refs, &config.PodManifestConfig.Path)
 	}
+
+	refs = appendFlagsWithFileExtensions(refs, config.KubeletArguments)
 
 	return refs
 }
