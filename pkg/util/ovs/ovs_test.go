@@ -194,6 +194,18 @@ func TestAddPort(t *testing.T) {
 		t.Fatalf("Got wrong error: %v", err)
 	}
 	ensureTestResults(t, fexec)
+
+	addTestResult(t, fexec, "ovs-vsctl --may-exist add-port br0 veth0 -- set Interface veth0 ofport_request=5", "", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 ofport", "-1\n", nil)
+	addTestResult(t, fexec, "ovs-vsctl get Interface veth0 error", "could not open network device veth0 (No such device)\n", nil)
+	_, err = ovsif.AddPort("veth0", 5)
+	if err == nil {
+		t.Fatalf("Unexpectedly failed to get error")
+	}
+	if err.Error() != "error on port veth0: could not open network device veth0 (No such device)" {
+		t.Fatalf("Got wrong error: %v", err)
+	}
+	ensureTestResults(t, fexec)
 }
 
 func TestOVSVersion(t *testing.T) {
