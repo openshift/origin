@@ -854,6 +854,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{
 		"runtime-config": {
 			"apis/settings.k8s.io/v1alpha1=true",
+			"apis/autoscaling/v2alpha1=true",
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
