@@ -1,0 +1,188 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: alertmanager
+  annotations:
+    "openshift.io/display-name": alertmanager
+    description: |
+      A monitoring solution for an OpenShift cluster - collect and gather metrics from nodes, services, and the infrastructure.
+    iconClass: icon-cogs
+    tags: "monitoring,prometheus,alertmanager,time-series"
+parameters:
+- description: The namespace to instantiate alertmanager under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+- description: The location of the proxy image
+  name: IMAGE_PROXY
+  value: openshift/oauth-proxy:v1.0.0
+- description: The location of the alertmanager image
+  name: IMAGE_ALERTMANAGER
+  value: prom/alertmanager
+- description: The session secret for the proxy
+  name: SESSION_SECRET
+  generate: expression
+  from: "[a-zA-Z0-9]{43}"
+- description: The alertmanager hostname
+  name: ALERTMANAGER_HOSTNAME
+  value: "alertmanager.${HOSTNAME}"
+- description: service-signer.crt
+  name: SERVICE_SIGNER_CERT
+objects:
+# Authorize the alertmanager service account to read data about the cluster
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"alertmanager"}}'
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: alertmanager-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+# Create a fully end-to-end TLS connection to the proxy
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  spec:
+    host: "${ALERTMANAGER_HOSTNAME}"
+    to:
+      name: alertmanager
+    tls:
+      termination: Reencrypt
+      destinationCACertificate: "${SERVICE_SIGNER_CERT}"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: alertmanager-tls
+    labels:
+      name: alertmanager
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: alertmanager
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: alertmanager
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: alertmanager-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+
+# Deploy AlertManager behind an oauth proxy
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: alertmanager
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: alertmanager
+    template:
+      metadata:
+        labels:
+          app: alertmanager
+        name: alertmanager
+      spec:
+        serviceAccountName: alertmanager
+        containers:
+        - name: oauth-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8443
+            name: web
+          args:
+          - -https-address=:8443
+          - -email-domain=*
+          - -client-id=system:serviceaccount:${NAMESPACE}:alertmanager
+          - -upstream=http://localhost:9093
+          - -provider=openshift
+          - -redirect-url=https:///oauth2/callback
+          - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}}'
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: alertmanager-tls
+          - mountPath: /etc/proxy/secrets
+            name: secrets
+
+        - name: alertmanager
+          args:
+          - -config.file=/etc/alertmanager/alertmanager.yml
+          image: ${IMAGE_ALERTMANAGER}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 9093
+            name: web
+          volumeMounts:
+          - mountPath: /etc/alertmanager
+            name: alertmanager-config
+          - mountPath: /alertmanager
+            name: alertmanager-data
+
+        restartPolicy: Always
+        volumes:
+        - configMap:
+            defaultMode: 420
+            name: alertmanager
+          name: alertmanager-config
+        - name: secrets
+          secret:
+            secretName: alertmanager-proxy
+        - name: alertmanager-tls
+          secret:
+            secretName: alertmanager-tls
+        - emptyDir: {}
+          name: alertmanager-data
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: alertmanager
+    namespace: "${NAMESPACE}"
+  data:
+    alertmanager.yml: |
+      global:
+
+      # The root route on which each incoming alert enters.
+      route:
+        # default route if none match
+        receiver: message-buffer-wh
+
+        # The labels by which incoming alerts are grouped together. For example,
+        # multiple alerts coming in for cluster=A and alertname=LatencyHigh would
+        # be batched into a single group.
+        # TODO:
+        group_by: []
+
+        # All the above attributes are inherited by all child routes and can
+        # overwritten on each.
+
+      receivers:
+      - name: message-buffer-wh
+        webhook_configs:
+        - url: http://localhost:9099
+
