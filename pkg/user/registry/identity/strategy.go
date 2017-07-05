@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -23,6 +24,10 @@ type identityStrategy struct {
 // Strategy is the default logic that applies when creating and updating Identity
 // objects via the REST API.
 var Strategy = identityStrategy{kapi.Scheme}
+
+func (identityStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+	return rest.Unsupported
+}
 
 func (identityStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {}
 

@@ -12885,7 +12885,7 @@ metadata:
   annotations:
     "openshift.io/display-name": Prometheus
     description: |
-      A monitoring solution for an OpenShift cluster - collect and gather metrics from nodes, services, and the infrastructure.
+      A monitoring solution for an OpenShift cluster - collect and gather metrics from nodes, services, and the infrastructure. This is a tech preview feature.
     iconClass: icon-cogs
     tags: "monitoring,prometheus,time-series"
 parameters:
@@ -12894,10 +12894,10 @@ parameters:
   value: kube-system
 - description: The location of the proxy image
   name: IMAGE_PROXY
-  value: registry.svc.ci.openshift.org/ci/oauth-proxy:latest
+  value: openshift/oauth-proxy:v1.0.0
 - description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
-  value: registry.svc.ci.openshift.org/ci/prometheus:latest
+  value: openshift/prometheus:v2.0.0-dev
 - description: The session secret for the proxy
   name: SESSION_SECRET
   generate: expression
@@ -13006,9 +13006,9 @@ objects:
 
         - name: prometheus
           args:
-          - -storage.tsdb.retention=6h
-          - -config.file=/etc/prometheus/prometheus.yml
-          - -web.listen-address=localhost:9090
+          - --storage.tsdb.retention=6h
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}
           imagePullPolicy: IfNotPresent
           volumeMounts:
