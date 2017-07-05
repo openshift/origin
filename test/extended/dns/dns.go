@@ -113,6 +113,26 @@ func digForARecords(records map[string][]string, expect sets.String) string {
 	return probeCmd
 }
 
+func reverseIP(ip string) string {
+	a := strings.Split(ip, ".")
+	for i, j := 0, len(a)-1; i < j; i, j = i+1, j-1 {
+		a[i], a[j] = a[j], a[i]
+	}
+	return strings.Join(a, ".")
+}
+
+func digForPTRRecords(records map[string]string, expect sets.String) string {
+	var probeCmd string
+	fileNamePrefix := "test"
+	for ip, name := range records {
+		fileName := fmt.Sprintf("%s_ptr@%s", fileNamePrefix, ip)
+		probeCmd += fmt.Sprintf(`[ "$(dig +short +notcp +noall +answer +search %s.in-addr.arpa PTR)" = "%s" ] && echo %q;`, reverseIP(ip), name, fileName)
+		//probeCmd += fmt.Sprintf(`echo "$(dig +short +notcp +noall +answer +search %s.in-addr.arpa PTR)" "# %s %s" %q;`, reverseIP(ip), reverseIP(ip), name, fileName)
+		expect.Insert(fileName)
+	}
+	return probeCmd
+}
+
 func digForPod(namespace string, expect sets.String) string {
 	var probeCmd string
 	fileNamePrefix := "test"
@@ -336,6 +356,13 @@ var _ = Describe("DNS", func() {
 
 				fmt.Sprintf("endpoint1.headless.%s.endpoints", f.Namespace.Name):  {"1.1.1.1"},
 				fmt.Sprintf("endpoint1.clusterip.%s.endpoints", f.Namespace.Name): {"1.1.1.1"},
+			}, expect),
+
+			// the DNS pod should be able to find an endpoint hostname via a PTR record for the IP
+			digForPTRRecords(map[string]string{
+				"1.1.1.1": fmt.Sprintf("endpoint1.headless.%s.svc.cluster.local.", f.Namespace.Name),
+				"1.1.1.2": "", // has no hostname
+				"2.1.1.1": "", // has no hostname
 			}, expect),
 
 			// the DNS pod should respond to its own request
