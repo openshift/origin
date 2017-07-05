@@ -850,12 +850,18 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	}
 	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"}                        // remove most admission checks to make testing easier
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
+	// enable APIs that are off by default
+	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{
+		"runtime-config": {
+			"apis/settings.k8s.io/v1alpha1=true",
+		},
+	}
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
 		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
 	masterConfig.TemplateServiceBrokerConfig = &serverapi.TemplateServiceBrokerConfig{}
 	if etcdServer.V3Client == nil {
-		masterConfig.KubernetesMasterConfig.APIServerArguments = serverapi.ExtendedArguments{"storage-backend": []string{"etcd2"}}
+		masterConfig.KubernetesMasterConfig.APIServerArguments["storage-backend"] = []string{"etcd2"}
 	}
 	masterConfig.EtcdClientInfo.URLs[0] = testutil.GetEtcdURL()
 

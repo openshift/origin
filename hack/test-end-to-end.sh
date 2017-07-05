@@ -21,9 +21,11 @@ os::util::ensure::iptables_privileges_exist
 os::log::info "Starting end-to-end test"
 
 function cleanup() {
-	return_code=$?
-	os::cleanup::all "${return_code}"
-	exit "${return_code}"
+  return_code=$?
+  os::test::junit::generate_report
+  os::cleanup::all
+  os::util::describe_return_code "${return_code}"
+  exit "${return_code}"
 }
 trap "cleanup" EXIT
 

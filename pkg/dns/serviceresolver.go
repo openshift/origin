@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"net"
+	"sort"
 	"strings"
 
 	etcd "github.com/coreos/etcd/client"
@@ -12,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"github.com/skynetservices/skydns/msg"
 	"github.com/skynetservices/skydns/server"
@@ -25,7 +25,7 @@ import (
 type ServiceResolver struct {
 	config    *server.Config
 	accessor  ServiceAccessor
-	endpoints kcorelisters.EndpointsLister
+	endpoints EndpointsAccessor
 	base      string
 	fallback  FallbackFunc
 }
@@ -40,7 +40,7 @@ type FallbackFunc func(name string, exact bool) (string, bool)
 
 // NewServiceResolver creates an object that will return DNS record entries for
 // SkyDNS based on service names.
-func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoints kcorelisters.EndpointsLister, fn FallbackFunc) *ServiceResolver {
+func NewServiceResolver(config *server.Config, accessor ServiceAccessor, endpoints EndpointsAccessor, fn FallbackFunc) *ServiceResolver {
 	domain := config.Domain
 	if !strings.HasSuffix(domain, ".") {
 		domain = domain + "."
@@ -279,6 +279,9 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 
 	svc, err := b.accessor.ServiceByClusterIP(clusterIP)
 	if err != nil {
+		if svc, endpointErr := b.reverseEndpointRecord(name, clusterIP); endpointErr == nil {
+			return svc, nil
+		}
 		return nil, err
 	}
 	port := 0
@@ -296,6 +299,60 @@ func (b *ServiceResolver) ReverseRecord(name string) (*msg.Service, error) {
 
 		Key: msg.Path(name),
 	}, nil
+}
+
+var errNoSuchHostname = fmt.Errorf("the requested endpoint address does not exist")
+
+// reverseEndpointRecord attempts to return a reverse record for a given endpoint address
+// IP in the form of a service entry. If multiple services have an entry, it will return
+// the oldest endpoint.
+func (b *ServiceResolver) reverseEndpointRecord(name, ip string) (*msg.Service, error) {
+	epts, err := b.endpoints.EndpointsByHostnameIP(ip)
+	if err != nil {
+		return nil, err
+	}
+	ept, hostname, ok := findAddressHostnameWithIP(epts, ip)
+	if !ok {
+		return nil, errNoSuchHostname
+	}
+	hostName := buildDNSName(b.base, "svc", ept.Namespace, ept.Name, hostname)
+	return &msg.Service{
+		Host: hostName,
+
+		Priority: 10,
+		Weight:   10,
+		Ttl:      30,
+
+		Key: msg.Path(name),
+	}, nil
+}
+
+// findAddressHostnameWithIP finds the oldest endpoint in epts that has an address with ip and
+// a set hostname. It returns the hostname it located, or false if no such address existed.
+func findAddressHostnameWithIP(epts []*kapi.Endpoints, ip string) (*kapi.Endpoints, string, bool) {
+	sort.Sort(oldestEndpoints(epts))
+	for _, ept := range epts {
+		for i := range ept.Subsets {
+			subset := &ept.Subsets[i]
+			for j := range subset.Addresses {
+				address := &subset.Addresses[j]
+				if address.IP == ip {
+					if len(address.Hostname) > 0 {
+						return ept, address.Hostname, true
+					}
+				}
+			}
+		}
+	}
+	return nil, "", false
+}
+
+type oldestEndpoints []*kapi.Endpoints
+
+func (s oldestEndpoints) Len() int      { return len(s) }
+func (s oldestEndpoints) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s oldestEndpoints) Less(i, j int) bool {
+	return !s[j].CreationTimestamp.Before(s[i].CreationTimestamp)
 }
 
 // arpaSuffix is the standard suffix for PTR IP reverse lookups.

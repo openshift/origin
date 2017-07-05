@@ -12,6 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
 // ServiceAccessor is the interface used by the ServiceResolver to access
@@ -133,4 +134,94 @@ func (a cachedServiceNamespacer) Patch(name string, pt types.PatchType, data []b
 }
 func (a cachedServiceNamespacer) ProxyGet(scheme, name, port, path string, params map[string]string) restclient.ResponseWrapper {
 	return nil
+}
+
+// EndpointsAccessor is the interface used by the ServiceResolver to access
+// endpoints.
+type EndpointsAccessor interface {
+	kcorelisters.EndpointsLister
+	// EndpointsByHostnameIP retrieves the Endpoints object containing a hostname
+	// that resolves to IP. Only endpoint addresses with a hostname field will match.
+	// If this returns an error, the caller should indicate that this may be a
+	// deliberately ambiguous response (server decided not to support this call.
+	EndpointsByHostnameIP(ip string) ([]*api.Endpoints, error)
+}
+
+// cachedEndpointsAccessor provides a cache of services that can answer queries
+// about service lookups efficiently.
+type cachedEndpointsAccessor struct {
+	store cache.Indexer
+	kcorelisters.EndpointsLister
+}
+
+// cachedEndpointsAccessor implements EndpointsAccessor
+var _ EndpointsAccessor = &cachedEndpointsAccessor{}
+
+// NewCachedEndpointsAccessor returns a service accessor that can answer queries about services.
+// It uses a backing cache to make ClusterIP lookups efficient.
+func NewCachedEndpointsAccessor(endpointsInformer kcoreinformers.EndpointsInformer) (EndpointsAccessor, error) {
+	if _, found := endpointsInformer.Informer().GetIndexer().GetIndexers()["namespace"]; !found {
+		err := endpointsInformer.Informer().AddIndexers(cache.Indexers{
+			"namespace": cache.MetaNamespaceIndexFunc,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	err := endpointsInformer.Informer().AddIndexers(cache.Indexers{
+		"hostnameIP": indexEndpointsByAddressHostnameIP, // for reverse lookups
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &cachedEndpointsAccessor{
+		store:           endpointsInformer.Informer().GetIndexer(),
+		EndpointsLister: endpointsInformer.Lister(),
+	}, nil
+}
+
+// EndpointsByHostnameIP returns all endpoints with an address that matches the provided hostname
+// IP address (has an address containing that IP that also has a hostname set).
+func (a *cachedEndpointsAccessor) EndpointsByHostnameIP(ip string) ([]*api.Endpoints, error) {
+	items, err := a.store.ByIndex("hostnameIP", ip)
+	if err != nil {
+		return nil, err
+	}
+	var endpoints []*api.Endpoints
+	for _, item := range items {
+		endpoints = append(endpoints, item.(*api.Endpoints))
+	}
+	return endpoints, nil
+}
+
+// indexEndpointsByAddressHostnameIP
+func indexEndpointsByAddressHostnameIP(obj interface{}) ([]string, error) {
+	var keys []string
+	ept := obj.(*api.Endpoints)
+	for i := range ept.Subsets {
+		subset := &ept.Subsets[i]
+		for j := range subset.Addresses {
+			address := &subset.Addresses[j]
+			if len(address.Hostname) > 0 {
+				keys = append(keys, address.IP)
+			}
+		}
+	}
+	return keys, nil
+}
+
+// SimpleEndpointsAccessor answers endpoint lookups but always returns an error for
+// EndpointsByHostnameIP.
+type SimpleEndpointsAccessor struct {
+	kcorelisters.EndpointsLister
+}
+
+// cachedEndpointsAccessor implements EndpointsAccessor
+var _ EndpointsAccessor = &SimpleEndpointsAccessor{}
+
+var errNotSupported = fmt.Errorf("hostname lookups not supported")
+
+// EndpointsByHostnameIP always returns an error.
+func (a SimpleEndpointsAccessor) EndpointsByHostnameIP(_ string) ([]*api.Endpoints, error) {
+	return nil, errNotSupported
 }

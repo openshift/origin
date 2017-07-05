@@ -39,7 +39,7 @@ func TestAllowedAPIVersions(t *testing.T) {
 			enabled.Insert(enabledVersion.Version)
 		}
 		expected := sets.NewString(versions...)
-		actual := enabled.Difference(sets.NewString(api.KubeAPIGroupsToDeadVersions[group]...))
+		actual := enabled.Difference(sets.NewString(api.KubeDefaultDisabledVersions[group]...))
 		if e, a := expected.List(), actual.List(); !reflect.DeepEqual(e, a) {
 			t.Errorf("For group %s, expected versions %#v, got %#v", group, e, a)
 		}
