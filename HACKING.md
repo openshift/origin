@@ -420,9 +420,11 @@ All upstream commits should have a commit message where the first line is:
 
     UPSTREAM: <PR number|drop|carry>: <short description>
 
-`drop` indicates the commit should be removed during the next rebase. `carry`
-means that the change cannot go into upstream, and we should continue to use it
-during the next rebase.
+`drop` indicates the commit should be removed during the next
+rebase. `carry` means that the change cannot go into upstream, and we
+should continue to use it during the next rebase. `PR number` means
+that the commit will be dropped during a rebase, as long as that
+rebase includes the given PR number.
 
 You can also target repositories other than Kube by setting `UPSTREAM_REPO` and
 `UPSTREAM_PACKAGE` env vars.  `UPSTREAM_REPO` should be the full name of the Git
