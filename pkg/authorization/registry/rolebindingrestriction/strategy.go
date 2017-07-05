@@ -63,12 +63,12 @@ func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) 
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	rbr, ok := obj.(*authorizationapi.RoleBindingRestriction)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a RoleBindingRestriction")
+		return nil, nil, false, fmt.Errorf("not a RoleBindingRestriction")
 	}
-	return labels.Set(rbr.ObjectMeta.Labels), authorizationapi.RoleBindingRestrictionToSelectableFields(rbr), nil
+	return labels.Set(rbr.ObjectMeta.Labels), authorizationapi.RoleBindingRestrictionToSelectableFields(rbr), rbr.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

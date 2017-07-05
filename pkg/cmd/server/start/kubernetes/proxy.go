@@ -9,7 +9,6 @@ import (
 
 	kflag "k8s.io/apiserver/pkg/util/flag"
 	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
-	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/util/logs"
 )

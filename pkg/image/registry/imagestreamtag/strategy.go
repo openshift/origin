@@ -84,12 +84,12 @@ func MatchImageStreamTag(label labels.Selector, field fields.Selector) kstorage.
 	return kstorage.SelectionPredicate{
 		Label: label,
 		Field: field,
-		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, error) {
+		GetAttrs: func(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 			obj, ok := o.(*imageapi.ImageStreamTag)
 			if !ok {
-				return nil, nil, fmt.Errorf("not an ImageStreamTag")
+				return nil, nil, false, fmt.Errorf("not an ImageStreamTag")
 			}
-			return labels.Set(obj.Labels), SelectableFields(obj), nil
+			return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 		},
 	}
 }

@@ -62,12 +62,12 @@ func (templateStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 	obj, ok := o.(*templateapi.Template)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a Template")
+		return nil, nil, false, fmt.Errorf("not a Template")
 	}
-	return labels.Set(obj.Labels), SelectableFields(obj), nil
+	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
@@ -27,7 +28,7 @@ func TestDeepCopy(t *testing.T) {
 	if !reflect.DeepEqual(check, original) {
 		t.Error("before mutation of copy, check and original should be identical but are not, likely failure in deepequal")
 	}
-	if !kapi.Semantic.DeepEqual(check, original) {
+	if !kapihelper.Semantic.DeepEqual(check, original) {
 		t.Error("before mutation of copy, check and original should be identical but are not, likely failure in deepequal")
 	}
 
@@ -39,7 +40,7 @@ func TestDeepCopy(t *testing.T) {
 	if !reflect.DeepEqual(copied, original) {
 		t.Error("before mutation of copy, copied and original should be identical but are not, likely failure in deepequal")
 	}
-	if !kapi.Semantic.DeepEqual(copied, original) {
+	if !kapihelper.Semantic.DeepEqual(copied, original) {
 		t.Error("before mutation of copy, copied and original should be identical but are not, likely failure in deepequal")
 	}
 
@@ -61,14 +62,14 @@ func TestDeepCopy(t *testing.T) {
 	if !reflect.DeepEqual(check, original) {
 		t.Error("after mutation of copy, check and original should be identical but are not, likely failure in deep copy (ensure custom DeepCopy is being used)")
 	}
-	if !kapi.Semantic.DeepEqual(check, original) {
+	if !kapihelper.Semantic.DeepEqual(check, original) {
 		t.Error("after mutation of copy, check and original should be identical but are not, likely failure in deep copy (ensure custom DeepCopy is being used)")
 	}
 
 	if reflect.DeepEqual(original, copied) {
 		t.Error("after mutation of copy, original and copied should be different but are not, likely failure in deep copy (ensure custom DeepCopy is being used)")
 	}
-	if kapi.Semantic.DeepEqual(original, copied) {
+	if kapihelper.Semantic.DeepEqual(original, copied) {
 		t.Error("after mutation of copy, original and copied should be different but are not, likely failure in deep copy (ensure custom DeepCopy is being used)")
 	}
 }

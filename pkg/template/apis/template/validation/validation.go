@@ -7,6 +7,7 @@ import (
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	oapi "github.com/openshift/origin/pkg/api"
@@ -86,7 +87,7 @@ func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (a
 func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
 	allErrs = validation.ValidateObjectMetaUpdate(&templateInstance.ObjectMeta, &oldTemplateInstance.ObjectMeta, field.NewPath("metadata"))
 
-	if !kapi.Semantic.DeepEqual(templateInstance.Spec, oldTemplateInstance.Spec) {
+	if !kapihelper.Semantic.DeepEqual(templateInstance.Spec, oldTemplateInstance.Spec) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "field is immutable"))
 	}
 	return

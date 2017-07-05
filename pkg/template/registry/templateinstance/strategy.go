@@ -112,12 +112,12 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 	obj, ok := o.(*templateapi.TemplateInstance)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a TemplateInstance")
+		return nil, nil, false, fmt.Errorf("not a TemplateInstance")
 	}
-	return labels.Set(obj.Labels), SelectableFields(obj), nil
+	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 }
 
 // SelectableFields returns a field set that can be used for filter selection

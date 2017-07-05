@@ -27,7 +27,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
-	"k8s.io/kubernetes/pkg/cloudprovider"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -492,12 +491,12 @@ func (m *Master) Start() error {
 		go func() {
 			controllerPlug.WaitForStart()
 
-			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, informers, utilwait.NeverStop)
+			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, cloudProvider, informers, utilwait.NeverStop)
 			if err != nil {
 				glog.Fatal(err)
 			}
 
-			if err := startControllers(*m.config, allocationController, cloudProvider, informers, controllerContext); err != nil {
+			if err := startControllers(*m.config, allocationController, informers, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
@@ -689,7 +688,7 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kin
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, cloudProvider cloudprovider.Interface, informers *informers, controllerContext origincontrollers.ControllerContext) error {
+func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, informers *informers, controllerContext origincontrollers.ControllerContext) error {
 	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(options, informers)
 	if err != nil {
 		return err
@@ -735,7 +734,7 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 
 	allocationController.RunSecurityAllocationController()
 
-	kubernetesControllerInitializers, err := kubeControllerConfig.GetControllerInitializers(cloudProvider)
+	kubernetesControllerInitializers, err := kubeControllerConfig.GetControllerInitializers()
 	if err != nil {
 		return err
 	}

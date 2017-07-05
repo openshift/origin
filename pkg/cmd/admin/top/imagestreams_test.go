@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -290,7 +290,7 @@ func infosEqual(actual, expected []Info) bool {
 	for _, a := range actual {
 		found := false
 		for _, e := range expected {
-			if kapi.Semantic.DeepEqual(a, e) {
+			if kapihelper.Semantic.DeepEqual(a, e) {
 				found = true
 				break
 			}

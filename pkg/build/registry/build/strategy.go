@@ -83,12 +83,12 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOp
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	build, ok := obj.(*buildapi.Build)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a Build")
+		return nil, nil, false, fmt.Errorf("not a Build")
 	}
-	return labels.Set(build.ObjectMeta.Labels), buildapi.BuildToSelectableFields(build), nil
+	return labels.Set(build.ObjectMeta.Labels), buildapi.BuildToSelectableFields(build), build.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

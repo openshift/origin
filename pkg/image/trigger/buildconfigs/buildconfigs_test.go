@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	testingcore "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -262,7 +263,7 @@ func TestBuildConfigReactor(t *testing.T) {
 			t.Fatal(err)
 		}
 		err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
-		if !kapi.Semantic.DeepEqual(initial, test.obj) {
+		if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 			t.Errorf("%d: should not have mutated: %s", i, diff.ObjectReflectDiff(initial, test.obj))
 		}
 		switch {

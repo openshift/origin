@@ -60,7 +60,7 @@ func (s *storage) GetGroup(ctx apirequest.Context, name string, options *metav1.
 }
 
 func (s *storage) CreateGroup(ctx apirequest.Context, group *userapi.Group) (*userapi.Group, error) {
-	obj, err := s.Create(ctx, group)
+	obj, err := s.Create(ctx, group, false)
 	if err != nil {
 		return nil, err
 	}

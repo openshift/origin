@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
@@ -558,7 +559,7 @@ func TestDefaults(t *testing.T) {
 			t.FailNow()
 		}
 		// TODO(rebase): check that there are no fields which have different semantics for nil and []
-		if !kapi.Semantic.DeepEqual(got.Spec, expected.Spec) {
+		if !kapihelper.Semantic.DeepEqual(got.Spec, expected.Spec) {
 			t.Errorf("got different than expected:\nA:\t%#v\nB:\t%#v\n\nDiff:\n%s\n\n%s", got, expected, diff.ObjectDiff(expected, got), diff.ObjectGoPrintSideBySide(expected, got))
 		}
 	}

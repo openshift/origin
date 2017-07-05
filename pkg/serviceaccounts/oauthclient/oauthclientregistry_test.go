@@ -13,6 +13,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	ostestclient "github.com/openshift/origin/pkg/client/testclient"
@@ -560,7 +561,7 @@ func TestGetClient(t *testing.T) {
 			continue
 		}
 
-		if !kapi.Semantic.DeepEqual(tc.expectedClient, client) {
+		if !kapihelper.Semantic.DeepEqual(tc.expectedClient, client) {
 			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedClient, client)
 			continue
 		}

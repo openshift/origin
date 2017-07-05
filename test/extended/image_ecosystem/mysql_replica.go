@@ -14,6 +14,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 type testCase struct {
@@ -105,7 +106,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for an endpoint")
-		err = oc.KubeFramework().WaitForAnEndpoint(helperName)
+		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), helperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tableCounter := 0
@@ -120,7 +121,8 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 
 			// Test if we can query as root
 			g.By("wait for mysql-master endpoint")
-			oc.KubeFramework().WaitForAnEndpoint("mysql-master")
+			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mysql-master")
+			o.Expect(err).NotTo(o.HaveOccurred())
 			err := helper.TestRemoteLogin(oc, "mysql-master")
 			o.Expect(err).NotTo(o.HaveOccurred())
 

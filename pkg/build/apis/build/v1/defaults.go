@@ -1,7 +1,5 @@
 package v1
 
-import "k8s.io/apimachinery/pkg/runtime"
-
 func SetDefaults_BuildConfigSpec(config *BuildConfigSpec) {
 	if len(config.RunPolicy) == 0 {
 		config.RunPolicy = BuildRunPolicySerial
@@ -42,17 +40,4 @@ func SetDefaults_BuildTriggerPolicy(obj *BuildTriggerPolicy) {
 	if obj.Type == ImageChangeBuildTriggerType && obj.ImageChange == nil {
 		obj.ImageChange = &ImageChangeTrigger{}
 	}
-}
-
-func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	RegisterDefaults(scheme)
-	return scheme.AddDefaultingFuncs(
-		SetDefaults_BuildConfigSpec,
-		SetDefaults_BuildSource,
-		SetDefaults_BuildStrategy,
-		SetDefaults_SourceBuildStrategy,
-		SetDefaults_DockerBuildStrategy,
-		SetDefaults_CustomBuildStrategy,
-		SetDefaults_BuildTriggerPolicy,
-	)
 }
