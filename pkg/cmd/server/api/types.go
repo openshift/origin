@@ -87,7 +87,7 @@ var (
 		APIGroupCertificates:      {"v1beta1"},
 		APIGroupPolicy:            {"v1beta1"},
 		APIGroupStorage:           {"v1", "v1beta1"},
-		APIGroupSettings:          {"v1alpha1"},
+		APIGroupSettings:          {}, // list the group, but don't enable any versions.  alpha disabled by default, but enablable via arg
 		// TODO: enable as part of a separate binary
 		//APIGroupFederation:  {"v1beta1"},
 	}
@@ -107,8 +107,8 @@ var (
 		OriginAPIGroupSecurity:      {"v1"},
 	}
 
-	// Map of group names to known, but disallowed REST API versions
-	KubeAPIGroupsToDeadVersions = map[string][]string{
+	// Map of group names to known, but disabled REST API versions
+	KubeDefaultDisabledVersions = map[string][]string{
 		APIGroupKube:              {"v1beta3"},
 		APIGroupExtensions:        {},
 		APIGroupAutoscaling:       {},
@@ -116,6 +116,7 @@ var (
 		APIGroupPolicy:            {},
 		APIGroupApps:              {},
 		APIGroupAuthorizationRbac: {"v1alpha1"},
+		APIGroupSettings:          {"v1alpha1"},
 	}
 	KnownKubeAPIGroups   = sets.StringKeySet(KubeAPIGroupsToAllowedVersions)
 	KnownOriginAPIGroups = sets.StringKeySet(OriginAPIGroupsToAllowedVersions)
