@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit fea7212e64327100a73f462e79a906a917779099
+%global commit bc6cf938709842555d0c4851767b3339a154310c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.132 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=fea7212
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.133 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=bc6cf93
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.133
+Version:        3.6.134
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,21 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jul 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.134-1
+- Update to use new published images (ccoleman@redhat.com)
+- Updated Prometheus template to account for new config parameters
+  (andy.block@gmail.com)
+- ResolverConfig should be left on so search path is inherited
+  (ccoleman@redhat.com)
+- sdn: add better logging of ofport request failure (dcbw@redhat.com)
+- UPSTREAM: 47347: actually check for a live discovery endpoint before
+  aggregating (deads@redhat.com)
+- make GC skipping resources avoid gc finalizers (deads@redhat.com)
+- UPSTREAM: 48354: allow a deletestrategy to opt-out of GC (deads@redhat.com)
+- Test DC's AvailableReplicas reporting when MinReadySeconds set
+  (tnozicka@gmail.com)
+- Fix avaibility reporting for DC with MinReadySeconds (tnozicka@gmail.com)
+
 * Tue Jul 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.133-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 599adf3
   (smunilla@redhat.com)
