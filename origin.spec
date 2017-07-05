@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bc6cf938709842555d0c4851767b3339a154310c
+%global commit 15bd2fcdb28ecedaafdb1f07894d53dfd50b9e0b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.133 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=bc6cf93
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.134 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=15bd2fc
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.134
+Version:        3.6.135
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jul 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.135-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 04a56c8
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5fdc2282f59424d6e3aee74fa347cb0c5cae918b (eparis+openshiftbot@redhat.com)
+- bump(k8s.io/kubernetes): fff65cf41bdeeaff9964af98450b254f3f2da553
+  (deads@redhat.com)
+- fix tsb error message (jminter@redhat.com)
+- use apiserver args for enabling and disabling alpha versions
+  (deads@redhat.com)
+- Add an option to skip all cleanup with $SKIP_CLEANUP (skuznets@redhat.com)
+- Break up os::cleanup::all (skuznets@redhat.com)
+- Node DNS should answer PTR records for stateful sets (ccoleman@redhat.com)
+
 * Wed Jul 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.134-1
 - Update to use new published images (ccoleman@redhat.com)
 - Updated Prometheus template to account for new config parameters
