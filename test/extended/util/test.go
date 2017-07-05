@@ -323,6 +323,7 @@ var (
 		`should create a pod that reads a secret`,
 		`should create a pod that prints his name and namespace`,
 		`ImageLookup`,
+		`DNS for pods for Hostname and Subdomain Annotation`,
 	}
 	parallelConformanceTestsFilter = regexp.MustCompile(strings.Join(parallelConformanceTests, `|`))
 
