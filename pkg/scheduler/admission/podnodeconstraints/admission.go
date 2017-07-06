@@ -27,18 +27,19 @@ var kindsToIgnore = []schema.GroupKind{
 	extensions.Kind("DaemonSet"),
 }
 
-func init() {
-	admission.RegisterPlugin("PodNodeConstraints", func(config io.Reader) (admission.Interface, error) {
-		pluginConfig, err := readConfig(config)
-		if err != nil {
-			return nil, err
-		}
-		if pluginConfig == nil {
-			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "PodNodeConstraints")
-			return nil, nil
-		}
-		return NewPodNodeConstraints(pluginConfig), nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("PodNodeConstraints",
+		func(config io.Reader) (admission.Interface, error) {
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "PodNodeConstraints")
+				return nil, nil
+			}
+			return NewPodNodeConstraints(pluginConfig), nil
+		})
 }
 
 // NewPodNodeConstraints creates a new admission plugin to prevent objects that contain pod templates

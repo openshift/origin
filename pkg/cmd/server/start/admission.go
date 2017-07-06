@@ -7,44 +7,30 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	// Admission control plug-ins used by OpenShift
-	_ "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
-	_ "github.com/openshift/origin/pkg/build/admission/defaults"
-	_ "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
-	_ "github.com/openshift/origin/pkg/build/admission/overrides"
-	_ "github.com/openshift/origin/pkg/build/admission/secretinjector"
-	_ "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
-	_ "github.com/openshift/origin/pkg/image/admission"
-	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy"
-	_ "github.com/openshift/origin/pkg/ingress/admission"
-	_ "github.com/openshift/origin/pkg/project/admission/lifecycle"
-	_ "github.com/openshift/origin/pkg/project/admission/nodeenv"
-	_ "github.com/openshift/origin/pkg/project/admission/requestlimit"
-	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
-	_ "github.com/openshift/origin/pkg/quota/admission/clusterresourcequota"
-	_ "github.com/openshift/origin/pkg/quota/admission/runonceduration"
-	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
-	_ "github.com/openshift/origin/pkg/security/admission"
-	_ "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/admit"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/alwayspullimages"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/defaulttolerationseconds"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/exec"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/limitranger"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/namespace/exists"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/persistentvolume/label"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/podnodeselector"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/podpreset"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
-	_ "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
+	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/admission/restrictusers"
+	buildjenkinsbootstrapper "github.com/openshift/origin/pkg/build/admission/jenkinsbootstrapper"
+	buildsecretinjector "github.com/openshift/origin/pkg/build/admission/secretinjector"
+	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/admission/strategyrestrictions"
+	imageadmission "github.com/openshift/origin/pkg/image/admission"
+	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy"
+	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
+	projectlifecycle "github.com/openshift/origin/pkg/project/admission/lifecycle"
+	projectnodeenv "github.com/openshift/origin/pkg/project/admission/nodeenv"
+	projectrequestlimit "github.com/openshift/origin/pkg/project/admission/requestlimit"
+	quotaclusterresourceoverride "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
+	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/admission/clusterresourcequota"
+	quotarunonceduration "github.com/openshift/origin/pkg/quota/admission/runonceduration"
+	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
+	securityadmission "github.com/openshift/origin/pkg/security/admission"
+	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
-	imageadmission "github.com/openshift/origin/pkg/image/admission"
-	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -112,7 +98,7 @@ var (
 		"RunOnceDuration",
 		"PodNodeConstraints",
 		overrideapi.PluginName,
-		imagepolicy.PluginName,
+		imagepolicyapi.PluginName,
 		"AlwaysPullImages",
 		"ImagePolicyWebhook",
 		"openshift.io/RestrictSubjectBindings",

@@ -26,14 +26,15 @@ func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceN
 	return fmt.Errorf("requested usage of %s exceeds the maximum limit per %s (%s > %s)", resourceName, limitType, requested.String(), limit.String())
 }
 
-func init() {
-	admission.RegisterPlugin(PluginName, func(config io.Reader) (admission.Interface, error) {
-		plugin, err := NewImageLimitRangerPlugin(config)
-		if err != nil {
-			return nil, err
-		}
-		return plugin, nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register(PluginName,
+		func(config io.Reader) (admission.Interface, error) {
+			plugin, err := NewImageLimitRangerPlugin(config)
+			if err != nil {
+				return nil, err
+			}
+			return plugin, nil
+		})
 }
 
 // imageLimitRangerPlugin is the admission plugin.

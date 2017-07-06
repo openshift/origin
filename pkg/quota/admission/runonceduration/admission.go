@@ -19,18 +19,19 @@ import (
 	"github.com/openshift/origin/pkg/quota/admission/runonceduration/api/validation"
 )
 
-func init() {
-	admission.RegisterPlugin("RunOnceDuration", func(config io.Reader) (admission.Interface, error) {
-		pluginConfig, err := readConfig(config)
-		if err != nil {
-			return nil, err
-		}
-		if pluginConfig == nil {
-			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "RunOnceDuration")
-			return nil, nil
-		}
-		return NewRunOnceDuration(pluginConfig), nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("RunOnceDuration",
+		func(config io.Reader) (admission.Interface, error) {
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "RunOnceDuration")
+				return nil, nil
+			}
+			return NewRunOnceDuration(pluginConfig), nil
+		})
 }
 
 func readConfig(reader io.Reader) (*api.RunOnceDurationConfig, error) {

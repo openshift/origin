@@ -18,12 +18,13 @@ import (
 	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 
-func init() {
-	admission.RegisterPlugin("openshift.io/BuildConfigSecretInjector", func(config io.Reader) (admission.Interface, error) {
-		return &secretInjector{
-			Handler: admission.NewHandler(admission.Create),
-		}, nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("openshift.io/BuildConfigSecretInjector",
+		func(config io.Reader) (admission.Interface, error) {
+			return &secretInjector{
+				Handler: admission.NewHandler(admission.Create),
+			}, nil
+		})
 }
 
 type secretInjector struct {
