@@ -50,7 +50,6 @@ openshift-admin-migrate-authorization.1
 openshift-admin-migrate-etcd-ttl.1
 openshift-admin-migrate-image-references.1
 openshift-admin-migrate-storage.1
-openshift-admin-migrate-volumesource.1
 openshift-admin-migrate.1
 openshift-admin-new-project.1
 openshift-admin-options.1
@@ -148,7 +147,6 @@ openshift-cli-adm-migrate-authorization.1
 openshift-cli-adm-migrate-etcd-ttl.1
 openshift-cli-adm-migrate-image-references.1
 openshift-cli-adm-migrate-storage.1
-openshift-cli-adm-migrate-volumesource.1
 openshift-cli-adm-migrate.1
 openshift-cli-adm-new-project.1
 openshift-cli-adm-options.1
