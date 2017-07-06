@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-var serviceAccountNames = sets.NewString("logging-deployer", "aggregated-logging-kibana", "aggregated-logging-curator", "aggregated-logging-elasticsearch", fluentdServiceAccountName)
+var serviceAccountNames = sets.NewString("aggregated-logging-kibana", "aggregated-logging-curator", "aggregated-logging-elasticsearch", fluentdServiceAccountName)
 
 const serviceAccountsMissing = `
 Did not find ServiceAccounts: %s.  The logging infrastructure will not function 

@@ -473,6 +473,9 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 		tpl := ref.Input().ResolvedMatch.Template
 
 		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
+		if len(c.ContextDir) > 0 {
+			return "", nil, fmt.Errorf("--context-dir is not supported when using a template")
+		}
 		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, parameters)
 		if err != nil {
 			return name, nil, err

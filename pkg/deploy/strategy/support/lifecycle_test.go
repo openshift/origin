@@ -199,14 +199,6 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 }
 
 func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
-	deployerPod := &kapi.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "deployer",
-		},
-		Status: kapi.PodStatus{
-			StartTime: nowFunc(),
-		},
-	}
 	hook := &deployapi.LifecycleHook{
 		FailurePolicy: deployapi.LifecycleHookFailurePolicyAbort,
 		ExecNewPod: &deployapi.ExecNewPodHook{
@@ -217,7 +209,7 @@ func TestHookExecutor_makeHookPodInvalidContainerRef(t *testing.T) {
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
-	_, err := makeHookPod(hook, deployment, deployerPod, &config.Spec.Strategy, "hook")
+	_, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}
@@ -228,14 +220,6 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	deploymentNamespace := "test"
 	maxDeploymentDurationSeconds := deployapi.MaxDeploymentDurationSeconds
 	gracePeriod := int64(10)
-	deployerPod := &kapi.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "deployer",
-		},
-		Status: kapi.PodStatus{
-			StartTime: nowFunc(),
-		},
-	}
 
 	tests := []struct {
 		name                string
@@ -514,7 +498,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
-		pod, err := makeHookPod(test.hook, deployment, deployerPod, &config.Spec.Strategy, "hook")
+		pod, err := makeHookPod(test.hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -543,19 +527,11 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 			ContainerName: "container1",
 		},
 	}
-	deployerPod := &kapi.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "deployer",
-		},
-		Status: kapi.PodStatus{
-			StartTime: nowFunc(),
-		},
-	}
 
 	config := deploytest.OkDeploymentConfig(1)
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 
-	pod, err := makeHookPod(hook, deployment, deployerPod, &config.Spec.Strategy, "hook")
+	pod, err := makeHookPod(hook, deployment, &config.Spec.Strategy, "hook", nowFunc().Time)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}

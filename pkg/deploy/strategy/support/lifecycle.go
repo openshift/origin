@@ -188,9 +188,18 @@ func (e *hookExecutor) executeExecNewPod(hook *deployapi.LifecycleHook, rc *kapi
 	if err != nil {
 		return err
 	}
+	var startTime time.Time
+	// if the deployer pod has not yet had its status updated, it means the execution of the pod is racing with the kubelet
+	// status update. Until kubernetes/kubernetes#36813 is implemented, this check will remain racy. Set to Now() expecting
+	// that the kubelet is unlikely to be very far behind.
+	if deployerPod.Status.StartTime != nil {
+		startTime = deployerPod.Status.StartTime.Time
+	} else {
+		startTime = time.Now()
+	}
 
 	// Build a pod spec from the hook config and replication controller.
-	podSpec, err := makeHookPod(hook, rc, deployerPod, &config.Spec.Strategy, suffix)
+	podSpec, err := makeHookPod(hook, rc, &config.Spec.Strategy, suffix, startTime)
 	if err != nil {
 		return err
 	}
@@ -296,7 +305,7 @@ func (e *hookExecutor) readPodLogs(pod *kapi.Pod, wg *sync.WaitGroup) {
 }
 
 // makeHookPod makes a pod spec from a hook and replication controller.
-func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, deployerPod *kapi.Pod, strategy *deployapi.DeploymentStrategy, suffix string) (*kapi.Pod, error) {
+func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, strategy *deployapi.DeploymentStrategy, suffix string, startTime time.Time) (*kapi.Pod, error) {
 	exec := hook.ExecNewPod
 	var baseContainer *kapi.Container
 	for _, container := range rc.Spec.Template.Spec.Containers {
@@ -336,7 +345,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 	if strategy.ActiveDeadlineSeconds != nil {
 		defaultActiveDeadline = *(strategy.ActiveDeadlineSeconds)
 	}
-	maxDeploymentDurationSeconds := defaultActiveDeadline - int64(time.Since(deployerPod.Status.StartTime.Time).Seconds())
+	maxDeploymentDurationSeconds := defaultActiveDeadline - int64(time.Since(startTime).Seconds())
 
 	// Let the kubelet manage retries if requested
 	restartPolicy := kapi.RestartPolicyNever

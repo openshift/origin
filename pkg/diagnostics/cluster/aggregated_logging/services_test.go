@@ -65,8 +65,8 @@ func TestCheckingServicesWhenMissingServices(t *testing.T) {
 
 	checkServices(d, d, fakeProject)
 	d.assertMessage("AGL0215",
-		"Exp an warning when an expected sercies is not found",
-		log.WarnLevel)
+		"Exp an info when an expected service is not found",
+		log.InfoLevel)
 }
 
 func TestCheckingServicesWarnsWhenRetrievingEndpointsErrors(t *testing.T) {
@@ -88,8 +88,8 @@ func TestCheckingServicesWarnsWhenServiceHasNoEndpoints(t *testing.T) {
 
 	checkServices(d, d, fakeProject)
 	d.assertMessage("AGL0225",
-		"Exp a warning when an expected service has no endpoints",
-		log.WarnLevel)
+		"Exp an error when an existing service has no endpoints",
+		log.ErrorLevel)
 }
 
 func TestCheckingServicesHasNoErrorsOrWarningsForExpServices(t *testing.T) {

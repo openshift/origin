@@ -669,15 +669,17 @@ func (h *Helper) ServerPrereleaseVersion() (semver.Version, error) {
 	if len(versionStr) == 0 {
 		return semver.Version{}, fmt.Errorf("did not find version in command output")
 	}
+	return parseOpenshiftVersion(versionStr)
+}
 
+func parseOpenshiftVersion(versionStr string) (semver.Version, error) {
 	// The OCP version may have > 4 parts to the version string,
 	// e.g. 3.5.1.1-prerelease, whereas Origin will be 3.5.1-prerelease,
 	// drop the 4th digit for OCP.
-	re := regexp.MustCompile("([0-9]+).([0-9]+).([0-9]+).([0-9]+)(.*)")
+	re := regexp.MustCompile("([0-9]+)\\.([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)")
 	versionStr = re.ReplaceAllString(versionStr, "${1}.${2}.${3}${5}")
 
-	version, err := semver.Parse(versionStr)
-	return version, err
+	return semver.Parse(versionStr)
 }
 
 func useDNSIP(version semver.Version) bool {
