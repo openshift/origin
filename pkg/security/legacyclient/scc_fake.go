@@ -14,7 +14,7 @@ import (
 
 // NewSimpleFake returns a client that will respond with the provided objects
 func NewSimpleFake(objects ...runtime.Object) *FakeSecurityContextContstraint {
-	o := clientgotesting.NewObjectTracker(kapi.Registry, kapi.Scheme, kapi.Codecs.UniversalDecoder())
+	o := clientgotesting.NewObjectTracker(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)
@@ -22,7 +22,7 @@ func NewSimpleFake(objects ...runtime.Object) *FakeSecurityContextContstraint {
 	}
 
 	fakeClient := &otestclient.Fake{}
-	fakeClient.AddReactor("*", "*", clientgotesting.ObjectReaction(o, kapi.Registry.RESTMapper()))
+	fakeClient.AddReactor("*", "*", clientgotesting.ObjectReaction(o))
 
 	fakeClient.AddWatchReactor("*", clientgotesting.DefaultWatchReactor(watch.NewFake(), nil))
 
@@ -34,6 +34,7 @@ type FakeSecurityContextContstraint struct {
 }
 
 var sccResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
+var sccKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "SecurityContextConstraints"}
 
 func (c *FakeSecurityContextContstraint) Get(name string, options metav1.GetOptions) (*securityapi.SecurityContextConstraints, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(sccResource, name), &securityapi.SecurityContextConstraints{})
@@ -45,7 +46,7 @@ func (c *FakeSecurityContextContstraint) Get(name string, options metav1.GetOpti
 }
 
 func (c *FakeSecurityContextContstraint) List(opts metav1.ListOptions) (*securityapi.SecurityContextConstraintsList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(sccResource, opts), &securityapi.SecurityContextConstraintsList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(sccResource, sccKind, opts), &securityapi.SecurityContextConstraintsList{})
 	if obj == nil {
 		return nil, err
 	}

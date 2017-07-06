@@ -15,6 +15,7 @@ type FakeClusterRoles struct {
 }
 
 var clusterRolesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterroles"}
+var clusterRolesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "ClusterRoles"}
 
 func (c *FakeClusterRoles) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterRole, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterRolesResource, name), &authorizationapi.ClusterRole{})
@@ -26,7 +27,7 @@ func (c *FakeClusterRoles) Get(name string, options metav1.GetOptions) (*authori
 }
 
 func (c *FakeClusterRoles) List(opts metav1.ListOptions) (*authorizationapi.ClusterRoleList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRolesResource, opts), &authorizationapi.ClusterRoleList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRolesResource, clusterRolesKind, opts), &authorizationapi.ClusterRoleList{})
 	if obj == nil {
 		return nil, err
 	}

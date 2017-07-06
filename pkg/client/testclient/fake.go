@@ -27,7 +27,7 @@ type Fake struct {
 
 // NewSimpleFake returns a client that will respond with the provided objects
 func NewSimpleFake(objects ...runtime.Object) *Fake {
-	o := clientgotesting.NewObjectTracker(kapi.Registry, kapi.Scheme, kapi.Codecs.UniversalDecoder())
+	o := clientgotesting.NewObjectTracker(kapi.Scheme, kapi.Codecs.UniversalDecoder())
 	for _, obj := range objects {
 		if err := o.Add(obj); err != nil {
 			panic(err)
@@ -35,7 +35,7 @@ func NewSimpleFake(objects ...runtime.Object) *Fake {
 	}
 
 	fakeClient := &Fake{}
-	fakeClient.AddReactor("*", "*", clientgotesting.ObjectReaction(o, kapi.Registry.RESTMapper()))
+	fakeClient.AddReactor("*", "*", clientgotesting.ObjectReaction(o))
 
 	fakeClient.AddWatchReactor("*", clientgotesting.DefaultWatchReactor(watch.NewFake(), nil))
 

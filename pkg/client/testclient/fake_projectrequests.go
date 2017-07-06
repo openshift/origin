@@ -15,9 +15,10 @@ type FakeProjectRequests struct {
 }
 
 var newProjectsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "newprojects"}
+var newProjectsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "NewProject"}
 
 func (c *FakeProjectRequests) List(opts metav1.ListOptions) (*metav1.Status, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, opts), &metav1.Status{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(newProjectsResource, newProjectsKind, opts), &metav1.Status{})
 	if obj == nil {
 		return nil, err
 	}
