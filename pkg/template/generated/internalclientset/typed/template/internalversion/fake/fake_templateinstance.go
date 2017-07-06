@@ -18,6 +18,8 @@ type FakeTemplateInstances struct {
 
 var templateinstancesResource = schema.GroupVersionResource{Group: "template.openshift.io", Version: "", Resource: "templateinstances"}
 
+var templateinstancesKind = schema.GroupVersionKind{Group: "template.openshift.io", Version: "", Kind: "TemplateInstance"}
+
 func (c *FakeTemplateInstances) Create(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(templateinstancesResource, c.ns, templateInstance), &template.TemplateInstance{})
@@ -74,7 +76,7 @@ func (c *FakeTemplateInstances) Get(name string, options v1.GetOptions) (result 
 
 func (c *FakeTemplateInstances) List(opts v1.ListOptions) (result *template.TemplateInstanceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(templateinstancesResource, c.ns, opts), &template.TemplateInstanceList{})
+		Invokes(testing.NewListAction(templateinstancesResource, templateinstancesKind, c.ns, opts), &template.TemplateInstanceList{})
 
 	if obj == nil {
 		return nil, err

@@ -3,7 +3,6 @@
 package v1
 
 import (
-	route "github.com/openshift/origin/pkg/route/apis/route"
 	v1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -73,7 +72,7 @@ func (s routeNamespaceLister) Get(name string) (*v1.Route, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(route.Resource("route"), name)
+		return nil, errors.NewNotFound(v1.Resource("route"), name)
 	}
 	return obj.(*v1.Route), nil
 }

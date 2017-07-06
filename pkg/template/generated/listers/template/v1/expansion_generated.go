@@ -11,5 +11,5 @@ type BrokerTemplateInstanceListerExpansion interface{}
 type TemplateInstanceListerExpansion interface{}
 
 // TemplateInstanceNamespaceListerExpansion allows custom methods to be added to
-// TemplateInstanceNamespaeLister.
+// TemplateInstanceNamespaceLister.
 type TemplateInstanceNamespaceListerExpansion interface{}

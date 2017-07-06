@@ -7,5 +7,5 @@ package internalversion
 type UserListerExpansion interface{}
 
 // UserNamespaceListerExpansion allows custom methods to be added to
-// UserNamespaeLister.
+// UserNamespaceLister.
 type UserNamespaceListerExpansion interface{}

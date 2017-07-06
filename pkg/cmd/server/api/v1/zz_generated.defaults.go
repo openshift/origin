@@ -41,6 +41,12 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 	if in.DNSConfig != nil {
 		SetDefaults_DNSConfig(in.DNSConfig)
 	}
+	if in.MasterClients.OpenShiftLoopbackClientConnectionOverrides != nil {
+		SetDefaults_ClientConnectionOverrides(in.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	}
+	if in.MasterClients.ExternalKubernetesClientConnectionOverrides != nil {
+		SetDefaults_ClientConnectionOverrides(in.MasterClients.ExternalKubernetesClientConnectionOverrides)
+	}
 	SetDefaults_ImagePolicyConfig(&in.ImagePolicyConfig)
 	if in.ProjectConfig.SecurityAllocator != nil {
 		SetDefaults_SecurityAllocator(in.ProjectConfig.SecurityAllocator)
@@ -50,5 +56,8 @@ func SetObjectDefaults_MasterConfig(in *MasterConfig) {
 func SetObjectDefaults_NodeConfig(in *NodeConfig) {
 	SetDefaults_NodeConfig(in)
 	SetDefaults_ServingInfo(&in.ServingInfo)
+	if in.MasterClientConnectionOverrides != nil {
+		SetDefaults_ClientConnectionOverrides(in.MasterClientConnectionOverrides)
+	}
 	SetDefaults_DockerConfig(&in.DockerConfig)
 }

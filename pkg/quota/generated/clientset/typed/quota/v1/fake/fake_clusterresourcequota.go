@@ -17,6 +17,8 @@ type FakeClusterResourceQuotas struct {
 
 var clusterresourcequotasResource = schema.GroupVersionResource{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"}
 
+var clusterresourcequotasKind = schema.GroupVersionKind{Group: "quota.openshift.io", Version: "v1", Kind: "ClusterResourceQuota"}
+
 func (c *FakeClusterResourceQuotas) Create(clusterResourceQuota *v1.ClusterResourceQuota) (result *v1.ClusterResourceQuota, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(clusterresourcequotasResource, clusterResourceQuota), &v1.ClusterResourceQuota{})
@@ -68,7 +70,7 @@ func (c *FakeClusterResourceQuotas) Get(name string, options meta_v1.GetOptions)
 
 func (c *FakeClusterResourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterresourcequotasResource, opts), &v1.ClusterResourceQuotaList{})
+		Invokes(testing.NewRootListAction(clusterresourcequotasResource, clusterresourcequotasKind, opts), &v1.ClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}
