@@ -24,9 +24,9 @@ import (
 )
 
 type notRegisteredErr struct {
-	gvk schema.GroupVersionKind
+	gvk    schema.GroupVersionKind
 	target GroupVersioner
-	t   reflect.Type
+	t      reflect.Type
 }
 
 func NewNotRegisteredErrForKind(gvk schema.GroupVersionKind) error {

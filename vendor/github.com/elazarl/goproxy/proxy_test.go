@@ -765,3 +765,72 @@ func TestHasGoproxyCA(t *testing.T) {
 		t.Error("Wrong response when mitm", resp, "expected bobo")
 	}
 }
+
+func TestHttpsMitmURLRewrite(t *testing.T) {
+	scheme := "https"
+
+	testCases := []struct {
+		Host      string
+		RawPath   string
+		AddOpaque bool
+	}{
+		{
+			Host:      "example.com",
+			RawPath:   "/blah/v1/data/realtime",
+			AddOpaque: true,
+		},
+		{
+			Host:    "example.com:443",
+			RawPath: "/blah/v1/data/realtime?encodedURL=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile",
+		},
+		{
+			Host:    "example.com:443",
+			RawPath: "/blah/v1/data/realtime?unencodedURL=https://www.googleapis.com/auth/userinfo.profile",
+		},
+	}
+
+	for _, tc := range testCases {
+		proxy := goproxy.NewProxyHttpServer()
+		proxy.OnRequest().HandleConnect(goproxy.AlwaysMitm)
+
+		proxy.OnRequest(goproxy.DstHostIs(tc.Host)).DoFunc(
+			func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+				return nil, goproxy.TextResponse(req, "Dummy response")
+			})
+
+		client, s := oneShotProxy(proxy, t)
+		defer s.Close()
+
+		fullURL := scheme + "://" + tc.Host + tc.RawPath
+		req, err := http.NewRequest("GET", fullURL, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if tc.AddOpaque {
+			req.URL.Scheme = scheme
+			req.URL.Opaque = "//" + tc.Host + tc.RawPath
+		}
+
+		resp, err := client.Do(req)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		b, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		body := string(b)
+		if body != "Dummy response" {
+			t.Errorf("Expected proxy to return dummy body content but got %s", body)
+		}
+
+		if resp.StatusCode != http.StatusAccepted {
+			t.Errorf("Expected status: %d, got: %d", http.StatusAccepted, resp.StatusCode)
+		}
+	}
+}

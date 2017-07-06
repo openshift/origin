@@ -49,8 +49,7 @@ func (g *genericGenerator) Filter(c *generator.Context, t *types.Type) bool {
 
 func (g *genericGenerator) Namers(c *generator.Context) namer.NameSystems {
 	pluralExceptions := map[string]string{
-		"Endpoints":                  "Endpoints",
-		"SecurityContextConstraints": "SecurityContextConstraints",
+		"Endpoints": "Endpoints",
 	}
 	return namer.NameSystems{
 		"raw":                namer.NewRawNamer(g.outputPackage, g.imports),

@@ -34,9 +34,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	restclient "k8s.io/client-go/rest"
 	restclientwatch "k8s.io/client-go/rest/watch"
-
-	// install to get v1 fallbacks for Get/List/DeleteOptions registered
-	_ "k8s.io/client-go/pkg/api/install"
 )
 
 func getJSON(version, kind, name string) []byte {
@@ -93,9 +90,9 @@ func TestList(t *testing.T) {
 					"apiVersion": "vTest",
 					"kind":       "rTestList",
 				},
-				Items: []*unstructured.Unstructured{
-					getObject("vTest", "rTest", "item1"),
-					getObject("vTest", "rTest", "item2"),
+				Items: []unstructured.Unstructured{
+					*getObject("vTest", "rTest", "item1"),
+					*getObject("vTest", "rTest", "item2"),
 				},
 			},
 		},
@@ -111,9 +108,9 @@ func TestList(t *testing.T) {
 					"apiVersion": "vTest",
 					"kind":       "rTestList",
 				},
-				Items: []*unstructured.Unstructured{
-					getObject("vTest", "rTest", "item1"),
-					getObject("vTest", "rTest", "item2"),
+				Items: []unstructured.Unstructured{
+					*getObject("vTest", "rTest", "item1"),
+					*getObject("vTest", "rTest", "item2"),
 				},
 			},
 		},
@@ -194,7 +191,7 @@ func TestGet(t *testing.T) {
 		}
 		defer srv.Close()
 
-		got, err := cl.Resource(resource, tc.namespace).Get(tc.name)
+		got, err := cl.Resource(resource, tc.namespace).Get(tc.name, metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("unexpected error when getting %q: %v", tc.name, err)
 			continue

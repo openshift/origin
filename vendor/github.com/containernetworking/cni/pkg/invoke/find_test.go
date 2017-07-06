@@ -17,7 +17,9 @@ package invoke_test
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	. "github.com/onsi/ginkgo"
@@ -26,10 +28,12 @@ import (
 
 var _ = Describe("FindInPath", func() {
 	var (
-		multiplePaths  []string
-		pluginName     string
-		pluginDir      string
-		anotherTempDir string
+		multiplePaths         []string
+		pluginName            string
+		plugin2NameWithExt    string
+		plugin2NameWithoutExt string
+		pluginDir             string
+		anotherTempDir        string
 	)
 
 	BeforeEach(func() {
@@ -37,11 +41,24 @@ var _ = Describe("FindInPath", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		plugin, err := ioutil.TempFile(tempDir, "a-cni-plugin")
+		Expect(err).NotTo(HaveOccurred())
+
+		plugin2Name := "a-plugin-with-extension" + invoke.ExecutableFileExtensions[0]
+		plugin2, err := os.Create(filepath.Join(tempDir, plugin2Name))
+		Expect(err).NotTo(HaveOccurred())
 
 		anotherTempDir, err = ioutil.TempDir("", "nothing-here")
+		Expect(err).NotTo(HaveOccurred())
 
 		multiplePaths = []string{anotherTempDir, tempDir}
 		pluginDir, pluginName = filepath.Split(plugin.Name())
+		_, plugin2NameWithExt = filepath.Split(plugin2.Name())
+		plugin2NameWithoutExt = strings.Split(plugin2NameWithExt, ".")[0]
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(pluginDir)
+		os.RemoveAll(anotherTempDir)
 	})
 
 	Context("when multiple paths are provided", func() {
@@ -49,6 +66,14 @@ var _ = Describe("FindInPath", func() {
 			pluginPath, err := invoke.FindInPath(pluginName, multiplePaths)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pluginPath).To(Equal(filepath.Join(pluginDir, pluginName)))
+		})
+	})
+
+	Context("when a plugin name without its file name extension is provided", func() {
+		It("returns the path to the plugin, including its extension", func() {
+			pluginPath, err := invoke.FindInPath(plugin2NameWithoutExt, multiplePaths)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pluginPath).To(Equal(filepath.Join(pluginDir, plugin2NameWithExt)))
 		})
 	})
 

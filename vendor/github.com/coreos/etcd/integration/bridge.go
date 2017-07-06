@@ -31,9 +31,8 @@ type bridge struct {
 	l       net.Listener
 	conns   map[*bridgeConn]struct{}
 
-	stopc  chan struct{}
-	pausec chan struct{}
-	wg     sync.WaitGroup
+	stopc chan struct{}
+	wg    sync.WaitGroup
 
 	mu sync.Mutex
 }
@@ -44,11 +43,8 @@ func newBridge(addr string) (*bridge, error) {
 		inaddr:  addr + "0",
 		outaddr: addr,
 		conns:   make(map[*bridgeConn]struct{}),
-		stopc:   make(chan struct{}),
-		pausec:  make(chan struct{}),
+		stopc:   make(chan struct{}, 1),
 	}
-	close(b.pausec)
-
 	l, err := transport.NewUnixListener(b.inaddr)
 	if err != nil {
 		return nil, fmt.Errorf("listen failed on socket %s (%v)", addr, err)
@@ -63,13 +59,10 @@ func (b *bridge) URL() string { return "unix://" + b.inaddr }
 
 func (b *bridge) Close() {
 	b.l.Close()
-	b.mu.Lock()
 	select {
-	case <-b.stopc:
+	case b.stopc <- struct{}{}:
 	default:
-		close(b.stopc)
 	}
-	b.mu.Unlock()
 	b.wg.Wait()
 }
 
@@ -80,22 +73,6 @@ func (b *bridge) Reset() {
 		bc.Close()
 	}
 	b.conns = make(map[*bridgeConn]struct{})
-}
-
-func (b *bridge) Pause() {
-	b.mu.Lock()
-	b.pausec = make(chan struct{})
-	b.mu.Unlock()
-}
-
-func (b *bridge) Unpause() {
-	b.mu.Lock()
-	select {
-	case <-b.pausec:
-	default:
-		close(b.pausec)
-	}
-	b.mu.Unlock()
 }
 
 func (b *bridge) serveListen() {
@@ -114,23 +91,13 @@ func (b *bridge) serveListen() {
 		if ierr != nil {
 			return
 		}
-		b.mu.Lock()
-		pausec := b.pausec
-		b.mu.Unlock()
-		select {
-		case <-b.stopc:
-			inc.Close()
-			return
-		case <-pausec:
-		}
-
 		outc, oerr := net.Dial("unix", b.outaddr)
 		if oerr != nil {
 			inc.Close()
 			return
 		}
 
-		bc := &bridgeConn{inc, outc, make(chan struct{})}
+		bc := &bridgeConn{inc, outc}
 		b.wg.Add(1)
 		b.mu.Lock()
 		b.conns[bc] = struct{}{}
@@ -141,7 +108,6 @@ func (b *bridge) serveListen() {
 
 func (b *bridge) serveConn(bc *bridgeConn) {
 	defer func() {
-		close(bc.donec)
 		bc.Close()
 		b.mu.Lock()
 		delete(b.conns, bc)
@@ -153,29 +119,21 @@ func (b *bridge) serveConn(bc *bridgeConn) {
 	wg.Add(2)
 	go func() {
 		io.Copy(bc.out, bc.in)
-		bc.close()
 		wg.Done()
 	}()
 	go func() {
 		io.Copy(bc.in, bc.out)
-		bc.close()
 		wg.Done()
 	}()
 	wg.Wait()
 }
 
 type bridgeConn struct {
-	in    net.Conn
-	out   net.Conn
-	donec chan struct{}
+	in  net.Conn
+	out net.Conn
 }
 
 func (bc *bridgeConn) Close() {
-	bc.close()
-	<-bc.donec
-}
-
-func (bc *bridgeConn) close() {
 	bc.in.Close()
 	bc.out.Close()
 }

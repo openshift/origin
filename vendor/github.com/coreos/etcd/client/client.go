@@ -15,7 +15,6 @@
 package client
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -27,8 +26,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/coreos/etcd/version"
 
 	"golang.org/x/net/context"
 )
@@ -203,9 +200,6 @@ type Client interface {
 	// HTTP requests. If the given endpoints are not valid, an error will be
 	// returned
 	SetEndpoints(eps []string) error
-
-	// GetVersion retrieves the current etcd server and cluster version
-	GetVersion(ctx context.Context) (*version.Versions, error)
 
 	httpClient
 }
@@ -480,33 +474,6 @@ func (c *httpClusterClient) AutoSync(ctx context.Context, interval time.Duration
 			return ctx.Err()
 		case <-ticker.C:
 		}
-	}
-}
-
-func (c *httpClusterClient) GetVersion(ctx context.Context) (*version.Versions, error) {
-	act := &getAction{Prefix: "/version"}
-
-	resp, body, err := c.Do(ctx, act)
-	if err != nil {
-		return nil, err
-	}
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		if len(body) == 0 {
-			return nil, ErrEmptyBody
-		}
-		var vresp version.Versions
-		if err := json.Unmarshal(body, &vresp); err != nil {
-			return nil, ErrInvalidJSON
-		}
-		return &vresp, nil
-	default:
-		var etcdErr Error
-		if err := json.Unmarshal(body, &etcdErr); err != nil {
-			return nil, ErrInvalidJSON
-		}
-		return nil, etcdErr
 	}
 }
 

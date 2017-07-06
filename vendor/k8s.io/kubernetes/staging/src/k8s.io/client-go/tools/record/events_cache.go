@@ -26,10 +26,10 @@ import (
 	"github.com/golang/groupcache/lru"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/util/clock"
 	"k8s.io/client-go/util/flowcontrol"
 )
 
@@ -196,10 +196,10 @@ type EventAggregator struct {
 	messageFunc EventAggregatorMessageFunc
 
 	// The maximum number of events in the specified interval before aggregation occurs
-	maxEvents int
+	maxEvents uint
 
 	// The amount of time in seconds that must transpire since the last occurrence of a similar event before it's considered new
-	maxIntervalInSeconds int
+	maxIntervalInSeconds uint
 
 	// clock is used to allow for testing over a time interval
 	clock clock.Clock
@@ -212,8 +212,8 @@ func NewEventAggregator(lruCacheSize int, keyFunc EventAggregatorKeyFunc, messag
 		cache:                lru.New(lruCacheSize),
 		keyFunc:              keyFunc,
 		messageFunc:          messageFunc,
-		maxEvents:            maxEvents,
-		maxIntervalInSeconds: maxIntervalInSeconds,
+		maxEvents:            uint(maxEvents),
+		maxIntervalInSeconds: uint(maxIntervalInSeconds),
 		clock:                clock,
 	}
 }
@@ -265,7 +265,7 @@ func (e *EventAggregator) EventAggregate(newEvent *v1.Event) (*v1.Event, string)
 	e.cache.Add(aggregateKey, record)
 
 	// If we are not yet over the threshold for unique events, don't correlate them
-	if record.localKeys.Len() < e.maxEvents {
+	if uint(record.localKeys.Len()) < e.maxEvents {
 		return newEvent, eventKey
 	}
 
@@ -294,7 +294,7 @@ func (e *EventAggregator) EventAggregate(newEvent *v1.Event) (*v1.Event, string)
 // eventLog records data about when an event was observed
 type eventLog struct {
 	// The number of times the event has occurred since first occurrence.
-	count int
+	count uint
 
 	// The time at which the event was first recorded.
 	firstTimestamp metav1.Time
@@ -355,7 +355,7 @@ func (e *eventLogger) eventObserve(newEvent *v1.Event, key string) (*v1.Event, [
 	e.cache.Add(
 		key,
 		eventLog{
-			count:           int(event.Count),
+			count:           uint(event.Count),
 			firstTimestamp:  event.FirstTimestamp,
 			name:            event.Name,
 			resourceVersion: event.ResourceVersion,
@@ -373,7 +373,7 @@ func (e *eventLogger) updateState(event *v1.Event) {
 	e.cache.Add(
 		key,
 		eventLog{
-			count:           int(event.Count),
+			count:           uint(event.Count),
 			firstTimestamp:  event.FirstTimestamp,
 			name:            event.Name,
 			resourceVersion: event.ResourceVersion,
@@ -422,7 +422,6 @@ type EventCorrelateResult struct {
 // prior to interacting with the API server to record the event.
 //
 // The default behavior is as follows:
-//   * No events are filtered from being recorded
 //   * Aggregation is performed if a similar event is recorded 10 times in a
 //     in a 10 minute rolling interval.  A similar event is an event that varies only by
 //     the Event.Message field.  Rather than recording the precise event, aggregation
@@ -456,7 +455,7 @@ func (c *EventCorrelator) EventCorrelate(newEvent *v1.Event) (*EventCorrelateRes
 	}
 	aggregateEvent, ckey := c.aggregator.EventAggregate(newEvent)
 	observedEvent, patch, err := c.logger.eventObserve(aggregateEvent, ckey)
-	if c.filterFunc(newEvent) {
+	if c.filterFunc(observedEvent) {
 		return &EventCorrelateResult{Skip: true}, nil
 	}
 	return &EventCorrelateResult{Event: observedEvent, Patch: patch}, err

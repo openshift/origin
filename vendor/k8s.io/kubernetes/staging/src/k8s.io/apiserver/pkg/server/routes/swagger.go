@@ -18,7 +18,7 @@ package routes
 
 import (
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful/swagger"
+	"github.com/emicklei/go-restful-swagger12"
 )
 
 // Swagger installs the /swaggerapi/ endpoint to allow schema discovery

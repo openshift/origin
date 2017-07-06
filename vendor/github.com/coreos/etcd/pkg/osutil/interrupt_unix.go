@@ -68,7 +68,6 @@ func HandleInterrupts() {
 		if pid == 1 {
 			os.Exit(0)
 		}
-		setDflSignal(sig.(syscall.Signal))
 		syscall.Kill(pid, sig.(syscall.Signal))
 	}()
 }

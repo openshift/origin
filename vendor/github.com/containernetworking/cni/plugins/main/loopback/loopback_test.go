@@ -49,7 +49,7 @@ var _ = Describe("Loopback", func() {
 			fmt.Sprintf("CNI_ARGS=%s", "none"),
 			fmt.Sprintf("CNI_PATH=%s", "/some/test/path"),
 		}
-		command.Stdin = strings.NewReader("this doesn't matter")
+		command.Stdin = strings.NewReader(`{ "cniVersion": "0.1.0" }`)
 	})
 
 	AfterEach(func() {

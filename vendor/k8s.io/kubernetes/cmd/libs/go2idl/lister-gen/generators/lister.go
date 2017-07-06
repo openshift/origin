@@ -34,8 +34,7 @@ import (
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
-		"Endpoints":                  "Endpoints",
-		"SecurityContextConstraints": "SecurityContextConstraints",
+		"Endpoints": "Endpoints",
 	}
 	return namer.NameSystems{
 		"public":             namer.NewPublicNamer(0),
@@ -111,7 +110,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		// "// +groupName=somegroup.foo.bar.io", use the first field (somegroup) as the name of the
 		// group when generating.
 		if override := types.ExtractCommentTags("+", p.DocComments)["groupName"]; override != nil {
-			gv.Group = clientgentypes.Group(strings.Split(override[0], ".")[0])
+			gv.Group = clientgentypes.Group(strings.SplitN(override[0], ".", 2)[0])
 		}
 
 		var typesToGenerate []*types.Type
@@ -228,7 +227,7 @@ func (g *listerGenerator) GenerateType(c *generator.Context, t *types.Type, w io
 
 	glog.V(5).Infof("processing type %v", t)
 	m := map[string]interface{}{
-		"Resource":   c.Universe.Function(types.Name{Package: g.internalGVPkg, Name: "Resource"}),
+		"Resource":   c.Universe.Function(types.Name{Package: t.Name.Package, Name: "Resource"}),
 		"type":       t,
 		"objectMeta": g.objectMeta,
 	}

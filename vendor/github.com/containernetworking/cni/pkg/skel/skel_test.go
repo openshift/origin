@@ -17,7 +17,6 @@ package skel
 import (
 	"bytes"
 	"errors"
-	"io"
 	"strings"
 
 	"github.com/containernetworking/cni/pkg/types"
@@ -48,7 +47,7 @@ func (c *fakeCmd) Func(args *CmdArgs) error {
 var _ = Describe("dispatching to the correct callback", func() {
 	var (
 		environment     map[string]string
-		stdin           io.Reader
+		stdinData       string
 		stdout, stderr  *bytes.Buffer
 		cmdAdd, cmdDel  *fakeCmd
 		dispatch        *dispatcher
@@ -65,13 +64,14 @@ var _ = Describe("dispatching to the correct callback", func() {
 			"CNI_ARGS":        "some;extra;args",
 			"CNI_PATH":        "/some/cni/path",
 		}
-		stdin = strings.NewReader(`{ "some": "config" }`)
+
+		stdinData = `{ "some": "config", "cniVersion": "9.8.7" }`
 		stdout = &bytes.Buffer{}
 		stderr = &bytes.Buffer{}
 		versionInfo = version.PluginSupports("9.8.7")
 		dispatch = &dispatcher{
 			Getenv: func(key string) string { return environment[key] },
-			Stdin:  stdin,
+			Stdin:  strings.NewReader(stdinData),
 			Stdout: stdout,
 			Stderr: stderr,
 		}
@@ -83,7 +83,7 @@ var _ = Describe("dispatching to the correct callback", func() {
 			IfName:      "eth0",
 			Args:        "some;extra;args",
 			Path:        "/some/cni/path",
-			StdinData:   []byte(`{ "some": "config" }`),
+			StdinData:   []byte(stdinData),
 		}
 	})
 
@@ -121,7 +121,7 @@ var _ = Describe("dispatching to the correct callback", func() {
 
 		DescribeTable("required / optional env vars", envVarChecker,
 			Entry("command", "CNI_COMMAND", true),
-			Entry("container id", "CNI_CONTAINER_ID", false),
+			Entry("container id", "CNI_CONTAINERID", false),
 			Entry("net ns", "CNI_NETNS", true),
 			Entry("if name", "CNI_IFNAME", true),
 			Entry("args", "CNI_ARGS", false),
@@ -142,6 +142,46 @@ var _ = Describe("dispatching to the correct callback", func() {
 				Expect(log).To(ContainSubstring("CNI_IFNAME env variable missing\n"))
 				Expect(log).To(ContainSubstring("CNI_PATH env variable missing\n"))
 
+			})
+		})
+
+		Context("when the stdin data is missing the required cniVersion config", func() {
+			BeforeEach(func() {
+				dispatch.Stdin = strings.NewReader(`{ "some": "config" }`)
+			})
+
+			Context("when the plugin supports version 0.1.0", func() {
+				BeforeEach(func() {
+					versionInfo = version.PluginSupports("0.1.0")
+					expectedCmdArgs.StdinData = []byte(`{ "some": "config" }`)
+				})
+
+				It("infers the config is 0.1.0 and calls the cmdAdd callback", func() {
+					err := dispatch.pluginMain(cmdAdd.Func, cmdDel.Func, versionInfo)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(cmdAdd.CallCount).To(Equal(1))
+					Expect(cmdAdd.Received.CmdArgs).To(Equal(expectedCmdArgs))
+				})
+			})
+
+			Context("when the plugin does not support 0.1.0", func() {
+				BeforeEach(func() {
+					versionInfo = version.PluginSupports("4.3.2")
+				})
+
+				It("immediately returns a useful error", func() {
+					err := dispatch.pluginMain(cmdAdd.Func, cmdDel.Func, versionInfo)
+					Expect(err.Code).To(Equal(types.ErrIncompatibleCNIVersion)) // see https://github.com/containernetworking/cni/blob/master/SPEC.md#well-known-error-codes
+					Expect(err.Msg).To(Equal("incompatible CNI versions"))
+					Expect(err.Details).To(Equal(`config is "0.1.0", plugin supports ["4.3.2"]`))
+				})
+
+				It("does not call either callback", func() {
+					dispatch.pluginMain(cmdAdd.Func, cmdDel.Func, versionInfo)
+					Expect(cmdAdd.CallCount).To(Equal(0))
+					Expect(cmdDel.CallCount).To(Equal(0))
+				})
 			})
 		})
 	})
@@ -168,7 +208,7 @@ var _ = Describe("dispatching to the correct callback", func() {
 
 		DescribeTable("required / optional env vars", envVarChecker,
 			Entry("command", "CNI_COMMAND", true),
-			Entry("container id", "CNI_CONTAINER_ID", false),
+			Entry("container id", "CNI_CONTAINERID", false),
 			Entry("net ns", "CNI_NETNS", false),
 			Entry("if name", "CNI_IFNAME", true),
 			Entry("args", "CNI_ARGS", false),
@@ -186,7 +226,7 @@ var _ = Describe("dispatching to the correct callback", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stdout).To(MatchJSON(`{
-				"cniVersion": "0.2.0",
+				"cniVersion": "0.3.1",
 				"supportedVersions": ["9.8.7"]
 			}`))
 		})
@@ -201,12 +241,28 @@ var _ = Describe("dispatching to the correct callback", func() {
 
 		DescribeTable("VERSION does not need the usual env vars", envVarChecker,
 			Entry("command", "CNI_COMMAND", true),
-			Entry("container id", "CNI_CONTAINER_ID", false),
+			Entry("container id", "CNI_CONTAINERID", false),
 			Entry("net ns", "CNI_NETNS", false),
 			Entry("if name", "CNI_IFNAME", false),
 			Entry("args", "CNI_ARGS", false),
 			Entry("path", "CNI_PATH", false),
 		)
+
+		Context("when the stdin is empty", func() {
+			BeforeEach(func() {
+				dispatch.Stdin = strings.NewReader("")
+			})
+
+			It("succeeds without error", func() {
+				err := dispatch.pluginMain(cmdAdd.Func, cmdDel.Func, versionInfo)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stdout).To(MatchJSON(`{
+					"cniVersion": "0.3.1",
+					"supportedVersions": ["9.8.7"]
+			}`))
+			})
+		})
 	})
 
 	Context("when the CNI_COMMAND is unrecognized", func() {
