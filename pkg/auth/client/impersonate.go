@@ -10,6 +10,7 @@ import (
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 )
 
 type impersonatingRoundTripper struct {
@@ -19,11 +20,11 @@ type impersonatingRoundTripper struct {
 
 // NewImpersonatingRoundTripper will add headers to impersonate a user, including user, groups, and scopes
 func NewImpersonatingRoundTripper(user user.Info, delegate http.RoundTripper) http.RoundTripper {
-	return &impersonatingRoundTripper{user, delegate}
+	return &impersonatingRoundTripper{user: user, delegate: delegate}
 }
 
 func (rt *impersonatingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	req = cloneRequest(req)
+	req = utilnet.CloneRequest(req)
 	req.Header.Del(authenticationapi.ImpersonateUserHeader)
 	req.Header.Del(authenticationapi.ImpersonateGroupHeader)
 	req.Header.Del(authenticationapi.ImpersonateUserScopeHeader)
@@ -36,20 +37,6 @@ func (rt *impersonatingRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 		req.Header.Add(authenticationapi.ImpersonateUserScopeHeader, scope)
 	}
 	return rt.delegate.RoundTrip(req)
-}
-
-// cloneRequest returns a clone of the provided *http.Request.
-// The clone is a shallow copy of the struct and its Header map.
-func cloneRequest(r *http.Request) *http.Request {
-	// shallow copy of the struct
-	r2 := new(http.Request)
-	*r2 = *r
-	// deep copy of the Header
-	r2.Header = make(http.Header)
-	for k, s := range r.Header {
-		r2.Header[k] = s
-	}
-	return r2
 }
 
 // NewImpersonatingConfig wraps the config's transport to impersonate a user, including user, groups, and scopes
